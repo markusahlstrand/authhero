@@ -1,4 +1,4 @@
-import { stringify } from "query-string";
+import querystring from "query-string";
 import { fetchUtils, DataProvider } from "ra-core";
 import { UpdateParams } from "react-admin";
 
@@ -72,7 +72,7 @@ export default (
       sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
       q: params.filter.q,
     };
-    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
+    const url = `${apiUrl}/api/v2/${resource}?${querystring.stringify(query)}`;
 
     const headers = new Headers();
 
@@ -144,7 +144,7 @@ export default (
       headers.set("tenant-id", tenantId);
     }
 
-    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
+    const url = `${apiUrl}/api/v2/${resource}?${querystring.stringify(query)}`;
 
     const res = await httpClient(url, { headers });
 

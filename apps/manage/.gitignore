@@ -1,0 +1,13 @@
+/target
+/dist
+bin/
+pkg/
+worker/
+node_modules/
+build/
+data/
+coverage/
+.dev.vars
+.env
+.vercel
+.env*.local
