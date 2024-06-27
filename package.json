@@ -7,7 +7,8 @@
     "dev": "pnpm --recursive --parallel --stream run dev",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\"",
-    "manage": "pnpm --filter @authhero/manage"
+    "manage": "pnpm --filter @authhero/manage",
+    "create-authhero": "pnpm --filter @authhero/create-authhero"
   },
   "keywords": [],
   "author": "",

@@ -124,6 +124,15 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2(@types/node@20.14.9)
 
+  packages/create:
+    devDependencies:
+      typescript:
+        specifier: ^5.2.2
+        version: 5.5.2
+      vite:
+        specifier: ^5.3.1
+        version: 5.3.2(@types/node@20.14.9)
+
 packages:
 
   /@ampproject/remapping@2.3.0:
