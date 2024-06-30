@@ -1,15 +1,22 @@
 {
-  "name": "@authhero/create-authhero",
-  "private": true,
-  "version": "0.0.0",
+  "name": "create-authhero",
+  "version": "0.0.1",
   "type": "module",
+  "main": "dist/create-authhero.js",
+  "bin": {
+    "create-authhero": "dist/create-authhero.js"
+  },
   "scripts": {
-    "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "start": "pnpm build && node dist/create-authhero.js"
   },
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1"
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.2"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "inquirer": "^9.3.1"
   }
 }
