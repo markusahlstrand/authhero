@@ -8,23 +8,23 @@ function Root() {
   const pathSegments = location.pathname.split("/").filter(Boolean); // Splits path into segments and filters out any empty segments
   const tenantId = pathSegments[0];
 
-  //   if (!tenantId || ["tenants", "auth-callback"].includes(tenantId)) {
+  if (!tenantId || ["tenants", "auth-callback"].includes(tenantId)) {
+    return (
+      <React.StrictMode>
+        <BrowserRouter>
+          <TenantsApp />
+        </BrowserRouter>
+      </React.StrictMode>
+    );
+  }
+
   return (
     <React.StrictMode>
-      <BrowserRouter>
-        <TenantsApp />
+      <BrowserRouter basename={tenantId}>
+        <App tenantId={tenantId} />
       </BrowserRouter>
     </React.StrictMode>
   );
-  //   }
-
-  //   return (
-  //     <React.StrictMode>
-  //       <BrowserRouter basename={tenantId}>
-  //         <App tenantId={tenantId} />
-  //       </BrowserRouter>
-  //     </React.StrictMode>
-  //   );
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<Root />);
