@@ -8,6 +8,7 @@
     "authhero": "dist/index.js"
   },
   "scripts": {
+    "dev": "bun --watch src/bun.ts",
     "build": "vite build",
     "start": "pnpm build && node dist/index.js"
   },

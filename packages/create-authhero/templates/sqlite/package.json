@@ -1,0 +1,17 @@
+{
+  "name": "sqlite",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "bun src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/zod-openapi": "^0.14.9",
+    "authhero": "workspace:^",
+    "hono": "^4.4.10"
+  }
+}

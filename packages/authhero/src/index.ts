@@ -1,13 +1,34 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
-import { Bindings } from "./types/Bindings";
+import { Bindings, Variables } from "./types";
+import { wellKnownRoutes } from "./routes/oauth2";
 
 export interface AuthHeroConfig {}
 
 export function init() {
-  const app = new OpenAPIHono<{ Bindings: Bindings }>();
+  const rootApp = new OpenAPIHono<{ Bindings: Bindings }>();
 
-  app.get("/test", (ctx: Context) => {
-    return ctx.text("Hello, world!");
+  rootApp.get("/", (ctx: Context) => {
+    return ctx.text("Hello, authhero!");
   });
+
+  /**
+   * The oauth routes
+   */
+  const oauthApp = new OpenAPIHono<{
+    Bindings: Bindings;
+    Variables: Variables;
+  }>().route("/.well-known", wellKnownRoutes);
+
+  oauthApp.doc("/spec", {
+    openapi: "3.0.0",
+    info: {
+      version: "1.0.0",
+      title: "Oauth endpoints",
+    },
+  });
+
+  rootApp.route("/", oauthApp);
+
+  return rootApp;
 }
