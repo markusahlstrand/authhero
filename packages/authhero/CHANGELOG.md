@@ -1,5 +1,11 @@
 # authhero
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated the package to reference to correct folder
+
 ## 0.2.0
 
 ### Minor Changes

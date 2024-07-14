@@ -1,10 +1,15 @@
 {
   "name": "authhero",
-  "version": "0.2.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "authhero": "dist/index.js"
+  "version": "0.2.1",
+  "main": "dist/authhero.cjs",
+  "types": "dist/authhero.d.ts",
+  "module": "dist/authhero.mjs",
+  "exports": {
+    ".": {
+      "require": "./dist/authhero.cjs",
+      "import": "./dist/authhero.mjs",
+      "types": "./dist/authhero.d.ts"
+    }
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
