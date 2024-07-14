@@ -1,5 +1,10 @@
 {
   "name": "create-authhero",
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
   "version": "0.1.0",
   "type": "module",
   "main": "dist/create-authhero.js",
