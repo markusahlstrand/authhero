@@ -1,7 +1,7 @@
 import {
   Bindings,
   jwksKeySchema,
-  jwksSchema,
+  // jwksSchema,
   openIDConfigurationSchema,
 } from "../../types";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";

@@ -9,7 +9,7 @@
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\"",
     "manage": "pnpm --filter @authhero/manage",
     "react-admin": "pnpm --filter @authhero/react-admin",
-    "authhero": "pnpm --filter @authhero/authhero",
+    "authhero": "pnpm --filter authhero",
     "create-authhero": "pnpm --filter @authhero/create-authhero"
   },
   "keywords": [],
