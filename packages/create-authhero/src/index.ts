@@ -55,7 +55,13 @@ program
           description: answers.description,
           author: answers.author,
           scripts: {
-            start: "node index.js",
+            dev: "bun --watch src/index.js",
+            start: "bun src/index.js",
+          },
+          dependencies: {
+            "@hono/zod-openapi": "^0.14.9",
+            authhero: "^0.2.0",
+            hono: "^4.4.10",
           },
         },
         null,
