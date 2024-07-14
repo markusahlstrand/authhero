@@ -62,10 +62,29 @@ program
         2,
       ),
     );
-    fs.writeFileSync(
-      path.join(projectPath, "index.js"),
-      `console.log('Welcome to AuthHero!');`,
+
+    // For now we create sqlite by default
+    const sourceDir = path.join(
+      import.meta.url.replace("file://", "").replace("/create-authhero.js", ""),
+      "./sqlite",
     );
+
+    function copyFiles(source, target) {
+      const files = fs.readdirSync(source);
+      files.forEach((file) => {
+        const sourceFile = path.join(source, file);
+        const targetFile = path.join(target, file);
+        if (fs.lstatSync(sourceFile).isDirectory()) {
+          fs.mkdirSync(targetFile);
+          copyFiles(sourceFile, targetFile);
+        } else {
+          fs.copyFileSync(sourceFile, targetFile);
+        }
+      });
+    }
+
+    copyFiles(sourceDir, projectPath);
+
     console.log(`Project "${projectName}" has been created.`);
   });
 

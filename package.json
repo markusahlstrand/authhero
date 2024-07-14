@@ -10,7 +10,7 @@
     "manage": "pnpm --filter @authhero/manage",
     "react-admin": "pnpm --filter @authhero/react-admin",
     "authhero": "pnpm --filter authhero",
-    "create-authhero": "pnpm --filter @authhero/create-authhero"
+    "create-authhero": "pnpm --filter create-authhero"
   },
   "keywords": [],
   "author": "",

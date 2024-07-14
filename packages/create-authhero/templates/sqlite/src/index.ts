@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { init } from "../../../../authhero";
+import { init } from "authhero";
 
 // function init() {
 //   const app = new OpenAPIHono<{ Bindings: Bindings }>();
