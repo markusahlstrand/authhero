@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "dist/adapter-interfaces.js",
   "scripts": {
     "build": "tsc && vite build"
