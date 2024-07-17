@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.1.3
+
+### Patch Changes
+
+- Add typescritpt types
+
 ## 0.1.2
 
 ### Patch Changes

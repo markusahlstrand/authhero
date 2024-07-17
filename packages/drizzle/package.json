@@ -1,5 +1,5 @@
 {
-  "name": "@authhero/adapter-interfaces",
+  "name": "@authhero/drizzle",
   "private": false,
   "homepage": "https://authhero.net",
   "repository": {
@@ -10,28 +10,27 @@
   "files": [
     "dist"
   ],
-  "main": "dist/adapter-interfaces.cjs",
-  "module": "dist/adapter-interfaces.mjs",
-  "types": "dist/adapter-interfaces.d.ts",
+  "main": "dist/drizzle.cjs",
+  "module": "dist/drizzle.mjs",
+  "types": "dist/drizzle.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/adapter-interfaces.cjs",
-      "import": "./dist/adapter-interfaces.mjs",
-      "types": "./dist/adapter-interfaces.d.ts"
+      "require": "./dist/drizzle.cjs",
+      "import": "./dist/drizzle.mjs",
+      "types": "./dist/drizzle.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts"
+    "build": "tsc && vite build"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/node": "^20.14.9",
-    "dts-bundle-generator": "^9.5.1",
     "typescript": "^5.5.2",
     "vite": "^5.3.2"
   },
   "dependencies": {
-    "@hono/zod-openapi": "^0.14.5"
+    "@authhero/adapter-interfaces": "workspace:^"
   }
 }
