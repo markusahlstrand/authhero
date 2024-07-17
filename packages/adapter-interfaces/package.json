@@ -1,0 +1,23 @@
+{
+  "name": "@authhero/adapter-interfaces",
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
+  "version": "0.0.1",
+  "main": "dist/adapter-interfaces.js",
+  "scripts": {
+    "build": "tsc && vite build"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.2"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^0.14.5"
+  }
+}
