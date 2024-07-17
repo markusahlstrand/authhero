@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
-const sessionInsertSchema = z.object({
-  id: z.string(),
+export const sessionInsertSchema = z.object({
+  session_id: z.string(),
   client_id: z.string(),
   expires_at: z.string(),
   used_at: z.string(),

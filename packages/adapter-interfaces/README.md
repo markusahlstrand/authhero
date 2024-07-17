@@ -11,3 +11,4 @@ The database adapters follow these rules:
 - The entity id is passed to the adapter.
 - The adapter can pass objects such as authParams. These objects will typically be flattened as part of the adapter.
 - The types used in the adapters should be inferred from zod schemas to ensure type safety at runtime.
+- The id column an and entity should start with the entity name, e.g. user_id for the user entity.
