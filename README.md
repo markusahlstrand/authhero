@@ -1,6 +1,12 @@
 # authhero
 
-Monorepo for authhero containing the following apps:
+Monorepo for authhero containing the following packages:
+
+- authhero. The main package for authhero that handles authentication and API requests.
+- create-authhero, a CLI for creating authhero projects
+- adapter-interfaces, a package containing interfaces for creating adapters for authhero
+
+It also contains the following apps:
 
 - Manage, a web app for managing auth tenants
 
