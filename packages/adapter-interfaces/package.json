@@ -1,6 +1,11 @@
 {
   "name": "@authhero/adapter-interfaces",
   "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
   "homepage": "https://authhero.net",
   "repository": {
     "type": "git",
