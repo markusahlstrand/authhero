@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.2.2
+
+### Patch Changes
+
+- Missed doing a manula build
+
 ## 0.2.1
 
 ### Patch Changes
