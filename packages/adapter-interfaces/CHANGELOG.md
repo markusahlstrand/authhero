@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.2.0
+
+### Minor Changes
+
+- Update the Session and UniversalLoginSession adapter
+
 ## 0.1.3
 
 ### Patch Changes

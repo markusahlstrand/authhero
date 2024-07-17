@@ -26,6 +26,7 @@
     "declaration": true,
     "composite": true,
     "sourceMap": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "forceConsistentCasingInFileNames": true
   }
 }

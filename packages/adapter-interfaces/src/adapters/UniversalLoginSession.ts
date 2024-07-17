@@ -1,17 +1,17 @@
-import { AuthParams } from "../types";
-
-export interface UniversalLoginSession {
-  id: string;
-  tenant_id: string;
-  created_at: string;
-  updated_at: string;
-  expires_at: string;
-  authParams: AuthParams;
-  auth0Client?: string;
-}
+import {
+  UniversalLoginSession,
+  UniversalLoginSessionInsert,
+} from "../types/UniversalLoginSession";
 
 export interface UniversalLoginSessionsAdapter {
-  create: (session: UniversalLoginSession) => Promise<void>;
-  update: (id: string, session: UniversalLoginSession) => Promise<boolean>;
+  create: (
+    tenant_id: string,
+    session: UniversalLoginSessionInsert,
+  ) => Promise<void>;
+  update: (
+    tenant_id: string,
+    id: string,
+    session: UniversalLoginSession,
+  ) => Promise<boolean>;
   get: (id: string) => Promise<UniversalLoginSession | null>;
 }
