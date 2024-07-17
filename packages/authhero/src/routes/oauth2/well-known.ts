@@ -3,7 +3,7 @@ import {
   jwksKeySchema,
   // jwksSchema,
   openIDConfigurationSchema,
-} from "../../types";
+} from "../types";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 
 export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
