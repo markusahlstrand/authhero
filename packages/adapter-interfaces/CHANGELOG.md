@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.1.2
+
+### Patch Changes
+
+- Update package json with correct path to artefacts
+
 ## 0.1.1
 
 ### Patch Changes

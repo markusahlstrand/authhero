@@ -5,11 +5,20 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "files": [
     "dist"
   ],
-  "main": "dist/adapter-interfaces.js",
+  "main": "dist/adapter-interfaces.cjs",
+  "module": "dist/adapter-interfaces.mjs",
+  "types": "dist/adapter-interfaces.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/adapter-interfaces.cjs",
+      "import": "./dist/adapter-interfaces.mjs",
+      "types": "./dist/adapter-interfaces.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc && vite build"
   },
