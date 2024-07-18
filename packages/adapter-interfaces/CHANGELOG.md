@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.3.0
+
+### Minor Changes
+
+- Updated the adapter for otps
+
 ## 0.2.2
 
 ### Patch Changes
