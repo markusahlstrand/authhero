@@ -11,7 +11,7 @@ export const sessionInsertSchema = z.object({
 
 export type SessionInsert = z.infer<typeof sessionInsertSchema>;
 
-const sessionSchema = z.object({
+export const sessionSchema = z.object({
   created_at: z.string(),
   ...sessionInsertSchema.shape,
 });

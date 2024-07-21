@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.4.0
+
+### Minor Changes
+
+- Update the adapters
+- Update the OTP entity to not include the client_id and tenant_id
+
 ## 0.3.1
 
 ### Patch Changes

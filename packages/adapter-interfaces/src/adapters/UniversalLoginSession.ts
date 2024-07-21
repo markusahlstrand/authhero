@@ -7,7 +7,7 @@ export interface UniversalLoginSessionsAdapter {
   create: (
     tenant_id: string,
     session: UniversalLoginSessionInsert,
-  ) => Promise<void>;
+  ) => Promise<UniversalLoginSession>;
   update: (
     tenant_id: string,
     id: string,

@@ -3,12 +3,10 @@ import { authParamsSchema } from "./AuthParams";
 
 export const otpInsertSchema = z.object({
   id: z.string(),
-  tenant_id: z.string(),
-  client_id: z.string(),
   email: z.string(),
   code: z.string(),
   ip: z.string().optional(),
-  send: z.string().optional(),
+  send: z.enum(["email", "link"]),
   authParams: authParamsSchema,
   expires_at: z.string(),
   used_at: z.string().optional(),
