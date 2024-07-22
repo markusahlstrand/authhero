@@ -6,7 +6,7 @@ export const otpInsertSchema = z.object({
   email: z.string(),
   code: z.string(),
   ip: z.string().optional(),
-  send: z.enum(["email", "link"]),
+  send: z.enum(["code", "link"]),
   authParams: authParamsSchema,
   expires_at: z.string(),
   used_at: z.string().optional(),

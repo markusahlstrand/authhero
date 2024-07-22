@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.5.3
+
+### Patch Changes
+
+- Change the otp to be code or link
+
 ## 0.5.2
 
 ### Patch Changes
