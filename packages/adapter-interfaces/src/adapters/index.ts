@@ -14,7 +14,7 @@ import { KeysAdapter } from "./Keys";
 import { BrandingAdapter } from "./Branding";
 import { AuthenticationCodesAdapter } from "./AuthenticationCodes";
 import { HooksAdapter } from "./Hooks";
-import { ClientsAdapter } from "./Cilent";
+import { ClientsAdapter } from "./Clients";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
