@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.5.0
+
+### Minor Changes
+
+- Add a temporary client adapter until we can pass the tenant_id
+
 ## 0.4.0
 
 ### Minor Changes
