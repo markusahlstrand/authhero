@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.5.2
+
+### Patch Changes
+
+- 3625688: Build client adapters
+
 ## 0.5.1
 
 ### Patch Changes
