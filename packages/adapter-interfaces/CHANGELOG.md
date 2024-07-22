@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.5.1
+
+### Patch Changes
+
+- Add plural s to clients
+
 ## 0.5.0
 
 ### Minor Changes

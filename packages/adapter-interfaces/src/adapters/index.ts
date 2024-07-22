@@ -21,7 +21,7 @@ export interface DataAdapters {
   branding: BrandingAdapter;
   codes: CodesAdapter;
   // TODO: This is a temporary adapter until we can pass the tenant-id
-  client: ClientsAdapter;
+  clients: ClientsAdapter;
   OTP: OTPAdapter;
   passwords: PasswordsAdapter;
   sessions: SessionsAdapter;
