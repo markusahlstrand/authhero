@@ -12,7 +12,8 @@
     "authhero": "pnpm --filter authhero",
     "create-authhero": "pnpm --filter create-authhero",
     "adapter-interfaces": "pnpm --filter adapter-interfaces",
-    "drizzle": "pnpm --filter drizzle"
+    "drizzle": "pnpm --filter drizzle",
+    "kysely": "pnpm --filter kysely"
   },
   "keywords": [],
   "author": "",

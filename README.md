@@ -4,7 +4,11 @@ Monorepo for authhero containing the following packages:
 
 - authhero. The main package for authhero that handles authentication and API requests.
 - create-authhero, a CLI for creating authhero projects
-- adapter-interfaces, a package containing interfaces for creating adapters for authhero
+- adapters:
+
+  - adapter-interfaces, a package containing interfaces for creating adapters for authhero
+  - kyssely
+  - drizzle
 
 It also contains the following apps:
 

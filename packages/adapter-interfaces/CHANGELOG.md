@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.6.0
+
+### Minor Changes
+
+- Added a package for kysely
+
 ## 0.5.3
 
 ### Patch Changes
