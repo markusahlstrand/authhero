@@ -21,7 +21,7 @@ export function createClientsAdapter(db: Kysely<Database>) {
         .executeTakeFirst();
 
       if (!application) {
-        throw new HTTPException(404, { message: "Client not found" });
+        return null;
       }
 
       const tenant = await db

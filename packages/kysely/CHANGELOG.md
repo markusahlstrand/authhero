@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.4.1
+
+### Patch Changes
+
+- Return null if a client isn't found
+
 ## 0.4.0
 
 ### Minor Changes
