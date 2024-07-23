@@ -1,21 +1,23 @@
 import { Kysely } from "kysely";
-import bcrypt from "bcryptjs";
 import { Database } from "../db";
-import { PasswordParams } from "@authhero/adapter-interfaces";
+import { Password, PasswordInsert } from "@authhero/adapter-interfaces";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, params: PasswordParams) => {
-    const passwordHash = bcrypt.hashSync(params.password, 10);
+  return async (tenant_id: string, password: PasswordInsert) => {
+    const createdPassword: Password = {
+      ...password,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
     await db
       .insertInto("passwords")
       .values({
+        ...createdPassword,
         tenant_id,
-        user_id: params.user_id,
-        password: passwordHash,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
       .execute();
+
+    return createdPassword;
   };
 }

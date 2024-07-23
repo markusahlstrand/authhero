@@ -19,3 +19,5 @@ export * from "./Token";
 export * from "./Ticket";
 export * from "./UniversalLoginSession";
 export * from "./User";
+export * from "./Logs";
+export * from "./Identity";

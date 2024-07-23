@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.4.0
+
+### Minor Changes
+
+- Moved bcrypt out of adapter
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.8.0
+
 ## 0.3.0
 
 ### Minor Changes

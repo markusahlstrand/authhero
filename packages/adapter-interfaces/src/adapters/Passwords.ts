@@ -1,10 +1,7 @@
-import { PasswordParams, PasswordResponse } from "../types";
+import { Password, PasswordInsert } from "src/types";
 
 export interface PasswordsAdapter {
-  create: (tenant_id: string, params: PasswordParams) => Promise<void>;
-  update: (tenant_id: string, params: PasswordParams) => Promise<boolean>;
-  validate: (
-    tenant_id: string,
-    params: PasswordParams,
-  ) => Promise<PasswordResponse>;
+  create: (tenant_id: string, params: PasswordInsert) => Promise<Password>;
+  update: (tenant_id: string, params: PasswordInsert) => Promise<boolean>;
+  get: (tenant_id: string, user_id: string) => Promise<Password>;
 }

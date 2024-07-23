@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { baseEntitySchema } from "./BaseEntity";
-import { identitySchema } from "./auth0/Identity";
+import { identitySchema } from "./Identity";
 
 export const baseUserSchema = z.object({
   email: z.string().optional(),

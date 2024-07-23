@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.8.0
+
+### Minor Changes
+
+- Moved bcrypt out of adapter
+
 ## 0.7.0
 
 ### Minor Changes
