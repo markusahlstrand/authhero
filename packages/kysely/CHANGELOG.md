@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.4.3
+
+### Patch Changes
+
+- Did a new build for the kysely adapter
+
 ## 0.4.2
 
 ### Patch Changes
