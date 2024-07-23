@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "files": [
     "dist"
   ],
@@ -26,17 +26,19 @@
     }
   },
   "scripts": {
-    "build": "tsc && vite build"
+    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/node": "^20.14.9",
+    "dts-bundle-generator": "^9.5.1",
     "typescript": "^5.5.2",
     "vite": "^5.3.2"
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:^",
+    "@hono/zod-openapi": "^0.14.5",
     "bcryptjs": "^2.4.3",
     "hono": "^4.4.10",
     "kysely": "^0.27.4",

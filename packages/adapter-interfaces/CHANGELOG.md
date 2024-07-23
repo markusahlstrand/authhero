@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.7.0
+
+### Minor Changes
+
+- Updated the builds and d.ts files
+
 ## 0.6.0
 
 ### Minor Changes

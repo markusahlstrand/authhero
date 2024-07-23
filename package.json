@@ -11,9 +11,9 @@
     "react-admin": "pnpm --filter @authhero/react-admin",
     "authhero": "pnpm --filter authhero",
     "create-authhero": "pnpm --filter create-authhero",
-    "adapter-interfaces": "pnpm --filter adapter-interfaces",
+    "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "drizzle": "pnpm --filter drizzle",
-    "kysely": "pnpm --filter kysely"
+    "kysely": "pnpm --filter @authhero/kysely-adapter"
   },
   "keywords": [],
   "author": "",

@@ -2,7 +2,7 @@ module.exports = {
   entries: [
     {
       filePath: "./src/index.ts",
-      outFile: "./dist/adapter-interfaces.d.ts",
+      outFile: "./dist/kysely-adapter.d.ts",
       noCheck: false,
     },
   ],

@@ -229,6 +229,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:^
         version: link:../adapter-interfaces
+      '@hono/zod-openapi':
+        specifier: ^0.14.5
+        version: 0.14.5(hono@4.4.10)(zod@3.23.8)
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -257,6 +260,9 @@ importers:
       '@types/node':
         specifier: ^20.14.9
         version: 20.14.9
+      dts-bundle-generator:
+        specifier: ^9.5.1
+        version: 9.5.1
       typescript:
         specifier: ^5.5.2
         version: 5.5.2
