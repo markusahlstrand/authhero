@@ -14,10 +14,10 @@ export function update(db: Kysely<Database>) {
     };
 
     await db
-      .updateTable("connections")
+      .updateTable("applications")
       .set(sqlConnection)
-      .where("connections.id", "=", application_id)
-      .where("connections.tenant_id", "=", tenant_id)
+      .where("applications.id", "=", application_id)
+      .where("applications.tenant_id", "=", tenant_id)
       .execute();
 
     return true;

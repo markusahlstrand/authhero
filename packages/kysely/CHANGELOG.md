@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.4.2
+
+### Patch Changes
+
+- Fixed updates for applications
+
 ## 0.4.1
 
 ### Patch Changes
