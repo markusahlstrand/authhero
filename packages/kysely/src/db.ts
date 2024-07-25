@@ -1,3 +1,4 @@
+import { z } from "@hono/zod-openapi";
 import { SqlBranding } from "./branding/Branding";
 import { SqlAuthenticationCode } from "./authenticationCodes/AuthenticationCode";
 import { SqlUser } from "./users/User";
@@ -8,43 +9,39 @@ import {
   Connection,
   Domain,
   Hook,
+  Password,
+  Session,
   Tenant,
+  themeSchema,
 } from "@authhero/adapter-interfaces";
 import { SqlOTP } from "./otps/OTP";
-import { SqlPassword } from "./passwords/Password";
 import { SqlTicket } from "./tickets/Ticket";
 import { SqlUniversalLoginSession } from "./universalLoginSessions/UniversalLoginSession";
 import { SqlLog } from "./logs/Log";
+import { flattenSchema } from "./flattten";
 
-// TODO: Update the colums to match the session entity
-interface SqlSession {
-  tenant_id: string;
-  created_at: string;
-  user_id: string;
-  client_id: string;
-  expires_at: string;
-  used_at: string;
-  id: string;
-  deleted_at?: string | undefined;
-}
+const sqlThemeSchema = flattenSchema(themeSchema).extend({
+  tenant_id: z.string(),
+});
 
-// Keys of this interface are table names.
+type SqlTheme = z.infer<typeof sqlThemeSchema>;
+
 export interface Database {
+  applications: Application & { tenant_id: string };
   authentication_codes: SqlAuthenticationCode;
-  branding: SqlBranding & { tenant_id: string };
+  branding: SqlBranding;
   codes: Code & { tenant_id: string };
+  connections: Connection & { tenant_id: string };
   domains: Domain & { tenant_id: string };
   hooks: Hook & { tenant_id: string };
   keys: Certificate;
-  // TODO: keep the id here for now until we changed primary key
-  users: SqlUser;
-  applications: Application & { tenant_id: string };
-  connections: Connection & { tenant_id: string };
+  logs: SqlLog;
   otps: SqlOTP;
-  passwords: SqlPassword;
-  sessions: SqlSession;
+  passwords: Password & { tenant_id: string };
+  users: SqlUser;
+  sessions: Session & { tenant_id: string };
   tenants: Tenant;
+  themes: SqlTheme;
   tickets: SqlTicket;
   universal_login_sessions: SqlUniversalLoginSession;
-  logs: SqlLog;
 }

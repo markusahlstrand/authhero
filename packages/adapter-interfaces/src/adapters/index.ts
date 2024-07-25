@@ -15,24 +15,25 @@ import { BrandingAdapter } from "./Branding";
 import { AuthenticationCodesAdapter } from "./AuthenticationCodes";
 import { HooksAdapter } from "./Hooks";
 import { ClientsAdapter } from "./Clients";
+import { ThemesAdapter } from "./Themes";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
+  authenticationCodes: AuthenticationCodesAdapter;
   branding: BrandingAdapter;
-  codes: CodesAdapter;
-  // TODO: This is a temporary adapter until we can pass the tenant-id
   clients: ClientsAdapter;
+  codes: CodesAdapter;
+  connections: ConnectionsAdapter;
+  domains: DomainsAdapter;
+  hooks: HooksAdapter;
+  keys: KeysAdapter;
+  logs: LogsDataAdapter;
   OTP: OTPAdapter;
   passwords: PasswordsAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
+  themes: ThemesAdapter;
   tickets: TicketsAdapter;
   universalLoginSessions: UniversalLoginSessionsAdapter;
   users: UserDataAdapter;
-  logs: LogsDataAdapter;
-  connections: ConnectionsAdapter;
-  domains: DomainsAdapter;
-  keys: KeysAdapter;
-  hooks: HooksAdapter;
-  authenticationCodes: AuthenticationCodesAdapter;
 }

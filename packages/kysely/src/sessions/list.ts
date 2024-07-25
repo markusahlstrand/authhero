@@ -17,7 +17,7 @@ export function list(db: Kysely<Database>) {
       .where("sessions.tenant_id", "=", tenant_id);
 
     if (params.q) {
-      query = luceneFilter(db, query, params.q, ["user_id", "id"]);
+      query = luceneFilter(db, query, params.q, ["user_id", "session_id"]);
     }
 
     let filteredQuery = query;
@@ -43,10 +43,7 @@ export function list(db: Kysely<Database>) {
     const countInt = getCountAsInt(count);
 
     return {
-      sessions: sessions.map((session) => {
-        const { id, ...rest } = session;
-        return { session_id: id, ...rest };
-      }),
+      sessions,
       start: params.page * params.per_page,
       limit: params.per_page,
       length: countInt,

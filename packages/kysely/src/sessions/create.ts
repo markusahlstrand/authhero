@@ -7,18 +7,15 @@ export function create(db: Kysely<Database>) {
     tenant_id: string,
     session: SessionInsert,
   ): Promise<Session> => {
-    // TODO: Update the column names to match the sesion entity
     const createdSession = {
-      user_id: session.user_id,
-      client_id: session.client_id,
+      ...session,
       created_at: new Date().toISOString(),
       expires_at: new Date().toISOString(),
-      used_at: session.used_at,
     };
 
     await db
       .insertInto("sessions")
-      .values({ ...createdSession, tenant_id, id: session.session_id })
+      .values({ ...createdSession, tenant_id })
       .execute();
 
     return { ...session, ...createdSession };

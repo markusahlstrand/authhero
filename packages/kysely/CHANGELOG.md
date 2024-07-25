@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.5.0
+
+### Minor Changes
+
+- Added themes and changed primary key for sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.9.0
+
 ## 0.4.3
 
 ### Patch Changes

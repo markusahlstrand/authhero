@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.9.0
+
+### Minor Changes
+
+- Added themes and changed primary key for sessions
+
 ## 0.8.0
 
 ### Minor Changes
