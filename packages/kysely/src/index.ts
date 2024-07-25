@@ -17,6 +17,7 @@ import { createDomainsAdapter } from "./domains";
 import { createBrandingAdapter } from "./branding";
 import { createAuthenticationCodesAdapter } from "./authenticationCodes";
 import { createHooksAdapter } from "./hooks";
+import { createThemesAdapter } from "./themes";
 
 export default function createAdapters(db: Kysely<Database>) {
   return {
@@ -35,6 +36,7 @@ export default function createAdapters(db: Kysely<Database>) {
     users: createUsersAdapter(db),
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),
+    themes: createThemesAdapter(db),
     tickets: createTicketsAdapter(db),
     universalLoginSessions: createUniversalLoginSessionAdapter(db),
   };

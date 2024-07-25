@@ -6,7 +6,7 @@ import { update } from "./update";
 import { ThemesAdapter } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
-export function createConnectionsAdapter(db: Kysely<Database>): ThemesAdapter {
+export function createThemesAdapter(db: Kysely<Database>): ThemesAdapter {
   return {
     create: create(db),
     get: get(db),

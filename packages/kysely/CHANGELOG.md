@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.5.1
+
+### Patch Changes
+
+- Export themes adapter
+
 ## 0.5.0
 
 ### Minor Changes

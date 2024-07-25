@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
 import { Theme, ThemeInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { flattenObject } from "src/flattten";
+import { flattenObject } from "../flattten";
 
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, theme: ThemeInsert): Promise<Theme> => {
