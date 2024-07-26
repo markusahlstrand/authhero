@@ -1,3 +1,4 @@
+// Deprecated: This file will be removed in the next version
 import {
   AuthorizationResponseMode,
   AuthorizationResponseType,

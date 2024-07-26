@@ -1,5 +1,5 @@
 import { Totals, Domain } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 interface ListDomainsResponse extends Totals {
   domains: Domain[];

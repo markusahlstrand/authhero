@@ -1,5 +1,5 @@
 import { Connection, ConnectionInsert, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 export interface ListConnectionsResponse extends Totals {
   connections: Connection[];

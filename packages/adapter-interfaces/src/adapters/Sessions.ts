@@ -1,5 +1,5 @@
 import { Session, SessionInsert, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 export interface ListSesssionsResponse extends Totals {
   sessions: Session[];

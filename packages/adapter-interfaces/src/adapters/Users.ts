@@ -1,5 +1,5 @@
 import { User, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 export interface ListUsersResponse extends Totals {
   users: User[];

@@ -1,3 +1,4 @@
+// Deprecated: This file will be removed in the next version
 import { z } from "@hono/zod-openapi";
 import { authParamsSchema } from "./AuthParams";
 

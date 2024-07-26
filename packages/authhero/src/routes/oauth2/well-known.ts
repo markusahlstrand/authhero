@@ -1,9 +1,8 @@
 import {
-  Bindings,
   jwksKeySchema,
-  // jwksSchema,
   openIDConfigurationSchema,
-} from "../types";
+} from "@authhero/adapter-interfaces";
+import { Bindings } from "../../types";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 
 export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()

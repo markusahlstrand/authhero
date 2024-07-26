@@ -9,6 +9,7 @@ import {
   Connection,
   Domain,
   Hook,
+  loginSchema,
   Password,
   Session,
   Tenant,
@@ -26,6 +27,11 @@ const sqlThemeSchema = flattenSchema(themeSchema).extend({
 
 type SqlTheme = z.infer<typeof sqlThemeSchema>;
 
+const sqlLoginSchema = flattenSchema(loginSchema).extend({
+  tenant_id: z.string(),
+});
+type SqlLogin = z.infer<typeof sqlLoginSchema>;
+
 export interface Database {
   applications: Application & { tenant_id: string };
   authentication_codes: SqlAuthenticationCode;
@@ -35,6 +41,7 @@ export interface Database {
   domains: Domain & { tenant_id: string };
   hooks: Hook & { tenant_id: string };
   keys: Certificate;
+  logins: SqlLogin;
   logs: SqlLog;
   otps: SqlOTP;
   passwords: Password & { tenant_id: string };

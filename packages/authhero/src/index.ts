@@ -2,15 +2,22 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { Bindings, Variables } from "./types";
 import { wellKnownRoutes } from "./routes/oauth2";
+import createManagementApi from "./management-app";
+import { DataAdapters } from "@authhero/adapter-interfaces";
 
-export interface AuthHeroConfig {}
+export interface AuthHeroConfig {
+  dataAdapter: DataAdapters;
+}
 
-export function init() {
+export function init(options: AuthHeroConfig) {
   const rootApp = new OpenAPIHono<{ Bindings: Bindings }>();
 
   rootApp.get("/", (ctx: Context) => {
     return ctx.text("Hello, authhero!");
   });
+
+  const managementApp = createManagementApi(options);
+  rootApp.route("/api/v2", managementApp);
 
   /**
    * The oauth routes

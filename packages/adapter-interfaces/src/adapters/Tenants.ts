@@ -1,5 +1,5 @@
 import { Tenant, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 export interface CreateTenantParams {
   name: string;

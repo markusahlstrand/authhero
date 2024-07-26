@@ -1,1 +1,3 @@
-export type Variables = {};
+export type Variables = {
+  tenant_id: string;
+};

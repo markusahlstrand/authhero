@@ -1,5 +1,5 @@
 import { LogsResponse, Log, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 interface ListLogsResponse extends Totals {
   logs: LogsResponse[];

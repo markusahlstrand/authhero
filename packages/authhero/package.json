@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist/authhero.cjs",
   "types": "dist/authhero.d.ts",
   "module": "dist/authhero.mjs",
@@ -23,6 +23,7 @@
     "vite-plugin-dts": "^3.9.1"
   },
   "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:^",
     "@hono/zod-openapi": "^0.14.5",
     "hono": "^4.4.10"
   }

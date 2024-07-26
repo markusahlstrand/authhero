@@ -157,6 +157,9 @@ importers:
 
   packages/authhero:
     dependencies:
+      '@authhero/adapter-interfaces':
+        specifier: workspace:^
+        version: link:../adapter-interfaces
       '@hono/zod-openapi':
         specifier: ^0.14.5
         version: 0.14.5(hono@4.4.10)(zod@3.23.8)

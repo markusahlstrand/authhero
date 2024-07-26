@@ -1,5 +1,5 @@
 import { Hook, HookInsert, Totals } from "../types";
-import { ListParams } from "./ListParams";
+import { ListParams } from "../types/ListParams";
 
 export interface ListHooksResponse extends Totals {
   hooks: Hook[];

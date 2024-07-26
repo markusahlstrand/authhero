@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.5.2
+
+### Patch Changes
+
+- Centralized all codes to the codes table and added a new logins table for the login sessions. The old tables will be removed in the next update
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.9.1
+
 ## 0.5.1
 
 ### Patch Changes

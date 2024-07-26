@@ -16,6 +16,7 @@ import { AuthenticationCodesAdapter } from "./AuthenticationCodes";
 import { HooksAdapter } from "./Hooks";
 import { ClientsAdapter } from "./Clients";
 import { ThemesAdapter } from "./Themes";
+import { LoginsAdapter } from "./Logins";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -27,6 +28,7 @@ export interface DataAdapters {
   domains: DomainsAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;
+  login: LoginsAdapter;
   logs: LogsDataAdapter;
   OTP: OTPAdapter;
   passwords: PasswordsAdapter;

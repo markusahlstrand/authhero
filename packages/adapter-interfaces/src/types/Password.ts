@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 export const passwordInsertSchema = z.object({
   user_id: z.string(),
   password: z.string(),
+  algorithm: z.enum(["bcrypt", "argon2id"]).default("argon2id"),
 });
 
 export type PasswordInsert = z.infer<typeof passwordInsertSchema>;

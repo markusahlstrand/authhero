@@ -1,3 +1,4 @@
+// Deprecated: This file will be removed in the next version
 import { Ticket } from "../types";
 
 export interface TicketsAdapter {
