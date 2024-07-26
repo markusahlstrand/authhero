@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.6.0
+
+### Minor Changes
+
+- Fixed issue with incorrect id in logins table
+
 ## 0.5.5
 
 ### Patch Changes
