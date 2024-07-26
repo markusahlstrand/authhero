@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.10.2
+
+### Patch Changes
+
+- Fix typo in property
+
 ## 0.10.1
 
 ### Patch Changes

@@ -6,7 +6,7 @@ export const hookInsertSchema = z.object({
   enabled: z.boolean().default(false),
   url: z.string(),
   hook_id: z.string().optional(),
-  synchroneous: z.boolean().default(false),
+  synchronous: z.boolean().default(false),
   priority: z.number().optional(),
 });
 export type HookInsert = z.infer<typeof hookInsertSchema>;
