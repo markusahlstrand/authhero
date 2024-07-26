@@ -1,49 +1,59 @@
 import { z } from "@hono/zod-openapi";
 
 export enum LogTypes {
-  SUCCESS_API_OPERATION = "sapi",
-  //
-  SUCCESS_SILENT_AUTH = "ssa",
   FAILED_SILENT_AUTH = "fsa",
-  //
-  SUCCESS_SIGNUP = "ss",
   FAILED_SIGNUP = "fs",
-  //
-  SUCCESS_LOGIN = "s",
   FAILED_LOGIN = "f",
   FAILED_LOGIN_INCORRECT_PASSWORD = "fp",
-  // we don't have this in the logs yet
-  // FAILED_LOGIN_INVALID_EMAIL_USERNAME = "fu",
-  //
-  SUCCESS_LOGOUT = "slo",
-  SUCCESS_CROSS_ORIGIN_AUTHENTICATION = "scoa",
+  FAILED_CHANGE_PASSWORD = "fcp",
+  FAILED_BY_CONNECTOR = "fc",
+  FAILED_LOGIN_INVALID_EMAIL_USERNAME = "fu",
+  // This is not available in auth0
+  FAILED_HOOK = "fh",
   FAILED_CROSS_ORIGIN_AUTHENTICATION = "fcoa",
+
+  SUCCESS_API_OPERATION = "sapi",
+  SUCCESS_CHANGE_PASSWORD = "scp",
+  SUCCESS_CHANGE_PASSWORD_REQUEST = "scpr",
+  SUCCESS_CHANGE_USERNAME = "scu",
+  SUCCESS_CROSS_ORIGIN_AUTHENTICATION = "scoa",
   SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN = "seacft",
   SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN = "serft",
+  SUCCESS_LOGIN = "s",
+  SUCCESS_LOGOUT = "slo",
+  SUCCESS_SIGNUP = "ss",
+  SUCCESS_SILENT_AUTH = "ssa",
+  SUCCESS_VERIFICATION_EMAIL = "sv",
+  SUCCESS_VERIFICATION_EMAIL_REQUEST = "svr",
   CODE_LINK_SENT = "cls",
-  // TODO - not implemented - just for completion as we do get this in our latest auth0 logs
-  NOT_IMPLEMENTED_1 = "seccft",
 }
 
 // Enum for LogTypes
 const LogType = z.enum([
-  "sapi", // SUCCESS_API_OPERATION
-  "ssa", // SUCCESS_SILENT_AUTH - omitted for brevity and since it's clear from context
+  "cls", // CODE_LINK_SENT
   "fsa", // FAILED_SILENT_AUTH
-  "ss", // SUCCESS_SIGNUP
-  "ssa", /// SUCCESS_SILENT_AUTH
-  "fs",
-  "s", // SUCCESS_LOGIN
+  "fs", // FAILED_SIGNUP
   "f", // FAILED_LOGIN
-  "fp", // FAILED_LOGIN_INCORRECT_PASSWORD
-  // FAILED_LOGIN_INVALID_EMAIL_USERNAME = "fu", - we don't have this in the logs yet
-  "slo", // SUCCESS_LOGOUT
-  "scoa", // SUCCESS_CROSS_ORIGIN_AUTHENTICATION
+  "fc", // FAILED_BY_CONNECTOR
   "fcoa", // FAILED_CROSS_ORIGIN_AUTHENTICATION
-  "seccft", // NOT_IMPLEMENTED_1 - not implemented - just for completion as we do get this in our latest auth0 logs
-  "cls", // NOT_IMPLEMENTED_2
+  "fcp", // FAILED_CHANGE_PASSWORD
+  "fh", // FAILED_HOOK
+  "fp", // FAILED_LOGIN_INCORRECT_PASSWORD
+  "fs", // FAILED_SIGNUP
+  "fu", // FAILED_LOGIN_INVALID_EMAIL_USERNAME
+  "s", // SUCCESS_LOGIN
+  "sapi", // SUCCESS_API_OPERATION
+  "scoa", // SUCCESS_CROSS_ORIGIN_AUTHENTICATION
+  "scp", // SUCCESS_CHANGE_PASSWORD
+  "scpr", // SUCCESS_CHANGE_PASSWORD_REQUEST
+  "scu", // SUCCESS_CHANGE_USERNAME
   "seacft", // SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN
-  "serft",
+  "serft", // SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN
+  "slo", // SUCCESS_LOGOUT
+  "ss", // SUCCESS_SIGNUP
+  "ssa", // SUCCESS_SILENT_AUTH,
+  "sv", // SUCCESS_VERIFICATION_EMAIL
+  "svr", // SUCCESS_VERIFICATION_EMAIL_REQUEST
 ]);
 
 export type LogType = z.infer<typeof LogType>;
