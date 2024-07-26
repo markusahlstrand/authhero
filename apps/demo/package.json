@@ -1,0 +1,10 @@
+{
+  "name": "@authhero/demo",
+  "version": "0.0.2",
+  "scripts": {
+    "dev": "bun --watch src/bun.ts"
+  },
+  "dependencies": {
+    "authhero": "workspace:^"
+  }
+}

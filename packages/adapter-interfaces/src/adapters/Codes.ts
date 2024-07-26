@@ -1,12 +1,12 @@
 import { ListParams } from "src/types/ListParams";
-import { Code, CodeType, Totals } from "../types";
+import { Code, CodeInsert, CodeType, Totals } from "../types";
 
 export interface ListCodesResponse extends Totals {
   codes: Code[];
 }
 
 export interface CodesAdapter {
-  create: (tenant_id: string, authCode: Code) => Promise<Code>;
+  create: (tenant_id: string, authCode: CodeInsert) => Promise<Code>;
   get: (
     tenant_id: string,
     code_id: string,

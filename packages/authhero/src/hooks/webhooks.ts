@@ -4,7 +4,7 @@ import {
   LogTypes,
   User,
 } from "@authhero/adapter-interfaces";
-// import { createLogMessage } from "../utils/create-log-message";
+import { createLogMessage } from "../utils/create-log-message";
 import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 
@@ -23,11 +23,11 @@ async function invokeHooks(
     });
 
     if (!response.ok) {
-      // const log = createLogMessage(ctx, {
-      //   type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
-      //   description: "Invalid password",
-      // });
-      // await data.logs.create(ctx.var.tenant_id, log);
+      const log = createLogMessage(ctx, {
+        type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
+        description: "Invalid password",
+      });
+      await data.logs.create(ctx.var.tenant_id, log);
     }
   }
 }

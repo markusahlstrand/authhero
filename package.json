@@ -13,7 +13,8 @@
     "create-authhero": "pnpm --filter create-authhero",
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "drizzle": "pnpm --filter drizzle",
-    "kysely": "pnpm --filter @authhero/kysely-adapter"
+    "kysely": "pnpm --filter @authhero/kysely-adapter",
+    "demo": "pnpm --filter @authhero/demo"
   },
   "keywords": [],
   "author": "",
@@ -29,5 +30,9 @@
     "prettier-plugin-tailwindcss": "^0.6.5",
     "typescript": "^5.5.2",
     "typescript-eslint": "^7.14.1"
+  },
+  "dependencies": {
+    "@authhero/kysely-adapter": "^0.5.4",
+    "kysely-bun-sqlite": "^0.3.2"
   }
 }

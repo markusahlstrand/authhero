@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@authhero/kysely-adapter':
+        specifier: ^0.5.4
+        version: link:packages/kysely
+      kysely-bun-sqlite:
+        specifier: ^0.3.2
+        version: 0.3.2(kysely@0.27.4)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.7
@@ -38,6 +45,12 @@ importers:
       typescript-eslint:
         specifier: ^7.14.1
         version: 7.14.1(eslint@9.5.0)(typescript@5.5.2)
+
+  apps/demo:
+    dependencies:
+      authhero:
+        specifier: workspace:^
+        version: link:../..
 
   apps/react-admin:
     dependencies:
@@ -170,6 +183,9 @@ importers:
       '@types/node':
         specifier: ^20.14.9
         version: 20.14.9
+      dts-bundle-generator:
+        specifier: ^9.5.1
+        version: 9.5.1
       typescript:
         specifier: ^5.5.2
         version: 5.5.2

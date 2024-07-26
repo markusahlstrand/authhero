@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.10.0
+
+### Minor Changes
+
+- Updated the types for logins and fixed the packaging for authhero
+
 ## 0.9.2
 
 ### Patch Changes
