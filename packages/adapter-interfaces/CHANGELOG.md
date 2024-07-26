@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.10.1
+
+### Patch Changes
+
+- Add properties to hooks
+
 ## 0.10.0
 
 ### Minor Changes
