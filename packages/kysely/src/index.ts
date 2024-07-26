@@ -18,8 +18,10 @@ import { createBrandingAdapter } from "./branding";
 import { createAuthenticationCodesAdapter } from "./authenticationCodes";
 import { createHooksAdapter } from "./hooks";
 import { createThemesAdapter } from "./themes";
+import { DataAdapters } from "@authhero/adapter-interfaces";
+import { createLoginAdapter } from "./logins";
 
-export default function createAdapters(db: Kysely<Database>) {
+export default function createAdapters(db: Kysely<Database>): DataAdapters {
   return {
     applications: createApplicationsAdapter(db),
     authenticationCodes: createAuthenticationCodesAdapter(db),
@@ -30,6 +32,7 @@ export default function createAdapters(db: Kysely<Database>) {
     domains: createDomainsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
+    login: createLoginAdapter(db),
     logs: createLogsAdapter(db),
     OTP: createOTPAdapter(db),
     passwords: createPasswordAdapter(db),

@@ -1,7 +1,7 @@
 import { LoginInsert } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { flattenObject } from "src/flattten";
+import { flattenObject } from "../flattten";
 
 export function update(db: Kysely<Database>) {
   return async (

@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
-import { Database } from "../db";
-import { unflattenObject } from "src/flattten";
 import { Login, loginSchema } from "@authhero/adapter-interfaces";
+import { Database } from "../db";
+import { unflattenObject } from "../flattten";
 
 export function get(db: Kysely<Database>) {
   return async (tenant_id: string, login_id: string): Promise<Login | null> => {

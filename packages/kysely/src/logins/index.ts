@@ -1,9 +1,9 @@
+import { Kysely } from "kysely";
+import { LoginsAdapter } from "@authhero/adapter-interfaces";
 import { get } from "./get";
 import { create } from "./create";
 import { update } from "./update";
 import { remove } from "./remove";
-import { Kysely } from "kysely";
-import { LoginsAdapter } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function createLoginAdapter(db: Kysely<Database>): LoginsAdapter {

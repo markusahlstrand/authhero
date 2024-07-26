@@ -1,8 +1,8 @@
 import { LoginInsert } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
-import { Database } from "../db";
 import { nanoid } from "nanoid";
-import { flattenObject } from "src/flattten";
+import { Database } from "../db";
+import { flattenObject } from "../flattten";
 
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, login: LoginInsert) => {
