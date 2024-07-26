@@ -32,7 +32,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     domains: createDomainsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
-    login: createLoginAdapter(db),
+    logins: createLoginAdapter(db),
     logs: createLogsAdapter(db),
     OTP: createOTPAdapter(db),
     passwords: createPasswordAdapter(db),

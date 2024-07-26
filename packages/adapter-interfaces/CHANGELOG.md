@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.9.2
+
+### Patch Changes
+
+- Fix plural on the logins adapter
+
 ## 0.9.1
 
 ### Patch Changes

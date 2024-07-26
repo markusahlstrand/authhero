@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.5.4
+
+### Patch Changes
+
+- Fix plural on the logins adapter
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.9.2
+
 ## 0.5.3
 
 ### Patch Changes

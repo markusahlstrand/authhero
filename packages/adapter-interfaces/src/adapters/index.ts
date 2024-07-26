@@ -28,7 +28,7 @@ export interface DataAdapters {
   domains: DomainsAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;
-  login: LoginsAdapter;
+  logins: LoginsAdapter;
   logs: LogsDataAdapter;
   OTP: OTPAdapter;
   passwords: PasswordsAdapter;
