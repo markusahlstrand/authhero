@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.6.3
+
+### Patch Changes
+
+- Handle boolean values
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.10.3
+
 ## 0.6.2
 
 ### Patch Changes

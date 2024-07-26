@@ -27,11 +27,12 @@ export function list(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     const hooks = results.map((hook) => {
-      const { tenant_id, enabled, ...rest } = hook;
+      const { tenant_id, enabled, synchronous, ...rest } = hook;
 
       return removeNullProperties({
         ...rest,
         enabled: !!enabled,
+        synchronous: !!synchronous,
       });
     });
 

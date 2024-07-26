@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.10.3
+
+### Patch Changes
+
+- Handle boolean values
+
 ## 0.10.2
 
 ### Patch Changes
