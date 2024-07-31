@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.6.5
+
+### Patch Changes
+
+- Add the redirect_uri to the authparmas for the authentication codes"
+
 ## 0.6.4
 
 ### Patch Changes

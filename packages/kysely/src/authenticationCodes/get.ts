@@ -26,6 +26,7 @@ export function get(db: Kysely<Database>) {
       client_id,
       response_type,
       response_mode,
+      redirect_uri,
       ...rest
     } = result;
 
@@ -38,6 +39,7 @@ export function get(db: Kysely<Database>) {
         client_id,
         response_type,
         response_mode,
+        redirect_uri,
       },
     };
   };
