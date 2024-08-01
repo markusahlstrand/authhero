@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.10.5
+
+### Patch Changes
+
+- Added pre-user-signup hook type
+
 ## 0.10.4
 
 ### Patch Changes

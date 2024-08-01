@@ -2,7 +2,11 @@ import { z } from "@hono/zod-openapi";
 import { baseEntitySchema } from "./BaseEntity";
 
 export const hookInsertSchema = z.object({
-  trigger_id: z.enum(["post-user-registration", "post-user-login"]),
+  trigger_id: z.enum([
+    "pre-user-signup",
+    "post-user-registration",
+    "post-user-login",
+  ]),
   enabled: z.boolean().default(false),
   url: z.string(),
   hook_id: z.string().optional(),
