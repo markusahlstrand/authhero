@@ -12,8 +12,8 @@ export function update(db: Kysely<Database>) {
     const results = await db
       .updateTable("logins")
       .set(flattenObject(login))
-      .where("id", "=", login_id)
-      .where("tenant_id", "=", tenant_id)
+      .where("logins.login_id", "=", login_id)
+      .where("logins.tenant_id", "=", tenant_id)
       .execute();
 
     return results.length === 1;

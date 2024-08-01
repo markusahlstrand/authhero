@@ -6,7 +6,7 @@ export function remove(db: Kysely<Database>) {
     const results = await db
       .deleteFrom("logins")
       .where("logins.tenant_id", "=", tenant_id)
-      .where("logins.id", "=", login_id)
+      .where("logins.login_id", "=", login_id)
       .execute();
 
     return results.length > 0;

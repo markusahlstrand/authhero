@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.6.10
+
+### Patch Changes
+
+- Fix the id column for logins
+
 ## 0.6.9
 
 ### Patch Changes
