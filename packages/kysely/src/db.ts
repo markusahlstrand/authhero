@@ -19,7 +19,7 @@ import { SqlOTP } from "./otps/OTP";
 import { SqlTicket } from "./tickets/Ticket";
 import { SqlUniversalLoginSession } from "./universalLoginSessions/UniversalLoginSession";
 import { SqlLog } from "./logs/Log";
-import { flattenSchema } from "./flattten";
+import { flattenSchema } from "./flatten";
 
 const sqlThemeSchema = flattenSchema(themeSchema).extend({
   tenant_id: z.string(),

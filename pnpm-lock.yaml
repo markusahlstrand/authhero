@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@authhero/kysely-adapter':
         specifier: ^0.5.4
-        version: link:packages/kysely
+        version: 0.5.5(@planetscale/database@1.18.0)(zod@3.23.8)
       kysely-bun-sqlite:
         specifier: ^0.3.2
         version: 0.3.2(kysely@0.27.4)
@@ -285,6 +285,9 @@ importers:
       vite:
         specifier: ^5.3.2
         version: 5.3.2(@types/node@20.14.9)
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.0(@types/node@20.14.9)(jsdom@24.1.0)
 
 packages:
 
@@ -307,6 +310,30 @@ packages:
 
   /@auth0/auth0-spa-js@2.1.3:
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
+    dev: false
+
+  /@authhero/adapter-interfaces@0.10.5(hono@4.4.10)(zod@3.23.8):
+    resolution: {integrity: sha512-QNTfb543LiY7Z9wx+EljZwRqKzuW835Mf9IygxtXfXeu5dmFopMH/PlRAsCXDsCDLic1rlsq1yTWRdToA6hR+Q==}
+    dependencies:
+      '@hono/zod-openapi': 0.14.5(hono@4.4.10)(zod@3.23.8)
+    transitivePeerDependencies:
+      - hono
+      - zod
+    dev: false
+
+  /@authhero/kysely-adapter@0.5.5(@planetscale/database@1.18.0)(zod@3.23.8):
+    resolution: {integrity: sha512-ZVVlgKIi9cTZcEFZmwfiKVWigRksfriVU+jR7mrvbAD3B8xjK5Mh/VE4ixNw+JPMhiLqZxvaIRJnlTD+g97lEQ==}
+    dependencies:
+      '@authhero/adapter-interfaces': 0.10.5(hono@4.4.10)(zod@3.23.8)
+      '@hono/zod-openapi': 0.14.5(hono@4.4.10)(zod@3.23.8)
+      hono: 4.4.10
+      kysely: 0.27.4
+      kysely-bun-sqlite: 0.3.2(kysely@0.27.4)
+      kysely-planetscale: 1.4.0(@planetscale/database@1.18.0)(kysely@0.27.4)
+      nanoid: 5.0.7
+    transitivePeerDependencies:
+      - '@planetscale/database'
+      - zod
     dev: false
 
   /@babel/code-frame@7.24.7:

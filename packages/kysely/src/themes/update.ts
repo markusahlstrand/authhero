@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { ThemeInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { flattenObject } from "../flattten";
+import { flattenObject } from "../flatten";
 
 export function update(db: Kysely<Database>) {
   return async (

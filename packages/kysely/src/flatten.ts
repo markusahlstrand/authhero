@@ -37,9 +37,14 @@ export function flattenObject(obj, prefix = "", res = {}) {
 
 export function unflattenObject(
   flatObj: { [key: string]: any },
-  prefixes: string[],
+  prefixes?: string[], // Make prefixes optional
 ): { [key: string]: any } {
   const result: { [key: string]: any } = {};
+
+  // Ensure prefixes is a valid array
+  if (!Array.isArray(prefixes)) {
+    prefixes = [];
+  }
 
   for (const [key, value] of Object.entries(flatObj)) {
     let target = result;
@@ -71,14 +76,16 @@ export function unflattenObject(
     if (!isPrefixed && parts.length > 1) {
       let current = result;
 
-      parts.forEach((part) => {
-        if (!current[part]) {
-          current[part] = {};
+      parts.forEach((part, index) => {
+        if (index === parts.length - 1) {
+          current[part] = value;
+        } else {
+          if (!current[part]) {
+            current[part] = {};
+          }
+          current = current[part];
         }
-        current = current[part];
       });
-
-      current[parts.at(-1)!] = value;
     }
   }
 
