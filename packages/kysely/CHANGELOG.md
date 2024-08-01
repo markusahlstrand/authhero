@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.6.9
+
+### Patch Changes
+
+- 12d5d9f: Skip recursion for unflatten
+
 ## 0.6.8
 
 ### Patch Changes
