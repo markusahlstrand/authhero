@@ -37,55 +37,23 @@ export function flattenObject(obj, prefix = "", res = {}) {
 
 export function unflattenObject(
   flatObj: { [key: string]: any },
-  prefixes?: string[], // Make prefixes optional
+  prefixes: string[],
 ): { [key: string]: any } {
   const result: { [key: string]: any } = {};
 
-  // Ensure prefixes is a valid array
-  if (!Array.isArray(prefixes)) {
-    prefixes = [];
-  }
-
   for (const [key, value] of Object.entries(flatObj)) {
-    let target = result;
-    const parts = key.split("_");
-    let isPrefixed = false;
+    const matchingPrefix = prefixes.find((prefix) =>
+      key.startsWith(`${prefix}_`),
+    );
 
-    parts.forEach((part, i) => {
-      const prefix = parts.slice(0, i + 1).join("_");
-
-      if (prefixes.includes(prefix) && i < parts.length - 1) {
-        isPrefixed = true;
-        if (!target[part]) {
-          target[part] = {};
-        }
-        target = target[part];
-      } else {
-        if (i === parts.length - 1) {
-          target[part] = value;
-        } else {
-          if (!target[part]) {
-            target[part] = {};
-          }
-          target = target[part];
-        }
-      }
-    });
-
-    // Handle case where no prefix matched but it's not the last part
-    if (!isPrefixed && parts.length > 1) {
-      let current = result;
-
-      parts.forEach((part, index) => {
-        if (index === parts.length - 1) {
-          current[part] = value;
-        } else {
-          if (!current[part]) {
-            current[part] = {};
-          }
-          current = current[part];
-        }
-      });
+    if (!matchingPrefix) {
+      result[key] = value;
+    } else {
+      const newKey = key.slice(matchingPrefix.length + 1);
+      result[matchingPrefix] = {
+        ...result[matchingPrefix],
+        [newKey]: value,
+      };
     }
   }
 

@@ -29,15 +29,36 @@ describe("flatten", () => {
     });
 
     it("should unflatten a object with null, undefined and integers", () => {
-      const unflattened = unflattenObject({
-        a: "a",
-        b_integer: 1,
-        b_null: null,
-        b_undefined: undefined,
-      });
+      const unflattened = unflattenObject(
+        {
+          a: "a",
+          b_integer: 1,
+          b_null: null,
+          b_undefined: undefined,
+        },
+        ["b"],
+      );
       expect(unflattened).toEqual({
         a: "a",
         b: { null: null, undefined: undefined, integer: 1 },
+      });
+    });
+
+    it("should unflatten the authParams", () => {
+      const unflattened = unflattenObject(
+        {
+          authParams_client_id: "client_id",
+          authParams_expires_at: "2021-01-01",
+          created_at: "2021-01-01",
+        },
+        ["authParams"],
+      );
+      expect(unflattened).toEqual({
+        authParams: {
+          client_id: "client_id",
+          expires_at: "2021-01-01",
+        },
+        created_at: "2021-01-01",
       });
     });
   });
