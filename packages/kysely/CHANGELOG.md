@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 0.6.11
+
+### Patch Changes
+
+- Trim the logs description when writing a new entry
+- Update the lucene filters to handle comparisons
+
 ## 0.6.10
 
 ### Patch Changes

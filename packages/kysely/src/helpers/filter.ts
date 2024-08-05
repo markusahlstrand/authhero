@@ -9,18 +9,18 @@ export function luceneFilter<TB extends keyof Database>(
 ) {
   const filters = query
     .split(/\s+/)
-    // TODO - no .replaceAll? is this our typing rather than reality? Is this hack safe?
-    .map((q) => q.replace("=", ":"))
+    // This handles queries that incorrectly are using a = instead of :
+    .map((q) => q.replace(/^([^:]+)=/g, "$1:"))
     .map((filter) => {
       let isNegation = filter.startsWith("-");
-      let key, value, isExistsQuery;
+      let key, value, isExistsQuery, operator;
 
       if (filter.startsWith("-_exists_:")) {
-        key = filter.substring(10); // Remove '-_exists_:' part
+        key = filter.substring(10);
         isExistsQuery = true;
         isNegation = true;
       } else if (filter.startsWith("_exists_:")) {
-        key = filter.substring(9); // Remove '_exists_:' part
+        key = filter.substring(9);
         isExistsQuery = true;
         isNegation = false;
       } else if (filter.includes(":")) {
@@ -29,31 +29,61 @@ export function luceneFilter<TB extends keyof Database>(
           ? filter.substring(1).split(":")
           : filter.split(":");
         isExistsQuery = false;
+
+        if (value.startsWith(">=")) {
+          operator = ">=";
+          value = value.substring(2);
+        } else if (value.startsWith(">")) {
+          operator = ">";
+          value = value.substring(1);
+        } else if (value.startsWith("<=")) {
+          console.log("value", value);
+          operator = "<=";
+          value = value.substring(2);
+        } else if (value.startsWith("<")) {
+          operator = "<";
+          value = value.substring(1);
+        } else {
+          operator = "=";
+        }
       } else {
-        // Single word search case
         key = null;
         value = filter;
         isExistsQuery = false;
       }
 
-      return { key, value, isNegation, isExistsQuery };
+      return { key, value, isNegation, isExistsQuery, operator };
     });
 
   // Apply filters to the query builder
-  filters.forEach(({ key, value, isNegation, isExistsQuery }) => {
+  filters.forEach(({ key, value, isNegation, isExistsQuery, operator }) => {
     if (key) {
       if (isExistsQuery) {
         if (isNegation) {
-          // I'm not following how this ever worked...
-          qb = qb.where(key as any, "is", null);
+          qb = qb.where(key, "is", null);
         } else {
-          qb = qb.where(key as any, "is not", null);
+          qb = qb.where(key, "is not", null);
         }
       } else {
         if (isNegation) {
-          qb = qb.where(key as any, "!=", value);
+          switch (operator) {
+            case ">":
+              qb = qb.where(key, "<=", value);
+              break;
+            case ">=":
+              qb = qb.where(key, "<", value);
+              break;
+            case "<":
+              qb = qb.where(key, ">=", value);
+              break;
+            case "<=":
+              qb = qb.where(key, ">", value);
+              break;
+            default:
+              qb = qb.where(key, "!=", value);
+          }
         } else {
-          qb = qb.where(key as any, "=", value);
+          qb = qb.where(key, operator, value);
         }
       }
     } else {

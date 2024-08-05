@@ -20,6 +20,8 @@ export function createLog(db: Kysely<Database>) {
       .insertInto("logs")
       .values({
         ...createdLog,
+        // Truncate long strings to avoid database errors
+        description: createdLog.description?.substring(0, 256),
         isMobile: log.isMobile ? 1 : 0,
         tenant_id,
         scope: log.scope?.join(","),
