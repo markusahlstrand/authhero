@@ -11,6 +11,7 @@ export enum AuthorizationResponseMode {
   FRAGMENT = "fragment",
   FORM_POST = "form_post",
   WEB_MESSAGE = "web_message",
+  SAML_POST = "saml_post",
 }
 
 export enum CodeChallengeMethod {

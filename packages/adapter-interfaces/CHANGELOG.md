@@ -1,5 +1,15 @@
 # @authhero/adapter-interfaces
 
+## 0.11.0
+
+### Minor Changes
+
+- Add the addons property
+
+### Patch Changes
+
+- Update the applications schema to handle addOns
+
 ## 0.10.5
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 0.7.0
+
+### Minor Changes
+
+- Add the addons property
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.0
+
 ## 0.6.11
 
 ### Patch Changes

@@ -20,6 +20,9 @@ export function get(db: Kysely<Database>) {
     }
 
     application.disable_sign_ups = !!application.disable_sign_ups;
+    application.addons = application.addons
+      ? JSON.parse(application.addons)
+      : {};
 
     return removeNullProperties(application);
   };

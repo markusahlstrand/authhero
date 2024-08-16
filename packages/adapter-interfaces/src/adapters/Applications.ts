@@ -10,6 +10,7 @@ export interface CreateApplicationParams {
   client_secret: string;
   id: string;
   disable_sign_ups: boolean;
+  addons?: Record<string, Record<string, string | number>>;
 }
 
 export interface ApplicationsAdapter {

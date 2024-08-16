@@ -4,6 +4,7 @@ import { SqlAuthenticationCode } from "./authenticationCodes/AuthenticationCode"
 import { SqlUser } from "./users/User";
 import {
   Application,
+  applicationSchema,
   Certificate,
   Code,
   Connection,
@@ -32,8 +33,15 @@ const sqlLoginSchema = flattenSchema(loginSchema).extend({
 });
 type SqlLogin = z.infer<typeof sqlLoginSchema>;
 
+const sqlApplicationSchema = z.object({
+  ...applicationSchema.shape,
+  tenant_id: z.string(),
+  // The addons will be stored as JSON in a text column
+  addons: z.string().optional(),
+});
+
 export interface Database {
-  applications: Application & { tenant_id: string };
+  applications: z.infer<typeof sqlApplicationSchema>;
   authentication_codes: SqlAuthenticationCode;
   branding: SqlBranding;
   codes: Code & { tenant_id: string };

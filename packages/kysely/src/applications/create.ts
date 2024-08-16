@@ -15,6 +15,7 @@ export function create(db: Kysely<Database>) {
       updated_at: new Date().toISOString(),
       ...params,
       disable_sign_ups: params.disable_sign_ups ? 1 : 0,
+      addons: params.addons ? JSON.stringify(params.addons) : null,
     };
 
     await db
