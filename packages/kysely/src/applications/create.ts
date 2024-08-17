@@ -2,6 +2,15 @@ import { Kysely } from "kysely";
 import { Application, ApplicationInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
+function toJsonString(value: string) {
+  return JSON.stringify(
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length),
+  );
+}
+
 export function create(db: Kysely<Database>) {
   return async (
     tenant_id: string,
@@ -17,9 +26,9 @@ export function create(db: Kysely<Database>) {
       allowed_origins: params.allowed_origins,
     };
 
-    const allowed_origins = JSON.stringify(params.allowed_origins.split(","));
-    const allowed_callback_urls = JSON.stringify(params.callbacks.split(","));
-    const callbacks = JSON.stringify(params.callbacks.split(","));
+    const allowed_origins = toJsonString(params.allowed_origins);
+    const allowed_callback_urls = toJsonString(params.callbacks);
+    const callbacks = toJsonString(params.callbacks);
 
     await db
       .insertInto("applications")

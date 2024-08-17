@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.7.2
+
+### Patch Changes
+
+- Handle empty allowed strings
+
 ## 0.7.1
 
 ### Patch Changes
