@@ -19,11 +19,15 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    application.disable_sign_ups = !!application.disable_sign_ups;
-    application.addons = application.addons
-      ? JSON.parse(application.addons)
-      : {};
-
-    return removeNullProperties(application);
+    return removeNullProperties({
+      ...application,
+      disable_sign_ups: !!application.disable_sign_ups,
+      addons: JSON.parse(application.addons),
+      // TODO: add callbacks
+      callback: JSON.parse(application.callbacks),
+      allowed_origins: JSON.parse(application.allowed_origins),
+      allowed_callback_urls: JSON.parse(application.allowed_callback_urls),
+      allowed_web_origins: JSON.parse(application.allowed_web_origins),
+    });
   };
 }

@@ -3,7 +3,6 @@ import { SqlBranding } from "./branding/Branding";
 import { SqlAuthenticationCode } from "./authenticationCodes/AuthenticationCode";
 import { SqlUser } from "./users/User";
 import {
-  Application,
   applicationSchema,
   Certificate,
   Code,
@@ -37,7 +36,9 @@ const sqlApplicationSchema = z.object({
   ...applicationSchema.shape,
   tenant_id: z.string(),
   // The addons will be stored as JSON in a text column
-  addons: z.string().optional(),
+  addons: z.string(),
+  disable_sign_ups: z.number(),
+  callbacks: z.string(),
 });
 
 export interface Database {

@@ -1,5 +1,11 @@
 # @authhero/demo
 
+## 0.0.9
+
+### Patch Changes
+
+- authhero@0.2.11
+
 ## 0.0.8
 
 ### Patch Changes

@@ -27,6 +27,14 @@ export const applicationInsertSchema = z.object({
       description:
         "Comma-separated list of allowed origins for use with Cross-Origin Authentication, Device Flow, and web message response mode.",
     }),
+  allowed_logout_urls: z
+    .string()
+    .transform((val) => (val === null ? "" : val))
+    .default("")
+    .openapi({
+      description:
+        "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
+    }),
   addons: z
     .record(z.string(), z.record(z.string(), z.union([z.string(), z.number()])))
     .optional()
@@ -43,10 +51,7 @@ export const applicationInsertSchema = z.object({
     .string()
     .transform((val) => (val === null ? "" : val))
     .default(""),
-  allowed_logout_urls: z
-    .string()
-    .transform((val) => (val === null ? "" : val))
-    .default(""),
+
   email_validation: z
     .enum(["enabled", "disabled", "enforced"])
     .default("enforced")

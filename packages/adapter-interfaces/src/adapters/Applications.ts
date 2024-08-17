@@ -1,23 +1,8 @@
-import { Application, Totals } from "../types";
+import { Application, ApplicationInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
 
-export interface CreateApplicationParams {
-  name: string;
-  allowed_web_origins: string;
-  allowed_callback_urls: string;
-  allowed_logout_urls: string;
-  email_validation: "enabled" | "disabled" | "enforced";
-  client_secret: string;
-  id: string;
-  disable_sign_ups: boolean;
-  addons?: Record<string, Record<string, string | number>>;
-}
-
 export interface ApplicationsAdapter {
-  create(
-    tenant_id: string,
-    params: CreateApplicationParams,
-  ): Promise<Application>;
+  create(tenant_id: string, params: ApplicationInsert): Promise<Application>;
   get(tenant_id: string, id: string): Promise<Application | null>;
   remove(tenant_id: string, id: string): Promise<boolean>;
   list(
