@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.2
+
+### Patch Changes
+
+- Refactor applications and clients
+
 ## 0.11.1
 
 ### Patch Changes

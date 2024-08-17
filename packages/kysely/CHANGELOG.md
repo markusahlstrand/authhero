@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.7.4
+
+### Patch Changes
+
+- Refactor applications and clients
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.2
+
 ## 0.7.3
 
 ### Patch Changes

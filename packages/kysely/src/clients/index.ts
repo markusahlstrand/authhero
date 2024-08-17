@@ -4,13 +4,6 @@ import { removeNullProperties } from "../helpers/remove-nulls";
 import { PartialClient, connectionSchema } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
-function splitUrls(value?: string) {
-  if (!value?.length) {
-    return [];
-  }
-  return value.split(",").map((key) => key.trim());
-}
-
 export function createClientsAdapter(db: Kysely<Database>) {
   return {
     get: async (applicationId: string) => {
@@ -47,18 +40,24 @@ export function createClientsAdapter(db: Kysely<Database>) {
         .execute();
 
       const client: PartialClient = {
-        id: application.id,
-        name: application.name,
+        ...application,
         connections: connections.map((connection) =>
           connectionSchema.parse(removeNullProperties(connection)),
         ),
         domains,
-        tenant_id: tenant.id,
-        allowed_callback_urls: splitUrls(application.allowed_callback_urls),
-        allowed_logout_urls: splitUrls(application.allowed_logout_urls),
-        allowed_web_origins: splitUrls(application.allowed_web_origins),
-        email_validation: application.email_validation,
-        client_secret: application.client_secret,
+        addons: application.addons ? JSON.parse(application.addons) : {},
+        callbacks: application.callbacks
+          ? JSON.parse(application.callbacks)
+          : [],
+        allowed_origins: application.allowed_origins
+          ? JSON.parse(application.allowed_origins)
+          : [],
+        web_origins: application.web_origins
+          ? JSON.parse(application.web_origins)
+          : [],
+        allowed_logout_urls: application.allowed_logout_urls
+          ? JSON.parse(application.allowed_logout_urls)
+          : [],
         tenant: removeNullProperties(tenant),
         // this is really an integer in the database
         disable_sign_ups: !!application.disable_sign_ups,

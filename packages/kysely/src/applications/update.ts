@@ -14,14 +14,14 @@ export function update(db: Kysely<Database>) {
       allowed_origins: application.allowed_origins
         ? JSON.stringify(application.allowed_origins)
         : undefined,
-      allowed_callback_urls: application.allowed_callback_urls
-        ? JSON.stringify(application.allowed_callback_urls)
-        : undefined,
-      allowed_web_origins: application.allowed_web_origins
-        ? JSON.stringify(application.allowed_web_origins)
-        : undefined,
       callbacks: application.callbacks
         ? JSON.stringify(application.callbacks)
+        : undefined,
+      web_origins: application.web_origins
+        ? JSON.stringify(application.web_origins)
+        : undefined,
+      allowed_logout_urls: application.allowed_logout_urls
+        ? JSON.stringify(application.allowed_logout_urls)
         : undefined,
       addons: application.addons ? JSON.stringify(application.addons) : "{}",
       disable_sign_ups: application.disable_sign_ups ? 1 : 0,

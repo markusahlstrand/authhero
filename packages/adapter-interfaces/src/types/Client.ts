@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { connectionSchema } from "./Connection";
+import { applicationSchema } from "./Application";
 
 const ClientDomainSchema = z.object({
   domain: z.string(),
@@ -12,20 +13,8 @@ const ClientDomainSchema = z.object({
 });
 
 const BaseClientSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  ...applicationSchema.shape,
   domains: z.array(ClientDomainSchema),
-  allowed_callback_urls: z.array(z.string()),
-  allowed_logout_urls: z.array(z.string()),
-  allowed_web_origins: z.array(z.string()),
-  email_validation: z.union([
-    z.literal("enabled"),
-    z.literal("disabled"),
-    z.literal("enforced"),
-  ]),
-  tenant_id: z.string(),
-  client_secret: z.string(),
-  disable_sign_ups: z.boolean(),
   tenant: z.object({
     name: z.string(),
     audience: z.string().optional(),

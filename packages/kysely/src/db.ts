@@ -39,6 +39,9 @@ const sqlApplicationSchema = z.object({
   addons: z.string(),
   disable_sign_ups: z.number(),
   callbacks: z.string(),
+  allowed_origins: z.string(),
+  web_origins: z.string(),
+  allowed_logout_urls: z.string(),
 });
 
 export interface Database {
