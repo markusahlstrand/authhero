@@ -1,5 +1,5 @@
-import { PartialClient } from "../types";
+import { Client } from "../types";
 
 export interface ClientsAdapter {
-  get: (id: string) => Promise<PartialClient | null>;
+  get: (id: string) => Promise<Client | null>;
 }

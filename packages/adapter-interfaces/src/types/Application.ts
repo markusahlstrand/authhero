@@ -41,11 +41,10 @@ export const applicationInsertSchema = z.object({
 });
 export type ApplicationInsert = z.infer<typeof applicationInsertSchema>;
 
-export const applicationSchema = z
-  .object({
-    created_at: z.string().transform((val) => (val === null ? "" : val)),
-    updated_at: z.string().transform((val) => (val === null ? "" : val)),
-  })
-  .extend(applicationInsertSchema.shape);
+export const applicationSchema = z.object({
+  created_at: z.string().transform((val) => (val === null ? "" : val)),
+  updated_at: z.string().transform((val) => (val === null ? "" : val)),
+  ...applicationInsertSchema.shape,
+});
 
 export type Application = z.infer<typeof applicationSchema>;

@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { removeNullProperties } from "../helpers/remove-nulls";
-import { PartialClient, connectionSchema } from "@authhero/adapter-interfaces";
+import { Client, connectionSchema } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function createClientsAdapter(db: Kysely<Database>) {
@@ -39,7 +39,7 @@ export function createClientsAdapter(db: Kysely<Database>) {
         .selectAll()
         .execute();
 
-      const client: PartialClient = {
+      const client: Client = {
         ...application,
         connections: connections.map((connection) =>
           connectionSchema.parse(removeNullProperties(connection)),

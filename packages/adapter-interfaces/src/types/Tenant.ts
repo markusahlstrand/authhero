@@ -12,9 +12,11 @@ export const tenantInsertSchema = z.object({
   language: z.string().optional(),
 });
 
-export const tenantSchema = tenantInsertSchema.extend({
+export const tenantSchema = z.object({
   created_at: z.string().transform((val) => (val === null ? "" : val)),
   updated_at: z.string().transform((val) => (val === null ? "" : val)),
+  id: z.string(),
+  ...tenantInsertSchema.shape,
 });
 
 export interface Tenant {
