@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.7.7
+
+### Patch Changes
+
+- Add husky to create builds on commit
+
 ## 0.7.6
 
 ### Patch Changes

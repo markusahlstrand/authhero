@@ -14,7 +14,8 @@
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "drizzle": "pnpm --filter drizzle",
     "kysely": "pnpm --filter @authhero/kysely-adapter",
-    "demo": "pnpm --filter @authhero/demo"
+    "demo": "pnpm --filter @authhero/demo",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "eslint": "9.x",
     "eslint-plugin-react": "^7.34.3",
     "globals": "^15.6.0",
+    "husky": "^9.1.4",
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
     "typescript": "^5.5.2",

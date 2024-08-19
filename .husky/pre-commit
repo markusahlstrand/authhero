@@ -1,0 +1,2 @@
+pnpm interfaces build
+pnpm kysely build
