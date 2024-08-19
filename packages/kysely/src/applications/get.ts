@@ -23,7 +23,7 @@ export function get(db: Kysely<Database>) {
       ...application,
       disable_sign_ups: !!application.disable_sign_ups,
       addons: JSON.parse(application.addons),
-      callback: JSON.parse(application.callbacks),
+      callbacks: JSON.parse(application.callbacks),
       allowed_origins: JSON.parse(application.allowed_origins),
       web_origins: JSON.parse(application.web_origins),
       allowed_logout_urls: JSON.parse(application.allowed_logout_urls),

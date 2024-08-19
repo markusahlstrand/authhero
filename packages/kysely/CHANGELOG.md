@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.7.6
+
+### Patch Changes
+
+- Fix typo in application get kysely adapter
+
 ## 0.7.5
 
 ### Patch Changes
