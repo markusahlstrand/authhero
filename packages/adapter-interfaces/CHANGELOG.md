@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.6
+
+### Patch Changes
+
+- Rebuilt the interfaces
+
 ## 0.11.5
 
 ### Patch Changes

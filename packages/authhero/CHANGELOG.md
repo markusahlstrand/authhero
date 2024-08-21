@@ -1,5 +1,12 @@
 # authhero
 
+## 0.2.16
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.6
+
 ## 0.2.15
 
 ### Patch Changes

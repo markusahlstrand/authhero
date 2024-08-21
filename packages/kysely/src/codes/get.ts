@@ -1,10 +1,14 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { removeNullProperties } from "../helpers/remove-nulls";
-import { CodeType } from "@authhero/adapter-interfaces";
+import { Code, CodeType } from "@authhero/adapter-interfaces";
 
 export function get(db: Kysely<Database>) {
-  return async (_: string, code_id: string, code_type: CodeType) => {
+  return async (
+    _: string,
+    code_id: string,
+    code_type: CodeType,
+  ): Promise<Code | null> => {
     const code = await db
       .selectFrom("codes")
       // We currently don't have the tenant_id in all places
