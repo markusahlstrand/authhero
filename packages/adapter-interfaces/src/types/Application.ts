@@ -1,5 +1,24 @@
 import { z } from "@hono/zod-openapi";
 
+export const samlpAddon = z.object({
+  audience: z.string().optional(),
+  recipient: z.string().optional(),
+  createUpnClaim: z.boolean().optional(),
+  mapUnknownClaimsAsIs: z.boolean().optional(),
+  passthroughClaimsWithNoMapping: z.boolean().optional(),
+  mapIdentities: z.boolean().optional(),
+  signatureAlgorithm: z.string().optional(),
+  digestAlgorithm: z.string().optional(),
+  issuer: z.string().optional(),
+  destination: z.string().optional(),
+  lifetimeInSeconds: z.number().optional(),
+  signResponse: z.boolean().optional(),
+  nameIdentifierFormat: z.string().optional(),
+  nameIdentifierProbes: z.array(z.string()).optional(),
+  authnContextClassRef: z.string().optional(),
+  mappings: z.record(z.string()).optional(),
+});
+
 export const applicationInsertSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -20,7 +39,9 @@ export const applicationInsertSchema = z.object({
       "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
   }),
   addons: z
-    .record(z.string(), z.record(z.string(), z.union([z.string(), z.number()])))
+    .object({
+      samlp: samlpAddon.optional(),
+    })
     .optional()
     .openapi({
       description:
