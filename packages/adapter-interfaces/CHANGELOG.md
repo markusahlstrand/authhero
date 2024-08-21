@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.5
+
+### Patch Changes
+
+- Added a connection_id property to the codes
+
 ## 0.11.4
 
 ### Patch Changes

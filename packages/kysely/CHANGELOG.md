@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.7.9
+
+### Patch Changes
+
+- Added a connection_id property to the codes
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.5
+
 ## 0.7.8
 
 ### Patch Changes

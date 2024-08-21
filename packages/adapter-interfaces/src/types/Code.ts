@@ -18,6 +18,9 @@ export const codeInsertSchema = z.object({
   login_id: z.string().openapi({
     description: "The id of the login session that the code is connected to",
   }),
+  connection_id: z.string().optional().openapi({
+    description: "The connection that the code is connected to",
+  }),
   code_type: codeTypeSchema,
   expires_at: z.string(),
   used_at: z.string().optional(),
