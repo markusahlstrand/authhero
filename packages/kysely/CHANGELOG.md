@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.7.11
+
+### Patch Changes
+
+- Filter on tenant_id if avaialble
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.7
+
 ## 0.7.10
 
 ### Patch Changes

@@ -4,7 +4,7 @@ export const codeTypeSchema = z.enum([
   "password_reset",
   "email_verification",
   "otp",
-  "oauth2",
+  "authorization_code",
   "oauth2_state",
   "ticket",
 ]);
@@ -24,6 +24,7 @@ export const codeInsertSchema = z.object({
   code_type: codeTypeSchema,
   expires_at: z.string(),
   used_at: z.string().optional(),
+  user_id: z.string().optional(),
 });
 
 export type CodeInsert = z.infer<typeof codeInsertSchema>;

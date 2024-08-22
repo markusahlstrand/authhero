@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.7
+
+### Patch Changes
+
+- Add the user id to the codes entity
+
 ## 0.11.6
 
 ### Patch Changes
