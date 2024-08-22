@@ -1,5 +1,4 @@
 import { CodesAdapter } from "./Codes";
-import { OTPAdapter } from "./OTP";
 import { PasswordsAdapter } from "./Passwords";
 import { SessionsAdapter } from "./Sessions";
 import { TenantsDataAdapter } from "./Tenants";
@@ -27,7 +26,6 @@ export interface DataAdapters {
   keys: KeysAdapter;
   logins: LoginsAdapter;
   logs: LogsDataAdapter;
-  OTP: OTPAdapter;
   passwords: PasswordsAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;

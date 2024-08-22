@@ -14,7 +14,6 @@ import {
   Tenant,
   themeSchema,
 } from "@authhero/adapter-interfaces";
-import { SqlOTP } from "./otps/OTP";
 import { SqlTicket } from "./tickets/Ticket";
 import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./flatten";
@@ -52,7 +51,6 @@ export interface Database {
   keys: Certificate;
   logins: SqlLogin;
   logs: SqlLog;
-  otps: SqlOTP;
   passwords: Password & { tenant_id: string };
   users: SqlUser;
   sessions: Session & { tenant_id: string };

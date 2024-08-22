@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.7.13
+
+### Patch Changes
+
+- Remove the otp table
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.9
+
 ## 0.7.12
 
 ### Patch Changes

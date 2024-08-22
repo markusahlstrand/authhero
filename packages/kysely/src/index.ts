@@ -4,7 +4,6 @@ import { createLogsAdapter } from "./logs";
 import { Database } from "./db";
 import { createSessionsAdapter } from "./sessions";
 import { createTicketsAdapter } from "./tickets";
-import { createOTPAdapter } from "./otps";
 import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
 import { createApplicationsAdapter } from "./applications";
@@ -31,7 +30,6 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     keys: createKeysAdapter(db),
     logins: createLoginAdapter(db),
     logs: createLogsAdapter(db),
-    OTP: createOTPAdapter(db),
     passwords: createPasswordAdapter(db),
     users: createUsersAdapter(db),
     sessions: createSessionsAdapter(db),

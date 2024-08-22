@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.9
+
+### Patch Changes
+
+- Remove the otp table
+
 ## 0.11.8
 
 ### Patch Changes
