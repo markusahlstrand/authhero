@@ -22,6 +22,4 @@ export * from "./Theme";
 // Deprecated: These files will be removed in the next version
 export * from "./LoginState";
 export * from "./Ticket";
-export * from "./UniversalLoginSession";
 export * from "./OTP";
-export * from "./AuthenticationCode";

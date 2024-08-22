@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.11.8
+
+### Patch Changes
+
+- Removed unused tables
+
 ## 0.11.7
 
 ### Patch Changes

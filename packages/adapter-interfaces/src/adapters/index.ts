@@ -7,12 +7,10 @@ import { TicketsAdapter } from "./Tickets";
 import { UserDataAdapter } from "./Users";
 import { LogsDataAdapter } from "./Logs";
 import { ApplicationsAdapter } from "./Applications";
-import { UniversalLoginSessionsAdapter } from "./UniversalLoginSession";
 import { ConnectionsAdapter } from "./Connections";
 import { DomainsAdapter } from "./Domains";
 import { KeysAdapter } from "./Keys";
 import { BrandingAdapter } from "./Branding";
-import { AuthenticationCodesAdapter } from "./AuthenticationCodes";
 import { HooksAdapter } from "./Hooks";
 import { ClientsAdapter } from "./Clients";
 import { ThemesAdapter } from "./Themes";
@@ -20,7 +18,6 @@ import { LoginsAdapter } from "./Logins";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
-  authenticationCodes: AuthenticationCodesAdapter;
   branding: BrandingAdapter;
   clients: ClientsAdapter;
   codes: CodesAdapter;
@@ -36,6 +33,5 @@ export interface DataAdapters {
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
   tickets: TicketsAdapter;
-  universalLoginSessions: UniversalLoginSessionsAdapter;
   users: UserDataAdapter;
 }

@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.7.12
+
+### Patch Changes
+
+- Removed unused tables
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.11.8
+
 ## 0.7.11
 
 ### Patch Changes

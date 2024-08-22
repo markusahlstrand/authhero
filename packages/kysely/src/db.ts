@@ -1,6 +1,5 @@
 import { z } from "@hono/zod-openapi";
 import { SqlBranding } from "./branding/Branding";
-import { SqlAuthenticationCode } from "./authenticationCodes/AuthenticationCode";
 import { SqlUser } from "./users/User";
 import {
   applicationSchema,
@@ -17,7 +16,6 @@ import {
 } from "@authhero/adapter-interfaces";
 import { SqlOTP } from "./otps/OTP";
 import { SqlTicket } from "./tickets/Ticket";
-import { SqlUniversalLoginSession } from "./universalLoginSessions/UniversalLoginSession";
 import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./flatten";
 
@@ -46,7 +44,6 @@ const sqlApplicationSchema = z.object({
 
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
-  authentication_codes: SqlAuthenticationCode;
   branding: SqlBranding;
   codes: Code & { tenant_id: string };
   connections: Connection & { tenant_id: string };
@@ -62,5 +59,4 @@ export interface Database {
   tenants: Tenant;
   themes: SqlTheme;
   tickets: SqlTicket;
-  universal_login_sessions: SqlUniversalLoginSession;
 }
