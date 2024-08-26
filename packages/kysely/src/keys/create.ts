@@ -1,9 +1,12 @@
-import { Certificate } from "@authhero/adapter-interfaces";
+import { SigningKey } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function create(db: Kysely<Database>) {
-  return async (cert: Certificate) => {
-    await db.insertInto("keys").values(cert).execute();
+  return async (key: SigningKey) => {
+    await db
+      .insertInto("keys")
+      .values({ ...key, created_at: new Date().toDateString() })
+      .execute();
   };
 }

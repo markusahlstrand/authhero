@@ -11,6 +11,7 @@ import {
   loginSchema,
   Password,
   Session,
+  SigningKey,
   Tenant,
   themeSchema,
 } from "@authhero/adapter-interfaces";
@@ -48,7 +49,7 @@ export interface Database {
   connections: Connection & { tenant_id: string };
   domains: Domain & { tenant_id: string };
   hooks: Hook & { tenant_id: string };
-  keys: Certificate;
+  keys: Certificate & SigningKey & { created_at: string };
   logins: SqlLogin;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };

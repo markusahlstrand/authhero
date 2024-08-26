@@ -1,5 +1,14 @@
 # @authhero/kysely-adapter
 
+## 0.7.14
+
+### Patch Changes
+
+- Updated kysely for signing keys
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.12.0
+
 ## 0.7.13
 
 ### Patch Changes

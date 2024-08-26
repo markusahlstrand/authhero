@@ -1,5 +1,15 @@
 # @authhero/adapter-interfaces
 
+## 0.12.0
+
+### Minor Changes
+
+- Updated the certificate entity
+
+### Patch Changes
+
+- Made certificate properties optional
+
 ## 0.11.9
 
 ### Patch Changes

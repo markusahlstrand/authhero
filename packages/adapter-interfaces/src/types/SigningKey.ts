@@ -1,20 +1,16 @@
 import { z } from "@hono/zod-openapi";
 
+// deprecated
 export const certificateSchema = z.object({
-  private_key: z.string(),
-  public_key: z.string(),
+  private_key: z.string().optional(),
+  public_key: z.string().optional(),
   kid: z.string(),
-  created_at: z.string(),
+  created_at: z.string().optional(),
   revoked_at: z.string().optional(),
 });
 
-export interface Certificate {
-  private_key: string;
-  public_key: string;
-  kid: string;
-  created_at: string;
-  revoked_at?: string;
-}
+// deprecated
+export type Certificate = z.infer<typeof certificateSchema>;
 
 export const signingKeySchema = z.object({
   kid: z.string().openapi({ description: "The key id of the signing key" }),
@@ -53,3 +49,5 @@ export const signingKeySchema = z.object({
     .optional()
     .openapi({ description: "The date and time when the key was revoked" }),
 });
+
+export type SigningKey = z.infer<typeof signingKeySchema>;
