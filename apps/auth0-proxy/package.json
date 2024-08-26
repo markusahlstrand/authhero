@@ -1,5 +1,6 @@
 {
   "name": "@authhero/auth0-proxy",
+  "private": true,
   "version": "0.0.2",
   "scripts": {
     "dev": "bun --watch src/index.ts --watch"
