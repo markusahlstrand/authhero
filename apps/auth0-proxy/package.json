@@ -1,0 +1,14 @@
+{
+  "name": "@authhero/auth0-proxy",
+  "version": "0.0.2",
+  "scripts": {
+    "dev": "bun --watch src/index.ts --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.2"
+  },
+  "dependencies": {
+    "hono": "^4.4.10"
+  }
+}

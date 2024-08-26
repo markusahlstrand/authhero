@@ -10,6 +10,7 @@
     "manage": "pnpm --filter @authhero/manage",
     "react-admin": "pnpm --filter @authhero/react-admin",
     "authhero": "pnpm --filter authhero",
+    "proxy": "pnpm --filter @authhero/auth0-proxy",
     "create-authhero": "pnpm --filter create-authhero",
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "drizzle": "pnpm --filter drizzle",

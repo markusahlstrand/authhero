@@ -49,6 +49,19 @@ importers:
         specifier: ^7.14.1
         version: 7.14.1(eslint@9.5.0)(typescript@5.5.2)
 
+  apps/auth0-proxy:
+    dependencies:
+      hono:
+        specifier: ^4.4.10
+        version: 4.4.10
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.9
+        version: 20.14.9
+      typescript:
+        specifier: ^5.5.2
+        version: 5.5.2
+
   apps/demo:
     dependencies:
       authhero:
