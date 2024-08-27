@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.13.0
+
+### Minor Changes
+
+- Remove certificate type
+- Remove the certificate type and add new update method
+
 ## 0.12.0
 
 ### Minor Changes

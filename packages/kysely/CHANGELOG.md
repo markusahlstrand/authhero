@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 0.8.0
+
+### Minor Changes
+
+- Remove the certificate type and add new update method
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.13.0
+
 ## 0.7.14
 
 ### Patch Changes

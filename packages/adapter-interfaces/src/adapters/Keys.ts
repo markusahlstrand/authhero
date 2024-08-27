@@ -1,7 +1,10 @@
-import { Certificate, SigningKey } from "../types";
+import { SigningKey } from "../types";
 
 export interface KeysAdapter {
   create: (key: SigningKey) => Promise<void>;
-  list: () => Promise<(Certificate | SigningKey)[]>;
-  revoke: (kid: string, revoke_at: Date) => Promise<boolean>;
+  list: () => Promise<SigningKey[]>;
+  update: (
+    kid: string,
+    key: Partial<Omit<SigningKey, "kid">>,
+  ) => Promise<boolean>;
 }

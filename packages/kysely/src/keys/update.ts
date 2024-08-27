@@ -1,11 +1,12 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { SigningKey } from "@authhero/adapter-interfaces";
 
-export function revoke(db: Kysely<Database>) {
-  return async (kid: string, revoke_at: Date) => {
+export function update(db: Kysely<Database>) {
+  return async (kid: string, signingKey: Partial<Omit<SigningKey, "kid">>) => {
     const results = await db
       .updateTable("keys")
-      .set({ revoked_at: revoke_at.toISOString() })
+      .set(signingKey)
       .where("kid", "=", kid)
       .execute();
 

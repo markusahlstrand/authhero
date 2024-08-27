@@ -3,7 +3,6 @@ import { SqlBranding } from "./branding/Branding";
 import { SqlUser } from "./users/User";
 import {
   applicationSchema,
-  Certificate,
   Code,
   Connection,
   Domain,
@@ -49,7 +48,7 @@ export interface Database {
   connections: Connection & { tenant_id: string };
   domains: Domain & { tenant_id: string };
   hooks: Hook & { tenant_id: string };
-  keys: Certificate & SigningKey & { created_at: string };
+  keys: SigningKey & { created_at: string };
   logins: SqlLogin;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };

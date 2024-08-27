@@ -1,17 +1,5 @@
 import { z } from "@hono/zod-openapi";
 
-// deprecated
-export const certificateSchema = z.object({
-  private_key: z.string().optional(),
-  public_key: z.string().optional(),
-  kid: z.string(),
-  created_at: z.string().optional(),
-  revoked_at: z.string().optional(),
-});
-
-// deprecated
-export type Certificate = z.infer<typeof certificateSchema>;
-
 export const signingKeySchema = z.object({
   kid: z.string().openapi({ description: "The key id of the signing key" }),
   cert: z
@@ -20,7 +8,7 @@ export const signingKeySchema = z.object({
   fingerprint: z.string().openapi({ description: "The cert fingerprint" }),
   thumbprint: z.string().openapi({ description: "The cert thumbprint" }),
   pkcs7: z.string().optional().openapi({
-    description: "The public certificate of the signing key in pkcs7 format",
+    description: "The private key in pkcs7 format",
   }),
   current: z
     .boolean()
