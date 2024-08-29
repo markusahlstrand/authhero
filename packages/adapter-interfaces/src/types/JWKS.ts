@@ -1,12 +1,24 @@
 import { z } from "@hono/zod-openapi";
 
 export const jwksSchema = z.object({
-  alg: z.string(),
+  alg: z.enum([
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512",
+    "HS256",
+    "HS384",
+    "HS512",
+  ]),
   e: z.string(),
   kid: z.string(),
-  kty: z.string(),
+  kty: z.enum(["RSA", "EC", "oct"]),
   n: z.string(),
-  use: z.string().optional(),
+  x5t: z.string().optional(),
+  x5c: z.array(z.string()).optional(),
+  use: z.enum(["sig", "enc"]).optional(),
 });
 
 export const jwksKeySchema = z.object({

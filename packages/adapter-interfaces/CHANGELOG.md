@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.14.0
+
+### Minor Changes
+
+- Refine the jswks typs
+
 ## 0.13.0
 
 ### Minor Changes
