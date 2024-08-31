@@ -43,8 +43,10 @@ app.all("*", async (c) => {
     API_KEY2: string;
   }>(c);
 
+  const sourceUrl = new URL(c.req.url);
   const targetUrl = new URL(AUTH0_DOMAIN);
-  targetUrl.pathname = c.req.path;
+  targetUrl.pathname = sourceUrl.pathname;
+  targetUrl.search = sourceUrl.search;
 
   const headers = new Headers();
   for (const [key, value] of c.req.raw.headers.entries()) {
