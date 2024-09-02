@@ -1,5 +1,18 @@
 # @authhero/kysely-adapter
 
+## 0.9.0
+
+### Minor Changes
+
+- Update kysely adapter for connection
+
+### Patch Changes
+
+- Add promptestting addapter
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.15.0
+
 ## 0.8.1
 
 ### Patch Changes

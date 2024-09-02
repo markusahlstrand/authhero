@@ -7,6 +7,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { unflattenObject } from "../flatten";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -32,7 +33,9 @@ export function list(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     return {
-      connections: connections.map(removeNullProperties),
+      connections: connections.map((connecction) =>
+        removeNullProperties(unflattenObject(connecction, ["options"])),
+      ),
       start: params.page * params.per_page,
       limit: params.per_page,
       length: getCountAsInt(count),

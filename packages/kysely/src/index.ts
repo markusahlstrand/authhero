@@ -17,6 +17,7 @@ import { createHooksAdapter } from "./hooks";
 import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createLoginAdapter } from "./logins";
+import { createPromptSettingsAdapter } from "./promptSettings";
 
 export default function createAdapters(db: Kysely<Database>): DataAdapters {
   return {
@@ -31,6 +32,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     logins: createLoginAdapter(db),
     logs: createLogsAdapter(db),
     passwords: createPasswordAdapter(db),
+    promptSettings: createPromptSettingsAdapter(db),
     users: createUsersAdapter(db),
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),

@@ -18,7 +18,7 @@ export * from "./Tenant";
 export * from "./Token";
 export * from "./User";
 export * from "./Theme";
+export * from "./PromptSetting";
 
 // Deprecated: These files will be removed in the next version
-export * from "./LoginState";
 export * from "./Ticket";

@@ -14,6 +14,7 @@ import { HooksAdapter } from "./Hooks";
 import { ClientsAdapter } from "./Clients";
 import { ThemesAdapter } from "./Themes";
 import { LoginsAdapter } from "./Logins";
+import { PromptSettingsAdapter } from "./PromptSettings";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -27,6 +28,7 @@ export interface DataAdapters {
   logins: LoginsAdapter;
   logs: LogsDataAdapter;
   passwords: PasswordsAdapter;
+  promptSettings: PromptSettingsAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;

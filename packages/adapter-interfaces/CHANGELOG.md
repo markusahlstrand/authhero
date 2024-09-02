@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.15.0
+
+### Minor Changes
+
+- Add prompt settings and update the connection entity
+- Add prompt settings adapter
+
 ## 0.14.0
 
 ### Minor Changes

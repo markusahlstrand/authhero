@@ -1,5 +1,11 @@
 # @authhero/auth0-proxy
 
+## 0.1.1
+
+### Patch Changes
+
+- f1d020c: Fix to proxy the querystring
+
 ## 0.1.0
 
 ### Minor Changes

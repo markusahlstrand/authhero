@@ -38,6 +38,10 @@ export const applicationInsertSchema = z.object({
     description:
       "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
   }),
+  allowed_clients: z.array(z.string()).openapi({
+    description:
+      "Ids of clients that will be allowed to perform delegation requests. Clients that will be allowed to make delegation request. By default, all your clients will be allowed. This field allows you to specify specific clients",
+  }),
   addons: z
     .object({
       samlp: samlpAddon.optional(),

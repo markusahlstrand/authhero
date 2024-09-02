@@ -4,11 +4,12 @@ import { SqlUser } from "./users/User";
 import {
   applicationSchema,
   Code,
-  Connection,
+  connectionSchema,
   Domain,
   Hook,
   loginSchema,
   Password,
+  PromptSetting,
   Session,
   SigningKey,
   Tenant,
@@ -29,6 +30,11 @@ const sqlLoginSchema = flattenSchema(loginSchema).extend({
 });
 type SqlLogin = z.infer<typeof sqlLoginSchema>;
 
+const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
+  tenant_id: z.string(),
+});
+type SqlConnection = z.infer<typeof sqlConnectionSchema>;
+
 const sqlApplicationSchema = z.object({
   ...applicationSchema.shape,
   tenant_id: z.string(),
@@ -45,13 +51,14 @@ export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: SqlBranding;
   codes: Code & { tenant_id: string };
-  connections: Connection & { tenant_id: string };
+  connections: SqlConnection;
   domains: Domain & { tenant_id: string };
   hooks: Hook & { tenant_id: string };
   keys: SigningKey & { created_at: string };
   logins: SqlLogin;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
+  promptSettings: PromptSetting & { tenant_id: string };
   users: SqlUser;
   sessions: Session & { tenant_id: string };
   tenants: Tenant;
