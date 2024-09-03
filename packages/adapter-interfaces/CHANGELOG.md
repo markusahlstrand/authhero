@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.15.3
+
+### Patch Changes
+
+- Make properties with defaults optional
+
 ## 0.15.2
 
 ### Patch Changes
