@@ -8,17 +8,29 @@ export const connectionInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   strategy: z
-    .enum(["google-oauth2", "facebook", "vipps", "apple", "email"])
+    .enum([
+      "google-oauth2",
+      "facebook",
+      "vipps",
+      "apple",
+      "email",
+      "Username-Password-Authentication",
+      "oidc",
+      "oauth2",
+      "custom",
+    ])
     .optional(),
-  options: z.object({
-    kid: z.string().optional(),
-    team_id: z.string().optional(),
-    realms: z.string().optional(),
-    client_id: z.string().optional(),
-    client_secret: z.string().optional(),
-    app_secret: z.string().optional(),
-    scope: z.string().optional(),
-  }),
+  options: z
+    .object({
+      kid: z.string().optional(),
+      team_id: z.string().optional(),
+      realms: z.string().optional(),
+      client_id: z.string().optional(),
+      client_secret: z.string().optional(),
+      app_secret: z.string().optional(),
+      scope: z.string().optional(),
+    })
+    .optional(),
   enabled_clients: z.array(z.string()).optional(),
   authorization_endpoint: z.string().optional(),
   response_type: z.custom<AuthorizationResponseType>().optional(),

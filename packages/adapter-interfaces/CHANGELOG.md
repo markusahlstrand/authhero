@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.15.1
+
+### Patch Changes
+
+- Make options optional
+
 ## 0.15.0
 
 ### Minor Changes
