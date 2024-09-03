@@ -6,8 +6,8 @@ import { Database } from "../db";
 export function get(db: Kysely<Database>) {
   return async (tenant_id: string): Promise<PromptSetting> => {
     const [promptSetting] = await db
-      .selectFrom("promptSettings")
-      .where("promptSettings.tenant_id", "=", tenant_id)
+      .selectFrom("prompt_settings")
+      .where("prompt_settings.tenant_id", "=", tenant_id)
       .selectAll()
       .execute();
 

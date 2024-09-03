@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.9.5
+
+### Patch Changes
+
+- Changed so promptsetting uses a partial for the update
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.15.5
+
 ## 0.9.4
 
 ### Patch Changes

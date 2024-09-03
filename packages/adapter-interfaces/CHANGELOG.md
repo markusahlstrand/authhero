@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.15.5
+
+### Patch Changes
+
+- Changed so promptsetting uses a partial for the update
+
 ## 0.15.4
 
 ### Patch Changes

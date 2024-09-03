@@ -58,7 +58,7 @@ export interface Database {
   logins: SqlLogin;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
-  promptSettings: PromptSetting & { tenant_id: string };
+  prompt_settings: PromptSetting & { tenant_id: string };
   users: SqlUser;
   sessions: Session & { tenant_id: string };
   tenants: Tenant;

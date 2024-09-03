@@ -1,20 +1,25 @@
-import { PromptSetting } from "@authhero/adapter-interfaces";
+import {
+  PromptSetting,
+  promptSettingSchema,
+} from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function set(db: Kysely<Database>) {
-  return async (tenant_id: string, promptSetting: PromptSetting) => {
+  return async (tenant_id: string, promptSetting: Partial<PromptSetting>) => {
     try {
+      const promptSettingsWithDefaults =
+        promptSettingSchema.parse(promptSetting);
       await db
-        .insertInto("promptSettings")
+        .insertInto("prompt_settings")
         .values({
-          ...promptSetting,
+          ...promptSettingsWithDefaults,
           tenant_id,
         })
         .execute();
     } catch (error) {
       await db
-        .updateTable("promptSettings")
+        .updateTable("prompt_settings")
         .set(promptSetting)
         .where("tenant_id", "=", tenant_id)
         .execute();
