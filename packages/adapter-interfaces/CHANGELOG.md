@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.15.2
+
+### Patch Changes
+
+- Make application default to empty arrays and a nanoid for secret
+
 ## 0.15.1
 
 ### Patch Changes
