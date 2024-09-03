@@ -23,68 +23,48 @@ export const samlpAddon = z.object({
 export const applicationInsertSchema = z.object({
   id: z.string(),
   name: z.string(),
-  callbacks: z
-    .array(z.string())
-    .optional()
-    .openapi({
-      description:
-        "Comma-separated list of URLs whitelisted to use as a callback to the client after authentication.",
-    })
-    .default([]),
-  allowed_origins: z
-    .array(z.string())
-    .optional()
-    .openapi({
-      description:
-        "Comma-separated list of URLs allowed to make requests from JavaScript to Auth0 API (typically used with CORS). By default, all your callback URLs will be allowed. This field allows you to enter other origins if necessary. You can also use wildcards at the subdomain level. Query strings and hash information are not taken into account when validating these URLs.",
-    })
-    .default([]),
-  web_origins: z
-    .array(z.string())
-    .optional()
-    .openapi({
-      description:
-        "Comma-separated list of allowed origins for use with Cross-Origin Authentication, Device Flow, and web message response mode.",
-    })
-    .default([]),
-  allowed_logout_urls: z
-    .array(z.string())
-    .optional()
-    .openapi({
-      description:
-        "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
-    })
-    .default([]),
-  allowed_clients: z
-    .array(z.string())
-    .optional()
-    .openapi({
-      description:
-        "Ids of clients that will be allowed to perform delegation requests. Clients that will be allowed to make delegation request. By default, all your clients will be allowed. This field allows you to specify specific clients",
-    })
-    .default([]),
+  callbacks: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "Comma-separated list of URLs whitelisted to use as a callback to the client after authentication.",
+  }),
+  allowed_origins: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "Comma-separated list of URLs allowed to make requests from JavaScript to Auth0 API (typically used with CORS). By default, all your callback URLs will be allowed. This field allows you to enter other origins if necessary. You can also use wildcards at the subdomain level. Query strings and hash information are not taken into account when validating these URLs.",
+  }),
+  web_origins: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "Comma-separated list of allowed origins for use with Cross-Origin Authentication, Device Flow, and web message response mode.",
+  }),
+  allowed_logout_urls: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
+  }),
+  allowed_clients: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "Ids of clients that will be allowed to perform delegation requests. Clients that will be allowed to make delegation request. By default, all your clients will be allowed. This field allows you to specify specific clients",
+  }),
   addons: z
     .object({
       samlp: samlpAddon.optional(),
     })
+    .default({})
     .optional()
     .openapi({
       description:
         "Addons associated with the client. The key is the addon's package name and the value is an object with the configuration for the addon.",
-    })
-    .default({}),
+    }),
   email_validation: z
     .enum(["enabled", "disabled", "enforced"])
-    .optional()
     .default("enforced")
+    .optional()
     .openapi({
       description:
         "Defines if it possible to sign in with an unverified email and if verification emails will be sent. This is not available in auth0",
     }),
   client_secret: z
     .string()
-    .optional()
-    .default(() => nanoid()),
+    .default(() => nanoid())
+    .optional(),
   disable_sign_ups: z.boolean().optional().default(false).openapi({
     description:
       "Prevents users from signing up using the hosted login page. This is not available in auth0",

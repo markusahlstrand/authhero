@@ -30,10 +30,10 @@ export const connectionInsertSchema = z.object({
       app_secret: z.string().optional(),
       scope: z.string().optional(),
     })
-    .optional()
-    .default({}),
-  enabled_clients: z.array(z.string()).optional().default([]),
-  authorization_endpoint: z.string().optional().default(""),
+    .default({})
+    .optional(),
+  enabled_clients: z.array(z.string()).default([]).optional(),
+  authorization_endpoint: z.string().default("").optional(),
   response_type: z.custom<AuthorizationResponseType>().optional(),
   response_mode: z.custom<AuthorizationResponseMode>().optional(),
 

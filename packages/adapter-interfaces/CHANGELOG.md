@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.15.4
+
+### Patch Changes
+
+- Change order of default and optional
+
 ## 0.15.3
 
 ### Patch Changes
