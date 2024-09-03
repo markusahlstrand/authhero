@@ -9,7 +9,7 @@ import {
   Hook,
   loginSchema,
   Password,
-  PromptSetting,
+  promptSettingSchema,
   Session,
   SigningKey,
   Tenant,
@@ -17,7 +17,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { SqlTicket } from "./tickets/Ticket";
 import { SqlLog } from "./logs/Log";
-import { flattenSchema } from "./flatten";
+import { flattenSchema } from "./utils/flatten";
 
 const sqlThemeSchema = flattenSchema(themeSchema).extend({
   tenant_id: z.string(),
@@ -47,6 +47,14 @@ const sqlApplicationSchema = z.object({
   allowed_logout_urls: z.string(),
 });
 
+const sqlPromptSettingSchema = z.object({
+  ...promptSettingSchema.shape,
+  identifier_first: z.number(),
+  password_first: z.number(),
+  webauthn_platform_first_factor: z.number(),
+  tenant_id: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: SqlBranding;
@@ -58,7 +66,7 @@ export interface Database {
   logins: SqlLogin;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
-  prompt_settings: PromptSetting & { tenant_id: string };
+  prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
   users: SqlUser;
   sessions: Session & { tenant_id: string };
   tenants: Tenant;

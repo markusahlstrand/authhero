@@ -7,7 +7,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
-import { unflattenObject } from "../flatten";
+import { unflattenObject } from "../utils/flatten";
 
 export function list(db: Kysely<Database>) {
   return async (

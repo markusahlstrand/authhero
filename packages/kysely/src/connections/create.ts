@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
 import { Connection, ConnectionInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { flattenObject } from "../flatten";
+import { flattenObject } from "../utils/flatten";
 
 export function create(db: Kysely<Database>) {
   return async (

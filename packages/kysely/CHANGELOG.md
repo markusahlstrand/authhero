@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.9.6
+
+### Patch Changes
+
+- Convert booleans to integers
+
 ## 0.9.5
 
 ### Patch Changes

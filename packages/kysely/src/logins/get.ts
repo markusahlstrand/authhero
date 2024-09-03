@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { Login, loginSchema } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { unflattenObject } from "../flatten";
+import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";
 
 export function get(db: Kysely<Database>) {
