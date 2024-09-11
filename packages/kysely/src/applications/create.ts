@@ -17,6 +17,7 @@ export function create(db: Kysely<Database>) {
     const callbacks = JSON.stringify(params.callbacks);
     const web_origins = JSON.stringify(params.web_origins);
     const allowed_logout_urls = JSON.stringify(params.allowed_logout_urls);
+    const allowed_clients = JSON.stringify(params.allowed_clients);
 
     await db
       .insertInto("applications")
@@ -29,6 +30,7 @@ export function create(db: Kysely<Database>) {
         allowed_origins,
         web_origins,
         allowed_logout_urls,
+        allowed_clients,
       })
       .execute();
 

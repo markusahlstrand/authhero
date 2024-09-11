@@ -58,6 +58,9 @@ export function createClientsAdapter(db: Kysely<Database>) {
         allowed_logout_urls: application.allowed_logout_urls
           ? JSON.parse(application.allowed_logout_urls)
           : [],
+        allowed_clients: application.allowed_clients
+          ? JSON.parse(application.allowed_clients)
+          : [],
         tenant: removeNullProperties(tenant),
         // this is really an integer in the database
         disable_sign_ups: !!application.disable_sign_ups,

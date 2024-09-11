@@ -45,6 +45,7 @@ const sqlApplicationSchema = z.object({
   allowed_origins: z.string(),
   web_origins: z.string(),
   allowed_logout_urls: z.string(),
+  allowed_clients: z.string(),
 });
 
 const sqlPromptSettingSchema = z.object({

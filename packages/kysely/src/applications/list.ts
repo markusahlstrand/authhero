@@ -21,6 +21,9 @@ export function list(db: Kysely<Database>) {
       allowed_logout_urls: result.allowed_logout_urls
         ? JSON.parse(result.allowed_logout_urls)
         : [],
+      allowed_clients: result.allowed_logout_urls
+        ? JSON.parse(result.allowed_logout_urls)
+        : [],
     }));
 
     return {

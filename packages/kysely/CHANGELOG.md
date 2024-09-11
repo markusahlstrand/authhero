@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.9.7
+
+### Patch Changes
+
+- Change the allowed_clients on the application to be string in kysely and array of strings in interfaces
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.15.6
+
 ## 0.9.6
 
 ### Patch Changes

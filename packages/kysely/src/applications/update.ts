@@ -23,6 +23,9 @@ export function update(db: Kysely<Database>) {
       allowed_logout_urls: application.allowed_logout_urls
         ? JSON.stringify(application.allowed_logout_urls)
         : undefined,
+      allowed_clients: application.allowed_clients
+        ? JSON.stringify(application.allowed_clients)
+        : undefined,
       addons: application.addons ? JSON.stringify(application.addons) : "{}",
       disable_sign_ups: application.disable_sign_ups ? 1 : 0,
     };
