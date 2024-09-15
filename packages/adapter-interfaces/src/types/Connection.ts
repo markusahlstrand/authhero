@@ -31,6 +31,10 @@ export const connectionInsertSchema = z.object({
       scope: z.string().optional(),
       authorization_endpoint: z.string().default("").optional(),
       token_endpoint: z.string().default("").optional(),
+      userinfo_endpoint: z.string().default("").optional(),
+      jwks_uri: z.string().default("").optional(),
+      discovery_url: z.string().default("").optional(),
+      issuer: z.string().default("").optional(),
     })
     .default({})
     .optional(),
