@@ -16,6 +16,7 @@
     "drizzle": "pnpm --filter drizzle",
     "kysely": "pnpm --filter @authhero/kysely-adapter",
     "demo": "pnpm --filter @authhero/demo",
+    "saml": "pnpm --filter @authhero/saml",
     "prepare": "husky"
   },
   "keywords": [],
