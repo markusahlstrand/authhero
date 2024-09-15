@@ -1,5 +1,15 @@
 # @authhero/adapter-interfaces
 
+## 0.17.0
+
+### Minor Changes
+
+- Change to use a json field for connection options
+
+### Patch Changes
+
+- Add more properties to connection options
+
 ## 0.16.0
 
 ### Minor Changes

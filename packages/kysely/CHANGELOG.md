@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 0.11.0
+
+### Minor Changes
+
+- Change to use a json field for connection options
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.17.0
+
 ## 0.10.0
 
 ### Minor Changes

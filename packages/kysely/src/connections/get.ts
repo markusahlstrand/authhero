@@ -2,7 +2,6 @@ import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { unflattenObject } from "../utils/flatten";
 
 export function get(db: Kysely<Database>) {
   return async (
@@ -20,6 +19,9 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    return removeNullProperties(unflattenObject(connection, ["options"]));
+    return removeNullProperties({
+      ...connection,
+      options: JSON.parse(connection.options),
+    });
   };
 }

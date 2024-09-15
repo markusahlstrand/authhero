@@ -1,7 +1,6 @@
 import { Kysely } from "kysely";
 import { ConnectionInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { flattenObject } from "../utils/flatten";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -16,7 +15,12 @@ export function update(db: Kysely<Database>) {
 
     await db
       .updateTable("connections")
-      .set(flattenObject(sqlConnection))
+      .set({
+        ...sqlConnection,
+        options: sqlConnection.options
+          ? JSON.stringify(sqlConnection.options)
+          : undefined,
+      })
       .where("connections.id", "=", connection_id)
       .where("connections.tenant_id", "=", tenant_id)
       .execute();

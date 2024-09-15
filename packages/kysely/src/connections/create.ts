@@ -2,7 +2,6 @@ import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
 import { Connection, ConnectionInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { flattenObject } from "../utils/flatten";
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -18,7 +17,12 @@ export function create(db: Kysely<Database>) {
 
     await db
       .insertInto("connections")
-      .values({ ...flattenObject(connection), tenant_id })
+      .values({
+        ...connection,
+        // The connection options will have many different properties depending on the strategy
+        options: JSON.stringify(connection.options || {}),
+        tenant_id,
+      })
       .execute();
 
     return connection;
