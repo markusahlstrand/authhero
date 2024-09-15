@@ -36,17 +36,6 @@ export const connectionInsertSchema = z.object({
   authorization_endpoint: z.string().default("").optional(),
   response_type: z.custom<AuthorizationResponseType>().optional(),
   response_mode: z.custom<AuthorizationResponseMode>().optional(),
-
-  // Deprecated
-  client_id: z.string().optional(),
-  client_secret: z.string().optional(),
-  private_key: z.string().optional(),
-  kid: z.string().optional(),
-  team_id: z.string().optional(),
-  token_endpoint: z.string().optional(),
-  token_exchange_basic_auth: z.boolean().optional(),
-  userinfo_endpoint: z.string().optional(),
-  scope: z.string().optional(),
 });
 export type ConnectionInsert = z.infer<typeof connectionInsertSchema>;
 

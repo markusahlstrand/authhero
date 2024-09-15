@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.16.0
+
+### Minor Changes
+
+- Remove old properties of connections
+
 ## 0.15.6
 
 ### Patch Changes
