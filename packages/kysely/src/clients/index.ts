@@ -42,7 +42,12 @@ export function createClientsAdapter(db: Kysely<Database>) {
       const client: Client = {
         ...application,
         connections: connections.map((connection) =>
-          connectionSchema.parse(removeNullProperties(connection)),
+          connectionSchema.parse(
+            removeNullProperties({
+              ...connection,
+              options: connection.options ? JSON.parse(connection.options) : {},
+            }),
+          ),
         ),
         domains,
         addons: application.addons ? JSON.parse(application.addons) : {},

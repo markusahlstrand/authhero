@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.11.2
+
+### Patch Changes
+
+- Add json parsing of connection options in the get client
+
 ## 0.11.1
 
 ### Patch Changes
