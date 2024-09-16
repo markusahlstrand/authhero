@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.12.0
+
+### Minor Changes
+
+- Expose app_metadata and user_metadata
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.18.0
+
 ## 0.11.2
 
 ### Patch Changes

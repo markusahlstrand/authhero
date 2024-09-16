@@ -1,7 +1,6 @@
 import { PostUsersBody } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { SqlUser } from "./SqlUser";
 
 function getEmailVerified(user: Partial<PostUsersBody>): number | undefined {
   if (user.email_verified === undefined) {
@@ -17,7 +16,7 @@ export function update(db: Kysely<Database>) {
     user_id: string,
     user: Partial<PostUsersBody>,
   ): Promise<boolean> => {
-    const sqlUser: Partial<SqlUser> = {
+    const sqlUser = {
       ...user,
       email_verified: getEmailVerified(user),
       updated_at: new Date().toISOString(),

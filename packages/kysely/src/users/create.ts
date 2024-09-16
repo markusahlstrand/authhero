@@ -2,19 +2,20 @@ import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { Database } from "../db";
 import { User } from "@authhero/adapter-interfaces";
-import { SqlUser } from "./SqlUser";
 
 export function create(db: Kysely<Database>) {
   return async (tenantId: string, user: User): Promise<User> => {
     const { identities, ...rest } = user;
 
-    const sqlUser: SqlUser = {
+    const sqlUser = {
       ...rest,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       tenant_id: tenantId,
       email_verified: user.email_verified ? 1 : 0,
       is_social: user.is_social ? 1 : 0,
+      app_metadata: JSON.stringify(user.app_metadata),
+      user_metadata: JSON.stringify(user.user_metadata),
     };
 
     try {

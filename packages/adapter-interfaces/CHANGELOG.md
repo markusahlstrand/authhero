@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.18.0
+
+### Minor Changes
+
+- Expose app_metadata and user_metadata
+
 ## 0.17.1
 
 ### Patch Changes

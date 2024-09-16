@@ -32,6 +32,8 @@ export function get(db: Kysely<Database>) {
       email: sqlUser.email || "",
       email_verified: sqlUser.email_verified === 1,
       is_social: sqlUser.is_social === 1,
+      app_metadata: JSON.parse(sqlUser.app_metadata),
+      user_metadata: JSON.parse(sqlUser.user_metadata),
       identities: [
         {
           connection: sqlUser.connection,

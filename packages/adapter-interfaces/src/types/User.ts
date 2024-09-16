@@ -14,6 +14,8 @@ export const baseUserSchema = z.object({
   linked_to: z.string().optional(),
   profileData: z.string().optional(),
   user_id: z.string().optional(),
+  app_metadata: z.any().default({}).optional(),
+  user_metadata: z.any().default({}).optional(),
 });
 
 export type BaseUser = z.infer<typeof baseUserSchema>;
@@ -28,16 +30,16 @@ export const userInsertSchema = baseUserSchema.extend({
   connection: z.string().default("email"),
 });
 
-export const userSchema = userInsertSchema
-  .extend(baseEntitySchema.shape)
-  .extend({
-    user_id: z.string(),
-    // TODO: this not might be correct if you use the username
-    email: z.string(),
-    is_social: z.boolean(),
-    login_count: z.number(),
-    identities: z.array(identitySchema).optional(),
-  });
+export const userSchema = z.object({
+  ...userInsertSchema.shape,
+  ...baseEntitySchema.shape,
+  user_id: z.string(),
+  // TODO: this not might be correct if you use the username
+  email: z.string(),
+  is_social: z.boolean(),
+  login_count: z.number(),
+  identities: z.array(identitySchema).optional(),
+});
 
 export type User = z.infer<typeof userSchema>;
 
