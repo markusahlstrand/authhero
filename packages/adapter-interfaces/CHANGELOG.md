@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.19.0
+
+### Minor Changes
+
+- Add freja as connection type
+
 ## 0.18.0
 
 ### Minor Changes

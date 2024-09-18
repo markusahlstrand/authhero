@@ -12,6 +12,7 @@ export const connectionInsertSchema = z.object({
       "google-oauth2",
       "facebook",
       "vipps",
+      "freja",
       "apple",
       "email",
       "Username-Password-Authentication",
