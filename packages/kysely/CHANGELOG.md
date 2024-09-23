@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.13.0
+
+### Minor Changes
+
+- Handle patch for app_metadata and user_metadata
+
 ## 0.12.1
 
 ### Patch Changes

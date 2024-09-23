@@ -22,6 +22,15 @@ export function update(db: Kysely<Database>) {
       updated_at: new Date().toISOString(),
     };
 
+    // TODO: this currently overwrites the entire app_metadata and user_metadata. Should it be merged instead?
+    if (user.app_metadata) {
+      sqlUser.app_metadata = JSON.stringify(user.app_metadata);
+    }
+
+    if (user.user_metadata) {
+      sqlUser.user_metadata = JSON.stringify(user.user_metadata);
+    }
+
     const results = await db
       .updateTable("users")
       .set(sqlUser)
