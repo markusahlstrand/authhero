@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.20.0
+
+### Minor Changes
+
+- Add ui_locales to authparams
+
 ## 0.19.0
 
 ### Minor Changes
