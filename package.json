@@ -23,20 +23,20 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@changesets/cli": "^2.27.7",
-    "@eslint/compat": "^1.1.0",
-    "@eslint/js": "^9.5.0",
+    "@changesets/cli": "^2.27.9",
+    "@eslint/compat": "^1.2.1",
+    "@eslint/js": "^9.13.0",
     "eslint": "9.x",
-    "eslint-plugin-react": "^7.34.3",
-    "globals": "^15.6.0",
-    "husky": "^9.1.4",
-    "prettier": "^3.3.2",
-    "prettier-plugin-tailwindcss": "^0.6.5",
-    "typescript": "^5.5.2",
-    "typescript-eslint": "^7.14.1"
+    "eslint-plugin-react": "^7.37.1",
+    "globals": "^15.11.0",
+    "husky": "^9.1.6",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.10.0"
   },
   "dependencies": {
-    "@authhero/kysely-adapter": "^0.5.4",
+    "@authhero/kysely-adapter": "^0.13.1",
     "kysely-bun-sqlite": "^0.3.2"
   }
 }

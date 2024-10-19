@@ -1,5 +1,17 @@
 # @authhero/adapter-interfaces
 
+## 0.20.2
+
+### Patch Changes
+
+- Update packages
+
+## 0.20.1
+
+### Patch Changes
+
+- Add prompt to login sessions
+
 ## 0.20.0
 
 ### Minor Changes
