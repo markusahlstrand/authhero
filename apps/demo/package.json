@@ -1,11 +1,9 @@
 {
   "name": "@authhero/demo",
   "private": true,
-  "version": "0.0.35",
+  "version": "0.0.36",
   "scripts": {
     "dev": "bun --watch src/bun.ts"
   },
-  "dependencies": {
-    "authhero": "workspace:^"
-  }
+  "dependencies": {}
 }

@@ -46,15 +46,7 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       // });
 
       // TODO: This is a stub implementation. Replace with the actual implementation
-      const keys = [
-        {
-          alg: "RS256",
-          e: "AQAB",
-          kid: "hZ42TWGWLdmyKfwGVA6c2",
-          kty: "RSA",
-          n: "nUd-mktFZQNfVwmXufxcVcvJo6Lkb-jDuymtfQunmEhWCctOccWx9e7LX7_9uN15ZnRS7XJInPMRs9KLYdZ0GCnE2HM_QbrEoHpdkCRgyTE-KzmoaEv_AOVGE_Kg0-0ct3r9Z7aJLDVAsxXl1C9y8Gr7ZYkq0c4DyZr9VT8nQiwZQERbfxXdXw-5RLj21S_Lm-LL-AjKvry_TDBLpfUFJV18SVsM07lY_V45TwykNewRdaGLspFIeGdG5j5eByV8ifzBqvzOSptSCsmOTtW-ceWUk0FPD7g_KKzjjbzenoB0TC8mBb_4vWZlHnuGIAs2YoTFglp9uNu7t_OVl3Svo6ZE6alzUnaNfZNeAi78KPHYQ4tDWPjpYNfGynsiD0nojkDSPCIak56jWNYjj614cPEBiv9MVQRiSbBxpiGhMoHlW_QCCPMcXygLAaRs_tUksqoH4QB80krifG2yHPgGDPjXK1_0cYzV80iOcQIeoceqhkSSc6YxzzgDrQcsV2k3bizRQSL83GWkpdHhTZn-Q_JzsW_bDY_f9fjigYbRnoDSgS7038VFIPc92StE41MdgvIQMomcyEE4lYK1uv1Mo6cnXbCZhm8tvddo7VKNorOB4nsiv8DGrWPlzQBca9VN4C1oE2mH-3WLFR7XEkBHWVouOdTWM2S3K9F10YtahkM",
-        },
-      ];
+      const keys = [];
 
       return ctx.json(
         { keys },

@@ -1,5 +1,13 @@
 # @authhero/drizzle
 
+## 0.1.54
+
+### Patch Changes
+
+- Expose the migration script for kysely and add authhero test
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.20.3
+
 ## 0.1.53
 
 ### Patch Changes

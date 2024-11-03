@@ -59,7 +59,7 @@ program
             start: "bun src/index.js",
           },
           dependencies: {
-            "@hono/zod-openapi": "^0.14.9",
+            "@hono/zod-openapi": "^0.16.4",
             authhero: "^0.2.0",
             hono: "^4.4.10",
           },

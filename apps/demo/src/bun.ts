@@ -1,14 +1,22 @@
-// import { BunSqliteDialect } from "kysely-bun-sqlite";
-// import createAdapters from "@authhero/kysely-adapter";
-import { serveStatic } from "hono/bun";
+import { Kysely } from "kysely";
+import { BunSqliteDialect } from "kysely-bun-sqlite";
+import createAdapters from "@authhero/kysely-adapter";
 // @ts-ignore
 import * as bunSqlite from "bun:sqlite";
 
 import createApp from "./app";
 
-const { app } = createApp();
+const dialect = new BunSqliteDialect({
+  database: new bunSqlite.Database("db.sqlite"),
+});
+const db = new Kysely<any>({
+  dialect,
+});
 
-app.use("/static/*", serveStatic({ root: "./" }));
+const dataAdapter = createAdapters(db);
+
+// @ts-ignore
+const { app } = createApp(dataAdapter);
 
 const server = {
   async fetch(request: Request): Promise<Response> {

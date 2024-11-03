@@ -37,5 +37,9 @@ export function init(options: AuthHeroConfig) {
 
   rootApp.route("/", oauthApp);
 
-  return rootApp;
+  return {
+    rootApp,
+    managementApp,
+    oauthApp,
+  };
 }

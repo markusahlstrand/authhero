@@ -2,9 +2,14 @@ import { Context } from "hono";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import packageJson from "../package.json";
-import authhero from "authhero";
+import authhero, { DataAdapters } from "authhero";
 
-export default function create() {
+// Define the return type interface
+interface CreateReturn {
+  app: ReturnType<typeof authhero.init>;
+}
+
+export default function create(dataAdapter: DataAdapters): CreateReturn {
   const rootApp = new OpenAPIHono();
 
   rootApp
@@ -25,7 +30,9 @@ export default function create() {
       });
     });
 
-  const { app } = authhero.init({});
+  const app = authhero.init({
+    dataAdapter,
+  });
 
   return {
     app,

@@ -1,3 +1,4 @@
+import { Kysely } from "kysely";
 import { createUsersAdapter } from "./users";
 import { createTenantsAdapter } from "./tenants";
 import { createLogsAdapter } from "./logs";
@@ -8,7 +9,6 @@ import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
 import { createApplicationsAdapter } from "./applications";
 import { createConnectionsAdapter } from "./connections";
-import { Kysely } from "kysely";
 import { createClientsAdapter } from "./clients";
 import { createKeysAdapter } from "./keys";
 import { createDomainsAdapter } from "./domains";
@@ -18,6 +18,8 @@ import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createLoginAdapter } from "./logins";
 import { createPromptSettingsAdapter } from "./promptSettings";
+
+export { migrateToLatest, migrateDown } from "./migrate/migrate";
 
 export default function createAdapters(db: Kysely<Database>): DataAdapters {
   return {

@@ -1,5 +1,11 @@
 # @authhero/demo
 
+## 0.0.36
+
+### Patch Changes
+
+- Expose the migration script for kysely and add authhero test
+
 ## 0.0.35
 
 ### Patch Changes

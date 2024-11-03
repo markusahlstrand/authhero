@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.13.4
+
+### Patch Changes
+
+- Expose the migration script for kysely and add authhero test
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.20.3
+
 ## 0.13.3
 
 ### Patch Changes
