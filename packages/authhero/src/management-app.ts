@@ -6,7 +6,7 @@ import { addDataHooks } from "./hooks";
 // import { userRoutes } from "./routes/management-api/users";
 // import { keyRoutes } from "./routes/management-api/keys";
 // import { usersByEmailRoutes } from "./routes/management-api/users-by-email";
-// import { applicationRoutes } from "./routes/management-api/applications";
+import { clientRoutes } from "./routes/management-api/clients";
 import { tenantRoutes } from "./routes/management-api/tenants";
 // import { logRoutes } from "./routes/management-api/logs";
 // import { hooksRoutes } from "./routes/management-api/hooks";
@@ -35,7 +35,7 @@ export default function create(params: CreateAuthParams) {
     // .route("/api/v2/users", userRoutes)
     // .route("/api/v2/keys/signing", keyRoutes)
     // .route("/api/v2/users-by-email", usersByEmailRoutes)
-    // .route("/api/v2/applications", applicationRoutes)
+    .route("/api/v2/clients", clientRoutes)
     .route("/api/v2/tenants", tenantRoutes);
   // .route("/api/v2/logs", logRoutes)
   // .route("/api/v2/hooks", hooksRoutes)
