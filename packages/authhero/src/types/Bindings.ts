@@ -1,7 +1,6 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 
 export type Bindings = {
-  ISSUER: string;
   ENVIRONMENT: string;
   AUTH_URL: string;
 

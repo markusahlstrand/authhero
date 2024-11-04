@@ -3,20 +3,16 @@ import { Context } from "hono";
 import { Bindings, Variables } from "./types";
 import { wellKnownRoutes } from "./routes/oauth2";
 import createManagementApi from "./management-app";
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { AuthHeroConfig } from "./types/AuthHeroConfig";
 
-export interface AuthHeroConfig {
-  dataAdapter: DataAdapters;
-}
-
-export function init(options: AuthHeroConfig) {
+export function init(config: AuthHeroConfig) {
   const rootApp = new OpenAPIHono<{ Bindings: Bindings }>();
 
   rootApp.get("/", (ctx: Context) => {
     return ctx.text("Hello, authhero!");
   });
 
-  const managementApp = createManagementApi(options);
+  const managementApp = createManagementApi(config);
   rootApp.route("/api/v2", managementApp);
 
   /**
@@ -25,7 +21,7 @@ export function init(options: AuthHeroConfig) {
   const oauthApp = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
-  }>().route("/.well-known", wellKnownRoutes);
+  }>().route("/.well-known", wellKnownRoutes(config));
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

@@ -33,6 +33,8 @@
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:^",
     "@hono/zod-openapi": "^0.16.4",
-    "hono": "^4.6.8"
+    "@peculiar/x509": "^1.12.3",
+    "hono": "^4.6.8",
+    "oslo": "^1.2.1"
   }
 }
