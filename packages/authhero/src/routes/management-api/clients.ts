@@ -8,7 +8,7 @@ import {
 import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
-import { auth0QuerySchema } from "../../types/auth0/Query";
+import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../helpers/sort";
 // import authenticationMiddleware from "../../middlewares/authentication";
 
@@ -26,7 +26,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       method: "get",
       path: "/",
       request: {
-        query: auth0QuerySchema,
+        query: querySchema,
         headers: z.object({
           "tenant-id": z.string(),
         }),
