@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.14.0
+
+### Minor Changes
+
+- a4b587d: Added the connection routes
+
 ## 0.13.4
 
 ### Patch Changes

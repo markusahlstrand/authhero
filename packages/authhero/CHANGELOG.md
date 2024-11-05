@@ -1,5 +1,18 @@
 # authhero
 
+## 0.3.0
+
+### Minor Changes
+
+- 4064c4d: Add clients endpoints
+- a4b587d: Added the connection routes
+
+### Patch Changes
+
+- 8244aa2: Pass the issuer in the config rather than in env
+- 8244aa2: Add test server with migrations
+- 8244aa2: Added tests for tenants endpoint
+
 ## 0.2.38
 
 ### Patch Changes
