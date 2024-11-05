@@ -1,4 +1,4 @@
-# authhero
+# AuthHero
 
 Monorepo for authhero containing the following packages:
 
@@ -13,6 +13,7 @@ Monorepo for authhero containing the following packages:
 It also contains the following apps:
 
 - Manage, a web app for managing auth tenants
+- Demo, a auth server using the kysely adapter and sqlite
 
 ## Getting Started
 
