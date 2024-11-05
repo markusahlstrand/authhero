@@ -35,8 +35,6 @@ describe("connections", () => {
         },
       );
 
-    console.log(await createConnectionResponse.text());
-
     expect(createConnectionResponse.status).toBe(201);
     const createdConnection = await createConnectionResponse.json();
 
@@ -44,6 +42,7 @@ describe("connections", () => {
 
     expect(rest).toEqual({
       name: "apple",
+      strategy: "apple",
       options: {
         team_id: "teamId",
       },
@@ -63,7 +62,9 @@ describe("connections", () => {
           id: id!,
         },
         json: {
-          options: {},
+          options: {
+            team_id: "teamId2",
+          },
         },
         header: {
           "tenant-id": "tenantId",

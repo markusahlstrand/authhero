@@ -14,7 +14,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("primary_color", "varchar(255)")
     .addColumn("secondary_color", "varchar(255)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -31,7 +31,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("picture", "varchar(2083)")
     .addColumn("tags", "varchar(255)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .addPrimaryKeyConstraint("users_tenants", ["user_id", "tenant_id"])
     .addColumn("linked_to", "varchar(255)")
     .addForeignKeyConstraint(
@@ -75,7 +75,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     // .addColumn("picture", "varchar(255)")
     .addColumn("picture", "varchar(2083)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -113,7 +113,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("email_validation", "varchar(255)")
     .addColumn("disable_sign_ups", "boolean", (col) => col.notNull())
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -125,11 +125,12 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("name", "varchar(255)", (col) => col.notNull())
     .addColumn("response_type", "varchar(255)")
     .addColumn("response_mode", "varchar(255)")
+    .addColumn("strategy", "varchar(64)")
     .addColumn("options", "varchar(2048)", (col) =>
       col.defaultTo("{}").notNull(),
     )
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -143,7 +144,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("origin", "varchar(255)")
     .addColumn("domain", "varchar(255)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -158,7 +159,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("dkim_private_key", "varchar(2048)")
     .addColumn("dkim_public_key", "varchar(2048)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("modified_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 }
 

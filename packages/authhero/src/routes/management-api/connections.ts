@@ -52,8 +52,13 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
     async (ctx) => {
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const { page, per_page, include_totals, sort, q } =
-        ctx.req.valid("query");
+      const {
+        page,
+        per_page,
+        include_totals = false,
+        sort,
+        q,
+      } = ctx.req.valid("query");
 
       const result = await ctx.env.data.connections.list(tenant_id, {
         page,
@@ -62,6 +67,10 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         sort: parseSort(sort),
         q,
       });
+
+      if (!include_totals) {
+        return ctx.json(result.connections);
+      }
 
       return ctx.json(result);
     },
@@ -185,7 +194,12 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       // ],
       responses: {
         200: {
-          description: "Status",
+          content: {
+            "application/json": {
+              schema: connectionSchema,
+            },
+          },
+          description: "The updated connection",
         },
       },
     }),
@@ -201,7 +215,15 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         });
       }
 
-      return ctx.text("OK");
+      const connection = await ctx.env.data.connections.get(tenant_id, id);
+
+      if (!connection) {
+        throw new HTTPException(404, {
+          message: "Connection not found",
+        });
+      }
+
+      return ctx.json(connection);
     },
   )
   // --------------------------------

@@ -2,6 +2,7 @@ import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import {
+  Connection,
   ListConnectionsResponse,
   ListParams,
 } from "@authhero/adapter-interfaces";
@@ -26,16 +27,17 @@ export function list(db: Kysely<Database>) {
       .offset(params.page * params.per_page)
       .limit(params.per_page);
 
-    const connections = await filteredQuery.selectAll().execute();
+    const dbConnections = await filteredQuery.selectAll().execute();
+    const connections: Connection[] = dbConnections.map((connecction) =>
+      removeNullProperties(unflattenObject(connecction, ["options"])),
+    );
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))
       .executeTakeFirstOrThrow();
 
     return {
-      connections: connections.map((connecction) =>
-        removeNullProperties(unflattenObject(connecction, ["options"])),
-      ),
+      connections,
       start: params.page * params.per_page,
       limit: params.per_page,
       length: getCountAsInt(count),
