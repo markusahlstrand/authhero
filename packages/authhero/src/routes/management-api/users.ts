@@ -1,0 +1,632 @@
+import { HTTPException } from "hono/http-exception";
+import bcryptjs from "bcryptjs";
+import { userIdGenerate, userIdParse } from "../../helpers/user-id";
+import { Bindings, Variables } from "../../types";
+import { getUsersByEmail } from "../../utils/users";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { querySchema } from "../../types/auth0/Query";
+import { parseSort } from "../../helpers/sort";
+import { createLogMessage } from "../../utils/create-log-message";
+import { waitUntil } from "../../helpers/wait-until";
+// import authenticationMiddleware from "../../middlewares/authentication";
+import {
+  LogTypes,
+  auth0UserResponseSchema,
+  totalsSchema,
+  userInsertSchema,
+} from "@authhero/adapter-interfaces";
+
+const usersWithTotalsSchema = totalsSchema.extend({
+  users: z.array(auth0UserResponseSchema),
+});
+
+export const userRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  // --------------------------------
+  // GET /api/v2/users
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/",
+      request: {
+        query: querySchema,
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:read"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.union([
+                z.array(auth0UserResponseSchema),
+                usersWithTotalsSchema,
+              ]),
+            },
+          },
+          description: "List of users",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { page, per_page, include_totals, sort, q } =
+        ctx.req.valid("query");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      // ugly hardcoded switch for now!
+      if (q?.includes("identities.profileData.email")) {
+        // assuming no other query params here... could be stricter
+        const linkedAccountEmail = q.split("=")[1];
+        const results = await ctx.env.data.users.list(tenant_id, {
+          page,
+          per_page,
+          include_totals,
+          q: `email:${linkedAccountEmail}`,
+        });
+
+        // we want to ignore unlinked accounts
+        const linkedAccounts = results.users.filter((u) => u.linked_to);
+
+        // Assuming there is only one result here. Not very defensive programming!
+        const [linkedAccount] = linkedAccounts;
+        if (!linkedAccount) {
+          return ctx.json([]);
+        }
+
+        // get primary account
+        const primaryAccount = await ctx.env.data.users.get(
+          tenant_id,
+          // we know linked_to is truthy here but typescript cannot read .filter() logic above
+          // possible to fix!
+          linkedAccount.linked_to!,
+        );
+
+        if (!primaryAccount) {
+          throw new HTTPException(500, {
+            message: "Primary account not found",
+          });
+        }
+
+        return ctx.json([auth0UserResponseSchema.parse(primaryAccount)]);
+      }
+
+      // Filter out linked users
+      const query: string[] = ["-_exists_:linked_to"];
+      if (q) {
+        query.push(q);
+      }
+
+      const result = await ctx.env.data.users.list(tenant_id, {
+        page,
+        per_page,
+        include_totals,
+        sort: parseSort(sort),
+        q: query.join(" "),
+      });
+
+      const primarySqlUsers = result.users.filter((user) => !user.linked_to);
+
+      if (include_totals) {
+        return ctx.json(
+          usersWithTotalsSchema.parse({
+            users: primarySqlUsers,
+            length: result.length,
+            start: result.start,
+            limit: result.limit,
+          }),
+        );
+      }
+
+      return ctx.json(z.array(auth0UserResponseSchema).parse(primarySqlUsers));
+    },
+  )
+  // --------------------------------
+  // GET /users/:user_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:read"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: auth0UserResponseSchema,
+            },
+          },
+          description: "List of users",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+
+      if (!user) {
+        throw new HTTPException(404);
+      }
+
+      if (user.linked_to) {
+        throw new HTTPException(404, {
+          message: "User is linked to another user",
+        });
+      }
+
+      return ctx.json(user);
+    },
+  )
+  // --------------------------------
+  // DELETE /users/:user_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "delete",
+      path: "/{user_id}",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:write"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          description: "Status",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      const result = await ctx.env.data.users.remove(tenant_id, user_id);
+
+      if (!result) {
+        throw new HTTPException(404);
+      }
+
+      return ctx.text("OK");
+    },
+  )
+  // --------------------------------
+  // POST /users
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "post",
+      path: "/",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({ ...userInsertSchema.shape }),
+            },
+          },
+        },
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:write"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: auth0UserResponseSchema,
+            },
+          },
+          description: "Status",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const body = ctx.req.valid("json");
+      ctx.set("body", body);
+
+      const { email: emailRaw } = body;
+
+      if (!emailRaw) {
+        throw new HTTPException(400, { message: "Email is required" });
+      }
+
+      const email = emailRaw.toLowerCase();
+
+      const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
+
+      try {
+        const data = await ctx.env.data.users.create(tenant_id, {
+          email,
+          user_id,
+          name: body.name || email,
+          provider: body.provider,
+          connection: body.connection,
+          // we need to be careful with this as the profile service was setting this true in places where I don't think it's correct
+          // AND when does the account linking happen then? here? first login?
+          email_verified: body.email_verified || false,
+          last_ip: "",
+          login_count: 0,
+          is_social: false,
+          last_login: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        ctx.set("user_id", data.user_id);
+
+        const log = createLogMessage(ctx, {
+          type: LogTypes.SUCCESS_API_OPERATION,
+          description: "User created",
+        });
+        waitUntil(ctx, ctx.env.data.logs.create(tenant_id, log));
+
+        const userResponse = {
+          ...data,
+          identities: [
+            {
+              connection: data.connection,
+              provider: data.provider,
+              user_id: userIdParse(data.user_id),
+              isSocial: data.is_social,
+            },
+          ],
+        };
+
+        return ctx.json(auth0UserResponseSchema.parse(userResponse), {
+          status: 201,
+        });
+      } catch (err: any) {
+        if (err.message === "User already exists") {
+          throw new HTTPException(409, {
+            message: "User already exists",
+          });
+        }
+        throw err;
+      }
+    },
+  )
+  // --------------------------------
+  // PATCH /users/:user_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "patch",
+      path: "/{user_id}",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z
+                .object({
+                  ...userInsertSchema.shape,
+                  verify_email: z.boolean(),
+                  password: z.string(),
+                })
+                .partial(),
+            },
+          },
+        },
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:write"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          description: "Status",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const body = ctx.req.valid("json");
+      const { user_id } = ctx.req.valid("param");
+
+      // verify_email is not persisted
+      const { verify_email, password, ...userFields } = body;
+      const userToPatch = await ctx.env.data.users.get(tenant_id, user_id);
+
+      if (!userToPatch) {
+        throw new HTTPException(404);
+      }
+
+      // Check if the email is being changed to an existing email of another user
+      if (userFields.email && userFields.email !== userToPatch.email) {
+        const existingUser = await getUsersByEmail(
+          ctx.env.data.users,
+          tenant_id,
+          userFields.email,
+        );
+
+        // If there is an existing user with the same email address, and it is not the same user
+        if (
+          existingUser.length &&
+          existingUser.some((u) => u.user_id !== user_id)
+        ) {
+          throw new HTTPException(409, {
+            message: "Another user with the same email address already exists.",
+          });
+        }
+      }
+
+      if (userToPatch.linked_to) {
+        throw new HTTPException(404, {
+          // not the auth0 error message but I'd rather deviate here
+          message: "User is linked to another user",
+        });
+      }
+
+      await ctx.env.data.users.update(tenant_id, user_id, userFields);
+
+      if (password) {
+        const passwordUser = userToPatch.identities?.find(
+          (i) => i.connection === "Username-Password-Authentication",
+        );
+
+        if (!passwordUser) {
+          throw new HTTPException(400, {
+            message: "User does not have a password identity",
+          });
+        }
+
+        await ctx.env.data.passwords.update(tenant_id, {
+          user_id: `${passwordUser.provider}|${passwordUser.user_id}`,
+          password: bcryptjs.hashSync(password, 10),
+          algorithm: "bcrypt",
+        });
+      }
+
+      const patchedUser = await ctx.env.data.users.get(tenant_id, user_id);
+
+      if (!patchedUser) {
+        // we should never reach here UNLESS there's some race condition where another service deletes the users after the update...
+        throw new HTTPException(500);
+      }
+
+      return ctx.json(patchedUser);
+    },
+  )
+  // --------------------------------
+  // POST /users/:user_id/identities
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "post",
+      path: "/{user_id}/identities",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.union([
+                z.object({ link_with: z.string() }),
+                z.object({
+                  user_id: z.string(),
+                  provider: z.string(),
+                  connection: z.string().optional(),
+                }),
+              ]),
+            },
+          },
+        },
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:write"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          // TODO: check why this fails
+          // content: {
+          //   "application/json": {
+          //     schema: z.array(
+          //       z.object({
+          //         connection: z.string(),
+          //         provider: z.string(),
+          //         user_id: z.string(),
+          //         isSocial: z.boolean(),
+          //       }),
+          //     ),
+          //   },
+          // },
+          description: "Status",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const body = ctx.req.valid("json");
+      const { user_id } = ctx.req.valid("param");
+
+      const link_with = "link_with" in body ? body.link_with : body.user_id;
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(400, {
+          message: "Linking an inexistent identity is not allowed.",
+        });
+      }
+
+      await ctx.env.data.users.update(tenant_id, link_with, {
+        linked_to: user_id,
+      });
+
+      const linkedusers = await ctx.env.data.users.list(tenant_id, {
+        page: 0,
+        per_page: 10,
+        include_totals: false,
+        q: `linked_to:${user_id}`,
+      });
+
+      const identities = [user, ...linkedusers.users].map((u) => ({
+        connection: u.connection,
+        provider: u.provider,
+        user_id: userIdParse(u.user_id),
+        isSocial: u.is_social,
+      }));
+
+      return ctx.json(identities, { status: 201 });
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/users/{user_id}/identities/{provider}/{linked_user_id}
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "delete",
+      path: "/{user_id}/identities/{provider}/{linked_user_id}",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        params: z.object({
+          user_id: z.string(),
+          provider: z.string(),
+          linked_user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:write"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.array(auth0UserResponseSchema),
+            },
+          },
+          description: "Status",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { user_id, provider, linked_user_id } = ctx.req.valid("param");
+
+      await ctx.env.data.users.unlink(
+        tenant_id,
+        user_id,
+        provider,
+        linked_user_id,
+      );
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404);
+      }
+
+      return ctx.json([auth0UserResponseSchema.parse(user)]);
+    },
+  ) // --------------------------------
+  // GET /users/:user_id/sessions
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}/sessions",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+      // security: [
+      //   {
+      //     Bearer: ["auth:read"],
+      //   },
+      // ],
+      responses: {
+        200: {
+          // TODO: will be exposed in next version for the adapter interfaces
+          // content: {
+          //   "application/json": {
+          //     schema: z.union([
+          //       z.array(sessionSchema),
+          //       sessionsWithTotalsSchema,
+          //     ]),
+          //   },
+          // },
+          description: "List of sessions",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      const sessions = await ctx.env.data.sessions.list(tenant_id, {
+        page: 0,
+        per_page: 10,
+        include_totals: false,
+        q: `user_id:${user_id}`,
+      });
+
+      return ctx.json(sessions);
+    },
+  );

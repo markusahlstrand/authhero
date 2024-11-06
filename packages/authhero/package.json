@@ -34,6 +34,8 @@
     "@authhero/adapter-interfaces": "workspace:^",
     "@hono/zod-openapi": "^0.16.4",
     "@peculiar/x509": "^1.12.3",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "hono": "^4.6.8",
     "oslo": "^1.2.1"
   }
