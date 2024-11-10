@@ -87,9 +87,9 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an array of users");
       }
 
-      expect(body.length).toBe(1);
-      expect(body[0].user_id).toBe(newUser.user_id);
-      expect(body[0].identities).toEqual([
+      expect(body.length).toBe(2);
+      expect(body[1].user_id).toBe(newUser.user_id);
+      expect(body[1].identities).toEqual([
         {
           connection: "email",
           // inside the identity the user_id isn't prefixed with the provider
@@ -375,8 +375,8 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an array of users");
       }
 
-      expect(body.length).toBe(1);
-      expect(body[0].email_verified).toBe(true);
+      expect(body.length).toBe(2);
+      expect(body[1].email_verified).toBe(true);
     });
 
     it("should throw a 409 when updating a user with an email of an already existing user", async () => {
@@ -628,7 +628,7 @@ describe("users management API endpoint", () => {
         include_totals: true,
         q: "",
       });
-      expect(users.length).toBe(2);
+      expect(users.length).toBe(3);
 
       // check we have linked user1 to user2
       const user1 = users.find((u: User) => u.user_id === "email|userId1");
@@ -658,7 +658,7 @@ describe("users management API endpoint", () => {
         q: "",
       });
 
-      expect(usersNowDeleted.length).toBe(0);
+      expect(usersNowDeleted.length).toBe(1);
     });
   });
   // TODO - split these tests up into a new test suite one for each HTTP verb!
@@ -806,12 +806,12 @@ describe("users management API endpoint", () => {
       expect(response.status).toBe(200);
 
       const body = await response.json();
-      expect(body.length).toBe(1);
+      expect(body.length).toBe(2);
       if (!Array.isArray(body)) {
         throw new Error("Expected an array of users");
       }
 
-      expect(body[0].identities).toEqual([
+      expect(body[1].identities).toEqual([
         {
           connection: "email",
           user_id: "userId1",
@@ -866,10 +866,10 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an users property");
       }
 
-      expect(body.users.length).toBe(0);
+      expect(body.users.length).toBe(1);
       expect(body.start).toBe(0);
       expect(body.limit).toBe(10);
-      expect(body.length).toBe(0);
+      expect(body.length).toBe(1);
     });
   });
 
@@ -877,8 +877,7 @@ describe("users management API endpoint", () => {
     it("should search for a user with wildcard search on email", async () => {
       const token = await getAdminToken();
 
-      const { managementApp, oauthApp, env } = await getTestServer();
-      const client = testClient(oauthApp, env);
+      const { managementApp, env } = await getTestServer();
       const managementClient = testClient(managementApp, env);
 
       const createUserResponse = await managementClient.api.v2.users.$post(
@@ -920,8 +919,9 @@ describe("users management API endpoint", () => {
       expect(usersResponse.status).toBe(200);
 
       const body = await usersResponse.json();
-      expect(body.length).toBe(1);
+      expect(body.length).toBe(2);
     });
+
     it("should be able to search on linked user's email address using profile data query", async () => {
       const token = await getAdminToken();
       const { managementApp, oauthApp, env } = await getTestServer();
@@ -1154,25 +1154,6 @@ describe("users management API endpoint", () => {
 
         const managementClient = testClient(managementApp, env);
 
-        const createUserResponse = await managementClient.api.v2.users.$post(
-          {
-            json: {
-              // we already have a username-password user in our fixtures
-              email: "foo@example.com",
-              connection: "email",
-            },
-            header: {
-              "tenant-id": "tenantId",
-            },
-          },
-          {
-            headers: {
-              authorization: `Bearer ${token}`,
-            },
-          },
-        );
-        expect(createUserResponse.status).toBe(201);
-
         const usersResponse = await managementClient.api.v2.users.$get(
           {
             query: {
@@ -1281,9 +1262,9 @@ describe("users management API endpoint", () => {
       if (!Array.isArray(usersList)) {
         throw new Error("Expected an array of users");
       }
-      expect(usersList.length).toBe(1);
-      expect(usersList[0].user_id).toBe("auth2|userId2");
-      expect(usersList[0].identities).toEqual([
+      expect(usersList.length).toBe(2);
+      expect(usersList[1].user_id).toBe("auth2|userId2");
+      expect(usersList[1].identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",

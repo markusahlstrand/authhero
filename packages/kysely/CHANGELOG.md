@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.15.0
+
+### Minor Changes
+
+- 26e2ef9: Fixed the connection tests and handle include_totals correctly
+
 ## 0.14.0
 
 ### Minor Changes

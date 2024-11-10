@@ -1,5 +1,17 @@
 # authhero
 
+## 0.4.0
+
+### Minor Changes
+
+- 0bbc1a4: Migrate logs and user routes
+- 26e2ef9: Fixed the connection tests and handle include_totals correctly
+- Add the users by email endpoint
+
+### Patch Changes
+
+- 35338fc: Add tests for users
+
 ## 0.3.0
 
 ### Minor Changes

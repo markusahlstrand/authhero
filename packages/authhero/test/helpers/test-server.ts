@@ -42,12 +42,28 @@ export async function getTestServer(args: getEnvParams = {}) {
     sender_email: "login@example.com",
     sender_name: "SenderName",
     support_url: "https://example.com/support",
-    created_at: "created_at",
-    updated_at: "updated_at",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     language: args.testTenantLanguage,
   };
 
   await data.tenants.create(tenant);
+
+  // Add a test user
+  await data.users.create("tenantId", {
+    email: "foo@example.com",
+    email_verified: true,
+    name: "Test User",
+    nickname: "Test User",
+    picture: "https://example.com/test.png",
+    connection: "email",
+    provider: "email",
+    is_social: false,
+    user_id: "email|userId",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    login_count: 0,
+  });
 
   const env = {
     data,
