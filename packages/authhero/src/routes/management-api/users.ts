@@ -39,11 +39,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -147,11 +147,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -199,11 +199,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           description: "Status",
@@ -244,11 +244,11 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -356,11 +356,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           description: "Status",
@@ -467,11 +467,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           // TODO: check why this fails
@@ -545,11 +545,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -596,11 +596,11 @@ export const userRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           // TODO: will be exposed in next version for the adapter interfaces

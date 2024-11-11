@@ -9,7 +9,7 @@ import { usersByEmailRoutes } from "./routes/management-api/users-by-email";
 import { clientRoutes } from "./routes/management-api/clients";
 import { tenantRoutes } from "./routes/management-api/tenants";
 import { logRoutes } from "./routes/management-api/logs";
-// import { hooksRoutes } from "./routes/management-api/hooks";
+import { hooksRoutes } from "./routes/management-api/hooks";
 import { connectionRoutes } from "./routes/management-api/connections";
 import { promptsRoutes } from "./routes/management-api/prompts";
 import { registerComponent } from "./middlewares/register-component";
@@ -39,7 +39,7 @@ export default function create(params: CreateAuthParams) {
     .route("/api/v2/clients", clientRoutes)
     .route("/api/v2/tenants", tenantRoutes)
     .route("/api/v2/logs", logRoutes)
-    // .route("/api/v2/hooks", hooksRoutes)
+    .route("/api/v2/hooks", hooksRoutes)
     .route("/api/v2/connections", connectionRoutes)
     .route("/api/v2/prompts", promptsRoutes);
 

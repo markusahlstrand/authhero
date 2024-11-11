@@ -25,11 +25,11 @@ export const usersByEmailRoutes = new OpenAPIHono<{
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {

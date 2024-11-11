@@ -1,5 +1,12 @@
 # authhero
 
+## 0.5.0
+
+### Minor Changes
+
+- Store hook booleans as integers
+- bb18986: Add prompts endpoint
+
 ## 0.4.0
 
 ### Minor Changes

@@ -18,11 +18,11 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -67,11 +67,11 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         },
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           description: "Branding settings",

@@ -6,6 +6,6 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src"],
+  "include": ["src", "test/routes/management-api/hooks.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

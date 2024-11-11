@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.16.0
+
+### Minor Changes
+
+- Store hook booleans as integers
+
 ## 0.15.0
 
 ### Minor Changes

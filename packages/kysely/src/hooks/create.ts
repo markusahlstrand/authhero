@@ -5,7 +5,7 @@ import { Database } from "../db";
 
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, hook: HookInsert): Promise<Hook> => {
-    const createdHook = {
+    const createdHook: Hook = {
       hook_id: nanoid(),
       ...hook,
       created_at: new Date().toISOString(),
@@ -17,6 +17,8 @@ export function create(db: Kysely<Database>) {
       .values({
         ...createdHook,
         tenant_id,
+        enabled: hook.enabled ? 1 : 0,
+        synchronous: hook.synchronous ? 1 : 0,
       })
       .execute();
 

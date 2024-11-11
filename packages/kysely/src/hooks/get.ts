@@ -16,9 +16,10 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    hook.enabled = !!hook.enabled;
-    hook.synchronous = !!hook.synchronous;
-
-    return removeNullProperties(hook);
+    return removeNullProperties({
+      ...hook,
+      enabled: !!hook.enabled,
+      synchronous: !!hook.synchronous,
+    });
   };
 }

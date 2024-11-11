@@ -5,7 +5,7 @@ import {
   Code,
   connectionSchema,
   Domain,
-  Hook,
+  hookSchema,
   loginSchema,
   Password,
   promptSettingSchema,
@@ -61,13 +61,20 @@ const sqlUserSchema = z.object({
   tenant_id: z.string(),
 });
 
+const sqlHookSchema = z.object({
+  ...hookSchema.shape,
+  tenant_id: z.string(),
+  enabled: z.number(),
+  synchronous: z.number(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: SqlBranding;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
   domains: Domain & { tenant_id: string };
-  hooks: Hook & { tenant_id: string };
+  hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
   logins: z.infer<typeof sqlLoginSchema>;
   logs: SqlLog;

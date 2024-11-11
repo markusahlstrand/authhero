@@ -11,6 +11,9 @@ export function update(db: Kysely<Database>) {
     const sqlHook = {
       ...hook,
       updated_at: new Date().toISOString(),
+      enabled: hook.enabled !== undefined ? (hook.enabled ? 1 : 0) : undefined,
+      synchronous:
+        hook.enabled !== undefined ? (hook.synchronous ? 1 : 0) : undefined,
     };
 
     await db

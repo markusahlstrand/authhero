@@ -68,11 +68,11 @@ export const promptsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         },
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:write"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
       responses: {
         200: {
           description: "Prompts settings",

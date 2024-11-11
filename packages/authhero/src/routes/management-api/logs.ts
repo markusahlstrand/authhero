@@ -26,11 +26,11 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {
@@ -79,11 +79,11 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         }),
       },
       // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
-      // security: [
-      //   {
-      //     Bearer: ["auth:read"],
-      //   },
-      // ],
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
       responses: {
         200: {
           content: {
