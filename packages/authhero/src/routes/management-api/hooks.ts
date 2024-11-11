@@ -60,6 +60,10 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         q,
       });
 
+      if (!include_totals) {
+        return ctx.json(hooks.hooks);
+      }
+
       return ctx.json(hooks);
     },
   )

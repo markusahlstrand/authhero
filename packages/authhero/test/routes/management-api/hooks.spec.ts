@@ -31,11 +31,6 @@ describe("hooks", () => {
       },
     );
 
-    if (createHooksResponse.status !== 201) {
-      const message = await createHooksResponse.text();
-      console.log(message);
-    }
-
     expect(createHooksResponse.status).toBe(201);
     const createdHook = await createHooksResponse.json();
 
@@ -44,6 +39,8 @@ describe("hooks", () => {
     expect(rest).toEqual({
       url: "https://example.com/hook",
       trigger_id: "pre-user-signup",
+      enabled: false,
+      synchronous: false,
     });
     expect(created_at).toBeTypeOf("string");
     expect(updated_at).toBeTypeOf("string");

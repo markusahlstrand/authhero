@@ -1,5 +1,11 @@
 # authhero
 
+## 0.6.0
+
+### Minor Changes
+
+- Add support for include_totals in hooks
+
 ## 0.5.0
 
 ### Minor Changes
