@@ -4,7 +4,6 @@ import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 import { UserResponse } from "../../../src/types/auth0";
 import { Identity } from "@authhero/adapter-interfaces";
-import exp from "constants";
 
 describe("users by email", () => {
   it("should return empty list if there are no users with queried email address", async () => {
@@ -74,7 +73,7 @@ describe("users by email", () => {
       user_id: "email|userId",
     });
 
-    expect(users[0].identities).toEqual([
+    expect(users[0]?.identities).toEqual([
       {
         connection: "email",
         provider: "email",
@@ -152,7 +151,7 @@ describe("users by email", () => {
       is_social: false,
       user_id: "email|userId",
     });
-    expect(users[0].identities).toEqual([
+    expect(users[0]?.identities).toEqual([
       {
         connection: "email",
         provider: "email",
@@ -214,7 +213,7 @@ describe("users by email", () => {
 
     const fooEmailUsers = (await fooEmail.json()) as UserResponse[];
     expect(fooEmailUsers).toHaveLength(1);
-    const fooEmailId = fooEmailUsers[0].user_id;
+    const fooEmailId = fooEmailUsers[0]?.user_id;
 
     const barEmail = await managementClient.api.v2["users-by-email"].$get(
       {
@@ -233,17 +232,17 @@ describe("users by email", () => {
     );
     const barEmailUsers = (await barEmail.json()) as UserResponse[];
     expect(barEmailUsers).toHaveLength(1);
-    const barEmailId = barEmailUsers[0].user_id;
+    const barEmailId = barEmailUsers[0]?.user_id;
 
     const linkResponse = await managementClient.api.v2.users[
       ":user_id"
     ].identities.$post(
       {
         param: {
-          user_id: fooEmailId,
+          user_id: fooEmailId!,
         },
         json: {
-          link_with: barEmailId,
+          link_with: barEmailId!,
         },
         header: {
           "tenant-id": "tenantId",
@@ -262,18 +261,16 @@ describe("users by email", () => {
     expect(linkResponseData[0]).toEqual({
       connection: "email",
       provider: "email",
-      user_id: fooEmailId.split("|")[1],
+      user_id: fooEmailId?.split("|")[1],
       isSocial: false,
     });
     expect(linkResponseData[1]).toEqual({
       connection: "email",
       provider: "email",
       // this user_id correctly has provider prefixed
-      user_id: barEmailId.split("|")[1],
+      user_id: barEmailId?.split("|")[1],
       isSocial: false,
     });
-    // TODO - have open PR for adding profileData in
-    // we can then assert that we have a profileData key on the bar sub account
 
     // foo@example.com should exist with bar as an identity
     const fooEmailAfterLink = await managementClient.api.v2[
@@ -297,18 +294,18 @@ describe("users by email", () => {
       (await fooEmailAfterLink.json()) as UserResponse[];
     expect(fooEmailAfterLinkUsers).toHaveLength(1);
 
-    expect(fooEmailAfterLinkUsers[0].identities).toEqual([
+    expect(fooEmailAfterLinkUsers[0]?.identities).toEqual([
       {
         connection: "email",
         provider: "email",
-        user_id: fooEmailId.split("|")[1],
+        user_id: fooEmailId?.split("|")[1],
         isSocial: false,
       },
       // this is correct. we have bar's identity here
       {
         connection: "email",
         provider: "email",
-        user_id: barEmailId.split("|")[1],
+        user_id: barEmailId?.split("|")[1],
         isSocial: false,
         profileData: {
           email: "bar@example.com",

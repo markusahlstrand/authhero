@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Bindings, Variables } from "./types";
 import { addDataHooks } from "./hooks";
-// import { brandingRoutes } from "./routes/management-api/branding";
+import { brandingRoutes } from "./routes/management-api/branding";
 // import { domainRoutes } from "./routes/management-api/domains";
 import { userRoutes } from "./routes/management-api/users";
 // import { keyRoutes } from "./routes/management-api/keys";
@@ -11,6 +11,7 @@ import { tenantRoutes } from "./routes/management-api/tenants";
 import { logRoutes } from "./routes/management-api/logs";
 // import { hooksRoutes } from "./routes/management-api/hooks";
 import { connectionRoutes } from "./routes/management-api/connections";
+import { promptsRoutes } from "./routes/management-api/prompts";
 import { registerComponent } from "./middlewares/register-component";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 
@@ -30,7 +31,7 @@ export default function create(params: CreateAuthParams) {
   });
 
   const managementApp = app
-    // .route("/api/v2/branding", brandingRoutes)
+    .route("/api/v2/branding", brandingRoutes)
     // .route("/api/v2/domains", domainRoutes)
     .route("/api/v2/users", userRoutes)
     // .route("/api/v2/keys/signing", keyRoutes)
@@ -39,7 +40,8 @@ export default function create(params: CreateAuthParams) {
     .route("/api/v2/tenants", tenantRoutes)
     .route("/api/v2/logs", logRoutes)
     // .route("/api/v2/hooks", hooksRoutes)
-    .route("/api/v2/connections", connectionRoutes);
+    .route("/api/v2/connections", connectionRoutes)
+    .route("/api/v2/prompts", promptsRoutes);
 
   registerComponent(managementApp);
 

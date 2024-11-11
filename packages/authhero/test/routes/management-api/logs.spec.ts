@@ -80,6 +80,10 @@ describe("logs", () => {
     }
     expect(body.length).toBe(1);
     const [log] = body;
+    if (!log) {
+      throw new Error("Log not found");
+    }
+
     if (log.type !== "sapi") {
       throw new Error("Expected log to be of type fsa");
     }

@@ -88,8 +88,8 @@ describe("users management API endpoint", () => {
       }
 
       expect(body.length).toBe(2);
-      expect(body[1].user_id).toBe(newUser.user_id);
-      expect(body[1].identities).toEqual([
+      expect(body[1]?.user_id).toBe(newUser.user_id);
+      expect(body[1]?.identities).toEqual([
         {
           connection: "email",
           // inside the identity the user_id isn't prefixed with the provider
@@ -376,7 +376,7 @@ describe("users management API endpoint", () => {
       }
 
       expect(body.length).toBe(2);
-      expect(body[1].email_verified).toBe(true);
+      expect(body[1]?.email_verified).toBe(true);
     });
 
     it("should throw a 409 when updating a user with an email of an already existing user", async () => {
@@ -811,7 +811,7 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an array of users");
       }
 
-      expect(body[1].identities).toEqual([
+      expect(body[1]?.identities).toEqual([
         {
           connection: "email",
           user_id: "userId1",
@@ -1023,7 +1023,7 @@ describe("users management API endpoint", () => {
       }
 
       // assert that we get the primary user back
-      expect(body[0].identities).toEqual([
+      expect(body[0]?.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           isSocial: false,
@@ -1096,7 +1096,7 @@ describe("users management API endpoint", () => {
           throw new Error("Expected an array of users");
         }
         expect(body.length).toBe(1);
-        expect(body[0].email).toBe("test@example.com");
+        expect(body[0]?.email).toBe("test@example.com");
       });
 
       it("should search for a user by email when lucene query uses equal char as separator", async () => {
@@ -1145,7 +1145,7 @@ describe("users management API endpoint", () => {
           throw new Error("Expected an array of users");
         }
         expect(body.length).toBe(1);
-        expect(body[0].email).toBe("test@example.com");
+        expect(body[0]?.email).toBe("test@example.com");
       });
 
       it("should search for a user by email and provider when lucene query uses equal char as separator", async () => {
@@ -1177,8 +1177,8 @@ describe("users management API endpoint", () => {
         if (!Array.isArray(body)) {
           throw new Error("Expected an array of users");
         }
-        expect(body[0].email).toBe("foo@example.com");
-        expect(body[0].provider).toBe("email");
+        expect(body[0]?.email).toBe("foo@example.com");
+        expect(body[0]?.provider).toBe("email");
       });
     });
     // TO TEST - linked accounts!
@@ -1263,8 +1263,8 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an array of users");
       }
       expect(usersList.length).toBe(2);
-      expect(usersList[1].user_id).toBe("auth2|userId2");
-      expect(usersList[1].identities).toEqual([
+      expect(usersList[1]?.user_id).toBe("auth2|userId2");
+      expect(usersList[1]?.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
@@ -1307,7 +1307,7 @@ describe("users management API endpoint", () => {
       if (!Array.isArray(unlinkUserBody)) {
         throw new Error("Expected an array of users");
       }
-      expect(unlinkUserBody[0].user_id).toBe("auth2|userId2");
+      expect(unlinkUserBody[0]?.user_id).toBe("auth2|userId2");
 
       // manually check in the db that the linked_to field has been reset
       const user1Updated = await env.data.users.get(
