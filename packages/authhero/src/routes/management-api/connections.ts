@@ -2,7 +2,6 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import {
   connectionInsertSchema,
   connectionSchema,
@@ -29,7 +28,7 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -91,7 +90,7 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -137,7 +136,6 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -186,7 +184,6 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -246,7 +243,6 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -259,7 +255,7 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
               schema: connectionSchema,
             },
           },
-          description: "An connection",
+          description: "A connection",
         },
       },
     }),

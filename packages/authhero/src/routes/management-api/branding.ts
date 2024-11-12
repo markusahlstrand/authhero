@@ -17,7 +17,6 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
       security: [
         {
           Bearer: ["auth:read"],
@@ -66,7 +65,6 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],

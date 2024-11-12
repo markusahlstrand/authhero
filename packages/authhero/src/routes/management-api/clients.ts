@@ -4,13 +4,11 @@ import {
   applicationInsertSchema,
   totalsSchema,
 } from "@authhero/adapter-interfaces";
-// import { headers } from "../../constants";
 import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../helpers/sort";
-// import authenticationMiddleware from "../../middlewares/authentication";
 
 const applicationWithTotalsSchema = totalsSchema.extend({
   clients: z.array(applicationSchema),
@@ -31,7 +29,6 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
       security: [
         {
           Bearer: ["auth:read"],
@@ -95,7 +92,6 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
       security: [
         {
           Bearer: ["auth:read"],
@@ -129,9 +125,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         throw new HTTPException(404);
       }
 
-      return ctx.json(application, {
-        // headers,
-      });
+      return ctx.json(application);
     },
   )
   // --------------------------------
@@ -150,7 +144,6 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -197,7 +190,6 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -251,7 +243,6 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],

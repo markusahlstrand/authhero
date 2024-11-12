@@ -1,5 +1,11 @@
 # authhero
 
+## 0.7.0
+
+### Minor Changes
+
+- Add auth middleware for management routes
+
 ## 0.6.0
 
 ### Minor Changes

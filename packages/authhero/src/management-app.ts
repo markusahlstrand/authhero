@@ -14,6 +14,7 @@ import { connectionRoutes } from "./routes/management-api/connections";
 import { promptsRoutes } from "./routes/management-api/prompts";
 import { registerComponent } from "./middlewares/register-component";
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { createAuthMiddleware } from "./middlewares/authentication";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -24,6 +25,8 @@ export default function create(params: CreateAuthParams) {
     Bindings: Bindings;
     Variables: Variables;
   }>();
+
+  app.use(createAuthMiddleware(app));
 
   app.use(async (ctx, next) => {
     ctx.env.data = addDataHooks(ctx, params.dataAdapter);

@@ -1,6 +1,5 @@
 import { Bindings } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import {
   hookInsertSchema,
   hookSchema,
@@ -29,7 +28,7 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -87,7 +86,6 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -139,7 +137,6 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -190,7 +187,7 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           hook_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -239,7 +236,7 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           hook_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],

@@ -8,16 +8,20 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../helpers/sort";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import {
   LogTypes,
   auth0UserResponseSchema,
+  sessionSchema,
   totalsSchema,
   userInsertSchema,
 } from "@authhero/adapter-interfaces";
 
 const usersWithTotalsSchema = totalsSchema.extend({
   users: z.array(auth0UserResponseSchema),
+});
+
+const sessionsWithTotalsSchema = totalsSchema.extend({
+  sessions: z.array(sessionSchema),
 });
 
 export const userRoutes = new OpenAPIHono<{
@@ -38,7 +42,7 @@ export const userRoutes = new OpenAPIHono<{
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -146,7 +150,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -198,7 +202,6 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -243,7 +246,6 @@ export const userRoutes = new OpenAPIHono<{
           },
         },
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -355,7 +357,6 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -466,7 +467,6 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -474,19 +474,18 @@ export const userRoutes = new OpenAPIHono<{
       ],
       responses: {
         200: {
-          // TODO: check why this fails
-          // content: {
-          //   "application/json": {
-          //     schema: z.array(
-          //       z.object({
-          //         connection: z.string(),
-          //         provider: z.string(),
-          //         user_id: z.string(),
-          //         isSocial: z.boolean(),
-          //       }),
-          //     ),
-          //   },
-          // },
+          content: {
+            "application/json": {
+              schema: z.array(
+                z.object({
+                  connection: z.string(),
+                  provider: z.string(),
+                  user_id: z.string(),
+                  isSocial: z.boolean(),
+                }),
+              ),
+            },
+          },
           description: "Status",
         },
       },
@@ -519,7 +518,7 @@ export const userRoutes = new OpenAPIHono<{
       const identities = [user, ...linkedusers.users].map((u) => ({
         connection: u.connection,
         provider: u.provider,
-        user_id: userIdParse(u.user_id),
+        user_id: userIdParse(u.user_id)!,
         isSocial: u.is_social,
       }));
 
@@ -544,7 +543,6 @@ export const userRoutes = new OpenAPIHono<{
           linked_user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -588,6 +586,7 @@ export const userRoutes = new OpenAPIHono<{
       method: "get",
       path: "/{user_id}/sessions",
       request: {
+        query: querySchema,
         headers: z.object({
           "tenant-id": z.string(),
         }),
@@ -595,7 +594,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -603,21 +602,21 @@ export const userRoutes = new OpenAPIHono<{
       ],
       responses: {
         200: {
-          // TODO: will be exposed in next version for the adapter interfaces
-          // content: {
-          //   "application/json": {
-          //     schema: z.union([
-          //       z.array(sessionSchema),
-          //       sessionsWithTotalsSchema,
-          //     ]),
-          //   },
-          // },
+          content: {
+            "application/json": {
+              schema: z.union([
+                z.array(sessionSchema),
+                sessionsWithTotalsSchema,
+              ]),
+            },
+          },
           description: "List of sessions",
         },
       },
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
+      const { include_totals } = ctx.req.valid("query");
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       const sessions = await ctx.env.data.sessions.list(tenant_id, {
@@ -626,6 +625,10 @@ export const userRoutes = new OpenAPIHono<{
         include_totals: false,
         q: `user_id:${user_id}`,
       });
+
+      if (!include_totals) {
+        return ctx.json(sessions.sessions);
+      }
 
       return ctx.json(sessions);
     },

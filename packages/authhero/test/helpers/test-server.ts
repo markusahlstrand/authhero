@@ -5,9 +5,11 @@ import createAdapters, {
   Database,
   migrateToLatest,
 } from "@authhero/kysely-adapter";
+import * as x509 from "@peculiar/x509";
 import { init } from "../../src";
 import { getCertificate } from "./token";
 import { Tenant } from "@authhero/kysely-adapter";
+import { Bindings } from "../../src/types";
 
 type getEnvParams = {
   testTenantLanguage?: string;
@@ -65,8 +67,24 @@ export async function getTestServer(args: getEnvParams = {}) {
     login_count: 0,
   });
 
-  const env = {
+  const certificate = new x509.X509Certificate(signingKey.cert);
+  const publicKey = await certificate.publicKey.export();
+  const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);
+
+  const env: Bindings = {
     data,
+    JWKS_SERVICE: {
+      fetch: async () => ({
+        ok: true,
+        json: async () => ({
+          keys: [{ ...jwkKey, kid: signingKey.kid }],
+        }),
+      }),
+    },
+    JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
+    AUTH_URL: "http://localhost:3000",
+    ENVIRONMENT: "test",
+    JWKS_CACHE_TIMEOUT_IN_SECONDS: 3600,
   };
 
   const apps = init({ dataAdapter: data, issuer: "https://example.com/" });

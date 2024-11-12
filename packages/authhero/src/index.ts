@@ -9,7 +9,9 @@ export function init(config: AuthHeroConfig) {
   const rootApp = new OpenAPIHono<{ Bindings: Bindings }>();
 
   rootApp.get("/", (ctx: Context) => {
-    return ctx.text("Hello, authhero!");
+    return ctx.json({
+      name: "authhero",
+    });
   });
 
   const managementApp = createManagementApi(config);

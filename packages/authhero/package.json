@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "files": [
     "dist"
   ],
@@ -22,21 +22,21 @@
   },
   "devDependencies": {
     "@authhero/kysely-adapter": "workspace:^",
-    "@types/node": "^22.8.6",
+    "@types/node": "^22.9.0",
     "better-sqlite3": "^11.5.0",
     "dts-bundle-generator": "^9.5.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10",
+    "vite": "^5.4.11",
     "vite-plugin-dts": "^4.3.0",
     "vitest": "^2.1.4"
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:^",
-    "@hono/zod-openapi": "^0.16.4",
+    "@hono/zod-openapi": "^0.17.0",
     "@peculiar/x509": "^1.12.3",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
-    "hono": "^4.6.8",
+    "hono": "^4.6.9",
     "oslo": "^1.2.1"
   }
 }

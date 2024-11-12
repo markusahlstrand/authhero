@@ -54,8 +54,6 @@ describe("logs", () => {
       },
     );
 
-    console.log(await createUserResponse.text());
-
     expect(createUserResponse.status).toBe(201);
 
     const response = await managementClient.api.v2.logs.$get(

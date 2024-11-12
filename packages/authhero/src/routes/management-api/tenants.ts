@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception";
 import { Bindings } from "../../types";
 import { querySchema } from "../../types";
 import { parseSort } from "../../helpers/sort";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import {
   tenantInsertSchema,
   tenantSchema,
@@ -26,7 +25,7 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       request: {
         query: querySchema,
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -75,7 +74,7 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -119,7 +118,6 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -159,7 +157,6 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],
@@ -197,7 +194,6 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:write"] })],
       security: [
         {
           Bearer: ["auth:write"],

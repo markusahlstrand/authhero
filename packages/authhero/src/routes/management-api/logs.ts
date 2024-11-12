@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../helpers/sort";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import { logSchema, totalsSchema } from "@authhero/adapter-interfaces";
 
 const logsWithTotalsSchema = totalsSchema.extend({
@@ -25,7 +24,7 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
@@ -78,7 +77,7 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],

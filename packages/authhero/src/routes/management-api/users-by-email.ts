@@ -1,7 +1,6 @@
 import { getUsersByEmail } from "../../utils/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import { userSchema } from "@authhero/adapter-interfaces";
 
 export const usersByEmailRoutes = new OpenAPIHono<{
@@ -24,7 +23,7 @@ export const usersByEmailRoutes = new OpenAPIHono<{
           "tenant-id": z.string(),
         }),
       },
-      // middleware: [authenticationMiddleware({ scopes: ["auth:read"] })],
+
       security: [
         {
           Bearer: ["auth:read"],
