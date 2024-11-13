@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.17.0
+
+### Minor Changes
+
+- Add the keys endpoints
+
 ## 0.16.0
 
 ### Minor Changes

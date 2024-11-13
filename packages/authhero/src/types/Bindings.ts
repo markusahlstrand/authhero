@@ -14,4 +14,6 @@ export type Bindings = {
 
   // Constants
   JWKS_CACHE_TIMEOUT_IN_SECONDS: number;
+  // This is used as CN in the certificate
+  ORGANIZATION_NAME: string;
 };

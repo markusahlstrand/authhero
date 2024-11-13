@@ -74,17 +74,19 @@ export async function getTestServer(args: getEnvParams = {}) {
   const env: Bindings = {
     data,
     JWKS_SERVICE: {
-      fetch: async () => ({
-        ok: true,
-        json: async () => ({
-          keys: [{ ...jwkKey, kid: signingKey.kid }],
-        }),
-      }),
+      fetch: async () =>
+        ({
+          ok: true,
+          json: async () => ({
+            keys: [{ ...jwkKey, kid: signingKey.kid }],
+          }),
+        }) as typeof fetch,
     },
     JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
     AUTH_URL: "http://localhost:3000",
     ENVIRONMENT: "test",
     JWKS_CACHE_TIMEOUT_IN_SECONDS: 3600,
+    ORGANIZATION_NAME: "Test Organization",
   };
 
   const apps = init({ dataAdapter: data, issuer: "https://example.com/" });
