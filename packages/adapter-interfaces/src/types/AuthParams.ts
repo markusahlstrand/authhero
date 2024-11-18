@@ -22,6 +22,7 @@ export enum CodeChallengeMethod {
 export const authParamsSchema = z.object({
   client_id: z.string(),
   vendor_id: z.string().optional(),
+  act_as: z.string().optional(),
   response_type: z.nativeEnum(AuthorizationResponseType).optional(),
   response_mode: z.nativeEnum(AuthorizationResponseMode).optional(),
   redirect_uri: z.string().optional(),

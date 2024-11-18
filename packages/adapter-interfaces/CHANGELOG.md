@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.21.0
+
+### Minor Changes
+
+- Added a act-as property to the auth params
+
 ## 0.20.3
 
 ### Patch Changes

@@ -75,12 +75,14 @@ export async function getTestServer(args: getEnvParams = {}) {
     data,
     JWKS_SERVICE: {
       fetch: async () =>
-        ({
-          ok: true,
-          json: async () => ({
+        new Response(
+          JSON.stringify({
             keys: [{ ...jwkKey, kid: signingKey.kid }],
           }),
-        }) as typeof fetch,
+          {
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
     },
     JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
     AUTH_URL: "http://localhost:3000",
