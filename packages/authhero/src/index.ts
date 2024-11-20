@@ -5,17 +5,19 @@ import { wellKnownRoutes } from "./routes/oauth2";
 import createManagementApi from "./management-app";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 
-export function init(config: AuthHeroConfig) {
-  const rootApp = new OpenAPIHono<{ Bindings: Bindings }>();
+export * from "@authhero/adapter-interfaces";
 
-  rootApp.get("/", (ctx: Context) => {
+export function init(config: AuthHeroConfig) {
+  const app = new OpenAPIHono<{ Bindings: Bindings }>();
+
+  app.get("/", (ctx: Context) => {
     return ctx.json({
       name: "authhero",
     });
   });
 
   const managementApp = createManagementApi(config);
-  rootApp.route("/api/v2", managementApp);
+  app.route("/api/v2", managementApp);
 
   /**
    * The oauth routes
@@ -33,10 +35,10 @@ export function init(config: AuthHeroConfig) {
     },
   });
 
-  rootApp.route("/", oauthApp);
+  app.route("/", oauthApp);
 
   return {
-    rootApp,
+    app,
     managementApp,
     oauthApp,
   };

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.12.0
+
+### Minor Changes
+
+- do not pass interfaces as peer dependency
+
 ## 0.11.0
 
 ### Minor Changes
