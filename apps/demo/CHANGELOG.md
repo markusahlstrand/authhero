@@ -1,5 +1,26 @@
 # @authhero/demo
 
+## 0.1.1
+
+### Patch Changes
+
+- remove the iife build files
+- Updated dependencies
+  - authhero@0.10.1
+  - @authhero/kysely-adapter@0.18.1
+
+## 0.1.0
+
+### Minor Changes
+
+- Get the demo project rendering
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.10.0
+  - @authhero/kysely-adapter@0.18.0
+
 ## 0.0.36
 
 ### Patch Changes
