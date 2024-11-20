@@ -1,5 +1,13 @@
 # @authhero/saml
 
+## 0.1.57
+
+### Patch Changes
+
+- remove the iife build files
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.22.1
+
 ## 0.1.56
 
 ### Patch Changes

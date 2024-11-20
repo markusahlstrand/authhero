@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 0.18.1
+
+### Patch Changes
+
+- remove the iife build files
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.22.1
+
 ## 0.18.0
 
 ### Minor Changes
