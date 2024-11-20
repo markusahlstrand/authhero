@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.18.0
+
+### Minor Changes
+
+- Get the demo project rendering
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.22.0
+
 ## 0.17.1
 
 ### Patch Changes

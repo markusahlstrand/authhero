@@ -1,18 +1,19 @@
 import { Context } from "hono";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
+import { DataAdapters, init } from "authhero";
+import { swaggerUI } from "@hono/swagger-ui";
+import {
+  createAuthMiddleware,
+  registerComponent,
+} from "hono-openapi-middlewares";
 import packageJson from "../package.json";
-import authhero, { DataAdapters } from "authhero";
+import { Bindings } from "./types/Bindings";
 
-// Define the return type interface
-interface CreateReturn {
-  app: ReturnType<typeof authhero.init>;
-}
+export default function create(dataAdapter: DataAdapters) {
+  const app = new OpenAPIHono<{ Bindings: Bindings }>();
 
-export default function create(dataAdapter: DataAdapters): CreateReturn {
-  const rootApp = new OpenAPIHono();
-
-  rootApp
+  app
     .onError((err, ctx) => {
       if (err instanceof HTTPException) {
         // Get the custom response
@@ -28,13 +29,31 @@ export default function create(dataAdapter: DataAdapters): CreateReturn {
         name: tenantId,
         version: packageJson.version,
       });
-    });
+    })
+    .get("/docs", swaggerUI({ url: "/spec" }));
+  app.use(createAuthMiddleware(app));
+  app.use(registerComponent(app));
 
-  const app = authhero.init({
+  const { managementApp } = init({
     dataAdapter,
+    issuer: "https://authhero.com",
   });
 
-  return {
-    app,
-  };
+  managementApp.doc("/spec", (c) => ({
+    openapi: "3.0.0",
+    info: {
+      version: "1.0.0",
+      title: "Management API",
+    },
+    servers: [
+      {
+        url: new URL(c.req.url).origin,
+        description: "Current environment",
+      },
+    ],
+  }));
+
+  app.route("/", managementApp);
+
+  return app;
 }

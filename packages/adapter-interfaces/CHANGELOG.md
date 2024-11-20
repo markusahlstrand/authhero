@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.22.0
+
+### Minor Changes
+
+- Get the demo project rendering
+
 ## 0.21.0
 
 ### Minor Changes

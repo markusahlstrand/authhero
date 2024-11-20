@@ -15,8 +15,7 @@ const db = new Kysely<any>({
 
 const dataAdapter = createAdapters(db);
 
-// @ts-ignore
-const { app } = createApp(dataAdapter);
+const app = createApp(dataAdapter);
 
 const server = {
   async fetch(request: Request): Promise<Response> {
