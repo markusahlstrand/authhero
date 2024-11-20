@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.19.0
+
+### Minor Changes
+
+- pass the interfaces as a peer dependency
+
 ## 0.18.1
 
 ### Patch Changes

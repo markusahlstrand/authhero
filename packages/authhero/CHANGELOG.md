@@ -1,5 +1,11 @@
 # authhero
 
+## 0.11.0
+
+### Minor Changes
+
+- pass the interfaces as a peer dependency
+
 ## 0.10.1
 
 ### Patch Changes
