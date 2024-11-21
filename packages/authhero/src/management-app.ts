@@ -34,21 +34,21 @@ export default function create(params: CreateAuthParams) {
   });
 
   const managementApp = app
-    .route("/api/v2/branding", brandingRoutes)
-    // .route("/api/v2/domains", domainRoutes)
-    .route("/api/v2/users", userRoutes)
-    .route("/api/v2/keys", keyRoutes)
-    .route("/api/v2/users-by-email", usersByEmailRoutes)
-    .route("/api/v2/clients", clientRoutes)
-    .route("/api/v2/tenants", tenantRoutes)
-    .route("/api/v2/logs", logRoutes)
-    .route("/api/v2/hooks", hooksRoutes)
-    .route("/api/v2/connections", connectionRoutes)
-    .route("/api/v2/prompts", promptsRoutes);
+    .route("/branding", brandingRoutes)
+    // .route("/domains", domainRoutes)
+    .route("/users", userRoutes)
+    .route("/keys", keyRoutes)
+    .route("/users-by-email", usersByEmailRoutes)
+    .route("/clients", clientRoutes)
+    .route("/tenants", tenantRoutes)
+    .route("/logs", logRoutes)
+    .route("/hooks", hooksRoutes)
+    .route("/connections", connectionRoutes)
+    .route("/prompts", promptsRoutes);
 
   registerComponent(managementApp);
 
-  managementApp.doc("/api/v2/spec", {
+  managementApp.doc("/spec", {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",

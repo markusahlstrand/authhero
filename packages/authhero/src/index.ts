@@ -25,7 +25,7 @@ export function init(config: AuthHeroConfig) {
   const oauthApp = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
-  }>().route("/.well-known", wellKnownRoutes(config));
+  }>().route("/.well-known", wellKnownRoutes());
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

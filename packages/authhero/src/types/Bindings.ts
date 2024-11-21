@@ -9,6 +9,7 @@ export type Bindings = {
   AUTH_URL: string;
   JWKS_URL: string;
   JWKS_SERVICE: Fetcher;
+  ISSUER: string;
 
   data: DataAdapters;
 

@@ -10,7 +10,7 @@ describe("tenants", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const fixtureTenantsResponse = await managementClient.api.v2.tenants.$get(
+    const fixtureTenantsResponse = await managementClient.tenants.$get(
       {
         query: {},
       },
@@ -27,7 +27,7 @@ describe("tenants", () => {
     expect(tenantFixtures.length).toEqual(1);
 
     // now create a tenant
-    const createTenantResponse = await managementClient.api.v2.tenants.$post(
+    const createTenantResponse = await managementClient.tenants.$post(
       {
         json: {
           name: "test",
@@ -49,7 +49,7 @@ describe("tenants", () => {
     expect(createdTenant.name).toBe("test");
 
     // now fetch list of tenants again to assert tenant deleted
-    const listTenantsResponse = await managementClient.api.v2.tenants.$get(
+    const listTenantsResponse = await managementClient.tenants.$get(
       {
         query: {},
       },
@@ -70,7 +70,7 @@ describe("tenants", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const fixtureTenantsResponse = await managementClient.api.v2.tenants.$get(
+    const fixtureTenantsResponse = await managementClient.tenants.$get(
       { query: {} },
       {
         headers: {
@@ -83,9 +83,7 @@ describe("tenants", () => {
     const fixtureTenants = (await fixtureTenantsResponse.json()) as Tenant[];
     expect(fixtureTenants.length).toEqual(1);
 
-    const deleteTenantResponse = await managementClient.api.v2.tenants[
-      ":id"
-    ].$delete(
+    const deleteTenantResponse = await managementClient.tenants[":id"].$delete(
       {
         param: {
           id: "tenantId",
@@ -101,7 +99,7 @@ describe("tenants", () => {
     expect(deleteTenantResponse.status).toBe(200);
 
     // fetch list of tenants again - assert we are one down
-    const listTenantsResponse = await managementClient.api.v2.tenants.$get(
+    const listTenantsResponse = await managementClient.tenants.$get(
       { query: {} },
       {
         headers: {

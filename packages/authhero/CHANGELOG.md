@@ -1,5 +1,11 @@
 # authhero
 
+## 0.13.0
+
+### Minor Changes
+
+- remove path prefix for management routes
+
 ## 0.12.0
 
 ### Minor Changes

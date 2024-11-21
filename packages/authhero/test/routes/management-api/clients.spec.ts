@@ -9,7 +9,7 @@ describe("clients", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const createClientResponse = await managementClient.api.v2.clients.$post(
+    const createClientResponse = await managementClient.clients.$post(
       {
         json: {
           id: "app",
@@ -53,7 +53,7 @@ describe("clients", () => {
     // --------------------------------------------
     // PATCH
     // --------------------------------------------
-    const patchResult = await managementClient.api.v2.clients[":id"].$patch(
+    const patchResult = await managementClient.clients[":id"].$patch(
       {
         param: {
           id,
@@ -81,7 +81,7 @@ describe("clients", () => {
     // --------------------------------------------
     // GET
     // --------------------------------------------
-    const getResponse = await managementClient.api.v2.clients[":id"].$get(
+    const getResponse = await managementClient.clients[":id"].$get(
       {
         param: {
           id,
@@ -102,7 +102,7 @@ describe("clients", () => {
     // --------------------------------------------
     // DELETE
     // --------------------------------------------
-    const deleteResponse = await managementClient.api.v2.clients[":id"].$delete(
+    const deleteResponse = await managementClient.clients[":id"].$delete(
       {
         param: {
           id,
@@ -122,7 +122,7 @@ describe("clients", () => {
     // --------------------------------------------
     // GET 404
     // --------------------------------------------
-    const get404Response = await managementClient.api.v2.clients[":id"].$get(
+    const get404Response = await managementClient.clients[":id"].$get(
       {
         param: {
           id,

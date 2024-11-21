@@ -52,11 +52,7 @@ async function getJwks(bindings: Bindings) {
     return responseBody.keys;
   } catch (error: any) {
     throw new HTTPException(500, {
-      message:
-        "Failed to fetch jwks: " +
-        error.message +
-        ", " +
-        JSON.stringify(bindings),
+      message: `Failed to fetch jwks: ${error.message}`,
     });
   }
 }

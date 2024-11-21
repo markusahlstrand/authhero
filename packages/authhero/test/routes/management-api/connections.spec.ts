@@ -14,26 +14,25 @@ describe("connections", () => {
     // --------------------------------------------
     // POST
     // --------------------------------------------
-    const createConnectionResponse =
-      await managementClient.api.v2.connections.$post(
-        {
-          json: {
-            name: "apple",
-            strategy: "apple",
-            options: {
-              team_id: "teamId",
-            },
-          },
-          header: {
-            "tenant-id": "tenantId",
+    const createConnectionResponse = await managementClient.connections.$post(
+      {
+        json: {
+          name: "apple",
+          strategy: "apple",
+          options: {
+            team_id: "teamId",
           },
         },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+        header: {
+          "tenant-id": "tenantId",
         },
-      );
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
 
     expect(createConnectionResponse.status).toBe(201);
     const createdConnection = await createConnectionResponse.json();
@@ -54,7 +53,7 @@ describe("connections", () => {
     // --------------------------------------------
     // PATCH
     // --------------------------------------------
-    const updateConnectionResponse = await managementClient.api.v2.connections[
+    const updateConnectionResponse = await managementClient.connections[
       ":id"
     ].$patch(
       {
@@ -87,7 +86,7 @@ describe("connections", () => {
     // --------------------------------------------
     // DELETE
     // --------------------------------------------
-    const deleteConnectionResponse = await managementClient.api.v2.connections[
+    const deleteConnectionResponse = await managementClient.connections[
       ":id"
     ].$delete(
       {
@@ -110,20 +109,19 @@ describe("connections", () => {
     // --------------------------------------------
     // LIST
     // --------------------------------------------
-    const listConnectionsResponse =
-      await managementClient.api.v2.connections.$get(
-        {
-          query: {},
-          header: {
-            "tenant-id": "tenantId",
-          },
+    const listConnectionsResponse = await managementClient.connections.$get(
+      {
+        query: {},
+        header: {
+          "tenant-id": "tenantId",
         },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
         },
-      );
+      },
+    );
 
     expect(listConnectionsResponse.status).toBe(200);
     const connections = await listConnectionsResponse.json();

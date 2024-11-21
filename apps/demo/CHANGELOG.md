@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.2.0
+
+### Minor Changes
+
+- update path for management api
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.13.0
+
 ## 0.1.3
 
 ### Patch Changes
