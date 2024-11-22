@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.21.0
+
+### Minor Changes
+
+- add code verifier to codes table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.24.0
+
 ## 0.20.1
 
 ### Patch Changes

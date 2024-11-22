@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.24.0
+
+### Minor Changes
+
+- add code verifier to codes table
+
 ## 0.23.0
 
 ### Minor Changes
