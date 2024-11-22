@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.23.0
+
+### Minor Changes
+
+- make strategy mandatory for connections
+
 ## 0.22.1
 
 ### Patch Changes
