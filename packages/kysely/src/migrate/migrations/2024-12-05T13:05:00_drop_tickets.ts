@@ -9,11 +9,11 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("tickets")
     .addColumn("tenant_id", "varchar(255)", (col) =>
-      col.references("tenants.id").onDelete("cascade").notNull(),
+      col.references("tenants.id").onDelete("cascade").notNull()
     )
     .addColumn("id", "varchar(255)", (col) => col.primaryKey())
     .addColumn("client_id", "varchar(255)", (col) =>
-      col.references("applications.id").onDelete("cascade").notNull(),
+      col.references("applications.id").onDelete("cascade").notNull()
     )
     .addColumn("email", "varchar(255)", (col) => col.notNull())
     .addColumn("nonce", "varchar(255)")
