@@ -64,6 +64,8 @@ import * as n63_connection_cleanup from "./2024-10-22T09:01:00_connection_cleanu
 import * as n64_act_as from "./2024-11-18T10:37:00_act_as";
 import * as n65_code_verifier from "./2024-11-22T17:48:00_code_verifier";
 import * as n66_email_providers from "./2024-12-04T23:34:00_email_provider";
+import * as n67_drop_tickets from "./2024-12-05T13:05:00_drop_tickets";
+import * as n68_login_useragents from "./2024-12-05T13:20:00_login_useragent";
 
 // These need to be in alphabetic order
 export default {
@@ -133,4 +135,6 @@ export default {
   n64_act_as,
   n65_code_verifier,
   n66_email_providers,
+  n67_drop_tickets,
+  n68_login_useragents,
 };
