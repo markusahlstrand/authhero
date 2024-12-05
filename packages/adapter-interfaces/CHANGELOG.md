@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.26.0
+
+### Minor Changes
+
+- add ip to logins table
+
 ## 0.25.0
 
 ### Minor Changes

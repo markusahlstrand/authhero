@@ -8,6 +8,7 @@ export const loginInsertSchema = z
     expires_at: z.string(),
     deleted_at: z.string().optional(),
     ip: z.string().optional(),
+    useragent: z.string().optional(),
   })
   .openapi({
     description: "This represents a login sesion",

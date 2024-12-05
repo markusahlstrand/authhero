@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.23.0
+
+### Minor Changes
+
+- add ip to logins table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.26.0
+
 ## 0.22.0
 
 ### Minor Changes
