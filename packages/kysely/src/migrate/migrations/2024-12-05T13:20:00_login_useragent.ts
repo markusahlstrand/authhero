@@ -13,6 +13,6 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema
     .alterTable("logins")
     .dropColumn("ip")
-    .dropColumn("ip")
+    .dropColumn("useragent")
     .execute();
 }
