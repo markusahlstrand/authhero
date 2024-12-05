@@ -22,6 +22,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .addColumn("expires_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("ip", "varchar(255)")
+    .addColumn("useragent", "varchar(255)")
     .execute();
 
   await db.schema
