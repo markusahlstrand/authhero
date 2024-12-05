@@ -27,7 +27,6 @@ export function create(db: Kysely<Database>) {
       ) {
         throw new HTTPException(409, { message: "User already exists" });
       }
-      console.log(err.message);
       throw new HTTPException(500, { message: `${err.code}, ${err.message}` });
     }
 

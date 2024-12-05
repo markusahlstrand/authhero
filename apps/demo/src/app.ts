@@ -53,7 +53,7 @@ export default function create(dataAdapter: DataAdapters) {
     ],
   }));
 
-  app.route("/", managementApp);
+  app.route("/api/v2", managementApp);
 
   return app;
 }

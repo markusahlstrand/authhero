@@ -14,7 +14,7 @@ describe("hooks", () => {
     // --------------------------------------------
     // POST
     // --------------------------------------------
-    const createHooksResponse = await managementClient.api.v2.hooks.$post(
+    const createHooksResponse = await managementClient.hooks.$post(
       {
         json: {
           url: "https://example.com/hook",
@@ -49,9 +49,7 @@ describe("hooks", () => {
     // --------------------------------------------
     // PATCH
     // --------------------------------------------
-    const updateHookResponse = await managementClient.api.v2.hooks[
-      ":id"
-    ].$patch(
+    const updateHookResponse = await managementClient.hooks[":id"].$patch(
       {
         param: {
           id: hook_id!,
@@ -77,9 +75,7 @@ describe("hooks", () => {
     // --------------------------------------------
     // DELETE
     // --------------------------------------------
-    const deleteHookResponse = await managementClient.api.v2.hooks[
-      ":id"
-    ].$delete(
+    const deleteHookResponse = await managementClient.hooks[":id"].$delete(
       {
         param: {
           id: hook_id!,
@@ -100,7 +96,7 @@ describe("hooks", () => {
     // --------------------------------------------
     // LIST
     // --------------------------------------------
-    const listHooksResponse = await managementClient.api.v2.hooks.$get(
+    const listHooksResponse = await managementClient.hooks.$get(
       {
         query: {},
         header: {

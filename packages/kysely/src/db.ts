@@ -1,10 +1,11 @@
 import { z } from "@hono/zod-openapi";
-import { SqlBranding } from "./branding/Branding";
 import {
   applicationSchema,
+  brandingSchema,
   Code,
   connectionSchema,
   Domain,
+  emailProviderSchema,
   hookSchema,
   loginSchema,
   Password,
@@ -15,7 +16,6 @@ import {
   themeSchema,
   userSchema,
 } from "@authhero/adapter-interfaces";
-import { SqlTicket } from "./tickets/Ticket";
 import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./utils/flatten";
 
@@ -28,6 +28,10 @@ const sqlLoginSchema = flattenSchema(loginSchema).extend({
 });
 
 const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
+  tenant_id: z.string(),
+});
+
+const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
   tenant_id: z.string(),
 });
 
@@ -68,12 +72,24 @@ const sqlHookSchema = z.object({
   synchronous: z.number(),
 });
 
+const sqlEmailProvidersSchema = z.object({
+  ...emailProviderSchema.shape,
+  tenant_id: z.string(),
+  // Store the credentials as JSON in a text column
+  credentials: z.string(),
+  settings: z.string(),
+  enabled: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
-  branding: SqlBranding;
+  branding: z.infer<typeof sqlBrandingSchema>;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
   domains: Domain & { tenant_id: string };
+  email_providers: z.infer<typeof sqlEmailProvidersSchema>;
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
   logins: z.infer<typeof sqlLoginSchema>;
@@ -84,5 +100,4 @@ export interface Database {
   sessions: Session & { tenant_id: string };
   tenants: Tenant;
   themes: z.infer<typeof sqlThemeSchema>;
-  tickets: SqlTicket;
 }

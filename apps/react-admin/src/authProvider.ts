@@ -31,12 +31,4 @@ const authProvider = Auth0AuthProvider(auth0, {
 
 const authorizedHttpClient = httpClient(auth0);
 
-// Temp debug code
-// function logAccessToken() {
-//   auth0.getTokenSilently().then((token) => {
-//     console.log("Access Token: ", token);
-//   });
-// }
-// logAccessToken();
-
 export { authProvider, authorizedHttpClient };

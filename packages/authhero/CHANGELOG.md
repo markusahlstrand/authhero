@@ -1,5 +1,38 @@
 # authhero
 
+## 0.14.0
+
+### Minor Changes
+
+- added email providers and removed tickets
+- Added email providers
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.25.0
+
+## 0.13.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.24.0
+
+## 0.13.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.23.0
+
+## 0.13.0
+
+### Minor Changes
+
+- remove path prefix for management routes
+
 ## 0.12.0
 
 ### Minor Changes

@@ -9,7 +9,7 @@ describe("branding", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const emptyBrandingResponse = await managementClient.api.v2.branding.$get(
+    const emptyBrandingResponse = await managementClient.branding.$get(
       {
         header: {
           "tenant-id": "tenantId",
@@ -42,25 +42,24 @@ describe("branding", () => {
     };
 
     // Update the branding
-    const updateBrandingResponse =
-      await managementClient.api.v2.branding.$patch(
-        {
-          header: {
-            "tenant-id": "tenantId",
-          },
-          json: brandingData,
+    const updateBrandingResponse = await managementClient.branding.$patch(
+      {
+        header: {
+          "tenant-id": "tenantId",
         },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+        json: brandingData,
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
         },
-      );
+      },
+    );
 
     expect(updateBrandingResponse.status).toBe(200);
 
     // Get the updated branding
-    const brandingResponse = await managementClient.api.v2.branding.$get(
+    const brandingResponse = await managementClient.branding.$get(
       {
         header: {
           "tenant-id": "tenantId",
@@ -75,6 +74,6 @@ describe("branding", () => {
     expect(brandingResponse.status).toBe(200);
     const brandingResponseBody = await brandingResponse.json();
 
-    expect(brandingResponseBody).toEqual(brandingResponseBody);
+    expect(brandingResponseBody).toEqual(brandingData);
   });
 });

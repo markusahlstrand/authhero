@@ -7,9 +7,8 @@ import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { X509Certificate } from "@peculiar/x509";
 import { JWKS_CACHE_TIMEOUT_IN_SECONDS } from "../../constants";
 import { Bindings } from "../../types";
-import { AuthHeroConfig } from "src/types/AuthHeroConfig";
 
-export function wellKnownRoutes(config: AuthHeroConfig) {
+export function wellKnownRoutes() {
   const app = new OpenAPIHono<{ Bindings: Bindings }>()
     // --------------------------------
     // GET /.well-known/jwks.json
@@ -81,18 +80,18 @@ export function wellKnownRoutes(config: AuthHeroConfig) {
         },
       }),
       async (ctx) => {
-        const { issuer: ISSUER } = config;
+        const issuer = ctx.env.ISSUER;
 
         const result = openIDConfigurationSchema.parse({
-          issuer: ISSUER,
-          authorization_endpoint: `${ISSUER}authorize`,
-          token_endpoint: `${ISSUER}oauth/token`,
-          device_authorization_endpoint: `${ISSUER}oauth/device/code`,
-          userinfo_endpoint: `${ISSUER}userinfo`,
-          mfa_challenge_endpoint: `${ISSUER}mfa/challenge`,
-          jwks_uri: `${ISSUER}.well-known/jwks.json`,
-          registration_endpoint: `${ISSUER}oidc/register`,
-          revocation_endpoint: `${ISSUER}oauth/revoke`,
+          issuer,
+          authorization_endpoint: `${issuer}authorize`,
+          token_endpoint: `${issuer}oauth/token`,
+          device_authorization_endpoint: `${issuer}oauth/device/code`,
+          userinfo_endpoint: `${issuer}userinfo`,
+          mfa_challenge_endpoint: `${issuer}mfa/challenge`,
+          jwks_uri: `${issuer}.well-known/jwks.json`,
+          registration_endpoint: `${issuer}oidc/register`,
+          revocation_endpoint: `${issuer}oauth/revoke`,
           scopes_supported: [
             "openid",
             "profile",

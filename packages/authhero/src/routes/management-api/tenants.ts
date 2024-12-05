@@ -100,8 +100,6 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         throw new HTTPException(404);
       }
 
-      console.log("tenant", tenant);
-
       return ctx.json(tenant);
     },
   )

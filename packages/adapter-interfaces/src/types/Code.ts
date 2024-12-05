@@ -22,6 +22,7 @@ export const codeInsertSchema = z.object({
     description: "The connection that the code is connected to",
   }),
   code_type: codeTypeSchema,
+  code_verifier: z.string().optional(),
   expires_at: z.string(),
   used_at: z.string().optional(),
   user_id: z.string().optional(),

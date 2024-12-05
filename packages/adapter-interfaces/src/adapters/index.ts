@@ -2,7 +2,6 @@ import { CodesAdapter } from "./Codes";
 import { PasswordsAdapter } from "./Passwords";
 import { SessionsAdapter } from "./Sessions";
 import { TenantsDataAdapter } from "./Tenants";
-import { TicketsAdapter } from "./Tickets";
 import { UserDataAdapter } from "./Users";
 import { LogsDataAdapter } from "./Logs";
 import { ApplicationsAdapter } from "./Applications";
@@ -15,6 +14,7 @@ import { ClientsAdapter } from "./Clients";
 import { ThemesAdapter } from "./Themes";
 import { LoginsAdapter } from "./Logins";
 import { PromptSettingsAdapter } from "./PromptSettings";
+import { EmailProvidersAdapter } from "./EmailProviders";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -23,6 +23,7 @@ export interface DataAdapters {
   codes: CodesAdapter;
   connections: ConnectionsAdapter;
   domains: DomainsAdapter;
+  emailProviders: EmailProvidersAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;
   logins: LoginsAdapter;
@@ -32,6 +33,5 @@ export interface DataAdapters {
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
-  tickets: TicketsAdapter;
   users: UserDataAdapter;
 }

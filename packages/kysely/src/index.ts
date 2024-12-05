@@ -4,7 +4,6 @@ import { createTenantsAdapter } from "./tenants";
 import { createLogsAdapter } from "./logs";
 import { Database } from "./db";
 import { createSessionsAdapter } from "./sessions";
-import { createTicketsAdapter } from "./tickets";
 import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
 import { createApplicationsAdapter } from "./applications";
@@ -18,6 +17,7 @@ import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createLoginAdapter } from "./logins";
 import { createPromptSettingsAdapter } from "./promptSettings";
+import { createEmailProvidersAdapter } from "./emailProvideres";
 
 export { migrateToLatest, migrateDown } from "./migrate/migrate";
 
@@ -28,6 +28,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     clients: createClientsAdapter(db),
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),
+    emailProviders: createEmailProvidersAdapter(db),
     domains: createDomainsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
@@ -39,6 +40,5 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
-    tickets: createTicketsAdapter(db),
   };
 }

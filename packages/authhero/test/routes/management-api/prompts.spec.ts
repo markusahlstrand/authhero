@@ -9,19 +9,18 @@ describe("prompts", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const defaultPromptsSettingsResponse =
-      await managementClient.api.v2.prompts.$get(
-        {
-          header: {
-            "tenant-id": "tenantId",
-          },
+    const defaultPromptsSettingsResponse = await managementClient.prompts.$get(
+      {
+        header: {
+          "tenant-id": "tenantId",
         },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
         },
-      );
+      },
+    );
     expect(defaultPromptsSettingsResponse.status).toBe(200);
     const defalutPromptSetting = await defaultPromptsSettingsResponse.json();
 
@@ -33,7 +32,7 @@ describe("prompts", () => {
     });
 
     // Update the branding
-    const updateBrandingResponse = await managementClient.api.v2.prompts.$patch(
+    const updateBrandingResponse = await managementClient.prompts.$patch(
       {
         header: {
           "tenant-id": "tenantId",

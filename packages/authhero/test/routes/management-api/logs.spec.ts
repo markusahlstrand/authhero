@@ -10,7 +10,7 @@ describe("logs", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const response = await managementClient.api.v2.logs.$get(
+    const response = await managementClient.logs.$get(
       {
         query: {},
         header: {
@@ -36,7 +36,7 @@ describe("logs", () => {
 
     const token = await getAdminToken();
 
-    const createUserResponse = await managementClient.api.v2.users.$post(
+    const createUserResponse = await managementClient.users.$post(
       {
         json: {
           email: "test@example.com",
@@ -56,7 +56,7 @@ describe("logs", () => {
 
     expect(createUserResponse.status).toBe(201);
 
-    const response = await managementClient.api.v2.logs.$get(
+    const response = await managementClient.logs.$get(
       {
         query: {},
         header: {
@@ -128,7 +128,7 @@ describe("logs", () => {
 
   //   expect(silentAuthResponse.status).toBe(200);
 
-  //   const response = await managementClient.api.v2.logs.$get(
+  //   const response = await managementClient.logs.$get(
   //     {
   //       query: {},
   //       header: {

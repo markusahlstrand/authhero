@@ -104,13 +104,9 @@ describe("jwks", () => {
       },
     );
 
-    if (response.status !== 200) {
-      console.log(await response.text());
-    }
-
     expect(response.status).toBe(200);
 
     const body = openIDConfigurationSchema.parse(await response.json());
-    expect(body.issuer).toBe("https://example.com/");
+    expect(body.issuer).toBe("http://localhost:3000");
   });
 });

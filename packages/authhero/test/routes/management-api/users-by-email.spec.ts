@@ -11,7 +11,7 @@ describe("users by email", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const response = await managementClient.api.v2["users-by-email"].$get(
+    const response = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "i-do-not-exist@all.com",
@@ -39,7 +39,7 @@ describe("users by email", () => {
 
     const token = await getAdminToken();
 
-    const response = await managementClient.api.v2["users-by-email"].$get(
+    const response = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "foo@example.com",
@@ -93,32 +93,31 @@ describe("users by email", () => {
     // This assumes the POST endpoint doesn't do automatic account linking...
     // would be better if we could initialise the database with multiple accounts...
     // and different on different test runs... TBD another time
-    const createDuplicateUserResponse =
-      await managementClient.api.v2.users.$post(
-        {
-          json: {
-            name: "Test User with password",
-            email: "foo@example.com",
-            connection: "Username-Password-Authentication",
-            provider: "auth2",
-            email_verified: false,
-            // seems odd that this isn't allowed... I think this endpoint needs looking at
-            // maybe it's good we have to use the mgmt API for our test fixtures
-            // provider: "auth2",
-          },
-          header: {
-            "tenant-id": "tenantId",
-          },
+    const createDuplicateUserResponse = await managementClient.users.$post(
+      {
+        json: {
+          name: "Test User with password",
+          email: "foo@example.com",
+          connection: "Username-Password-Authentication",
+          provider: "auth2",
+          email_verified: false,
+          // seems odd that this isn't allowed... I think this endpoint needs looking at
+          // maybe it's good we have to use the mgmt API for our test fixtures
+          // provider: "auth2",
         },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+        header: {
+          "tenant-id": "tenantId",
         },
-      );
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
     expect(createDuplicateUserResponse.status).toBe(201);
 
-    const response = await managementClient.api.v2["users-by-email"].$get(
+    const response = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "foo@example.com",
@@ -175,7 +174,7 @@ describe("users by email", () => {
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const createBarEmailUser = await managementClient.api.v2.users.$post(
+    const createBarEmailUser = await managementClient.users.$post(
       {
         json: {
           email: "bar@example.com",
@@ -195,7 +194,7 @@ describe("users by email", () => {
     expect(createBarEmailUser.status).toBe(201);
 
     // both these return one result now
-    const fooEmail = await managementClient.api.v2["users-by-email"].$get(
+    const fooEmail = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "foo@example.com",
@@ -215,7 +214,7 @@ describe("users by email", () => {
     expect(fooEmailUsers).toHaveLength(1);
     const fooEmailId = fooEmailUsers[0]?.user_id;
 
-    const barEmail = await managementClient.api.v2["users-by-email"].$get(
+    const barEmail = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "bar@example.com",
@@ -234,7 +233,7 @@ describe("users by email", () => {
     expect(barEmailUsers).toHaveLength(1);
     const barEmailId = barEmailUsers[0]?.user_id;
 
-    const linkResponse = await managementClient.api.v2.users[
+    const linkResponse = await managementClient.users[
       ":user_id"
     ].identities.$post(
       {
@@ -273,9 +272,7 @@ describe("users by email", () => {
     });
 
     // foo@example.com should exist with bar as an identity
-    const fooEmailAfterLink = await managementClient.api.v2[
-      "users-by-email"
-    ].$get(
+    const fooEmailAfterLink = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "foo@example.com",
@@ -315,9 +312,7 @@ describe("users by email", () => {
     ]);
 
     // bar@example.com should not be searchable by email
-    const barEmailAfterLink = await managementClient.api.v2[
-      "users-by-email"
-    ].$get(
+    const barEmailAfterLink = await managementClient["users-by-email"].$get(
       {
         query: {
           email: "bar@example.com",

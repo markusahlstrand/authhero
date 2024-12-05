@@ -1,6 +1,5 @@
 import { Bindings } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-// import authenticationMiddleware from "../../middlewares/authentication";
 import { brandingSchema } from "@authhero/adapter-interfaces";
 
 export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
