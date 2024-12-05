@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.25.0
+
+### Minor Changes
+
+- added email providers and removed tickets
+- Added email providers
+
 ## 0.24.0
 
 ### Minor Changes

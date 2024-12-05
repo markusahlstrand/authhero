@@ -63,6 +63,7 @@ import * as n62_prompt from "./2024-10-19T07:47:00_prompt";
 import * as n63_connection_cleanup from "./2024-10-22T09:01:00_connection_cleanup";
 import * as n64_act_as from "./2024-11-18T10:37:00_act_as";
 import * as n65_code_verifier from "./2024-11-22T17:48:00_code_verifier";
+import * as n66_email_providers from "./2024-12-04T23:34:00_email_provider";
 
 // These need to be in alphabetic order
 export default {
@@ -131,4 +132,5 @@ export default {
   n63_connection_cleanup,
   n64_act_as,
   n65_code_verifier,
+  n66_email_providers,
 };

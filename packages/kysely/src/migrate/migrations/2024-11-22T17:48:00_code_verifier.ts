@@ -4,7 +4,7 @@ import { Database } from "@authhero/kysely-adapter";
 export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .alterTable("codes")
-    .addColumn("code_verifier", "varchar(64)")
+    .addColumn("code_verifier", "varchar(128)")
     .execute();
 }
 

@@ -1,5 +1,13 @@
 # @authhero/drizzle
 
+## 0.1.60
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.25.0
+
 ## 0.1.59
 
 ### Patch Changes

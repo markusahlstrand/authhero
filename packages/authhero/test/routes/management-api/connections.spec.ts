@@ -77,8 +77,31 @@ describe("connections", () => {
     );
 
     expect(updateConnectionResponse.status).toBe(200);
-    const updatedConnection =
+    const updateConnection =
       (await updateConnectionResponse.json()) as Connection;
+    expect(updateConnection.options).toEqual({
+      team_id: "teamId2",
+    });
+
+    const updatesConnectionResponse = await managementClient.connections[
+      ":id"
+    ].$get(
+      {
+        param: {
+          id: id!,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    expect(updatesConnectionResponse.status).toBe(200);
+    const updatedConnection = await updatesConnectionResponse.json();
     expect(updatedConnection.options).toEqual({
       team_id: "teamId2",
     });

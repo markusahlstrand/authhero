@@ -19,6 +19,4 @@ export * from "./Token";
 export * from "./User";
 export * from "./Theme";
 export * from "./PromptSetting";
-
-// Deprecated: These files will be removed in the next version
-export * from "./Ticket";
+export * from "./EmailProvider";

@@ -1,5 +1,18 @@
 # @authhero/kysely-adapter
 
+## 0.22.0
+
+### Minor Changes
+
+- added email providers and removed tickets
+- Added email providers
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.25.0
+
 ## 0.21.0
 
 ### Minor Changes
