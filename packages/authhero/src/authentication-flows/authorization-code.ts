@@ -3,20 +3,35 @@ import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import {
   AuthParams,
-  ClientCredentialsGrantTypeParams,
+  AuthorizationCodeGrantTypeParams,
 } from "@authhero/adapter-interfaces";
 import { createJWT } from "oslo/jwt";
 import { pemToBuffer } from "../utils/crypto";
 import { TimeSpan } from "oslo";
 
-export async function clientCredentialsGrant(
+export async function authorizationCodeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: ClientCredentialsGrantTypeParams,
+  params: AuthorizationCodeGrantTypeParams,
 ) {
   const client = await ctx.env.data.clients.get(params.client_id);
 
   if (!client) {
     throw new HTTPException(403, { message: "Invalid client" });
+  }
+
+  const code = await ctx.env.data.codes.get(
+    client.tenant.id,
+    params.code,
+    "authorization_code",
+  );
+
+  if (!code) {
+    throw new HTTPException(403, { message: "Invalid code" });
+  }
+
+  const login = await ctx.env.data.logins.get(client.tenant.id, code.login_id);
+  if (!login) {
+    throw new HTTPException(403, { message: "Invalid login" });
   }
 
   if (client.client_secret !== params.client_secret) {
@@ -25,8 +40,6 @@ export async function clientCredentialsGrant(
 
   const authParams: AuthParams = {
     client_id: client.id,
-    scope: params.scope,
-    audience: params.audience,
   };
 
   const signingKeys = await ctx.env.data.keys.list();
@@ -44,7 +57,7 @@ export async function clientCredentialsGrant(
     {
       aud: authParams.audience || "default",
       scope: authParams.scope || "",
-      sub: client.id,
+      sub: code.user_id,
       iss: ctx.env.ISSUER,
       tenant_id: ctx.var.tenant_id,
     },
@@ -56,6 +69,8 @@ export async function clientCredentialsGrant(
       },
     },
   );
+
+  await ctx.env.data.codes.remove(client.tenant.id, params.code);
 
   return {
     access_token: accessToken,

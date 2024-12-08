@@ -51,6 +51,15 @@ export async function getTestServer(args: getEnvParams = {}) {
 
   await data.tenants.create(tenant);
 
+  // Add a client
+  await data.applications.create("tenantId", {
+    id: "clientId",
+    client_secret: "clientSecret",
+    name: "Test Client",
+    callbacks: ["https://example/callback"],
+    disable_sign_ups: false,
+  });
+
   // Add a test user
   await data.users.create("tenantId", {
     email: "foo@example.com",

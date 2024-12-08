@@ -1,11 +1,13 @@
 import {
-  GrantType,
+  authorizationCodeGrantTypeParamsSchema,
   clientCredentialGrantTypeParamsSchema,
+  GrantType,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { clientCredentialsGrant } from "../../authentication-flows/client-credentials";
+import { authorizationCodeGrant } from "../../authentication-flows/authorization-code";
 
 const clientCredentialsSchema = z.object({
   grant_type: z.literal("client_credentials"),
@@ -14,13 +16,41 @@ const clientCredentialsSchema = z.object({
   client_secret: z.string().optional(),
 });
 
-const implicitSchema = z.object({
-  grant_type: z.literal("implicit"),
+const authorizationCodeSchema = z.object({
+  grant_type: z.literal("authorization_code"),
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
+  code: z.string(),
+  redirect_uri: z.string().optional(),
 });
 
-const CreateRequestSchema = z.union([clientCredentialsSchema, implicitSchema]);
+const authorizationCodeWithPKCESchema = z.object({
+  grant_type: z.literal("authorization_code"),
+  client_id: z.string(),
+  code: z.string(),
+  redirect_uri: z.string().optional(),
+  code_challenge: z.string(),
+  code_challenge_method: z.string(),
+});
+
+const CreateRequestSchema = z.union([
+  clientCredentialsSchema,
+  authorizationCodeSchema,
+  authorizationCodeWithPKCESchema,
+]);
+
+function parseBasicAuthHeader(authHeader?: string) {
+  if (!authHeader) {
+    return {};
+  }
+
+  const [type, token] = authHeader.split(" ");
+  if (type?.toLowerCase() === "basic" && token) {
+    const [client_id, client_secret] = atob(token).split(":");
+    return { client_id, client_secret };
+  }
+  return {};
+}
 
 export const tokenRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -39,24 +69,6 @@ export const tokenRoutes = new OpenAPIHono<{
           content: {
             "application/x-www-form-urlencoded": {
               schema: CreateRequestSchema,
-              //   schema: z.object({
-              //     grant_type: z.enum([
-              //       "authorization_code",
-              //       "client_credentials",
-              //       "password",
-              //       "refresh_token",
-              //     ]),
-              //     audience: z.string().optional(),
-              //     client_id: z.string().optional(),
-              //     client_secret: z.string().optional(),
-              //     code: z.string().optional(),
-              //     redirect_uri: z.string().optional(),
-              //     code_verifier: z.string().optional(),
-              //     scope: z.string().optional(),
-              //     username: z.string().optional(),
-              //     password: z.string().optional(),
-              //     refresh_token: z.string().optional(),
-              //   }),
             },
           },
         },
@@ -81,25 +93,29 @@ export const tokenRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("form");
 
-      const authHeader = ctx.req.header("authorization");
-      if (authHeader) {
-        const [type, token] = authHeader.split(" ");
-        if (type?.toLowerCase() === "basic" && token) {
-          const [client_id, client_secret] = Buffer.from(token, "base64")
-            .toString()
-            .split(":");
-          body.client_id = body.client_id || client_id;
-          body.client_secret = body.client_secret || client_secret;
-        }
-      }
+      const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
 
-      if (!body.client_id) {
+      const params = { ...body, ...basicAuth };
+
+      if (!params.client_id) {
         throw new HTTPException(400, { message: "client_id is required" });
       }
 
       switch (body.grant_type) {
+        case GrantType.AuthorizationCode:
+          return ctx.json(
+            await authorizationCodeGrant(
+              ctx,
+              authorizationCodeGrantTypeParamsSchema.parse(params),
+            ),
+          );
         case GrantType.ClientCredential:
-          return ctx.json(await clientCredentialsGrant(ctx, body));
+          return ctx.json(
+            await clientCredentialsGrant(
+              ctx,
+              clientCredentialGrantTypeParamsSchema.parse(params),
+            ),
+          );
         default:
           throw new HTTPException(400, { message: "Not implemented" });
       }
