@@ -27,6 +27,8 @@ export async function authorizationCodeGrant(
 
   if (!code) {
     throw new HTTPException(403, { message: "Invalid code" });
+  } else if (new Date(code.expires_at) < new Date()) {
+    throw new HTTPException(403, { message: "Code expired" });
   }
 
   const login = await ctx.env.data.logins.get(client.tenant.id, code.login_id);
