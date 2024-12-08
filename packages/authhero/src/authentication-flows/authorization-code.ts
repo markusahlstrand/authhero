@@ -64,6 +64,7 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "Invalid login" });
   }
 
+  // Validate the secret or PKCE
   if ("client_secret" in params) {
     // Code flow
     if (client.client_secret !== params.client_secret) {
@@ -84,6 +85,14 @@ export async function authorizationCodeGrant(
     if (challenge !== code.code_verifier) {
       throw new HTTPException(403, { message: "Invalid code challenge" });
     }
+  }
+
+  // Validate the redirect_uri
+  if (
+    login.authParams.redirect_uri &&
+    login.authParams.redirect_uri !== params.redirect_uri
+  ) {
+    throw new HTTPException(403, { message: "Invalid redirect uri" });
   }
 
   const user = await ctx.env.data.users.get(client.tenant.id, code.user_id);

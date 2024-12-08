@@ -107,6 +107,7 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
           },
         });
 
@@ -123,7 +124,7 @@ describe("token", () => {
             form: {
               grant_type: "authorization_code",
               code: "123456",
-              redirect_uri: "http://localhost:3000/callback",
+              redirect_uri: "http://example.com/callback",
               client_id: "clientId",
               client_secret: "clientSecret",
             },
@@ -241,6 +242,99 @@ describe("token", () => {
         const body = await response.text();
 
         expect(body).toBe("Invalid code");
+      });
+
+      it("should return a 403 if the redirect-url does not match the url passed in the authorize call", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "openid",
+            audience: "http://example.com",
+            redirect_uri: "http://example/callback",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.text();
+
+        expect(body).toBe("Invalid redirect uri");
+      });
+
+      it("should return a 403 if the client id does not match the client id passed in the authorize call", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "openid",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "otherClientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.text();
+
+        expect(body).toBe("Invalid client");
       });
 
       it("should return a 403 if the code is expired", async () => {
