@@ -5,9 +5,7 @@ import {
   AuthParams,
   AuthorizationCodeGrantTypeParams,
 } from "@authhero/adapter-interfaces";
-import { createJWT } from "oslo/jwt";
-import { pemToBuffer } from "../utils/crypto";
-import { TimeSpan } from "oslo";
+import { createAuthTokens } from "./common";
 
 export async function authorizationCodeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -25,7 +23,7 @@ export async function authorizationCodeGrant(
     "authorization_code",
   );
 
-  if (!code) {
+  if (!code || !code.user_id) {
     throw new HTTPException(403, { message: "Invalid code" });
   } else if (new Date(code.expires_at) < new Date()) {
     throw new HTTPException(403, { message: "Code expired" });
@@ -44,39 +42,7 @@ export async function authorizationCodeGrant(
     client_id: client.id,
   };
 
-  const signingKeys = await ctx.env.data.keys.list();
-  const signingKey = signingKeys[signingKeys.length - 1];
-
-  if (!signingKey?.pkcs7) {
-    throw new HTTPException(500, { message: "No signing key available" });
-  }
-
-  const keyBuffer = pemToBuffer(signingKey.pkcs7);
-
-  const accessToken = await createJWT(
-    "RS256",
-    keyBuffer,
-    {
-      aud: authParams.audience || "default",
-      scope: authParams.scope || "",
-      sub: code.user_id,
-      iss: ctx.env.ISSUER,
-      tenant_id: ctx.var.tenant_id,
-    },
-    {
-      includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "d"),
-      headers: {
-        kid: signingKey.kid,
-      },
-    },
-  );
-
   await ctx.env.data.codes.remove(client.tenant.id, params.code);
 
-  return {
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: 86400,
-  };
+  return createAuthTokens(ctx, authParams, code.user_id);
 }

@@ -1,12 +1,18 @@
 export function pemToBuffer(pem: string): ArrayBuffer {
-  const base64String = pem
-    .replace(/^-----BEGIN RSA PRIVATE KEY-----/, "")
-    .replace(/-----END RSA PRIVATE KEY-----/, "")
-    .replace(/^-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/^-----BEGIN PUBLIC KEY-----/, "")
-    .replace(/-----END PUBLIC KEY-----/, "")
-    .replace(/\s/g, "");
+  try {
+    const pemRegex =
+      /-----BEGIN (?:RSA )?(?:PRIVATE|PUBLIC) KEY-----([^-]*)-----END (?:RSA )?(?:PRIVATE|PUBLIC) KEY-----/;
+    const matches = pemRegex.exec(pem);
 
-  return Uint8Array.from(atob(base64String), (c) => c.charCodeAt(0)).buffer;
+    if (!matches || !matches[1]) {
+      throw new Error("Invalid PEM format");
+    }
+
+    return Uint8Array.from(atob(matches[1].replace(/\s/g, "")), (c) =>
+      c.charCodeAt(0),
+    ).buffer;
+  } finally {
+    // Basic cleanup of the input string
+    pem = pem.replace(/./g, "\0");
+  }
 }

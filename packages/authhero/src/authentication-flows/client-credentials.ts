@@ -5,9 +5,7 @@ import {
   AuthParams,
   ClientCredentialsGrantTypeParams,
 } from "@authhero/adapter-interfaces";
-import { createJWT } from "oslo/jwt";
-import { pemToBuffer } from "../utils/crypto";
-import { TimeSpan } from "oslo";
+import { createAuthTokens } from "./common";
 
 export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -29,37 +27,5 @@ export async function clientCredentialsGrant(
     audience: params.audience,
   };
 
-  const signingKeys = await ctx.env.data.keys.list();
-  const signingKey = signingKeys[signingKeys.length - 1];
-
-  if (!signingKey?.pkcs7) {
-    throw new HTTPException(500, { message: "No signing key available" });
-  }
-
-  const keyBuffer = pemToBuffer(signingKey.pkcs7);
-
-  const accessToken = await createJWT(
-    "RS256",
-    keyBuffer,
-    {
-      aud: authParams.audience || "default",
-      scope: authParams.scope || "",
-      sub: client.id,
-      iss: ctx.env.ISSUER,
-      tenant_id: ctx.var.tenant_id,
-    },
-    {
-      includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "d"),
-      headers: {
-        kid: signingKey.kid,
-      },
-    },
-  );
-
-  return {
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: 86400,
-  };
+  return createAuthTokens(ctx, authParams, client.id);
 }
