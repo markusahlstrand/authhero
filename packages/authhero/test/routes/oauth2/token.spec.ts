@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
+import { computeCodeChallenge } from "../../../src/utils/crypto";
 
 describe("token", () => {
   describe("client_credentials", () => {
@@ -448,7 +449,7 @@ describe("token", () => {
     });
 
     describe("authorization_code with PKCE", () => {
-      it.only("should return an access token when using a plain code_challenge_method", async () => {
+      it("should return an access token when using a plain code_challenge_method", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
@@ -503,6 +504,61 @@ describe("token", () => {
         expect(body.id_token).toBeUndefined();
       });
 
+      it("should return an access token when using a S256 code_challenge_method", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "",
+            audience: "http://example.com",
+            code_challenge: await computeCodeChallenge("code_verifier", "S256"),
+            code_challenge_method: "S256",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              code_verifier: "code_verifier",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "email|userId",
+          iss: "http://localhost:3000",
+          aud: "http://example.com",
+        });
+
+        expect(body.id_token).toBeUndefined();
+      });
+
       it("should return an 403 if the code challenge does not match", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
@@ -515,6 +571,8 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
+            code_challenge: "code_verifier",
+            code_challenge_method: "plain",
           },
         });
 
@@ -523,7 +581,6 @@ describe("token", () => {
           user_id: "email|userId",
           code_id: "123456",
           login_id: loginSesssion.login_id,
-          code_verifier: "code_verifier",
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
