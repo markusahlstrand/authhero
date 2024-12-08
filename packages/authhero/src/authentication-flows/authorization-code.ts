@@ -44,7 +44,7 @@ export async function authorizationCodeGrant(
   const client = await ctx.env.data.clients.get(params.client_id);
 
   if (!client) {
-    throw new HTTPException(403, { message: "Invalid client" });
+    throw new HTTPException(403, { message: "Invalid client credentials" });
   }
 
   const code = await ctx.env.data.codes.get(
@@ -54,7 +54,7 @@ export async function authorizationCodeGrant(
   );
 
   if (!code || !code.user_id) {
-    throw new HTTPException(403, { message: "Invalid code" });
+    throw new HTTPException(403, { message: "Invalid client credentials" });
   } else if (new Date(code.expires_at) < new Date()) {
     throw new HTTPException(403, { message: "Code expired" });
   }
@@ -68,7 +68,7 @@ export async function authorizationCodeGrant(
   if ("client_secret" in params) {
     // Code flow
     if (client.client_secret !== params.client_secret) {
-      throw new HTTPException(403, { message: "Invalid secret" });
+      throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   } else if (
     "code_challenge" in params &&
@@ -83,7 +83,7 @@ export async function authorizationCodeGrant(
     );
 
     if (challenge !== code.code_verifier) {
-      throw new HTTPException(403, { message: "Invalid code challenge" });
+      throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   }
 

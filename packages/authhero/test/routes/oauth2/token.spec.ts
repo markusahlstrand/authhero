@@ -89,7 +89,7 @@ describe("token", () => {
       expect(response.status).toBe(403);
       const body = await response.text();
 
-      expect(body).toBe("Invalid secret");
+      expect(body).toBe("Invalid client credentials");
     });
   });
 
@@ -241,7 +241,7 @@ describe("token", () => {
         expect(response.status).toBe(403);
         const body = await response.text();
 
-        expect(body).toBe("Invalid code");
+        expect(body).toBe("Invalid client credentials");
       });
 
       it("should return a 403 if the redirect-url does not match the url passed in the authorize call", async () => {
@@ -334,7 +334,7 @@ describe("token", () => {
         expect(response.status).toBe(403);
         const body = await response.text();
 
-        expect(body).toBe("Invalid client");
+        expect(body).toBe("Invalid client credentials");
       });
 
       it("should return a 403 if the code is expired", async () => {
@@ -548,7 +548,7 @@ describe("token", () => {
         expect(response.status).toBe(403);
         const body = await response.text();
 
-        expect(body).toBe("Invalid code challenge");
+        expect(body).toBe("Invalid client credentials");
       });
     });
   });
