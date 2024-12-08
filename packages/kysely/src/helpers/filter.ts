@@ -37,7 +37,6 @@ export function luceneFilter<TB extends keyof Database>(
           operator = ">";
           value = value.substring(1);
         } else if (value.startsWith("<=")) {
-          console.log("value", value);
           operator = "<=";
           value = value.substring(2);
         } else if (value.startsWith("<")) {

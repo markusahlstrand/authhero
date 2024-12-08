@@ -8,49 +8,6 @@ export enum GrantType {
   Password = "password",
 }
 
-const grantTypeSchema = z.nativeEnum(GrantType);
-
-const authorizationCodeGrantTypeParamsSchema = z.object({
-  grant_type: grantTypeSchema.refine(
-    (val) => val === GrantType.AuthorizationCode,
-  ),
-  code: z.string(),
-  client_secret: z.string(),
-  client_id: z.string(),
-});
-
-export type AuthorizationCodeGrantTypeParams = z.infer<
-  typeof authorizationCodeGrantTypeParamsSchema
->;
-
-const pkceAuthorizationCodeGrantTypeParamsSchema = z.object({
-  grant_type: grantTypeSchema.refine(
-    (val) => val === GrantType.AuthorizationCode,
-  ),
-  code: z.string(),
-  code_verifier: z.string(),
-  client_id: z.string().optional(),
-  redirect_uri: z.string(),
-});
-
-export type PKCEAuthorizationCodeGrantTypeParams = z.infer<
-  typeof pkceAuthorizationCodeGrantTypeParamsSchema
->;
-
-const clientCredentialGrantTypeParamsSchema = z.object({
-  grant_type: grantTypeSchema.refine(
-    (val) => val === GrantType.ClientCredential,
-  ),
-  scope: z.string().optional(),
-  client_secret: z.string(),
-  client_id: z.string(),
-  audience: z.string().optional(),
-});
-
-export type ClientCredentialsGrantTypeParams = z.infer<
-  typeof clientCredentialGrantTypeParamsSchema
->;
-
 const tokenResponseSchema = z.object({
   access_token: z.string(),
   id_token: z.string().optional(),
@@ -67,9 +24,3 @@ const codeResponseSchema = z.object({
   state: z.string().optional(),
 });
 export type CodeResponse = z.infer<typeof codeResponseSchema>;
-
-export {
-  authorizationCodeGrantTypeParamsSchema,
-  pkceAuthorizationCodeGrantTypeParamsSchema,
-  clientCredentialGrantTypeParamsSchema,
-};

@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { Bindings, Variables } from "./types";
-import { wellKnownRoutes } from "./routes/oauth2";
+import { tokenRoutes, wellKnownRoutes } from "./routes/oauth2";
 import createManagementApi from "./management-app";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 
@@ -25,7 +25,9 @@ export function init(config: AuthHeroConfig) {
   const oauthApp = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
-  }>().route("/.well-known", wellKnownRoutes());
+  }>()
+    .route("/.well-known", wellKnownRoutes)
+    .route("/oauth/token", tokenRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

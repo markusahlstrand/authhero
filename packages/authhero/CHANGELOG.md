@@ -1,5 +1,19 @@
 # authhero
 
+## 0.15.0
+
+### Minor Changes
+
+- 05c7273: Add authorization code grant support
+- 14794b6: support id-tokens
+- moved token types from the interfaces to the authhero package
+- 76b4c53: add client credentials support
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.27.0
+
 ## 0.14.1
 
 ### Patch Changes

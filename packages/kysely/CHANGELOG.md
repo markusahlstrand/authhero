@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 0.24.0
+
+### Minor Changes
+
+- 14794b6: support id-tokens
+- moved token types from the interfaces to the authhero package
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.27.0
+
 ## 0.23.0
 
 ### Minor Changes
