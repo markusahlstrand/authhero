@@ -119,11 +119,13 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         code_challenge_methods_supported: ["S256", "plain"],
         response_modes_supported: ["query", "fragment", "form_post"],
         subject_types_supported: ["public"],
-        id_token_signing_alg_values_supported: ["HS256", "RS256"],
+        // Currently only support RS256 and not HS256
+        id_token_signing_alg_values_supported: ["RS256"],
         token_endpoint_auth_methods_supported: [
           "client_secret_basic",
           "client_secret_post",
-          "private_key_jwt",
+          // private_key_jwt is not supported yet
+          // "private_key_jwt",
         ],
         claims_supported: [
           "aud",
