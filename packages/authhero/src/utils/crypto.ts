@@ -1,3 +1,6 @@
+import { sha256 } from "oslo/crypto";
+import { base64url } from "oslo/encoding";
+
 export function pemToBuffer(pem: string): ArrayBuffer {
   try {
     const pemRegex =
@@ -14,5 +17,21 @@ export function pemToBuffer(pem: string): ArrayBuffer {
   } finally {
     // Basic cleanup of the input string
     pem = pem.replace(/./g, "\0");
+  }
+}
+
+export async function computeCodeChallenge(
+  codeVerifier: string,
+  method: "plain" | "S256",
+): Promise<string> {
+  switch (method) {
+    case "plain":
+      return codeVerifier;
+    case "S256":
+      const encodedData = new TextEncoder().encode(codeVerifier);
+      const hashedVerifier = await sha256(encodedData);
+      return base64url.encode(new Uint8Array(hashedVerifier));
+    default:
+      throw new Error("Unsupported code challenge method");
   }
 }

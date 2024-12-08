@@ -36,7 +36,7 @@ describe("token", () => {
       });
     });
 
-    it("should return accept basic auth", async () => {
+    it("should accept basic auth", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -95,7 +95,60 @@ describe("token", () => {
 
   describe("authorization_code", () => {
     describe("authorization_code", () => {
-      it("should return an access token", async () => {
+      it("should return an access token but no id token if the openid scope is missing", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "email|userId",
+          iss: "http://localhost:3000",
+          aud: "http://example.com",
+        });
+
+        expect(body.id_token).toBeUndefined();
+      });
+
+      it("should return an id token if the openid scope is requested", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
@@ -142,7 +195,24 @@ describe("token", () => {
         expect(accessToken?.payload).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000",
-          aud: "default",
+          aud: "http://example.com",
+        });
+
+        if (!body.id_token) {
+          throw new Error("id_token is missing");
+        }
+
+        const idToken = parseJWT(body.id_token);
+
+        expect(idToken?.payload).toMatchObject({
+          sub: "email|userId",
+          iss: "http://localhost:3000",
+          aud: "clientId",
+          nickname: "Test User",
+          picture: "https://example.com/test.png",
+          name: "Test User",
+          email: "foo@example.com",
+          email_verified: true,
         });
       });
 
@@ -280,6 +350,111 @@ describe("token", () => {
         );
 
         expect(secondResponse.status).toBe(403);
+      });
+    });
+
+    describe("authorization_code with PKCE", () => {
+      it("should return an access token when using a plain code_challenge_method", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          code_verifier: "code_verifier",
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              code_challenge: "code_verifier",
+              code_challenge_method: "plain",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "email|userId",
+          iss: "http://localhost:3000",
+          aud: "http://example.com",
+        });
+
+        expect(body.id_token).toBeUndefined();
+      });
+
+      it("should return an 403 if the code challenge does not match", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          code_verifier: "code_verifier",
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              code_challenge: "incorrect_code_verifier",
+              code_challenge_method: "plain",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.text();
+
+        expect(body).toBe("Invalid code challenge");
       });
     });
   });

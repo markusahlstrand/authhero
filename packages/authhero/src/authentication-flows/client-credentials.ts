@@ -1,15 +1,21 @@
-import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
-import {
-  AuthParams,
-  ClientCredentialsGrantTypeParams,
-} from "@authhero/adapter-interfaces";
+import { AuthParams } from "@authhero/adapter-interfaces";
+import { z } from "@hono/zod-openapi";
 import { createAuthTokens } from "./common";
+import { Bindings, Variables } from "../types";
+
+export const clientCredentialGrantParamsSchema = z.object({
+  grant_type: z.literal("client_credentials"),
+  scope: z.string().optional(),
+  client_secret: z.string(),
+  client_id: z.string(),
+  audience: z.string().optional(),
+});
 
 export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: ClientCredentialsGrantTypeParams,
+  params: z.infer<typeof clientCredentialGrantParamsSchema>,
 ) {
   const client = await ctx.env.data.clients.get(params.client_id);
 
@@ -27,5 +33,5 @@ export async function clientCredentialsGrant(
     audience: params.audience,
   };
 
-  return createAuthTokens(ctx, authParams, client.id);
+  return createAuthTokens(ctx, { authParams });
 }

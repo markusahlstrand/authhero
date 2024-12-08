@@ -1,42 +1,41 @@
-import {
-  authorizationCodeGrantTypeParamsSchema,
-  clientCredentialGrantTypeParamsSchema,
-  GrantType,
-} from "@authhero/adapter-interfaces";
+import { GrantType } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { clientCredentialsGrant } from "../../authentication-flows/client-credentials";
-import { authorizationCodeGrant } from "../../authentication-flows/authorization-code";
+import {
+  clientCredentialsGrant,
+  clientCredentialGrantParamsSchema,
+} from "../../authentication-flows/client-credentials";
+import {
+  authorizationCodeGrant,
+  authorizationCodeGrantParamsSchema,
+} from "../../authentication-flows/authorization-code";
 
-const clientCredentialsSchema = z.object({
-  grant_type: z.literal("client_credentials"),
-  audience: z.string(),
+const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
 });
 
-const authorizationCodeSchema = z.object({
-  grant_type: z.literal("authorization_code"),
-  client_id: z.string().optional(),
-  client_secret: z.string().optional(),
-  code: z.string(),
-  redirect_uri: z.string().optional(),
-});
-
-const authorizationCodeWithPKCESchema = z.object({
-  grant_type: z.literal("authorization_code"),
-  client_id: z.string(),
-  code: z.string(),
-  redirect_uri: z.string().optional(),
-  code_challenge: z.string(),
-  code_challenge_method: z.string(),
-});
-
+// We need to make the client_id and client_secret optional on each type as it can be passed in a auth-header
 const CreateRequestSchema = z.union([
-  clientCredentialsSchema,
-  authorizationCodeSchema,
-  authorizationCodeWithPKCESchema,
+  // Client credentials
+  clientCredentialGrantParamsSchema.extend(optionalClientCredentials.shape),
+  // PKCE. This needs to be before the normal code grant as the client_secret is optional here
+  z.object({
+    grant_type: z.literal("authorization_code"),
+    client_id: z.string(),
+    code: z.string(),
+    redirect_uri: z.string(),
+    code_challenge: z.string(),
+    code_challenge_method: z.enum(["S256", "plain"]),
+  }),
+  // Code grant
+  z.object({
+    grant_type: z.literal("authorization_code"),
+    code: z.string(),
+    redirect_uri: z.string(),
+    ...optionalClientCredentials.shape,
+  }),
 ]);
 
 function parseBasicAuthHeader(authHeader?: string) {
@@ -94,7 +93,6 @@ export const tokenRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
 
       const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
-
       const params = { ...body, ...basicAuth };
 
       if (!params.client_id) {
@@ -106,14 +104,14 @@ export const tokenRoutes = new OpenAPIHono<{
           return ctx.json(
             await authorizationCodeGrant(
               ctx,
-              authorizationCodeGrantTypeParamsSchema.parse(params),
+              authorizationCodeGrantParamsSchema.parse(params),
             ),
           );
         case GrantType.ClientCredential:
           return ctx.json(
             await clientCredentialsGrant(
               ctx,
-              clientCredentialGrantTypeParamsSchema.parse(params),
+              clientCredentialGrantParamsSchema.parse(params),
             ),
           );
         default:
