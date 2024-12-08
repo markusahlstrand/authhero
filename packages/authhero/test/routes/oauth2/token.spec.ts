@@ -453,6 +453,9 @@ describe("token", () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
+        const codeChallenge =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+
         // Create the login session and code
         const loginSesssion = await env.data.logins.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
@@ -461,7 +464,7 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: "code_verifier",
+            code_challenge: codeChallenge,
             code_challenge_method: "plain",
           },
         });
@@ -481,7 +484,7 @@ describe("token", () => {
               code: "123456",
               redirect_uri: "http://localhost:3000/callback",
               client_id: "clientId",
-              code_verifier: "code_verifier",
+              code_verifier: codeChallenge,
             },
           },
           {
@@ -508,6 +511,9 @@ describe("token", () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
+        const codeChallenge =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+
         // Create the login session and code
         const loginSesssion = await env.data.logins.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
@@ -516,7 +522,7 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: await computeCodeChallenge("code_verifier", "S256"),
+            code_challenge: await computeCodeChallenge(codeChallenge, "S256"),
             code_challenge_method: "S256",
           },
         });
@@ -536,7 +542,7 @@ describe("token", () => {
               code: "123456",
               redirect_uri: "http://localhost:3000/callback",
               client_id: "clientId",
-              code_verifier: "code_verifier",
+              code_verifier: codeChallenge,
             },
           },
           {
@@ -563,6 +569,9 @@ describe("token", () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
+        const codeChallenge =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+
         // Create the login session and code
         const loginSesssion = await env.data.logins.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
@@ -571,7 +580,7 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: "code_verifier",
+            code_challenge: codeChallenge,
             code_challenge_method: "plain",
           },
         });
@@ -591,7 +600,7 @@ describe("token", () => {
               code: "123456",
               redirect_uri: "http://localhost:3000/callback",
               client_id: "clientId",
-              code_verifier: "incorrect_code_verifier",
+              code_verifier: "incorrect_code_" + codeChallenge,
             },
           },
           {

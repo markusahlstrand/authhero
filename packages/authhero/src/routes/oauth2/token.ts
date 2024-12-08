@@ -26,7 +26,7 @@ const CreateRequestSchema = z.union([
     client_id: z.string(),
     code: z.string(),
     redirect_uri: z.string(),
-    code_verifier: z.string(),
+    code_verifier: z.string().min(43).max(128),
   }),
   // Code grant
   z.object({
