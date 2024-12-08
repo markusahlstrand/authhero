@@ -24,14 +24,12 @@ export async function computeCodeChallenge(
   codeVerifier: string,
   method: "plain" | "S256",
 ): Promise<string> {
-  switch (method) {
-    case "plain":
-      return codeVerifier;
-    case "S256":
-      const encodedData = new TextEncoder().encode(codeVerifier);
-      const hashedVerifier = await sha256(encodedData);
-      return base64url.encode(new Uint8Array(hashedVerifier));
-    default:
-      throw new Error("Unsupported code challenge method");
+  if (method === "plain") {
+    return codeVerifier;
   }
+
+  // S256 hashing
+  const encodedData = new TextEncoder().encode(codeVerifier);
+  const hashedVerifier = await sha256(encodedData);
+  return base64url.encode(new Uint8Array(hashedVerifier));
 }
