@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.27.0
+
+### Minor Changes
+
+- moved token types from the interfaces to the authhero package
+
 ## 0.26.0
 
 ### Minor Changes
