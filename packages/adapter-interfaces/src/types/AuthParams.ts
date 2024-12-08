@@ -31,7 +31,7 @@ export const authParamsSchema = z.object({
   nonce: z.string().optional(),
   scope: z.string().optional(),
   prompt: z.string().optional(),
-  code_challenge_method: z.nativeEnum(CodeChallengeMethod).optional(),
+  code_challenge_method: z.enum(["plain", "S256"]).optional(),
   code_challenge: z.string().optional(),
   username: z.string().optional(),
   ui_locales: z.string().optional(),

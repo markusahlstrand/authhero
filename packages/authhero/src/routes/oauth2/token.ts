@@ -26,8 +26,7 @@ const CreateRequestSchema = z.union([
     client_id: z.string(),
     code: z.string(),
     redirect_uri: z.string(),
-    code_challenge: z.string(),
-    code_challenge_method: z.enum(["S256", "plain"]),
+    code_verifier: z.string(),
   }),
   // Code grant
   z.object({

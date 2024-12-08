@@ -3,7 +3,7 @@ import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
 import { createAuthTokens } from "./common";
 import { Bindings, Variables } from "../types";
-import { computeCodeChallenge } from "src/utils/crypto";
+import { computeCodeChallenge } from "../utils/crypto";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -12,19 +12,14 @@ export const authorizationCodeGrantParamsSchema = z
     code: z.string(),
     redirect_uri: z.string(),
     client_secret: z.string().optional(),
-    code_challenge: z.string().optional(),
-    code_challenge_method: z.enum(["S256", "plain"]).optional(),
+    code_verifier: z.string().optional(),
   })
   .refine(
     (data) => {
-      // Must have either client_secret (standard) or code_challenge/code_challenge_method (PKCE)
+      // Must have either client_secret (standard) or code_verifier (PKCE)
       return (
-        ("client_secret" in data &&
-          !("code_challenge" in data) &&
-          !("code_challenge_method" in data)) ||
-        (!("client_secret" in data) &&
-          "code_challenge" in data &&
-          "code_challenge_method" in data)
+        ("client_secret" in data && !("code_verifier" in data)) ||
+        (!("client_secret" in data) && "code_verifier" in data)
       );
     },
     {
@@ -71,18 +66,18 @@ export async function authorizationCodeGrant(
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   } else if (
-    "code_challenge" in params &&
-    typeof params.code_challenge === "string" &&
-    "code_challenge_method" in params &&
-    typeof params.code_challenge_method === "string"
+    "code_verifier" in params &&
+    typeof params.code_verifier === "string" &&
+    "code_challenge_method" in login.authParams &&
+    typeof login.authParams.code_challenge_method === "string"
   ) {
     // PKCE flow
     const challenge = await computeCodeChallenge(
-      params.code_challenge,
-      params.code_challenge_method,
+      params.code_verifier,
+      login.authParams.code_challenge_method,
     );
 
-    if (challenge !== code.code_verifier) {
+    if (challenge !== login.authParams.code_challenge) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   }

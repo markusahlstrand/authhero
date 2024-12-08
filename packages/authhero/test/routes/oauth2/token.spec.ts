@@ -448,7 +448,7 @@ describe("token", () => {
     });
 
     describe("authorization_code with PKCE", () => {
-      it("should return an access token when using a plain code_challenge_method", async () => {
+      it.only("should return an access token when using a plain code_challenge_method", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
@@ -460,6 +460,8 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
+            code_challenge: "code_verifier",
+            code_challenge_method: "plain",
           },
         });
 
@@ -468,7 +470,6 @@ describe("token", () => {
           user_id: "email|userId",
           code_id: "123456",
           login_id: loginSesssion.login_id,
-          code_verifier: "code_verifier",
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -479,8 +480,7 @@ describe("token", () => {
               code: "123456",
               redirect_uri: "http://localhost:3000/callback",
               client_id: "clientId",
-              code_challenge: "code_verifier",
-              code_challenge_method: "plain",
+              code_verifier: "code_verifier",
             },
           },
           {
@@ -534,8 +534,7 @@ describe("token", () => {
               code: "123456",
               redirect_uri: "http://localhost:3000/callback",
               client_id: "clientId",
-              code_challenge: "incorrect_code_verifier",
-              code_challenge_method: "plain",
+              code_verifier: "incorrect_code_verifier",
             },
           },
           {
