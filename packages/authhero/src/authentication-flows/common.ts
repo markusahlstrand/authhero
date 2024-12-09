@@ -39,6 +39,7 @@ export async function createAuthTokens(
       sub: user?.user_id || authParams.client_id,
       iss: ctx.env.ISSUER,
       tenant_id: ctx.var.tenant_id,
+      sid,
     },
     {
       includeIssuedTimestamp: true,

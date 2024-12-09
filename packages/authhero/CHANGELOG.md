@@ -1,5 +1,16 @@
 # authhero
 
+## 0.17.0
+
+### Minor Changes
+
+- add silent tokens
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.29.0
+
 ## 0.16.0
 
 ### Minor Changes

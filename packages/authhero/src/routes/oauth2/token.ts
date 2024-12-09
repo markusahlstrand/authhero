@@ -88,6 +88,7 @@ export const tokenRoutes = new OpenAPIHono<{
         },
       },
     }),
+    // @ts-ignore
     async (ctx) => {
       const body = ctx.req.valid("form");
 
@@ -100,18 +101,14 @@ export const tokenRoutes = new OpenAPIHono<{
 
       switch (body.grant_type) {
         case GrantType.AuthorizationCode:
-          return ctx.json(
-            await authorizationCodeGrant(
-              ctx,
-              authorizationCodeGrantParamsSchema.parse(params),
-            ),
+          return authorizationCodeGrant(
+            ctx,
+            authorizationCodeGrantParamsSchema.parse(params),
           );
         case GrantType.ClientCredential:
-          return ctx.json(
-            await clientCredentialsGrant(
-              ctx,
-              clientCredentialGrantParamsSchema.parse(params),
-            ),
+          return clientCredentialsGrant(
+            ctx,
+            clientCredentialGrantParamsSchema.parse(params),
           );
         default:
           throw new HTTPException(400, { message: "Not implemented" });

@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
+import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
 
 describe("token", () => {
   describe("client_credentials", () => {
@@ -446,6 +447,62 @@ describe("token", () => {
 
         expect(secondResponse.status).toBe(403);
       });
+
+      it("should set a silent authentication token", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const loginSesssion = await env.data.logins.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "",
+            audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.login_id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://example.com/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+
+        const accessToken = parseJWT(body.access_token);
+
+        if (!accessToken || !("sid" in accessToken.payload)) {
+          throw new Error("sid is missing");
+        }
+
+        const cookie = response.headers.get("set-cookie");
+        expect(cookie).toBe(
+          `tenantId-auth-token=${accessToken?.payload.sid}; HttpOnly; Max-Age=604800; Path=/; SameSite=None; Secure`,
+        );
+      });
     });
 
     describe("authorization_code with PKCE", () => {
@@ -465,7 +522,7 @@ describe("token", () => {
             scope: "",
             audience: "http://example.com",
             code_challenge: codeChallenge,
-            code_challenge_method: "plain",
+            code_challenge_method: CodeChallengeMethod.Plain,
           },
         });
 
@@ -523,7 +580,7 @@ describe("token", () => {
             scope: "",
             audience: "http://example.com",
             code_challenge: await computeCodeChallenge(codeChallenge, "S256"),
-            code_challenge_method: "S256",
+            code_challenge_method: CodeChallengeMethod.S256,
           },
         });
 
@@ -581,7 +638,7 @@ describe("token", () => {
             scope: "",
             audience: "http://example.com",
             code_challenge: codeChallenge,
-            code_challenge_method: "plain",
+            code_challenge_method: CodeChallengeMethod.Plain,
           },
         });
 
