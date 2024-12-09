@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.3.0
+
+### Minor Changes
+
+- moved the init of the hooks
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.18.0
+
 ## 0.2.6
 
 ### Patch Changes
