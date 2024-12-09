@@ -3,7 +3,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
-import { pemToBuffer } from "src/utils/crypto";
+import { pemToBuffer } from "../utils/crypto";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;

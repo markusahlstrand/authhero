@@ -34,9 +34,8 @@ export default function create(dataAdapter: DataAdapters) {
   app.use(createAuthMiddleware(app));
   app.use(registerComponent(app));
 
-  const { managementApp } = init({
+  const { managementApp, oauthApp } = init({
     dataAdapter,
-    issuer: "https://authhero.com",
   });
 
   managementApp.doc("/spec", (c) => ({
@@ -54,6 +53,7 @@ export default function create(dataAdapter: DataAdapters) {
   }));
 
   app.route("/api/v2", managementApp);
+  app.route("/", oauthApp);
 
   return app;
 }

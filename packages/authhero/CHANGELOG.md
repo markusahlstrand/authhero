@@ -1,5 +1,11 @@
 # authhero
 
+## 0.18.0
+
+### Minor Changes
+
+- moved the init of the hooks
+
 ## 0.17.0
 
 ### Minor Changes

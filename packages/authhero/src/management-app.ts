@@ -1,6 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Bindings, Variables } from "./types";
-import { addDataHooks } from "./hooks";
 import { brandingRoutes } from "./routes/management-api/branding";
 // import { domainRoutes } from "./routes/management-api/domains";
 import { userRoutes } from "./routes/management-api/users";
@@ -21,18 +20,13 @@ export interface CreateAuthParams {
   dataAdapter: DataAdapters;
 }
 
-export default function create(params: CreateAuthParams) {
+export default function create() {
   const app = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
   }>();
 
   app.use(createAuthMiddleware(app));
-
-  app.use(async (ctx, next) => {
-    ctx.env.data = addDataHooks(ctx, params.dataAdapter);
-    return next();
-  });
 
   const managementApp = app
     .route("/branding", brandingRoutes)
