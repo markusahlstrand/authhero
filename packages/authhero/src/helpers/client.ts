@@ -22,10 +22,10 @@ export async function getClient(
           );
 
           const mergedConnection = connectionSchema.parse({
-            ...defaultConnection,
+            ...(defaultConnection || {}),
             ...connection,
             options: {
-              ...defaultConnection?.options,
+              ...(defaultConnection?.options || {}),
               ...connection.options,
             },
           });
