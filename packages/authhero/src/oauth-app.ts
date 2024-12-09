@@ -1,6 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Bindings, Variables } from "./types";
-import { addDataHooks } from "./hooks";
 import { registerComponent } from "./middlewares/register-component";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createAuthMiddleware } from "./middlewares/authentication";

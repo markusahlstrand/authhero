@@ -5,6 +5,7 @@ import createManagementApi from "./management-app";
 import createOauthApi from "./oauth-app";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 import { addDataHooks } from "./hooks";
+import { createX509Certificate } from "./helpers/encryption";
 
 export * from "@authhero/adapter-interfaces";
 
@@ -32,5 +33,6 @@ export function init(config: AuthHeroConfig) {
     app,
     managementApp,
     oauthApp,
+    createX509Certificate,
   };
 }
