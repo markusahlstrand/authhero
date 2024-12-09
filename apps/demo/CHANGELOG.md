@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.4.0
+
+### Minor Changes
+
+- add a fallback client as a temporary solution
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.19.0
+
 ## 0.3.0
 
 ### Minor Changes

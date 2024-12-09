@@ -336,7 +336,7 @@ describe("token", () => {
         expect(response.status).toBe(403);
         const body = await response.text();
 
-        expect(body).toBe("Invalid client credentials");
+        expect(body).toBe("Client not found");
       });
 
       it("should return a 403 if the code is expired", async () => {
