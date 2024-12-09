@@ -34,13 +34,5 @@ export default function create() {
 
   registerComponent(oauthApp);
 
-  oauthApp.doc("/spec", {
-    openapi: "3.0.0",
-    info: {
-      version: "1.0.0",
-      title: "Management api",
-    },
-  });
-
   return oauthApp;
 }

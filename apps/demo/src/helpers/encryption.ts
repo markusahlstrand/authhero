@@ -1,4 +1,3 @@
-import { nanoid } from "nanoid";
 import * as x509 from "@peculiar/x509";
 import { encodeHex, base64 } from "oslo/encoding";
 import { sha256 } from "oslo/crypto";
@@ -18,9 +17,10 @@ export async function createX509Certificate(
   };
   const keys = await crypto.subtle.generateKey(alg, true, ["sign", "verify"]);
 
-  // Generate a nanoid and convert it directly to hex
-  const nanoId = nanoid();
-  const serialNumber = encodeHex(new TextEncoder().encode(nanoId));
+  // Generate a positive integer serial number up to 20 bytes
+  const serialNumberArray = new Uint8Array(20);
+  crypto.getRandomValues(serialNumberArray);
+  const serialNumber = encodeHex(serialNumberArray);
 
   const cert = await x509.X509CertificateGenerator.createSelfSigned({
     serialNumber,
@@ -30,10 +30,11 @@ export async function createX509Certificate(
     signingAlgorithm: alg,
     keys,
     extensions: [
-      new x509.BasicConstraintsExtension(true, 2, true),
+      new x509.BasicConstraintsExtension(true, undefined, true),
       new x509.ExtendedKeyUsageExtension(["1.3.6.1.5.5.7.3.1"], true), // serverAuth
       new x509.KeyUsagesExtension(
-        x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
+        x509.KeyUsageFlags.digitalSignature |
+          x509.KeyUsageFlags.keyEncipherment,
         true,
       ),
       await x509.SubjectKeyIdentifierExtension.create(keys.publicKey),
