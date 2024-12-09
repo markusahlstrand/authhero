@@ -1,5 +1,11 @@
 # authhero
 
+## 0.19.0
+
+### Minor Changes
+
+- add a fallback client as a temporary solution
+
 ## 0.18.0
 
 ### Minor Changes

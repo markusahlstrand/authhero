@@ -7,6 +7,7 @@ import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
 import { serializeCookie } from "oslo/cookie";
+import { getClient } from "src/helpers/client";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -39,11 +40,7 @@ export async function authorizationCodeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
 ) {
-  const client = await ctx.env.data.clients.get(params.client_id);
-
-  if (!client) {
-    throw new HTTPException(403, { message: "Invalid client credentials" });
-  }
+  const client = await getClient(ctx.env, params.client_id);
 
   const code = await ctx.env.data.codes.get(
     client.tenant.id,

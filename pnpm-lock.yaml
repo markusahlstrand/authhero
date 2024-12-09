@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.17.0
-        version: 0.17.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)
+        specifier: ^0.18.0
+        version: 0.18.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)
       hono:
         specifier: ^4.6.11
         version: 4.6.11
@@ -1954,8 +1954,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.17.0:
-    resolution: {integrity: sha512-d4zg1YyjoRmRf8Qy9DVnYXCNTc3FBlASr1CHLop6q9eTBE496AfH+vWyJ05N9EzHlzLCFuTEOAwdpzRRotBn2A==}
+  authhero@0.18.0:
+    resolution: {integrity: sha512-XbMrlhwyNuVz7HEk0aN74i4hxqbLvr6FkwzrFlS0RA2eBZh2xWsNcDok2qQeiyY7Fg1Ol3jXdGGlIi3Y0AcP/A==}
     peerDependencies:
       '@hono/zod-openapi': ^0.18.0
       hono: ^4.6.11
@@ -6370,7 +6370,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.17.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11):
+  authhero@0.18.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11):
     dependencies:
       '@authhero/adapter-interfaces': 0.29.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))
       '@hono/zod-openapi': 0.18.0(hono@4.6.11)(zod@3.23.8)
