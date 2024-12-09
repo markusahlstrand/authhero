@@ -7,14 +7,14 @@ import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
 import { serializeCookie } from "oslo/cookie";
-import { getClient } from "../helpers/client";
+import { safeCompare } from "src/utils/safe-compare";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
     grant_type: z.literal("authorization_code"),
     client_id: z.string(),
     code: z.string(),
-    redirect_uri: z.string(),
+    redirect_uri: z.string().optional(),
     client_secret: z.string().optional(),
     code_verifier: z.string().optional(),
   })
@@ -40,7 +40,10 @@ export async function authorizationCodeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
 ) {
-  const client = await getClient(ctx.env, params.client_id);
+  const client = await ctx.env.data.clients.get(params.client_id);
+  if (!client) {
+    throw new HTTPException(403, { message: "Invalid client" });
+  }
 
   const code = await ctx.env.data.codes.get(
     client.tenant.id,
@@ -61,8 +64,14 @@ export async function authorizationCodeGrant(
 
   // Validate the secret or PKCE
   if ("client_secret" in params) {
+    // A temporary solution to handle cross tenant clients
+    const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
+
     // Code flow
-    if (client.client_secret !== params.client_secret) {
+    if (
+      !safeCompare(client.client_secret, params.client_secret) &&
+      !safeCompare(defaultClient?.client_secret, params.client_secret)
+    ) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   } else if (
@@ -77,7 +86,7 @@ export async function authorizationCodeGrant(
       login.authParams.code_challenge_method,
     );
 
-    if (challenge !== login.authParams.code_challenge) {
+    if (!safeCompare(challenge, login.authParams.code_challenge || "")) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   }

@@ -32,7 +32,7 @@ const CreateRequestSchema = z.union([
   z.object({
     grant_type: z.literal("authorization_code"),
     code: z.string(),
-    redirect_uri: z.string(),
+    redirect_uri: z.string().optional(),
     ...optionalClientCredentials.shape,
   }),
 ]);

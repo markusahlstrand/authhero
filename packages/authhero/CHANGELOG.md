@@ -1,5 +1,11 @@
 # authhero
 
+## 0.20.0
+
+### Minor Changes
+
+- add a default client as a temporary solutoin
+
 ## 0.19.0
 
 ### Minor Changes

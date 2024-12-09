@@ -1,6 +1,6 @@
 // Constant-time comparison
-export function safeCompare(a: string, b: string) {
-  if (a.length !== b.length) return false;
+export function safeCompare(a?: string, b?: string) {
+  if (!a || !b || a.length !== b.length) return false;
 
   let result = 0;
   for (let i = 0; i < a.length; i++) {
