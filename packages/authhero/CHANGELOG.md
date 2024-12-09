@@ -1,5 +1,11 @@
 # authhero
 
+## 0.20.1
+
+### Patch Changes
+
+- fix refernce to safe compare
+
 ## 0.20.0
 
 ### Minor Changes

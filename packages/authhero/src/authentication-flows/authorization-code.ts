@@ -7,7 +7,7 @@ import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
 import { serializeCookie } from "oslo/cookie";
-import { safeCompare } from "src/utils/safe-compare";
+import { safeCompare } from "../utils/safe-compare";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -66,6 +66,8 @@ export async function authorizationCodeGrant(
   if ("client_secret" in params) {
     // A temporary solution to handle cross tenant clients
     const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
+
+    console.log("defaultClient", JSON.stringify(defaultClient));
 
     // Code flow
     if (
