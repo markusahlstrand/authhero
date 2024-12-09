@@ -15,8 +15,8 @@ export enum AuthorizationResponseMode {
 }
 
 export enum CodeChallengeMethod {
-  S265 = "S256",
-  plain = "plain",
+  S256 = "S256",
+  Plain = "plain",
 }
 
 export const authParamsSchema = z.object({

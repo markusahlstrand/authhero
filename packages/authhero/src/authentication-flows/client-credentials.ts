@@ -37,5 +37,6 @@ export async function clientCredentialsGrant(
     audience: params.audience,
   };
 
-  return createAuthTokens(ctx, { authParams });
+  const tokens = await createAuthTokens(ctx, { authParams });
+  return ctx.json(tokens);
 }

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.29.0
+
+### Minor Changes
+
+- add silent tokens
+
 ## 0.28.0
 
 ### Minor Changes

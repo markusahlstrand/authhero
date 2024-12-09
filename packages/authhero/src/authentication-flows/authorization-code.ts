@@ -1,9 +1,12 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
+import { nanoid } from "nanoid";
 import { createAuthTokens } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
+import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
+import { serializeCookie } from "oslo/cookie";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -97,5 +100,34 @@ export async function authorizationCodeGrant(
 
   await ctx.env.data.codes.remove(client.tenant.id, params.code);
 
-  return createAuthTokens(ctx, { authParams: login.authParams, user });
+  // Create a new session
+  const session = await ctx.env.data.sessions.create(client.tenant.id, {
+    session_id: nanoid(),
+    user_id: user.user_id,
+    client_id: client.id,
+    expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
+    used_at: new Date().toISOString(),
+  });
+
+  const tokens = await createAuthTokens(ctx, {
+    authParams: login.authParams,
+    user,
+    sid: session.session_id,
+  });
+
+  return ctx.json(tokens, {
+    headers: {
+      "set-cookie": serializeCookie(
+        `${client.tenant.id}-${SILENT_COOKIE_NAME}`,
+        session.session_id,
+        {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          maxAge: 60 * 60 * 24 * 7, // 1 mo
+          sameSite: "none",
+        },
+      ),
+    },
+  });
 }
