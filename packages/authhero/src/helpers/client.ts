@@ -53,9 +53,9 @@ export async function getClient(
       `${env.ISSUER}u/info`,
     ],
     connections,
-    domains: [...client.domains, ...(defaultClient?.domains || [])],
+    domains: [...(client.domains || []), ...(defaultClient?.domains || [])],
     tenant: {
-      ...defaultClient?.tenant,
+      ...(defaultClient?.tenant || {}),
       ...client.tenant,
     },
   };

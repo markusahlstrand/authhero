@@ -7,7 +7,7 @@ import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
 import { serializeCookie } from "oslo/cookie";
-import { getClient } from "src/helpers/client";
+import { getClient } from "../helpers/client";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
