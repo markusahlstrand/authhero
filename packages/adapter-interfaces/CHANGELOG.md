@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.29.1
+
+### Patch Changes
+
+- fbc0e55: pnpm changeset version
+
 ## 0.29.0
 
 ### Minor Changes
