@@ -1,14 +1,20 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { Bindings, Variables } from "./types";
-import { tokenRoutes, wellKnownRoutes } from "./routes/oauth2";
 import createManagementApi from "./management-app";
+import createOauthApi from "./oauth-app";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
+import { addDataHooks } from "./hooks";
 
 export * from "@authhero/adapter-interfaces";
 
 export function init(config: AuthHeroConfig) {
-  const app = new OpenAPIHono<{ Bindings: Bindings }>();
+  const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
+
+  app.use(async (ctx, next) => {
+    ctx.env.data = addDataHooks(ctx, config.dataAdapter);
+    return next();
+  });
 
   app.get("/", (ctx: Context) => {
     return ctx.json({
@@ -16,27 +22,10 @@ export function init(config: AuthHeroConfig) {
     });
   });
 
-  const managementApp = createManagementApi(config);
+  const managementApp = createManagementApi();
   app.route("/api/v2", managementApp);
 
-  /**
-   * The oauth routes
-   */
-  const oauthApp = new OpenAPIHono<{
-    Bindings: Bindings;
-    Variables: Variables;
-  }>()
-    .route("/.well-known", wellKnownRoutes)
-    .route("/oauth/token", tokenRoutes);
-
-  oauthApp.doc("/spec", {
-    openapi: "3.0.0",
-    info: {
-      version: "1.0.0",
-      title: "Oauth endpoints",
-    },
-  });
-
+  const oauthApp = createOauthApi();
   app.route("/", oauthApp);
 
   return {
