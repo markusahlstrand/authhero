@@ -1,5 +1,16 @@
 # authhero
 
+## 0.16.0
+
+### Minor Changes
+
+- switch back to native enum
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.28.0
+
 ## 0.15.0
 
 ### Minor Changes

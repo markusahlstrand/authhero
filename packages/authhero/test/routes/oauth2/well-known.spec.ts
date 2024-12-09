@@ -30,64 +30,61 @@ describe("jwks", () => {
     expect(jwks.keys.length).toBe(1);
   });
 
-  // TODO: the rotate endpoint is not migrated yet
-  // it("should create a new rsa-key and return it", async () => {
-  //   const { oauthApp, managementApp, env } = await getTestServer();
-  //   const oauthClient = testClient(oauthApp, env);
-  //   const managementClient = testClient(managementApp, env);
+  it("should create a new rsa-key and return it", async () => {
+    const { oauthApp, managementApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+    const managementClient = testClient(managementApp, env);
 
-  //   const initialKey = await oauthClient[".well-known"]["jwks.json"].$get(
-  //     {
-  //       param: {},
-  //     },
-  //     {
-  //       headers: {
-  //         "tenant-id": "tenantId",
-  //       },
-  //     },
-  //   );
+    const initialKey = await oauthClient[".well-known"]["jwks.json"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
 
-  //   const initialKeys = jwksKeySchema.parse(await initialKey.json());
-  //   expect(initialKeys.keys[0].kid).not.toBe("testid-0");
+    const initialKeys = jwksKeySchema.parse(await initialKey.json());
+    expect(initialKeys.keys[0].kid).not.toBe("testid-0");
 
-  //   const token = await getAdminToken();
+    const token = await getAdminToken();
 
-  //   const createKeyResponse =
-  //     await managementClient.api.v2.keys.signing.rotate.$post(
-  //       {
-  //         header: {
-  //           tenant_id: "tenantId",
-  //         },
-  //       },
-  //       {
-  //         headers: {
-  //           authorization: `Bearer ${token}`,
-  //         },
-  //       },
-  //     );
+    const createKeyResponse = await managementClient.keys.signing.rotate.$post(
+      {
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
 
-  //   expect(createKeyResponse.status).toBe(201);
+    expect(createKeyResponse.status).toBe(201);
 
-  //   const response = await oauthClient[".well-known"]["jwks.json"].$get(
-  //     {
-  //       param: {},
-  //     },
-  //     {
-  //       headers: {
-  //         "tenant-id": "tenantId",
-  //       },
-  //     },
-  //   );
+    const response = await oauthClient[".well-known"]["jwks.json"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
 
-  //   expect(response.status).toBe(200);
+    expect(response.status).toBe(200);
 
-  //   const body = jwksKeySchema.parse(await response.json());
+    const body = jwksKeySchema.parse(await response.json());
 
-  //   // this is correct because the above endpoint filters out any revoked certificates
-  //   expect(body.keys.length).toBe(1);
+    expect(body.keys.length).toBe(2);
 
-  //   expect(body.keys[0].kid).not.toBe(initialKeys.keys[0].kid);
-  // });
+    expect(body.keys[1].kid).not.toBe(initialKeys.keys[0].kid);
+  });
 
   it("should return an openid-configuration with the current issues", async () => {
     const { oauthApp, env } = await getTestServer();

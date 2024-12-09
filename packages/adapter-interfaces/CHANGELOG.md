@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.28.0
+
+### Minor Changes
+
+- switch back to native enum
+
 ## 0.27.0
 
 ### Minor Changes
