@@ -5,9 +5,9 @@ import { nanoid } from "nanoid";
 import { createAuthTokens } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
-import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
-import { serializeCookie } from "oslo/cookie";
+import { SILENT_AUTH_MAX_AGE } from "../constants";
 import { safeCompare } from "../utils/safe-compare";
+import { serializeAuthCookie } from "src/utils/cookies";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -42,7 +42,7 @@ export async function authorizationCodeGrant(
 ) {
   const client = await ctx.env.data.clients.get(params.client_id);
   if (!client) {
-    throw new HTTPException(403, { message: "Invalid client" });
+    throw new HTTPException(403, { message: "Client not found" });
   }
 
   const code = await ctx.env.data.codes.get(
@@ -66,8 +66,6 @@ export async function authorizationCodeGrant(
   if ("client_secret" in params) {
     // A temporary solution to handle cross tenant clients
     const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
-
-    console.log("defaultClient", JSON.stringify(defaultClient));
 
     // Code flow
     if (
@@ -125,17 +123,7 @@ export async function authorizationCodeGrant(
 
   return ctx.json(tokens, {
     headers: {
-      "set-cookie": serializeCookie(
-        `${client.tenant.id}-${SILENT_COOKIE_NAME}`,
-        session.session_id,
-        {
-          path: "/",
-          httpOnly: true,
-          secure: true,
-          maxAge: 60 * 60 * 24 * 7, // 1 mo
-          sameSite: "none",
-        },
-      ),
+      "set-cookie": serializeAuthCookie(client.tenant.id, session.session_id),
     },
   });
 }

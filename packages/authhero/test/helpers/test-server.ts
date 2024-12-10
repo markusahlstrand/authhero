@@ -57,6 +57,7 @@ export async function getTestServer(args: getEnvParams = {}) {
     client_secret: "clientSecret",
     name: "Test Client",
     callbacks: ["https://example/callback"],
+    allowed_logout_urls: ["https://example/callback"],
     disable_sign_ups: false,
   });
 

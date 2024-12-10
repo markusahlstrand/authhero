@@ -133,6 +133,11 @@ export function createAuthMiddleware(
     if (definition && "route" in definition) {
       const requiredPermissions = definition.route.security?.[0]?.Bearer;
 
+      // Bail if not Bearer is defined
+      if (!requiredPermissions?.length) {
+        return await next();
+      }
+
       const authHeader = ctx.req.header("authorization") || "";
       const [authType, bearer] = authHeader.split(" ");
       if (authType?.toLowerCase() !== "bearer" || !bearer) {
@@ -147,12 +152,22 @@ export function createAuthMiddleware(
         throw new HTTPException(403, { message: "Invalid JWT signature" });
       }
 
+      // Can we just keep the user?
       ctx.set("user_id", token.payload.sub);
+      ctx.set("user", token.payload);
 
       const permissions = token.payload.permissions || [];
+      const scopes = token.payload.scope?.split(" ") || [];
+
       if (
-        requiredPermissions?.length &&
-        !requiredPermissions.some((scope) => permissions.includes(scope))
+        requiredPermissions.length &&
+        !(
+          // Should we check both?
+          (
+            requiredPermissions.some((scope) => permissions.includes(scope)) ||
+            requiredPermissions.some((scope) => scopes.includes(scope))
+          )
+        )
       ) {
         throw new HTTPException(403, { message: "Unauthorized" });
       }
