@@ -1,5 +1,12 @@
 # authhero
 
+## 0.21.0
+
+### Minor Changes
+
+- fix redirect validation logic
+- c16a591: add userinfo and logout endpoints
+
 ## 0.20.2
 
 ### Patch Changes
