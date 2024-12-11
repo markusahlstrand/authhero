@@ -3,8 +3,8 @@ import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { createLogMessage } from "../../utils/create-log-message";
 import { Bindings, Variables } from "../../types";
-import { isValidRedirectUrl } from "src/utils/is-valid-redirect-url";
-import { clearAuthCookie, getAuthCookie } from "src/utils/cookies";
+import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
+import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 
 export const logoutRoutes = new OpenAPIHono<{
   Bindings: Bindings;

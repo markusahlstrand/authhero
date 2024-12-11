@@ -1,5 +1,5 @@
 import { parseCookies, serializeCookie } from "oslo/cookie";
-import { SILENT_COOKIE_NAME } from "../constants";
+import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
 
 function getCookieName(tenant_id: string) {
   return `${tenant_id}-${SILENT_COOKIE_NAME}`;
@@ -36,7 +36,7 @@ export function serializeAuthCookie(tenant_id: string, value: string) {
     path: "/",
     httpOnly: true,
     secure: true,
-    maxAge: 60 * 60 * 24 * 7, // 1 mo
+    maxAge: SILENT_AUTH_MAX_AGE,
   };
 
   return serializeCookie(getCookieName(tenant_id), value, {
