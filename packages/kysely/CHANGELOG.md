@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 0.25.0
+
+### Minor Changes
+
+- set used_at for codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.31.0
+
 ## 0.24.4
 
 ### Patch Changes

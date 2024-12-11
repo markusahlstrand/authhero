@@ -61,26 +61,26 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^0.24.2
-        version: 0.24.2(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
+        specifier: ^0.24.4
+        version: 0.24.4(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
       '@hono/swagger-ui':
-        specifier: ^0.4.1
-        version: 0.4.1(hono@4.6.11)
+        specifier: ^0.5.0
+        version: 0.5.0(hono@4.6.13)
       '@hono/zod-openapi':
-        specifier: ^0.18.0
-        version: 0.18.0(hono@4.6.11)(zod@3.23.8)
+        specifier: ^0.18.3
+        version: 0.18.3(hono@4.6.13)(zod@3.23.8)
       '@peculiar/x509':
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.18.0
-        version: 0.18.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)
+        specifier: ^0.22.0
+        version: 0.22.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)
       hono:
-        specifier: ^4.6.11
-        version: 4.6.11
+        specifier: ^4.6.13
+        version: 4.6.13
       hono-openapi-middlewares:
         specifier: ^1.0.11
-        version: 1.0.11(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)(zod@3.23.8)
+        version: 1.0.11(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(zod@3.23.8)
       kysely-bun-sqlite:
         specifier: ^0.3.2
         version: 0.3.2(kysely@0.27.4)
@@ -183,7 +183,7 @@ importers:
     devDependencies:
       '@hono/zod-openapi':
         specifier: ^0.18.0
-        version: 0.18.0(hono@4.6.11)(zod@3.23.8)
+        version: 0.18.0(hono@4.6.13)(zod@3.23.8)
       '@rollup/plugin-commonjs':
         specifier: ^28.0.1
         version: 28.0.1(rollup@4.24.0)
@@ -387,13 +387,13 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.29.0':
-    resolution: {integrity: sha512-174OEqFsiBIo0rPxnw1QTkrvxjXPM0fgwgY5ub9C+vJ78RTlNO1W97UA/SD6Hg6tCvd9or40Yh2n3XdCbk0PHg==}
+  '@authhero/adapter-interfaces@0.30.0':
+    resolution: {integrity: sha512-fauqIGY+UC9i6S2TJpWKojE30SWuvbPXtCh9VgtZjNl0P70PsnfZ55zb6hYprR9yg6+2/EtX9IdoeYiK/SWEPQ==}
     peerDependencies:
       '@hono/zod-openapi': ^0.16.4
 
-  '@authhero/kysely-adapter@0.24.2':
-    resolution: {integrity: sha512-YctqHz7cCm2iNjCxPd/aDZyisiIVuedPheeV+cu6tE1g0NxjF4TjK1BQI/xqvcx6JssL/B7JsLE3H/nBBXAUXg==}
+  '@authhero/kysely-adapter@0.24.4':
+    resolution: {integrity: sha512-QeU60BMToPMRtVXxFdG75i/Iz+6+cELAcLTlOrEXK4+ViSil6ek18rICLPQK8M6hVCzo4VFgFknDpakLayCyNg==}
     peerDependencies:
       '@hono/zod-openapi': ^0.16.4
       hono: ^4.6.8
@@ -838,13 +838,20 @@ packages:
   '@floating-ui/utils@0.2.3':
     resolution: {integrity: sha512-XGndio0l5/Gvd6CLIABvsav9HHezgDFFhDfHk1bvLfr9ni8dojqLSvBbotJEjmIwNHL7vK4QzBJTdBRoB+c1ww==}
 
-  '@hono/swagger-ui@0.4.1':
-    resolution: {integrity: sha512-kPaJatHffeYQ3yVkHo878hCqwfapqx54FczJVJ+eRWt8J4biyVVMIdCAJb6MyA8bcnHUoTmUpPc7OJAV1VTg2g==}
+  '@hono/swagger-ui@0.5.0':
+    resolution: {integrity: sha512-MWYYSv9kC8IwFBLZdwgZZMT9zUq2C/4/ekuyEYOkHEgUMqu+FG3eebtBZ4ofMh60xYRxRR2BgQGoNIILys/PFg==}
     peerDependencies:
       hono: '*'
 
   '@hono/zod-openapi@0.18.0':
     resolution: {integrity: sha512-MNdFSbACkEq1txteKsBrVB0Mnil0zd5urOrP8eti6kUDI95CKVws+vjHQWNddRqmqlBHa5kFAcVXSInHFmcYGQ==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      hono: '>=4.3.6'
+      zod: 3.*
+
+  '@hono/zod-openapi@0.18.3':
+    resolution: {integrity: sha512-bNlRDODnp7P9Fs13ZPajEOt13G0XwXKfKRHMEFCphQsFiD1Y+twzHaglpNAhNcflzR1DQwHY92ZS06b4LTPbIQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=4.3.6'
@@ -1954,8 +1961,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.18.0:
-    resolution: {integrity: sha512-XbMrlhwyNuVz7HEk0aN74i4hxqbLvr6FkwzrFlS0RA2eBZh2xWsNcDok2qQeiyY7Fg1Ol3jXdGGlIi3Y0AcP/A==}
+  authhero@0.22.0:
+    resolution: {integrity: sha512-yub9AAohKPuQ+STcHAAyC11ft8L+egt6JGKmneK3Qx8V7o9xc1OqFS3/vkHViwSZzIYxPkxdBZXM6l1EzgetGQ==}
     peerDependencies:
       '@hono/zod-openapi': ^0.18.0
       hono: ^4.6.11
@@ -2733,6 +2740,10 @@ packages:
 
   hono@4.6.11:
     resolution: {integrity: sha512-f0LwJQFKdUUrCUAVowxSvNCjyzI7ZLt8XWYU/EApyeq5FfOvHFarBaE5rjU9HTNFk4RI0FkdB2edb3p/7xZjzQ==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.6.13:
+    resolution: {integrity: sha512-haV0gaMdSjy9URCRN9hxBPlqHa7fMm/T72kAImIxvw4eQLbNz1rgjN4hHElLJSieDiNuiIAXC//cC6YGz2KCbg==}
     engines: {node: '>=16.9.0'}
 
   hotscript@1.0.13:
@@ -4564,15 +4575,15 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.29.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))':
+  '@authhero/adapter-interfaces@0.30.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))':
     dependencies:
-      '@hono/zod-openapi': 0.18.0(hono@4.6.11)(zod@3.23.8)
+      '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
 
-  '@authhero/kysely-adapter@0.24.2(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
+  '@authhero/kysely-adapter@0.24.4(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.29.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))
-      '@hono/zod-openapi': 0.18.0(hono@4.6.11)(zod@3.23.8)
-      hono: 4.6.11
+      '@authhero/adapter-interfaces': 0.30.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
+      '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
+      hono: 4.6.13
       kysely: 0.27.4
       kysely-bun-sqlite: 0.3.2(kysely@0.27.4)
       kysely-planetscale: 1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4)
@@ -5120,9 +5131,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.3': {}
 
-  '@hono/swagger-ui@0.4.1(hono@4.6.11)':
+  '@hono/swagger-ui@0.5.0(hono@4.6.13)':
     dependencies:
-      hono: 4.6.11
+      hono: 4.6.13
 
   '@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8)':
     dependencies:
@@ -5131,9 +5142,28 @@ snapshots:
       hono: 4.6.11
       zod: 3.23.8
 
+  '@hono/zod-openapi@0.18.0(hono@4.6.13)(zod@3.23.8)':
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 7.1.1(zod@3.23.8)
+      '@hono/zod-validator': 0.4.1(hono@4.6.13)(zod@3.23.8)
+      hono: 4.6.13
+      zod: 3.23.8
+
+  '@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8)':
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 7.1.1(zod@3.23.8)
+      '@hono/zod-validator': 0.4.1(hono@4.6.13)(zod@3.23.8)
+      hono: 4.6.13
+      zod: 3.23.8
+
   '@hono/zod-validator@0.4.1(hono@4.6.11)(zod@3.23.8)':
     dependencies:
       hono: 4.6.11
+      zod: 3.23.8
+
+  '@hono/zod-validator@0.4.1(hono@4.6.13)(zod@3.23.8)':
+    dependencies:
+      hono: 4.6.13
       zod: 3.23.8
 
   '@humanwhocodes/module-importer@1.0.1': {}
@@ -6370,14 +6400,14 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.18.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11):
+  authhero@0.22.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13):
     dependencies:
-      '@authhero/adapter-interfaces': 0.29.0(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))
-      '@hono/zod-openapi': 0.18.0(hono@4.6.11)(zod@3.23.8)
+      '@authhero/adapter-interfaces': 0.30.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
+      '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
       '@peculiar/x509': 1.12.3
       bcrypt: 5.1.1
       bcryptjs: 2.4.3
-      hono: 4.6.11
+      hono: 4.6.13
       oslo: 1.2.1
     transitivePeerDependencies:
       - encoding
@@ -7309,15 +7339,17 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono-openapi-middlewares@1.0.11(@hono/zod-openapi@0.18.0(hono@4.6.11)(zod@3.23.8))(hono@4.6.11)(zod@3.23.8):
+  hono-openapi-middlewares@1.0.11(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(zod@3.23.8):
     dependencies:
-      '@hono/zod-openapi': 0.18.0(hono@4.6.11)(zod@3.23.8)
-      hono: 4.6.11
+      '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
+      hono: 4.6.13
       zod: 3.23.8
 
   hono@4.4.10: {}
 
   hono@4.6.11: {}
+
+  hono@4.6.13: {}
 
   hotscript@1.0.13: {}
 

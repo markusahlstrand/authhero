@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.31.0
+
+### Minor Changes
+
+- set used_at for codes
+
 ## 0.30.0
 
 ### Minor Changes

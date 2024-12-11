@@ -55,6 +55,8 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "Invalid client credentials" });
   } else if (new Date(code.expires_at) < new Date()) {
     throw new HTTPException(403, { message: "Code expired" });
+  } else if (code.used_at) {
+    throw new HTTPException(403, { message: "Code already used" });
   }
 
   const login = await ctx.env.data.logins.get(client.tenant.id, code.login_id);
@@ -104,7 +106,7 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "User not found" });
   }
 
-  await ctx.env.data.codes.remove(client.tenant.id, params.code);
+  await ctx.env.data.codes.used(client.tenant.id, params.code);
 
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {

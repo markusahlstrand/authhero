@@ -14,7 +14,7 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
   .openapi(
     createRoute({
-      tags: ["jwks"],
+      tags: ["well known"],
       method: "get",
       path: "/jwks.json",
       request: {},

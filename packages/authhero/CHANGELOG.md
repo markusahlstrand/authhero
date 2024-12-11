@@ -1,5 +1,16 @@
 # authhero
 
+## 0.23.0
+
+### Minor Changes
+
+- set used_at for codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.31.0
+
 ## 0.22.0
 
 ### Minor Changes
