@@ -3,7 +3,12 @@ import { Bindings, Variables } from "./types";
 import { registerComponent } from "./middlewares/register-component";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createAuthMiddleware } from "./middlewares/authentication";
-import { tokenRoutes, wellKnownRoutes } from "./routes/oauth2";
+import {
+  logoutRoutes,
+  tokenRoutes,
+  wellKnownRoutes,
+  userinfoRoutes,
+} from "./routes/auth-api";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -17,18 +22,17 @@ export default function create() {
 
   app.use(createAuthMiddleware(app));
 
-  const oauthApp = new OpenAPIHono<{
-    Bindings: Bindings;
-    Variables: Variables;
-  }>()
+  const oauthApp = app
     .route("/.well-known", wellKnownRoutes)
-    .route("/oauth/token", tokenRoutes);
+    .route("/oauth/token", tokenRoutes)
+    .route("/v2/logout", logoutRoutes)
+    .route("/userinfo", userinfoRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",
-      title: "Oauth endpoints",
+      title: "Oauth API",
     },
   });
 

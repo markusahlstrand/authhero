@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { Bindings, Variables } from "./types";
 import createManagementApi from "./management-app";
-import createOauthApi from "./oauth-app";
+import createOauthApi from "./auth-app";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 import { addDataHooks } from "./hooks";
 import { createX509Certificate } from "./helpers/encryption";

@@ -28,7 +28,14 @@ export async function getCertificate() {
   return signingKey;
 }
 
-export async function getAdminToken() {
+export interface CreateTokenParams {
+  userId?: string;
+  tenantId?: string;
+  scope?: string;
+  permissions?: string[];
+}
+
+export async function createToken(params?: CreateTokenParams) {
   const certificate = await getCertificate();
 
   return createJWT(
@@ -36,10 +43,11 @@ export async function getAdminToken() {
     pemToBuffer(certificate.pkcs7!),
     {
       aud: "example.com",
-      scope: "openid email profile",
-      permissions: ["auth:read", "auth:write"],
-      sub: "userId",
+      scope: params?.scope ?? "openid email profile",
+      permissions: params?.permissions || [],
+      sub: params?.userId || "userId",
       iss: "test.example.com",
+      tenant_id: params?.tenantId,
     },
     {
       includeIssuedTimestamp: true,
@@ -49,4 +57,10 @@ export async function getAdminToken() {
       },
     },
   );
+}
+
+export async function getAdminToken() {
+  return createToken({
+    permissions: ["auth:read", "auth:write"],
+  });
 }
