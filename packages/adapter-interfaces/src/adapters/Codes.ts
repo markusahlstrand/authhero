@@ -1,4 +1,4 @@
-import { ListParams } from "src/types/ListParams";
+import { ListParams } from "../types/ListParams";
 import { Code, CodeInsert, CodeType, Totals } from "../types";
 
 export interface ListCodesResponse extends Totals {

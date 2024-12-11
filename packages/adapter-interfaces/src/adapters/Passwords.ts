@@ -1,4 +1,4 @@
-import { Password, PasswordInsert } from "src/types";
+import { Password, PasswordInsert } from "../types";
 
 export interface PasswordsAdapter {
   create: (tenant_id: string, params: PasswordInsert) => Promise<Password>;
