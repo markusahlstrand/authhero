@@ -26,7 +26,7 @@ describe("isValidRedirectUrl", () => {
   });
 
   describe("wildcard domain matching", () => {
-    it.skip("should match wildcard domains when configured", () => {
+    it("should match wildcard domains when configured", () => {
       expect(
         isValidRedirectUrl("https://app.example.com", [
           "https://*.example.com",

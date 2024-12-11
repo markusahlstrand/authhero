@@ -1,53 +1,48 @@
-export function isValidRedirectUrl(redirectUrl: string, allowedUrls: string[]) {
+export function isValidRedirectUrl(
+  url: string,
+  allowedUrls: string[],
+): boolean {
   try {
-    const redirect = new URL(redirectUrl);
+    // Parse the input URL
+    const parsedUrl = new URL(url);
 
-    return allowedUrls.some((allowed) => {
-      const allowedUrl = new URL(allowed);
-
-      // Validate protocol
-      const isProtocolValid = redirect.protocol === allowedUrl.protocol;
-
-      // Validate pathname
-      const isPathnameValid = redirect.pathname === allowedUrl.pathname;
-
-      // Validate hostname
-      const isHostnameValid = allowedUrl.hostname.includes("*")
-        ? matchWildcardHostname(redirect, allowedUrl)
-        : redirect.hostname === allowedUrl.hostname;
-
-      return isProtocolValid && isPathnameValid && isHostnameValid;
+    // Check if any of the allowed URLs match
+    return allowedUrls.some((allowedUrl) => {
+      // Exact URL matching
+      try {
+        return matchUrl(parsedUrl, new URL(allowedUrl));
+      } catch {
+        // Invalid allowed URL format
+        return false;
+      }
     });
   } catch {
-    // If URL parsing fails, it's invalid
+    // Invalid URL format
     return false;
   }
 }
 
-function matchWildcardHostname(redirect: URL, allowedUrl: URL) {
-  // Wildcards are only valid for http and https
-  if (allowedUrl.protocol !== "http:" && allowedUrl.protocol !== "https:") {
+function matchUrl(url: URL, allowedUrl: URL): boolean {
+  // First valiaate protocol and pathname
+  if (
+    url.protocol !== allowedUrl.protocol ||
+    url.pathname !== allowedUrl.pathname
+  ) {
     return false;
   }
 
-  const allowedHostname = allowedUrl.hostname;
-  const redirectHostname = redirect.hostname;
-
-  // Validate wildcard placement
-  const [prefix, suffix] = allowedHostname.split("*");
-  if (!suffix || allowedHostname.split("*").length > 2) {
-    return false; // More than one wildcard or invalid wildcard
+  // Wildcard domain matching
+  if (
+    // Only allow wildcard domains with a single subdomain
+    allowedUrl.hostname.startsWith("*.") &&
+    // Ensure that it's not a top-level wildcard domain
+    allowedUrl.hostname.split(".").length > 2 &&
+    // Ensure that the protocol is HTTP or HTTPS
+    ["http:", "https:"].includes(allowedUrl.protocol)
+  ) {
+    const allowedDomain = allowedUrl.hostname.split(".").slice(1).join(".");
+    return url.hostname.endsWith(allowedDomain);
   }
 
-  const wildcardIndex = allowedHostname.indexOf("*");
-  if (wildcardIndex !== allowedHostname.indexOf(".") + 1) {
-    return false; // Wildcard not in subdomain closest to root
-  }
-
-  // Validate single-level subdomain match
-  return (
-    redirectHostname.startsWith(prefix || "") &&
-    redirectHostname.endsWith(suffix) &&
-    redirectHostname.split(".").length === suffix.split(".").length + 1
-  );
+  return url.hostname === allowedUrl.hostname;
 }

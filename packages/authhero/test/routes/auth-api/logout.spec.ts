@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { createX509Certificate } from "../../../src/helpers/encryption";
 
 describe("logout", () => {
   it("should clear a session cookie and redirect to the returnTo url", async () => {
