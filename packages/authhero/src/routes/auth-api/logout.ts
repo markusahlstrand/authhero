@@ -41,14 +41,23 @@ export const logoutRoutes = new OpenAPIHono<{
         return ctx.text("OK");
       }
 
+      // A temporary solution to handle cross tenant clients
+      const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
+
       ctx.set("client_id", client_id);
+      ctx.set("tenant_id", client.tenant.id);
 
       const redirectUri = returnTo || ctx.req.header("referer");
       if (!redirectUri) {
         return ctx.text("OK");
       }
 
-      if (!isValidRedirectUrl(redirectUri, client.allowed_logout_urls || [])) {
+      if (
+        !isValidRedirectUrl(redirectUri, [
+          ...(client.allowed_logout_urls || []),
+          ...(defaultClient?.allowed_logout_urls || []),
+        ])
+      ) {
         throw new HTTPException(400, {
           message: "Invalid redirect uri",
         });
