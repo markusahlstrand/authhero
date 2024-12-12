@@ -1,5 +1,11 @@
 # authhero
 
+## 0.25.0
+
+### Minor Changes
+
+- update hook signature
+
 ## 0.24.0
 
 ### Minor Changes
