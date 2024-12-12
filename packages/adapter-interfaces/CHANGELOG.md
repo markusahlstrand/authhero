@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.32.0
+
+### Minor Changes
+
+- add hooks to add claims to token
+
 ## 0.31.0
 
 ### Minor Changes

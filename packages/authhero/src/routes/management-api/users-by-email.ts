@@ -1,4 +1,4 @@
-import { getUsersByEmail } from "../../utils/users";
+import { getUsersByEmail } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { userSchema } from "@authhero/adapter-interfaces";

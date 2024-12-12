@@ -120,6 +120,7 @@ export async function authorizationCodeGrant(
   const tokens = await createAuthTokens(ctx, {
     authParams: login.authParams,
     user,
+    client,
     sid: session.session_id,
   });
 

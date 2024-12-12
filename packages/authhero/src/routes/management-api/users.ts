@@ -1,8 +1,8 @@
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import { userIdGenerate, userIdParse } from "../../helpers/user-id";
+import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
-import { getUsersByEmail } from "../../utils/users";
+import { getUsersByEmail } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../helpers/sort";
