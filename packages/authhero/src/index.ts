@@ -8,6 +8,7 @@ import { addDataHooks } from "./hooks";
 import { createX509Certificate } from "./helpers/encryption";
 
 export * from "@authhero/adapter-interfaces";
+export * from "./types/Hooks";
 
 export function init(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();

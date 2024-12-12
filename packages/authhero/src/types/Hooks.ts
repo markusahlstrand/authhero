@@ -19,5 +19,5 @@ export type OnExecuteCredentialsExchangeAPI = {
 
 export type OnExecuteCredentialsExchange = (
   event: OnExecuteCredentialsExchangeEvent,
-  api: OnExecuteCredentialsExchangeAPI,
+  access: OnExecuteCredentialsExchangeAPI,
 ) => Promise<void>;
