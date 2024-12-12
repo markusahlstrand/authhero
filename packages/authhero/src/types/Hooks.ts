@@ -12,7 +12,9 @@ export type OnExecuteCredentialsExchangeAPI = {
   accessToken: {
     setCustomClaim: (claim: string, value: any) => void;
   };
-  error: (errorCode: string, errorDescription: string) => void;
+  access: {
+    deny: (code: string, reason?: string) => void;
+  };
 };
 
 export type OnExecuteCredentialsExchange = (

@@ -55,10 +55,12 @@ export async function createAuthTokens(
             payload[claim] = value;
           },
         },
-        error: (errorCode, errorDescription) => {
-          throw new HTTPException(400, {
-            message: errorDescription,
-          });
+        access: {
+          deny: (code) => {
+            throw new HTTPException(400, {
+              message: `Access denied: ${code}`,
+            });
+          },
         },
       },
     );
