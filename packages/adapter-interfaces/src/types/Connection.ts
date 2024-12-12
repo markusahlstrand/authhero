@@ -7,21 +7,7 @@ import {
 export const connectionInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
-  strategy: z.enum([
-    "google-oauth2",
-    "facebook",
-    "vipps",
-    "freja",
-    "apple",
-    "email",
-    "auth0",
-    "authhero",
-    // This is incorrect as strategy. Remove once data is migrated
-    "Username-Password-Authentication",
-    "oidc",
-    "oauth2",
-    "custom",
-  ]),
+  strategy: z.string(),
   options: z
     .object({
       kid: z.string().optional(),

@@ -23,10 +23,10 @@ export default function create() {
   app.use(createAuthMiddleware(app));
 
   const oauthApp = app
-    .route("/.well-known", wellKnownRoutes)
-    .route("/oauth/token", tokenRoutes)
     .route("/v2/logout", logoutRoutes)
-    .route("/userinfo", userinfoRoutes);
+    .route("/userinfo", userinfoRoutes)
+    .route("/.well-known", wellKnownRoutes)
+    .route("/oauth/token", tokenRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

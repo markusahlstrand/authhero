@@ -1,5 +1,5 @@
 import { DataAdapters, User } from "@authhero/adapter-interfaces";
-import { getPrimaryUserByEmail } from "../utils/users";
+import { getPrimaryUserByEmail } from "../helpers/users";
 
 export function linkUsersHook(data: DataAdapters) {
   return async (tenant_id: string, user: User): Promise<User> => {

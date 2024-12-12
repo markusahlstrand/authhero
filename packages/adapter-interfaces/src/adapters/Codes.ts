@@ -6,12 +6,13 @@ export interface ListCodesResponse extends Totals {
 }
 
 export interface CodesAdapter {
-  create: (tenant_id: string, authCode: CodeInsert) => Promise<Code>;
+  create: (tenant_id: string, code: CodeInsert) => Promise<Code>;
   get: (
     tenant_id: string,
     code_id: string,
     type: CodeType,
   ) => Promise<Code | null>;
   list: (tenant_id: string, params: ListParams) => Promise<ListCodesResponse>;
-  remove: (tenant_id: string, code: string) => Promise<boolean>;
+  used: (tenant_id: string, code_id: string) => Promise<boolean>;
+  remove: (tenant_id: string, code_id: string) => Promise<boolean>;
 }

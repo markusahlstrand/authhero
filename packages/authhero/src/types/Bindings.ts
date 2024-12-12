@@ -1,4 +1,5 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { OnExecuteCredentialsExchange } from "./Hooks";
 
 declare type Fetcher = {
   fetch: typeof fetch;
@@ -12,6 +13,10 @@ export type Bindings = {
   ISSUER: string;
 
   data: DataAdapters;
+
+  hooks: {
+    onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
+  };
 
   // Constants
   JWKS_CACHE_TIMEOUT_IN_SECONDS: number;

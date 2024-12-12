@@ -1,21 +1,23 @@
-import { AuthParams, User } from "@authhero/adapter-interfaces";
+import { AuthParams, Client, User } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
 import { pemToBuffer } from "../utils/crypto";
+import { Bindings, Variables } from "../types";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
+  client: Client;
   user?: User;
   sid?: string;
 }
 
 export async function createAuthTokens(
-  ctx: Context,
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ) {
-  const { authParams, user, sid } = params;
+  const { authParams, user, client, sid } = params;
 
   const signingKeys = await ctx.env.data.keys.list();
   const validKeys = signingKeys.filter(
@@ -29,26 +31,60 @@ export async function createAuthTokens(
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
 
-  const access_token = await createJWT(
-    "RS256",
-    keyBuffer,
-    {
-      // TODO: consider if the dafault should be removed
-      aud: authParams.audience || "default",
-      scope: authParams.scope || "",
-      sub: user?.user_id || authParams.client_id,
-      iss: ctx.env.ISSUER,
-      tenant_id: ctx.var.tenant_id,
-      sid,
-    },
-    {
-      includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "d"),
-      headers: {
-        kid: signingKey.kid,
+  const payload = {
+    // TODO: consider if the dafault should be removed
+    aud: authParams.audience || "default",
+    scope: authParams.scope || "",
+    sub: user?.user_id || authParams.client_id,
+    iss: ctx.env.ISSUER,
+    tenant_id: ctx.var.tenant_id,
+    sid,
+  };
+
+  if (ctx.env.hooks?.onExecuteCredentialsExchange) {
+    await ctx.env.hooks.onExecuteCredentialsExchange(
+      {
+        client,
+        user,
+        scope: authParams.scope || "",
+        grant_type: "",
       },
+      {
+        accessToken: {
+          setCustomClaim: (claim, value) => {
+            const reservedClaims = [
+              "sub",
+              "iss",
+              "aud",
+              "exp",
+              "nbf",
+              "iat",
+              "jti",
+            ];
+            if (reservedClaims.includes(claim)) {
+              throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+            }
+            payload[claim] = value;
+          },
+        },
+        access: {
+          deny: (code) => {
+            throw new HTTPException(400, {
+              message: `Access denied: ${code}`,
+            });
+          },
+        },
+      },
+    );
+  }
+
+  const access_token = await createJWT("RS256", keyBuffer, payload, {
+    includeIssuedTimestamp: true,
+    expiresIn: new TimeSpan(1, "d"),
+    headers: {
+      kid: signingKey.kid,
     },
-  );
+  });
 
   const id_token =
     user && authParams.scope?.split(" ").includes("openid")
