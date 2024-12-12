@@ -52,13 +52,25 @@ export async function createAuthTokens(
       {
         accessToken: {
           setCustomClaim: (claim, value) => {
+            const reservedClaims = [
+              "sub",
+              "iss",
+              "aud",
+              "exp",
+              "nbf",
+              "iat",
+              "jti",
+            ];
+            if (reservedClaims.includes(claim)) {
+              throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+            }
             payload[claim] = value;
           },
         },
         access: {
           deny: (code) => {
             throw new HTTPException(400, {
-              message: code,
+              message: `Access denied: ${code}`,
             });
           },
         },
