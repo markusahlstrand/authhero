@@ -1,5 +1,11 @@
 # authhero
 
+## 0.25.1
+
+### Patch Changes
+
+- update the build
+
 ## 0.25.0
 
 ### Minor Changes
