@@ -6,7 +6,7 @@ export const domainInsertSchema = z.object({
   dkim_private_key: z.string().optional(),
   dkim_public_key: z.string().optional(),
   email_api_key: z.string().optional(),
-  email_service: z.enum(["mailgun", "mailchannels"]),
+  email_service: z.string().optional(),
 });
 export type DomainInsert = z.infer<typeof domainInsertSchema>;
 

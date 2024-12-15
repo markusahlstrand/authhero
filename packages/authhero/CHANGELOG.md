@@ -1,5 +1,18 @@
 # authhero
 
+## 0.26.0
+
+### Minor Changes
+
+- add id-token support to hook
+- migrate dbconnections and setup email providers
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.33.0
+
 ## 0.25.2
 
 ### Patch Changes
