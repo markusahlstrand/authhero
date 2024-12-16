@@ -21,7 +21,7 @@ export async function sendEmail(
     throw new HTTPException(500, { message: "Email provider not found" });
   }
 
-  emailService({
+  await emailService({
     to,
     from: emailProvider.default_from_address || `login@${ctx.env.ISSUER}`,
     subject,
