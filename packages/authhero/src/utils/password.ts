@@ -1,20 +1,15 @@
-// import { isStrongPassword } from "validator";
+import zxcvbn from "zxcvbn";
 
 export default function validatePasswordStrength(password: string) {
-  // TODO: add validation. No internet to pull in dependencies now
-  return password.length >= 8;
-  // return isStrongPassword(password, {
-  //   minLength: 8,
-  //   minLowercase: 1,
-  //   minUppercase: 1,
-  //   minNumbers: 1,
-  //   minSymbols: 1,
-  //   returnScore: false,
-  //   pointsPerUnique: 1,
-  //   pointsPerRepeat: 0.5,
-  //   pointsForContainingLower: 10,
-  //   pointsForContainingUpper: 10,
-  //   pointsForContainingNumber: 10,
-  //   pointsForContainingSymbol: 10,
-  // });
+  // Check overall strength with zxcvbn
+  if (zxcvbn(password).score < 3) return false;
+
+  // Additional complexity rules.
+  return (
+    password.length >= 8 && // Minimum length
+    /[a-z]/.test(password) && // At least one lowercase letter
+    /[A-Z]/.test(password) && // At least one uppercase letter
+    /[0-9]/.test(password) && // At least one number
+    /[^A-Za-z0-9]/.test(password) // At least one special character
+  );
 }
