@@ -10,6 +10,7 @@ import { init } from "../../src";
 import { getCertificate } from "./token";
 import { Tenant } from "@authhero/kysely-adapter";
 import { Bindings } from "../../src/types";
+import { MockEmailService } from "./mock-email-service";
 
 type getEnvParams = {
   testTenantLanguage?: string;
@@ -80,9 +81,13 @@ export async function getTestServer(args: getEnvParams = {}) {
   const certificate = new x509.X509Certificate(signingKey.cert);
   const publicKey = await certificate.publicKey.export();
   const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);
+  const mockEmailService = new MockEmailService();
 
   const env: Bindings = {
     data,
+    emailProviders: {
+      "mock-email": mockEmailService.sendEmail.bind(mockEmailService),
+    },
     JWKS_SERVICE: {
       fetch: async () =>
         new Response(
@@ -106,5 +111,6 @@ export async function getTestServer(args: getEnvParams = {}) {
   return {
     ...apps,
     env,
+    getSentEmails: mockEmailService.getSentEmails.bind(mockEmailService),
   };
 }

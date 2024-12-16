@@ -8,6 +8,7 @@ import {
   tokenRoutes,
   wellKnownRoutes,
   userinfoRoutes,
+  dbConnectionRoutes,
 } from "./routes/auth-api";
 
 export interface CreateAuthParams {
@@ -26,7 +27,8 @@ export default function create() {
     .route("/v2/logout", logoutRoutes)
     .route("/userinfo", userinfoRoutes)
     .route("/.well-known", wellKnownRoutes)
-    .route("/oauth/token", tokenRoutes);
+    .route("/oauth/token", tokenRoutes)
+    .route("/dbconnections", dbConnectionRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

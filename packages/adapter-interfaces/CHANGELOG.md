@@ -1,5 +1,18 @@
 # @authhero/adapter-interfaces
 
+## 0.33.0
+
+### Minor Changes
+
+- add sendgrid and postmark mail services
+- migrate dbconnections and setup email providers
+
+## 0.32.1
+
+### Patch Changes
+
+- update all build packages
+
 ## 0.32.0
 
 ### Minor Changes

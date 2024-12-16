@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "files": [
     "dist"
   ],
@@ -37,7 +37,8 @@
     "@peculiar/x509": "^1.12.3",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
-    "oslo": "^1.2.1"
+    "oslo": "^1.2.1",
+    "zxcvbn": "^4.4.2"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.18.0",

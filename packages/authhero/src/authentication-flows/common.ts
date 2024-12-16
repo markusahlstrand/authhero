@@ -13,6 +13,8 @@ export interface CreateAuthTokensParams {
   sid?: string;
 }
 
+const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
+
 export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
@@ -31,7 +33,7 @@ export async function createAuthTokens(
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
 
-  const payload = {
+  const accessTokenPayload = {
     // TODO: consider if the dafault should be removed
     aud: authParams.audience || "default",
     scope: authParams.scope || "",
@@ -40,6 +42,26 @@ export async function createAuthTokens(
     tenant_id: ctx.var.tenant_id,
     sid,
   };
+
+  const idTokenPayload =
+    user && authParams.scope?.split(" ").includes("openid")
+      ? {
+          // The audience for an id token is the client id
+          aud: authParams.client_id,
+          sub: user.user_id,
+          iss: ctx.env.ISSUER,
+          sid,
+          nonce: authParams.nonce,
+          given_name: user.given_name,
+          family_name: user.family_name,
+          nickname: user.nickname,
+          picture: user.picture,
+          locale: user.locale,
+          name: user.name,
+          email: user.email,
+          email_verified: user.email_verified,
+        }
+      : undefined;
 
   if (ctx.env.hooks?.onExecuteCredentialsExchange) {
     await ctx.env.hooks.onExecuteCredentialsExchange(
@@ -52,19 +74,21 @@ export async function createAuthTokens(
       {
         accessToken: {
           setCustomClaim: (claim, value) => {
-            const reservedClaims = [
-              "sub",
-              "iss",
-              "aud",
-              "exp",
-              "nbf",
-              "iat",
-              "jti",
-            ];
-            if (reservedClaims.includes(claim)) {
+            if (RESERVED_CLAIMS.includes(claim)) {
               throw new Error(`Cannot overwrite reserved claim '${claim}'`);
             }
-            payload[claim] = value;
+            accessTokenPayload[claim] = value;
+          },
+        },
+        idToken: {
+          setCustomClaim: (claim, value) => {
+            if (RESERVED_CLAIMS.includes(claim)) {
+              throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+            }
+
+            if (idTokenPayload) {
+              idTokenPayload[claim] = value;
+            }
           },
         },
         access: {
@@ -78,44 +102,24 @@ export async function createAuthTokens(
     );
   }
 
-  const access_token = await createJWT("RS256", keyBuffer, payload, {
+  const header = {
     includeIssuedTimestamp: true,
     expiresIn: new TimeSpan(1, "d"),
     headers: {
       kid: signingKey.kid,
     },
-  });
+  };
 
-  const id_token =
-    user && authParams.scope?.split(" ").includes("openid")
-      ? await createJWT(
-          "RS256",
-          keyBuffer,
-          {
-            // The audience for an id token is the client id
-            aud: authParams.client_id,
-            sub: user.user_id,
-            iss: ctx.env.ISSUER,
-            sid,
-            nonce: authParams.nonce,
-            given_name: user.given_name,
-            family_name: user.family_name,
-            nickname: user.nickname,
-            picture: user.picture,
-            locale: user.locale,
-            name: user.name,
-            email: user.email,
-            email_verified: user.email_verified,
-          },
-          {
-            includeIssuedTimestamp: true,
-            expiresIn: new TimeSpan(1, "d"),
-            headers: {
-              kid: signingKey.kid,
-            },
-          },
-        )
-      : undefined;
+  const access_token = await createJWT(
+    "RS256",
+    keyBuffer,
+    accessTokenPayload,
+    header,
+  );
+
+  const id_token = idTokenPayload
+    ? await createJWT("RS256", keyBuffer, idTokenPayload, header)
+    : undefined;
 
   return {
     access_token,
