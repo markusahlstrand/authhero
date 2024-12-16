@@ -4,7 +4,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { createLogMessage } from "../../utils/create-log-message";
-import { getPrimaryUserByEmailAndProvider } from "../../helpers/users";
+import {
+  getPrimaryUserByEmailAndProvider,
+  getUserByEmailAndProvider,
+} from "../../helpers/users";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
@@ -160,7 +163,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
 
-      const existingUser = await getPrimaryUserByEmailAndProvider({
+      const existingUser = await getUserByEmailAndProvider({
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
         email,
