@@ -16,7 +16,7 @@ export async function sendEmail(
     throw new HTTPException(500, { message: "Email provider not found" });
   }
 
-  const emailService = ctx.env.emailProvders?.[emailProvider.name];
+  const emailService = ctx.env.emailProviders?.[emailProvider.name];
   if (!emailService) {
     throw new HTTPException(500, { message: "Email provider not found" });
   }

@@ -104,9 +104,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       ctx.set("connection", newUser.connection);
 
       // Store the password
+      const hashedPassword = await bcryptjs.hash(password, 10);
       await ctx.env.data.passwords.create(client.tenant.id, {
         user_id: newUser.user_id,
-        password: bcryptjs.hashSync(password, 10),
+        password: hashedPassword,
         algorithm: "bcrypt",
       });
 

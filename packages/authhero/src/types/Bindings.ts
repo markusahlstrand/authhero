@@ -18,7 +18,7 @@ export type Bindings = {
   hooks?: {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
   };
-  emailProvders?: { [key: string]: EmailService };
+  emailProviders?: { [key: string]: EmailService };
 
   // Constants
   JWKS_CACHE_TIMEOUT_IN_SECONDS: number;

@@ -85,7 +85,7 @@ export async function getTestServer(args: getEnvParams = {}) {
 
   const env: Bindings = {
     data,
-    emailProvders: {
+    emailProviders: {
       "mock-email": mockEmailService.sendEmail.bind(mockEmailService),
     },
     JWKS_SERVICE: {
