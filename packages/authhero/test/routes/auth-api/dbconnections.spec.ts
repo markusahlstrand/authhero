@@ -194,7 +194,7 @@ describe("dbconnections", () => {
         },
       );
 
-      // Create the use
+      // Create the user
       const createUserResponse = await client.dbconnections.signup.$post(
         {
           json: {
@@ -233,6 +233,58 @@ describe("dbconnections", () => {
       const emails = getSentEmails();
       // One email for signing up and one for the password reset
       expect(emails.length).toBe(2);
+    });
+
+    it("should not send a password reset email if the user doesn't exist", async () => {
+      const { oauthApp, managementApp, getSentEmails, env } =
+        await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const managementClient = testClient(managementApp, env);
+
+      const token = await getAdminToken();
+
+      // Add the mock client
+      await managementClient.email.providers.$post(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: {
+            name: "mock-email",
+            credentials: {
+              api_key: "apiKey",
+            },
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // Request a password change
+      const response = await client.dbconnections.change_password.$post(
+        {
+          json: {
+            email: "email-user@example.com",
+            connection: "Username-Password-Authentication",
+            client_id: "clientId",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+
+      const emails = getSentEmails();
+      // One email for signing up and one for the password reset
+      expect(emails.length).toBe(0);
     });
   });
 });

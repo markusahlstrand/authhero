@@ -160,6 +160,20 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
 
+      const existingUser = await getPrimaryUserByEmailAndProvider({
+        userAdapter: ctx.env.data.users,
+        tenant_id: client.tenant.id,
+        email,
+        provider: "auth2",
+      });
+
+      if (!existingUser) {
+        // To prevent account enumeration, respond with a generic message
+        return ctx.html(
+          "If an account with that email exists, we've sent instructions to reset your password.",
+        );
+      }
+
       const authParams: AuthParams = {
         client_id: client_id,
         username: email,
@@ -181,6 +195,8 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         loginSession.authParams.state,
       );
 
-      return ctx.html("We've just sent you an email to reset your password.");
+      return ctx.html(
+        "If an account with that email exists, we've sent instructions to reset your password.",
+      );
     },
   );
