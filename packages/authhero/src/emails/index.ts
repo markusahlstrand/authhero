@@ -3,12 +3,19 @@ import { Bindings, Variables } from "../types";
 import { User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 
+export type SendEmailParams = {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  template: string;
+  data: Record<string, string>;
+};
+
 export async function sendEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
-  to: string,
-  subject: string,
-  html: string,
+  params: SendEmailParams,
 ) {
   const emailProvider = await ctx.env.data.emailProviders.get(tenant_id);
 
@@ -22,10 +29,9 @@ export async function sendEmail(
   }
 
   await emailService({
-    to,
+    emailProvider,
+    ...params,
     from: emailProvider.default_from_address || `login@${ctx.env.ISSUER}`,
-    subject,
-    html,
   });
 }
 
@@ -37,13 +43,13 @@ export async function sendResetPassword(
   code: string,
   state?: string,
 ) {
-  await sendEmail(
-    ctx,
-    tenant_id,
+  await sendEmail(ctx, tenant_id, {
     to,
-    `Reset your password`,
-    `Click here to reset your password: ${ctx.env.ISSUER}u/reset-password?state=${state}&code=${code}`,
-  );
+    subject: `Reset your password`,
+    html: `Click here to reset your password: ${ctx.env.ISSUER}u/reset-password?state=${state}&code=${code}`,
+    template: "auth-password-reset",
+    data: { code, state: state || "" },
+  });
 }
 
 export async function sendValidateEmailAddress(
@@ -51,11 +57,11 @@ export async function sendValidateEmailAddress(
   tenant_id: string,
   user: User,
 ) {
-  await sendEmail(
-    ctx,
-    tenant_id,
-    user.email,
-    `Validate your email address`,
-    `Click here to validate your email: ${ctx.env.ISSUER}u/validate-email`,
-  );
+  await sendEmail(ctx, tenant_id, {
+    to: user.email,
+    subject: `Validate your email address`,
+    html: `Click here to validate your email: ${ctx.env.ISSUER}u/validate-email`,
+    template: "auth-verify-email",
+    data: {},
+  });
 }

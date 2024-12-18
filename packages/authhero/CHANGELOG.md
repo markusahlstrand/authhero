@@ -1,5 +1,11 @@
 # authhero
 
+## 0.28.0
+
+### Minor Changes
+
+- pass email provider to email service
+
 ## 0.27.0
 
 ### Minor Changes
