@@ -19,7 +19,7 @@ import { createLoginAdapter } from "./logins";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 
-export { migrateToLatest, migrateDown } from "./migrate/migrate";
+export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
 export default function createAdapters(db: Kysely<Database>): DataAdapters {
   return {
