@@ -39,5 +39,8 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.16.4"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.8"
   }
 }

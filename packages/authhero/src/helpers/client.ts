@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import { Client, connectionSchema } from "authhero";
+import { Client, connectionSchema } from "@authhero/adapter-interfaces";
 import { Bindings } from "../types";
 
 export async function getClient(

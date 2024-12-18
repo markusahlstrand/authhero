@@ -37,7 +37,7 @@ describe("dbconnections", () => {
         {
           json: {
             email: "email-user@example.com",
-            password: "Password1!",
+            password: "fG%D0MV4bjb%xI",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -160,7 +160,7 @@ describe("dbconnections", () => {
 
       expect(response.status).toBe(400);
       const message = await response.text();
-      expect(message).toBe("Invalid sign up");
+      expect(message).toBe("Password does not meet the requirements");
     });
   });
 
@@ -199,7 +199,7 @@ describe("dbconnections", () => {
         {
           json: {
             email: "email-user@example.com",
-            password: "Password1!",
+            password: "fG%D0MV4bjb%xI",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
