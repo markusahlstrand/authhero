@@ -1,5 +1,11 @@
 # authhero
 
+## 0.29.0
+
+### Minor Changes
+
+- add language files
+
 ## 0.28.0
 
 ### Minor Changes
