@@ -20,6 +20,10 @@ export type Bindings = {
   };
   emailProviders?: { [key: string]: EmailService };
 
+  // Tenant for default configuration
+  DEFAULT_TENANT_ID?: string;
+  DEFAULT_CLIENT_ID?: string;
+
   // Constants
   JWKS_CACHE_TIMEOUT_IN_SECONDS: number;
   // This is used as CN in the certificate

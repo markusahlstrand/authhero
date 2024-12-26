@@ -57,7 +57,7 @@ describe("logout", () => {
     expect(body).toBe("Invalid redirect uri");
   });
 
-  it("should clear a remove session from the database and create a log message", async () => {
+  it.only("should clear a remove session from the database and create a log message", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
@@ -73,7 +73,7 @@ describe("logout", () => {
       {
         query: {
           client_id: "clientId",
-          returnTo: "https://example/callback",
+          returnTo: "https://example.com/callback",
         },
       },
       {

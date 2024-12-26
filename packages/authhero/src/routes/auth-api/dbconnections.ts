@@ -67,6 +67,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client.id);
+      ctx.set("tenant_id", client.tenant.id);
 
       // auth0 returns a detailed JSON response with the way the password does match the strength rules
       if (!validatePasswordStrength(password)) {
@@ -111,7 +112,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         algorithm: "bcrypt",
       });
 
-      await sendValidateEmailAddress(ctx, client.tenant.id, newUser);
+      await sendValidateEmailAddress(ctx, newUser);
 
       const log = createLogMessage(ctx, {
         type: LogTypes.SUCCESS_SIGNUP,
@@ -163,6 +164,8 @@ export const dbConnectionRoutes = new OpenAPIHono<{
           message: "Client not found",
         });
       }
+      ctx.set("client_id", client.id);
+      ctx.set("tenant_id", client.tenant.id);
 
       const existingUser = await getUserByEmailAndProvider({
         userAdapter: ctx.env.data.users,
@@ -193,7 +196,6 @@ export const dbConnectionRoutes = new OpenAPIHono<{
 
       await sendResetPassword(
         ctx,
-        client.tenant.id,
         email,
         loginSession.login_id,
         loginSession.authParams.state,

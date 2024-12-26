@@ -1,13 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import { nanoid } from "nanoid";
-import { createAuthTokens } from "./common";
+import { createAuthResponse } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
-import { SILENT_AUTH_MAX_AGE } from "../constants";
 import { safeCompare } from "../utils/safe-compare";
-import { serializeAuthCookie } from "../utils/cookies";
+import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -59,8 +57,11 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "Code already used" });
   }
 
-  const login = await ctx.env.data.logins.get(client.tenant.id, code.login_id);
-  if (!login) {
+  const loginSession = await ctx.env.data.logins.get(
+    client.tenant.id,
+    code.login_id,
+  );
+  if (!loginSession) {
     throw new HTTPException(403, { message: "Invalid login" });
   }
 
@@ -79,24 +80,24 @@ export async function authorizationCodeGrant(
   } else if (
     "code_verifier" in params &&
     typeof params.code_verifier === "string" &&
-    "code_challenge_method" in login.authParams &&
-    typeof login.authParams.code_challenge_method === "string"
+    "code_challenge_method" in loginSession.authParams &&
+    typeof loginSession.authParams.code_challenge_method === "string"
   ) {
     // PKCE flow
     const challenge = await computeCodeChallenge(
       params.code_verifier,
-      login.authParams.code_challenge_method,
+      loginSession.authParams.code_challenge_method,
     );
 
-    if (!safeCompare(challenge, login.authParams.code_challenge || "")) {
+    if (!safeCompare(challenge, loginSession.authParams.code_challenge || "")) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   }
 
   // Validate the redirect_uri
   if (
-    login.authParams.redirect_uri &&
-    login.authParams.redirect_uri !== params.redirect_uri
+    loginSession.authParams.redirect_uri &&
+    loginSession.authParams.redirect_uri !== params.redirect_uri
   ) {
     throw new HTTPException(403, { message: "Invalid redirect uri" });
   }
@@ -108,25 +109,13 @@ export async function authorizationCodeGrant(
 
   await ctx.env.data.codes.used(client.tenant.id, params.code);
 
-  // Create a new session
-  const session = await ctx.env.data.sessions.create(client.tenant.id, {
-    session_id: nanoid(),
-    user_id: user.user_id,
-    client_id: client.id,
-    expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
-    used_at: new Date().toISOString(),
-  });
-
-  const tokens = await createAuthTokens(ctx, {
-    authParams: login.authParams,
+  return createAuthResponse(ctx, {
     user,
     client,
-    sid: session.session_id,
-  });
-
-  return ctx.json(tokens, {
-    headers: {
-      "set-cookie": serializeAuthCookie(client.tenant.id, session.session_id),
+    loginSession,
+    authParams: {
+      ...loginSession.authParams,
+      response_mode: AuthorizationResponseMode.WEB_MESSAGE,
     },
   });
 }

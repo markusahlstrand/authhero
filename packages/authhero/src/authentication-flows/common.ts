@@ -1,10 +1,22 @@
-import { AuthParams, Client, User } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  AuthParams,
+  Client,
+  Login,
+  User,
+} from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
+import { nanoid } from "nanoid";
 import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";
+import {
+  AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
+  SILENT_AUTH_MAX_AGE,
+} from "../constants";
+import { serializeAuthCookie } from "../utils/cookies";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -127,4 +139,80 @@ export async function createAuthTokens(
     token_type: "Bearer",
     expires_in: 86400,
   };
+}
+
+export async function createSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  user: User,
+  client: Client,
+) {
+  // Create a new session
+  const session = await ctx.env.data.sessions.create(client.tenant.id, {
+    session_id: nanoid(),
+    user_id: user.user_id,
+    client_id: client.id,
+    expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
+    used_at: new Date().toISOString(),
+  });
+
+  return session;
+}
+
+export interface CreateAuthResponseParams {
+  authParams: AuthParams;
+  client: Client;
+  loginSession: Login;
+  user: User;
+  sid?: string;
+}
+
+export async function createAuthResponse(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: CreateAuthResponseParams,
+) {
+  const { authParams, user, client } = params;
+
+  const session = await createSession(ctx, user, client);
+
+  const tokens = await createAuthTokens(ctx, {
+    authParams,
+    user,
+    client,
+    sid: session.session_id,
+  });
+
+  const headers = new Headers({
+    "set-cookie": serializeAuthCookie(client.tenant.id, session.session_id),
+  });
+
+  // If it's a web message request, return the tokens in the body
+  if (
+    params.authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE
+  ) {
+    return ctx.json(tokens, {
+      headers,
+    });
+  }
+
+  // If the response type is code, generate a code and redirect
+  if (params.authParams.response_type === "code") {
+    const code = await ctx.env.data.codes.create(client.tenant.id, {
+      code_id: nanoid(),
+      code_type: "authorization_code",
+      login_id: params.loginSession.login_id,
+      expires_at: new Date(
+        Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
+      ).toISOString(),
+    });
+
+    headers.set(
+      "location",
+      `${authParams.redirect_uri}?state=${params.authParams.state}&code=${code.code_id}`,
+    );
+  }
+
+  return new Response("Redirecting", {
+    status: 302,
+    headers,
+  });
 }
