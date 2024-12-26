@@ -1,5 +1,11 @@
 # authhero
 
+## 0.30.0
+
+### Minor Changes
+
+- 3347f29: add passwordless routes
+
 ## 0.29.0
 
 ### Minor Changes
