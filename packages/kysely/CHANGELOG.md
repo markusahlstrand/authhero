@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.26.0
+
+### Minor Changes
+
+- Set the login count to 0
+
 ## 0.25.4
 
 ### Patch Changes
