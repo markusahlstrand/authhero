@@ -7,6 +7,8 @@ type LogParams = {
   description?: string;
   userId?: string;
   body?: unknown;
+  strategy?: string;
+  strategy_type?: string;
 };
 
 export function createLogMessage(
@@ -36,8 +38,8 @@ export function createLogMessage(
     connection_id: "",
     connection: ctx.var.connection || "",
     // auth0_client: ctx.var.auth0_client,
-    strategy: "",
-    strategy_type: "",
+    strategy: params.strategy || "",
+    strategy_type: params.strategy_type || "",
     audience: "",
     scope: [],
   };

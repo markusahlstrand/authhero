@@ -288,11 +288,8 @@ export const userRoutes = new OpenAPIHono<{
           // AND when does the account linking happen then? here? first login?
           email_verified: body.email_verified || false,
           last_ip: "",
-          login_count: 0,
           is_social: false,
           last_login: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         });
 
         ctx.set("user_id", data.user_id);

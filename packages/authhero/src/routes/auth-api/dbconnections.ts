@@ -91,13 +91,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       const newUser = await ctx.env.data.users.create(client.tenant.id, {
         user_id: `auth2|${userIdGenerate()}`,
         email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
         email_verified: false,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        login_count: 0,
       });
 
       ctx.set("user_id", newUser.user_id);

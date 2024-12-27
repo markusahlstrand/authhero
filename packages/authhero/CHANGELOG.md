@@ -1,5 +1,16 @@
 # authhero
 
+## 0.31.0
+
+### Minor Changes
+
+- add password routes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.34.0
+
 ## 0.30.0
 
 ### Minor Changes
