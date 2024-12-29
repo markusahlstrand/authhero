@@ -13,6 +13,7 @@ import { getAuthCookie } from "../../utils/cookies";
 import { universalAuth } from "../../authentication-flows/universal";
 import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
+import { connectionAuth } from "../../authentication-flows/connection";
 
 // const UI_STRATEGIES = [
 //   "email",
@@ -169,11 +170,9 @@ export const authorizeRoutes = new OpenAPIHono<{
       //   return socialAuth(ctx, client, client.connections[0].name, authParams);
       // }
 
-      // Social login
+      // Connection auth flow
       if (connection && connection !== "email") {
-        throw new Error("Not implemented");
-
-        // return socialAuth(ctx, client, connection, authParams);
+        return connectionAuth(ctx, client, connection, authParams);
       } else if (login_ticket) {
         return ticketAuth(
           ctx,
