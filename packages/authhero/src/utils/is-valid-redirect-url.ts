@@ -1,6 +1,6 @@
 export function isValidRedirectUrl(
   url: string,
-  allowedUrls: string[],
+  allowedUrls: string[] = [],
 ): boolean {
   try {
     // Parse the input URL

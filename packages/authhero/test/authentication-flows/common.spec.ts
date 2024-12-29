@@ -125,46 +125,4 @@ describe("common", () => {
       });
     });
   });
-
-  //   describe("createAuthResponse", () => {
-  //     it("should create an auth response with tokens", async () => {
-  //       const session = { session_id: "session_id" };
-  //       const tokens = { access_token: "access_token", id_token: "id_token" };
-  //       ctx.env.data.sessions.create.mockResolvedValue(session);
-
-  //       const response = await createAuthResponse(ctx, {
-  //         authParams,
-  //         client,
-  //         loginSession: { login_id: "login_id" },
-  //         user,
-  //         sid,
-  //       });
-
-  //       expect(response.status).toBe(302);
-  //       expect(response.headers.get("set-cookie")).toBe("cookie");
-  //       expect(response.headers.get("location")).toContain(
-  //         "https://redirect.example.com",
-  //       );
-  //     });
-
-  //     it("should create an auth response with web message", async () => {
-  //       const session = { session_id: "session_id" };
-  //       const tokens = { access_token: "access_token", id_token: "id_token" };
-  //       ctx.env.data.sessions.create.mockResolvedValue(session);
-
-  //       authParams.response_mode = "web_message";
-
-  //       const response = await createAuthResponse(ctx, {
-  //         authParams,
-  //         client,
-  //         loginSession: { login_id: "login_id" },
-  //         user,
-  //         sid,
-  //       });
-
-  //       expect(ctx.json).toHaveBeenCalledWith(tokens, {
-  //         headers: expect.any(Headers),
-  //       });
-  //     });
-  //   });
 });

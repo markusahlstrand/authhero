@@ -1,5 +1,6 @@
 import {
   AuthorizationResponseMode,
+  AuthorizationResponseType,
   AuthParams,
   Client,
   Login,
@@ -161,9 +162,9 @@ export async function createSession(
 export interface CreateAuthResponseParams {
   authParams: AuthParams;
   client: Client;
-  loginSession: Login;
   user: User;
   sid?: string;
+  loginSession?: Login;
 }
 
 export async function createAuthResponse(
@@ -172,30 +173,38 @@ export async function createAuthResponse(
 ) {
   const { authParams, user, client } = params;
 
-  const session = await createSession(ctx, user, client);
+  const sid = params.sid || (await createSession(ctx, user, client)).session_id;
 
   const tokens = await createAuthTokens(ctx, {
     authParams,
     user,
     client,
-    sid: session.session_id,
+    sid,
   });
 
   const headers = new Headers({
-    "set-cookie": serializeAuthCookie(client.tenant.id, session.session_id),
+    "set-cookie": serializeAuthCookie(client.tenant.id, sid),
   });
 
   // If it's a web message request, return the tokens in the body
-  if (
-    params.authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE
-  ) {
+  if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
     return ctx.json(tokens, {
       headers,
     });
   }
 
+  const responseType =
+    authParams.response_type || AuthorizationResponseType.CODE;
+
   // If the response type is code, generate a code and redirect
-  if (params.authParams.response_type === "code") {
+  if (responseType === AuthorizationResponseType.CODE) {
+    if (!params.loginSession) {
+      // The login session needs to be present to generate a code, but for instance not in the case of a silent auth
+      throw new HTTPException(500, {
+        message: "Login session not found",
+      });
+    }
+
     const code = await ctx.env.data.codes.create(client.tenant.id, {
       code_id: nanoid(),
       code_type: "authorization_code",
