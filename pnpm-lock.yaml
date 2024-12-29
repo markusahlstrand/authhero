@@ -61,8 +61,8 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^0.25.3
-        version: 0.25.3(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
+        specifier: ^0.26.0
+        version: 0.26.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.0(hono@4.6.13)
@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.29.0
-        version: 0.29.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3)
+        specifier: ^0.31.0
+        version: 0.31.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3)
       hono:
         specifier: ^4.6.13
         version: 4.6.13
@@ -215,6 +215,9 @@ importers:
       '@peculiar/x509':
         specifier: ^1.12.3
         version: 1.12.3
+      arctic:
+        specifier: ^2.3.3
+        version: 2.3.3
       bcrypt:
         specifier: ^5.1.1
         version: 5.1.1
@@ -375,13 +378,13 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.33.0':
-    resolution: {integrity: sha512-jQpl8G3A1n+oxUWdghZOkP3lGJOgXa5CpdT8TNXa5KjW0KxChgn/nwhHSeqd6P3IdmnYkhecxYZRuPa5u0yecw==}
+  '@authhero/adapter-interfaces@0.34.0':
+    resolution: {integrity: sha512-ombvjxv33DPLpwDPaidk6lXQgjhb4RhII0RHxUMbsAVlib87mTzUs+iH6yzojnV8HhQECddNAl5RMVjM+QLEsQ==}
     peerDependencies:
       '@hono/zod-openapi': ^0.16.4
 
-  '@authhero/kysely-adapter@0.25.3':
-    resolution: {integrity: sha512-y91Q/QR0dd6HGC5SY4UvqXDiJVjEmO0FeSToOw5nFNbXazN6Jyq/RwVSWRNMp8mH5/eIONdUpB0xnmbPamHD6w==}
+  '@authhero/kysely-adapter@0.26.0':
+    resolution: {integrity: sha512-mdL3nu3gnlDVWBIlgwUxfStAxfQHbepTFX/B9S+WEwbFMEDxdN93Du96NDdcX6nfACIYSj7q8AYU8iGjLqUXYQ==}
     peerDependencies:
       '@hono/zod-openapi': ^0.16.4
       hono: ^4.6.8
@@ -1205,6 +1208,24 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@oslojs/asn1@1.0.0':
+    resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}
+
+  '@oslojs/binary@1.0.0':
+    resolution: {integrity: sha512-9RCU6OwXU6p67H4NODbuxv2S3eenuQ4/WFLrsq+K/k682xrznH5EVWA7N4VFk9VYVcbFtKqur5YQQZc0ySGhsQ==}
+
+  '@oslojs/crypto@1.0.1':
+    resolution: {integrity: sha512-7n08G8nWjAr/Yu3vu9zzrd0L9XnrJfpMioQcvCMxBIiF5orECHe5/3J0jmXRVvgfqMm/+4oxlQ+Sq39COYLcNQ==}
+
+  '@oslojs/encoding@0.4.1':
+    resolution: {integrity: sha512-hkjo6MuIK/kQR5CrGNdAPZhS01ZCXuWDRJ187zh6qqF2+yMHZpD9fAYpX8q2bOO6Ryhl3XpCT6kUX76N8hhm4Q==}
+
+  '@oslojs/encoding@1.1.0':
+    resolution: {integrity: sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ==}
+
+  '@oslojs/jwt@0.2.0':
+    resolution: {integrity: sha512-bLE7BtHrURedCn4Mco3ma9L4Y1GR2SMBuIvjWr7rmQ4/W/4Jy70TIAgZ+0nIlk0xHz1vNP8x8DCns45Sb2XRbg==}
+
   '@peculiar/asn1-cms@2.3.13':
     resolution: {integrity: sha512-joqu8A7KR2G85oLPq+vB+NFr2ro7Ls4ol13Zcse/giPSzUNN0n2k3v8kMpf6QdGUhI13e5SzQYN8AKP8sJ8v4w==}
 
@@ -1878,6 +1899,9 @@ packages:
   aproba@2.0.0:
     resolution: {integrity: sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==}
 
+  arctic@2.3.3:
+    resolution: {integrity: sha512-f42+wyM0LKNwUY0TV3fSH1Fnsr/klcZi42XfWFvlNP7Ag8aBX92FaKQIU5xBQzxvvy7jg02tF567LsIlmEujKg==}
+
   are-we-there-yet@2.0.0:
     resolution: {integrity: sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==}
     engines: {node: '>=10'}
@@ -1949,8 +1973,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.29.0:
-    resolution: {integrity: sha512-O3tkQH8N6tSWIA2vqXRcyc/lGvEgcJq5+ci7vqVMTCAkyEVcF+9X/YFTgsl5spS4rZ25l4CPV72Qq7whRHGeFg==}
+  authhero@0.31.0:
+    resolution: {integrity: sha512-fwopZn8Ul+wGmL2U2hK5VXeCJsagwGA1vN2IXTnhGCQNhI+FmQRr0U9m305jAylI2FykqE+apnV8joev0F5ffw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.18.0
       hono: ^4.6.11
@@ -4567,13 +4591,14 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.33.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))':
+  '@authhero/adapter-interfaces@0.34.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))':
     dependencies:
       '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
+      nanoid: 5.0.8
 
-  '@authhero/kysely-adapter@0.25.3(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
+  '@authhero/kysely-adapter@0.26.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.33.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
+      '@authhero/adapter-interfaces': 0.34.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
       '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
       hono: 4.6.13
       kysely: 0.27.4
@@ -5501,6 +5526,25 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
+  '@oslojs/asn1@1.0.0':
+    dependencies:
+      '@oslojs/binary': 1.0.0
+
+  '@oslojs/binary@1.0.0': {}
+
+  '@oslojs/crypto@1.0.1':
+    dependencies:
+      '@oslojs/asn1': 1.0.0
+      '@oslojs/binary': 1.0.0
+
+  '@oslojs/encoding@0.4.1': {}
+
+  '@oslojs/encoding@1.1.0': {}
+
+  '@oslojs/jwt@0.2.0':
+    dependencies:
+      '@oslojs/encoding': 0.4.1
+
   '@peculiar/asn1-cms@2.3.13':
     dependencies:
       '@peculiar/asn1-schema': 2.3.13
@@ -6288,6 +6332,12 @@ snapshots:
 
   aproba@2.0.0: {}
 
+  arctic@2.3.3:
+    dependencies:
+      '@oslojs/crypto': 1.0.1
+      '@oslojs/encoding': 1.1.0
+      '@oslojs/jwt': 0.2.0
+
   are-we-there-yet@2.0.0:
     dependencies:
       delegates: 1.0.0
@@ -6392,9 +6442,9 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.29.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3):
+  authhero@0.31.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3):
     dependencies:
-      '@authhero/adapter-interfaces': 0.33.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
+      '@authhero/adapter-interfaces': 0.34.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
       '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)
       '@peculiar/x509': 1.12.3
       bcrypt: 5.1.1

@@ -28,15 +28,18 @@ export const userInsertSchema = baseUserSchema.extend({
   user_id: z.string().optional(),
   provider: z.string().default("email"),
   connection: z.string().default("email"),
+  is_social: z.boolean().optional(),
 });
+
+export type UserInsert = z.infer<typeof userInsertSchema>;
 
 export const userSchema = z.object({
   ...userInsertSchema.shape,
   ...baseEntitySchema.shape,
   user_id: z.string(),
+  is_social: z.boolean(),
   // TODO: this not might be correct if you use the username
   email: z.string(),
-  is_social: z.boolean(),
   login_count: z.number(),
   identities: z.array(identitySchema).optional(),
 });

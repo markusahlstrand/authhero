@@ -1,5 +1,18 @@
 # @authhero/adapter-interfaces
 
+## 0.35.0
+
+### Minor Changes
+
+- migrate connection auth
+- a0a18c9: move most of authorize endpoint
+
+## 0.34.0
+
+### Minor Changes
+
+- add password routes
+
 ## 0.33.0
 
 ### Minor Changes

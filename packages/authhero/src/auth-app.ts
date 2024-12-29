@@ -9,8 +9,10 @@ import {
   wellKnownRoutes,
   userinfoRoutes,
   dbConnectionRoutes,
+  passwordlessRoutes,
+  authenticateRoutes,
+  authorizeRoutes,
 } from "./routes/auth-api";
-import { passwordlessRoutes } from "./routes/auth-api/passwordless";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -30,7 +32,9 @@ export default function create() {
     .route("/.well-known", wellKnownRoutes)
     .route("/oauth/token", tokenRoutes)
     .route("/dbconnections", dbConnectionRoutes)
-    .route("/passwordless", passwordlessRoutes);
+    .route("/passwordless", passwordlessRoutes)
+    .route("/co/authenticate", authenticateRoutes)
+    .route("/authorize", authorizeRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

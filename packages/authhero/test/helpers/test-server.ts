@@ -59,6 +59,7 @@ export async function getTestServer(args: getEnvParams = {}) {
     name: "Test Client",
     callbacks: ["https://example.com/callback"],
     allowed_logout_urls: ["https://example.com/callback"],
+    web_origins: ["https://example.com"],
     disable_sign_ups: false,
   });
 
@@ -73,9 +74,6 @@ export async function getTestServer(args: getEnvParams = {}) {
     provider: "email",
     is_social: false,
     user_id: "email|userId",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    login_count: 0,
   });
 
   const certificate = new x509.X509Certificate(signingKey.cert);

@@ -1,5 +1,29 @@
 # authhero
 
+## 0.32.0
+
+### Minor Changes
+
+- migrate connection auth
+- a0a18c9: move most of authorize endpoint
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [a0a18c9]
+  - @authhero/adapter-interfaces@0.35.0
+
+## 0.31.0
+
+### Minor Changes
+
+- add password routes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.34.0
+
 ## 0.30.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.30.0",
+  "version": "0.32.0",
   "files": [
     "dist"
   ],
@@ -36,6 +36,7 @@
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:^",
     "@peculiar/x509": "^1.12.3",
+    "arctic": "^2.3.3",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "i18next": "^24.2.0",

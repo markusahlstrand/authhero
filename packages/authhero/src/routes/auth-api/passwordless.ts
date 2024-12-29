@@ -168,7 +168,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         );
       }
 
-      if (!isValidRedirectUrl(redirect_uri, client.callbacks || [])) {
+      if (!isValidRedirectUrl(redirect_uri, client.callbacks)) {
         throw new HTTPException(400, {
           message: `Invalid redirect URI - ${redirect_uri}`,
         });

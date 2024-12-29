@@ -26,6 +26,10 @@ export enum LogTypes {
   SUCCESS_VERIFICATION_EMAIL = "sv",
   SUCCESS_VERIFICATION_EMAIL_REQUEST = "svr",
   CODE_LINK_SENT = "cls",
+
+  BLOCKED_ACCOUNT_EMAIL = "limit_wc",
+  BLOCKED_ACCOUNT_IP = "limit_sul",
+  BLOCKED_IP_ADDRESS = "limit_mu",
 }
 
 // Enum for LogTypes
