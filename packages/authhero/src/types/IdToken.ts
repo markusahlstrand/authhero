@@ -21,4 +21,15 @@ export const idTokenSchema = z
   })
   .passthrough();
 
+export const userInfoSchema = idTokenSchema.omit({
+  iat: true,
+  auth_time: true,
+  nonce: true,
+  acr: true,
+  amr: true,
+  azp: true,
+  at_hash: true,
+  c_hash: true,
+});
+
 export type IdToken = z.infer<typeof idTokenSchema>;

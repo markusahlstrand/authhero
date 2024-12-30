@@ -3,6 +3,7 @@ import { Connection } from "@authhero/adapter-interfaces";
 import * as apple from "./apple";
 import * as facebook from "./facebook";
 import * as google from "./google-oauth2";
+import * as vipps from "./vipps";
 import { Bindings, Variables } from "../types";
 
 export type UserInfo = {
@@ -36,6 +37,7 @@ export function getStrategy(
     apple,
     facebook,
     "google-oauth2": google,
+    vipps,
     ...envStragegies,
   };
 
