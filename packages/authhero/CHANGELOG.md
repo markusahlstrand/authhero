@@ -1,5 +1,11 @@
 # authhero
 
+## 0.36.0
+
+### Minor Changes
+
+- fix json format for connection options
+
 ## 0.35.0
 
 ### Minor Changes

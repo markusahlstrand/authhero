@@ -1,3 +1,6 @@
 pnpm interfaces build
 pnpm kysely build
 pnpm authhero build
+
+pnpm kysely test
+pnpm authhero test

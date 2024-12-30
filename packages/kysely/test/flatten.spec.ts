@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { flattenObject, unflattenObject } from "../src/flatten";
+import { flattenObject, unflattenObject } from "../src/utils/flatten";
 
 describe("flatten", () => {
   describe("flattenObject", () => {

@@ -32,9 +32,6 @@ export async function getClientWithDefaults(
 
   const connections = clientConnections.connections
     .map((connection) => {
-      // @ts-expect-error TODO: This must be wrong in the kysely adapter
-      connection.options = JSON.parse(connection.options);
-
       const defaultConnection = defaultConnections.connections?.find(
         (c) => c.name === connection.name,
       );
@@ -47,8 +44,7 @@ export async function getClientWithDefaults(
         ...(defaultConnection || {}),
         ...connection,
         options: {
-          // @ts-expect-error TODO: This must be wrong in the kysely adapter
-          ...(JSON.parse(defaultConnection.options) || {}),
+          ...(defaultConnection.options || {}),
           ...connection.options,
         },
       });

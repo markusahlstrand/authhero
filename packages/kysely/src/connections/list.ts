@@ -8,7 +8,6 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
-import { unflattenObject } from "../utils/flatten";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -28,8 +27,11 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const dbConnections = await filteredQuery.selectAll().execute();
-    const connections: Connection[] = dbConnections.map((connecction) =>
-      removeNullProperties(unflattenObject(connecction, ["options"])),
+    const connections: Connection[] = dbConnections.map((connection) =>
+      removeNullProperties({
+        ...connection,
+        options: JSON.parse(connection.options),
+      }),
     );
 
     const { count } = await query

@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.33.0
-        version: 0.33.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3)
+        specifier: ^0.35.0
+        version: 0.35.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3)
       hono:
         specifier: ^4.6.13
         version: 4.6.13
@@ -342,6 +342,9 @@ importers:
       '@types/node':
         specifier: ^22.9.1
         version: 22.9.1
+      better-sqlite3:
+        specifier: ^11.5.0
+        version: 11.5.0
       dts-bundle-generator:
         specifier: ^9.5.1
         version: 9.5.1
@@ -1973,8 +1976,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.33.0:
-    resolution: {integrity: sha512-iRcMMASoLAo0bWIAak3+GG0mLHryxtM2X/zZ+w/nCRpdy2p0ePJ021ZM+Fvz4cko5lhOgOWK9ZNgMAg04MW0gw==}
+  authhero@0.35.0:
+    resolution: {integrity: sha512-YPyJ0M9yrZPiTTo9BP7pP3r+NG+HSTvyd1eaAmGocuJfW9Sn2B07TnFcBkn/41wKi88exiHSKsDMoUfVHvct1Q==}
     peerDependencies:
       '@hono/zod-openapi': ^0.18.0
       hono: ^4.6.11
@@ -6442,7 +6445,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.33.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3):
+  authhero@0.35.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))(hono@4.6.13)(typescript@5.6.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.35.0(@hono/zod-openapi@0.18.3(hono@4.6.13)(zod@3.23.8))
       '@hono/zod-openapi': 0.18.3(hono@4.6.13)(zod@3.23.8)

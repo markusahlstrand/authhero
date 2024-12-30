@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.27.0
+
+### Minor Changes
+
+- fix json format for connection options
+
 ## 0.26.1
 
 ### Patch Changes

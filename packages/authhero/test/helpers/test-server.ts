@@ -39,19 +39,13 @@ export async function getTestServer(args: getEnvParams = {}) {
   await data.keys.create(signingKey);
 
   // Add a test tenant
-  const tenant: Tenant = {
+  await data.tenants.create({
     id: "tenantId",
     name: "Test Tenant",
     audience: "https://example.com",
     sender_email: "login@example.com",
     sender_name: "SenderName",
-    support_url: "https://example.com/support",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    language: args.testTenantLanguage,
-  };
-
-  await data.tenants.create(tenant);
+  });
 
   // Add a client
   await data.applications.create("tenantId", {
