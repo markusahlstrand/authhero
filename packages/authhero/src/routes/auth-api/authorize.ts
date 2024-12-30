@@ -14,6 +14,7 @@ import { universalAuth } from "../../authentication-flows/universal";
 import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
+import { getClientWithDefaults } from "../../helpers/client";
 
 // const UI_STRATEGIES = [
 //   "email",
@@ -90,17 +91,8 @@ export const authorizeRoutes = new OpenAPIHono<{
         ui_locales,
       } = ctx.req.valid("query");
 
-      const client = await env.data.clients.get(client_id);
-      if (!client) {
-        throw new HTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getClientWithDefaults(env, client_id);
       ctx.set("client_id", client.id);
-
-      const defaultClient = ctx.env.DEFAULT_CLIENT_ID
-        ? await env.data.clients.get(ctx.env.DEFAULT_CLIENT_ID)
-        : undefined;
 
       const authParams: AuthParams = {
         redirect_uri,
@@ -119,13 +111,7 @@ export const authorizeRoutes = new OpenAPIHono<{
       };
 
       const origin = ctx.req.header("origin");
-      if (
-        origin &&
-        !verifyRequestOrigin(origin, [
-          ...(client.web_origins || []),
-          ...(defaultClient?.web_origins || []),
-        ])
-      ) {
+      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
         throw new HTTPException(403, {
           message: `Origin ${origin} not allowed`,
         });
@@ -133,10 +119,7 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       if (authParams.redirect_uri) {
         if (
-          !isValidRedirectUrl(authParams.redirect_uri, [
-            ...(client.callbacks || []),
-            ...(defaultClient?.callbacks || []),
-          ])
+          !isValidRedirectUrl(authParams.redirect_uri, client.callbacks || [])
         ) {
           throw new HTTPException(400, {
             message: `Invalid redirect URI - ${authParams.redirect_uri}`,

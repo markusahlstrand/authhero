@@ -1,5 +1,11 @@
 # authhero
 
+## 0.33.0
+
+### Minor Changes
+
+- Use default clients for connections
+
 ## 0.32.1
 
 ### Patch Changes
