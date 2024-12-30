@@ -26,8 +26,23 @@ export type Strategy = {
   ) => Promise<UserInfo>;
 };
 
-export const strategies: { [strategy: string]: Strategy } = {
-  apple,
-  facebook,
-  "google-oauth2": google,
-};
+export function getStrategy(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  name: string,
+): Strategy {
+  const envStragegies = ctx.env.STRATEGIES || {};
+
+  const strategies = {
+    apple,
+    facebook,
+    "google-oauth2": google,
+    ...envStragegies,
+  };
+
+  const strategy = strategies[name];
+  if (!strategy) {
+    throw new Error(`Strategy ${name} not found`);
+  }
+
+  return strategy;
+}

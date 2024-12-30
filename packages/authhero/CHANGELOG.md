@@ -1,5 +1,11 @@
 # authhero
 
+## 0.34.0
+
+### Minor Changes
+
+- migrate the callback routes
+
 ## 0.33.0
 
 ### Minor Changes

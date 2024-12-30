@@ -15,26 +15,47 @@ export async function getClientWithDefaults(
     ? await env.data.clients.get(env.DEFAULT_CLIENT_ID)
     : undefined;
 
-  const connections = defaultClient
-    ? client.connections
-        .map((connection) => {
-          const defaultConnection = defaultClient?.connections?.find(
-            (c) => c.name === connection.name,
-          );
+  // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version
+  const clientConnections = await env.data.connections.list(client.tenant.id, {
+    include_totals: false,
+    page: 0,
+    per_page: 100,
+  });
 
-          const mergedConnection = connectionSchema.parse({
-            ...(defaultConnection || {}),
-            ...connection,
-            options: {
-              ...(defaultConnection?.options || {}),
-              ...connection.options,
-            },
-          });
+  const defaultConnections = env.DEFAULT_TENANT_ID
+    ? await env.data.connections.list(env.DEFAULT_TENANT_ID, {
+        include_totals: false,
+        page: 0,
+        per_page: 100,
+      })
+    : { connections: [] };
 
-          return mergedConnection;
-        })
-        .filter((c) => c)
-    : client.connections;
+  const connections = clientConnections.connections
+    .map((connection) => {
+      // @ts-expect-error TODO: This must be wrong in the kysely adapter
+      connection.options = JSON.parse(connection.options);
+
+      const defaultConnection = defaultConnections.connections?.find(
+        (c) => c.name === connection.name,
+      );
+
+      if (!defaultConnection?.options) {
+        return connection;
+      }
+
+      const mergedConnection = connectionSchema.parse({
+        ...(defaultConnection || {}),
+        ...connection,
+        options: {
+          // @ts-expect-error TODO: This must be wrong in the kysely adapter
+          ...(JSON.parse(defaultConnection.options) || {}),
+          ...connection.options,
+        },
+      });
+
+      return mergedConnection;
+    })
+    .filter((c) => c);
 
   return {
     ...client,

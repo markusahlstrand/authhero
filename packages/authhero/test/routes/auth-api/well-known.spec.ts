@@ -47,7 +47,7 @@ describe("jwks", () => {
     );
 
     const initialKeys = jwksKeySchema.parse(await initialKey.json());
-    expect(initialKeys.keys[0].kid).not.toBe("testid-0");
+    expect(initialKeys.keys[0]?.kid).not.toBe("testid-0");
 
     const token = await getAdminToken();
 
@@ -83,7 +83,7 @@ describe("jwks", () => {
 
     expect(body.keys.length).toBe(2);
 
-    expect(body.keys[1].kid).not.toBe(initialKeys.keys[0].kid);
+    expect(body.keys[1]?.kid).not.toBe(initialKeys.keys[0]?.kid);
   });
 
   it("should return an openid-configuration with the current issues", async () => {
@@ -104,6 +104,6 @@ describe("jwks", () => {
     expect(response.status).toBe(200);
 
     const body = openIDConfigurationSchema.parse(await response.json());
-    expect(body.issuer).toBe("http://localhost:3000");
+    expect(body.issuer).toBe("http://localhost:3000/");
   });
 });

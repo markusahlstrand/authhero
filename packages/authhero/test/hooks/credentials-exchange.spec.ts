@@ -3,7 +3,7 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import {
-  OnExecuteCredentialsExchangeAccess,
+  OnExecuteCredentialsExchange,
   OnExecuteCredentialsExchangeEvent,
 } from "../../src/types/Hooks";
 
@@ -15,7 +15,7 @@ describe("client-credentials-hooks", () => {
     env.hooks = {
       onExecuteCredentialsExchange: async (
         event: OnExecuteCredentialsExchangeEvent,
-        api: OnExecuteCredentialsExchangeAccess,
+        api: OnExecuteCredentialsExchange,
       ) => {
         if (event.client.id === "clientId") {
           api.accessToken.setCustomClaim("foo", "bar");
@@ -45,7 +45,7 @@ describe("client-credentials-hooks", () => {
     const accessToken = parseJWT(body.access_token);
     expect(accessToken?.payload).toMatchObject({
       sub: "clientId",
-      iss: "http://localhost:3000",
+      iss: "http://localhost:3000/",
       aud: "https://example.com",
       foo: "bar",
     });

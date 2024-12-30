@@ -13,6 +13,7 @@ import {
   authenticateRoutes,
   authorizeRoutes,
 } from "./routes/auth-api";
+import { callbackRoutes } from "./routes/auth-api/callback";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -34,7 +35,8 @@ export default function create() {
     .route("/dbconnections", dbConnectionRoutes)
     .route("/passwordless", passwordlessRoutes)
     .route("/co/authenticate", authenticateRoutes)
-    .route("/authorize", authorizeRoutes);
+    .route("/authorize", authorizeRoutes)
+    .route("/callback", callbackRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

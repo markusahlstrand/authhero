@@ -33,7 +33,7 @@ describe("token", () => {
       const accessToken = parseJWT(body.access_token);
       expect(accessToken?.payload).toMatchObject({
         sub: "clientId",
-        iss: "http://localhost:3000",
+        iss: "http://localhost:3000/",
         aud: "https://example.com",
       });
     });
@@ -63,7 +63,7 @@ describe("token", () => {
       const accessToken = parseJWT(body.access_token);
       expect(accessToken?.payload).toMatchObject({
         sub: "clientId",
-        iss: "http://localhost:3000",
+        iss: "http://localhost:3000/",
         aud: "https://example.com",
       });
     });
@@ -144,7 +144,7 @@ describe("token", () => {
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
           sub: "email|userId",
-          iss: "http://localhost:3000",
+          iss: "http://localhost:3000/",
           aud: "http://example.com",
         });
 
@@ -197,7 +197,7 @@ describe("token", () => {
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
           sub: "email|userId",
-          iss: "http://localhost:3000",
+          iss: "http://localhost:3000/",
           aud: "http://example.com",
         });
 
@@ -209,7 +209,7 @@ describe("token", () => {
 
         expect(idToken?.payload).toMatchObject({
           sub: "email|userId",
-          iss: "http://localhost:3000",
+          iss: "http://localhost:3000/",
           aud: "clientId",
           nickname: "Test User",
           picture: "https://example.com/test.png",
@@ -557,7 +557,7 @@ describe("token", () => {
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
           sub: "email|userId",
-          iss: "http://localhost:3000",
+          iss: "http://localhost:3000/",
           aud: "http://example.com",
         });
 
@@ -615,7 +615,7 @@ describe("token", () => {
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
           sub: "email|userId",
-          iss: "http://localhost:3000",
+          iss: "http://localhost:3000/",
           aud: "http://example.com",
         });
 

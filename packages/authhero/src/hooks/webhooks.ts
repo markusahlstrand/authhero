@@ -54,6 +54,26 @@ export function postUserRegistrationWebhook(
   };
 }
 
+export function preUserSignupWebhook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+) {
+  return async (tenant_id: string, email: string): Promise<void> => {
+    const { hooks } = await data.hooks.list(tenant_id, {
+      q: "trigger_id:pre-user-signup",
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    await invokeHooks(ctx, hooks, {
+      tenant_id,
+      email,
+      trigger_id: "pre-user-signup",
+    });
+  };
+}
+
 export function postUserLoginWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
