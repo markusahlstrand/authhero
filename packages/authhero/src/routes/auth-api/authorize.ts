@@ -98,6 +98,10 @@ export const authorizeRoutes = new OpenAPIHono<{
       }
       ctx.set("client_id", client.id);
 
+      const defaultClient = ctx.env.DEFAULT_CLIENT_ID
+        ? await env.data.clients.get(ctx.env.DEFAULT_CLIENT_ID)
+        : undefined;
+
       const authParams: AuthParams = {
         redirect_uri,
         scope,
@@ -115,14 +119,25 @@ export const authorizeRoutes = new OpenAPIHono<{
       };
 
       const origin = ctx.req.header("origin");
-      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
+      if (
+        origin &&
+        !verifyRequestOrigin(origin, [
+          ...(client.web_origins || []),
+          ...(defaultClient?.web_origins || []),
+        ])
+      ) {
         throw new HTTPException(403, {
           message: `Origin ${origin} not allowed`,
         });
       }
 
       if (authParams.redirect_uri) {
-        if (!isValidRedirectUrl(authParams.redirect_uri, client.callbacks)) {
+        if (
+          !isValidRedirectUrl(authParams.redirect_uri, [
+            ...(client.callbacks || []),
+            ...(defaultClient?.callbacks || []),
+          ])
+        ) {
           throw new HTTPException(400, {
             message: `Invalid redirect URI - ${authParams.redirect_uri}`,
           });

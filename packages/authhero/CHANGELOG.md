@@ -1,5 +1,11 @@
 # authhero
 
+## 0.32.1
+
+### Patch Changes
+
+- check default client for callback
+
 ## 0.32.0
 
 ### Minor Changes
