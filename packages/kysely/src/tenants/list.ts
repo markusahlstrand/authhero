@@ -4,7 +4,7 @@ import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
-export function listTenants(db: Kysely<Database>) {
+export function list(db: Kysely<Database>) {
   return async (params: ListParams) => {
     let query = db.selectFrom("tenants");
 
