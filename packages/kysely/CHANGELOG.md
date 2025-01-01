@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.28.1
+
+### Patch Changes
+
+- Remove list params where not needed
+
 ## 0.28.0
 
 ### Minor Changes

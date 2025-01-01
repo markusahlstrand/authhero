@@ -163,9 +163,6 @@ describe("users management API endpoint", () => {
           email_verified: true,
           connection: "Username-Password-Authentication",
           is_social: false,
-          login_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         });
 
         await env.data.users.create("tenantId", {
@@ -175,9 +172,6 @@ describe("users management API endpoint", () => {
           email_verified: true,
           connection: "email",
           is_social: false,
-          login_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
           linked_to: "auth2|primaryId",
         });
 
@@ -387,24 +381,18 @@ describe("users management API endpoint", () => {
         user_id: "auth2|userId",
         email: "foo@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       await env.data.users.create("tenantId", {
         user_id: "auth2|userId2",
         email: "foo2@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       const updateUserResponse = await managementClient.users[
@@ -619,12 +607,7 @@ describe("users management API endpoint", () => {
       );
 
       // inspect the db directly because the GET endpoints don't return linked users
-      const { users } = await env.data.users.list("tenantId", {
-        page: 0,
-        per_page: 10,
-        include_totals: true,
-        q: "",
-      });
+      const { users } = await env.data.users.list("tenantId");
       expect(users.length).toBe(3);
 
       // check we have linked user1 to user2
@@ -648,12 +631,7 @@ describe("users management API endpoint", () => {
       );
 
       // user1 and user2 are deleted - cascading delete in SQL works (at least in SQLite)
-      const { users: usersNowDeleted } = await env.data.users.list("tenantId", {
-        page: 0,
-        per_page: 10,
-        include_totals: true,
-        q: "",
-      });
+      const { users: usersNowDeleted } = await env.data.users.list("tenantId");
 
       expect(usersNowDeleted.length).toBe(1);
     });
@@ -694,7 +672,6 @@ describe("users management API endpoint", () => {
     // - pagination! What I've done won't work of course unless we overfetch...
     it("should return an empty list of users for a tenant", async () => {
       const { managementApp, oauthApp, env } = await getTestServer();
-      const client = testClient(oauthApp, env);
       const managementClient = testClient(managementApp, env);
 
       const token = await getAdminToken();
@@ -935,24 +912,18 @@ describe("users management API endpoint", () => {
         user_id: "auth2|base-user",
         email: "base-user@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
       // create new code user WITH DIFFERENT EMAIL ADDRESS and link this to the password user
       env.data.users.create("tenantId", {
         user_id: "auth2|code-user",
         email: "code-user@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "email",
         connection: "email",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
         linked_to: "auth2|base-user",
       });
 
@@ -1195,24 +1166,18 @@ describe("users management API endpoint", () => {
         user_id: "auth2|userId1",
         email: "foo1@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       await env.data.users.create("tenantId", {
         user_id: "auth2|userId2",
         email: "foo2@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       const linkUserResponse = await managementClient.users[
@@ -1351,24 +1316,18 @@ describe("users management API endpoint", () => {
         user_id: "auth2|userId1",
         email: "foo1@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       await env.data.users.create("tenantId", {
         user_id: "auth2|userId2",
         email: "foo2@example.com",
         email_verified: true,
-        login_count: 0,
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       const linkUserResponse = await managementClient.users[

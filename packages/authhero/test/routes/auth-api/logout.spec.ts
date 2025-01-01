@@ -86,11 +86,7 @@ describe("logout", () => {
     const session = await env.data.sessions.get("tenantId", "sid");
     expect(session).toBeNull();
 
-    const logs = await env.data.logs.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-    });
+    const logs = await env.data.logs.list("tenantId");
 
     expect(logs.length).toBe(1);
   });

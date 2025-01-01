@@ -1,5 +1,11 @@
 # authhero
 
+## 0.36.2
+
+### Patch Changes
+
+- Remove list params where not needed
+
 ## 0.36.1
 
 ### Patch Changes
