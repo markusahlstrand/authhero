@@ -2,8 +2,9 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import i18next from "i18next";
 import { Bindings, Variables } from "./types";
-import createManagementApi from "./management-app";
-import createOauthApi from "./auth-app";
+import createManagementApi from "./routes/management-api";
+import createOauthApi from "./routes/auth-api";
+import createUniversalLogin from "./routes/universal-login";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 import { addDataHooks } from "./hooks";
 import { createX509Certificate } from "./helpers/encryption";
@@ -46,10 +47,14 @@ export function init(config: AuthHeroConfig) {
   const oauthApp = createOauthApi();
   app.route("/", oauthApp);
 
+  const universalApp = createUniversalLogin();
+  app.route("/u", universalApp);
+
   return {
     app,
     managementApp,
     oauthApp,
+    universalApp,
     createX509Certificate,
   };
 }

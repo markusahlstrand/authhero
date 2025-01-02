@@ -60,11 +60,7 @@ describe("dbconnections", () => {
       });
       expect(createdUser._id).toBeTypeOf("string");
 
-      const logs = await env.data.logs.list("tenantId", {
-        page: 0,
-        per_page: 10,
-        include_totals: false,
-      });
+      const logs = await env.data.logs.list("tenantId");
       expect(logs.length).toBe(1);
 
       const emails = getSentEmails();

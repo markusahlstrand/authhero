@@ -8,7 +8,7 @@ export interface ListSesssionsResponse extends Totals {
 export interface SessionsAdapter {
   create: (tenant_id: string, session: SessionInsert) => Promise<Session>;
   get: (tenant_id: string, id: string) => Promise<Session | null>;
-  list(tenantId: string, params: ListParams): Promise<ListSesssionsResponse>;
+  list(tenantId: string, params?: ListParams): Promise<ListSesssionsResponse>;
   update: (
     tenant_id: string,
     id: string,

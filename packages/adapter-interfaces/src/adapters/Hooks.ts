@@ -14,5 +14,5 @@ export interface HooksAdapter {
     hook_id: string,
     hook: Partial<HookInsert>,
   ) => Promise<boolean>;
-  list: (tenant_id: string, params: ListParams) => Promise<ListHooksResponse>;
+  list: (tenant_id: string, params?: ListParams) => Promise<ListHooksResponse>;
 }

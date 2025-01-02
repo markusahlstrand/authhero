@@ -10,10 +10,14 @@ import {
 } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
-export function listUsers(db: Kysely<Database>) {
+export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ListParams,
+    params: ListParams = {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    },
   ): Promise<ListUsersResponse> => {
     let query = db.selectFrom("users").where("users.tenant_id", "=", tenantId);
     if (params.q) {

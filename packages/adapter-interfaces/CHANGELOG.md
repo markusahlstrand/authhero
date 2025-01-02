@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.36.0
+
+### Minor Changes
+
+- use default listparams
+
 ## 0.35.0
 
 ### Minor Changes

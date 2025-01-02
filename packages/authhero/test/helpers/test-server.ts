@@ -8,7 +8,6 @@ import createAdapters, {
 import * as x509 from "@peculiar/x509";
 import { init } from "../../src";
 import { getCertificate } from "./token";
-import { Tenant } from "@authhero/kysely-adapter";
 import { Bindings } from "../../src/types";
 import { MockEmailService } from "./mock-email-service";
 import { mockStrategy } from "./mock-strategy";
@@ -95,6 +94,7 @@ export async function getTestServer(args: getEnvParams = {}) {
     JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
     AUTH_URL: "http://localhost:3000",
     ISSUER: "http://localhost:3000/",
+    API_URL: "http://localhost:3000",
     ENVIRONMENT: "test",
     JWKS_CACHE_TIMEOUT_IN_SECONDS: 3600,
     ORGANIZATION_NAME: "Test Organization",

@@ -24,11 +24,7 @@ describe("connections", () => {
         },
       });
 
-      const connections = await db.connections.list("tenantId", {
-        include_totals: true,
-        page: 0,
-        per_page: 10,
-      });
+      const connections = await db.connections.list("tenantId");
 
       expect(connections).toMatchObject({
         connections: [
@@ -43,7 +39,7 @@ describe("connections", () => {
           },
         ],
         length: 1,
-        limit: 10,
+        limit: 50,
       });
     });
   });

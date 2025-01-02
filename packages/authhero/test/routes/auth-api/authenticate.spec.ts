@@ -18,9 +18,6 @@ describe("authenticate", () => {
       provider: "auth2",
       is_social: false,
       user_id: "auth2|userId",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
@@ -50,11 +47,7 @@ describe("authenticate", () => {
     expect(ticket).toBeTypeOf("object");
 
     // Check the logs
-    const logsResults = await env.data.logs.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: true,
-    });
+    const logsResults = await env.data.logs.list("tenantId");
     expect(logsResults.logs).toHaveLength(1);
 
     const [successfulLoginLog] = logsResults.logs;
@@ -80,11 +73,7 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-    });
+    const logsResults = await env.data.logs.list("tenantId");
     expect(logsResults).toHaveLength(1);
 
     const [failedLoginLog] = logsResults.logs;
@@ -108,9 +97,6 @@ describe("authenticate", () => {
       provider: "auth2",
       is_social: false,
       user_id: "auth2|userId",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
@@ -131,11 +117,7 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-    });
+    const logsResults = await env.data.logs.list("tenantId");
     expect(logsResults).toHaveLength(1);
 
     const [failedLoginLog] = logsResults.logs;
@@ -159,9 +141,6 @@ describe("authenticate", () => {
       provider: "auth2",
       is_social: false,
       user_id: "auth2|userId",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
@@ -198,11 +177,7 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-    });
+    const logsResults = await env.data.logs.list("tenantId");
     expect(logsResults).toHaveLength(4);
 
     const [failedLoginLog] = logsResults.logs;

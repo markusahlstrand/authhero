@@ -1,20 +1,19 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { Bindings, Variables } from "./types";
-import { brandingRoutes } from "./routes/management-api/branding";
-// import { domainRoutes } from "./routes/management-api/domains";
-import { userRoutes } from "./routes/management-api/users";
-import { keyRoutes } from "./routes/management-api/keys";
-import { usersByEmailRoutes } from "./routes/management-api/users-by-email";
-import { clientRoutes } from "./routes/management-api/clients";
-import { tenantRoutes } from "./routes/management-api/tenants";
-import { logRoutes } from "./routes/management-api/logs";
-import { hooksRoutes } from "./routes/management-api/hooks";
-import { connectionRoutes } from "./routes/management-api/connections";
-import { promptsRoutes } from "./routes/management-api/prompts";
-import { registerComponent } from "./middlewares/register-component";
+import { Bindings, Variables } from "../../types";
+import { brandingRoutes } from "./branding";
+import { userRoutes } from "./users";
+import { keyRoutes } from "./keys";
+import { usersByEmailRoutes } from "./users-by-email";
+import { clientRoutes } from "./clients";
+import { tenantRoutes } from "./tenants";
+import { logRoutes } from "./logs";
+import { hooksRoutes } from "./hooks";
+import { connectionRoutes } from "./connections";
+import { promptsRoutes } from "./prompts";
+import { registerComponent } from "../../middlewares/register-component";
 import { DataAdapters } from "@authhero/adapter-interfaces";
-import { createAuthMiddleware } from "./middlewares/authentication";
-import { emailProviderRoutes } from "./routes/management-api/emails";
+import { createAuthMiddleware } from "../../middlewares/authentication";
+import { emailProviderRoutes } from "./emails";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;

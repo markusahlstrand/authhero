@@ -1,5 +1,24 @@
 # authhero
 
+## 0.37.0
+
+### Minor Changes
+
+- migrate the enter-email page
+
+## 0.36.2
+
+### Patch Changes
+
+- Remove list params where not needed
+
+## 0.36.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.36.0
+
 ## 0.36.0
 
 ### Minor Changes

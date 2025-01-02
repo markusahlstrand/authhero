@@ -6,7 +6,14 @@ import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 
 export function listLogs(db: Kysely<Database>) {
-  return async (tenant_id: string, params: ListParams) => {
+  return async (
+    tenant_id: string,
+    params: ListParams = {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    },
+  ) => {
     let query = db.selectFrom("logs").where("logs.tenant_id", "=", tenant_id);
 
     if (params.q) {
