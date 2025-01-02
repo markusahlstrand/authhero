@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.6.0
+
+### Minor Changes
+
+- migrate the enter-email page
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.37.0
+
 ## 0.5.16
 
 ### Patch Changes

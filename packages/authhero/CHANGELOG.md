@@ -1,5 +1,11 @@
 # authhero
 
+## 0.37.0
+
+### Minor Changes
+
+- migrate the enter-email page
+
 ## 0.36.2
 
 ### Patch Changes
