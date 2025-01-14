@@ -1,5 +1,11 @@
 # authhero
 
+## 0.38.0
+
+### Minor Changes
+
+- fix issue with user_id in code grant flow
+
 ## 0.37.0
 
 ### Minor Changes

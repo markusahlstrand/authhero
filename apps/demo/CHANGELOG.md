@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.7.0
+
+### Minor Changes
+
+- fix issue with user_id in code grant flow
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.38.0
+
 ## 0.6.0
 
 ### Minor Changes
