@@ -163,8 +163,8 @@ export interface CreateAuthResponseParams {
   authParams: AuthParams;
   client: Client;
   user: User;
-  sid?: string;
   loginSession?: Login;
+  sid?: string;
 }
 
 export async function createAuthResponse(
@@ -207,6 +207,7 @@ export async function createAuthResponse(
 
     const code = await ctx.env.data.codes.create(client.tenant.id, {
       code_id: nanoid(),
+      user_id: user.user_id,
       code_type: "authorization_code",
       login_id: params.loginSession.login_id,
       expires_at: new Date(
