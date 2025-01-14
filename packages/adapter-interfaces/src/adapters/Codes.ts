@@ -12,7 +12,7 @@ export interface CodesAdapter {
     code_id: string,
     type: CodeType,
   ) => Promise<Code | null>;
-  list: (tenant_id: string, params: ListParams) => Promise<ListCodesResponse>;
+  list: (tenant_id: string, params?: ListParams) => Promise<ListCodesResponse>;
   used: (tenant_id: string, code_id: string) => Promise<boolean>;
   remove: (tenant_id: string, code_id: string) => Promise<boolean>;
 }

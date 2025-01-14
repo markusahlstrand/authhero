@@ -37,12 +37,7 @@ export function postUserRegistrationWebhook(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
-    const { hooks } = await data.hooks.list(tenant_id, {
-      q: "trigger_id:post-user-registration",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await data.hooks.list(tenant_id);
 
     await invokeHooks(ctx, hooks, {
       tenant_id,

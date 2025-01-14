@@ -4,8 +4,14 @@ import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
-export function listTenants(db: Kysely<Database>) {
-  return async (params: ListParams) => {
+export function list(db: Kysely<Database>) {
+  return async (
+    params: ListParams = {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    },
+  ) => {
     let query = db.selectFrom("tenants");
 
     if (params.sort && params.sort.sort_by) {

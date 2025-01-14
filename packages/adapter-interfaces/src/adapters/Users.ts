@@ -9,7 +9,7 @@ export interface UserDataAdapter {
   get(tenant_id: string, id: string): Promise<User | null>;
   create(tenantId: string, user: UserInsert): Promise<User>;
   remove(tenantId: string, id: string): Promise<boolean>;
-  list(tenantId: string, params: ListParams): Promise<ListUsersResponse>;
+  list(tenantId: string, params?: ListParams): Promise<ListUsersResponse>;
   update(tenantId: string, id: string, user: Partial<User>): Promise<boolean>;
   unlink(
     tenantId: string,

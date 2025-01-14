@@ -7,7 +7,7 @@ export interface ApplicationsAdapter {
   remove(tenant_id: string, id: string): Promise<boolean>;
   list(
     tenant_id: string,
-    params: ListParams,
+    params?: ListParams,
   ): Promise<{ applications: Application[]; totals?: Totals }>;
   update(
     tenant_id: string,

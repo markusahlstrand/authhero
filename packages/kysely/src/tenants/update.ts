@@ -2,7 +2,7 @@ import { Tenant } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 
-export function updateTenant(db: Kysely<Database>) {
+export function update(db: Kysely<Database>) {
   return async (id: string, tenant: Partial<Tenant>): Promise<void> => {
     const tenantWithModified = {
       ...tenant,

@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 
-export function removeTenant(db: Kysely<Database>) {
+export function remove(db: Kysely<Database>) {
   return async (tenant_id: string): Promise<boolean> => {
     const results = await db
       .deleteFrom("tenants")

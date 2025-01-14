@@ -12,7 +12,11 @@ import getCountAsInt from "../utils/getCountAsInt";
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ListParams,
+    params: ListParams = {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    },
   ): Promise<ListConnectionsResponse> => {
     let query = db
       .selectFrom("connections")

@@ -14,5 +14,8 @@ export interface ConnectionsAdapter {
     connection_id: string,
     params: Partial<ConnectionInsert>,
   ): Promise<boolean>;
-  list(tenant_id: string, params: ListParams): Promise<ListConnectionsResponse>;
+  list(
+    tenant_id: string,
+    params?: ListParams,
+  ): Promise<ListConnectionsResponse>;
 }

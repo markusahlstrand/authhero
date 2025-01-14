@@ -7,5 +7,5 @@ interface ListDomainsResponse extends Totals {
 
 export interface DomainsAdapter {
   create(tenant_id: string, params: Domain): Promise<Domain>;
-  list(tenant_id: string, params: ListParams): Promise<ListDomainsResponse>;
+  list(tenant_id: string, params?: ListParams): Promise<ListDomainsResponse>;
 }

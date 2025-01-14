@@ -8,10 +8,11 @@ import {
   registerComponent,
 } from "hono-openapi-middlewares";
 import packageJson from "../package.json";
-import { Bindings } from "./types/Bindings";
 
 export default function create(dataAdapter: DataAdapters) {
-  const app = new OpenAPIHono<{ Bindings: Bindings }>();
+  const { app } = init({
+    dataAdapter,
+  });
 
   app
     .onError((err, ctx) => {
@@ -31,29 +32,6 @@ export default function create(dataAdapter: DataAdapters) {
       });
     })
     .get("/docs", swaggerUI({ url: "/spec" }));
-  app.use(createAuthMiddleware(app));
-  app.use(registerComponent(app));
-
-  const { managementApp, oauthApp } = init({
-    dataAdapter,
-  });
-
-  managementApp.doc("/spec", (c) => ({
-    openapi: "3.0.0",
-    info: {
-      version: "1.0.0",
-      title: "Management API",
-    },
-    servers: [
-      {
-        url: new URL(c.req.url).origin,
-        description: "Current environment",
-      },
-    ],
-  }));
-
-  app.route("/api/v2", managementApp);
-  app.route("/", oauthApp);
 
   return app;
 }

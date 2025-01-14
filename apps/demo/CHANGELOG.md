@@ -1,5 +1,24 @@
 # @authhero/demo
 
+## 0.6.0
+
+### Minor Changes
+
+- migrate the enter-email page
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.37.0
+
+## 0.5.16
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/kysely-adapter@0.28.0
+  - authhero@0.36.1
+
 ## 0.5.15
 
 ### Patch Changes

@@ -16,18 +16,10 @@ export async function getClientWithDefaults(
     : undefined;
 
   // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version
-  const clientConnections = await env.data.connections.list(client.tenant.id, {
-    include_totals: false,
-    page: 0,
-    per_page: 100,
-  });
+  const clientConnections = await env.data.connections.list(client.tenant.id);
 
   const defaultConnections = env.DEFAULT_TENANT_ID
-    ? await env.data.connections.list(env.DEFAULT_TENANT_ID, {
-        include_totals: false,
-        page: 0,
-        per_page: 100,
-      })
+    ? await env.data.connections.list(env.DEFAULT_TENANT_ID)
     : { connections: [] };
 
   const connections = clientConnections.connections
