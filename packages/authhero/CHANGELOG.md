@@ -1,5 +1,11 @@
 # authhero
 
+## 0.39.0
+
+### Minor Changes
+
+- 16dc682: fix vipps integration
+
 ## 0.38.0
 
 ### Minor Changes

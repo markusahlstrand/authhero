@@ -31,14 +31,14 @@ export function getStrategy(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   name: string,
 ): Strategy {
-  const envStragegies = ctx.env.STRATEGIES || {};
+  const envStrategies = ctx.env.STRATEGIES || {};
 
   const strategies = {
     apple,
     facebook,
     "google-oauth2": google,
     vipps,
-    ...envStragegies,
+    ...envStrategies,
   };
 
   const strategy = strategies[name];

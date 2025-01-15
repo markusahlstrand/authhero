@@ -5,6 +5,7 @@ export type Variables = {
   username?: string;
   connection?: string;
   body?: any;
+  log?: string;
   // This is set by auth middleware
   user?: { sub: string; tenant_id: string };
 };
