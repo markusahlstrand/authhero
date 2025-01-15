@@ -3,7 +3,6 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { userInfoSchema } from "../types/IdToken";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -35,6 +34,8 @@ export async function getRedirect(
       "birthDate",
     ],
   );
+  authorizationUrl.searchParams.set("response_type", "code");
+  authorizationUrl.searchParams.set("response_mode", "query");
 
   return {
     redirectUrl: authorizationUrl.href,
@@ -65,7 +66,7 @@ export async function validateAuthorizationCodeAndGetUser(
     null,
   );
 
-  const response = await fetch(
+  const userInfoResponse = await fetch(
     "https://api.vipps.no/vipps-userinfo-api/userinfo",
     {
       headers: {
@@ -74,15 +75,7 @@ export async function validateAuthorizationCodeAndGetUser(
     },
   );
 
-  const userInfo = userInfoSchema.parse(await response.json());
+  const userInfo = await userInfoResponse.json();
 
-  return {
-    sub: userInfo.sub,
-    email: userInfo.email,
-    given_name: userInfo.given_name,
-    family_name: userInfo.family_name,
-    name: userInfo.name,
-    picture: userInfo.picture,
-    locale: userInfo.locale,
-  };
+  return userInfo;
 }

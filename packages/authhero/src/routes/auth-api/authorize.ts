@@ -81,6 +81,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         nonce,
         connection,
         response_type,
+        response_mode,
         code_challenge,
         code_challenge_method,
         prompt,
@@ -90,6 +91,8 @@ export const authorizeRoutes = new OpenAPIHono<{
         login_hint,
         ui_locales,
       } = ctx.req.valid("query");
+
+      ctx.set("log", "authorize");
 
       const client = await getClientWithDefaults(env, client_id);
       ctx.set("client_id", client.id);
@@ -104,6 +107,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         nonce,
         prompt,
         response_type,
+        response_mode,
         code_challenge,
         code_challenge_method,
         username: login_hint,
@@ -180,6 +184,8 @@ export const authorizeRoutes = new OpenAPIHono<{
           realm!,
         );
       }
+
+      console.log("5");
 
       return universalAuth({
         ctx,
