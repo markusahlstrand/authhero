@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "files": [
     "dist"
   ],
@@ -40,6 +40,7 @@
     "bcryptjs": "^2.4.3",
     "check-password-strength": "^2.0.10",
     "classnames": "^2.5.1",
+    "fast-xml-parser": "^4.5.1",
     "i18next": "^24.2.0",
     "nanoid": "^5.0.8",
     "oslo": "^1.2.1"

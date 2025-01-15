@@ -1,5 +1,11 @@
 # authhero
 
+## 0.41.0
+
+### Minor Changes
+
+- Add saml support
+
 ## 0.40.0
 
 ### Minor Changes

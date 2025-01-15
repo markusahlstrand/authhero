@@ -33,6 +33,9 @@ export type Bindings = {
   // This is used as CN in the certificate
   ORGANIZATION_NAME: string;
 
+  // Url for the service to sign SAML requests
+  SAML_SIGN_URL: string;
+
   // TODO: Move once the vendorsettings are updated
   API_URL: string;
 };
