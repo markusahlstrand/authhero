@@ -1,8 +1,8 @@
-import zxcvbn from "zxcvbn";
+import { passwordStrength } from "check-password-strength";
 
 export default function validatePasswordStrength(password: string) {
   // Check overall strength with zxcvbn
-  if (zxcvbn(password).score < 3) return false;
+  if (passwordStrength(password).id < 2) return false;
 
   // Additional complexity rules.
   return (

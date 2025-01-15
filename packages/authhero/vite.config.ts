@@ -30,6 +30,9 @@ module.exports = defineConfig({
       formats,
       fileName: (format) => fileName[format],
     },
+    rollupOptions: {
+      external: ["@hono/zod-openapi", "hono"],
+    },
   },
   resolve: {
     alias: [

@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.38.0
-        version: 0.38.0(@hono/zod-openapi@0.18.3(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3)
+        specifier: ^0.39.0
+        version: 0.39.0(@hono/zod-openapi@0.18.3(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3)
       hono:
         specifier: ^4.6.15
         version: 4.6.15
@@ -221,12 +221,12 @@ importers:
       arctic:
         specifier: 3.1.2
         version: 3.1.2
-      bcrypt:
-        specifier: ^5.1.1
-        version: 5.1.1
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
+      check-password-strength:
+        specifier: ^2.0.10
+        version: 2.0.10
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -239,9 +239,6 @@ importers:
       oslo:
         specifier: ^1.2.1
         version: 1.2.1
-      zxcvbn:
-        specifier: ^4.4.2
-        version: 4.4.2
     devDependencies:
       '@authhero/kysely-adapter':
         specifier: workspace:^
@@ -1908,9 +1905,6 @@ packages:
   aproba@2.0.0:
     resolution: {integrity: sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==}
 
-  arctic@2.3.3:
-    resolution: {integrity: sha512-f42+wyM0LKNwUY0TV3fSH1Fnsr/klcZi42XfWFvlNP7Ag8aBX92FaKQIU5xBQzxvvy7jg02tF567LsIlmEujKg==}
-
   arctic@3.1.2:
     resolution: {integrity: sha512-rZfIac3RK0j99/Z87rS3QajLxpKs/PPoHsOEZe+NiuJhpWslHqmvGWyqZSTUD3aRQ6FJY4YnUO6UabOiuOZtkQ==}
 
@@ -1985,8 +1979,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.38.0:
-    resolution: {integrity: sha512-BIXRqF8ubzD4HtdWfRrkeybPb2/P8JVKbFatfTWxPxSYs/OVVXrQFvtkapH+z6yKMffa75dJKeRm++4hTyBomQ==}
+  authhero@0.39.0:
+    resolution: {integrity: sha512-5dg/1dGpBQHnyesEF9YSYV6a58Kz7hWzIh1jCkoAAvnnt2Wj5SD+awFw5YNmmjmc5SomrGQDPqOcVLORic2Heg==}
     peerDependencies:
       '@hono/zod-openapi': ^0.18.0
       hono: ^4.6.11
@@ -2093,6 +2087,9 @@ packages:
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
+
+  check-password-strength@2.0.10:
+    resolution: {integrity: sha512-HRM5ICPmtnNtLnTv2QrfVkq1IxI9z3bzYpDJ1k5ixwD9HtJGHuv265R6JmHOV6r8wLhQMlULnIUVpkrC2yaiCw==}
 
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
@@ -6347,12 +6344,6 @@ snapshots:
 
   aproba@2.0.0: {}
 
-  arctic@2.3.3:
-    dependencies:
-      '@oslojs/crypto': 1.0.1
-      '@oslojs/encoding': 1.1.0
-      '@oslojs/jwt': 0.2.0
-
   arctic@3.1.2:
     dependencies:
       '@oslojs/crypto': 1.0.1
@@ -6463,12 +6454,12 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.38.0(@hono/zod-openapi@0.18.3(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3):
+  authhero@0.39.0(@hono/zod-openapi@0.18.3(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.36.0(@hono/zod-openapi@0.18.3(hono@4.6.15)(zod@3.23.8))
       '@hono/zod-openapi': 0.18.3(hono@4.6.15)(zod@3.23.8)
       '@peculiar/x509': 1.12.3
-      arctic: 2.3.3
+      arctic: 3.1.2
       bcrypt: 5.1.1
       bcryptjs: 2.4.3
       classnames: 2.5.1
@@ -6611,6 +6602,8 @@ snapshots:
       get-func-name: 2.0.2
 
   check-error@2.1.1: {}
+
+  check-password-strength@2.0.10: {}
 
   chownr@1.1.4: {}
 
