@@ -130,3 +130,5 @@ dist
  
  # The default generated auth-server
  auth-server
+
+ .DS_Store
