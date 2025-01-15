@@ -32,6 +32,15 @@ module.exports = defineConfig({
       formats,
       fileName: (format) => fileName[format],
     },
+    rollupOptions: {
+      external: [
+        "@hono/zod-openapi",
+        "hono",
+        "kysely-bun-sqlite",
+        "kysely-planetscale",
+        "@authhero/adapter-interfaces",
+      ],
+    },
   },
   resolve: {
     alias: [

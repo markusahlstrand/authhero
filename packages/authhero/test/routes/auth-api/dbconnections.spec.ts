@@ -156,7 +156,7 @@ describe("dbconnections", () => {
 
       expect(response.status).toBe(400);
       const message = await response.text();
-      expect(message).toBe("Password does not meet the requirements");
+      expect(message).toBe("Invalid sign up");
     });
   });
 

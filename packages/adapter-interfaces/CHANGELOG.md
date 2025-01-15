@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.37.0
+
+### Minor Changes
+
+- Optimized bundles
+
 ## 0.36.0
 
 ### Minor Changes

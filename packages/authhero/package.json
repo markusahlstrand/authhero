@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "files": [
     "dist"
   ],
@@ -37,13 +37,12 @@
     "@authhero/adapter-interfaces": "workspace:^",
     "@peculiar/x509": "^1.12.3",
     "arctic": "3.1.2",
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "check-password-strength": "^2.0.10",
     "classnames": "^2.5.1",
     "i18next": "^24.2.0",
     "nanoid": "^5.0.8",
-    "oslo": "^1.2.1",
-    "zxcvbn": "^4.4.2"
+    "oslo": "^1.2.1"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.18.0",
