@@ -18,6 +18,7 @@ import {
   SILENT_AUTH_MAX_AGE,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
+import { samlCallback } from "../strategies/saml";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -174,6 +175,10 @@ export async function createAuthResponse(
   const { authParams, user, client } = params;
 
   const sid = params.sid || (await createSession(ctx, user, client)).session_id;
+
+  if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
+    return samlCallback(ctx, params.client, params.authParams, user, sid);
+  }
 
   const tokens = await createAuthTokens(ctx, {
     authParams,
