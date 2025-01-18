@@ -1,5 +1,11 @@
 # authhero
 
+## 0.42.0
+
+### Minor Changes
+
+- Use default client for magic link
+
 ## 0.41.0
 
 ### Minor Changes

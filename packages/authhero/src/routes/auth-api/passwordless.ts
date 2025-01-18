@@ -13,6 +13,7 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { createAuthResponse } from "../../authentication-flows/common";
 import { getPrimaryUserByEmailAndProvider } from "../../helpers/users";
+import { getClientWithDefaults } from "../../helpers/client";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -123,12 +124,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
         nonce,
       } = ctx.req.valid("query");
-      const client = await ctx.env.data.clients.get(client_id);
-      if (!client) {
-        throw new HTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getClientWithDefaults(env, client_id);
 
       ctx.set("client_id", client.id);
       ctx.set("tenant_id", client.tenant.id);
@@ -162,9 +158,10 @@ export const passwordlessRoutes = new OpenAPIHono<{
       }
 
       const clientInfo = getClientInfo(ctx.req);
+
       if (loginSession.ip !== clientInfo.ip) {
         return ctx.redirect(
-          `${ctx.env.ISSUER}u/invalid-session?state=${loginSession}`,
+          `${ctx.env.ISSUER}u/invalid-session?state=${loginSession.login_id}`,
         );
       }
 

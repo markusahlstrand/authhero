@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import exp from "constants";
 
 describe("passwordless", async () => {
   it("should login using a passwordless code", async () => {
@@ -38,15 +39,23 @@ describe("passwordless", async () => {
     // --------------------------------
     // start universal auth session where response_type is code
     // --------------------------------
-    const response = await oauthClient.passwordless.start.$post({
-      json: {
-        client_id: "clientId",
-        connection: "email",
-        email: "foo@example.com",
-        send: "code",
-        authParams: {},
+    const response = await oauthClient.passwordless.start.$post(
+      {
+        json: {
+          client_id: "clientId",
+          connection: "email",
+          email: "foo@example.com",
+          send: "code",
+          authParams: {},
+        },
       },
-    });
+      {
+        headers: {
+          "x-real-ip": "1.2.3.4",
+          "user-agent": "Mozilla/5.0",
+        },
+      },
+    );
 
     expect(response.status).toBe(200);
     const body = await response.text();
@@ -60,21 +69,64 @@ describe("passwordless", async () => {
     }
 
     // --------------------------------
+    // fail login with the wrong IP
+    // --------------------------------
+    const wrongIpResponse = await oauthClient.passwordless.verify_redirect.$get(
+      {
+        query: {
+          response_type: AuthorizationResponseType.CODE,
+          redirect_uri: "https://example.com/callback",
+          client_id: "clientId",
+          email: "foo@example.com",
+          verification_code: code,
+          connection: "email",
+          state: "state",
+          scope: "openid",
+          audience: "https://example.com",
+        },
+      },
+      {
+        headers: {
+          "x-real-ip": "2.2.2.2",
+        },
+      },
+    );
+
+    expect(wrongIpResponse.status).toBe(302);
+    const wrongIpLocation = new URL(wrongIpResponse.headers.get("location")!);
+
+    expect(wrongIpLocation.pathname).toBe("/u/invalid-session");
+    const loginSessionId = wrongIpLocation.searchParams.get("state");
+    expect(loginSessionId).toBeTypeOf("string");
+    const wrongIpLoginSession = await env.data.logins.get(
+      "tenantId",
+      loginSessionId!,
+    );
+    expect(wrongIpLoginSession).toBeTruthy();
+
+    // --------------------------------
     // login using the code
     // --------------------------------
-    const loginResponse = await oauthClient.passwordless.verify_redirect.$get({
-      query: {
-        response_type: AuthorizationResponseType.CODE,
-        redirect_uri: "https://example.com/callback",
-        client_id: "clientId",
-        email: "foo@example.com",
-        verification_code: code,
-        connection: "email",
-        state: "state",
-        scope: "openid",
-        audience: "https://example.com",
+    const loginResponse = await oauthClient.passwordless.verify_redirect.$get(
+      {
+        query: {
+          response_type: AuthorizationResponseType.CODE,
+          redirect_uri: "https://example.com/callback",
+          client_id: "clientId",
+          email: "foo@example.com",
+          verification_code: code,
+          connection: "email",
+          state: "state",
+          scope: "openid",
+          audience: "https://example.com",
+        },
       },
-    });
+      {
+        headers: {
+          "x-real-ip": "1.2.3.4",
+        },
+      },
+    );
 
     expect(loginResponse.status).toBe(302);
     const location = loginResponse.headers.get("location");
