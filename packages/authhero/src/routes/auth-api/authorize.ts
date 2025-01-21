@@ -96,6 +96,7 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       const client = await getClientWithDefaults(env, client_id);
       ctx.set("client_id", client.id);
+      ctx.set("tenant_id", client.tenant.id);
 
       const authParams: AuthParams = {
         redirect_uri,
@@ -184,8 +185,6 @@ export const authorizeRoutes = new OpenAPIHono<{
           realm!,
         );
       }
-
-      console.log("5");
 
       return universalAuth({
         ctx,

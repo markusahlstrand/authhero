@@ -1,5 +1,11 @@
 # authhero
 
+## 0.43.0
+
+### Minor Changes
+
+- Fix for universal auth emails
+
 ## 0.42.0
 
 ### Minor Changes
