@@ -53,6 +53,8 @@ export async function validateAuthorizationCodeAndGetUser(
   );
 
   const tokens = await facebook.validateAuthorizationCode(code);
+  ctx.set("log", `Tokens: ${JSON.stringify(tokens)}`);
+
   const idToken = parseJWT(tokens.idToken());
 
   if (!idToken) {
