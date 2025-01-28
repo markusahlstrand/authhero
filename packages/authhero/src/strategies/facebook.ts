@@ -26,7 +26,7 @@ export async function getRedirect(
     code,
     options.scope?.split(" ") || ["email"],
   );
-  0;
+
   return {
     redirectUrl: authorizationUrl.href,
     code,
