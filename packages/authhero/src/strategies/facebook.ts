@@ -3,8 +3,6 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { parseJWT } from "oslo/jwt";
-import { idTokenSchema } from "../types/IdToken";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -28,7 +26,7 @@ export async function getRedirect(
     code,
     options.scope?.split(" ") || ["email"],
   );
-
+  0;
   return {
     redirectUrl: authorizationUrl.href,
     code,
@@ -53,23 +51,26 @@ export async function validateAuthorizationCodeAndGetUser(
   );
 
   const tokens = await facebook.validateAuthorizationCode(code);
-  ctx.set("log", `Tokens: ${JSON.stringify(tokens)}`);
 
-  const idToken = parseJWT(tokens.idToken());
+  const userinfoResponse = await fetch(
+    "https://graph.facebook.com/v16.0/me?fields=id,email,name",
+    {
+      headers: {
+        Authorization: `Bearer ${tokens.accessToken()}`,
+      },
+    },
+  );
 
-  if (!idToken) {
-    throw new Error("Invalid ID token");
+  if (!userinfoResponse.ok) {
+    throw new Error("Failed to fetch user info");
   }
 
-  const payload = idTokenSchema.parse(idToken.payload);
+  const userInfo = await userinfoResponse.json();
+  ctx.set("log", `Userinfo: ${JSON.stringify(userInfo)}`);
 
   return {
-    sub: payload.sub,
-    email: payload.email,
-    given_name: payload.given_name,
-    family_name: payload.family_name,
-    name: payload.name,
-    picture: payload.picture,
-    locale: payload.locale,
+    sub: userInfo.id,
+    email: userInfo.email,
+    name: userInfo.name,
   };
 }

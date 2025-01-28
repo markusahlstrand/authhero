@@ -1,5 +1,11 @@
 # authhero
 
+## 0.45.0
+
+### Minor Changes
+
+- Fetch facebook userinfo from me endpoint
+
 ## 0.44.0
 
 ### Minor Changes
