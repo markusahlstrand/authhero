@@ -3,6 +3,9 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
+import { HTTPException } from "hono/http-exception";
+import { parseJWT } from "oslo/jwt";
+import { idTokenSchema } from "../types/IdToken";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -66,14 +69,31 @@ export async function validateAuthorizationCodeAndGetUser(
     null,
   );
 
+  const idToken = parseJWT(tokens.idToken());
+
+  if (!idToken) {
+    throw new Error("Invalid ID token");
+  }
+
+  const payload = idTokenSchema.parse(idToken.payload);
+
+  if (typeof payload.msn !== "string") {
+    throw new Error("msn not available in id token");
+  }
+
   const userInfoResponse = await fetch(
-    "https://api.vipps.no/vipps-userinfo-api/userinfo",
+    `https://api.vipps.no/vipps-userinfo-api/userinfo`,
     {
       headers: {
-        Authorization: `Bearer ${tokens.accessToken}`,
+        Authorization: `Bearer ${tokens.accessToken()}`,
+        "Merchant-Serial-Number": payload.msn,
       },
     },
   );
+
+  if (!userInfoResponse.ok) {
+    throw new HTTPException(400, { message: "Failed to get user from vipps" });
+  }
 
   const userInfo = await userInfoResponse.json();
 

@@ -47,18 +47,18 @@ export async function getRedirect(
 
   const code = nanoid();
 
-  const authorizatioUrl = await apple.createAuthorizationURL(
+  const authorizationUrl = await apple.createAuthorizationURL(
     code,
     options.scope?.split(" ") || ["name", "email"],
   );
 
   const scopes = options.scope?.split(" ") || ["name", "email"];
   if (scopes.some((scope) => ["email", "name"].includes(scope))) {
-    authorizatioUrl.searchParams.set("response_mode", "form_post");
+    authorizationUrl.searchParams.set("response_mode", "form_post");
   }
 
   return {
-    redirectUrl: authorizatioUrl.href,
+    redirectUrl: authorizationUrl.href,
     code,
   };
 }

@@ -1,5 +1,23 @@
 # authhero
 
+## 0.45.0
+
+### Minor Changes
+
+- Fetch facebook userinfo from me endpoint
+
+## 0.44.0
+
+### Minor Changes
+
+- pass the access token for the vipps connection
+
+## 0.43.0
+
+### Minor Changes
+
+- Fix for universal auth emails
+
 ## 0.42.0
 
 ### Minor Changes
