@@ -31,5 +31,9 @@ export async function computeCodeChallenge(
   // S256 hashing
   const encodedData = new TextEncoder().encode(codeVerifier);
   const hashedVerifier = await sha256(encodedData);
-  return base64url.encode(new Uint8Array(hashedVerifier));
+
+  // Convert to base64url without padding
+  return base64url.encode(new Uint8Array(hashedVerifier), {
+    includePadding: false,
+  });
 }

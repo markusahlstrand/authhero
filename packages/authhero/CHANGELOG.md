@@ -1,5 +1,11 @@
 # authhero
 
+## 0.46.0
+
+### Minor Changes
+
+- fix padding for pkce
+
 ## 0.45.0
 
 ### Minor Changes
