@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { Client, connectionSchema } from "@authhero/adapter-interfaces";
 import { Bindings } from "../types";
+import { getUniversalLoginUrl } from "../variables";
 
 export async function getClientWithDefaults(
   env: Bindings,
@@ -50,7 +51,7 @@ export async function getClientWithDefaults(
     web_origins: [
       ...(defaultClient?.web_origins || []),
       ...(client.web_origins || []),
-      `${env.ISSUER}u/login`,
+      `${getUniversalLoginUrl(env)}login`,
     ],
     allowed_logout_urls: [
       ...(defaultClient?.allowed_logout_urls || []),
@@ -60,7 +61,7 @@ export async function getClientWithDefaults(
     callbacks: [
       ...(defaultClient?.callbacks || []),
       ...(client.callbacks || []),
-      `${env.ISSUER}u/info`,
+      `${getUniversalLoginUrl(env)}info`,
     ],
     connections,
     domains: [...(client.domains || []), ...(defaultClient?.domains || [])],

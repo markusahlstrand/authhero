@@ -14,6 +14,7 @@ import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { createAuthResponse } from "../../authentication-flows/common";
 import { getPrimaryUserByEmailAndProvider } from "../../helpers/users";
 import { getClientWithDefaults } from "../../helpers/client";
+import { getUniversalLoginUrl } from "../../variables";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -161,7 +162,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
 
       if (loginSession.ip !== clientInfo.ip) {
         return ctx.redirect(
-          `${ctx.env.ISSUER}u/invalid-session?state=${loginSession.login_id}`,
+          `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.login_id}`,
         );
       }
 

@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
+import { getAuthUrl } from "../variables";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -17,7 +18,7 @@ export async function getRedirect(
   const facebook = new Facebook(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const code = nanoid();
@@ -47,7 +48,7 @@ export async function validateAuthorizationCodeAndGetUser(
   const facebook = new Facebook(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const tokens = await facebook.validateAuthorizationCode(code);

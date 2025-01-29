@@ -5,6 +5,7 @@ import { LogTypes, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { waitUntil } from "../helpers/wait-until";
+import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 
 export type SendEmailParams = {
   to: string;
@@ -55,7 +56,7 @@ export async function sendResetPassword(
   }
 
   // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
-  const passwordResetUrl = `${ctx.env.ISSUER}u/reset-password?state=${state}&code=${code}`;
+  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   const options = {
     vendorName: tenant.name,
@@ -65,7 +66,7 @@ export async function sendResetPassword(
   await sendEmail(ctx, {
     to,
     subject: `Reset your password`,
-    html: `Click here to reset your password: ${ctx.env.ISSUER}u/reset-password?state=${state}&code=${code}`,
+    html: `Click here to reset your password: ${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`,
     template: "auth-password-reset",
     data: {
       vendorName: tenant.name,
@@ -91,8 +92,6 @@ export async function sendCode(
   to: string,
   code: string,
 ) {
-  const { env } = ctx;
-
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
@@ -107,14 +106,14 @@ export async function sendCode(
   await sendEmail(ctx, {
     to,
     subject: t("code_email_subject", options),
-    html: `Click here to validate your email: ${ctx.env.ISSUER}u/validate-email`,
+    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
     template: "auth-link",
     data: {
       code,
       vendorName: tenant.name,
       logo: tenant.logo || "",
       supportUrl: tenant.support_url || "",
-      magicLink: `${env.ISSUER}passwordless/verify_redirect?ticket=${code}`,
+      magicLink: `${getAuthUrl(ctx.env)}passwordless/verify_redirect?ticket=${code}`,
       buttonColor: tenant.primary_color || "",
       welcomeToYourAccount: t("welcome_to_your_account", options),
       linkEmailClickToLogin: t("link_email_click_to_login", options),
@@ -139,8 +138,6 @@ export async function sendLink(
   to: string,
   code: string,
 ) {
-  const { env } = ctx;
-
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
@@ -155,14 +152,14 @@ export async function sendLink(
   await sendEmail(ctx, {
     to,
     subject: t("code_email_subject", options),
-    html: `Click here to validate your email: ${ctx.env.ISSUER}u/validate-email`,
+    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
     template: "auth-link",
     data: {
       code,
       vendorName: tenant.name,
       logo: tenant.logo || "",
       supportUrl: tenant.support_url || "",
-      magicLink: `${env.ISSUER}passwordless/verify_redirect?ticket=${code}`,
+      magicLink: `${getAuthUrl(ctx.env)}passwordless/verify_redirect?ticket=${code}`,
       buttonColor: tenant.primary_color || "",
       welcomeToYourAccount: t("welcome_to_your_account", options),
       linkEmailClickToLogin: t("link_email_click_to_login", options),
@@ -199,12 +196,12 @@ export async function sendValidateEmailAddress(
   await sendEmail(ctx, {
     to: user.email,
     subject: `Validate your email address`,
-    html: `Click here to validate your email: ${ctx.env.ISSUER}u/validate-email`,
+    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}}validate-email`,
     template: "auth-verify-email",
     data: {
       vendorName: tenant.name,
       logo: tenant.logo || "",
-      emailValidationUrl: `${ctx.env.ISSUER}u/validate-email`,
+      emailValidationUrl: `${getUniversalLoginUrl(ctx.env)}validate-email`,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
       buttonColor: tenant.primary_color || "#7d68f4",
       welcomeToYourAccount: t("welcome_to_your_account", options),

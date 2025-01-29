@@ -7,6 +7,7 @@ import { Bindings, Variables } from "../../types";
 import { connectionCallback } from "../../authentication-flows/connection";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
+import { getUniversalLoginUrl } from "../../variables";
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -54,7 +55,7 @@ async function returnError(
   });
 
   return ctx.redirect(
-    `${ctx.env.ISSUER}u/enter-email?state=${loginSession.login_id}&error=${error}`,
+    `${getUniversalLoginUrl(ctx.env)}enter-email?state=${loginSession.login_id}&error=${error}`,
   );
 }
 
