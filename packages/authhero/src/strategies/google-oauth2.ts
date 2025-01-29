@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
+import { getAuthUrl } from "../variables";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -19,7 +20,7 @@ export async function getRedirect(
   const google = new Google(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const code = nanoid();
@@ -53,7 +54,7 @@ export async function validateAuthorizationCodeAndGetUser(
   const google = new Google(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const tokens = await google.validateAuthorizationCode(code, code_verifier);

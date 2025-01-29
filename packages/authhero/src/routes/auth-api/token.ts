@@ -92,6 +92,8 @@ export const tokenRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("form");
 
+      console.log("body", body);
+
       const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
       const params = { ...body, ...basicAuth };
 

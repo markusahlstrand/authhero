@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
+import { getAuthUrl } from "../variables";
 
 function getAppleOptions(connection: Connection) {
   const { options } = connection;
@@ -42,7 +43,7 @@ export async function getRedirect(
     options.team_id!,
     options.kid!,
     keyArray,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const code = nanoid();
@@ -75,7 +76,7 @@ export async function validateAuthorizationCodeAndGetUser(
     options.team_id!,
     options.kid!,
     keyArray,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const tokens = await apple.validateAuthorizationCode(code);

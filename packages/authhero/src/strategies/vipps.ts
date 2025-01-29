@@ -6,6 +6,7 @@ import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
+import { getAuthUrl } from "../variables";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -20,7 +21,7 @@ export async function getRedirect(
   const client = new OAuth2Client(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const code = nanoid();
@@ -60,7 +61,7 @@ export async function validateAuthorizationCodeAndGetUser(
   const client = new OAuth2Client(
     options.client_id,
     options.client_secret,
-    `${ctx.env.ISSUER}callback`,
+    `${getAuthUrl(ctx.env)}callback`,
   );
 
   const tokens = await client.validateAuthorizationCode(

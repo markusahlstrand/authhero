@@ -1,5 +1,11 @@
 # authhero
 
+## 0.47.0
+
+### Minor Changes
+
+- create variables to separate issuer from domains
+
 ## 0.46.0
 
 ### Minor Changes
