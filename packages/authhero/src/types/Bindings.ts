@@ -1,7 +1,7 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { OnExecuteCredentialsExchange } from "./Hooks";
 import { EmailService } from "./EmailService";
-import { Strategy } from "src/strategies";
+import { Strategy } from "../strategies";
 
 declare type Fetcher = {
   fetch: typeof fetch;

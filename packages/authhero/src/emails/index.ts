@@ -196,7 +196,7 @@ export async function sendValidateEmailAddress(
   await sendEmail(ctx, {
     to: user.email,
     subject: `Validate your email address`,
-    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}}validate-email`,
+    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
     template: "auth-verify-email",
     data: {
       vendorName: tenant.name,
