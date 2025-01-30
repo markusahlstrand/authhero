@@ -103,7 +103,11 @@ describe("common", () => {
       var: {
         tenant_id: "tenantId",
       },
-    } as Context<{
+      req: {
+        header: () => {},
+        queries: () => {},
+      },
+    } as unknown as Context<{
       Bindings: Bindings;
       Variables: Variables;
     }>;

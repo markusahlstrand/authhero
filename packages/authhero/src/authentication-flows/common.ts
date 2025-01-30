@@ -5,6 +5,7 @@ import {
   Client,
   Login,
   User,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -19,6 +20,8 @@ import {
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
+import { waitUntil } from "../helpers/wait-until";
+import { createLogMessage } from "../utils/create-log-message";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -173,6 +176,23 @@ export async function createAuthResponse(
   params: CreateAuthResponseParams,
 ) {
   const { authParams, user, client } = params;
+
+  const logMessage = createLogMessage(ctx, {
+    type: LogTypes.SUCCESS_LOGIN,
+    description: `Successful login for ${user.user_id}`,
+    userId: user.user_id,
+  });
+
+  waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
+
+  // Update the users last login info
+  waitUntil(
+    ctx,
+    ctx.env.data.users.update(client.tenant.id, user.user_id, {
+      last_login: new Date().toISOString(),
+      last_ip: ctx.req.header("x-real-ip") || "",
+    }),
+  );
 
   const sid = params.sid || (await createSession(ctx, user, client)).session_id;
 

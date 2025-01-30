@@ -107,5 +107,8 @@ describe("callback", () => {
     }
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toEqual("/callback");
+
+    const logs = await env.data.logs.list("tenantId");
+    expect(logs).toHaveLength(1);
   });
 });
