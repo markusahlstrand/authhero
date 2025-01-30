@@ -1,6 +1,11 @@
-export const mockStrategy = {
+import { Strategy } from "../../src/strategies";
+
+export const mockStrategy: Strategy = {
   getRedirect: async () => {
-    return "https://example.com/authorize";
+    return {
+      redirectUrl: "https://example.com/authorize",
+      code: "code",
+    };
   },
   validateAuthorizationCodeAndGetUser: async () => {
     return {

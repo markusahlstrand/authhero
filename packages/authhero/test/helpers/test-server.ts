@@ -17,7 +17,14 @@ type getEnvParams = {
   emailValidation?: "enabled" | "enforced" | "disabled";
 };
 
-export async function getTestServer(args: getEnvParams = {}) {
+type TestServer = {
+  env: Bindings;
+  getSentEmails: () => any[];
+} & ReturnType<typeof init>;
+
+export async function getTestServer(
+  args: getEnvParams = {},
+): Promise<TestServer> {
   const dialect = new SqliteDialect({
     database: new SQLite(":memory:"),
   });
@@ -101,6 +108,7 @@ export async function getTestServer(args: getEnvParams = {}) {
     STRATEGIES: {
       "mock-strategy": mockStrategy,
     },
+    SAML_SIGN_URL: "http://localhost:3000/saml/sign",
   };
 
   const apps = init({ dataAdapter: data });

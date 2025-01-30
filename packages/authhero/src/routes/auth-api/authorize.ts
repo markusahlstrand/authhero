@@ -124,7 +124,9 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       if (authParams.redirect_uri) {
         if (
-          !isValidRedirectUrl(authParams.redirect_uri, client.callbacks || [])
+          !isValidRedirectUrl(authParams.redirect_uri, client.callbacks || [], {
+            allowPathWildcards: true,
+          })
         ) {
           throw new HTTPException(400, {
             message: `Invalid redirect URI - ${authParams.redirect_uri}`,

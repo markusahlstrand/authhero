@@ -25,6 +25,26 @@ describe("isValidRedirectUrl", () => {
     });
   });
 
+  describe("wildcard path matching", () => {
+    it("should allow wildcard paths when configured", () => {
+      expect(
+        isValidRedirectUrl(
+          "https://example.com/callback",
+          ["https://example.com/*"],
+          { allowPathWildcards: true },
+        ),
+      ).toBe(true);
+    });
+
+    it("should not allow wildcard paths when not configured", () => {
+      expect(
+        isValidRedirectUrl("https://example.com/callback", [
+          "https://example.com/*",
+        ]),
+      ).toBe(false);
+    });
+  });
+
   describe("wildcard domain matching", () => {
     it("should match wildcard domains when configured", () => {
       expect(
