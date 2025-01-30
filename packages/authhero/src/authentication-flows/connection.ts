@@ -135,6 +135,7 @@ export async function connectionCallback(
     !isValidRedirectUrl(
       loginSession.authParams.redirect_uri,
       client.callbacks || [],
+      { allowPathWildcards: true },
     )
   ) {
     const invalidRedirectUriMessage = `Invalid redirect URI - ${loginSession.authParams.redirect_uri}`;

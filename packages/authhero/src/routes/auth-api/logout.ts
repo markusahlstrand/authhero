@@ -53,10 +53,14 @@ export const logoutRoutes = new OpenAPIHono<{
       }
 
       if (
-        !isValidRedirectUrl(redirectUri, [
-          ...(client.allowed_logout_urls || []),
-          ...(defaultClient?.allowed_logout_urls || []),
-        ])
+        !isValidRedirectUrl(
+          redirectUri,
+          [
+            ...(client.allowed_logout_urls || []),
+            ...(defaultClient?.allowed_logout_urls || []),
+          ],
+          { allowPathWildcards: true },
+        )
       ) {
         throw new HTTPException(400, {
           message: "Invalid redirect uri",

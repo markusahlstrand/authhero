@@ -1,5 +1,11 @@
 # authhero
 
+## 0.48.0
+
+### Minor Changes
+
+- Allow wildcards on the path
+
 ## 0.47.0
 
 ### Minor Changes
