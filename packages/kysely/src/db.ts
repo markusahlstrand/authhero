@@ -10,6 +10,7 @@ import {
   loginSchema,
   Password,
   promptSettingSchema,
+  RefreshToken,
   Session,
   SigningKey,
   Tenant,
@@ -96,6 +97,7 @@ export interface Database {
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
+  refresh_tokens: RefreshToken & { tenant_id: string };
   users: z.infer<typeof sqlUserSchema>;
   sessions: Session & { tenant_id: string };
   tenants: Tenant;

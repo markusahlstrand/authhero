@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 2.1.0
+
+### Minor Changes
+
+- Add the refersh tokens to the datbase model
+
 ## 2.0.0
 
 ### Minor Changes
