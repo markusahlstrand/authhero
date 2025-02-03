@@ -1,9 +1,10 @@
 import { Kysely } from "kysely";
+import { Database } from "../../src/db";
 
 /**
  * Up migration: creates the `refresh_tokens` table.
  */
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("refresh_tokens")
     .addColumn("tenant_id", "varchar(255)", (col) =>
