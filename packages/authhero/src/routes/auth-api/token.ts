@@ -1,4 +1,4 @@
-import { GrantType } from "@authhero/adapter-interfaces";
+import { GrantType, tokenResponseSchema } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
@@ -75,13 +75,7 @@ export const tokenRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: z.object({
-                access_token: z.string(),
-                id_token: z.string().optional(),
-                refresh_token: z.string().optional(),
-                token_type: z.string(),
-                expires_in: z.number(),
-              }),
+              schema: tokenResponseSchema,
             },
           },
           description: "Tokens",
@@ -91,8 +85,6 @@ export const tokenRoutes = new OpenAPIHono<{
     // @ts-ignore
     async (ctx) => {
       const body = ctx.req.valid("form");
-
-      console.log("body", body);
 
       const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
       const params = { ...body, ...basicAuth };

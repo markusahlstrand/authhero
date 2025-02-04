@@ -6,6 +6,7 @@ import {
   Login,
   User,
   LogTypes,
+  TokenResponse,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -36,7 +37,7 @@ const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
 export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
-) {
+): Promise<TokenResponse> {
   const { authParams, user, client, session_id } = params;
 
   const signingKeys = await ctx.env.data.keys.list();
@@ -153,14 +154,20 @@ export interface CreateRefreshTokenParams {
   client: Client;
   session_id: string;
   scope: string;
-  audience: string;
+  audience?: string;
 }
 
 export async function createRefreshToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateRefreshTokenParams,
 ) {
-  const { client, scope, audience, session_id } = params;
+  const {
+    client,
+    scope,
+    // fallback to the default audience on the client
+    audience = client.tenant.audience,
+    session_id,
+  } = params;
 
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
@@ -200,15 +207,14 @@ export async function createSession(
     used_at: new Date().toISOString(),
   });
 
-  const refresh_token =
-    audience && scope?.split(" ").includes("offline_access")
-      ? await createRefreshToken(ctx, {
-          ...params,
-          session_id: session.session_id,
-          scope,
-          audience,
-        })
-      : undefined;
+  const refresh_token = scope?.split(" ").includes("offline_access")
+    ? await createRefreshToken(ctx, {
+        ...params,
+        session_id: session.session_id,
+        scope,
+        audience,
+      })
+    : undefined;
 
   return { ...session, refresh_token };
 }
@@ -241,6 +247,7 @@ export async function createAuthResponse(
     ctx.env.data.users.update(client.tenant.id, user.user_id, {
       last_login: new Date().toISOString(),
       last_ip: ctx.req.header("x-real-ip") || "",
+      login_count: user.login_count + 1,
     }),
   );
 

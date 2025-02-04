@@ -8,7 +8,7 @@ export enum GrantType {
   Password = "password",
 }
 
-const tokenResponseSchema = z.object({
+export const tokenResponseSchema = z.object({
   access_token: z.string(),
   id_token: z.string().optional(),
   scope: z.string().optional(),
