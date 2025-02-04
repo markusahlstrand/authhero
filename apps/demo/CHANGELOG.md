@@ -1,5 +1,25 @@
 # @authhero/demo
 
+## 0.8.0
+
+### Minor Changes
+
+- Add refresh tokens to jwt
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.51.0
+  - @authhero/kysely-adapter@4.0.0
+
+## 0.7.13
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.50.0
+  - @authhero/kysely-adapter@3.0.0
+
 ## 0.7.12
 
 ### Patch Changes

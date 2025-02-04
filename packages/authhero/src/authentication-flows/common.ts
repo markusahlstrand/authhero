@@ -27,7 +27,8 @@ export interface CreateAuthTokensParams {
   authParams: AuthParams;
   client: Client;
   user?: User;
-  sid?: string;
+  session_id?: string;
+  refresh_token?: string;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -36,7 +37,7 @@ export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ) {
-  const { authParams, user, client, sid } = params;
+  const { authParams, user, client, session_id } = params;
 
   const signingKeys = await ctx.env.data.keys.list();
   const validKeys = signingKeys.filter(
@@ -57,7 +58,7 @@ export async function createAuthTokens(
     sub: user?.user_id || authParams.client_id,
     iss: ctx.env.ISSUER,
     tenant_id: ctx.var.tenant_id,
-    sid,
+    sid: session_id,
   };
 
   const idTokenPayload =
@@ -67,7 +68,7 @@ export async function createAuthTokens(
           aud: authParams.client_id,
           sub: user.user_id,
           iss: ctx.env.ISSUER,
-          sid,
+          sid: session_id,
           nonce: authParams.nonce,
           given_name: user.given_name,
           family_name: user.family_name,
@@ -140,17 +141,56 @@ export async function createAuthTokens(
 
   return {
     access_token,
+    refresh_token: params.refresh_token,
     id_token,
     token_type: "Bearer",
     expires_in: 86400,
   };
 }
 
+export interface CreateRefreshTokenParams {
+  user: User;
+  client: Client;
+  session_id: string;
+  scope: string;
+  audience: string;
+}
+
+export async function createRefreshToken(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: CreateRefreshTokenParams,
+) {
+  const { client, scope, audience, session_id } = params;
+
+  const refreshToken = await ctx.env.data.refreshTokens.create(
+    client.tenant.id,
+    {
+      refresh_token: nanoid(),
+      session_id,
+      expires_at: new Date(
+        Date.now() + SILENT_AUTH_MAX_AGE * 1000,
+      ).toISOString(),
+      used_at: new Date().toISOString(),
+      scope,
+      audience,
+    },
+  );
+
+  return refreshToken;
+}
+
+export interface CreateSessionParams {
+  user: User;
+  client: Client;
+  scope?: string;
+  audience?: string;
+}
+
 export async function createSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  user: User,
-  client: Client,
+  params: CreateSessionParams,
 ) {
+  const { user, client, scope, audience } = params;
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     session_id: nanoid(),
@@ -160,7 +200,17 @@ export async function createSession(
     used_at: new Date().toISOString(),
   });
 
-  return session;
+  const refresh_token =
+    audience && scope?.split(" ").includes("offline_access")
+      ? await createRefreshToken(ctx, {
+          ...params,
+          session_id: session.session_id,
+          scope,
+          audience,
+        })
+      : undefined;
+
+  return { ...session, refresh_token };
 }
 
 export interface CreateAuthResponseParams {
@@ -194,21 +244,43 @@ export async function createAuthResponse(
     }),
   );
 
-  const sid = params.sid || (await createSession(ctx, user, client)).session_id;
+  let refresh_token: string | undefined;
+  let session_id = params.sid;
+
+  // If there is no session id, create a new session
+  if (!session_id) {
+    const session = await createSession(ctx, {
+      user,
+      client,
+      scope: authParams.scope,
+      audience: authParams.audience,
+    });
+
+    session_id = session.session_id;
+    // The refresh token is only returned for new sessions and if the offline_access scope is requested
+    refresh_token = session.refresh_token?.refresh_token;
+  }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
-    return samlCallback(ctx, params.client, params.authParams, user, sid);
+    return samlCallback(
+      ctx,
+      params.client,
+      params.authParams,
+      user,
+      session_id,
+    );
   }
 
   const tokens = await createAuthTokens(ctx, {
     authParams,
     user,
     client,
-    sid,
+    session_id,
+    refresh_token,
   });
 
   const headers = new Headers({
-    "set-cookie": serializeAuthCookie(client.tenant.id, sid),
+    "set-cookie": serializeAuthCookie(client.tenant.id, session_id),
   });
 
   // If it's a web message request, return the tokens in the body

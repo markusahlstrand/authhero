@@ -1,5 +1,23 @@
 # @authhero/drizzle
 
+## 0.2.0
+
+### Minor Changes
+
+- Add refresh tokens to jwt
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.40.0
+
+## 0.1.76
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.39.0
+
 ## 0.1.75
 
 ### Patch Changes

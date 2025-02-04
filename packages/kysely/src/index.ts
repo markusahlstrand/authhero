@@ -18,6 +18,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createLoginAdapter } from "./logins";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
+import { createRefreshTokensAdapter } from "./refreshTokens";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -36,9 +37,10 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     logs: createLogsAdapter(db),
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
-    users: createUsersAdapter(db),
+    refreshTokens: createRefreshTokensAdapter(db),
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
+    users: createUsersAdapter(db),
   };
 }
