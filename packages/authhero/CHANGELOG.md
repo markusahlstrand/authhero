@@ -1,5 +1,16 @@
 # authhero
 
+## 0.52.0
+
+### Minor Changes
+
+- 23c2899: Use default audience from tenant for refresh token
+
+### Patch Changes
+
+- Updated dependencies [23c2899]
+  - @authhero/adapter-interfaces@0.41.0
+
 ## 0.51.0
 
 ### Minor Changes
