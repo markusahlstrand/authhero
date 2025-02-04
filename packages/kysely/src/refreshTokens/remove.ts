@@ -2,13 +2,11 @@ import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function remove(db: Kysely<Database>) {
-  return async (tenant_id: string, session_id: string): Promise<boolean> => {
+  return async (tenant_id: string, token: string): Promise<boolean> => {
     const results = await db
-      .updateTable("refresh_tokens")
-      .set({ revoked_at: new Date().toISOString() })
+      .deleteFrom("refresh_tokens")
       .where("tenant_id", "=", tenant_id)
-      .where("refresh_tokens.session_id", "=", session_id)
-      .where("refresh_tokens.revoked_at", "is", null)
+      .where("refresh_tokens.token", "=", token)
       .execute();
 
     return !!results.length;

@@ -10,7 +10,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("tenant_id", "varchar(255)", (col) =>
       col.references("tenants.id").onDelete("cascade").notNull(),
     )
-    .addColumn("refresh_token", "varchar(255)", (col) => col.notNull())
+    .addColumn("token", "varchar(255)", (col) => col.notNull())
     .addColumn("session_id", "varchar(255)", (col) =>
       col.references("sessions.session_id").onDelete("cascade").notNull(),
     )
@@ -22,10 +22,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("created_at", "varchar(255)", (col) =>
       col.notNull().defaultTo(new Date().toISOString()),
     )
-    .addPrimaryKeyConstraint("refresh_tokens_pkey", [
-      "tenant_id",
-      "refresh_token",
-    ])
+    .addPrimaryKeyConstraint("refresh_tokens_pkey", ["tenant_id", "token"])
     .execute();
 }
 

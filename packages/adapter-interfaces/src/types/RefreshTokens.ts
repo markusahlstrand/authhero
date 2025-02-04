@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 
 export const refreshTokenInsertSchema = z.object({
   // The actual refresh token value (primary key).
-  refresh_token: z.string(),
+  token: z.string(),
 
   // Link to the session record (foreign key).
   session_id: z.string(),

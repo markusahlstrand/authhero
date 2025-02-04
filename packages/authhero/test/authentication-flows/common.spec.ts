@@ -234,7 +234,7 @@ describe("common", () => {
         expires_at: expect.any(String),
         used_at: expect.any(String),
         refresh_token: {
-          refresh_token: expect.any(String),
+          token: expect.any(String),
           session_id: result.session_id,
           expires_at: expect.any(String),
           used_at: expect.any(String),

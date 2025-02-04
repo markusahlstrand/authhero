@@ -165,7 +165,7 @@ export async function createRefreshToken(
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
-      refresh_token: nanoid(),
+      token: nanoid(),
       session_id,
       expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE * 1000,
@@ -258,7 +258,7 @@ export async function createAuthResponse(
 
     session_id = session.session_id;
     // The refresh token is only returned for new sessions and if the offline_access scope is requested
-    refresh_token = session.refresh_token?.refresh_token;
+    refresh_token = session.refresh_token?.token;
   }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
