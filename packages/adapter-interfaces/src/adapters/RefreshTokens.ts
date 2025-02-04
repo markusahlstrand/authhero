@@ -11,7 +11,7 @@ export interface RefreshTokensAdapter {
   ) => Promise<RefreshToken>;
   get: (tenant_id: string, id: string) => Promise<RefreshToken | null>;
   list(
-    tenantId: string,
+    tenant_id: string,
     params?: ListParams,
   ): Promise<ListRefreshTokenResponse>;
   update: (
