@@ -42,7 +42,7 @@ describe("common", () => {
         },
         client,
         user,
-        sid: "session_id",
+        session_id: "session_id",
       });
 
       expect(tokens).toMatchObject({
@@ -84,7 +84,7 @@ describe("common", () => {
         },
         client,
         user,
-        sid: "session_id",
+        session_id: "session_id",
       });
 
       expect(tokens).toMatchObject({
@@ -189,7 +189,7 @@ describe("common", () => {
         throw new Error("Client or user not found");
       }
 
-      const result = await createSession(ctx, user, client);
+      const result = await createSession(ctx, { user, client });
 
       expect(result).toMatchObject({
         session_id: expect.any(String),
@@ -197,6 +197,50 @@ describe("common", () => {
         client_id: client.id,
         expires_at: expect.any(String),
         used_at: expect.any(String),
+      });
+
+      expect(result.refresh_token).toBeUndefined();
+    });
+
+    it("should a refresh_token if the offline_access scope is requested", async () => {
+      const { env } = await getTestServer();
+      const ctx = { env } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.clients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const result = await createSession(ctx, {
+        user,
+        client,
+        scope: "offline_access",
+        audience: "https://example.com",
+      });
+
+      expect(result).toMatchObject({
+        session_id: expect.any(String),
+        user_id: user.user_id,
+        client_id: client.id,
+        expires_at: expect.any(String),
+        used_at: expect.any(String),
+        refresh_token: {
+          token: expect.any(String),
+          session_id: result.session_id,
+          expires_at: expect.any(String),
+          used_at: expect.any(String),
+          scope: "offline_access",
+          audience: "https://example.com",
+        },
       });
     });
   });

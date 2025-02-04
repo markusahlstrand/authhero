@@ -1,5 +1,17 @@
 # @authhero/adapter-interfaces
 
+## 0.40.0
+
+### Minor Changes
+
+- Add refresh tokens to jwt
+
+## 0.39.0
+
+### Minor Changes
+
+- Store refresh tokesn
+
 ## 0.38.0
 
 ### Minor Changes

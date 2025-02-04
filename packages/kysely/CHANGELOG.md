@@ -1,5 +1,27 @@
 # @authhero/kysely-adapter
 
+## 4.0.0
+
+### Minor Changes
+
+- Add refresh tokens to jwt
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.40.0
+
+## 3.0.0
+
+### Minor Changes
+
+- Store refresh tokesn
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.39.0
+
 ## 2.1.0
 
 ### Minor Changes

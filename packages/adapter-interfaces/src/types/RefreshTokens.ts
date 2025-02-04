@@ -2,10 +2,14 @@ import { z } from "@hono/zod-openapi";
 
 export const refreshTokenInsertSchema = z.object({
   // The actual refresh token value (primary key).
-  refresh_token: z.string(),
+  token: z.string(),
 
   // Link to the session record (foreign key).
   session_id: z.string(),
+
+  // The scope and audience that was requested when the token was created.
+  scope: z.string(),
+  audience: z.string(),
 
   // When the refresh token expires.
   expires_at: z.string(),

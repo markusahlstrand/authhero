@@ -43,8 +43,6 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "Client not found" });
   }
 
-  console.log("client", client);
-
   const code = await ctx.env.data.codes.get(
     client.tenant.id,
     params.code,

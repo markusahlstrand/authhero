@@ -70,7 +70,7 @@ export async function silentAuth({
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
         },
         user,
-        sid: session.session_id,
+        session_id: session.session_id,
       });
 
       await env.data.sessions.update(client.tenant.id, session.session_id, {

@@ -15,6 +15,7 @@ import { ThemesAdapter } from "./Themes";
 import { LoginsAdapter } from "./Logins";
 import { PromptSettingsAdapter } from "./PromptSettings";
 import { EmailProvidersAdapter } from "./EmailProviders";
+import { RefreshTokensAdapter } from "./RefreshTokens";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -30,6 +31,7 @@ export interface DataAdapters {
   logs: LogsDataAdapter;
   passwords: PasswordsAdapter;
   promptSettings: PromptSettingsAdapter;
+  refreshTokens: RefreshTokensAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;

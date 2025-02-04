@@ -73,7 +73,12 @@ export async function ticketAuth(
   ctx.set("username", user.email);
   ctx.set("user_id", user.user_id);
 
-  const session = await createSession(ctx, user, client);
+  const session = await createSession(ctx, {
+    user,
+    client,
+    scope: authParams.scope,
+    audience: authParams.audience,
+  });
   return createAuthResponse(ctx, {
     authParams: {
       scope: login.authParams?.scope,
