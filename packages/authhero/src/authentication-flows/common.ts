@@ -224,7 +224,8 @@ export interface CreateAuthResponseParams {
   client: Client;
   user: User;
   loginSession?: Login;
-  sid?: string;
+  sessionId?: string;
+  refreshToken?: string;
 }
 
 export async function createAuthResponse(
@@ -251,8 +252,8 @@ export async function createAuthResponse(
     }),
   );
 
-  let refresh_token: string | undefined;
-  let session_id = params.sid;
+  let refresh_token = params.refreshToken;
+  let session_id = params.sessionId;
 
   // If there is no session id, create a new session
   if (!session_id) {

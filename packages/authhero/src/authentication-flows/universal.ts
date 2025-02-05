@@ -46,7 +46,7 @@ export async function universalAuth({
         loginSession,
         authParams,
         user,
-        sid: session.session_id,
+        sessionId: session.session_id,
       });
     }
   }

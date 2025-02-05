@@ -1,5 +1,11 @@
 # authhero
 
+## 0.53.0
+
+### Minor Changes
+
+- Add refresh token grant support
+
 ## 0.52.0
 
 ### Minor Changes
