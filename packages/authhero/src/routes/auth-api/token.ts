@@ -13,7 +13,7 @@ import {
 import {
   refreshTokenGrant,
   refreshTokenParamsSchema,
-} from "src/authentication-flows/refresh-token";
+} from "../../authentication-flows/refresh-token";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
