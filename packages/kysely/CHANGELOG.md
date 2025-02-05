@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 5.1.0
+
+### Minor Changes
+
+- Add refresh token grant support
+
 ## 5.0.0
 
 ### Patch Changes

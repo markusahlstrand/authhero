@@ -674,4 +674,51 @@ describe("token", () => {
       });
     });
   });
+
+  describe("refresh_token", () => {
+    it("should return a new access token and refresh token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a sesssion and a refresh token
+      await env.data.sessions.create("tenantId", {
+        user_id: "email|userId",
+        client_id: "clientId",
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        used_at: new Date().toISOString(),
+        session_id: "sessionId",
+      });
+
+      await env.data.refreshTokens.create("tenantId", {
+        token: "refreshToken",
+        session_id: "sessionId",
+        audience: "http://example.com",
+        scope: "openid",
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      });
+
+      const response = await client.oauth.token.$post(
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      if (response.status !== 200) {
+        console.log(await response.text());
+      }
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toMatchObject({
+        access_token: expect.any(String),
+        refresh_token: expect.any(String),
+        id_token: expect.any(String),
+      });
+    });
+  });
 });

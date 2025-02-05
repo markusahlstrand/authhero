@@ -10,6 +10,10 @@ import {
   authorizationCodeGrant,
   authorizationCodeGrantParamsSchema,
 } from "../../authentication-flows/authorization-code";
+import {
+  refreshTokenGrant,
+  refreshTokenParamsSchema,
+} from "src/authentication-flows/refresh-token";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -34,6 +38,13 @@ const CreateRequestSchema = z.union([
     code: z.string(),
     redirect_uri: z.string().optional(),
     ...optionalClientCredentials.shape,
+  }),
+  // Refresh token
+  z.object({
+    grant_type: z.literal("refresh_token"),
+    client_id: z.string(),
+    refresh_token: z.string(),
+    redirect_uri: z.string().optional(),
   }),
 ]);
 
@@ -104,6 +115,8 @@ export const tokenRoutes = new OpenAPIHono<{
             ctx,
             clientCredentialGrantParamsSchema.parse(params),
           );
+        case GrantType.RefreshToken:
+          return refreshTokenGrant(ctx, refreshTokenParamsSchema.parse(params));
         default:
           throw new HTTPException(400, { message: "Not implemented" });
       }

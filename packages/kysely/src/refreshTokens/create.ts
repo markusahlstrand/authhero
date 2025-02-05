@@ -10,7 +10,6 @@ export function create(db: Kysely<Database>) {
     const createdRefreshToken = {
       ...refreshToken,
       created_at: new Date().toISOString(),
-      expires_at: new Date().toISOString(),
     };
 
     await db
