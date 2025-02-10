@@ -7,6 +7,7 @@ import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { X509Certificate } from "@peculiar/x509";
 import { JWKS_CACHE_TIMEOUT_IN_SECONDS } from "../../constants";
 import { Bindings } from "../../types";
+import { getAuthUrl, getIssuer } from "../../variables";
 
 export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
@@ -79,18 +80,16 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const issuer = ctx.env.ISSUER;
-
       const result = openIDConfigurationSchema.parse({
-        issuer,
-        authorization_endpoint: `${issuer}authorize`,
-        token_endpoint: `${issuer}oauth/token`,
-        device_authorization_endpoint: `${issuer}oauth/device/code`,
-        userinfo_endpoint: `${issuer}userinfo`,
-        mfa_challenge_endpoint: `${issuer}mfa/challenge`,
-        jwks_uri: `${issuer}.well-known/jwks.json`,
-        registration_endpoint: `${issuer}oidc/register`,
-        revocation_endpoint: `${issuer}oauth/revoke`,
+        issuer: getIssuer(ctx.env),
+        authorization_endpoint: `${getAuthUrl(ctx.env)}authorize`,
+        token_endpoint: `${getAuthUrl(ctx.env)}oauth/token`,
+        device_authorization_endpoint: `${getAuthUrl(ctx.env)}oauth/device/code`,
+        userinfo_endpoint: `${getAuthUrl(ctx.env)}userinfo`,
+        mfa_challenge_endpoint: `${getAuthUrl(ctx.env)}mfa/challenge`,
+        jwks_uri: `${getAuthUrl(ctx.env)}.well-known/jwks.json`,
+        registration_endpoint: `${getAuthUrl(ctx.env)}oidc/register`,
+        revocation_endpoint: `${getAuthUrl(ctx.env)}oauth/revoke`,
         scopes_supported: [
           "openid",
           "profile",
