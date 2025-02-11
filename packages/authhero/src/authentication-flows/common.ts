@@ -200,17 +200,27 @@ export async function createSession(
   const { user, client, scope, audience } = params;
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
-    session_id: nanoid(),
+    id: nanoid(),
     user_id: user.user_id,
     client_id: client.id,
     expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
     used_at: new Date().toISOString(),
+    // TODO: add device info
+    device: {
+      last_ip: "",
+      initial_ip: "",
+      last_user_agent: "",
+      initial_user_agent: "",
+      initial_asn: "",
+      last_asn: "",
+    },
+    clients: [],
   });
 
   const refresh_token = scope?.split(" ").includes("offline_access")
     ? await createRefreshToken(ctx, {
         ...params,
-        session_id: session.session_id,
+        session_id: session.id,
         scope,
         audience,
       })
@@ -264,7 +274,7 @@ export async function createAuthResponse(
       audience: authParams.audience,
     });
 
-    session_id = session.session_id;
+    session_id = session.id;
     // The refresh token is only returned for new sessions and if the offline_access scope is requested
     refresh_token = session.refresh_token?.token;
   }

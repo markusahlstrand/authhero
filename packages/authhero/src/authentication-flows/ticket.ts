@@ -85,7 +85,7 @@ export async function ticketAuth(
       ...authParams,
     },
     loginSession: login,
-    sessionId: session.session_id,
+    sessionId: session.id,
     user,
     client,
   });

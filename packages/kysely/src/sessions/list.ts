@@ -47,7 +47,11 @@ export function list(db: Kysely<Database>) {
     const countInt = getCountAsInt(count);
 
     return {
-      sessions,
+      sessions: sessions.map((session) => ({
+        ...session,
+        device: JSON.parse(session.device),
+        clients: JSON.parse(session.clients),
+      })),
       start: params.page * params.per_page,
       limit: params.per_page,
       length: countInt,
