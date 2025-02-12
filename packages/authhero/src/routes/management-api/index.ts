@@ -20,6 +20,16 @@ export interface CreateAuthParams {
   dataAdapter: DataAdapters;
 }
 
+/**
+ * Creates and configures the Management API application.
+ *
+ * This function initializes an OpenAPIHono application with specified Bindings and Variables, applies authentication
+ * middleware, and sets up routes for various resources including branding, email providers, users, keys, clients,
+ * tenants, logs, hooks, connections, prompts, and sessions. In addition, it registers additional components and
+ * sets up an endpoint at `/spec` for serving the OpenAPI documentation.
+ *
+ * @returns The configured management API application instance.
+ */
 export default function create() {
   const app = new OpenAPIHono<{
     Bindings: Bindings;

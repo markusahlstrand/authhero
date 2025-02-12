@@ -18,6 +18,42 @@ function getProviderFromRealm(realm: string) {
   throw new HTTPException(403, { message: "Invalid realm" });
 }
 
+/**
+ * Authenticates a ticket by validating its code, retrieving or creating a corresponding user, and establishing a session.
+ *
+ * This asynchronous function performs the following steps:
+ * 1. Sets the connection in the provided context based on the `realm`.
+ * 2. Retrieves the ticket code using `tenant_id` and `ticketId` from the environment data store. If no code is found or if it has already been used, an HTTPException (status 403) is thrown.
+ * 3. Fetches the associated login record using the code's `login_id`. If the login is missing or lacks a username, an HTTPException (status 403) is thrown.
+ * 4. Retrieves the client record via the login's authentication parameters. If not found, an HTTPException (status 403) is thrown.
+ * 5. Marks the ticket code as used in the database.
+ * 6. Determines the authentication provider from the `realm` using `getProviderFromRealm`.
+ * 7. Attempts to find the primary user by email and provider. If the user does not exist, a new user is created.
+ * 8. Updates the context with the user's email and user ID.
+ * 9. Creates a session using the provided authentication parameters.
+ * 10. Returns an authentication response, which includes the updated authentication parameters, login session, new session ID (accessed via `session.id`), user, and client details.
+ *
+ * @param ctx - The context object containing environment bindings and runtime variables.
+ * @param tenant_id - The unique identifier of the tenant.
+ * @param ticketId - The unique identifier of the ticket to authenticate.
+ * @param authParams - The authentication parameters, including scope and audience settings.
+ * @param realm - The authentication realm, which determines the connection and provider (e.g., "Username-Password-Authentication" or "email").
+ *
+ * @returns A promise resolving to an authentication response object containing:
+ * - Updated authentication parameters (with scope and audience)
+ * - The original login session details
+ * - The session ID from the newly created session
+ * - User information
+ * - Client information
+ *
+ * @throws HTTPException - Thrown with status 403 if:
+ *   - The ticket code is not found or has already been used.
+ *   - The login session is missing or invalid.
+ *   - The client associated with the login cannot be found.
+ *
+ * @example
+ * const authResponse = await ticketAuth(ctx, "tenant123", "ticket456", { scope: "read", audience: "api" }, "email");
+ */
 export async function ticketAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
