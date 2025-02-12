@@ -26,6 +26,37 @@ interface SilentAuthParams {
   scope?: string;
 }
 
+/**
+ * Handles silent authentication for a user.
+ *
+ * This function performs silent authentication by verifying the existence of a session, updating the user context
+ * and authentication cookies, retrieving user details from the datastore, and generating authentication tokens.
+ * On success, it updates the session's usage timestamp, logs the successful authentication, and returns an HTML
+ * response containing an iframe with the token response. If no valid session or user is found, it logs the failure
+ * and returns an error response indicating that login is required.
+ *
+ * @param ctx - The context object that includes environment bindings and methods to manage request state.
+ * @param client - The client configuration object, including tenant and client identifiers.
+ * @param session - An optional session object containing user session data. When provided, it must contain a `user_id`
+ *                and an `id` property, where `id` is used for cookie serialization and session updates.
+ * @param redirect_uri - The URI to be used for redirection after authentication, which is employed to build the iframe URL.
+ * @param state - A parameter used to maintain state between the authentication request and callback.
+ * @param nonce - An optional nonce value for additional security during the authentication process.
+ * @param code_challenge_method - An optional method name for the code challenge used in PKCE flows.
+ * @param code_challenge - An optional code challenge string for PKCE flows.
+ * @param audience - An optional parameter specifying the intended audience of the authentication tokens.
+ * @param scope - An optional parameter indicating the scope of the authentication request.
+ *
+ * @returns A promise resolving to an HTML response. The response contains an iframe that encapsulates either the generated
+ *          authentication tokens on success or an error object (with a "login_required" message) on failure.
+ *
+ * @remarks
+ * When a valid session and corresponding user are found, the function generates tokens with a response type of TOKEN_ID_TOKEN,
+ * updates the session's "used_at" timestamp, and logs a successful silent authentication event. In scenarios where the session
+ * is invalid or the user is not present, it logs a failed authentication attempt and returns an iframe with an error message.
+ *
+ * @beta
+ */
 export async function silentAuth({
   ctx,
   client,

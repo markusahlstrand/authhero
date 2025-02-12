@@ -193,6 +193,30 @@ export interface CreateSessionParams {
   audience?: string;
 }
 
+/**
+ * Creates a new session for authentication and optionally generates a refresh token.
+ *
+ * This asynchronous function creates a new session by storing the session data in the backend. A unique session ID is generated 
+ * using a nanoid, and session metadata such as user ID, client ID, expiration, and usage timestamps are set. The device property 
+ * is included with placeholder values to be updated later. If the provided scope contains "offline_access", a refresh token is also created 
+ * and attached to the session.
+ *
+ * @param ctx - The context object containing environment bindings and variables.
+ * @param params - The parameters for session creation including the user, client, scope, and audience.
+ *
+ * @returns A promise that resolves to the session object extended with a refresh token (if generated), containing details like session ID, 
+ *          user ID, client ID, expiration date, usage timestamp, device info, and associated clients.
+ *
+ * @example
+ * const sessionResponse = await createSession(ctx, {
+ *   user: { user_id: 'user-123' },
+ *   client: { id: 'client-456', tenant: { id: 'tenant-789' } },
+ *   scope: 'openid profile offline_access',
+ *   audience: 'https://api.example.com'
+ * });
+ *
+ * // sessionResponse will contain the session data and a refresh_token if 'offline_access' is included in the scope.
+ */
 export async function createSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateSessionParams,
@@ -238,6 +262,27 @@ export interface CreateAuthResponseParams {
   refreshToken?: string;
 }
 
+/**
+ * Creates an authentication response after a successful login.
+ *
+ * This function processes a successful authentication by logging the event, updating the user's last login
+ * information, and handling session creation if a session ID is not provided. Depending on the authentication
+ * parameters, it either produces a SAML callback response, returns JWT access/ID tokens (for web message mode),
+ * or generates an authorization code and redirects the user.
+ *
+ * @param ctx - The request context containing bindings, environment variables, and related request data.
+ * @param params - The authentication response parameters, which include:
+ *   - authParams: Parameters for authentication such as scope, audience, response mode, response type, state, and redirect URI.
+ *   - user: The authenticated user's information.
+ *   - client: Details of the client application.
+ *   - loginSession: The login session details, required for generating an authorization code.
+ *   - sessionId: (Optional) The existing session identifier.
+ *   - refreshToken: (Optional) The refresh token associated with the session.
+ *
+ * @returns A promise that resolves to a Response object containing either tokens or a redirect response.
+ *
+ * @throws HTTPException If the login session is missing when an authorization code is requested.
+ */
 export async function createAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
