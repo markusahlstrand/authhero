@@ -28,7 +28,10 @@ export async function refreshTokenGrant(
 
   if (!refreshToken) {
     throw new HTTPException(403, { message: "Invalid refresh token" });
-  } else if (new Date(refreshToken.expires_at) < new Date()) {
+  } else if (
+    refreshToken.expires_at &&
+    new Date(refreshToken.expires_at) < new Date()
+  ) {
     throw new HTTPException(403, { message: "Refresh token expired" });
   }
 
@@ -45,15 +48,17 @@ export async function refreshTokenGrant(
     throw new HTTPException(403, { message: "User not found" });
   }
 
+  const resourceServer = refreshToken.resource_servers[0];
+
   return createAuthResponse(ctx, {
     user,
     client,
     refreshToken: refreshToken.token,
-    sessionId: session.session_id,
+    sessionId: session.id,
     authParams: {
       client_id: client.id,
-      audience: refreshToken.audience,
-      scope: refreshToken.scope,
+      audience: resourceServer?.audience,
+      scope: resourceServer?.scopes,
       response_mode: AuthorizationResponseMode.WEB_MESSAGE,
     },
   });

@@ -10,7 +10,7 @@ import {
   loginSchema,
   Password,
   promptSettingSchema,
-  RefreshToken,
+  refreshTokenSchema,
   sessionSchema,
   SigningKey,
   Tenant,
@@ -91,6 +91,14 @@ const sqlSessionSchema = z.object({
   clients: z.string(),
 });
 
+const sqlRefreshTokensSchema = z.object({
+  ...refreshTokenSchema.shape,
+  tenant_id: z.string(),
+  device: z.string(),
+  resource_servers: z.string(),
+  rotating: z.number(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -104,7 +112,7 @@ export interface Database {
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
-  refresh_tokens: RefreshToken & { tenant_id: string };
+  refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
   sessions: z.infer<typeof sqlSessionSchema>;
   tenants: Tenant;

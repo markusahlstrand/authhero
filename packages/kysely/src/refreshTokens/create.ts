@@ -14,7 +14,13 @@ export function create(db: Kysely<Database>) {
 
     await db
       .insertInto("refresh_tokens")
-      .values({ ...createdRefreshToken, tenant_id })
+      .values({
+        ...createdRefreshToken,
+        tenant_id,
+        rotating: refreshToken.rotating ? 1 : 0,
+        device: JSON.stringify(refreshToken.device),
+        resource_servers: JSON.stringify(refreshToken.resource_servers),
+      })
       .execute();
 
     return { ...refreshToken, ...createdRefreshToken };

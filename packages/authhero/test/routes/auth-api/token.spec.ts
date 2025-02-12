@@ -701,8 +701,22 @@ describe("token", () => {
       await env.data.refreshTokens.create("tenantId", {
         token: "refreshToken",
         session_id: "sessionId",
-        audience: "http://example.com",
-        scope: "openid",
+        user_id: "email|userId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       });
 
