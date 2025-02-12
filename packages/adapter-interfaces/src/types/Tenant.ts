@@ -10,29 +10,17 @@ export const tenantInsertSchema = z.object({
   primary_color: z.string().optional(),
   secondary_color: z.string().optional(),
   language: z.string().optional(),
+  id: z.string().optional(),
 });
 
 export const tenantSchema = z.object({
   created_at: z.string().transform((val) => (val === null ? "" : val)),
   updated_at: z.string().transform((val) => (val === null ? "" : val)),
-  id: z.string(),
   ...tenantInsertSchema.shape,
+  id: z.string(),
 });
 
-export interface Tenant {
-  id: string;
-  name: string;
-  audience: string;
-  sender_email: string;
-  sender_name: string;
-  support_url?: string;
-  logo?: string;
-  primary_color?: string;
-  secondary_color?: string;
-  language?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type Tenant = z.infer<typeof tenantSchema>;
 
 export const vendorSettingsSchema = z.object({
   logoUrl: z.string(),
