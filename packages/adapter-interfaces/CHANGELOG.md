@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.43.0
+
+### Minor Changes
+
+- make it possible to create a tenant with an id
+
 ## 0.42.0
 
 ### Minor Changes
