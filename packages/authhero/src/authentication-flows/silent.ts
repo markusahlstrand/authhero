@@ -47,7 +47,7 @@ export async function silentAuth({
 
     // Update the cookie
     const headers = new Headers();
-    const cookie = serializeAuthCookie(client.tenant.id, session.session_id);
+    const cookie = serializeAuthCookie(client.tenant.id, session.id);
     headers.set("set-cookie", cookie);
 
     const user = await env.data.users.get(client.tenant.id, session.user_id);
@@ -70,10 +70,10 @@ export async function silentAuth({
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
         },
         user,
-        session_id: session.session_id,
+        session_id: session.id,
       });
 
-      await env.data.sessions.update(client.tenant.id, session.session_id, {
+      await env.data.sessions.update(client.tenant.id, session.id, {
         used_at: new Date().toISOString(),
       });
 

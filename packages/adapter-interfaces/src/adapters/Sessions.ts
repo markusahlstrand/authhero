@@ -12,7 +12,7 @@ export interface SessionsAdapter {
   update: (
     tenant_id: string,
     id: string,
-    session: { used_at: string },
+    session: Partial<Session>,
   ) => Promise<boolean>;
   remove: (tenant_id: string, id: string) => Promise<boolean>;
 }

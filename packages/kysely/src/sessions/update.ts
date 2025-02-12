@@ -1,18 +1,25 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { Session } from "@authhero/adapter-interfaces";
 
 export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     session_id: string,
-    session: { used_at: string },
+    session: Partial<Session>,
   ) => {
+    const sqlSession = {
+      ...session,
+      updated_at: new Date().toISOString(),
+      device: session.device ? JSON.stringify(session.device) : undefined,
+      clients: session.clients ? JSON.stringify(session.clients) : undefined,
+    };
+
     const results = await db
       .updateTable("sessions")
-      .set(session)
+      .set(sqlSession)
       .where("tenant_id", "=", tenant_id)
-      .where("sessions.session_id", "=", session_id)
-      .where("sessions.deleted_at", "is", null)
+      .where("sessions.id", "=", session_id)
       .execute();
 
     return !!results.length;

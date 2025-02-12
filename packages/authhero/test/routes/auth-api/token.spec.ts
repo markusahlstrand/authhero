@@ -686,7 +686,16 @@ describe("token", () => {
         client_id: "clientId",
         expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         used_at: new Date().toISOString(),
-        session_id: "sessionId",
+        id: "sessionId",
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        clients: [],
       });
 
       await env.data.refreshTokens.create("tenantId", {

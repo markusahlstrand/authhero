@@ -9,15 +9,24 @@ export function create(db: Kysely<Database>) {
   ): Promise<Session> => {
     const createdSession = {
       ...session,
+      // fallback untill we changed primary key
+      session_id: session.id,
       created_at: new Date().toISOString(),
-      expires_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      authenticated_at: new Date().toISOString(),
+      last_interaction_at: new Date().toISOString(),
     };
 
     await db
       .insertInto("sessions")
-      .values({ ...createdSession, tenant_id })
+      .values({
+        ...createdSession,
+        tenant_id,
+        device: JSON.stringify(session.device),
+        clients: JSON.stringify(session.clients),
+      })
       .execute();
 
-    return { ...session, ...createdSession };
+    return createdSession;
   };
 }

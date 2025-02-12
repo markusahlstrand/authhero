@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.42.0
+
+### Minor Changes
+
+- Update session entity
+
 ## 0.41.0
 
 ### Minor Changes
