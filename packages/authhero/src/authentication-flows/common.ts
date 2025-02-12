@@ -205,16 +205,16 @@ export async function createSession(
     client_id: client.id,
     expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
     used_at: new Date().toISOString(),
-    // TODO: add device info
     device: {
-      last_ip: "",
-      initial_ip: "",
-      last_user_agent: "",
-      initial_user_agent: "",
+      last_ip: ctx.req.header("x-real-ip") || "",
+      initial_ip: ctx.req.header("x-real-ip") || "",
+      last_user_agent: ctx.req.header("user-agent") || "",
+      initial_user_agent: ctx.req.header("user-agent") || "",
+      // TODO: add Authentication Strength Name
       initial_asn: "",
       last_asn: "",
     },
-    clients: [],
+    clients: [client.id],
   });
 
   const refresh_token = scope?.split(" ").includes("offline_access")

@@ -173,7 +173,12 @@ describe("common", () => {
   describe("createSession", () => {
     it("should create a session", async () => {
       const { env } = await getTestServer();
-      const ctx = { env } as Context<{
+      const ctx = {
+        env,
+        req: {
+          header: () => "",
+        },
+      } as unknown as Context<{
         Bindings: Bindings;
         Variables: Variables;
       }>;
@@ -202,9 +207,14 @@ describe("common", () => {
       expect(result.refresh_token).toBeUndefined();
     });
 
-    it("should a refresh_token if the offline_access scope is requested", async () => {
+    it("should return a refresh_token if the offline_access scope is requested", async () => {
       const { env } = await getTestServer();
-      const ctx = { env } as Context<{
+      const ctx = {
+        env,
+        req: {
+          header: () => "",
+        },
+      } as unknown as Context<{
         Bindings: Bindings;
         Variables: Variables;
       }>;
