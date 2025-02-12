@@ -48,7 +48,7 @@
     "nanoid": "^5.0.8"
   },
   "peerDependencies": {
-    "@authhero/adapter-interfaces": "workspace:^",
+    "@authhero/adapter-interfaces": "workspace:*",
     "@hono/zod-openapi": "^0.16.4",
     "hono": "^4.6.8",
     "kysely-bun-sqlite": "^0.3.2",
