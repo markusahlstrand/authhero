@@ -3,8 +3,6 @@ import { deviceSchema } from "./Device";
 
 export const sessionInsertSchema = z.object({
   id: z.string(),
-  // TODO: Remove once data migrated
-  session_id: z.string().optional(),
   client_id: z.string(),
   revoked_at: z.string().optional(),
   used_at: z.string(),

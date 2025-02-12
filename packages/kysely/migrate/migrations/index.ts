@@ -68,6 +68,7 @@ import * as n67_drop_tickets from "./2024-12-05T13:05:00_drop_tickets";
 import * as n68_login_useragents from "./2024-12-05T13:20:00_login_useragent";
 import * as n70_refresh_tokens from "./2025-02-03T08:48:00_refresh_tokens";
 import * as n71_session_new_fields from "./2025-02-11T13:54:00_session_new_fields";
+import * as n72_session_primary_key from "./2025-02-12T13:15:00_session_primary_key";
 
 // These need to be in alphabetic order
 export default {
@@ -141,4 +142,5 @@ export default {
   n68_login_useragents,
   n70_refresh_tokens,
   n71_session_new_fields,
+  n72_session_primary_key,
 };

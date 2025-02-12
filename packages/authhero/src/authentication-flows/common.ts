@@ -177,9 +177,14 @@ export async function createRefreshToken(
       expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE * 1000,
       ).toISOString(),
-      used_at: new Date().toISOString(),
-      scope,
-      audience,
+      user_id: params.user.user_id,
+      resource_servers: [
+        {
+          audience,
+          scopes: scope,
+        },
+      ],
+      rotating: false,
     },
   );
 

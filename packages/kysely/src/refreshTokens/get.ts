@@ -11,10 +11,20 @@ export function get(db: Kysely<Database>) {
       .selectFrom("refresh_tokens")
       .where("refresh_tokens.tenant_id", "=", tenant_id)
       .where("refresh_tokens.token", "=", token)
-      .where("refresh_tokens.revoked_at", "is", null)
       .selectAll()
       .executeTakeFirst();
 
-    return refreshToken ?? null;
+    if (!refreshToken) {
+      return null;
+    }
+
+    return {
+      ...refreshToken,
+      rotating: !!refreshToken.rotating,
+      device: refreshToken.device ? JSON.parse(refreshToken.device) : {},
+      resource_servers: refreshToken.resource_servers
+        ? JSON.parse(refreshToken.resource_servers)
+        : [],
+    };
   };
 }

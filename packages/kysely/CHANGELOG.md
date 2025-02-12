@@ -1,6 +1,17 @@
 # @authhero/kysely-adapter
 
-## 7.0.0
+## 8.0.0
+
+### Minor Changes
+
+- Recreate the tables for sessions and refresh tokens
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.44.0
+
+## 6.1.0
 
 ### Patch Changes
 

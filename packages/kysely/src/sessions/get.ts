@@ -18,11 +18,8 @@ export function get(db: Kysely<Database>) {
 
     const { tenant_id: _, device, clients, ...rest } = session;
 
-    const idWithfallback = rest.id || rest.session_id || "";
-
     return {
       ...rest,
-      id: idWithfallback,
       device: JSON.parse(device),
       clients: JSON.parse(clients),
     };
