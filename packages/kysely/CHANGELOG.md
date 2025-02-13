@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 8.2.0
+
+### Minor Changes
+
+- Create temporary tables
+
 ## 8.1.0
 
 ### Minor Changes

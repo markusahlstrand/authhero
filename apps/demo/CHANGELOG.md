@@ -1,5 +1,24 @@
 # @authhero/demo
 
+## 0.9.0
+
+### Minor Changes
+
+- Create temporary tables
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.59.0
+  - @authhero/kysely-adapter@8.2.0
+
+## 0.8.8
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.58.0
+
 ## 0.8.7
 
 ### Patch Changes

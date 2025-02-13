@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "8.1.0",
+  "version": "8.2.0",
   "files": [
     "dist"
   ],
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.18.0",
+    "@authhero/adapter-interfaces": "workspace:*",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",

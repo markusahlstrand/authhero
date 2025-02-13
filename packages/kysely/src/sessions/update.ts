@@ -3,11 +3,7 @@ import { Database } from "../db";
 import { Session } from "@authhero/adapter-interfaces";
 
 export function update(db: Kysely<Database>) {
-  return async (
-    tenant_id: string,
-    session_id: string,
-    session: Partial<Session>,
-  ) => {
+  return async (tenant_id: string, id: string, session: Partial<Session>) => {
     const sqlSession = {
       ...session,
       updated_at: new Date().toISOString(),
@@ -16,10 +12,10 @@ export function update(db: Kysely<Database>) {
     };
 
     const results = await db
-      .updateTable("sessions")
+      .updateTable("sessions_2")
       .set(sqlSession)
       .where("tenant_id", "=", tenant_id)
-      .where("sessions.id", "=", session_id)
+      .where("sessions_2.id", "=", id)
       .execute();
 
     return !!results.length;

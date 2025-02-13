@@ -17,8 +17,8 @@ export function list(db: Kysely<Database>) {
     },
   ): Promise<ListRefreshTokenResponse> => {
     let query = db
-      .selectFrom("refresh_tokens")
-      .where("refresh_tokens.tenant_id", "=", tenant_id);
+      .selectFrom("refresh_tokens_2")
+      .where("refresh_tokens_2.tenant_id", "=", tenant_id);
 
     if (params.q) {
       query = luceneFilter(db, query, params.q, ["token", "session_id"]);

@@ -15,6 +15,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 import { emailProviderRoutes } from "./emails";
 import { sessionsRoutes } from "./sessions";
+import { refreshTokensRoutes } from "./refresh_tokens";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -41,7 +42,8 @@ export default function create() {
     .route("/hooks", hooksRoutes)
     .route("/connections", connectionRoutes)
     .route("/prompts", promptsRoutes)
-    .route("/sessions", sessionsRoutes);
+    .route("/sessions", sessionsRoutes)
+    .route("/refresh_tokens", refreshTokensRoutes);
 
   registerComponent(managementApp);
 
