@@ -3,13 +3,15 @@ import { deviceSchema } from "./Device";
 
 export const refreshTokenInsertSchema = z.object({
   // The actual refresh token value (primary key).
-  token: z.string(),
+  id: z.string(),
 
   // Link to the session record
   session_id: z.string(),
 
   // Link to user (foreign key)
   user_id: z.string(),
+
+  client_id: z.string(),
 
   // When the refresh token expires.
   expires_at: z.string().optional(),
@@ -18,7 +20,7 @@ export const refreshTokenInsertSchema = z.object({
   // When the token was last used.
   last_exchanged_at: z.string().optional(),
 
-  device: deviceSchema.optional(),
+  device: deviceSchema,
   resource_servers: z.array(
     z.object({
       audience: z.string(),

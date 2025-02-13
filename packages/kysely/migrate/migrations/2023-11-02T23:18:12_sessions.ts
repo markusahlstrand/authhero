@@ -4,10 +4,7 @@ import { Database } from "../../src/db";
 export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("sessions")
-    .addColumn("session_id", "varchar(255)", (col) => col.primaryKey())
-    .addColumn("client_id", "varchar(255)", (col) =>
-      col.references("applications.id").onDelete("cascade").notNull(),
-    )
+    .addColumn("id", "varchar(21)", (col) => col.primaryKey())
     .addColumn("tenant_id", "varchar(255)")
     .addColumn("user_id", "varchar(255)")
     // same change here as on other tables - FK reference needed to users table
@@ -18,10 +15,18 @@ export async function up(db: Kysely<Database>): Promise<void> {
       ["user_id", "tenant_id"],
       (cb) => cb.onDelete("cascade"),
     )
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("expires_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("used_at", "varchar(255)")
-    .addColumn("deleted_at", "varchar(255)")
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("expires_at", "varchar(35)")
+    .addColumn("idle_expires_at", "varchar(35)")
+    .addColumn("authenticated_at", "varchar(35)")
+    .addColumn("last_interaction_at", "varchar(35)")
+    .addColumn("used_at", "varchar(35)")
+    .addColumn("revoked_at", "varchar(35)")
+    // Contains a json blob with user agents.
+    .addColumn("device", "varchar(2048)", (col) => col.notNull())
+    // Contains a json array with client ids.
+    .addColumn("clients", "varchar(1024)", (col) => col.notNull())
     .execute();
 
   await db.schema

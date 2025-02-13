@@ -683,7 +683,7 @@ describe("token", () => {
       // Create a sesssion and a refresh token
       await env.data.sessions.create("tenantId", {
         user_id: "email|userId",
-        client_id: "clientId",
+        clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         used_at: new Date().toISOString(),
         id: "sessionId",
@@ -695,13 +695,13 @@ describe("token", () => {
           initial_asn: "",
           last_asn: "",
         },
-        clients: [],
       });
 
       await env.data.refreshTokens.create("tenantId", {
-        token: "refreshToken",
+        id: "refreshToken",
         session_id: "sessionId",
         user_id: "email|userId",
+        client_id: "clientId",
         resource_servers: [
           {
             audience: "http://example.com",

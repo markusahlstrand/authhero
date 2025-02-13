@@ -5,7 +5,7 @@ import { RefreshToken } from "@authhero/adapter-interfaces";
 export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
-    token: string,
+    id: string,
     refresh_token: Partial<RefreshToken>,
   ) => {
     const updateData = {
@@ -23,7 +23,7 @@ export function update(db: Kysely<Database>) {
       .updateTable("refresh_tokens")
       .set(updateData)
       .where("tenant_id", "=", tenant_id)
-      .where("refresh_tokens.token", "=", token)
+      .where("refresh_tokens.id", "=", id)
       .execute();
 
     return !!results.length;

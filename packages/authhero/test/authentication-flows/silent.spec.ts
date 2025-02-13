@@ -11,7 +11,6 @@ describe("silent", () => {
     const session = await env.data.sessions.create("tenantId", {
       id: "sessionId",
       user_id: "email|userId",
-      client_id: "clientId",
       used_at: new Date().toISOString(),
       device: {
         last_ip: "",
@@ -22,7 +21,7 @@ describe("silent", () => {
         last_asn: "",
       },
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-      clients: [],
+      clients: ["clientId"],
     });
 
     const response = await oauthClient.authorize.$get(
