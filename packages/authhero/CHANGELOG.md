@@ -1,5 +1,11 @@
 # authhero
 
+## 0.59.0
+
+### Minor Changes
+
+- Create temporary tables
+
 ## 0.58.0
 
 ### Minor Changes
