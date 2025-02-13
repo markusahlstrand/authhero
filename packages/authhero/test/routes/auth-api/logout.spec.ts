@@ -10,14 +10,14 @@ describe("logout", () => {
     const response = await client.v2.logout.$get({
       query: {
         client_id: "clientId",
-        returnTo: "https://example/callback",
+        returnTo: "https://example.com/callback",
       },
     });
 
     expect(response.status).toBe(302);
 
     const location = response.headers.get("location");
-    expect(location).toBe("https://example/callback");
+    expect(location).toBe("https://example.com/callback");
 
     const cookie = response.headers.get("set-cookie");
     expect(cookie).toBe(
@@ -57,14 +57,22 @@ describe("logout", () => {
     expect(body).toBe("Invalid redirect uri");
   });
 
-  it.only("should clear a remove session from the database and create a log message", async () => {
+  it("should clear a remove session from the database and create a log message", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
     await env.data.sessions.create("tenantId", {
-      session_id: "sid",
-      client_id: "clientId",
+      id: "sid",
+      clients: ["clientId"],
       user_id: "email|userId",
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
       used_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
     });

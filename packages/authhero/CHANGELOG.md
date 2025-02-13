@@ -1,5 +1,16 @@
 # authhero
 
+## 0.57.0
+
+### Minor Changes
+
+- Update entities for sessions and refresh tokens
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.45.0
+
 ## 0.56.0
 
 ### Minor Changes

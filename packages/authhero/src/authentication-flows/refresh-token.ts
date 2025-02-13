@@ -53,7 +53,7 @@ export async function refreshTokenGrant(
   return createAuthResponse(ctx, {
     user,
     client,
-    refreshToken: refreshToken.token,
+    refreshToken: refreshToken.id,
     sessionId: session.id,
     authParams: {
       client_id: client.id,

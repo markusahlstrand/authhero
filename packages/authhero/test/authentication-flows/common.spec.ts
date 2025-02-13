@@ -197,10 +197,9 @@ describe("common", () => {
       const result = await createSession(ctx, { user, client });
 
       expect(result).toMatchObject({
-        // TODO: Revisit once the tables are migrated
-        // session_id: expect.any(String),
+        id: expect.any(String),
         user_id: user.user_id,
-        client_id: client.id,
+        clients: [client.id],
         expires_at: expect.any(String),
         used_at: expect.any(String),
       });
@@ -238,20 +237,16 @@ describe("common", () => {
         audience: "https://example.com",
       });
 
-      // TODO: Revisit once the tables are migrated
       expect(result).toMatchObject({
-        // session_id: expect.any(String),
+        id: expect.any(String),
         user_id: user.user_id,
-        client_id: client.id,
+        clients: [client.id],
         expires_at: expect.any(String),
         used_at: expect.any(String),
         refresh_token: {
-          token: expect.any(String),
+          id: expect.any(String),
           session_id: result.id,
           expires_at: expect.any(String),
-          // used_at: expect.any(String),
-          // scope: "offline_access",
-          // audience: "https://example.com",
         },
       });
     });

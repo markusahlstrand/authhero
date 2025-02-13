@@ -172,12 +172,21 @@ export async function createRefreshToken(
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
-      token: nanoid(),
+      id: nanoid(),
       session_id,
+      client_id: client.id,
       expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE * 1000,
       ).toISOString(),
       user_id: params.user.user_id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
       resource_servers: [
         {
           audience,
@@ -207,7 +216,6 @@ export async function createSession(
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
     user_id: user.user_id,
-    client_id: client.id,
     expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
     used_at: new Date().toISOString(),
     device: {
@@ -281,7 +289,7 @@ export async function createAuthResponse(
 
     session_id = session.id;
     // The refresh token is only returned for new sessions and if the offline_access scope is requested
-    refresh_token = session.refresh_token?.token;
+    refresh_token = session.refresh_token?.id;
   }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {

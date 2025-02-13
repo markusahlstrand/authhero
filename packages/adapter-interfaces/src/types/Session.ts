@@ -3,7 +3,6 @@ import { deviceSchema } from "./Device";
 
 export const sessionInsertSchema = z.object({
   id: z.string(),
-  client_id: z.string(),
   revoked_at: z.string().optional(),
   used_at: z.string(),
   user_id: z.string().describe("The user ID associated with the session"),
