@@ -112,9 +112,9 @@ export interface Database {
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
-  refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
+  refresh_tokens_2: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
-  sessions: z.infer<typeof sqlSessionSchema>;
+  sessions_2: z.infer<typeof sqlSessionSchema>;
   tenants: Tenant;
   themes: z.infer<typeof sqlThemeSchema>;
 }
