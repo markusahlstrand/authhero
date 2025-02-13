@@ -1,5 +1,11 @@
 # authhero
 
+## 0.58.0
+
+### Minor Changes
+
+- Add refresh_tokens route
+
 ## 0.57.0
 
 ### Minor Changes
