@@ -5,22 +5,14 @@ import { Database } from "../../src/db";
  * Up migration: changes the primary key to id.
  */
 export async function up(db: Kysely<Database>): Promise<void> {
-  await db.schema.dropTable("sessions").execute();
-  await db.schema.dropTable("refresh_tokens").execute();
-}
-
-/**
- * Down migration: drops the added sessions table fields
- */
-export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema
-    .createTable("sessions")
+    .createTable("sessions_2")
     .addColumn("id", "varchar(21)", (col) => col.primaryKey())
     .addColumn("tenant_id", "varchar(255)")
     .addColumn("user_id", "varchar(255)")
     // same change here as on other tables - FK reference needed to users table
     .addForeignKeyConstraint(
-      "sessions_user_id_constraint",
+      "sessions_2_user_id_constraint",
       ["user_id", "tenant_id"],
       "users",
       ["user_id", "tenant_id"],
@@ -41,7 +33,7 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .execute();
 
   await db.schema
-    .createTable("refresh_tokens")
+    .createTable("refresh_tokens_2")
     .addColumn("id", "varchar(21)", (col) => col.primaryKey())
     .addColumn("client_id", "varchar(21)", (col) =>
       col.references("applications.id").onDelete("cascade").notNull(),
@@ -52,7 +44,7 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .addColumn("user_id", "varchar(255)")
     // same change here as on other tables - FK reference needed to users table
     .addForeignKeyConstraint(
-      "refresh_tokens_user_id_constraint",
+      "refresh_tokens_2_user_id_constraint",
       ["user_id", "tenant_id"],
       "users",
       ["user_id", "tenant_id"],
@@ -68,4 +60,12 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .addColumn("resource_servers", "varchar(2048)", (col) => col.notNull())
     .addColumn("rotating", "boolean", (col) => col.notNull())
     .execute();
+}
+
+/**
+ * Down migration: drops the added sessions table fields
+ */
+export async function down(db: Kysely<Database>): Promise<void> {
+  await db.schema.dropTable("sessions_2").execute();
+  await db.schema.dropTable("refresh_tokens_2").execute();
 }
