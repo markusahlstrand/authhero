@@ -680,22 +680,9 @@ describe("token", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
-      // Create a sesssion and a refresh token
-      await env.data.sessions.create("tenantId", {
-        user_id: "email|userId",
-        clients: ["clientId"],
-        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-        used_at: new Date().toISOString(),
-        id: "sessionId",
-        device: {
-          last_ip: "",
-          initial_ip: "",
-          last_user_agent: "",
-          initial_user_agent: "",
-          initial_asn: "",
-          last_asn: "",
-        },
-      });
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
@@ -717,7 +704,8 @@ describe("token", () => {
           last_asn: "",
         },
         rotating: false,
-        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        idle_expires_at,
+        expires_at: idle_expires_at,
       });
 
       const response = await client.oauth.token.$post(
@@ -731,16 +719,114 @@ describe("token", () => {
         { headers: { "tenant-id": "tenantId" } },
       );
 
-      if (response.status !== 200) {
-        console.log(await response.text());
-      }
-
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body).toMatchObject({
         access_token: expect.any(String),
         refresh_token: expect.any(String),
         id_token: expect.any(String),
+      });
+
+      const refreshToken = await env.data.refreshTokens.get(
+        "tenantId",
+        "refreshToken",
+      );
+      if (!refreshToken) {
+        throw new Error("Refresh token not found");
+      }
+
+      expect(refreshToken.idle_expires_at).not.toBe(idle_expires_at);
+    });
+
+    it("should return a 403 for a expired refresh token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshToken",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        expires_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      });
+
+      const response = await client.oauth.token.$post(
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = await response.json();
+      expect(body).toEqual({
+        error: "invalid_grant",
+        error_description: "Refresh token has expired",
+      });
+    });
+
+    it("should return a 403 for a idle expired refresh token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshToken",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      });
+
+      const response = await client.oauth.token.$post(
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = await response.json();
+      expect(body).toEqual({
+        error: "invalid_grant",
+        error_description: "Refresh token has expired",
       });
     });
   });

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.60.0
+
+### Minor Changes
+
+- Enforce idle expire at
+
 ## 0.59.0
 
 ### Minor Changes
