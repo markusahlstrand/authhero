@@ -17,7 +17,7 @@ import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";
 import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
-  SILENT_AUTH_MAX_AGE,
+  SILENT_AUTH_MAX_AGE_IN_SECONDS,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
@@ -176,7 +176,7 @@ export async function createRefreshToken(
       session_id,
       client_id: client.id,
       expires_at: new Date(
-        Date.now() + SILENT_AUTH_MAX_AGE * 1000,
+        Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
       ).toISOString(),
       user_id: params.user.user_id,
       device: {
@@ -216,7 +216,9 @@ export async function createSession(
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
     user_id: user.user_id,
-    expires_at: new Date(Date.now() + SILENT_AUTH_MAX_AGE * 1000).toISOString(),
+    expires_at: new Date(
+      Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
+    ).toISOString(),
     used_at: new Date().toISOString(),
     device: {
       last_ip: ctx.req.header("x-real-ip") || "",

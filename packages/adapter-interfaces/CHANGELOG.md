@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.46.0
+
+### Minor Changes
+
+- Handle expires at for sessions
+
 ## 0.45.0
 
 ### Minor Changes

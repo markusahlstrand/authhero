@@ -1,5 +1,16 @@
 # authhero
 
+## 0.61.0
+
+### Minor Changes
+
+- Handle expires at for sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.46.0
+
 ## 0.60.0
 
 ### Minor Changes

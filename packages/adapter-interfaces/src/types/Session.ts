@@ -4,7 +4,7 @@ import { deviceSchema } from "./Device";
 export const sessionInsertSchema = z.object({
   id: z.string(),
   revoked_at: z.string().optional(),
-  used_at: z.string(),
+  used_at: z.string().optional(),
   user_id: z.string().describe("The user ID associated with the session"),
   expires_at: z.string().optional(),
   idle_expires_at: z.string().optional(),
