@@ -10,7 +10,7 @@ import i18next from "i18next";
 import generateOTP from "../../utils/otp";
 import { waitUntil } from "../../helpers/wait-until";
 import { sendCode, sendLink } from "../../emails";
-import { OTP_EXPIRATION_TIME } from "src/constants";
+import { OTP_EXPIRATION_TIME } from "../../constants";
 
 type Auth0Client = {
   name: string;
@@ -35,7 +35,7 @@ export function getSendParamFromAuth0ClientHeader(
   return isAppClient ? "code" : "link";
 }
 
-export const emailRoutes = new OpenAPIHono<{
+export const enterEmailRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()

@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { enterEmailRoutes } from "./enter-email";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -12,7 +13,7 @@ export default function create() {
     Variables: Variables;
   }>();
 
-  const universalApp = app;
+  const universalApp = app.route("/enter-email", enterEmailRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",
