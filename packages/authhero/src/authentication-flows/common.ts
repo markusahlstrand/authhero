@@ -281,8 +281,6 @@ export async function createAuthResponse(
   );
 
   if (params?.ticketAuth) {
-    console.log("ticketAuth" + params.loginSession);
-
     if (!params.loginSession) {
       throw new HTTPException(500, {
         message: "Login session not found",
