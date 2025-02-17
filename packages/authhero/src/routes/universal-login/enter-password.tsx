@@ -19,7 +19,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "get",
-      path: "/enter-password",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({
@@ -62,7 +62,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "post",
-      path: "/enter-password",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({

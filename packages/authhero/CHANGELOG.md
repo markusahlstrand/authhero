@@ -1,5 +1,11 @@
 # authhero
 
+## 0.65.0
+
+### Minor Changes
+
+- Migarate reset password
+
 ## 0.64.0
 
 ### Minor Changes

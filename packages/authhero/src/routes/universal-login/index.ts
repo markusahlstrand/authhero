@@ -18,7 +18,8 @@ export default function create() {
   const universalApp = app
     .route("/enter-email", enterEmailRoutes)
     .route("/enter-code", enterCodeRoutes)
-    .route("/enter-password", enterPasswordRoutes);
+    .route("/enter-password", enterPasswordRoutes)
+    .route("/reset-password", enterPasswordRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",
