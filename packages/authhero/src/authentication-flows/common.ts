@@ -18,11 +18,13 @@ import { Bindings, Variables } from "../types";
 import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
+  TICKET_EXPIRATION_TIME,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
+import { generateCodeVerifier } from "oslo/oauth2";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -180,10 +182,11 @@ export async function createRefreshToken(
       ).toISOString(),
       user_id: params.user.user_id,
       device: {
-        last_ip: "",
-        initial_ip: "",
-        last_user_agent: "",
-        initial_user_agent: "",
+        last_ip: ctx.req.header("x-real-ip") || "",
+        initial_ip: ctx.req.header("x-real-ip") || "",
+        last_user_agent: ctx.req.header("user-agent") || "",
+        initial_user_agent: ctx.req.header("user-agent") || "",
+        // TODO: add Authentication Strength Name
         initial_asn: "",
         last_asn: "",
       },
@@ -216,10 +219,9 @@ export async function createSession(
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
     user_id: user.user_id,
-    expires_at: new Date(
+    idle_expires_at: new Date(
       Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
     ).toISOString(),
-    used_at: new Date().toISOString(),
     device: {
       last_ip: ctx.req.header("x-real-ip") || "",
       initial_ip: ctx.req.header("x-real-ip") || "",
@@ -251,6 +253,7 @@ export interface CreateAuthResponseParams {
   loginSession?: Login;
   sessionId?: string;
   refreshToken?: string;
+  ticketAuth?: boolean;
 }
 
 export async function createAuthResponse(
@@ -276,6 +279,31 @@ export async function createAuthResponse(
       login_count: user.login_count + 1,
     }),
   );
+
+  if (params?.ticketAuth) {
+    if (!params.loginSession) {
+      throw new HTTPException(500, {
+        message: "Login session not found",
+      });
+    }
+    const co_verifier = generateCodeVerifier();
+    const co_id = nanoid(12);
+
+    const code = await ctx.env.data.codes.create(client.tenant.id, {
+      code_id: nanoid(),
+      code_type: "ticket",
+      login_id: params.loginSession.login_id,
+      expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),
+      // Concat the co_id and co_verifier
+      code_verifier: [co_id, co_verifier].join("|"),
+    });
+
+    return ctx.json({
+      login_ticket: code.code_id,
+      co_verifier,
+      co_id,
+    });
+  }
 
   let refresh_token = params.refreshToken;
   let session_id = params.sessionId;

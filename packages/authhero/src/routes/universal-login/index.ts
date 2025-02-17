@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { enterEmailRoutes } from "./enter-email";
 import { enterCodeRoutes } from "./enter-code";
+import { enterPasswordRoutes } from "./enter-password";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -16,7 +17,8 @@ export default function create() {
 
   const universalApp = app
     .route("/enter-email", enterEmailRoutes)
-    .route("/enter-code", enterCodeRoutes);
+    .route("/enter-code", enterCodeRoutes)
+    .route("/enter-password", enterPasswordRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",

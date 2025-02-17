@@ -48,7 +48,7 @@ describe("authenticate", () => {
 
     // Check the logs
     const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults.logs).toHaveLength(1);
+    expect(logsResults.logs).toHaveLength(2);
 
     const [successfulLoginLog] = logsResults.logs;
     expect(successfulLoginLog).toMatchObject({

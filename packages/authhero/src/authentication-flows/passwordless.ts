@@ -14,6 +14,7 @@ export async function loginWithPasswordless(
   authParams: AuthParams,
   email: string,
   verification_code: string,
+  ticketAuth?: boolean,
 ) {
   const { env } = ctx;
 
@@ -79,5 +80,6 @@ export async function loginWithPasswordless(
     client,
     loginSession,
     authParams,
+    ticketAuth,
   });
 }
