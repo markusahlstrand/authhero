@@ -46,7 +46,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "get",
-      path: "/enter-email",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({
@@ -87,7 +87,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "post",
-      path: "/enter-email",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({

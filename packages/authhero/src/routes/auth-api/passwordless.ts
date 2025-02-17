@@ -10,11 +10,8 @@ import { Bindings, Variables } from "../../types";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
-import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
-import { createAuthResponse } from "../../authentication-flows/common";
-import { getPrimaryUserByEmailAndProvider } from "../../helpers/users";
 import { getClientWithDefaults } from "../../helpers/client";
-import { getUniversalLoginUrl } from "../../variables";
+import { loginWithPasswordless } from "../../authentication-flows/passwordless";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -131,51 +128,6 @@ export const passwordlessRoutes = new OpenAPIHono<{
       ctx.set("tenant_id", client.tenant.id);
       ctx.set("connection", "email");
 
-      const code = await env.data.codes.get(
-        client.tenant.id,
-        verification_code,
-        "otp",
-      );
-      if (!code) {
-        throw new HTTPException(400, {
-          message: "Code not found or expired",
-        });
-      }
-
-      if (code.expires_at < new Date().toISOString()) {
-        throw new HTTPException(400, {
-          message: "Code expired",
-        });
-      }
-
-      const loginSession = await env.data.logins.get(
-        client.tenant.id,
-        code.login_id,
-      );
-      if (!loginSession || loginSession.authParams.username !== email) {
-        throw new HTTPException(400, {
-          message: "Code not found or expired",
-        });
-      }
-
-      const clientInfo = getClientInfo(ctx.req);
-
-      if (loginSession.ip !== clientInfo.ip) {
-        return ctx.redirect(
-          `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.login_id}`,
-        );
-      }
-
-      if (
-        !isValidRedirectUrl(redirect_uri, client.callbacks, {
-          allowPathWildcards: true,
-        })
-      ) {
-        throw new HTTPException(400, {
-          message: `Invalid redirect URI - ${redirect_uri}`,
-        });
-      }
-
       const authParams: AuthParams = {
         client_id,
         redirect_uri,
@@ -186,23 +138,12 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
       };
 
-      const user = await getPrimaryUserByEmailAndProvider({
-        userAdapter: env.data.users,
-        tenant_id: client.tenant.id,
-        email,
-        provider: "email",
-      });
-      if (!user) {
-        throw new HTTPException(400, {
-          message: "User not found",
-        });
-      }
-
-      return createAuthResponse(ctx, {
-        user,
+      return loginWithPasswordless(
+        ctx,
         client,
-        loginSession,
         authParams,
-      });
+        email,
+        verification_code,
+      );
     },
   );

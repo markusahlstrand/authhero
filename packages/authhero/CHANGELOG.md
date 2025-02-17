@@ -1,5 +1,11 @@
 # authhero
 
+## 0.63.0
+
+### Minor Changes
+
+- Migrate code flow
+
 ## 0.62.0
 
 ### Minor Changes
