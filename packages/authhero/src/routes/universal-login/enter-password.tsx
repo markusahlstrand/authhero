@@ -102,10 +102,15 @@ export const enterPasswordRoutes = new OpenAPIHono<{
       }
 
       try {
-        return loginWithPassword(ctx, client, {
-          ...session.authParams,
-          password,
-        });
+        return await loginWithPassword(
+          ctx,
+          client,
+          {
+            ...session.authParams,
+            password,
+          },
+          session,
+        );
       } catch (err) {
         const customException = err as AuthError;
 

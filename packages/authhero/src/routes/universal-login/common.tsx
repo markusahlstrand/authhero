@@ -4,16 +4,12 @@ import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
 import {
   Client,
-  Login,
   LogTypes,
-  User,
   VendorSettings,
   vendorSettingsSchema,
 } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../../helpers/users";
-import { Bindings, Variables } from "../../types";
-import MessagePage from "../../components/Message";
-import { createAuthResponse } from "../../authentication-flows/common";
+import { Bindings } from "../../types";
 
 // there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
 // some interaction with "dark mode"
@@ -113,42 +109,6 @@ export async function initJSXRoute(ctx: Context, state: string) {
     tenant,
     session: login,
   };
-}
-
-export async function handleLogin(
-  ctx: Context<{
-    Bindings: Bindings;
-    Variables: Variables;
-  }>,
-  user: User,
-  session: Login,
-  client: Client,
-) {
-  if (session.authParams.redirect_uri) {
-    ctx.set("username", user.email);
-    ctx.set("connection", user.connection);
-    ctx.set("user_id", user.user_id);
-
-    return createAuthResponse(ctx, {
-      client,
-      authParams: session.authParams,
-      user,
-    });
-  }
-
-  const vendorSettings = await fetchVendorSettings(
-    ctx.env,
-    client.id,
-    session.authParams.vendor_id,
-  );
-
-  return ctx.html(
-    <MessagePage
-      message="You are logged in"
-      pageTitle="Logged in"
-      vendorSettings={vendorSettings}
-    />,
-  );
 }
 
 export async function usePasswordLogin(

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.66.0
+
+### Minor Changes
+
+- Migrate signup route
+
 ## 0.65.0
 
 ### Minor Changes

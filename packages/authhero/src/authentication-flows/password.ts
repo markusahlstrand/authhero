@@ -71,6 +71,7 @@ export async function loginWithPassword(
   );
 
   const valid = await bcryptjs.compare(authParams.password, password);
+  console.log("valid", valid, authParams.password, password);
 
   if (!valid) {
     const log = createLogMessage(ctx, {

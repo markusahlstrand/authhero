@@ -6,32 +6,10 @@ import { getAdminToken } from "../../helpers/token";
 describe("dbconnections", () => {
   describe("signup", () => {
     it("should create a new user, create a log entry and send a code verification email", async () => {
-      const { oauthApp, managementApp, getSentEmails, env } =
-        await getTestServer();
+      const { oauthApp, getSentEmails, env } = await getTestServer({
+        mockEmail: true,
+      });
       const client = testClient(oauthApp, env);
-      const managementClient = testClient(managementApp, env);
-
-      const token = await getAdminToken();
-
-      // Add the mock client
-      await managementClient.email.providers.$post(
-        {
-          header: {
-            "tenant-id": "tenantId",
-          },
-          json: {
-            name: "mock-email",
-            credentials: {
-              api_key: "apiKey",
-            },
-          },
-        },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
-        },
-      );
 
       const response = await client.dbconnections.signup.$post(
         {
@@ -93,32 +71,8 @@ describe("dbconnections", () => {
     });
 
     it("should return an error if the user allready exists", async () => {
-      const { oauthApp, managementApp, env } = await getTestServer();
+      const { oauthApp, env } = await getTestServer({ mockEmail: true });
       const client = testClient(oauthApp, env);
-
-      const managementClient = testClient(managementApp, env);
-
-      const token = await getAdminToken();
-
-      // Add the mock client
-      await managementClient.email.providers.$post(
-        {
-          header: {
-            "tenant-id": "tenantId",
-          },
-          json: {
-            name: "mock-email",
-            credentials: {
-              api_key: "apiKey",
-            },
-          },
-        },
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
-        },
-      );
 
       // Create the use
       await client.dbconnections.signup.$post(

@@ -34,6 +34,13 @@ export async function loginWithPasswordless(
       message: "Code expired",
     });
   }
+
+  if (code.used_at) {
+    throw new HTTPException(400, {
+      message: "Code already used",
+    });
+  }
+
   const loginSession = await env.data.logins.get(
     client.tenant.id,
     code.login_id,
@@ -74,6 +81,8 @@ export async function loginWithPasswordless(
       message: "User not found",
     });
   }
+
+  await env.data.codes.used(client.tenant.id, verification_code);
 
   return createAuthResponse(ctx, {
     user,
