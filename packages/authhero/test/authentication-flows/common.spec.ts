@@ -200,8 +200,7 @@ describe("common", () => {
         id: expect.any(String),
         user_id: user.user_id,
         clients: [client.id],
-        expires_at: expect.any(String),
-        used_at: expect.any(String),
+        idle_expires_at: expect.any(String),
       });
 
       expect(result.refresh_token).toBeUndefined();
@@ -241,8 +240,7 @@ describe("common", () => {
         id: expect.any(String),
         user_id: user.user_id,
         clients: [client.id],
-        expires_at: expect.any(String),
-        used_at: expect.any(String),
+        idle_expires_at: expect.any(String),
         refresh_token: {
           id: expect.any(String),
           session_id: result.id,

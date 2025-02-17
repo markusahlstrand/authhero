@@ -2,17 +2,25 @@ import { Context } from "hono";
 import bcryptjs from "bcryptjs";
 import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
-import { AuthParams, Client, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  Client,
+  Login,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getUserByEmailAndProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
+import { createAuthResponse } from "./common";
 
 export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
   authParams: AuthParams & { password: string },
+  loginSession?: Login,
+  ticketAuth?: boolean,
 ) {
   const { env } = ctx;
 
@@ -130,5 +138,11 @@ export async function loginWithPassword(
   });
   waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
-  return primaryUser;
+  return createAuthResponse(ctx, {
+    client,
+    authParams,
+    user: primaryUser,
+    ticketAuth,
+    loginSession,
+  });
 }

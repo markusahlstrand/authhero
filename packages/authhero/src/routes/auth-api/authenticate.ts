@@ -1,31 +1,10 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { loginWithPassword } from "../../authentication-flows/password";
-import { Login } from "@authhero/adapter-interfaces";
+import { loginWithPasswordless } from "../../authentication-flows/passwordless";
+import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { getClientInfo } from "../../utils/client-info";
-import { generateCodeVerifier } from "oslo/oauth2";
-
-function createUnauthorizedResponse() {
-  return new HTTPException(403, {
-    res: new Response(
-      JSON.stringify({
-        error: "access_denied",
-        error_description: "Wrong email or verification code.",
-      }),
-      {
-        status: 403, // without this it returns a 200
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    ),
-    message: "Wrong email or verification code.",
-  });
-}
-
-const TICKET_EXPIRATION_TIME = 30 * 60 * 1000;
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -90,68 +69,44 @@ export const authenticateRoutes = new OpenAPIHono<{
 
       const email = username.toLocaleLowerCase();
 
-      let loginSession: Login;
-
       if ("otp" in body) {
-        const code = await ctx.env.data.codes.get(
-          client.tenant.id,
+        return loginWithPasswordless(
+          ctx,
+          client,
+          { client_id, username: email },
+          email,
           body.otp,
-          "otp",
+          true,
         );
-        if (!code) {
-          throw createUnauthorizedResponse();
-        }
-
-        const existingLoginSession = await ctx.env.data.logins.get(
-          client.tenant.id,
-          code.login_id,
-        );
-        if (
-          !existingLoginSession ||
-          existingLoginSession.authParams.username !== email
-        ) {
-          throw createUnauthorizedResponse();
-        }
-
-        loginSession = existingLoginSession;
       } else if ("password" in body) {
-        // This will throw if the login fails
-        await loginWithPassword(ctx, client, {
-          username,
-          password: body.password,
-          client_id,
-        });
-
-        loginSession = await ctx.env.data.logins.create(client.tenant.id, {
-          expires_at: new Date(
-            Date.now() + TICKET_EXPIRATION_TIME,
-          ).toISOString(),
-          authParams: {
-            client_id: client.id,
-            username: email,
+        const loginSession = await ctx.env.data.logins.create(
+          client.tenant.id,
+          {
+            expires_at: new Date(
+              Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+            ).toISOString(),
+            authParams: {
+              client_id,
+              username: email,
+            },
+            ...getClientInfo(ctx.req),
           },
-          ...getClientInfo(ctx.req),
-        });
+        );
+
+        // This will throw if the login fails
+        return loginWithPassword(
+          ctx,
+          client,
+          {
+            username: email,
+            password: body.password,
+            client_id,
+          },
+          loginSession,
+          true,
+        );
       } else {
         throw new HTTPException(400, { message: "Code or password required" });
       }
-
-      const co_verifier = generateCodeVerifier();
-      const co_id = nanoid(12);
-
-      const code = await ctx.env.data.codes.create(client.tenant.id, {
-        code_id: nanoid(),
-        code_type: "ticket",
-        login_id: loginSession.login_id,
-        expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),
-        // Concat the co_id and co_verifier
-        code_verifier: [co_id, co_verifier].join("|"),
-      });
-
-      return ctx.json({
-        login_ticket: code.code_id,
-        co_verifier,
-        co_id,
-      });
     },
   );

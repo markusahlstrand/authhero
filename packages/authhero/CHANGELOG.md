@@ -1,5 +1,11 @@
 # authhero
 
+## 0.64.0
+
+### Minor Changes
+
+- Migrate enter password
+
 ## 0.63.0
 
 ### Minor Changes
