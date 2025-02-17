@@ -3,7 +3,6 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
-import exp from "constants";
 
 describe("passwordless", async () => {
   it("should login using a passwordless code", async () => {

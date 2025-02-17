@@ -15,6 +15,7 @@ import { mockStrategy } from "./mock-strategy";
 type getEnvParams = {
   testTenantLanguage?: string;
   emailValidation?: "enabled" | "enforced" | "disabled";
+  mockEmail?: boolean;
 };
 
 type TestServer = {
@@ -52,6 +53,16 @@ export async function getTestServer(
     sender_email: "login@example.com",
     sender_name: "SenderName",
   });
+
+  if (args.mockEmail) {
+    await data.emailProviders.create("tenantId", {
+      name: "mock-email",
+      enabled: true,
+      credentials: {
+        api_key: "apiKey",
+      },
+    });
+  }
 
   // Add a client
   await data.applications.create("tenantId", {

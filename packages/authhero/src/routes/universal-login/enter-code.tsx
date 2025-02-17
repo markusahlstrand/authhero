@@ -120,7 +120,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      const { session, client } = await initJSXRoute(ctx, state);
+      const { session, client, vendorSettings } = await initJSXRoute(
+        ctx,
+        state,
+      );
       ctx.set("client_id", client.id);
 
       if (!session.authParams.username) {
@@ -129,12 +132,35 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      return loginWithPasswordless(
-        ctx,
-        client,
-        session.authParams,
-        session.authParams.username,
-        code,
-      );
+      try {
+        return await loginWithPasswordless(
+          ctx,
+          client,
+          session.authParams,
+          session.authParams.username,
+          code,
+        );
+      } catch (e) {
+        const err = e as Error;
+
+        const passwordUser = await getPrimaryUserByEmailAndProvider({
+          userAdapter: ctx.env.data.users,
+          tenant_id: client.tenant.id,
+          email: session.authParams.username,
+          provider: "auth2",
+        });
+
+        return ctx.html(
+          <EnterCodePage
+            vendorSettings={vendorSettings}
+            email={session.authParams.username}
+            state={state}
+            client={client}
+            error={err.message}
+            hasPasswordLogin={!!passwordUser}
+          />,
+          400,
+        );
+      }
     },
   );
