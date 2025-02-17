@@ -1,5 +1,8 @@
 import { parseCookies, serializeCookie } from "oslo/cookie";
-import { SILENT_AUTH_MAX_AGE, SILENT_COOKIE_NAME } from "../constants";
+import {
+  SILENT_AUTH_MAX_AGE_IN_SECONDS,
+  SILENT_COOKIE_NAME,
+} from "../constants";
 
 function getCookieName(tenant_id: string) {
   return `${tenant_id}-${SILENT_COOKIE_NAME}`;
@@ -12,6 +15,8 @@ export function getAuthCookie(
   if (!cookieHeaders) {
     return undefined;
   }
+
+  console.log("cookieHeaders", cookieHeaders);
 
   const cookies = parseCookies(cookieHeaders);
   return cookies.get(getCookieName(tenant_id));
@@ -36,7 +41,7 @@ export function serializeAuthCookie(tenant_id: string, value: string) {
     path: "/",
     httpOnly: true,
     secure: true,
-    maxAge: SILENT_AUTH_MAX_AGE,
+    maxAge: SILENT_AUTH_MAX_AGE_IN_SECONDS,
   };
 
   return serializeCookie(getCookieName(tenant_id), value, {

@@ -11,6 +11,7 @@ import { Bindings, Variables } from "../types";
 import { serializeAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens } from "./common";
+import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -37,12 +38,13 @@ export async function silentAuth({
   code_challenge,
   audience,
   scope,
+  response_type,
 }: SilentAuthParams) {
   const { env } = ctx;
 
   const redirectURL = new URL(redirect_uri);
 
-  if (session) {
+  if (session?.expires_at && new Date(session.expires_at) > new Date()) {
     ctx.set("user_id", session.user_id);
 
     // Update the cookie
@@ -66,8 +68,7 @@ export async function silentAuth({
           scope,
           state,
           nonce,
-          // Always set the response type to token id_token for silent auth
-          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_type,
         },
         user,
         session_id: session.id,
@@ -75,6 +76,9 @@ export async function silentAuth({
 
       await env.data.sessions.update(client.tenant.id, session.id, {
         used_at: new Date().toISOString(),
+        expires_at: new Date(
+          Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
+        ).toISOString(),
       });
 
       const log = createLogMessage(ctx, {
