@@ -52,9 +52,22 @@ describe("passwords", () => {
     expect(enterCodeGetResponse.status).toBe(200);
 
     const email = getSentEmails()[0];
+    const { code, magicLink } = email.data;
+
+    const magicLinkUrl = new URL(magicLink);
+    expect(magicLinkUrl.pathname).toBe("/passwordless/verify_redirect");
+    expect(magicLinkUrl.searchParams.get("code")).toBeTypeOf("string");
+    expect(magicLinkUrl.searchParams.get("state")).toBe("state");
+    expect(magicLinkUrl.searchParams.get("scope")).toBe("openid email profile");
+    expect(magicLinkUrl.searchParams.get("redirect_uri")).toBe(
+      "https://example.com/callback",
+    );
+    expect(magicLinkUrl.searchParams.get("email")).toBe("foo@example.com");
+    expect(magicLinkUrl.searchParams.get("client_id")).toBe("clientId");
+
     const enterCodePostResponse = await universalClient["enter-code"].$post({
       query: { state },
-      form: { code: email.data.code },
+      form: { code },
     });
 
     expect(enterCodePostResponse.status).toBe(302);

@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { t } from "i18next";
 import { Bindings, Variables } from "../types";
-import { LogTypes, User } from "@authhero/adapter-interfaces";
+import { AuthParams, LogTypes, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { waitUntil } from "../helpers/wait-until";
@@ -137,10 +137,46 @@ export async function sendLink(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   to: string,
   code: string,
+  authParams: AuthParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
+  }
+
+  if (!authParams.redirect_uri) {
+    throw new HTTPException(400, { message: "redirect_uri is required" });
+  }
+
+  const magicLink = new URL(getAuthUrl(ctx.env));
+  magicLink.pathname = "passwordless/verify_redirect";
+  magicLink.searchParams.set("code", code);
+  magicLink.searchParams.set("client_id", authParams.client_id);
+  magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
+  magicLink.searchParams.set("email", to);
+  if (authParams.response_type) {
+    magicLink.searchParams.set("response_type", authParams.response_type);
+  }
+  if (authParams.scope) {
+    magicLink.searchParams.set("scope", authParams.scope);
+  }
+  if (authParams.state) {
+    magicLink.searchParams.set("state", authParams.state);
+  }
+  if (authParams.nonce) {
+    magicLink.searchParams.set("nonce", authParams.nonce);
+  }
+  if (authParams.code_challenge) {
+    magicLink.searchParams.set("code_challenge", authParams.code_challenge);
+  }
+  if (authParams.code_challenge_method) {
+    magicLink.searchParams.set(
+      "code_challenge_method",
+      authParams.code_challenge_method,
+    );
+  }
+  if (authParams.audience) {
+    magicLink.searchParams.set("audience", authParams.audience);
   }
 
   const options = {
@@ -159,7 +195,7 @@ export async function sendLink(
       vendorName: tenant.name,
       logo: tenant.logo || "",
       supportUrl: tenant.support_url || "",
-      magicLink: `${getAuthUrl(ctx.env)}passwordless/verify_redirect?ticket=${code}`,
+      magicLink: magicLink.toString(),
       buttonColor: tenant.primary_color || "",
       welcomeToYourAccount: t("welcome_to_your_account", options),
       linkEmailClickToLogin: t("link_email_click_to_login", options),
