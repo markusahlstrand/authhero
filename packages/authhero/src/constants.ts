@@ -6,4 +6,6 @@ export const OTP_EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes
 export const EMAIL_VERIFICATION_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000; // One week
 export const AUTHORIZATION_CODE_EXPIRES_IN_SECONDS = 5 * 60; // 5 minutes
 export const OAUTH2_CODE_EXPIRES_IN_SECONDS = 5 * 60; // 5 minutes
-export const TICKET_EXPIRATION_TIME = 30 * 60 * 1000;
+export const TICKET_EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes
+export const PASSWORD_RESET_EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes
+export const LOGIN_SESSION_EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours

@@ -15,9 +15,6 @@ export function getAuthCookie(
   if (!cookieHeaders) {
     return undefined;
   }
-
-  console.log("cookieHeaders", cookieHeaders);
-
   const cookies = parseCookies(cookieHeaders);
   return cookies.get(getCookieName(tenant_id));
 }

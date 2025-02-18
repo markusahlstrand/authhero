@@ -1,5 +1,11 @@
 # authhero
 
+## 0.67.0
+
+### Minor Changes
+
+- Migrate reset password
+
 ## 0.66.0
 
 ### Minor Changes

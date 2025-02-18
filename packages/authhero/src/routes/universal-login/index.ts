@@ -5,6 +5,8 @@ import { enterEmailRoutes } from "./enter-email";
 import { enterCodeRoutes } from "./enter-code";
 import { enterPasswordRoutes } from "./enter-password";
 import { signupRoutes } from "./signup";
+import { resetPasswordRoutes } from "./reset-password";
+import { forgotPasswordRoutes } from "./forgot-password";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -20,7 +22,8 @@ export default function create() {
     .route("/enter-email", enterEmailRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
-    .route("/reset-password", enterPasswordRoutes)
+    .route("/reset-password", resetPasswordRoutes)
+    .route("/forgot-password", forgotPasswordRoutes)
     .route("/signup", signupRoutes);
 
   universalApp.doc("/u/spec", {
