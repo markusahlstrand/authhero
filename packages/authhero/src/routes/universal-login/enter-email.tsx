@@ -206,7 +206,15 @@ export const enterEmailRoutes = new OpenAPIHono<{
       const sendType = getSendParamFromAuth0ClientHeader(session.auth0Client);
 
       if (sendType === "link" && !params.username.includes("online.no")) {
-        waitUntil(ctx, sendLink(ctx, params.username, createdCode.code_id));
+        waitUntil(
+          ctx,
+          sendLink(
+            ctx,
+            params.username,
+            createdCode.code_id,
+            session.authParams,
+          ),
+        );
       } else {
         waitUntil(ctx, sendCode(ctx, params.username, createdCode.code_id));
       }

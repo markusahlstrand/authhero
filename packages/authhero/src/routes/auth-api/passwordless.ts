@@ -73,7 +73,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       });
 
       if (send === "link") {
-        await sendLink(ctx, email, code.code_id);
+        await sendLink(ctx, email, code.code_id, { ...authParams, client_id });
       } else {
         await sendCode(ctx, email, code.code_id);
       }

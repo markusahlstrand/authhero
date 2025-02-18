@@ -1,5 +1,11 @@
 # authhero
 
+## 0.68.0
+
+### Minor Changes
+
+- Fix magic links
+
 ## 0.67.0
 
 ### Minor Changes

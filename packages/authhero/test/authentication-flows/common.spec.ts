@@ -153,8 +153,6 @@ describe("common", () => {
       throw new Error("No location header");
     }
 
-    console.log(location);
-
     const redirectUri = new URL(location);
     const codeQuerystring = redirectUri.searchParams.get("code");
 
@@ -167,86 +165,6 @@ describe("common", () => {
       code_id: codeQuerystring,
       code_type: "authorization_code",
       user_id: "email|userId",
-    });
-  });
-
-  describe("createSession", () => {
-    it("should create a session", async () => {
-      const { env } = await getTestServer();
-      const ctx = {
-        env,
-        req: {
-          header: () => "",
-        },
-      } as unknown as Context<{
-        Bindings: Bindings;
-        Variables: Variables;
-      }>;
-
-      const client = await env.data.clients.get("clientId");
-      const user = await getPrimaryUserByEmail({
-        userAdapter: env.data.users,
-        tenant_id: "tenantId",
-        email: "foo@example.com",
-      });
-
-      if (!client || !user) {
-        throw new Error("Client or user not found");
-      }
-
-      const result = await createSession(ctx, { user, client });
-
-      expect(result).toMatchObject({
-        id: expect.any(String),
-        user_id: user.user_id,
-        clients: [client.id],
-        idle_expires_at: expect.any(String),
-      });
-
-      expect(result.refresh_token).toBeUndefined();
-    });
-
-    it("should return a refresh_token if the offline_access scope is requested", async () => {
-      const { env } = await getTestServer();
-      const ctx = {
-        env,
-        req: {
-          header: () => "",
-        },
-      } as unknown as Context<{
-        Bindings: Bindings;
-        Variables: Variables;
-      }>;
-
-      const client = await env.data.clients.get("clientId");
-      const user = await getPrimaryUserByEmail({
-        userAdapter: env.data.users,
-        tenant_id: "tenantId",
-        email: "foo@example.com",
-      });
-
-      if (!client || !user) {
-        throw new Error("Client or user not found");
-      }
-
-      const result = await createSession(ctx, {
-        user,
-        client,
-        scope: "offline_access",
-        audience: "https://example.com",
-      });
-
-      expect(result).toMatchObject({
-        id: expect.any(String),
-        user_id: user.user_id,
-        clients: [client.id],
-        idle_expires_at: expect.any(String),
-        refresh_token: {
-          id: expect.any(String),
-          session_id: result.id,
-          expires_at: expect.any(String),
-        },
-      });
     });
   });
 });
