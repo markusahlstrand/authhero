@@ -3,7 +3,6 @@ import { Context } from "hono";
 import {
   createAuthResponse,
   createAuthTokens,
-  createSession,
 } from "../../src/authentication-flows/common";
 import { getTestServer } from "../helpers/test-server";
 import { Bindings, Variables } from "../../src/types";

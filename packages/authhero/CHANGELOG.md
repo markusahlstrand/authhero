@@ -1,5 +1,11 @@
 # authhero
 
+## 0.69.0
+
+### Minor Changes
+
+- Add connection to magic link
+
 ## 0.68.0
 
 ### Minor Changes

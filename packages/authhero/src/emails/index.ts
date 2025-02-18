@@ -150,7 +150,8 @@ export async function sendLink(
 
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";
-  magicLink.searchParams.set("code", code);
+  magicLink.searchParams.set("verification_code", code);
+  magicLink.searchParams.set("connection", "email");
   magicLink.searchParams.set("client_id", authParams.client_id);
   magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
   magicLink.searchParams.set("email", to);

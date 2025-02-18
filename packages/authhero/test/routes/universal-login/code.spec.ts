@@ -56,7 +56,9 @@ describe("passwords", () => {
 
     const magicLinkUrl = new URL(magicLink);
     expect(magicLinkUrl.pathname).toBe("/passwordless/verify_redirect");
-    expect(magicLinkUrl.searchParams.get("code")).toBeTypeOf("string");
+    expect(magicLinkUrl.searchParams.get("verification_code")).toBeTypeOf(
+      "string",
+    );
     expect(magicLinkUrl.searchParams.get("state")).toBe("state");
     expect(magicLinkUrl.searchParams.get("scope")).toBe("openid email profile");
     expect(magicLinkUrl.searchParams.get("redirect_uri")).toBe(
@@ -64,6 +66,7 @@ describe("passwords", () => {
     );
     expect(magicLinkUrl.searchParams.get("email")).toBe("foo@example.com");
     expect(magicLinkUrl.searchParams.get("client_id")).toBe("clientId");
+    expect(magicLinkUrl.searchParams.get("connection")).toBe("email");
 
     const enterCodePostResponse = await universalClient["enter-code"].$post({
       query: { state },
