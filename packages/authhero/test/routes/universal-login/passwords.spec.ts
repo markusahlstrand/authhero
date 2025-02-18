@@ -5,7 +5,7 @@ import { getTestServer } from "../../helpers/test-server";
 
 describe("passwords", () => {
   it("should login using a password", async () => {
-    const { universalApp, oauthApp, env } = await getTestServer({
+    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,
       testTenantLanguage: "en",
     });
@@ -107,5 +107,46 @@ describe("passwords", () => {
     expect(redirectUri.pathname).toEqual("/callback");
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
     expect(redirectUri.searchParams.get("state")).toBe("state");
+
+    // --------------------------------
+    // request password reset
+    // --------------------------------
+    const forgotPasswordResponse = await universalClient[
+      "forgot-password"
+    ].$post({
+      query: { state },
+    });
+
+    expect(forgotPasswordResponse.status).toBe(200);
+
+    const sentEmails = getSentEmails();
+    expect(sentEmails.length).toBe(2);
+
+    const passwordResetEmail = sentEmails[1];
+
+    if (passwordResetEmail.data.passwordResetUrl === undefined) {
+      throw new Error("No code found in email");
+    }
+    const passwordResetUrl = new URL(passwordResetEmail.data.passwordResetUrl);
+    const passwordResetCode = passwordResetUrl.searchParams.get("code");
+    if (!passwordResetCode) {
+      throw new Error("No code found in email");
+    }
+
+    // --------------------------------
+    // enter new password
+    // --------------------------------
+
+    const resetPasswordGetResponse = await universalClient[
+      "reset-password"
+    ].$post({
+      query: { state, code: passwordResetCode },
+      form: {
+        password: "yByF#s4IO7wROi",
+        "re-enter-password": "yByF#s4IO7wROi",
+      },
+    });
+
+    expect(resetPasswordGetResponse.status).toBe(200);
   });
 });

@@ -9,11 +9,22 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { getUserByEmailAndProvider } from "../helpers/users";
+import {
+  getPrimaryUserByEmailAndProvider,
+  getUserByEmailAndProvider,
+  getUsersByEmail,
+} from "../helpers/users";
 import { AuthError } from "../types/AuthError";
-import { sendValidateEmailAddress } from "../emails";
+import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
 import { createAuthResponse } from "./common";
+import { userIdGenerate } from "../utils/user-id";
+import {
+  LOGIN_SESSION_EXPIRATION_TIME,
+  PASSWORD_RESET_EXPIRATION_TIME,
+} from "../constants";
+import { getClientInfo } from "../utils/client-info";
+import generateOTP from "../utils/otp";
 
 export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -71,7 +82,6 @@ export async function loginWithPassword(
   );
 
   const valid = await bcryptjs.compare(authParams.password, password);
-  console.log("valid", valid, authParams.password, password);
 
   if (!valid) {
     const log = createLogMessage(ctx, {
@@ -146,4 +156,82 @@ export async function loginWithPassword(
     ticketAuth,
     loginSession,
   });
+}
+
+export async function requestPasswordReset(
+  ctx: Context<{
+    Bindings: Bindings;
+    Variables: Variables;
+  }>,
+  client: Client,
+  email: string,
+  state: string,
+) {
+  let user = await getPrimaryUserByEmailAndProvider({
+    userAdapter: ctx.env.data.users,
+    tenant_id: client.tenant.id,
+    email,
+    provider: "auth2",
+  });
+
+  if (!user) {
+    const matchingUser = await getUsersByEmail(
+      ctx.env.data.users,
+      client.tenant.id,
+      email,
+    );
+
+    if (!matchingUser.length) {
+      return;
+    }
+
+    // Create a new user if it doesn't exist
+    user = await ctx.env.data.users.create(client.tenant.id, {
+      user_id: `email|${userIdGenerate()}`,
+      email,
+      email_verified: false,
+      is_social: false,
+      provider: "auth2",
+      connection: "Username-Password-Authentication",
+    });
+  }
+
+  const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
+    expires_at: new Date(
+      Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
+    ).toISOString(),
+    authParams: {
+      client_id: client.id,
+      username: email,
+    },
+    ...getClientInfo(ctx.req),
+  });
+
+  let code_id = generateOTP();
+  let existingCode = await ctx.env.data.codes.get(
+    client.tenant.id,
+    code_id,
+    "password_reset",
+  );
+
+  // This is a slighly hacky way to ensure we don't generate a code that already exists
+  while (existingCode) {
+    code_id = generateOTP();
+    existingCode = await ctx.env.data.codes.get(
+      client.tenant.id,
+      code_id,
+      "password_reset",
+    );
+  }
+
+  const createdCode = await ctx.env.data.codes.create(client.tenant.id, {
+    code_id,
+    code_type: "password_reset",
+    login_id: loginSession.login_id,
+    expires_at: new Date(
+      Date.now() + PASSWORD_RESET_EXPIRATION_TIME,
+    ).toISOString(),
+  });
+
+  await sendResetPassword(ctx, email, createdCode.code_id, state);
 }
