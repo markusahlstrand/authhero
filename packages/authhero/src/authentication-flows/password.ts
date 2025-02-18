@@ -233,7 +233,5 @@ export async function requestPasswordReset(
     ).toISOString(),
   });
 
-  console.log("sendResetPassword", email, createdCode.code_id, state);
-
   await sendResetPassword(ctx, email, createdCode.code_id, state);
 }

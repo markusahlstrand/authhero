@@ -111,13 +111,13 @@ describe("passwords", () => {
     // --------------------------------
     // request password reset
     // --------------------------------
-    const fortgoPasswordResponse = await universalClient[
+    const forgotPasswordResponse = await universalClient[
       "forgot-password"
     ].$post({
       query: { state },
     });
 
-    expect(fortgoPasswordResponse.status).toBe(200);
+    expect(forgotPasswordResponse.status).toBe(200);
 
     const sentEmails = getSentEmails();
     expect(sentEmails.length).toBe(2);
