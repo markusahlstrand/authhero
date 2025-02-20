@@ -4,7 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 
 describe("check account", () => {
   it("should login using a session", async () => {
-    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
+    const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
     });
     const oauthClient = testClient(oauthApp, env);

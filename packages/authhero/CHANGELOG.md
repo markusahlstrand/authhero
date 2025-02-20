@@ -1,5 +1,11 @@
 # authhero
 
+## 0.71.0
+
+### Minor Changes
+
+- Fix path for post check-account
+
 ## 0.70.0
 
 ### Minor Changes

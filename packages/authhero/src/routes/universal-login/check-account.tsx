@@ -74,7 +74,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "post",
-      path: "/check-account",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({
