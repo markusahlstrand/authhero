@@ -7,6 +7,7 @@ import { enterPasswordRoutes } from "./enter-password";
 import { signupRoutes } from "./signup";
 import { resetPasswordRoutes } from "./reset-password";
 import { forgotPasswordRoutes } from "./forgot-password";
+import { checkAccountRoutes } from "./check-account";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -19,6 +20,7 @@ export default function create() {
   }>();
 
   const universalApp = app
+    .route("/check-account", checkAccountRoutes)
     .route("/enter-email", enterEmailRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
