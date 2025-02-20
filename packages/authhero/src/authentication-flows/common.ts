@@ -13,6 +13,7 @@ import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
 import { nanoid } from "nanoid";
+import { generateCodeVerifier } from "oslo/oauth2";
 import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";
 import {
@@ -24,7 +25,7 @@ import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
-import { generateCodeVerifier } from "oslo/oauth2";
+import { postUserLoginWebhook } from "../hooks/webhooks";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -308,8 +309,15 @@ export async function createAuthResponse(
   let refresh_token = params.refreshToken;
   let session_id = params.sessionId;
 
+  let postHookUser = user;
+
   // If there is no session id, create a new session
   if (!session_id) {
+    postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
+      client.tenant.id,
+      user,
+    );
+
     const session = await createSession(ctx, {
       user,
       client,
@@ -327,15 +335,14 @@ export async function createAuthResponse(
       ctx,
       params.client,
       params.authParams,
-      user,
+      postHookUser,
       session_id,
     );
   }
 
-  console.log("Create auth tokens");
   const tokens = await createAuthTokens(ctx, {
     authParams,
-    user,
+    user: postHookUser,
     client,
     session_id,
     refresh_token,

@@ -24,8 +24,8 @@ async function invokeHooks(
 
     if (!response.ok) {
       const log = createLogMessage(ctx, {
-        type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
-        description: "Invalid password",
+        type: LogTypes.FAILED_HOOK,
+        description: `Failed to invoke hook ${hook.hook_id}`,
       });
       await data.logs.create(ctx.var.tenant_id, log);
     }

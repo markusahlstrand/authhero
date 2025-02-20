@@ -1,5 +1,11 @@
 # authhero
 
+## 0.73.0
+
+### Minor Changes
+
+- Add post user login webhook back
+
 ## 0.72.0
 
 ### Minor Changes

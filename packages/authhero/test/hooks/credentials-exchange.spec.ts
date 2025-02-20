@@ -3,7 +3,7 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import {
-  OnExecuteCredentialsExchange,
+  OnExecuteCredentialsExchangeAPI,
   OnExecuteCredentialsExchangeEvent,
 } from "../../src/types/Hooks";
 
@@ -15,7 +15,7 @@ describe("client-credentials-hooks", () => {
     env.hooks = {
       onExecuteCredentialsExchange: async (
         event: OnExecuteCredentialsExchangeEvent,
-        api: OnExecuteCredentialsExchange,
+        api: OnExecuteCredentialsExchangeAPI,
       ) => {
         if (event.client.id === "clientId") {
           api.accessToken.setCustomClaim("foo", "bar");
