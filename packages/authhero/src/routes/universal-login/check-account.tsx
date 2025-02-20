@@ -120,6 +120,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         user,
         authParams: session.authParams,
         client,
+        loginSession: session,
       });
     },
   );

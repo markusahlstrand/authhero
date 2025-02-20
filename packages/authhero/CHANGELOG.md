@@ -1,5 +1,11 @@
 # authhero
 
+## 0.72.0
+
+### Minor Changes
+
+- Pass login session in check account
+
 ## 0.71.0
 
 ### Minor Changes

@@ -260,7 +260,7 @@ export async function createAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
 ) {
-  const { authParams, user, client } = params;
+  const { authParams, user, client, ticketAuth } = params;
 
   const logMessage = createLogMessage(ctx, {
     type: LogTypes.SUCCESS_LOGIN,
@@ -280,7 +280,7 @@ export async function createAuthResponse(
     }),
   );
 
-  if (params?.ticketAuth) {
+  if (ticketAuth) {
     if (!params.loginSession) {
       throw new HTTPException(500, {
         message: "Login session not found",
@@ -332,6 +332,7 @@ export async function createAuthResponse(
     );
   }
 
+  console.log("Create auth tokens");
   const tokens = await createAuthTokens(ctx, {
     authParams,
     user,
