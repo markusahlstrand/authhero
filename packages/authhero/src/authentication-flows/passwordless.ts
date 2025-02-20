@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import { AuthParams, Client } from "@authhero/adapter-interfaces";
+import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { getClientInfo } from "../utils/client-info";
@@ -70,15 +71,26 @@ export async function loginWithPasswordless(
     });
   }
 
-  const user = await getPrimaryUserByEmailAndProvider({
+  let user = await getPrimaryUserByEmailAndProvider({
     userAdapter: env.data.users,
     tenant_id: client.tenant.id,
     email,
     provider: "email",
   });
   if (!user) {
-    throw new HTTPException(400, {
-      message: "User not found",
+    if (client.disable_sign_ups) {
+      throw new HTTPException(400, {
+        message: "User not found",
+      });
+    }
+
+    user = await env.data.users.create(client.tenant.id, {
+      email,
+      email_verified: true,
+      connection: "email",
+      provider: "email",
+      is_social: false,
+      user_id: `email|${nanoid()}`,
     });
   }
 

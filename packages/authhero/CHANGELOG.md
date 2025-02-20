@@ -1,5 +1,11 @@
 # authhero
 
+## 0.70.0
+
+### Minor Changes
+
+- Create new users with passwordless
+
 ## 0.69.0
 
 ### Minor Changes
