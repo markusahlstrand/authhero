@@ -2,7 +2,7 @@ import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 import { logSchema, totalsSchema } from "@authhero/adapter-interfaces";
 
 const logsWithTotalsSchema = totalsSchema.extend({

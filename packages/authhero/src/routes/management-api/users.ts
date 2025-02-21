@@ -5,7 +5,7 @@ import { Bindings, Variables } from "../../types";
 import { getUsersByEmail } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
 import {

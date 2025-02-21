@@ -7,16 +7,20 @@ import {
 import { createLogMessage } from "../utils/create-log-message";
 import { Context } from "hono";
 import { Variables, Bindings } from "../types";
+import { createServiceToken } from "../helpers/service-token";
 
 async function invokeHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   hooks: Hook[],
-  data: any,
+  data: any & { tenant_id: string },
 ) {
+  const token = await createServiceToken(ctx, data.tenant_id, "webhook");
+
   for await (const hook of hooks) {
     const response = await fetch(hook.url, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${token.access_token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
@@ -27,7 +31,7 @@ async function invokeHooks(
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke hook ${hook.hook_id}`,
       });
-      await data.logs.create(ctx.var.tenant_id, log);
+      await ctx.env.data.logs.create(data.tenant_id, log);
     }
   }
 }

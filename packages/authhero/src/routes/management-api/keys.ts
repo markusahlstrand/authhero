@@ -1,5 +1,5 @@
 import { Bindings } from "../../types";
-import { createX509Certificate } from "../../helpers/encryption";
+import { createX509Certificate } from "../../utils/encryption";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { signingKeySchema } from "@authhero/adapter-interfaces";

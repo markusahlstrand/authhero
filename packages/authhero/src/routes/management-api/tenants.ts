@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings } from "../../types";
 import { querySchema } from "../../types";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 import {
   tenantInsertSchema,
   tenantSchema,

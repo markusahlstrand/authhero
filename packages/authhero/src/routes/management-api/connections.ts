@@ -7,7 +7,7 @@ import {
   connectionSchema,
   totalsSchema,
 } from "@authhero/adapter-interfaces";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 
 const connectionsWithTotalsSchema = totalsSchema.extend({
   connections: z.array(connectionSchema),

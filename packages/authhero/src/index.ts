@@ -7,7 +7,7 @@ import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import { AuthHeroConfig } from "./types/AuthHeroConfig";
 import { addDataHooks } from "./hooks";
-import { createX509Certificate } from "./helpers/encryption";
+import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi } from "./locales";
 
 export * from "@authhero/adapter-interfaces";
