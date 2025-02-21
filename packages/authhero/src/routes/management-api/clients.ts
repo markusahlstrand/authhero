@@ -8,7 +8,7 @@ import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 
 const applicationWithTotalsSchema = totalsSchema.extend({
   clients: z.array(applicationSchema),

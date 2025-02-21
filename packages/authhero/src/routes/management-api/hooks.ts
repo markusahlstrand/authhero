@@ -6,7 +6,7 @@ import {
   totalsSchema,
 } from "@authhero/adapter-interfaces";
 import { querySchema } from "../../types/auth0/Query";
-import { parseSort } from "../../helpers/sort";
+import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
 
 const hopoksWithTotalsSchema = totalsSchema.extend({

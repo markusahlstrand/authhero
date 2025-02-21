@@ -1,6 +1,6 @@
 import { createJWT } from "oslo/jwt";
 import { TimeSpan } from "oslo";
-import { createX509Certificate } from "../../src/helpers/encryption";
+import { createX509Certificate } from "../../src/utils/encryption";
 import { SigningKey } from "@authhero/adapter-interfaces";
 
 let signingKey: SigningKey | null = null;
