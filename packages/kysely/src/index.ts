@@ -10,7 +10,7 @@ import { createApplicationsAdapter } from "./applications";
 import { createConnectionsAdapter } from "./connections";
 import { createClientsAdapter } from "./clients";
 import { createKeysAdapter } from "./keys";
-import { createDomainsAdapter } from "./domains";
+import { createCustomDomainsAdapter } from "./customDomains";
 import { createBrandingAdapter } from "./branding";
 import { createHooksAdapter } from "./hooks";
 import { createThemesAdapter } from "./themes";
@@ -30,7 +30,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),
     emailProviders: createEmailProvidersAdapter(db),
-    domains: createDomainsAdapter(db),
+    customDomains: createCustomDomainsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
     logins: createLoginAdapter(db),

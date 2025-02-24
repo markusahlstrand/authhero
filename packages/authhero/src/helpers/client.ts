@@ -64,7 +64,6 @@ export async function getClientWithDefaults(
       `${getUniversalLoginUrl(env)}info`,
     ],
     connections,
-    domains: [...(client.domains || []), ...(defaultClient?.domains || [])],
     tenant: {
       ...(defaultClient?.tenant || {}),
       ...client.tenant,

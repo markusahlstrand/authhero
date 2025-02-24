@@ -4,7 +4,7 @@ import {
   brandingSchema,
   Code,
   connectionSchema,
-  Domain,
+  customDomainSchema,
   emailProviderSchema,
   hookSchema,
   loginSchema,
@@ -99,12 +99,20 @@ const sqlRefreshTokensSchema = z.object({
   rotating: z.number(),
 });
 
+const sqlCustomDomainSchema = z.object({
+  ...customDomainSchema.shape,
+  primary: z.number(),
+  tenant_id: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
-  domains: Domain & { tenant_id: string };
+  custom_domains: z.infer<typeof sqlCustomDomainSchema>;
   email_providers: z.infer<typeof sqlEmailProvidersSchema>;
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };

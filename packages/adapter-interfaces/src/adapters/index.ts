@@ -6,7 +6,7 @@ import { UserDataAdapter } from "./Users";
 import { LogsDataAdapter } from "./Logs";
 import { ApplicationsAdapter } from "./Applications";
 import { ConnectionsAdapter } from "./Connections";
-import { DomainsAdapter } from "./Domains";
+import { CustomDomainsAdapter } from "./CustomDomains";
 import { KeysAdapter } from "./Keys";
 import { BrandingAdapter } from "./Branding";
 import { HooksAdapter } from "./Hooks";
@@ -23,7 +23,7 @@ export interface DataAdapters {
   clients: ClientsAdapter;
   codes: CodesAdapter;
   connections: ConnectionsAdapter;
-  domains: DomainsAdapter;
+  customDomains: CustomDomainsAdapter;
   emailProviders: EmailProvidersAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;

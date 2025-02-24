@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 9.0.0
+
+### Minor Changes
+
+- Add custom domains table and adapter
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.47.0
+
 ## 8.3.0
 
 ### Patch Changes

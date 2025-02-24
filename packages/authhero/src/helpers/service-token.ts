@@ -21,7 +21,6 @@ export async function createServiceToken(
       updated_at: new Date().toISOString(),
       name: ctx.env.ISSUER,
       disable_sign_ups: false,
-      domains: [],
       connections: [],
     },
     authParams: {

@@ -33,12 +33,6 @@ export function createClientsAdapter(db: Kysely<Database>) {
         .selectAll()
         .execute();
 
-      const domains = await db
-        .selectFrom("domains")
-        .where("tenant_id", "=", application.tenant_id)
-        .selectAll()
-        .execute();
-
       const client: Client = {
         ...application,
         connections: connections.map((connection) =>
@@ -49,7 +43,6 @@ export function createClientsAdapter(db: Kysely<Database>) {
             }),
           ),
         ),
-        domains,
         addons: application.addons ? JSON.parse(application.addons) : {},
         callbacks: application.callbacks
           ? JSON.parse(application.callbacks)
