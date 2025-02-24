@@ -1,5 +1,11 @@
 # authhero
 
+## 0.74.2
+
+### Patch Changes
+
+- Create the user if there's a matching email
+
 ## 0.74.1
 
 ### Patch Changes

@@ -6,7 +6,10 @@ import { HTTPException } from "hono/http-exception";
 import { getClientInfo } from "../utils/client-info";
 import { getUniversalLoginUrl } from "../variables";
 import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
-import { getPrimaryUserByEmailAndProvider } from "../helpers/users";
+import {
+  getPrimaryUserByEmailAndProvider,
+  getUsersByEmail,
+} from "../helpers/users";
 import { createAuthResponse } from "./common";
 
 export async function loginWithPasswordless(
@@ -79,9 +82,18 @@ export async function loginWithPasswordless(
   });
   if (!user) {
     if (client.disable_sign_ups) {
-      throw new HTTPException(400, {
-        message: "User not found",
-      });
+      const userWithMatchingEmail = await getUsersByEmail(
+        ctx.env.data.users,
+        client.tenant.id,
+        email,
+      );
+
+      // If there's a user with a matching email they will be merged
+      if (!userWithMatchingEmail.length) {
+        throw new HTTPException(400, {
+          message: "User not found",
+        });
+      }
     }
 
     user = await env.data.users.create(client.tenant.id, {
