@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.47.0
+
+### Minor Changes
+
+- Add custom domains table and adapter
+
 ## 0.46.0
 
 ### Minor Changes

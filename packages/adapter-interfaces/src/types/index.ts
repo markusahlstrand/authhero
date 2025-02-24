@@ -5,7 +5,7 @@ export * from "./Branding";
 export * from "./Client";
 export * from "./Code";
 export * from "./Connection";
-export * from "./Domain";
+export * from "./CustomDomain";
 export * from "./Hook";
 export * from "./Identity";
 export * from "./JWKS";

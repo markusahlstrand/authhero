@@ -70,6 +70,7 @@ import * as n70_refresh_tokens from "./2025-02-03T08:48:00_refresh_tokens";
 import * as n71_session_new_fields from "./2025-02-11T13:54:00_session_new_fields";
 import * as n72_session_primary_key from "./2025-02-12T13:15:00_session_primary_key";
 import * as n73_drop_sessions from "./2025-02-12T15:27:00_drop_sessions";
+import * as n74_custom_domains from "./2025-02-21T23:45:00_custom_domains";
 
 // These need to be in alphabetic order
 export default {
@@ -145,4 +146,5 @@ export default {
   n71_session_new_fields,
   n72_session_primary_key,
   n73_drop_sessions,
+  n74_custom_domains,
 };
