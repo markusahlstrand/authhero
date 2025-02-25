@@ -381,10 +381,19 @@ export async function createAuthResponse(
       ).toISOString(),
     });
 
-    headers.set(
-      "location",
-      `${authParams.redirect_uri}?state=${params.authParams.state}&code=${code.code_id}`,
-    );
+    if (!authParams.redirect_uri) {
+      throw new HTTPException(400, {
+        message: "Redirect uri not found",
+      });
+    }
+
+    const redirectUri = new URL(authParams.redirect_uri);
+    redirectUri.searchParams.set("code", code.code_id);
+    if (authParams.state) {
+      redirectUri.searchParams.set("state", authParams.state);
+    }
+
+    headers.set("location", redirectUri.toString());
   }
 
   return new Response("Redirecting", {

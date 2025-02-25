@@ -1,5 +1,11 @@
 # authhero
 
+## 0.76.0
+
+### Minor Changes
+
+- Fix issue with redirect url encoding
+
 ## 0.75.0
 
 ### Minor Changes

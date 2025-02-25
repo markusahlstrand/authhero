@@ -43,6 +43,11 @@ export default function create() {
       version: "1.0.0",
       title: "Oauth API",
     },
+    security: [
+      {
+        oauth2: ["openid", "email", "profile"],
+      },
+    ],
   });
 
   registerComponent(oauthApp);
