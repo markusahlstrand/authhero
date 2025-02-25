@@ -28,6 +28,8 @@ export default function create() {
     Variables: Variables;
   }>();
 
+  registerComponent(app);
+
   app.use(createAuthMiddleware(app));
 
   const managementApp = app
@@ -46,14 +48,17 @@ export default function create() {
     .route("/sessions", sessionsRoutes)
     .route("/refresh_tokens", refreshTokensRoutes);
 
-  registerComponent(managementApp);
-
   managementApp.doc("/spec", {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",
       title: "Management api",
     },
+    security: [
+      {
+        oauth2: ["openid", "email", "profile"],
+      },
+    ],
   });
 
   return managementApp;
