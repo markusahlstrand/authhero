@@ -1,5 +1,11 @@
 # authhero
 
+## 0.75.0
+
+### Minor Changes
+
+- Add custom domain routes
+
 ## 0.74.2
 
 ### Patch Changes

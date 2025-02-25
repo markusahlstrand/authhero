@@ -16,6 +16,7 @@ import { createAuthMiddleware } from "../../middlewares/authentication";
 import { emailProviderRoutes } from "./emails";
 import { sessionsRoutes } from "./sessions";
 import { refreshTokensRoutes } from "./refresh_tokens";
+import { customDomainRoutes } from "./custom-domains";
 
 export interface CreateAuthParams {
   dataAdapter: DataAdapters;
@@ -31,7 +32,7 @@ export default function create() {
 
   const managementApp = app
     .route("/branding", brandingRoutes)
-    // .route("/domains", domainRoutes)
+    .route("/custom-domains", customDomainRoutes)
     .route("/email/providers", emailProviderRoutes)
     .route("/users", userRoutes)
     .route("/keys", keyRoutes)
