@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { testClient } from "hono/testing";
 import { getTestServer } from "../helpers/test-server";
 import { linkUsersHook } from "../../src/hooks/link-users";
 
