@@ -75,6 +75,8 @@ export async function loginWithPasswordless(
     email,
     provider: "email",
     connection: "email",
+    isSocial: false,
+    ip: ctx.req.header("x-real-ip"),
   });
 
   await env.data.codes.used(client.tenant.id, verification_code);

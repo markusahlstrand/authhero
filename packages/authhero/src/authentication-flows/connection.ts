@@ -173,6 +173,8 @@ export async function connectionCallback(
     connection: connection.name,
     userId: sub,
     profileData,
+    isSocial: true,
+    ip: ctx.req.header("x-real-ip"),
   });
 
   return createAuthResponse(ctx, {

@@ -140,6 +140,8 @@ interface GetOrCreateUserByEmailAndProviderParams {
   connection: string;
   userId?: string;
   profileData?: Record<string, unknown>;
+  ip?: string;
+  isSocial: boolean;
 }
 
 /**
@@ -157,7 +159,9 @@ export async function getOrCreateUserByEmailAndProvider(
     connection,
     client,
     userId,
+    isSocial,
     profileData = {},
+    ip = "",
   } = params;
 
   let user = await getPrimaryUserByEmailAndProvider({
@@ -176,8 +180,8 @@ export async function getOrCreateUserByEmailAndProvider(
       connection,
       // Assume all auth providers verify emails for now
       email_verified: true,
-      last_ip: "",
-      is_social: true,
+      last_ip: ip,
+      is_social: isSocial,
       last_login: new Date().toISOString(),
       profileData: JSON.stringify(profileData),
     };

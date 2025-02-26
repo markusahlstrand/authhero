@@ -171,6 +171,8 @@ export async function requestPasswordReset(
     email,
     provider: "auth2",
     connection: "Username-Password-Authentication",
+    isSocial: false,
+    ip: ctx.req.header("x-real-ip"),
   });
 
   let code_id = generateOTP();
