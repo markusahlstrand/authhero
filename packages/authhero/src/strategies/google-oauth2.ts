@@ -58,7 +58,6 @@ export async function validateAuthorizationCodeAndGetUser(
   );
 
   const tokens = await google.validateAuthorizationCode(code, code_verifier);
-  console.log("got here");
 
   const idToken = parseJWT(tokens.idToken());
 

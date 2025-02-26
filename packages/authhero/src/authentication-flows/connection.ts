@@ -11,9 +11,8 @@ import {
 import { getStrategy } from "../strategies";
 import { getClientWithDefaults } from "../helpers/client";
 import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
-import { getPrimaryUserByEmailAndProvider } from "../helpers/users";
+import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
-import { preUserSignupHook } from "../hooks";
 
 export async function connectionAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -167,39 +166,16 @@ export async function connectionCallback(
 
   ctx.set("username", email);
 
-  let user = await getPrimaryUserByEmailAndProvider({
-    userAdapter: env.data.users,
-    tenant_id: client.tenant.id,
+  const user = await getOrCreateUserByEmailAndProvider(ctx, {
+    client,
     email,
-    provider: connection.name,
+    provider: connection.strategy,
+    connection: connection.name,
+    userId: sub,
+    profileData,
+    isSocial: true,
+    ip: ctx.req.header("x-real-ip"),
   });
-
-  if (!user) {
-    try {
-      await preUserSignupHook(ctx, client, ctx.env.data, email);
-    } catch (err: unknown) {
-      const error = err as Error;
-
-      throw new HTTPException(500, {
-        message: `Failed to run preUserSignupHook: ${error.message}`,
-      });
-    }
-
-    user = await env.data.users.create(client.tenant.id, {
-      user_id: `${connection.name}|${sub}`,
-      email,
-      name: email,
-      provider: connection.name,
-      connection: connection.name,
-      // Assume all auth providers verify emails for now
-      email_verified: true,
-      last_ip: "",
-      is_social: true,
-      last_login: new Date().toISOString(),
-      profileData: JSON.stringify(profileData),
-    });
-    ctx.set("user_id", user.user_id);
-  }
 
   return createAuthResponse(ctx, {
     client,

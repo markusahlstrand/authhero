@@ -278,6 +278,7 @@ export const userRoutes = new OpenAPIHono<{
       const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
 
       try {
+        // This bypasses the hooks right now. Should we pass some flag so that the hooks may be bypassed?
         const data = await ctx.env.data.users.create(tenant_id, {
           email,
           user_id,

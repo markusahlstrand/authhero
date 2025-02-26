@@ -7,10 +7,23 @@ export const mockStrategy: Strategy = {
       code: "code",
     };
   },
-  validateAuthorizationCodeAndGetUser: async () => {
-    return {
-      sub: "123",
-      email: "hello@example.com",
-    };
+  validateAuthorizationCodeAndGetUser: async (
+    _ctx,
+    _connection,
+    code: string,
+  ) => {
+    // This is a way to provide different mock responses
+    switch (code) {
+      case "foo@example.com":
+        return {
+          sub: "foo",
+          email: "foo@example.com",
+        };
+      default:
+        return {
+          sub: "123",
+          email: "hello@example.com",
+        };
+    }
   },
 };

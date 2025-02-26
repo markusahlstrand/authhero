@@ -10,15 +10,13 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import {
-  getPrimaryUserByEmailAndProvider,
+  getOrCreateUserByEmailAndProvider,
   getUserByEmailAndProvider,
-  getUsersByEmail,
 } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
 import { createAuthResponse } from "./common";
-import { userIdGenerate } from "../utils/user-id";
 import {
   LOGIN_SESSION_EXPIRATION_TIME,
   PASSWORD_RESET_EXPIRATION_TIME,
@@ -167,44 +165,14 @@ export async function requestPasswordReset(
   email: string,
   state: string,
 ) {
-  let user = await getPrimaryUserByEmailAndProvider({
-    userAdapter: ctx.env.data.users,
-    tenant_id: client.tenant.id,
+  // Create the user if if doesn't exist. We probably want to wait with this until the user resets the password?
+  await getOrCreateUserByEmailAndProvider(ctx, {
+    client,
     email,
     provider: "auth2",
-  });
-
-  if (!user) {
-    const matchingUser = await getUsersByEmail(
-      ctx.env.data.users,
-      client.tenant.id,
-      email,
-    );
-
-    if (!matchingUser.length) {
-      return;
-    }
-
-    // Create a new user if it doesn't exist
-    user = await ctx.env.data.users.create(client.tenant.id, {
-      user_id: `email|${userIdGenerate()}`,
-      email,
-      email_verified: false,
-      is_social: false,
-      provider: "auth2",
-      connection: "Username-Password-Authentication",
-    });
-  }
-
-  const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
-    expires_at: new Date(
-      Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
-    ).toISOString(),
-    authParams: {
-      client_id: client.id,
-      username: email,
-    },
-    ...getClientInfo(ctx.req),
+    connection: "Username-Password-Authentication",
+    isSocial: false,
+    ip: ctx.req.header("x-real-ip"),
   });
 
   let code_id = generateOTP();
@@ -223,6 +191,17 @@ export async function requestPasswordReset(
       "password_reset",
     );
   }
+
+  const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
+    expires_at: new Date(
+      Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
+    ).toISOString(),
+    authParams: {
+      client_id: client.id,
+      username: email,
+    },
+    ...getClientInfo(ctx.req),
+  });
 
   const createdCode = await ctx.env.data.codes.create(client.tenant.id, {
     code_id,
