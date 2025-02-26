@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- Get passwords can return nul
+- Get passwords can return null
 
 ### Patch Changes
 
