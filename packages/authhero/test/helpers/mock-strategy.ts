@@ -19,11 +19,11 @@ export const mockStrategy: Strategy = {
           sub: "foo",
           email: "foo@example.com",
         };
+      default:
+        return {
+          sub: "123",
+          email: "hello@example.com",
+        };
     }
-
-    return {
-      sub: "123",
-      email: "hello@example.com",
-    };
   },
 };
