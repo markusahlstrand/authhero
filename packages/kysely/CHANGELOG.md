@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 9.1.0
+
+### Minor Changes
+
+- Get passwords can return nul
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.48.0
+
 ## 9.0.0
 
 ### Minor Changes

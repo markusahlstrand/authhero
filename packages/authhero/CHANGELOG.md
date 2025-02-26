@@ -1,5 +1,16 @@
 # authhero
 
+## 0.78.0
+
+### Minor Changes
+
+- Get passwords can return nul
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.48.0
+
 ## 0.77.0
 
 ### Minor Changes

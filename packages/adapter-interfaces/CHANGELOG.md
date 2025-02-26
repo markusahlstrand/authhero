@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.48.0
+
+### Minor Changes
+
+- Get passwords can return nul
+
 ## 0.47.0
 
 ### Minor Changes

@@ -74,12 +74,11 @@ export async function loginWithPassword(
   ctx.set("connection", user.connection);
   ctx.set("user_id", primaryUser.user_id);
 
-  const { password } = await env.data.passwords.get(
-    client.tenant.id,
-    user.user_id,
-  );
+  const password = await env.data.passwords.get(client.tenant.id, user.user_id);
 
-  const valid = await bcryptjs.compare(authParams.password, password);
+  const valid =
+    password &&
+    (await bcryptjs.compare(authParams.password, password.password));
 
   if (!valid) {
     const log = createLogMessage(ctx, {
