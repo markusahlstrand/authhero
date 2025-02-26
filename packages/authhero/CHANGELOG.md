@@ -1,5 +1,11 @@
 # authhero
 
+## 0.77.0
+
+### Minor Changes
+
+- Ensure hooks are invoked
+
 ## 0.76.0
 
 ### Minor Changes

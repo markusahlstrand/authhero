@@ -3,6 +3,8 @@ import { getPrimaryUserByEmail } from "../helpers/users";
 
 export function linkUsersHook(data: DataAdapters) {
   return async (tenant_id: string, user: User): Promise<User> => {
+    console.log("got here");
+
     // If the user does not have an email or the email is not verified, return the user
     if (!user.email || !user.email_verified) {
       return data.users.create(tenant_id, user);

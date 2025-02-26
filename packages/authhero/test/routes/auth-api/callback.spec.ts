@@ -93,10 +93,11 @@ describe("callback", () => {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
     });
 
+    // This will create a user that is merged with the default test user
     const response = await oauthClient.callback.$get({
       query: {
         state: state.code_id,
-        code: "code",
+        code: "foo@example.com",
       },
     });
 
@@ -110,5 +111,8 @@ describe("callback", () => {
 
     const logs = await env.data.logs.list("tenantId");
     expect(logs).toHaveLength(1);
+
+    const user = await env.data.users.get("tenantId", "email|userId");
+    expect(user?.identities?.length).toBe(2);
   });
 });

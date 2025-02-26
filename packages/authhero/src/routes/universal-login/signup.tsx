@@ -11,6 +11,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import MessagePage from "../../components/Message";
 import { sendValidateEmailAddress } from "../../emails";
 import { loginWithPassword } from "../../authentication-flows/password";
+import { getDataAdapter } from "../../helpers/data";
 
 export const signupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -177,29 +178,20 @@ export const signupRoutes = new OpenAPIHono<{
         const email_verified =
           emailVerificationSession?.authParams.username === email;
 
-        const newUser = await ctx.env.data.users.create(client.tenant.id, {
-          user_id: `auth2|${userIdGenerate()}`,
-          email,
-          email_verified,
-          provider: "auth2",
-          connection,
-          is_social: false,
-        });
-
-        // fetch the user again to get the user_id of the password user in case they have been linked
-        const newPasswordUser = await getUserByEmailAndProvider({
-          userAdapter: ctx.env.data.users,
-          tenant_id: client.tenant.id,
-          email,
-          provider: "auth2",
-        });
-
-        if (!newPasswordUser) {
-          throw new HTTPException(400, { message: "Invalid sign up" });
-        }
+        const newUser = await getDataAdapter(ctx).users.create(
+          client.tenant.id,
+          {
+            user_id: `auth2|${userIdGenerate()}`,
+            email,
+            email_verified,
+            provider: "auth2",
+            connection,
+            is_social: false,
+          },
+        );
 
         await env.data.passwords.create(client.tenant.id, {
-          user_id: newPasswordUser.user_id,
+          user_id: newUser.user_id,
           password: await bcryptjs.hash(loginParams.password, 10),
           algorithm: "bcrypt",
         });

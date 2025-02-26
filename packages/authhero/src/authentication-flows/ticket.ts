@@ -2,8 +2,7 @@ import { AuthParams } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { getPrimaryUserByEmailAndProvider } from "../helpers/users";
-import { userIdGenerate } from "../utils/user-id";
+import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
 import { createAuthResponse, createSession } from "./common";
 
 function getProviderFromRealm(realm: string) {
@@ -49,26 +48,13 @@ export async function ticketAuth(
 
   const provider = getProviderFromRealm(realm);
 
-  let user = await getPrimaryUserByEmailAndProvider({
-    userAdapter: env.data.users,
-    tenant_id,
+  let user = await getOrCreateUserByEmailAndProvider(ctx, {
     email: login.authParams.username,
     provider,
+    client,
+    connection:
+      provider === "auth2" ? "Username-Password-Authentication" : "email",
   });
-
-  if (!user) {
-    user = await env.data.users.create(tenant_id, {
-      user_id: `email|${userIdGenerate()}`,
-      email: login.authParams.username,
-      name: login.authParams.username,
-      provider: "email",
-      connection: "email",
-      email_verified: true,
-      is_social: false,
-      last_ip: "",
-      last_login: new Date().toISOString(),
-    });
-  }
 
   ctx.set("username", user.email);
   ctx.set("user_id", user.user_id);

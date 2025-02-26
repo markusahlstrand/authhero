@@ -1,4 +1,8 @@
-import { User, UserDataAdapter } from "@authhero/adapter-interfaces";
+import { Client, User, UserDataAdapter } from "@authhero/adapter-interfaces";
+import { Context } from "hono";
+import { Bindings, Variables } from "../types";
+import { getDataAdapter } from "./data";
+import { userIdGenerate } from "../utils/user-id";
 
 export async function getUsersByEmail(
   userAdapter: UserDataAdapter,
@@ -127,4 +131,61 @@ export async function getPrimaryUserByEmailAndProvider({
   }
 
   return userAdapter.get(tenant_id, user.linked_to);
+}
+
+interface GetOrCreateUserByEmailAndProviderParams {
+  client: Client;
+  email: string;
+  provider: string;
+  connection: string;
+  userId?: string;
+  profileData?: Record<string, unknown>;
+}
+
+/**
+ * This function will either fetch an existing user for a provider or create it
+ * @param param0
+ * @returns
+ */
+export async function getOrCreateUserByEmailAndProvider(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: GetOrCreateUserByEmailAndProviderParams,
+): Promise<User> {
+  const {
+    email,
+    provider,
+    connection,
+    client,
+    userId,
+    profileData = {},
+  } = params;
+
+  let user = await getPrimaryUserByEmailAndProvider({
+    userAdapter: ctx.env.data.users,
+    tenant_id: params.client.tenant.id,
+    email,
+    provider,
+  });
+
+  if (!user) {
+    const userData = {
+      user_id: `${provider}|${userId || userIdGenerate()}`,
+      email,
+      name: email,
+      provider,
+      connection,
+      // Assume all auth providers verify emails for now
+      email_verified: true,
+      last_ip: "",
+      is_social: true,
+      last_login: new Date().toISOString(),
+      profileData: JSON.stringify(profileData),
+    };
+
+    user = await getDataAdapter(ctx).users.create(client.tenant.id, userData);
+
+    ctx.set("user_id", user.user_id);
+  }
+
+  return user;
 }

@@ -161,7 +161,6 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           );
         }
 
-        console.log("got here");
         const passwordOptions: PasswordInsert = {
           user_id: user.user_id,
           password: await bcryptjs.hash(password, 10),
