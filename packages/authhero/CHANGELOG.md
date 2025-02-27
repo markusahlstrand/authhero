@@ -1,5 +1,11 @@
 # authhero
 
+## 0.80.0
+
+### Minor Changes
+
+- Use correct email template
+
 ## 0.79.0
 
 ### Minor Changes

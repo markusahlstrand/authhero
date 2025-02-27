@@ -24,7 +24,9 @@ export type SendType = "link" | "code";
 export function getSendParamFromAuth0ClientHeader(
   auth0ClientHeader?: string,
 ): SendType {
-  if (!auth0ClientHeader) return "link";
+  if (!auth0ClientHeader) {
+    return "code";
+  }
 
   const decodedAuth0Client = atob(auth0ClientHeader);
 
