@@ -1,5 +1,11 @@
 # authhero
 
+## 0.79.0
+
+### Minor Changes
+
+- Only validate IP for magic links
+
 ## 0.78.0
 
 ### Minor Changes

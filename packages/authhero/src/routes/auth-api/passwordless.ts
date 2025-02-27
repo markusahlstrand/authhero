@@ -144,6 +144,8 @@ export const passwordlessRoutes = new OpenAPIHono<{
         authParams,
         email,
         verification_code,
+        false,
+        true,
       );
     },
   );

@@ -15,6 +15,7 @@ export async function loginWithPasswordless(
   email: string,
   verification_code: string,
   ticketAuth?: boolean,
+  validateIP?: boolean,
 ) {
   const { env } = ctx;
 
@@ -53,7 +54,7 @@ export async function loginWithPasswordless(
 
   const clientInfo = getClientInfo(ctx.req);
 
-  if (loginSession.ip !== clientInfo.ip) {
+  if (validateIP && loginSession.ip !== clientInfo.ip) {
     return ctx.redirect(
       `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.login_id}`,
     );
