@@ -1,5 +1,11 @@
 # authhero
 
+## 0.81.0
+
+### Minor Changes
+
+- Add a cloudflare adapter
+
 ## 0.80.0
 
 ### Minor Changes

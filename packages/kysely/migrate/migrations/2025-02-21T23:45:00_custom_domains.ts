@@ -22,8 +22,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("custom_client_ip_header", "varchar(50)")
     .addColumn("tls_policy", "varchar(50)")
     .addColumn("domain_metadata", "varchar(2048)")
-    .addColumn("created_at", "timestamp", (col) => col.notNull())
-    .addColumn("updated_at", "timestamp", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .execute();
 
   await db.schema.dropTable("domains").execute();

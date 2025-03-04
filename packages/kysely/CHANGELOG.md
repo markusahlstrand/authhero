@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 9.2.0
+
+### Minor Changes
+
+- Add a cloudflare adapter
+
 ## 9.1.0
 
 ### Minor Changes

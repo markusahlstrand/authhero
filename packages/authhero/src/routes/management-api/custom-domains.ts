@@ -243,4 +243,39 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       return ctx.json(connection, { status: 201 });
     },
+  )
+  // --------------------------------
+  // POST /api/v2/custom-domains/:id/verify
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["custom-domains"],
+      method: "post",
+      path: "/",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: customDomainSchema,
+            },
+          },
+          description: "The custom domain",
+        },
+      },
+    }),
+    async () => {
+      throw new HTTPException(501, {
+        message: "Not implemented",
+      });
+    },
   );
