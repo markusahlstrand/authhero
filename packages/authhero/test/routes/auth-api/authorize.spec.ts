@@ -48,6 +48,8 @@ describe("authorize", () => {
           vendor_id: "vendorId",
           response_mode: AuthorizationResponseMode.QUERY,
           response_type: AuthorizationResponseType.CODE,
+          auth0Client:
+            "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
         },
       },
       {
@@ -80,6 +82,9 @@ describe("authorize", () => {
       state: "state",
       ui_locales: "en",
     });
+    expect(login?.auth0Client).toBe(
+      "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
+    );
   });
 
   describe("silent authentication", () => {

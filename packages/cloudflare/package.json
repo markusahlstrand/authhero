@@ -1,5 +1,5 @@
 {
-  "name": "@authhero/kysely-adapter",
+  "name": "@authhero/cloudflare-adapter",
   "private": false,
   "publishConfig": {
     "access": "public",
@@ -11,18 +11,18 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "9.2.0",
+  "version": "0.1.0",
   "files": [
     "dist"
   ],
-  "main": "dist/kysely-adapter.cjs",
-  "module": "dist/kysely-adapter.mjs",
-  "types": "dist/kysely-adapter.d.ts",
+  "main": "dist/cloudflare-adapter.cjs",
+  "module": "dist/cloudflare-adapter.mjs",
+  "types": "dist/cloudflare-adapter.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/kysely-adapter.cjs",
-      "import": "./dist/kysely-adapter.mjs",
-      "types": "./dist/kysely-adapter.d.ts"
+      "require": "./dist/cloudflare-adapter.cjs",
+      "import": "./dist/cloudflare-adapter.mjs",
+      "types": "./dist/cloudflare-adapter.d.ts"
     }
   },
   "scripts": {
@@ -30,29 +30,19 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.18.0",
     "@authhero/adapter-interfaces": "workspace:*",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
-    "better-sqlite3": "^11.5.0",
     "dts-bundle-generator": "^9.5.1",
-    "hono": "^4.6.11",
-    "kysely-bun-sqlite": "^0.3.2",
-    "kysely-planetscale": "^1.5.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vitest": "^2.1.5"
   },
-  "dependencies": {
-    "kysely": "^0.27.4",
-    "nanoid": "^5.0.8"
-  },
   "peerDependencies": {
-    "@authhero/adapter-interfaces": "workspace:*",
-    "@hono/zod-openapi": "^0.16.4",
-    "hono": "^4.6.8",
-    "kysely-bun-sqlite": "^0.3.2",
-    "kysely-planetscale": "^1.5.0"
+    "@authhero/adapter-interfaces": "workspace:*"
+  },
+  "dependencies": {
+    "wretch": "^2.11.0"
   }
 }

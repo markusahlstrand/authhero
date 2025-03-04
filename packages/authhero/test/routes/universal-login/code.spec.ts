@@ -17,6 +17,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        auth0Client: "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
       },
     });
 
@@ -53,6 +54,8 @@ describe("passwords", () => {
 
     const email = getSentEmails()[0];
     const { code, magicLink } = email.data;
+
+    expect(email.template).toBe("auth-link");
 
     const magicLinkUrl = new URL(magicLink);
     expect(magicLinkUrl.pathname).toBe("/passwordless/verify_redirect");
