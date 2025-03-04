@@ -38,7 +38,7 @@ export async function registerCustomDomain(params: CustomDomainsParams) {
 
 export async function getCustomDomain(params: CustomDomainsParams) {
   const result = await getClient(params)
-    .get(`/custom_hostnames/${params.domain}`)
+    .get(`/custom_hostnames/${encodeURIComponent(params.domain)}`)
     .json();
 
   return result;

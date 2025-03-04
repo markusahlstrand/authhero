@@ -251,8 +251,11 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
     createRoute({
       tags: ["custom-domains"],
       method: "post",
-      path: "/",
+      path: "/{id}/verify",
       request: {
+        params: z.object({
+          id: z.string(),
+        }),
         headers: z.object({
           "tenant-id": z.string(),
         }),

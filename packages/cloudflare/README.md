@@ -1,5 +1,5 @@
-# @authhero/cloudflare-adater
+# @authhero/cloudflare-adapter
 
-A adapter for the cloudflare api handling:
+An adapter for the cloudflare api handling:
 
 - custom domains
