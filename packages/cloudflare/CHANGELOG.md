@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 0.4.0
+
+### Minor Changes
+
+- Handle that enterprise is needed for custom metadata
+
 ## 0.3.0
 
 ### Minor Changes

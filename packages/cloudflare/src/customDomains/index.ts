@@ -1,11 +1,17 @@
 import {
+  CustomDomain,
   CustomDomainInsert,
   CustomDomainsAdapter,
 } from "@authhero/adapter-interfaces";
+import { HTTPException } from "hono/http-exception";
 import wretch from "wretch";
 import { retry, dedupe } from "wretch/middlewares";
 import { CloudflareConfig } from "../types/CloudflareConfig";
-import { CustomDomainResponseSchema } from "../types/CustomDomain";
+import {
+  customDomainListResponseSchema,
+  customDomainResponseSchema,
+  CustomDomainResult,
+} from "../types/CustomDomain";
 
 function getClient(config: CloudflareConfig) {
   return wretch(`https://api.cloudflare.com/client/v4/zones/${config.zoneId}`)
@@ -17,12 +23,22 @@ function getClient(config: CloudflareConfig) {
     .middlewares([retry(), dedupe()]);
 }
 
+function mapCustomDomainResponse(result: CustomDomainResult): CustomDomain {
+  return {
+    custom_domain_id: result.id,
+    domain: result.hostname,
+    primary: false,
+    status: result.status === "active" ? "ready" : "pending",
+    type: "auth0_managed_certs",
+  };
+}
+
 export function createCustomDomainsAdapter(
   config: CloudflareConfig,
 ): CustomDomainsAdapter {
   return {
     create: async (tenant_id: string, domain: CustomDomainInsert) => {
-      const { result, errors, success } = CustomDomainResponseSchema.parse(
+      const { result, errors, success } = customDomainResponseSchema.parse(
         await getClient(config)
           .post(
             {
@@ -31,6 +47,11 @@ export function createCustomDomainsAdapter(
                 method: "http",
                 type: "dv",
               },
+              custom_metadata: config.enterprise
+                ? {
+                    tenant_id,
+                  }
+                : undefined,
             },
             "/custom_hostnames",
           )
@@ -41,26 +62,69 @@ export function createCustomDomainsAdapter(
         throw new Error(JSON.stringify(errors));
       }
 
-      return {
-        custom_domain_id: result.id,
-        tenant_id,
-        domain: result.ssl.hosts[0]!,
-        primary: false,
-        status: result.status === "active" ? "ready" : "pending",
-        type: "auth0_managed_certs",
-      };
+      return mapCustomDomainResponse(result);
     },
-    get: async (tenant_id: string, domain: string) => {
-      console.log("get", tenant_id, domain);
-      throw new Error("Not implemented");
+    get: async (tenant_id: string, domain_id: string) => {
+      const { result, errors, success } = customDomainResponseSchema.parse(
+        await getClient(config)
+          .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+          .json(),
+      );
+
+      if (!success) {
+        throw new HTTPException(503, {
+          message: JSON.stringify(errors),
+        });
+      }
+
+      if (
+        config.enterprise &&
+        result.custom_metadata?.tenant_id !== tenant_id
+      ) {
+        throw new HTTPException(404);
+      }
+
+      return mapCustomDomainResponse(result);
     },
     list: async (tenant_id: string) => {
-      console.log("list", tenant_id);
-      throw new Error("Not implemented");
+      const { result, errors, success } = customDomainListResponseSchema.parse(
+        await getClient(config).get("/custom_hostnames").json(),
+      );
+
+      if (!success) {
+        throw new HTTPException(503, {
+          message: JSON.stringify(errors),
+        });
+      }
+
+      return result
+        .filter(
+          (domain) =>
+            !(
+              config.enterprise &&
+              domain.custom_metadata?.tenant_id !== tenant_id
+            ),
+        )
+        .map(mapCustomDomainResponse);
     },
-    remove: async (tenant_id: string, domain: string) => {
-      console.log("remove", tenant_id, domain);
-      throw new Error("Not implemented");
+    remove: async (tenant_id: string, domain_id: string) => {
+      if (config.enterprise) {
+        const { result, success } = customDomainResponseSchema.parse(
+          await getClient(config)
+            .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+            .json(),
+        );
+
+        if (!success || result.custom_metadata?.tenant_id !== tenant_id) {
+          throw new HTTPException(404);
+        }
+      }
+
+      const response = await getClient(config)
+        .delete(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+        .res();
+
+      return response.ok;
     },
     update: async (tenant_id: string, domain: string) => {
       console.log("update", tenant_id, domain);

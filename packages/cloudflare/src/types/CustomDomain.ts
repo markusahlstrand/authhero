@@ -10,11 +10,11 @@ const ValidationErrorSchema = z.object({
 });
 
 const ValidationRecordSchema = z.object({
-  emails: z.array(z.string()),
+  emails: z.array(z.string()).optional(),
   http_body: z.string(),
   http_url: z.string(),
-  txt_name: z.string(),
-  txt_value: z.string(),
+  txt_name: z.string().optional(),
+  txt_value: z.string().optional(),
 });
 
 const SslSettingsSchema = z.object({
@@ -27,22 +27,22 @@ const SslSettingsSchema = z.object({
 
 const SslSchema = z.object({
   id: z.string(),
-  bundle_method: z.string(),
+  bundle_method: z.string().optional(),
   certificate_authority: z.string(),
-  custom_certificate: z.string(),
-  custom_csr_id: z.string(),
-  custom_key: z.string(),
-  expires_on: z.string(),
-  hosts: z.array(z.string()),
-  issuer: z.string(),
+  custom_certificate: z.string().optional(),
+  custom_csr_id: z.string().optional(),
+  custom_key: z.string().optional(),
+  expires_on: z.string().optional(),
+  hosts: z.array(z.string()).optional(),
+  issuer: z.string().optional(),
   method: z.string(),
-  serial_number: z.string(),
-  settings: SslSettingsSchema,
-  signature: z.string(),
+  serial_number: z.string().optional(),
+  settings: SslSettingsSchema.optional(),
+  signature: z.string().optional(),
   type: z.string(),
-  uploaded_on: z.string(),
-  validation_errors: z.array(ValidationErrorSchema),
-  validation_records: z.array(ValidationRecordSchema),
+  uploaded_on: z.string().optional(),
+  validation_errors: z.array(ValidationErrorSchema).optional(),
+  validation_records: z.array(ValidationRecordSchema).optional(),
   wildcard: z.boolean(),
 });
 
@@ -57,23 +57,34 @@ const OwnershipVerificationHttpSchema = z.object({
   http_url: z.string(),
 });
 
-const ResultSchema = z.object({
+const resultSchema = z.object({
   id: z.string(),
   ssl: SslSchema,
-  custom_metadata: z.record(z.string()),
-  custom_origin_server: z.string(),
-  custom_origin_sni: z.string(),
+  hostname: z.string(),
+  custom_metadata: z.record(z.string()).optional(),
+  custom_origin_server: z.string().optional(),
+  custom_origin_sni: z.string().optional(),
   ownership_verification: OwnershipVerificationSchema,
   ownership_verification_http: OwnershipVerificationHttpSchema,
   status: z.string(),
-  verification_errors: z.array(z.string()),
+  verification_errors: z.array(z.string()).optional(),
+  created_at: z.string(),
 });
 
-export const CustomDomainResponseSchema = z.object({
+export type CustomDomainResult = z.infer<typeof resultSchema>;
+
+export const customDomainResponseSchema = z.object({
   errors: z.array(ErrorSchema),
   messages: z.array(ErrorSchema),
   success: z.boolean(),
-  result: ResultSchema,
+  result: resultSchema,
 });
 
-export type CustomDomainResponse = z.infer<typeof CustomDomainResponseSchema>;
+export const customDomainListResponseSchema = z.object({
+  errors: z.array(ErrorSchema),
+  messages: z.array(ErrorSchema),
+  success: z.boolean(),
+  result: z.array(resultSchema),
+});
+
+export type CustomDomainResponse = z.infer<typeof customDomainResponseSchema>;
