@@ -10,7 +10,8 @@ import { CustomDomainResponseSchema } from "../types/CustomDomain";
 function getClient(config: CloudflareConfig) {
   return wretch(`https://api.cloudflare.com/client/v4/zones/${config.zoneId}`)
     .headers({
-      Authorization: `Bearer ${config.apiKey}`,
+      "X-Auth-Email": config.authEmail,
+      "X-Auth-Key": config.authKey,
       "Content-Type": "application/json",
     })
     .middlewares([retry(), dedupe()]);

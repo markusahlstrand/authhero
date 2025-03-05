@@ -1,4 +1,5 @@
 export interface CloudflareConfig {
   zoneId: string;
-  apiKey: string;
+  authKey: string;
+  authEmail: string;
 }
