@@ -1,7 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { Bindings, Variables } from "../../types";
+import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { registerComponent } from "../../middlewares/register-component";
-import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 
 import { callbackRoutes } from "./callback";
@@ -13,16 +12,18 @@ import { dbConnectionRoutes } from "./dbconnections";
 import { passwordlessRoutes } from "./passwordless";
 import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
+import { addDataHooks } from "../../hooks";
 
-export interface CreateAuthParams {
-  dataAdapter: DataAdapters;
-}
-
-export default function create() {
+export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
   }>();
+
+  app.use(async (ctx, next) => {
+    ctx.env.data = addDataHooks(ctx, config.dataAdapter);
+    return next();
+  });
 
   app.use(createAuthMiddleware(app));
 

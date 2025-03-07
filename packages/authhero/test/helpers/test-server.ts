@@ -6,7 +6,12 @@ import createAdapters, {
   migrateToLatest,
 } from "@authhero/kysely-adapter";
 import * as x509 from "@peculiar/x509";
-import { init } from "../../src";
+import {
+  init,
+  OnExecuteCredentialsExchange,
+  OnExecutePostUserRegistration,
+  OnExecutePreUserRegistration,
+} from "../../src";
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
 import { MockEmailService } from "./mock-email-service";
@@ -16,6 +21,11 @@ type getEnvParams = {
   testTenantLanguage?: string;
   emailValidation?: "enabled" | "enforced" | "disabled";
   mockEmail?: boolean;
+  hooks?: {
+    onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
+    onExecutePreUserRegistration?: OnExecutePreUserRegistration;
+    onExecutePostUserRegistration?: OnExecutePostUserRegistration;
+  };
 };
 
 type TestServer = {
@@ -95,6 +105,7 @@ export async function getTestServer(
 
   const env: Bindings = {
     data,
+    hooks: args.hooks,
     emailProviders: {
       "mock-email": mockEmailService.sendEmail.bind(mockEmailService),
     },

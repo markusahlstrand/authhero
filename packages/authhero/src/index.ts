@@ -1,12 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import i18next from "i18next";
-import { Bindings, Variables } from "./types";
+import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
 import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
-import { AuthHeroConfig } from "./types/AuthHeroConfig";
-import { addDataHooks } from "./hooks";
 import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi } from "./locales";
 
@@ -30,24 +28,19 @@ i18next.init({
 export function init(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
 
-  app.use(async (ctx, next) => {
-    ctx.env.data = addDataHooks(ctx, config.dataAdapter);
-    return next();
-  });
-
   app.get("/", (ctx: Context) => {
     return ctx.json({
       name: "authhero",
     });
   });
 
-  const managementApp = createManagementApi();
+  const managementApp = createManagementApi(config);
   app.route("/api/v2", managementApp);
 
-  const oauthApp = createOauthApi();
+  const oauthApp = createOauthApi(config);
   app.route("/", oauthApp);
 
-  const universalApp = createUniversalLogin();
+  const universalApp = createUniversalLogin(config);
   app.route("/u", universalApp);
 
   return {

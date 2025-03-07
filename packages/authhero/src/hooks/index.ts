@@ -17,8 +17,51 @@ function createUserHooks(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User) => {
+    if (ctx.env.hooks?.onExecutePreUserRegistration) {
+      try {
+        await ctx.env.hooks.onExecutePreUserRegistration(
+          {
+            user,
+          },
+          {
+            user: {
+              setUserMetadata: async (key, value) => {
+                user[key] = value;
+              },
+            },
+          },
+        );
+      } catch (err) {
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_SIGNUP,
+          description: "Pre user registration hook failed",
+        });
+        await ctx.env.data.logs.create(tenant_id, log);
+      }
+    }
+
     // Check for existing user with the same email and if so link the users
     let result = await linkUsersHook(data)(tenant_id, user);
+
+    if (ctx.env.hooks?.onExecutePostUserRegistration) {
+      try {
+        await ctx.env.hooks.onExecutePostUserRegistration(
+          {
+            user,
+          },
+          {
+            user: {},
+          },
+        );
+      } catch (err) {
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_SIGNUP,
+          description: "Pre user registration hook failed",
+        });
+        await ctx.env.data.logs.create(tenant_id, log);
+      }
+    }
+
     // Invoke post-user-registration webhooks
     await postUserRegistrationWebhook(ctx, data)(tenant_id, result);
 
