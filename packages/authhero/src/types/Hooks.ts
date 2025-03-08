@@ -1,10 +1,10 @@
 import { Client, User } from "@authhero/adapter-interfaces";
 
-export type OnExecuteCredentialsExchangeEvent = {
-  client: Client;
+export type HookEvent = {
+  client?: Client;
   user?: User;
-  scope: string; // Space-separated list of scopes being requested
-  grant_type: string; // The grant type (e.g., "password", "refresh_token")
+  scope?: string; // Space-separated list of scopes being requested
+  grant_type?: string; // The grant type (e.g., "password", "refresh_token")
   audience?: string; // Optional audience being requested
 };
 
@@ -21,6 +21,26 @@ export type OnExecuteCredentialsExchangeAPI = {
 };
 
 export type OnExecuteCredentialsExchange = (
-  event: OnExecuteCredentialsExchangeEvent,
+  event: HookEvent,
   access: OnExecuteCredentialsExchangeAPI,
+) => Promise<void>;
+
+export type OnExecutePreUserRegistrationAPI = {
+  user: {
+    setUserMetadata: (key: string, value: any) => void;
+  };
+};
+
+export type OnExecutePostUserRegistrationAPI = {
+  user: {};
+};
+
+export type OnExecutePreUserRegistration = (
+  event: HookEvent,
+  api: OnExecutePreUserRegistrationAPI,
+) => Promise<void>;
+
+export type OnExecutePostUserRegistration = (
+  event: HookEvent,
+  api: OnExecutePostUserRegistrationAPI,
 ) => Promise<void>;
