@@ -56,7 +56,7 @@ function createUserHooks(
       } catch (err) {
         const log = createLogMessage(ctx, {
           type: LogTypes.FAILED_SIGNUP,
-          description: "Pre user registration hook failed",
+          description: "Post user registration hook failed",
         });
         await ctx.env.data.logs.create(tenant_id, log);
       }

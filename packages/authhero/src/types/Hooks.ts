@@ -31,6 +31,10 @@ export type OnExecutePreUserRegistrationAPI = {
   };
 };
 
+export type OnExecutePostUserRegistrationAPI = {
+  user: {};
+};
+
 export type OnExecutePreUserRegistration = (
   event: HookEvent,
   api: OnExecutePreUserRegistrationAPI,
@@ -38,5 +42,5 @@ export type OnExecutePreUserRegistration = (
 
 export type OnExecutePostUserRegistration = (
   event: HookEvent,
-  api: {},
+  api: OnExecutePostUserRegistrationAPI,
 ) => Promise<void>;
