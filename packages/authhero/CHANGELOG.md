@@ -1,5 +1,12 @@
 # authhero
 
+## 0.82.0
+
+### Minor Changes
+
+- 52896d7: Add pre user registration hook
+- 52896d7: Add the post user registration hook
+
 ## 0.81.0
 
 ### Minor Changes
