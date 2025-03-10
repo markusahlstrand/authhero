@@ -7,7 +7,7 @@ import {
   customDomainSchema,
   emailProviderSchema,
   hookSchema,
-  loginSchema,
+  loginSessionSchema,
   Password,
   promptSettingSchema,
   refreshTokenSchema,
@@ -24,7 +24,7 @@ const sqlThemeSchema = flattenSchema(themeSchema).extend({
   tenant_id: z.string(),
 });
 
-const sqlLoginSchema = flattenSchema(loginSchema).extend({
+const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   tenant_id: z.string(),
 });
 

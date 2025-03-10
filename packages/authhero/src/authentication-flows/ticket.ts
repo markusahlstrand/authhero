@@ -33,7 +33,7 @@ export async function ticketAuth(
     throw new HTTPException(403, { message: "Ticket not found" });
   }
 
-  const login = await env.data.logins.get(tenant_id, code.login_id);
+  const login = await env.data.loginSessions.get(tenant_id, code.login_id);
   if (!login || !login.authParams.username) {
     throw new HTTPException(403, { message: "Session not found" });
   }

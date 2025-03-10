@@ -19,6 +19,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("authParams_code_challenge_method", "varchar(256)")
     .addColumn("authParams_code_challenge", "varchar(256)")
     .addColumn("authParams_redirect_uri", "varchar(256)")
+    .addColumn("authParams_organization", "varchar(256)")
+    .addColumn("authorization_url", "varchar(1024)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .addColumn("expires_at", "varchar(255)", (col) => col.notNull())

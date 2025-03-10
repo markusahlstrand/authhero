@@ -56,6 +56,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           code_challenge: z.string().optional(),
           realm: z.string().optional(),
           auth0Client: z.string().optional(),
+          organization: z.string().optional(),
           login_hint: z.string().optional(),
           ui_locales: z.string().optional(),
         }),
@@ -90,6 +91,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         auth0Client,
         login_hint,
         ui_locales,
+        organization,
       } = ctx.req.valid("query");
 
       ctx.set("log", "authorize");
@@ -113,6 +115,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         code_challenge_method,
         username: login_hint,
         ui_locales,
+        organization,
       };
 
       const origin = ctx.req.header("origin");

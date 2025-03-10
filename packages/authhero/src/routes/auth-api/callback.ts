@@ -26,7 +26,7 @@ async function returnError(
     throw new HTTPException(400, { message: "State not found" });
   }
 
-  const loginSession = await ctx.env.data.logins.get(
+  const loginSession = await ctx.env.data.loginSessions.get(
     ctx.var.tenant_id,
     oauth2code.login_id,
   );

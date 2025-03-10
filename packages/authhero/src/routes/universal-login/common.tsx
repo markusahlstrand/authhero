@@ -9,7 +9,7 @@ import {
   vendorSettingsSchema,
 } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../../helpers/users";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 
 // there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
 // some interaction with "dark mode"
@@ -62,15 +62,24 @@ export async function fetchVendorSettings(
   }
 }
 
-export async function initJSXRoute(ctx: Context, state: string) {
+export async function initJSXRoute(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  state: string,
+) {
   const { env } = ctx;
-  const login = await env.data.logins.get(ctx.var.tenant_id || "", state);
-  if (!login) {
-    throw new HTTPException(400, { message: "Session not found" });
+  const loginSession = await env.data.loginSessions.get(
+    ctx.var.tenant_id || "",
+    state,
+  );
+  if (!loginSession) {
+    throw new HTTPException(400, { message: "Login session not found" });
   }
-  ctx.set("login", login);
+  ctx.set("loginSession", loginSession);
 
-  const client = await getClientWithDefaults(env, login.authParams.client_id);
+  const client = await getClientWithDefaults(
+    env,
+    loginSession.authParams.client_id,
+  );
   ctx.set("client_id", client.id);
   ctx.set("tenant_id", client.tenant.id);
 
@@ -82,10 +91,10 @@ export async function initJSXRoute(ctx: Context, state: string) {
   const vendorSettings = await fetchVendorSettings(
     env,
     client.id,
-    login.authParams.vendor_id,
+    loginSession.authParams.vendor_id,
   );
 
-  const loginSessionLanguage = login.authParams.ui_locales
+  const loginSessionLanguage = loginSession.authParams.ui_locales
     ?.split(" ")
     .map((locale) => locale.split("-")[0])
     .find((language) => {
@@ -107,7 +116,7 @@ export async function initJSXRoute(ctx: Context, state: string) {
     },
     client,
     tenant,
-    session: login,
+    session: loginSession,
   };
 }
 

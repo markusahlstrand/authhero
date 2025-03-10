@@ -12,7 +12,7 @@ import { BrandingAdapter } from "./Branding";
 import { HooksAdapter } from "./Hooks";
 import { ClientsAdapter } from "./Clients";
 import { ThemesAdapter } from "./Themes";
-import { LoginsAdapter } from "./Logins";
+import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
 import { EmailProvidersAdapter } from "./EmailProviders";
 import { RefreshTokensAdapter } from "./RefreshTokens";
@@ -27,7 +27,7 @@ export interface DataAdapters {
   emailProviders: EmailProvidersAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;
-  logins: LoginsAdapter;
+  loginSessions: LoginSessionsAdapter;
   logs: LogsDataAdapter;
   passwords: PasswordsAdapter;
   promptSettings: PromptSettingsAdapter;

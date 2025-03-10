@@ -9,7 +9,7 @@ describe("ticket", () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
-    const loginSession = await env.data.logins.create("tenantId", {
+    const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
       authParams: {
         client_id: "clientId",

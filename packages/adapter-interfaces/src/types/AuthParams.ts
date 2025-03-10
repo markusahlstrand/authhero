@@ -21,12 +21,12 @@ export enum CodeChallengeMethod {
 
 export const authParamsSchema = z.object({
   client_id: z.string(),
-  vendor_id: z.string().optional(),
   act_as: z.string().optional(),
   response_type: z.nativeEnum(AuthorizationResponseType).optional(),
   response_mode: z.nativeEnum(AuthorizationResponseMode).optional(),
   redirect_uri: z.string().optional(),
   audience: z.string().optional(),
+  organization: z.string().optional(),
   state: z.string().optional(),
   nonce: z.string().optional(),
   scope: z.string().optional(),
@@ -35,6 +35,8 @@ export const authParamsSchema = z.object({
   code_challenge: z.string().optional(),
   username: z.string().optional(),
   ui_locales: z.string().optional(),
+  // The following fields are not available in Auth0
+  vendor_id: z.string().optional(),
 });
 
 export type AuthParams = z.infer<typeof authParamsSchema>;

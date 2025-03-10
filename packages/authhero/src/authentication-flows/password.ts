@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import {
   AuthParams,
   Client,
-  Login,
+  LoginSession,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
@@ -28,7 +28,7 @@ export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
   authParams: AuthParams & { password: string },
-  loginSession?: Login,
+  loginSession?: LoginSession,
   ticketAuth?: boolean,
 ) {
   const { env } = ctx;
@@ -191,16 +191,19 @@ export async function requestPasswordReset(
     );
   }
 
-  const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
-    expires_at: new Date(
-      Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
-    ).toISOString(),
-    authParams: {
-      client_id: client.id,
-      username: email,
+  const loginSession = await ctx.env.data.loginSessions.create(
+    client.tenant.id,
+    {
+      expires_at: new Date(
+        Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
+      ).toISOString(),
+      authParams: {
+        client_id: client.id,
+        username: email,
+      },
+      ...getClientInfo(ctx.req),
     },
-    ...getClientInfo(ctx.req),
-  });
+  );
 
   const createdCode = await ctx.env.data.codes.create(client.tenant.id, {
     code_id,

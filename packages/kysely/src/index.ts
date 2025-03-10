@@ -15,7 +15,7 @@ import { createBrandingAdapter } from "./branding";
 import { createHooksAdapter } from "./hooks";
 import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
-import { createLoginAdapter } from "./logins";
+import { createLoginAdapter } from "./loginSessions";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
@@ -33,7 +33,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters {
     customDomains: createCustomDomainsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
-    logins: createLoginAdapter(db),
+    loginSessions: createLoginAdapter(db),
     logs: createLogsAdapter(db),
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),

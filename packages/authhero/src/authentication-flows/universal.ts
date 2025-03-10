@@ -25,13 +25,17 @@ export async function universalAuth({
   connection,
   login_hint,
 }: UniversalAuthParams) {
-  const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
-    expires_at: new Date(
-      Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-    ).toISOString(),
-    authParams,
-    ...getClientInfo(ctx.req),
-  });
+  const loginSession = await ctx.env.data.loginSessions.create(
+    client.tenant.id,
+    {
+      expires_at: new Date(
+        Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+      ).toISOString(),
+      authParams,
+      authorization_url: ctx.req.url,
+      ...getClientInfo(ctx.req),
+    },
+  );
 
   // Check if the user in the login_hint matches the user in the session
   if (session && login_hint) {

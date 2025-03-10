@@ -1,11 +1,11 @@
 import { Kysely } from "kysely";
-import { Login, loginSchema } from "@authhero/adapter-interfaces";
+import { LoginSession, loginSessionSchema } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";
 
 export function get(db: Kysely<Database>) {
-  return async (_: string, login_id: string): Promise<Login | null> => {
+  return async (_: string, login_id: string): Promise<LoginSession | null> => {
     const now = new Date().toISOString();
 
     const login = await db
@@ -19,7 +19,7 @@ export function get(db: Kysely<Database>) {
 
     if (!login) return null;
 
-    return loginSchema.parse(
+    return loginSessionSchema.parse(
       unflattenObject(removeNullProperties(login), ["authParams"]),
     );
   };

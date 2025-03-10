@@ -11,17 +11,26 @@ import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
+import { HookRequest } from "../types/Hooks";
 
 function createUserHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User) => {
+    const request: HookRequest = {
+      method: ctx.req.method,
+      ip: ctx.req.query("x-real-ip") || "",
+      user_agent: ctx.req.query("user-agent"),
+      url: ctx.var.loginSession?.authorization_url || ctx.req.url,
+    };
+
     if (ctx.env.hooks?.onExecutePreUserRegistration) {
       try {
         await ctx.env.hooks.onExecutePreUserRegistration(
           {
             user,
+            request,
           },
           {
             user: {
@@ -36,7 +45,7 @@ function createUserHooks(
           type: LogTypes.FAILED_SIGNUP,
           description: "Pre user registration hook failed",
         });
-        await ctx.env.data.logs.create(tenant_id, log);
+        await data.logs.create(tenant_id, log);
       }
     }
 
@@ -48,6 +57,7 @@ function createUserHooks(
         await ctx.env.hooks.onExecutePostUserRegistration(
           {
             user,
+            request,
           },
           {
             user: {},
@@ -63,7 +73,7 @@ function createUserHooks(
     }
 
     // Invoke post-user-registration webhooks
-    await postUserRegistrationWebhook(ctx, data)(tenant_id, result);
+    await postUserRegistrationWebhook(ctx)(tenant_id, result);
 
     return result;
   };
@@ -79,7 +89,7 @@ export async function preUserSignupHook(
   if (client.disable_sign_ups) {
     // If there is another user with the same email, allow the signup as they will be linked together
     const existingUser = await getPrimaryUserByEmail({
-      userAdapter: ctx.env.data.users,
+      userAdapter: data.users,
       tenant_id: client.tenant.id,
       email,
     });
@@ -89,7 +99,7 @@ export async function preUserSignupHook(
         type: LogTypes.FAILED_SIGNUP,
         description: "Public signup is disabled",
       });
-      await ctx.env.data.logs.create(client.tenant.id, log);
+      await data.logs.create(client.tenant.id, log);
 
       throw new HTTPException(400, {
         message: "Signups are disabled for this client",
@@ -97,7 +107,7 @@ export async function preUserSignupHook(
     }
   }
 
-  await preUserSignupWebhook(ctx, data)(ctx.var.tenant_id || "", email);
+  await preUserSignupWebhook(ctx)(ctx.var.tenant_id || "", email);
 }
 
 export function addDataHooks(

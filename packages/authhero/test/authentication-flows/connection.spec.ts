@@ -53,7 +53,7 @@ describe("connection", () => {
       code_id: state,
       code_type: "oauth2_state",
     });
-    const loginSession = await env.data.logins.get(
+    const loginSession = await env.data.loginSessions.get(
       "tenantId",
       ouath2Code.login_id,
     );

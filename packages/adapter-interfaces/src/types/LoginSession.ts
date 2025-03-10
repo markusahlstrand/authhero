@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { authParamsSchema } from "./AuthParams";
 
-export const loginInsertSchema = z
+export const loginSessionInsertSchema = z
   .object({
     auth0Client: z.string().optional(),
     authParams: authParamsSchema,
@@ -9,15 +9,16 @@ export const loginInsertSchema = z
     deleted_at: z.string().optional(),
     ip: z.string().optional(),
     useragent: z.string().optional(),
+    authorization_url: z.string().optional(),
   })
   .openapi({
     description: "This represents a login sesion",
   });
 
-export type LoginInsert = z.infer<typeof loginInsertSchema>;
+export type LoginSessionInsert = z.infer<typeof loginSessionInsertSchema>;
 
-export const loginSchema = z.object({
-  ...loginInsertSchema.shape,
+export const loginSessionSchema = z.object({
+  ...loginSessionInsertSchema.shape,
   login_id: z.string().openapi({
     description: "This is is used as the state in the universal login",
   }),
@@ -25,4 +26,4 @@ export const loginSchema = z.object({
   updated_at: z.string(),
 });
 
-export type Login = z.infer<typeof loginSchema>;
+export type LoginSession = z.infer<typeof loginSessionSchema>;

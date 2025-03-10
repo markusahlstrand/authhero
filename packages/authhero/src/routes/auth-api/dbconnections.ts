@@ -183,13 +183,16 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         username: email,
       };
 
-      const loginSession = await ctx.env.data.logins.create(client.tenant.id, {
-        expires_at: new Date(
-          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-        ).toISOString(),
-        authParams,
-        ...getClientInfo(ctx.req),
-      });
+      const loginSession = await ctx.env.data.loginSessions.create(
+        client.tenant.id,
+        {
+          expires_at: new Date(
+            Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+          ).toISOString(),
+          authParams,
+          ...getClientInfo(ctx.req),
+        },
+      );
 
       await sendResetPassword(
         ctx,

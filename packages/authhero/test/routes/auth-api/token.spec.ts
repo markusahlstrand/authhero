@@ -102,7 +102,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -156,7 +156,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -251,7 +251,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -298,7 +298,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -344,7 +344,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and expired code
-        const loginSession = await env.data.logins.create("tenantId", {
+        const loginSession = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -389,7 +389,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -453,7 +453,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -514,7 +514,7 @@ describe("token", () => {
           "code_verifier,code_verifier,code_verifier,code_verifier";
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -572,7 +572,7 @@ describe("token", () => {
           "code_verifier,code_verifier,code_verifier,code_verifier";
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
@@ -630,7 +630,7 @@ describe("token", () => {
           "code_verifier,code_verifier,code_verifier,code_verifier";
 
         // Create the login session and code
-        const loginSesssion = await env.data.logins.create("tenantId", {
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
           authParams: {
             client_id: "clientId",
