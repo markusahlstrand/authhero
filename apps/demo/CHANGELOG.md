@@ -6,7 +6,7 @@
 
 - Updated dependencies [a9959ad]
   - authhero@0.84.0
-  - @authhero/kysely-adapter@10.0.0
+  - @authhero/kysely-adapter@9.3.0
 
 ## 0.9.25
 
