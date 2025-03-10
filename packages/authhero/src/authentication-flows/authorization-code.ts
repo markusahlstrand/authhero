@@ -57,7 +57,7 @@ export async function authorizationCodeGrant(
     throw new HTTPException(403, { message: "Code already used" });
   }
 
-  const loginSession = await ctx.env.data.logins.get(
+  const loginSession = await ctx.env.data.loginSessions.get(
     client.tenant.id,
     code.login_id,
   );

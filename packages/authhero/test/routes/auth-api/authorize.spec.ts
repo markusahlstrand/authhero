@@ -50,6 +50,9 @@ describe("authorize", () => {
           response_type: AuthorizationResponseType.CODE,
           auth0Client:
             "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
+          organization: "organization",
+          // @ts-ignore
+          firstName: "firstName",
         },
       },
       {
@@ -67,12 +70,16 @@ describe("authorize", () => {
     expect(redirectUri.pathname).toEqual("/u/enter-email");
 
     // Fetch the login session
-    const login = await env.data.logins.get(
+    const login = await env.data.loginSessions.get(
       "clientId",
       redirectUri.searchParams.get("state")!,
     );
 
-    expect(login?.authParams).toEqual({
+    if (!login) {
+      throw new Error("Login session not found");
+    }
+
+    expect(login.authParams).toEqual({
       client_id: "clientId",
       redirect_uri: "https://example.com/callback",
       response_type: AuthorizationResponseType.CODE,
@@ -81,10 +88,18 @@ describe("authorize", () => {
       vendor_id: "vendorId",
       state: "state",
       ui_locales: "en",
+      organization: "organization",
     });
-    expect(login?.auth0Client).toBe(
+    expect(login.auth0Client).toBe(
       "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
     );
+
+    if (!login.authorization_url) {
+      throw new Error("Authorization URL not set");
+    }
+
+    const authorizationUrl = new URL(login.authorization_url);
+    expect(authorizationUrl.searchParams.get("firstName")).toEqual("firstName");
   });
 
   describe("silent authentication", () => {

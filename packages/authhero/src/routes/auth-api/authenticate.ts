@@ -79,7 +79,7 @@ export const authenticateRoutes = new OpenAPIHono<{
           true,
         );
       } else if ("password" in body) {
-        const loginSession = await ctx.env.data.logins.create(
+        const loginSession = await ctx.env.data.loginSessions.create(
           client.tenant.id,
           {
             expires_at: new Date(

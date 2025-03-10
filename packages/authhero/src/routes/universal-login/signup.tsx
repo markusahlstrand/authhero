@@ -157,7 +157,7 @@ export const signupRoutes = new OpenAPIHono<{
           )
         : undefined;
       const emailVerificationSession = emailVerificationCode
-        ? await env.data.logins.get(
+        ? await env.data.loginSessions.get(
             client.tenant.id,
             emailVerificationCode.login_id,
           )

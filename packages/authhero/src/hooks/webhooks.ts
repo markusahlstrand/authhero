@@ -38,10 +38,9 @@ async function invokeHooks(
 
 export function postUserRegistrationWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
-    const { hooks } = await data.hooks.list(tenant_id);
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id);
 
     await invokeHooks(ctx, hooks, {
       tenant_id,
@@ -55,10 +54,9 @@ export function postUserRegistrationWebhook(
 
 export function preUserSignupWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  data: DataAdapters,
 ) {
   return async (tenant_id: string, email: string): Promise<void> => {
-    const { hooks } = await data.hooks.list(tenant_id, {
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
       q: "trigger_id:pre-user-signup",
       page: 0,
       per_page: 100,

@@ -3,7 +3,7 @@ import {
   AuthorizationResponseType,
   AuthParams,
   Client,
-  Login,
+  LoginSession,
   User,
   LogTypes,
   TokenResponse,
@@ -90,7 +90,12 @@ export async function createAuthTokens(
       {
         client,
         user,
-        request: ctx.req.raw,
+        request: {
+          ip: ctx.req.header("x-real-ip") || "",
+          user_agent: ctx.req.header("user-agent") || "",
+          method: ctx.req.method,
+          url: ctx.req.url,
+        },
         scope: authParams.scope || "",
         grant_type: "",
       },
@@ -252,7 +257,7 @@ export interface CreateAuthResponseParams {
   authParams: AuthParams;
   client: Client;
   user: User;
-  loginSession?: Login;
+  loginSession?: LoginSession;
   sessionId?: string;
   refreshToken?: string;
   ticketAuth?: boolean;

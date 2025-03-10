@@ -1,12 +1,12 @@
-import { Login, LoginInsert } from "@authhero/adapter-interfaces";
+import { LoginSession, LoginSessionInsert } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { nanoid } from "nanoid";
 import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, login: LoginInsert) => {
-    const createdLogin: Login = {
+  return async (tenant_id: string, login: LoginSessionInsert) => {
+    const createdLogin: LoginSession = {
       login_id: nanoid(),
       ...login,
       created_at: new Date().toISOString(),

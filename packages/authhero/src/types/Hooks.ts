@@ -1,8 +1,49 @@
-import { Client, User } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  AuthorizationResponseType,
+  Client,
+  User,
+} from "@authhero/adapter-interfaces";
+
+export type Transaction = {
+  locale: string;
+  login_hint?: string;
+  prompt?: string;
+  redirect_uri?: string;
+  requested_scopes?: string[];
+  response_mode?: AuthorizationResponseMode;
+  response_type?: AuthorizationResponseType;
+  state?: string;
+  ui_locales?: string;
+};
+
+export type HookRequest = {
+  body?: Record<string, any>;
+  geoip?: {
+    cityName?: string;
+    continentCode?: string;
+    countryCode?: string;
+    countryCode3?: string;
+    countryName?: string;
+    latitude?: number;
+    longitude?: number;
+    subdivisionCode?: string;
+    subdivisionName?: string;
+    timeZone?: string;
+  };
+  hostname?: string;
+  ip: string;
+  language?: string;
+  method: string;
+  user_agent?: string;
+  // This is not part of the Auth0 event
+  url: string;
+};
 
 export type HookEvent = {
   client?: Client;
-  request: Request;
+  request: HookRequest;
+  transaction?: Transaction;
   user?: User;
   scope?: string; // Space-separated list of scopes being requested
   grant_type?: string; // The grant type (e.g., "password", "refresh_token")

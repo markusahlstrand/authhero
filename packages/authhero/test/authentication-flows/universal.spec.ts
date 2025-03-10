@@ -27,7 +27,7 @@ describe("universal", () => {
     const location = response.headers.get("location");
     const state = location?.split("state=")[1];
 
-    const loginSession = await env.data.logins.get("tenantId", state!);
+    const loginSession = await env.data.loginSessions.get("tenantId", state!);
     expect(loginSession).toMatchObject({
       login_id: state,
       authParams: {

@@ -10,7 +10,7 @@ export * from "./Hook";
 export * from "./Identity";
 export * from "./JWKS";
 export * from "./ListParams";
-export * from "./Login";
+export * from "./LoginSession";
 export * from "./Logs";
 export * from "./Password";
 export * from "./Session";

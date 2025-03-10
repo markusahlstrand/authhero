@@ -168,7 +168,11 @@ export const enterEmailRoutes = new OpenAPIHono<{
       // Add the username to the state
       session.authParams.username = params.username;
       session.authParams.act_as = params.act_as;
-      await env.data.logins.update(client.tenant.id, session.login_id, session);
+      await env.data.loginSessions.update(
+        client.tenant.id,
+        session.login_id,
+        session,
+      );
 
       if (
         await usePasswordLogin(

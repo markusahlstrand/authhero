@@ -42,7 +42,7 @@ export async function loginWithPasswordless(
     });
   }
 
-  const loginSession = await env.data.logins.get(
+  const loginSession = await env.data.loginSessions.get(
     client.tenant.id,
     code.login_id,
   );

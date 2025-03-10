@@ -37,13 +37,13 @@ export async function connectionAuth(
     throw new HTTPException(403, { message: "Connection Not Found" });
   }
 
-  let loginSession = await ctx.env.data.logins.get(
+  let loginSession = await ctx.env.data.loginSessions.get(
     client.tenant.id,
     authParams.state,
   );
 
   if (!loginSession) {
-    loginSession = await ctx.env.data.logins.create(client.tenant.id, {
+    loginSession = await ctx.env.data.loginSessions.create(client.tenant.id, {
       expires_at: new Date(
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
@@ -90,7 +90,7 @@ export async function connectionCallback(
     throw new HTTPException(403, { message: "State not found" });
   }
 
-  const loginSession = await env.data.logins.get(
+  const loginSession = await env.data.loginSessions.get(
     ctx.var.tenant_id || "",
     auth0state.login_id,
   );
