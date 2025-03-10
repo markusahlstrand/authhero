@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 0.10.0
+
+### Minor Changes
+
+- Bump kysely version
+
 ## 9.3.0
 
 ### Minor Changes
