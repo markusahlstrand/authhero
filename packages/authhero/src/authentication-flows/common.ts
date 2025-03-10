@@ -90,6 +90,7 @@ export async function createAuthTokens(
       {
         client,
         user,
+        request: ctx.req.raw,
         scope: authParams.scope || "",
         grant_type: "",
       },

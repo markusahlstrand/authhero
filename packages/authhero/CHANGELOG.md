@@ -1,5 +1,11 @@
 # authhero
 
+## 0.83.0
+
+### Minor Changes
+
+- Add the request object to the hooks event
+
 ## 0.82.0
 
 ### Minor Changes

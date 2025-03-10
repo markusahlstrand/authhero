@@ -22,6 +22,7 @@ function createUserHooks(
         await ctx.env.hooks.onExecutePreUserRegistration(
           {
             user,
+            request: ctx.req.raw,
           },
           {
             user: {
@@ -48,6 +49,7 @@ function createUserHooks(
         await ctx.env.hooks.onExecutePostUserRegistration(
           {
             user,
+            request: ctx.req.raw,
           },
           {
             user: {},

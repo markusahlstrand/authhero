@@ -2,6 +2,7 @@ import { Client, User } from "@authhero/adapter-interfaces";
 
 export type HookEvent = {
   client?: Client;
+  request: Request;
   user?: User;
   scope?: string; // Space-separated list of scopes being requested
   grant_type?: string; // The grant type (e.g., "password", "refresh_token")
