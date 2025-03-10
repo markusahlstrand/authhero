@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 9.3.0
+
+### Minor Changes
+
+- a9959ad: pnpm changeset version
+
+### Patch Changes
+
+- Updated dependencies [a9959ad]
+  - @authhero/adapter-interfaces@0.49.0
+
 ## 9.2.0
 
 ### Minor Changes
