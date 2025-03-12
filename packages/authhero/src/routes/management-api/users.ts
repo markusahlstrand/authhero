@@ -10,6 +10,7 @@ import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
 import {
   LogTypes,
+  PasswordInsert,
   auth0UserResponseSchema,
   sessionSchema,
   totalsSchema,
@@ -367,13 +368,14 @@ export const userRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
+      const { data } = ctx.env;
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
 
       // verify_email is not persisted
       const { verify_email, password, ...userFields } = body;
-      const userToPatch = await ctx.env.data.users.get(tenant_id, user_id);
+      const userToPatch = await data.users.get(tenant_id, user_id);
 
       if (!userToPatch) {
         throw new HTTPException(404);
@@ -418,11 +420,21 @@ export const userRoutes = new OpenAPIHono<{
           });
         }
 
-        await ctx.env.data.passwords.update(tenant_id, {
-          user_id: `${passwordUser.provider}|${passwordUser.user_id}`,
-          password: bcryptjs.hashSync(password, 10),
+        const passwordOptions: PasswordInsert = {
+          user_id: passwordUser.user_id,
+          password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
-        });
+        };
+
+        const existingPassword = await data.passwords.get(
+          tenant_id,
+          passwordUser.user_id,
+        );
+        if (existingPassword) {
+          await data.passwords.update(tenant_id, passwordOptions);
+        } else {
+          await data.passwords.create(tenant_id, passwordOptions);
+        }
       }
 
       const patchedUser = await ctx.env.data.users.get(tenant_id, user_id);

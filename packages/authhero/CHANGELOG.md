@@ -1,5 +1,11 @@
 # authhero
 
+## 0.85.0
+
+### Minor Changes
+
+- Create a new password if it doesn't exist
+
 ## 0.84.0
 
 ### Minor Changes
