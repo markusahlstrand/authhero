@@ -1,5 +1,11 @@
 # authhero
 
+## 0.86.0
+
+### Minor Changes
+
+- Hande idle_expires_at in silent auth
+
 ## 0.85.0
 
 ### Minor Changes

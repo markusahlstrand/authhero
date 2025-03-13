@@ -72,6 +72,7 @@ import * as n72_session_primary_key from "./2025-02-12T13:15:00_session_primary_
 import * as n73_drop_sessions from "./2025-02-12T15:27:00_drop_sessions";
 import * as n74_custom_domains from "./2025-02-21T23:45:00_custom_domains";
 import * as n75_organizations from "./2025-03-10T11:20:00_organization";
+import * as n76_authorization_url_length from "./2025-03-12T14:14:00_authorization_url_length";
 
 // These need to be in alphabetic order
 export default {
@@ -149,4 +150,5 @@ export default {
   n73_drop_sessions,
   n74_custom_domains,
   n75_organizations,
+  n76_authorization_url_length,
 };
