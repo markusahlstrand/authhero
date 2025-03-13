@@ -10,7 +10,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { Bindings, Variables } from "../types";
 import { serializeAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
-import { createAuthTokens } from "./common";
+import { createAuthTokens, createCodeData } from "./common";
 import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
 
 interface SilentAuthParams {
@@ -87,8 +87,7 @@ export async function silentAuth({
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);
 
-  // Create authentication tokens
-  const tokenResponse = await createAuthTokens(ctx, {
+  const tokenResponseOptions = {
     client,
     authParams: {
       client_id: client.id,
@@ -102,7 +101,13 @@ export async function silentAuth({
     },
     user,
     session_id: session.id,
-  });
+  };
+
+  // Create authentication tokens or code
+  const tokenResponse =
+    response_type === AuthorizationResponseType.CODE
+      ? await createCodeData(ctx, tokenResponseOptions)
+      : await createAuthTokens(ctx, tokenResponseOptions);
 
   // Update session
   await env.data.sessions.update(client.tenant.id, session.id, {

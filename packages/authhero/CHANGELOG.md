@@ -1,5 +1,11 @@
 # authhero
 
+## 0.87.0
+
+### Minor Changes
+
+- Handle code response type in silent auth flow
+
 ## 0.86.0
 
 ### Minor Changes

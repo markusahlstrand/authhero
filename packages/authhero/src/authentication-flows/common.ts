@@ -20,12 +20,14 @@ import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   TICKET_EXPIRATION_TIME,
+  UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginWebhook } from "../hooks/webhooks";
+import { getClientInfo } from "../utils/client-info";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -155,6 +157,49 @@ export async function createAuthTokens(
     id_token,
     token_type: "Bearer",
     expires_in: 86400,
+  };
+}
+
+export interface CreateCodeParams {
+  user: User;
+  client: Client;
+  loginSession?: LoginSession;
+  authParams: AuthParams;
+}
+
+export async function createCodeData(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: CreateCodeParams,
+) {
+  if (!params.loginSession) {
+    // This is a short term solution to create codes for silent auth where the login session isn't available.
+    // Maybe a code could be connected to either a login session or a session in the future?
+    params.loginSession = await ctx.env.data.loginSessions.create(
+      params.client.tenant.id,
+      {
+        expires_at: new Date(
+          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+        ).toISOString(),
+        authParams: params.authParams,
+        authorization_url: ctx.req.url,
+        ...getClientInfo(ctx.req),
+      },
+    );
+  }
+
+  const code = await ctx.env.data.codes.create(params.client.tenant.id, {
+    code_id: nanoid(),
+    user_id: params.user.user_id,
+    code_type: "authorization_code",
+    login_id: params.loginSession.login_id,
+    expires_at: new Date(
+      Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
+    ).toISOString(),
+  });
+
+  return {
+    code: code.code_id,
+    state: params.authParams.state,
   };
 }
 
@@ -370,22 +415,7 @@ export async function createAuthResponse(
 
   // If the response type is code, generate a code and redirect
   if (responseType === AuthorizationResponseType.CODE) {
-    if (!params.loginSession) {
-      // The login session needs to be present to generate a code, but for instance not in the case of a silent auth
-      throw new HTTPException(500, {
-        message: "Login session not found",
-      });
-    }
-
-    const code = await ctx.env.data.codes.create(client.tenant.id, {
-      code_id: nanoid(),
-      user_id: user.user_id,
-      code_type: "authorization_code",
-      login_id: params.loginSession.login_id,
-      expires_at: new Date(
-        Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
-      ).toISOString(),
-    });
+    const codeData = await createCodeData(ctx, params);
 
     if (!authParams.redirect_uri) {
       throw new HTTPException(400, {
@@ -394,9 +424,9 @@ export async function createAuthResponse(
     }
 
     const redirectUri = new URL(authParams.redirect_uri);
-    redirectUri.searchParams.set("code", code.code_id);
-    if (authParams.state) {
-      redirectUri.searchParams.set("state", authParams.state);
+    redirectUri.searchParams.set("code", codeData.code);
+    if (codeData.state) {
+      redirectUri.searchParams.set("state", codeData.state);
     }
 
     headers.set("location", redirectUri.toString());
