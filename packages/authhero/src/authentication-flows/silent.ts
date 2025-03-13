@@ -64,12 +64,16 @@ export async function silentAuth({
     );
   }
 
+  console.log("session", JSON.stringify(session, null, 2));
+
   // Check if session is valid
   const isSessionExpired =
     !session ||
     (session?.expires_at && new Date(session.expires_at) < new Date()) ||
     (session?.idle_expires_at &&
       new Date(session.idle_expires_at) < new Date());
+
+  console.log("isSessionExpired", isSessionExpired);
 
   if (isSessionExpired) {
     return handleLoginRequired();
@@ -80,6 +84,7 @@ export async function silentAuth({
   const user = await env.data.users.get(client.tenant.id, session.user_id);
 
   if (!user) {
+    console.error("User not found", session.user_id);
     return handleLoginRequired("User not found");
   }
 
