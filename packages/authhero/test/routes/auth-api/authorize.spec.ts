@@ -167,6 +167,60 @@ describe("authorize", () => {
             scope: "openid email profile",
             prompt: "none",
             response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=sessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const body = await response.text();
+      expect(body).toContain('"code":"');
+
+      // Fetch the session
+      const session = await env.data.sessions.get("tenantId", "sessionId");
+      expect(session?.used_at).toBeDefined();
+      expect(session?.idle_expires_at).not.toBe(idle_expires_at);
+    });
+
+    it("should return a web_message response with a access_token for a valid session", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(Date.now() + 1000).toISOString();
+
+      await env.data.sessions.create("tenantId", {
+        id: "sessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            code_challenge: "codeChallenge",
+            code_challenge_method: CodeChallengeMethod.S256,
+            scope: "openid email profile",
+            prompt: "none",
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
             response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           },
         },

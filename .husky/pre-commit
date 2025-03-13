@@ -1,5 +1,3 @@
-pnpm -r install
-
 pnpm interfaces build
 pnpm kysely build
 pnpm authhero build
