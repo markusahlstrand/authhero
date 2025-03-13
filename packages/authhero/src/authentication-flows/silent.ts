@@ -64,16 +64,12 @@ export async function silentAuth({
     );
   }
 
-  console.log("session", JSON.stringify(session, null, 2));
-
   // Check if session is valid
   const isSessionExpired =
     !session ||
     (session?.expires_at && new Date(session.expires_at) < new Date()) ||
     (session?.idle_expires_at &&
       new Date(session.idle_expires_at) < new Date());
-
-  console.log("isSessionExpired", isSessionExpired);
 
   if (isSessionExpired) {
     return handleLoginRequired();
