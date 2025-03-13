@@ -138,13 +138,13 @@ describe("authorize", () => {
       const { oauthApp, env } = await getTestServer();
       const oauthClient = testClient(oauthApp, env);
 
-      const expires_at = new Date(Date.now() + 1000).toISOString();
+      const idle_expires_at = new Date(Date.now() + 1000).toISOString();
 
       await env.data.sessions.create("tenantId", {
         id: "sessionId",
         user_id: "email|userId",
         clients: ["clientId"],
-        expires_at,
+        idle_expires_at,
         device: {
           last_ip: "",
           initial_ip: "",
@@ -185,7 +185,7 @@ describe("authorize", () => {
       // Fetch the session
       const session = await env.data.sessions.get("tenantId", "sessionId");
       expect(session?.used_at).toBeDefined();
-      expect(session?.expires_at).not.toBe(expires_at);
+      expect(session?.idle_expires_at).not.toBe(idle_expires_at);
     });
 
     it("should return a web_message response with login required for a expired session", async () => {

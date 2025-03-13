@@ -106,9 +106,17 @@ export async function silentAuth({
   // Update session
   await env.data.sessions.update(client.tenant.id, session.id, {
     used_at: new Date().toISOString(),
-    expires_at: new Date(
-      Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
-    ).toISOString(),
+    last_interaction_at: new Date().toISOString(),
+    device: {
+      ...session.device,
+      last_ip: ctx.req.header("x-real-ip") || "",
+      last_user_agent: ctx.req.header("user-agent") || "",
+    },
+    idle_expires_at: session.idle_expires_at
+      ? new Date(
+          Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
+        ).toISOString()
+      : undefined,
   });
 
   // Log successful authentication
