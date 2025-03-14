@@ -137,7 +137,11 @@ export async function silentAuth({
   // The following header is added to prevent Cloudflare from adding the beacon script to the file which might mess with Safari ITP
   headers.set("Server-Timing", "cf-nel=0; no-cloudflare-insights=1");
 
-  const cookie = serializeAuthCookie(client.tenant.id, session.id);
+  const cookie = serializeAuthCookie(
+    client.tenant.id,
+    session.id,
+    ctx.req.header("host"),
+  );
   headers.set("set-cookie", cookie);
 
   return ctx.html(renderAuthIframe(originUrl, JSON.stringify(tokenResponse)), {
