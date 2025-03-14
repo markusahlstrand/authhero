@@ -99,7 +99,10 @@ export const logoutRoutes = new OpenAPIHono<{
       return new Response("Redirecting", {
         status: 302,
         headers: {
-          "set-cookie": clearAuthCookie(client.tenant.id),
+          "set-cookie": clearAuthCookie(
+            client.tenant.id,
+            ctx.req.header("host"),
+          ),
           location: redirectUri,
         },
       });

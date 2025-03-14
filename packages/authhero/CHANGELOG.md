@@ -1,5 +1,11 @@
 # authhero
 
+## 0.88.0
+
+### Minor Changes
+
+- Use wildcad domains for session cookies
+
 ## 0.87.0
 
 ### Minor Changes

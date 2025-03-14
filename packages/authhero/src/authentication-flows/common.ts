@@ -400,7 +400,11 @@ export async function createAuthResponse(
   });
 
   const headers = new Headers({
-    "set-cookie": serializeAuthCookie(client.tenant.id, session_id),
+    "set-cookie": serializeAuthCookie(
+      client.tenant.id,
+      session_id,
+      ctx.req.header("host"),
+    ),
   });
 
   // If it's a web message request, return the tokens in the body
