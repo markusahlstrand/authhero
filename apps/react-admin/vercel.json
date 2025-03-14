@@ -16,5 +16,6 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "NPM_CONFIG_FROZEN_LOCKFILE": "false"
 }
