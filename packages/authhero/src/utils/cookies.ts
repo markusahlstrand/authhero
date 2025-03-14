@@ -9,11 +9,21 @@ function getCookieName(tenant_id: string) {
 }
 
 function getWildcardDomain(hostname: string) {
+  // Return undefined for empty hostnames
+  if (!hostname) {
+    return undefined;
+  }
+
+  // Don't apply wildcards to IP addresses or localhost
+  if (hostname === "localhost" || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+    return hostname;
+  }
+
   // Split the domain into parts
   const parts = hostname.split(".");
 
   // If the domain is a typical structure (like 'subdomain.domain.com')
-  // Ensure it has at least two parts (subdomain + domain)
+  // Ensure it has at least two parts (subdomain  domain)
   if (parts.length > 2) {
     // Join the last two parts to get the main domain
     return `.${parts.slice(-2).join(".")}`; // For example, '.sesamy.com'
