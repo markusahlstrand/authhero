@@ -1,5 +1,11 @@
 # authhero
 
+## 0.92.0
+
+### Minor Changes
+
+- Migrate pre signup page and email
+
 ## 0.91.0
 
 ### Minor Changes
