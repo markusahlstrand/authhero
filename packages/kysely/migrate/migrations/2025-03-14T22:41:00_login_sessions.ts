@@ -41,7 +41,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("session_id", "varchar(21)", (col) =>
       col.references("sessions.id").onDelete("cascade"),
     )
-    .addColumn("csrf_token", "varchar(21)")
+    .addColumn("csrf_token", "varchar(21)", (col) => col.notNull())
     .addColumn("authParams_client_id", "varchar(255)", (col) => col.notNull())
     .addColumn("authParams_vendor_id", "varchar(255)")
     .addColumn("authParams_username", "varchar(255)")
