@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 9.6.0
+
+### Minor Changes
+
+- Create migrations for new login sessions
+
 ## 9.5.0
 
 ### Minor Changes
