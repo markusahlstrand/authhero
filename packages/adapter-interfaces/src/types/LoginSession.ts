@@ -9,6 +9,7 @@ export const loginSessionInsertSchema = z
     deleted_at: z.string().optional(),
     ip: z.string().optional(),
     useragent: z.string().optional(),
+    session: z.string().optional(),
     authorization_url: z.string().optional(),
   })
   .openapi({
