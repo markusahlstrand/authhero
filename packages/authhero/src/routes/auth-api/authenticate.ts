@@ -5,6 +5,7 @@ import { loginWithPassword } from "../../authentication-flows/password";
 import { loginWithPasswordless } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { getClientInfo } from "../../utils/client-info";
+import { nanoid } from "nanoid";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -89,6 +90,7 @@ export const authenticateRoutes = new OpenAPIHono<{
               client_id,
               username: email,
             },
+            csrf_token: nanoid(),
             ...getClientInfo(ctx.req),
           },
         );

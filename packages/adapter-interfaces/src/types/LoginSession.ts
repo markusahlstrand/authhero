@@ -3,6 +3,7 @@ import { authParamsSchema } from "./AuthParams";
 
 export const loginSessionInsertSchema = z
   .object({
+    csrf_token: z.string(),
     auth0Client: z.string().optional(),
     authParams: authParamsSchema,
     expires_at: z.string(),
@@ -20,7 +21,7 @@ export type LoginSessionInsert = z.infer<typeof loginSessionInsertSchema>;
 
 export const loginSessionSchema = z.object({
   ...loginSessionInsertSchema.shape,
-  login_id: z.string().openapi({
+  id: z.string().openapi({
     description: "This is is used as the state in the universal login",
   }),
   created_at: z.string(),

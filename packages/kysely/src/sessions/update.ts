@@ -12,10 +12,10 @@ export function update(db: Kysely<Database>) {
     };
 
     const results = await db
-      .updateTable("sessions_2")
+      .updateTable("sessions")
       .set(sqlSession)
       .where("tenant_id", "=", tenant_id)
-      .where("sessions_2.id", "=", id)
+      .where("sessions.id", "=", id)
       .execute();
 
     return !!results.length;

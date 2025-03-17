@@ -41,16 +41,16 @@ export const resetPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, session } = await initJSXRoute(ctx, state);
+      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
 
-      if (!session.authParams.username) {
+      if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
       }
 
       return ctx.html(
         <ResetPasswordPage
           vendorSettings={vendorSettings}
-          email={session.authParams.username}
+          email={loginSession.authParams.username}
         />,
       );
     },
@@ -96,12 +96,12 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { vendorSettings, client, session } = await initJSXRoute(
+      const { vendorSettings, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
 
-      if (!session.authParams.username) {
+      if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
       }
 
@@ -110,7 +110,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           <ResetPasswordPage
             error={i18next.t("create_account_passwords_didnt_match")}
             vendorSettings={vendorSettings}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
           />,
           400,
         );
@@ -121,7 +121,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           <ResetPasswordPage
             error={i18next.t("create_account_weak_password")}
             vendorSettings={vendorSettings}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
           />,
           400,
         );
@@ -132,7 +132,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       const user = await getUserByEmailAndProvider({
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
-        email: session.authParams.username,
+        email: loginSession.authParams.username,
         provider: "auth2",
       });
 
@@ -155,7 +155,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
             <ResetPasswordPage
               error="Code not found or expired"
               vendorSettings={vendorSettings}
-              email={session.authParams.username}
+              email={loginSession.authParams.username}
             />,
             400,
           );
@@ -188,7 +188,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           <ResetPasswordPage
             error="The password could not be reset"
             vendorSettings={vendorSettings}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
           />,
           400,
         );

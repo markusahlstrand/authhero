@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 
-describe("passwords", () => {
+describe("code", () => {
   it("should login using a code", async () => {
     const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,

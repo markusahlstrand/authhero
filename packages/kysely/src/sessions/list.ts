@@ -17,8 +17,8 @@ export function list(db: Kysely<Database>) {
     },
   ): Promise<ListSesssionsResponse> => {
     let query = db
-      .selectFrom("sessions_2")
-      .where("sessions_2.tenant_id", "=", tenant_id);
+      .selectFrom("sessions")
+      .where("sessions.tenant_id", "=", tenant_id);
 
     if (params.q) {
       query = luceneFilter(db, query, params.q, ["user_id", "session_id"]);

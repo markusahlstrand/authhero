@@ -116,13 +116,13 @@ export interface Database {
   email_providers: z.infer<typeof sqlEmailProvidersSchema>;
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
-  logins: z.infer<typeof sqlLoginSchema>;
+  login_sessions: z.infer<typeof sqlLoginSchema>;
   logs: SqlLog;
   passwords: Password & { tenant_id: string };
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
-  refresh_tokens_2: z.infer<typeof sqlRefreshTokensSchema>;
+  refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
-  sessions_2: z.infer<typeof sqlSessionSchema>;
+  sessions: z.infer<typeof sqlSessionSchema>;
   tenants: Tenant;
   themes: z.infer<typeof sqlThemeSchema>;
 }

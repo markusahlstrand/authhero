@@ -66,7 +66,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state, impersonation } = ctx.req.valid("query");
 
-      const { vendorSettings, session, client } = await initJSXRoute(
+      const { vendorSettings, loginSession, client } = await initJSXRoute(
         ctx,
         state,
       );
@@ -74,9 +74,9 @@ export const enterEmailRoutes = new OpenAPIHono<{
       return ctx.html(
         <EnterEmailPage
           vendorSettings={vendorSettings}
-          session={session}
+          session={loginSession}
           client={client}
-          email={session.authParams.username}
+          email={loginSession.authParams.username}
           impersonation={impersonation === "true"}
         />,
       );
@@ -124,7 +124,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
       ctx.set("body", params);
       ctx.set("username", params.username);
 
-      const { client, session, vendorSettings } = await initJSXRoute(
+      const { client, loginSession, vendorSettings } = await initJSXRoute(
         ctx,
         state,
       );
@@ -155,7 +155,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
           return ctx.html(
             <EnterEmailPage
               vendorSettings={vendorSettings}
-              session={session}
+              session={loginSession}
               error={i18next.t("user_account_does_not_exist")}
               email={params.username}
               client={client}
@@ -166,12 +166,12 @@ export const enterEmailRoutes = new OpenAPIHono<{
       }
 
       // Add the username to the state
-      session.authParams.username = params.username;
-      session.authParams.act_as = params.act_as;
+      loginSession.authParams.username = params.username;
+      loginSession.authParams.act_as = params.act_as;
       await env.data.loginSessions.update(
         client.tenant.id,
-        session.login_id,
-        session,
+        loginSession.id,
+        loginSession,
       );
 
       if (
@@ -205,11 +205,13 @@ export const enterEmailRoutes = new OpenAPIHono<{
       const createdCode = await ctx.env.data.codes.create(client.tenant.id, {
         code_id,
         code_type: "otp",
-        login_id: session.login_id,
+        login_id: loginSession.id,
         expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
       });
 
-      const sendType = getSendParamFromAuth0ClientHeader(session.auth0Client);
+      const sendType = getSendParamFromAuth0ClientHeader(
+        loginSession.auth0Client,
+      );
 
       if (sendType === "link" && !params.username.includes("online.no")) {
         waitUntil(
@@ -218,7 +220,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
             ctx,
             params.username,
             createdCode.code_id,
-            session.authParams,
+            loginSession.authParams,
           ),
         );
       } else {

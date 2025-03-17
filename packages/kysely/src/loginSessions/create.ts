@@ -7,14 +7,14 @@ import { flattenObject } from "../utils/flatten";
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, login: LoginSessionInsert) => {
     const createdLogin: LoginSession = {
-      login_id: nanoid(),
+      id: nanoid(),
       ...login,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     await db
-      .insertInto("logins")
+      .insertInto("login_sessions")
       .values({ ...flattenObject(createdLogin), tenant_id })
       .execute();
 

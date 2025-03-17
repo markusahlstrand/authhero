@@ -114,6 +114,7 @@ describe("common", () => {
     // Create the login session and code
     const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
       authParams: {
         client_id: "clientId",
         username: "foo@example.com",

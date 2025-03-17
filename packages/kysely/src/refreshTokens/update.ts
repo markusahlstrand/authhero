@@ -20,10 +20,10 @@ export function update(db: Kysely<Database>) {
     };
 
     const results = await db
-      .updateTable("refresh_tokens_2")
+      .updateTable("refresh_tokens")
       .set(updateData)
       .where("tenant_id", "=", tenant_id)
-      .where("refresh_tokens_2.id", "=", id)
+      .where("refresh_tokens.id", "=", id)
       .execute();
 
     return !!results.length;

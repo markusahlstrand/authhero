@@ -56,7 +56,7 @@ export async function loginWithPasswordless(
 
   if (validateIP && loginSession.ip !== clientInfo.ip) {
     return ctx.redirect(
-      `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.login_id}`,
+      `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
     );
   }
 
