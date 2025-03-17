@@ -5,10 +5,10 @@ import { Database } from "../db";
 export function get(db: Kysely<Database>) {
   return async (tenant_id: string, id: string): Promise<Session | null> => {
     const session = await db
-      .selectFrom("sessions_2")
-      .where("sessions_2.tenant_id", "=", tenant_id)
-      .where("sessions_2.id", "=", id)
-      .where("sessions_2.revoked_at", "is", null)
+      .selectFrom("sessions")
+      .where("sessions.tenant_id", "=", tenant_id)
+      .where("sessions.id", "=", id)
+      .where("sessions.revoked_at", "is", null)
       .selectAll()
       .executeTakeFirst();
 

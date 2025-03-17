@@ -26,6 +26,7 @@ describe("callback", () => {
 
     const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
       authParams: {
         client_id: "clientId",
         redirect_uri: "https://example.com/callback",
@@ -35,7 +36,7 @@ describe("callback", () => {
     const state = await env.data.codes.create("tenantId", {
       code_id: nanoid(),
       code_type: "oauth2_state",
-      login_id: loginSession.login_id,
+      login_id: loginSession.id,
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
     });
 
@@ -56,9 +57,7 @@ describe("callback", () => {
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toEqual("/u/enter-email");
     expect(redirectUri.searchParams.get("error")).toEqual("error");
-    expect(redirectUri.searchParams.get("state")).toEqual(
-      loginSession.login_id,
-    );
+    expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });
 
   it("should return a code response redirect for a connection user", async () => {
@@ -78,6 +77,7 @@ describe("callback", () => {
 
     const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
       authParams: {
         client_id: "clientId",
         redirect_uri: "https://example.com/callback",
@@ -87,7 +87,7 @@ describe("callback", () => {
     const state = await env.data.codes.create("tenantId", {
       code_id: nanoid(),
       code_type: "oauth2_state",
-      login_id: loginSession.login_id,
+      login_id: loginSession.id,
       connection_id: "connectionId",
       code_verifier: "verifier",
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),

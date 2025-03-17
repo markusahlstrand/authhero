@@ -41,7 +41,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("session_id", "varchar(21)", (col) =>
       col.references("sessions.id").onDelete("cascade"),
     )
-    .addColumn("csrf_token", "varchar(21)", (col) => col.notNull())
+    .addColumn("csrf_token", "varchar(21)")
     .addColumn("authParams_client_id", "varchar(255)", (col) => col.notNull())
     .addColumn("authParams_vendor_id", "varchar(255)")
     .addColumn("authParams_username", "varchar(255)")
@@ -50,16 +50,19 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("authParams_audience", "varchar(255)")
     .addColumn("authParams_scope", "varchar(511)")
     .addColumn("authParams_state", "varchar(511)")
+    .addColumn("authParams_nonce", "varchar(256)")
     .addColumn("authParams_code_challenge_method", "varchar(256)")
     .addColumn("authParams_code_challenge", "varchar(256)")
     .addColumn("authParams_redirect_uri", "varchar(256)")
     .addColumn("authParams_organization", "varchar(256)")
+    .addColumn("authParams_ui_locales", "varchar(32)")
     .addColumn("authorization_url", "varchar(1024)")
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .addColumn("expires_at", "varchar(35)", (col) => col.notNull())
     .addColumn("ip", "varchar(39)")
     .addColumn("useragent", "varchar(1024)")
+    .addColumn("auth0Client", "varchar(256)")
     .execute();
 
   await db.schema
@@ -96,5 +99,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
  * Down migration: restore the domains table
  */
 export async function down(db: Kysely<Database>): Promise<void> {
+  await db.schema.dropTable("sessions").execute();
   await db.schema.dropTable("login_sessions").execute();
+  await db.schema.dropTable("refresh_tokens").execute();
 }

@@ -12,6 +12,7 @@ import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getClientWithDefaults } from "../../helpers/client";
 import { loginWithPasswordless } from "../../authentication-flows/passwordless";
+import { nanoid } from "nanoid";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -64,6 +65,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         {
           authParams: { ...authParams, client_id, username: email },
           expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
+          csrf_token: nanoid(),
           ...getClientInfo(ctx.req),
         },
       );
@@ -71,7 +73,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const code = await env.data.codes.create(client.tenant.id, {
         code_id: generateOTP(),
         code_type: "otp",
-        login_id: loginSession.login_id,
+        login_id: loginSession.id,
         expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
       });
 

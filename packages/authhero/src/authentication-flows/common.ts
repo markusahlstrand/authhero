@@ -182,6 +182,7 @@ export async function createCodeData(
         ).toISOString(),
         authParams: params.authParams,
         authorization_url: ctx.req.url,
+        csrf_token: nanoid(),
         ...getClientInfo(ctx.req),
       },
     );
@@ -191,7 +192,7 @@ export async function createCodeData(
     code_id: nanoid(),
     user_id: params.user.user_id,
     code_type: "authorization_code",
-    login_id: params.loginSession.login_id,
+    login_id: params.loginSession.id,
     expires_at: new Date(
       Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
     ).toISOString(),
@@ -344,7 +345,7 @@ export async function createAuthResponse(
     const code = await ctx.env.data.codes.create(client.tenant.id, {
       code_id: nanoid(),
       code_type: "ticket",
-      login_id: params.loginSession.login_id,
+      login_id: params.loginSession.id,
       expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),
       // Concat the co_id and co_verifier
       code_verifier: [co_id, co_verifier].join("|"),

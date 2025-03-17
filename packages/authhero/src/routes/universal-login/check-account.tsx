@@ -92,7 +92,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
-      const { session, client } = await initJSXRoute(ctx, state);
+      const { loginSession, client } = await initJSXRoute(ctx, state);
 
       // Fetch the cookie
       const authCookie = getAuthCookie(
@@ -118,9 +118,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
 
       return createAuthResponse(ctx, {
         user,
-        authParams: session.authParams,
+        authParams: loginSession.authParams,
         client,
-        loginSession: session,
+        loginSession,
       });
     },
   );

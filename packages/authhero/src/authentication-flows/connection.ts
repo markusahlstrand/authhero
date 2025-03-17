@@ -13,6 +13,7 @@ import { getClientWithDefaults } from "../helpers/client";
 import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
 import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
+import { nanoid } from "nanoid";
 
 export async function connectionAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -48,6 +49,7 @@ export async function connectionAuth(
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
       authParams,
+      csrf_token: nanoid(),
       ...getClientInfo(ctx.req),
     });
   }
@@ -57,7 +59,7 @@ export async function connectionAuth(
   const result = await strategy.getRedirect(ctx, connection);
 
   await ctx.env.data.codes.create(client.tenant.id, {
-    login_id: loginSession.login_id,
+    login_id: loginSession.id,
     code_id: result.code,
     code_type: "oauth2_state",
     connection_id: connection.id,

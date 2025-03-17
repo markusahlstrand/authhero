@@ -9,11 +9,11 @@ export function get(db: Kysely<Database>) {
     const now = new Date().toISOString();
 
     const login = await db
-      .selectFrom("logins")
+      .selectFrom("login_sessions")
       // TODO: We currently don't have a tenant_id in all cases here
       // .where("logins.tenant_id", "=", tenant_id)
-      .where("logins.expires_at", ">", now)
-      .where("logins.login_id", "=", login_id)
+      .where("login_sessions.expires_at", ">", now)
+      .where("login_sessions.id", "=", login_id)
       .selectAll()
       .executeTakeFirst();
 

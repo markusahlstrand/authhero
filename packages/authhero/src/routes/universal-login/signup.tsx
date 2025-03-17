@@ -43,9 +43,9 @@ export const signupRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, code } = ctx.req.valid("query");
-      const { vendorSettings, session } = await initJSXRoute(ctx, state);
+      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
 
-      const { username } = session.authParams;
+      const { username } = loginSession.authParams;
 
       if (!username) {
         throw new HTTPException(400, { message: "Username required" });
@@ -109,7 +109,7 @@ export const signupRoutes = new OpenAPIHono<{
       const loginParams = ctx.req.valid("form");
       const { env } = ctx;
 
-      const { vendorSettings, client, session } = await initJSXRoute(
+      const { vendorSettings, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -118,7 +118,7 @@ export const signupRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.id);
       ctx.set("connection", connection);
 
-      const email = session.authParams.username;
+      const email = loginSession.authParams.username;
       if (!email) {
         throw new HTTPException(400, { message: "Username required" });
       }
@@ -130,7 +130,7 @@ export const signupRoutes = new OpenAPIHono<{
             code={loginParams.code}
             vendorSettings={vendorSettings}
             error={i18next.t("create_account_passwords_didnt_match")}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
           />,
           400,
         );
@@ -143,7 +143,7 @@ export const signupRoutes = new OpenAPIHono<{
             code={loginParams.code}
             vendorSettings={vendorSettings}
             error={i18next.t("create_account_weak_password")}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
           />,
           400,
         );
@@ -213,16 +213,16 @@ export const signupRoutes = new OpenAPIHono<{
           ctx,
           client,
           {
-            ...session.authParams,
+            ...loginSession.authParams,
             password: loginParams.password,
           },
-          session,
+          loginSession,
         );
       } catch (err: unknown) {
         const vendorSettings = await fetchVendorSettings(
           env,
           client.id,
-          session.authParams.vendor_id,
+          loginSession.authParams.vendor_id,
         );
 
         const error = err as Error;

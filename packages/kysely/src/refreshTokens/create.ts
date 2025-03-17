@@ -13,7 +13,7 @@ export function create(db: Kysely<Database>) {
     };
 
     await db
-      .insertInto("refresh_tokens_2")
+      .insertInto("refresh_tokens")
       .values({
         ...createdRefreshToken,
         tenant_id,

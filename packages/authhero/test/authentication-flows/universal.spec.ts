@@ -29,7 +29,7 @@ describe("universal", () => {
 
     const loginSession = await env.data.loginSessions.get("tenantId", state!);
     expect(loginSession).toMatchObject({
-      login_id: state,
+      id: state,
       authParams: {
         redirect_uri: "https://example.com/callback",
         state: "state",

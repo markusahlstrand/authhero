@@ -6,6 +6,7 @@ import { Bindings, Variables } from "../types";
 import { createAuthResponse } from "./common";
 import { sendLink } from "../emails";
 import generateOTP from "../utils/otp";
+import { nanoid } from "nanoid";
 
 interface UniversalAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -32,6 +33,7 @@ export async function universalAuth({
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
       authParams,
+      csrf_token: nanoid(),
       authorization_url: ctx.req.url,
       ...getClientInfo(ctx.req),
     },
@@ -61,20 +63,20 @@ export async function universalAuth({
     await ctx.env.data.codes.create(client.tenant.id, {
       code_id: otp,
       code_type: "otp",
-      login_id: loginSession.login_id,
+      login_id: loginSession.id,
       expires_at: new Date(
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
     });
     await sendLink(ctx, login_hint, otp, authParams);
 
-    return ctx.redirect(`/u/enter-code?state=${loginSession.login_id}`);
+    return ctx.redirect(`/u/enter-code?state=${loginSession.id}`);
   }
 
   // If there is a session we redirect to the check-account page
   if (session) {
-    return ctx.redirect(`/u/check-account?state=${loginSession.login_id}`);
+    return ctx.redirect(`/u/check-account?state=${loginSession.id}`);
   }
 
-  return ctx.redirect(`/u/enter-email?state=${loginSession.login_id}`);
+  return ctx.redirect(`/u/enter-email?state=${loginSession.id}`);
 }

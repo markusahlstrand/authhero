@@ -104,6 +104,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -117,7 +118,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -158,6 +159,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -170,7 +172,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -253,6 +255,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -266,7 +269,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -300,6 +303,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -312,7 +316,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -346,6 +350,7 @@ describe("token", () => {
         // Create the login session and expired code
         const loginSession = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@example.com",
@@ -358,7 +363,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSession.login_id,
+          login_id: loginSession.id,
           expires_at: new Date(Date.now() - 1000).toISOString(), // Set to expired
         });
 
@@ -391,6 +396,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -403,7 +409,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -455,6 +461,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@example.com",
@@ -468,7 +475,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -516,6 +523,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -530,7 +538,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -574,6 +582,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -588,7 +597,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -632,6 +641,7 @@ describe("token", () => {
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
@@ -646,7 +656,7 @@ describe("token", () => {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.login_id,
+          login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 

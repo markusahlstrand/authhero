@@ -16,7 +16,7 @@ export function create(db: Kysely<Database>) {
     };
 
     await db
-      .insertInto("sessions_2")
+      .insertInto("sessions")
       .values({
         ...createdSession,
         tenant_id,

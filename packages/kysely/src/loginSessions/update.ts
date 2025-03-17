@@ -10,10 +10,10 @@ export function update(db: Kysely<Database>) {
     login: Partial<LoginSessionInsert>,
   ) => {
     const results = await db
-      .updateTable("logins")
+      .updateTable("login_sessions")
       .set(flattenObject(login))
-      .where("logins.login_id", "=", login_id)
-      .where("logins.tenant_id", "=", tenant_id)
+      .where("login_sessions.id", "=", login_id)
+      .where("login_sessions.tenant_id", "=", tenant_id)
       .execute();
 
     return results.length === 1;

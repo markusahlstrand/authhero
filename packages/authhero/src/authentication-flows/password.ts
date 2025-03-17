@@ -23,6 +23,7 @@ import {
 } from "../constants";
 import { getClientInfo } from "../utils/client-info";
 import generateOTP from "../utils/otp";
+import { nanoid } from "nanoid";
 
 export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -201,6 +202,7 @@ export async function requestPasswordReset(
         client_id: client.id,
         username: email,
       },
+      csrf_token: nanoid(),
       ...getClientInfo(ctx.req),
     },
   );
@@ -208,7 +210,7 @@ export async function requestPasswordReset(
   const createdCode = await ctx.env.data.codes.create(client.tenant.id, {
     code_id,
     code_type: "password_reset",
-    login_id: loginSession.login_id,
+    login_id: loginSession.id,
     expires_at: new Date(
       Date.now() + PASSWORD_RESET_EXPIRATION_TIME,
     ).toISOString(),

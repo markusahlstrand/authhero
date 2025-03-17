@@ -116,7 +116,7 @@ export async function initJSXRoute(
     },
     client,
     tenant,
-    session: loginSession,
+    loginSession,
   };
 }
 

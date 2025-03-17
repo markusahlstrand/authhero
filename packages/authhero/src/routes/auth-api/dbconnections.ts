@@ -13,6 +13,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
 import { getClientInfo } from "../../utils/client-info";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
+import { nanoid } from "nanoid";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -190,6 +191,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
             Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
           ).toISOString(),
           authParams,
+          csrf_token: nanoid(),
           ...getClientInfo(ctx.req),
         },
       );
@@ -197,7 +199,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       await sendResetPassword(
         ctx,
         email,
-        loginSession.login_id,
+        loginSession.id,
         loginSession.authParams.state,
       );
 

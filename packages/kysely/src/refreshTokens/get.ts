@@ -8,9 +8,9 @@ export function get(db: Kysely<Database>) {
     id: string,
   ): Promise<RefreshToken | null> => {
     const refreshToken = await db
-      .selectFrom("refresh_tokens_2")
-      .where("refresh_tokens_2.tenant_id", "=", tenant_id)
-      .where("refresh_tokens_2.id", "=", id)
+      .selectFrom("refresh_tokens")
+      .where("refresh_tokens.tenant_id", "=", tenant_id)
+      .where("refresh_tokens.id", "=", id)
       .selectAll()
       .executeTakeFirst();
 

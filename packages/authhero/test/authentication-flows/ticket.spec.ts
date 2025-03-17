@@ -11,6 +11,7 @@ describe("ticket", () => {
 
     const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
+      csrf_token: "csrfToken",
       authParams: {
         client_id: "clientId",
         username: "foo@example.com",
@@ -24,7 +25,7 @@ describe("ticket", () => {
     const ticket = await env.data.codes.create("tenantId", {
       code_id: "ticket",
       code_type: "ticket",
-      login_id: loginSession.login_id,
+      login_id: loginSession.id,
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       code_verifier: [co_id, co_verifier].join("|"),
     });

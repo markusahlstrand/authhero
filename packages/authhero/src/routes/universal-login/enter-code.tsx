@@ -57,12 +57,12 @@ export const enterCodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, session, client } = await initJSXRoute(
+      const { vendorSettings, loginSession, client } = await initJSXRoute(
         ctx,
         state,
       );
 
-      if (!session.authParams.username) {
+      if (!loginSession.authParams.username) {
         throw new HTTPException(400, {
           message: "Username not found in state",
         });
@@ -71,14 +71,14 @@ export const enterCodeRoutes = new OpenAPIHono<{
       const passwordUser = await getPrimaryUserByEmailAndProvider({
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
-        email: session.authParams.username,
+        email: loginSession.authParams.username,
         provider: "auth2",
       });
 
       return ctx.html(
         <EnterCodePage
           vendorSettings={vendorSettings}
-          email={session.authParams.username}
+          email={loginSession.authParams.username}
           state={state}
           client={client}
           hasPasswordLogin={!!passwordUser}
@@ -120,13 +120,13 @@ export const enterCodeRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      const { session, client, vendorSettings } = await initJSXRoute(
+      const { loginSession, client, vendorSettings } = await initJSXRoute(
         ctx,
         state,
       );
       ctx.set("client_id", client.id);
 
-      if (!session.authParams.username) {
+      if (!loginSession.authParams.username) {
         throw new HTTPException(400, {
           message: "Username not found in state",
         });
@@ -136,8 +136,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
         return await loginWithPasswordless(
           ctx,
           client,
-          session.authParams,
-          session.authParams.username,
+          loginSession.authParams,
+          loginSession.authParams.username,
           code,
         );
       } catch (e) {
@@ -146,14 +146,14 @@ export const enterCodeRoutes = new OpenAPIHono<{
         const passwordUser = await getPrimaryUserByEmailAndProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
-          email: session.authParams.username,
+          email: loginSession.authParams.username,
           provider: "auth2",
         });
 
         return ctx.html(
           <EnterCodePage
             vendorSettings={vendorSettings}
-            email={session.authParams.username}
+            email={loginSession.authParams.username}
             state={state}
             client={client}
             error={err.message}

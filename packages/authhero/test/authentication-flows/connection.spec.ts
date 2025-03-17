@@ -58,7 +58,7 @@ describe("connection", () => {
       ouath2Code.login_id,
     );
     expect(loginSession).toMatchObject({
-      login_id: ouath2Code.login_id,
+      id: ouath2Code.login_id,
       authParams: {
         redirect_uri: "https://example.com/callback",
         state: "state",
