@@ -1,5 +1,16 @@
 # authhero
 
+## 0.89.0
+
+### Minor Changes
+
+- Add an optional session refrence to login_sessions and cleanup old tables
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.50.0
+
 ## 0.88.0
 
 ### Minor Changes

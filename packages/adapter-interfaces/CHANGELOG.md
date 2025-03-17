@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.50.0
+
+### Minor Changes
+
+- Add an optional session refrence to login_sessions and cleanup old tables
+
 ## 0.49.0
 
 ### Minor Changes
