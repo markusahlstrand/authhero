@@ -1,5 +1,9 @@
 import type { FC } from "hono/jsx";
-import { Client, Login, VendorSettings } from "authhero";
+import {
+  Client,
+  LoginSession,
+  VendorSettings,
+} from "@authhero/adapter-interfaces";
 import Layout from "./Layout";
 import i18next from "i18next";
 import cn from "classnames";
@@ -14,7 +18,7 @@ import VippsLogo from "./VippsLogo";
 type Props = {
   error?: string;
   vendorSettings: VendorSettings;
-  session: Login;
+  loginSession: LoginSession;
   email?: string;
   client: Client;
   impersonation?: boolean;
@@ -23,7 +27,7 @@ type Props = {
 const EnterEmailPage: FC<Props> = ({
   error,
   vendorSettings,
-  session,
+  loginSession,
   email,
   client,
   impersonation,
@@ -101,7 +105,7 @@ const EnterEmailPage: FC<Props> = ({
                   name="facebook"
                 />
               }
-              session={session}
+              loginSession={loginSession}
             />
           )}
           {showGoogle && (
@@ -112,7 +116,7 @@ const EnterEmailPage: FC<Props> = ({
               icon={
                 <Google className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
               }
-              session={session}
+              loginSession={loginSession}
             />
           )}
           {showApple && (
@@ -126,7 +130,7 @@ const EnterEmailPage: FC<Props> = ({
                   name="apple"
                 />
               }
-              session={session}
+              loginSession={loginSession}
             />
           )}
           {showVipps && (
@@ -137,7 +141,7 @@ const EnterEmailPage: FC<Props> = ({
               icon={
                 <VippsLogo className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
               }
-              session={session}
+              loginSession={loginSession}
             />
           )}
         </div>

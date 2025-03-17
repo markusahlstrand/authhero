@@ -74,7 +74,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
       return ctx.html(
         <EnterEmailPage
           vendorSettings={vendorSettings}
-          session={loginSession}
+          loginSession={loginSession}
           client={client}
           email={loginSession.authParams.username}
           impersonation={impersonation === "true"}
@@ -155,7 +155,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
           return ctx.html(
             <EnterEmailPage
               vendorSettings={vendorSettings}
-              session={loginSession}
+              loginSession={loginSession}
               error={i18next.t("user_account_does_not_exist")}
               email={params.username}
               client={client}

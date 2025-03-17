@@ -8,7 +8,7 @@ import ErrorMessage from "./ErrorMessage";
 import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
-import { Client, VendorSettings } from "authhero";
+import { VendorSettings, Client } from "@authhero/adapter-interfaces";
 import Trans from "./Trans";
 
 type Props = {

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.91.0
+
+### Minor Changes
+
+- Fix issue with missing login session id
+
 ## 0.90.0
 
 ### Minor Changes

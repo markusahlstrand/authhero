@@ -1,6 +1,6 @@
 import cn from "classnames";
 import Button from "./Button";
-import { Login } from "authhero";
+import { LoginSession } from "@authhero/adapter-interfaces";
 
 type Props = {
   connection: "google-oauth2" | "apple" | "facebook" | "vipps";
@@ -8,7 +8,7 @@ type Props = {
   icon: any;
   text: string;
   canResize?: boolean;
-  session: Login;
+  loginSession: LoginSession;
 };
 
 const SocialButton = ({
@@ -16,29 +16,29 @@ const SocialButton = ({
   text,
   icon = null,
   canResize = false,
-  session,
+  loginSession,
 }: Props) => {
   const queryString = new URLSearchParams({
-    client_id: session.authParams.client_id,
+    client_id: loginSession.authParams.client_id,
     connection,
   });
-  if (session.authParams.response_type) {
-    queryString.set("response_type", session.authParams.response_type);
+  if (loginSession.authParams.response_type) {
+    queryString.set("response_type", loginSession.authParams.response_type);
   }
-  if (session.authParams.redirect_uri) {
-    queryString.set("redirect_uri", session.authParams.redirect_uri);
+  if (loginSession.authParams.redirect_uri) {
+    queryString.set("redirect_uri", loginSession.authParams.redirect_uri);
   }
-  if (session.authParams.scope) {
-    queryString.set("scope", session.authParams.scope);
+  if (loginSession.authParams.scope) {
+    queryString.set("scope", loginSession.authParams.scope);
   }
-  if (session.authParams.nonce) {
-    queryString.set("nonce", session.authParams.nonce);
+  if (loginSession.authParams.nonce) {
+    queryString.set("nonce", loginSession.authParams.nonce);
   }
-  if (session.authParams.response_type) {
-    queryString.set("response_type", session.authParams.response_type);
+  if (loginSession.authParams.response_type) {
+    queryString.set("response_type", loginSession.authParams.response_type);
   }
-  if (session.authParams.state) {
-    queryString.set("state", session.login_id);
+  if (loginSession.authParams.state) {
+    queryString.set("state", loginSession.id);
   }
   const href = `/authorize?${queryString.toString()}`;
 
