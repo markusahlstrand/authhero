@@ -7,7 +7,7 @@ import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import generateOTP from "../../utils/otp";
 import { sendSignupValidateEmailAddress } from "../../emails";
 
-export const enterCodeRoutes = new OpenAPIHono<{
+export const preSignupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()

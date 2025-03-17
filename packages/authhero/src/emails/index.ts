@@ -265,12 +265,12 @@ export async function sendSignupValidateEmailAddress(
     lng: tenant.language || "en",
   };
 
-  const emailValidationUrl = `${ctx.env.UNIVERSAL_LOGIN_URL}signup?state=${state}&code=${code}`;
+  const emailValidationUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
 
   await sendEmail(ctx, {
     to,
     subject: t("register_password_account", options),
-    html: `Click here to retgister: ${getUniversalLoginUrl(ctx.env)}validate-email`,
+    html: `Click here to register: ${emailValidationUrl}`,
     template: "auth-pre-signup-verification",
     data: {
       vendorName: tenant.name,

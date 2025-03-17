@@ -8,6 +8,7 @@ import { resetPasswordRoutes } from "./reset-password";
 import { forgotPasswordRoutes } from "./forgot-password";
 import { checkAccountRoutes } from "./check-account";
 import { addDataHooks } from "../../hooks";
+import { preSignupRoutes } from "./pre-signup";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -25,6 +26,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/enter-email", enterEmailRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
+    .route("/pre-signup", preSignupRoutes)
     .route("/reset-password", resetPasswordRoutes)
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/signup", signupRoutes);
