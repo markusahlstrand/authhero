@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 9.8.0
+
+### Minor Changes
+
+- Migrate last pages
+
 ## 9.7.0
 
 ### Minor Changes

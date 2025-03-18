@@ -1,5 +1,11 @@
 # authhero
 
+## 0.93.0
+
+### Minor Changes
+
+- Migrate last pages
+
 ## 0.92.0
 
 ### Minor Changes
