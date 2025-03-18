@@ -19,8 +19,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "get",
-      // TODO: change the route to /u/verify-email
-      path: "/validate-email",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({

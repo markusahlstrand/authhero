@@ -1,5 +1,11 @@
 # authhero
 
+## 0.94.0
+
+### Minor Changes
+
+- Fix incorrect paths for migrated pages
+
 ## 0.93.0
 
 ### Minor Changes

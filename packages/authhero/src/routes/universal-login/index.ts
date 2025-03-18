@@ -35,7 +35,6 @@ export default function create(config: AuthHeroConfig) {
     .route("/reset-password", resetPasswordRoutes)
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/validate-email", validateEmailRoutes)
-
     .route("/signup", signupRoutes);
 
   universalApp.doc("/u/spec", {

@@ -1,14 +1,15 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import InvalidSessionPage from "../../components/InvalidSession";
+import PreSignupComfirmationPage from "../../components/PreSignUpConfirmationPage";
 
-export const invalidSessionRoutes = new OpenAPIHono<{
+export const preSignupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()
   // --------------------------------
-  // GET /u/invalid-session
+  // GET /u/pre-signup-sent
   // --------------------------------
   .openapi(
     createRoute({
@@ -17,7 +18,9 @@ export const invalidSessionRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          state: z.string(),
+          state: z.string().openapi({
+            description: "The state parameter from the authorization request",
+          }),
         }),
       },
       responses: {
@@ -30,25 +33,17 @@ export const invalidSessionRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
 
-      let redirectUrl: URL | undefined;
+      const { username } = loginSession.authParams;
 
-      if (
-        loginSession.authParams.redirect_uri &&
-        loginSession.authParams.state
-      ) {
-        redirectUrl = new URL(loginSession.authParams.redirect_uri);
-        redirectUrl.searchParams.set("state", loginSession.authParams.state);
-        redirectUrl.searchParams.set("error", "invalid_session");
-        redirectUrl.searchParams.set(
-          "error_description",
-          loginSession.authParams.username || "",
-        );
+      if (!username) {
+        throw new HTTPException(400, { message: "Username required" });
       }
 
       return ctx.html(
-        <InvalidSessionPage
-          redirectUrl={redirectUrl?.href}
+        <PreSignupComfirmationPage
           vendorSettings={vendorSettings}
+          state={state}
+          email={username}
         />,
       );
     },

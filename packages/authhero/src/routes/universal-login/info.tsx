@@ -14,7 +14,7 @@ export const infoRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "get",
-      path: "/info",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({

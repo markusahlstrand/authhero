@@ -6,7 +6,6 @@ import PreSignupPage from "../../components/PreSignUpPage";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import generateOTP from "../../utils/otp";
 import { sendSignupValidateEmailAddress } from "../../emails";
-import PreSignupComfirmationPage from "../../components/PreSignUpConfirmationPage";
 
 export const preSignupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -19,7 +18,7 @@ export const preSignupRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "get",
-      path: "/pre-signup",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({
@@ -59,7 +58,7 @@ export const preSignupRoutes = new OpenAPIHono<{
     createRoute({
       tags: ["login"],
       method: "post",
-      path: "/pre-signup",
+      path: "/",
       request: {
         query: z.object({
           state: z.string().openapi({
@@ -100,45 +99,5 @@ export const preSignupRoutes = new OpenAPIHono<{
       );
 
       return ctx.redirect(`/u/pre-signup-sent?state=${state}`);
-    },
-  )
-  // --------------------------------
-  // GET /u/pre-signup-sent
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/pre-signup-sent",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-        }),
-      },
-      responses: {
-        200: {
-          description: "Response",
-        },
-      },
-    }),
-    async (ctx) => {
-      const { state } = ctx.req.valid("query");
-      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
-
-      const { username } = loginSession.authParams;
-
-      if (!username) {
-        throw new HTTPException(400, { message: "Username required" });
-      }
-
-      return ctx.html(
-        <PreSignupComfirmationPage
-          vendorSettings={vendorSettings}
-          state={state}
-          email={username}
-        />,
-      );
     },
   );

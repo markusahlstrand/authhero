@@ -103,6 +103,7 @@ export const tokenRoutes = new OpenAPIHono<{
       if (!params.client_id) {
         throw new HTTPException(400, { message: "client_id is required" });
       }
+      ctx.set("client_id", params.client_id);
 
       switch (body.grant_type) {
         case GrantType.AuthorizationCode:
