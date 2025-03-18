@@ -1,5 +1,11 @@
 # authhero
 
+## 0.95.0
+
+### Minor Changes
+
+- Fix pre-signup-sent routes
+
 ## 0.94.0
 
 ### Minor Changes

@@ -12,6 +12,7 @@ import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
 import { validateEmailRoutes } from "./validate-email";
+import { preSignupSentRoutes } from "./pre-signup-sent";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -32,6 +33,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/enter-password", enterPasswordRoutes)
     .route("/invalid-session", invalidSessionRoutes)
     .route("/pre-signup", preSignupRoutes)
+    .route("/pre-signup-sent", preSignupSentRoutes)
     .route("/reset-password", resetPasswordRoutes)
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/validate-email", validateEmailRoutes)

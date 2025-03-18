@@ -4,7 +4,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import PreSignupComfirmationPage from "../../components/PreSignUpConfirmationPage";
 
-export const preSignupRoutes = new OpenAPIHono<{
+export const preSignupSentRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()
