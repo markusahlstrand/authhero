@@ -265,17 +265,20 @@ export async function sendSignupValidateEmailAddress(
     lng: tenant.language || "en",
   };
 
-  const emailValidationUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
+  const signupUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
 
   await sendEmail(ctx, {
     to,
     subject: t("register_password_account", options),
-    html: `Click here to register: ${emailValidationUrl}`,
+    html: `Click here to register: ${signupUrl}`,
     template: "auth-pre-signup-verification",
     data: {
       vendorName: tenant.name,
       logo: tenant.logo || "",
-      emailValidationUrl,
+      signupUrl,
+      setPassword: t("set_password", options),
+      registerPasswordAccount: t("register_password_account", options),
+      clickToSignUpDescription: t("click_to_sign_up_description", options),
       supportUrl: tenant.support_url || "https://support.sesamy.com",
       buttonColor: tenant.primary_color || "#7d68f4",
       welcomeToYourAccount: t("welcome_to_your_account", options),

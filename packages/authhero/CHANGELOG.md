@@ -1,5 +1,11 @@
 # authhero
 
+## 0.96.0
+
+### Minor Changes
+
+- Fix issues around signup flow
+
 ## 0.95.0
 
 ### Minor Changes

@@ -95,7 +95,7 @@ export const preSignupRoutes = new OpenAPIHono<{
         ctx,
         username,
         otpCode.code_id,
-        loginSession.authParams.state || "",
+        loginSession.id,
       );
 
       return ctx.redirect(`/u/pre-signup-sent?state=${state}`);
