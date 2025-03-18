@@ -9,6 +9,9 @@ import { forgotPasswordRoutes } from "./forgot-password";
 import { checkAccountRoutes } from "./check-account";
 import { addDataHooks } from "../../hooks";
 import { preSignupRoutes } from "./pre-signup";
+import { invalidSessionRoutes } from "./invalid-session";
+import { infoRoutes } from "./info";
+import { validateEmailRoutes } from "./validate-email";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -22,13 +25,17 @@ export default function create(config: AuthHeroConfig) {
   });
 
   const universalApp = app
+    .route("/info", infoRoutes)
     .route("/check-account", checkAccountRoutes)
     .route("/enter-email", enterEmailRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
+    .route("/invalid-session", invalidSessionRoutes)
     .route("/pre-signup", preSignupRoutes)
     .route("/reset-password", resetPasswordRoutes)
     .route("/forgot-password", forgotPasswordRoutes)
+    .route("/validate-email", validateEmailRoutes)
+
     .route("/signup", signupRoutes);
 
   universalApp.doc("/u/spec", {
