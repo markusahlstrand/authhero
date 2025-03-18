@@ -49,12 +49,12 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("authParams_response_mode", "varchar(255)")
     .addColumn("authParams_audience", "varchar(255)")
     .addColumn("authParams_scope", "varchar(511)")
-    .addColumn("authParams_state", "varchar(511)")
-    .addColumn("authParams_nonce", "varchar(256)")
-    .addColumn("authParams_code_challenge_method", "varchar(256)")
-    .addColumn("authParams_code_challenge", "varchar(256)")
-    .addColumn("authParams_redirect_uri", "varchar(256)")
-    .addColumn("authParams_organization", "varchar(256)")
+    .addColumn("authParams_state", "varchar(2048)")
+    .addColumn("authParams_nonce", "varchar(255)")
+    .addColumn("authParams_code_challenge_method", "varchar(255)")
+    .addColumn("authParams_code_challenge", "varchar(255)")
+    .addColumn("authParams_redirect_uri", "varchar(255)")
+    .addColumn("authParams_organization", "varchar(255)")
     .addColumn("authParams_ui_locales", "varchar(32)")
     .addColumn("authorization_url", "varchar(1024)")
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())
@@ -62,7 +62,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("expires_at", "varchar(35)", (col) => col.notNull())
     .addColumn("ip", "varchar(39)")
     .addColumn("useragent", "varchar(1024)")
-    .addColumn("auth0Client", "varchar(256)")
+    .addColumn("auth0Client", "varchar(255)")
     .execute();
 
   await db.schema
