@@ -65,7 +65,7 @@ export async function sendResetPassword(
 
   await sendEmail(ctx, {
     to,
-    subject: `Reset your password`,
+    subject: t("reset_password_title", options),
     html: `Click here to reset your password: ${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`,
     template: "auth-password-reset",
     data: {
@@ -231,13 +231,51 @@ export async function sendValidateEmailAddress(
 
   await sendEmail(ctx, {
     to: user.email,
-    subject: `Validate your email address`,
+    subject: t("welcome_to_your_account", options),
     html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
     template: "auth-verify-email",
     data: {
       vendorName: tenant.name,
       logo: tenant.logo || "",
       emailValidationUrl: `${getUniversalLoginUrl(ctx.env)}validate-email`,
+      supportUrl: tenant.support_url || "https://support.sesamy.com",
+      buttonColor: tenant.primary_color || "#7d68f4",
+      welcomeToYourAccount: t("welcome_to_your_account", options),
+      verifyEmailVerify: t("verify_email_verify", options),
+      supportInfo: t("support_info", options),
+      contactUs: t("contact_us", options),
+      copyright: t("copyright", options),
+    },
+  });
+}
+
+export async function sendSignupValidateEmailAddress(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  to: string,
+  code: string,
+  state: string,
+) {
+  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  if (!tenant) {
+    throw new HTTPException(500, { message: "Tenant not found" });
+  }
+
+  const options = {
+    vendorName: tenant.name,
+    lng: tenant.language || "en",
+  };
+
+  const emailValidationUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
+
+  await sendEmail(ctx, {
+    to,
+    subject: t("register_password_account", options),
+    html: `Click here to register: ${emailValidationUrl}`,
+    template: "auth-pre-signup-verification",
+    data: {
+      vendorName: tenant.name,
+      logo: tenant.logo || "",
+      emailValidationUrl,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
       buttonColor: tenant.primary_color || "#7d68f4",
       welcomeToYourAccount: t("welcome_to_your_account", options),
