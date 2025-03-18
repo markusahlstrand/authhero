@@ -9,6 +9,7 @@ export function create(db: Kysely<Database>) {
     const createdLogin: LoginSession = {
       id: nanoid(),
       ...login,
+      authorization_url: login.authorization_url?.slice(0, 1024),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

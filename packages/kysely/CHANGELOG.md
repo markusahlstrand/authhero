@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 9.9.0
+
+### Minor Changes
+
+- Limit the length of the authorization_url to the size of the column
+
 ## 9.8.0
 
 ### Minor Changes
