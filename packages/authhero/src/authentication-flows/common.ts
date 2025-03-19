@@ -259,15 +259,13 @@ export async function createRefreshToken(
 export interface CreateSessionParams {
   user: User;
   client: Client;
-  scope?: string;
-  audience?: string;
+  loginSession: LoginSession;
 }
 
 export async function createSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: CreateSessionParams,
+  { user, client, loginSession }: CreateSessionParams,
 ) {
-  const { user, client, scope, audience } = params;
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
@@ -287,10 +285,13 @@ export async function createSession(
     clients: [client.id],
   });
 
+  const { scope, audience } = loginSession.authParams;
+
   const refresh_token = scope?.split(" ").includes("offline_access")
     ? await createRefreshToken(ctx, {
-        ...params,
         session_id: session.id,
+        user,
+        client,
         scope,
         audience,
       })
@@ -365,6 +366,12 @@ export async function createAuthResponse(
 
   // If there is no session id, create a new session
   if (!session_id) {
+    if (!params.loginSession) {
+      throw new HTTPException(500, {
+        message: "Login session not found",
+      });
+    }
+
     postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
       client.tenant.id,
       user,
@@ -373,8 +380,7 @@ export async function createAuthResponse(
     const session = await createSession(ctx, {
       user,
       client,
-      scope: authParams.scope,
-      audience: authParams.audience,
+      loginSession: params.loginSession,
     });
 
     session_id = session.id;

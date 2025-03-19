@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.52.0
+
+### Minor Changes
+
+- Set the session id on login sessions
+
 ## 0.51.0
 
 ### Minor Changes
