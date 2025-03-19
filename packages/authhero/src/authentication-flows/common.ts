@@ -285,6 +285,11 @@ export async function createSession(
     clients: [client.id],
   });
 
+  // Store the session id in the login session
+  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+    session_id: session.id,
+  });
+
   const { scope, audience } = loginSession.authParams;
 
   const refresh_token = scope?.split(" ").includes("offline_access")

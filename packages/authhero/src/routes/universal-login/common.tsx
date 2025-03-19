@@ -65,6 +65,7 @@ export async function fetchVendorSettings(
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
+  allowSession = false,
 ) {
   const { env } = ctx;
   const loginSession = await env.data.loginSessions.get(
@@ -73,6 +74,7 @@ export async function initJSXRoute(
   );
   if (!loginSession) {
     throw new HTTPException(400, { message: "Login session not found" });
+  } else if (loginSession.session_id && allowSession) {
   }
   ctx.set("loginSession", loginSession);
 
@@ -86,6 +88,8 @@ export async function initJSXRoute(
   const tenant = await env.data.tenants.get(client.tenant.id);
   if (!tenant) {
     throw new HTTPException(400, { message: "Tenant not found" });
+  } else if (loginSession.session_id && !allowSession) {
+    throw new HTTPException(400, { message: "Login session closed" });
   }
 
   const vendorSettings = await fetchVendorSettings(

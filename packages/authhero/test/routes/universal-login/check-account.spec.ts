@@ -65,7 +65,7 @@ describe("check account", () => {
       },
     });
 
-    const loginSesssion = await env.data.loginSessions.create("tenantId", {
+    await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
       csrf_token: "csrfToken",
       session_id: session.id,
@@ -153,5 +153,10 @@ describe("check account", () => {
       "authorization_code",
     );
     expect(code).not.toBe(null);
+
+    // Make sure the session is set on the login session
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    expect(loginSession).not.toBeNull();
+    expect(loginSession?.session_id).toBeTypeOf("string");
   });
 });

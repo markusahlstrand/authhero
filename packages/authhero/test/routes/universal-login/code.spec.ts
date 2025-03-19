@@ -45,6 +45,19 @@ describe("code", () => {
     expect(enterEmailPostResponse.status).toBe(302);
 
     // --------------------------------
+    // Incorrect code
+    // --------------------------------
+    const increctCodeResponse = await universalClient["enter-code"].$post({
+      query: { state },
+      form: { code: "222222" },
+    });
+
+    expect(increctCodeResponse.status).toBe(400);
+
+    const incorrectCodeBody = await increctCodeResponse.text();
+    expect(incorrectCodeBody).toContain("Code not found or expired");
+
+    // --------------------------------
     // enter correct code
     // --------------------------------
     const enterCodeGetResponse = await universalClient["enter-code"].$get({
@@ -98,20 +111,7 @@ describe("code", () => {
     expect(reUseCodeResponse.status).toBe(400);
 
     const reUsedCode = await reUseCodeResponse.text();
-    expect(reUsedCode).toContain("Code already used");
-
-    // --------------------------------
-    // Incorrect code
-    // --------------------------------
-    const increctCodeResponse = await universalClient["enter-code"].$post({
-      query: { state },
-      form: { code: "222222" },
-    });
-
-    expect(increctCodeResponse.status).toBe(400);
-
-    const incorrectCodeBody = await increctCodeResponse.text();
-    expect(incorrectCodeBody).toContain("Code not found or expired");
+    expect(reUsedCode).toContain("Login session closed");
   });
 
   it("should create a new account", async () => {

@@ -111,10 +111,35 @@ describe("passwords", () => {
     // --------------------------------
     // request password reset
     // --------------------------------
+
+    const authorizeResponse2 = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse2.status).toBe(302);
+
+    const location2 = authorizeResponse2.headers.get("location");
+    const universalUrl2 = new URL(`https://example.com${location2}`);
+    const state2 = universalUrl2.searchParams.get("state");
+    if (!state2) {
+      throw new Error("No state found");
+    }
+
+    await universalClient["enter-email"].$post({
+      query: { state: state2 },
+      form: { username: "foo2@example.com" },
+    });
+
     const forgotPasswordResponse = await universalClient[
       "forgot-password"
     ].$post({
-      query: { state },
+      query: { state: state2 },
     });
 
     expect(forgotPasswordResponse.status).toBe(200);
@@ -140,7 +165,7 @@ describe("passwords", () => {
     const resetPasswordGetResponse = await universalClient[
       "reset-password"
     ].$post({
-      query: { state, code: passwordResetCode },
+      query: { state: state2, code: passwordResetCode },
       form: {
         password: "yByF#s4IO7wROi",
         "re-enter-password": "yByF#s4IO7wROi",

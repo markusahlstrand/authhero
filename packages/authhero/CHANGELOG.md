@@ -1,5 +1,15 @@
 # authhero
 
+## 0.98.0
+
+### Minor Changes
+
+- Update the session id on the login session
+
+### Patch Changes
+
+- Do not allow reuse of login sessions
+
 ## 0.97.0
 
 ### Minor Changes
