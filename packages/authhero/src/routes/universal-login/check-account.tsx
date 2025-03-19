@@ -41,6 +41,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         client.tenant.id,
         ctx.req.header("cookie"),
       );
+
       const authSession = authCookie
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;

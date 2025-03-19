@@ -33,23 +33,26 @@ export async function ticketAuth(
     throw new HTTPException(403, { message: "Ticket not found" });
   }
 
-  const login = await env.data.loginSessions.get(tenant_id, code.login_id);
-  if (!login || !login.authParams.username) {
+  const loginSession = await env.data.loginSessions.get(
+    tenant_id,
+    code.login_id,
+  );
+  if (!loginSession || !loginSession.authParams.username) {
     throw new HTTPException(403, { message: "Session not found" });
   }
 
-  const client = await env.data.clients.get(login.authParams.client_id);
+  const client = await env.data.clients.get(loginSession.authParams.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
   }
-  ctx.set("client_id", login.authParams.client_id);
+  ctx.set("client_id", loginSession.authParams.client_id);
 
   await env.data.codes.used(tenant_id, ticketId);
 
   const provider = getProviderFromRealm(realm);
 
   let user = await getOrCreateUserByEmailAndProvider(ctx, {
-    email: login.authParams.username,
+    email: loginSession.authParams.username,
     provider,
     client,
     connection:
@@ -64,15 +67,14 @@ export async function ticketAuth(
   const session = await createSession(ctx, {
     user,
     client,
-    scope: authParams.scope,
-    audience: authParams.audience,
+    loginSession,
   });
   return createAuthResponse(ctx, {
     authParams: {
-      scope: login.authParams?.scope,
+      scope: loginSession.authParams?.scope,
       ...authParams,
     },
-    loginSession: login,
+    loginSession: loginSession,
     sessionId: session.id,
     user,
     client,

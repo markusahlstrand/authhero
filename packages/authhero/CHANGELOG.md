@@ -1,5 +1,16 @@
 # authhero
 
+## 0.97.0
+
+### Minor Changes
+
+- Set the session id on login sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.52.0
+
 ## 0.96.0
 
 ### Minor Changes
