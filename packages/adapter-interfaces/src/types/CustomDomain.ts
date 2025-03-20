@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 
 export const customDomainInsertSchema = z.object({
   domain: z.string(),
+  custom_domain_id: z.string().optional(),
   type: z.enum(["auth0_managed_certs", "self_managed_certs"]),
   verification_method: z.enum(["txt"]).optional(),
   tls_policy: z.enum(["recommended"]).optional(),

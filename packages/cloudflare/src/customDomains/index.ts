@@ -23,11 +23,13 @@ function getClient(config: CloudflareConfig) {
     .middlewares([retry(), dedupe()]);
 }
 
-function mapCustomDomainResponse(result: CustomDomainResult): CustomDomain {
+function mapCustomDomainResponse(
+  result: CustomDomainResult & { primary: boolean },
+): CustomDomain {
   return {
     custom_domain_id: result.id,
     domain: result.hostname,
-    primary: false,
+    primary: result.primary,
     status: result.status === "active" ? "ready" : "pending",
     type: "auth0_managed_certs",
   };
@@ -62,9 +64,31 @@ export function createCustomDomainsAdapter(
         throw new Error(JSON.stringify(errors));
       }
 
-      return mapCustomDomainResponse(result);
+      const customDomain = mapCustomDomainResponse({
+        ...result,
+        primary: false,
+      });
+
+      // Store the custom domain in the database as well
+      await config.customDomainAdapter.create(tenant_id, {
+        custom_domain_id: customDomain.custom_domain_id,
+        domain: customDomain.domain,
+        type: customDomain.type,
+      });
+
+      return customDomain;
     },
     get: async (tenant_id: string, domain_id: string) => {
+      // Start by fetching the custom domain from the database to make sure it's available for this tenant
+      const customDomain = await config.customDomainAdapter.get(
+        tenant_id,
+        domain_id,
+      );
+
+      if (!customDomain) {
+        throw new HTTPException(404);
+      }
+
       const { result, errors, success } = customDomainResponseSchema.parse(
         await getClient(config)
           .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
@@ -84,7 +108,8 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      return mapCustomDomainResponse(result);
+      // Merge the database data with the Cloudflare data
+      return mapCustomDomainResponse({ ...customDomain, ...result });
     },
     list: async (tenant_id: string) => {
       const { result, errors, success } = customDomainListResponseSchema.parse(
@@ -105,7 +130,7 @@ export function createCustomDomainsAdapter(
               domain.custom_metadata?.tenant_id !== tenant_id
             ),
         )
-        .map(mapCustomDomainResponse);
+        .map((item) => mapCustomDomainResponse({ ...item, primary: false }));
     },
     remove: async (tenant_id: string, domain_id: string) => {
       if (config.enterprise) {
@@ -124,11 +149,35 @@ export function createCustomDomainsAdapter(
         .delete(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
         .res();
 
+      if (response.ok) {
+        await config.customDomainAdapter.remove(tenant_id, domain_id);
+      }
+
       return response.ok;
     },
-    update: async (tenant_id: string, domain: string) => {
-      console.log("update", tenant_id, domain);
-      throw new Error("Not implemented");
+    update: async (
+      tenant_id: string,
+      domain_id: string,
+      custom_domain: Partial<CustomDomain>,
+    ) => {
+      const response = await getClient(config)
+        .patch(
+          custom_domain,
+          `/custom_hostnames/${encodeURIComponent(domain_id)}`,
+        )
+        .res();
+
+      if (!response.ok) {
+        throw new HTTPException(503, {
+          message: await response.text(),
+        });
+      }
+
+      return config.customDomainAdapter.update(
+        tenant_id,
+        domain_id,
+        custom_domain,
+      );
     },
   };
 }

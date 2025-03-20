@@ -13,7 +13,7 @@
     "proxy": "pnpm --filter @authhero/auth0-proxy",
     "create-authhero": "pnpm --filter create-authhero",
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
-    "cloudflare-adapter": "pnpm --filter @authhero/cloudflare-adapter",
+    "cloudflare": "pnpm --filter @authhero/cloudflare-adapter",
     "drizzle": "pnpm --filter @authhero/drizzle-adapter",
     "kysely": "pnpm --filter @authhero/kysely-adapter",
     "demo": "pnpm --filter @authhero/demo",

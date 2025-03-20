@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.53.0
+
+### Minor Changes
+
+- Make the cloudflare custom domains adapter use another adpater for storage
+
 ## 0.52.0
 
 ### Minor Changes
