@@ -4,10 +4,10 @@ import { nanoid } from "nanoid";
 
 describe("sessions", () => {
   describe("get", () => {
-    it.skip("should create and get a session", async () => {
-      const db = await getTestServer();
+    it("should create and get a session", async () => {
+      const { data } = await getTestServer();
 
-      await db.tenants.create({
+      await data.tenants.create({
         id: "tenantId",
         name: "Test Tenant",
         audience: "https://example.com",
@@ -16,7 +16,7 @@ describe("sessions", () => {
       });
 
       // Add a client
-      await db.applications.create("tenantId", {
+      await data.applications.create("tenantId", {
         id: "clientId",
         client_secret: "clientSecret",
         name: "Test Client",
@@ -27,7 +27,7 @@ describe("sessions", () => {
       });
 
       // Add a test user
-      await db.users.create("tenantId", {
+      await data.users.create("tenantId", {
         email: "foo@example.com",
         email_verified: true,
         name: "Test User",
@@ -41,10 +41,9 @@ describe("sessions", () => {
 
       const id = nanoid();
 
-      const sessionData = {
+      await data.sessions.create("tenantId", {
         id,
         user_id: "email|userId",
-        client_id: "clientId",
         used_at: "2021-01-01T00:00:00.000Z",
         device: {
           last_ip: "",
@@ -55,13 +54,24 @@ describe("sessions", () => {
           last_asn: "",
         },
         clients: [],
-      };
+      });
 
-      await db.sessions.create("tenantId", sessionData);
+      const session = await data.sessions.get("tenantId", id);
 
-      const session = await db.sessions.get("tenantId", id);
-
-      expect(session).matchSnapshot(sessionData);
+      expect(session).toMatchObject({
+        id,
+        user_id: "email|userId",
+        used_at: "2021-01-01T00:00:00.000Z",
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        clients: [],
+      });
     });
   });
 });

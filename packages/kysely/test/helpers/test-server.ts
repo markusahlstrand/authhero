@@ -18,5 +18,8 @@ export async function getTestServer(args: getEnvParams = {}) {
 
   await migrateToLatest(db, false);
 
-  return createAdapters(db);
+  return {
+    data: createAdapters(db),
+    db,
+  };
 }
