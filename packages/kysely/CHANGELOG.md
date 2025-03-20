@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.3.0
+
+### Minor Changes
+
+- Update cleanup script
+
 ## 10.2.0
 
 ### Patch Changes
