@@ -146,6 +146,7 @@ export const authorizeRoutes = new OpenAPIHono<{
       const session = authCookie
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : undefined;
+      const validSession = session && !session.revoked_at ? session : undefined;
 
       // Silent authentication with iframe
       if (prompt == "none") {
@@ -157,7 +158,7 @@ export const authorizeRoutes = new OpenAPIHono<{
 
         return silentAuth({
           ctx,
-          session: session || undefined,
+          session: validSession || undefined,
           redirect_uri,
           state,
           response_type,
@@ -196,7 +197,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         client,
         auth0Client,
         authParams,
-        session: session || undefined,
+        session: validSession || undefined,
         connection,
         login_hint,
       });

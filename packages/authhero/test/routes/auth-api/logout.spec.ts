@@ -77,6 +77,43 @@ describe("logout", () => {
       expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
     });
 
+    // Create the login session
+    await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
+      session_id: "sid",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@exampl.com",
+        scope: "",
+        audience: "http://example.com",
+        redirect_uri: "http://example.com/callback",
+      },
+    });
+
+    // Create a refresh token
+    await env.data.refreshTokens.create("tenantId", {
+      id: "refreshToken",
+      session_id: "sid",
+      user_id: "email|userId",
+      client_id: "clientId",
+      resource_servers: [
+        {
+          audience: "http://example.com",
+          scopes: "openid",
+        },
+      ],
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      rotating: false,
+    });
+
     await client.v2.logout.$get(
       {
         query: {
@@ -92,10 +129,18 @@ describe("logout", () => {
     );
 
     const session = await env.data.sessions.get("tenantId", "sid");
-    expect(session).toBeNull();
+    expect(session?.revoked_at).toBeTypeOf("string");
+
+    const refreshtokens = await env.data.refreshTokens.list("tenantId", {
+      q: "session_id:sid",
+      include_totals: false,
+      per_page: 1,
+      page: 0,
+    });
+
+    expect(refreshtokens.length).toBe(0);
 
     const logs = await env.data.logs.list("tenantId");
-
     expect(logs.length).toBe(1);
   });
 });

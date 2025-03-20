@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
-import create from "../../../drizzle/src";
 
 describe("customDomains", () => {
   it("should should support crud operations", async () => {
-    const db = await getTestServer();
+    const { data } = await getTestServer();
 
-    await db.tenants.create({
+    await data.tenants.create({
       id: "tenantId",
       name: "Test Tenant",
       audience: "https://example.com",
@@ -18,7 +17,7 @@ describe("customDomains", () => {
     // Create
     // --------------------------------
 
-    const createdCustomDomain = await db.customDomains.create("tenantId", {
+    const createdCustomDomain = await data.customDomains.create("tenantId", {
       domain: "example.com",
       type: "auth0_managed_certs",
     });
@@ -35,7 +34,7 @@ describe("customDomains", () => {
     // Update
     // --------------------------------
 
-    const updateCustomDomainResult = await db.customDomains.update(
+    const updateCustomDomainResult = await data.customDomains.update(
       "tenantId",
       createdCustomDomain.custom_domain_id,
       {
@@ -49,7 +48,7 @@ describe("customDomains", () => {
     // Get
     // --------------------------------¨¨
 
-    const getCustomDomainResult = await db.customDomains.get(
+    const getCustomDomainResult = await data.customDomains.get(
       "tenantId",
       createdCustomDomain.custom_domain_id,
     );
@@ -65,14 +64,14 @@ describe("customDomains", () => {
     // List
     // --------------------------------
 
-    const listCustomDomainsResult = await db.customDomains.list("tenantId");
+    const listCustomDomainsResult = await data.customDomains.list("tenantId");
     expect(listCustomDomainsResult.length).toBe(1);
 
     // ----------------------------------------
     // Delete
     // --------------------------------
 
-    const deleteCustomDomainResult = await db.customDomains.remove(
+    const deleteCustomDomainResult = await data.customDomains.remove(
       "tenantId",
       createdCustomDomain.custom_domain_id,
     );
@@ -82,7 +81,7 @@ describe("customDomains", () => {
     // ----------------------------------------
     // Get with not found
     // --------------------------------
-    const getCustomDomainResultNotFound = await db.customDomains.get(
+    const getCustomDomainResultNotFound = await data.customDomains.get(
       "tenantId",
       createdCustomDomain.custom_domain_id,
     );

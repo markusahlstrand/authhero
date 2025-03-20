@@ -19,13 +19,17 @@ import { createLoginAdapter } from "./loginSessions";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
+import { createCleanup } from "./cleanup";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
-export default function createAdapters(db: Kysely<Database>): DataAdapters {
+export default function createAdapters(db: Kysely<Database>): DataAdapters & {
+  cleanup: () => Promise<void>;
+} {
   return {
     applications: createApplicationsAdapter(db),
     branding: createBrandingAdapter(db),
+    cleanup: createCleanup(db),
     clients: createClientsAdapter(db),
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),

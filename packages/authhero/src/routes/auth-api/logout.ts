@@ -85,8 +85,31 @@ export const logoutRoutes = new OpenAPIHono<{
               ctx.set("user_id", user.user_id);
               ctx.set("connection", user.connection);
             }
+
+            const refreshTokens = await ctx.env.data.refreshTokens.list(
+              client.tenant.id,
+              {
+                q: `session_id=${tokenState}`,
+                page: 0,
+                per_page: 100,
+                include_totals: false,
+              },
+            );
+
+            // Remove all refresh tokens
+            await Promise.all(
+              refreshTokens.refresh_tokens.map((refreshToken) =>
+                ctx.env.data.refreshTokens.remove(
+                  client.tenant.id,
+                  refreshToken.id,
+                ),
+              ),
+            );
+
+            await ctx.env.data.sessions.update(client.tenant.id, tokenState, {
+              revoked_at: new Date().toISOString(),
+            });
           }
-          await ctx.env.data.sessions.remove(client.tenant.id, tokenState);
         }
       }
       const log = createLogMessage(ctx, {

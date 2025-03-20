@@ -8,7 +8,6 @@ export function get(db: Kysely<Database>) {
       .selectFrom("sessions")
       .where("sessions.tenant_id", "=", tenant_id)
       .where("sessions.id", "=", id)
-      .where("sessions.revoked_at", "is", null)
       .selectAll()
       .executeTakeFirst();
 

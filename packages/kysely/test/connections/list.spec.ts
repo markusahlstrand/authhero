@@ -4,9 +4,9 @@ import { getTestServer } from "../helpers/test-server";
 describe("connections", () => {
   describe("list", () => {
     it("should list a connection with options as an object", async () => {
-      const db = await getTestServer();
+      const { data } = await getTestServer();
 
-      await db.tenants.create({
+      await data.tenants.create({
         id: "tenantId",
         name: "Test Tenant",
         audience: "https://example.com",
@@ -14,7 +14,7 @@ describe("connections", () => {
         sender_name: "SenderName",
       });
 
-      await db.connections.create("tenantId", {
+      await data.connections.create("tenantId", {
         id: "connectionId",
         name: "mock-strategy",
         strategy: "mock-strategy",
@@ -24,7 +24,7 @@ describe("connections", () => {
         },
       });
 
-      const connections = await db.connections.list("tenantId");
+      const connections = await data.connections.list("tenantId");
 
       expect(connections).toMatchObject({
         connections: [
