@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.1.0
+
+### Minor Changes
+
+- fbc3a6c: Add a cleanup script
+
 ## 10.0.0
 
 ### Patch Changes

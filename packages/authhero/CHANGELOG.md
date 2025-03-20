@@ -1,5 +1,12 @@
 # authhero
 
+## 0.99.0
+
+### Minor Changes
+
+- fbc3a6c: Make the logout revoke the session and remove refresh tokens
+- fbc3a6c: Make logout remove any sessions
+
 ## 0.98.0
 
 ### Minor Changes
