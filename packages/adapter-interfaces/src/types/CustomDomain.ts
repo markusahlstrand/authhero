@@ -20,13 +20,25 @@ export const customDomainInsertSchema = z.object({
 
 export type CustomDomainInsert = z.infer<typeof customDomainInsertSchema>;
 
+export const verificationMethodsSchema = z.object({
+  name: z.literal("txt"),
+  record: z.string(),
+  domain: z.string(),
+});
+
+export type VerificationMethods = z.infer<typeof verificationMethodsSchema>;
+
 export const customDomainSchema = z.object({
   ...customDomainInsertSchema.shape,
   custom_domain_id: z.string(),
   primary: z.boolean(),
   status: z.enum(["disabled", "pending", "pending_verification", "ready"]),
   origin_domain_name: z.string().optional(),
-  verification: z.object({}).optional(),
+  verification: z
+    .object({
+      methods: z.array(verificationMethodsSchema),
+    })
+    .optional(),
   tls_policy: z.string().optional(),
 });
 

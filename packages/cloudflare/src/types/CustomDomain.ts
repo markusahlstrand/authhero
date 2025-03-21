@@ -11,18 +11,18 @@ const ValidationErrorSchema = z.object({
 
 const ValidationRecordSchema = z.object({
   emails: z.array(z.string()).optional(),
-  http_body: z.string(),
-  http_url: z.string(),
+  http_body: z.string().optional(),
+  http_url: z.string().optional(),
   txt_name: z.string().optional(),
   txt_value: z.string().optional(),
 });
 
 const SslSettingsSchema = z.object({
-  ciphers: z.array(z.string()),
-  early_hints: z.string(),
-  http2: z.string(),
+  ciphers: z.array(z.string()).optional(),
+  early_hints: z.string().optional(),
+  http2: z.string().optional(),
   min_tls_version: z.string(),
-  tls_1_3: z.string(),
+  tls_1_3: z.string().optional(),
 });
 
 const SslSchema = z.object({
@@ -53,8 +53,8 @@ const OwnershipVerificationSchema = z.object({
 });
 
 const OwnershipVerificationHttpSchema = z.object({
-  http_body: z.string(),
-  http_url: z.string(),
+  http_body: z.string().optional(),
+  http_url: z.string().optional(),
 });
 
 const resultSchema = z.object({

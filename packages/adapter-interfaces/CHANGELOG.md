@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.54.0
+
+### Minor Changes
+
+- Add domain verification info
+
 ## 0.53.0
 
 ### Minor Changes

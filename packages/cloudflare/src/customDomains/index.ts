@@ -2,7 +2,9 @@ import {
   CustomDomain,
   CustomDomainInsert,
   CustomDomainsAdapter,
+  verificationMethodsSchema,
 } from "@authhero/adapter-interfaces";
+import { z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import wretch from "wretch";
 import { retry, dedupe } from "wretch/middlewares";
@@ -26,12 +28,28 @@ function getClient(config: CloudflareConfig) {
 function mapCustomDomainResponse(
   result: CustomDomainResult & { primary: boolean },
 ): CustomDomain {
+  const methods = [
+    ...(result.ssl.validation_records?.map((record) => ({
+      name: "txt",
+      record: record.txt_value!,
+      domain: record.txt_name!,
+    })) || []),
+    {
+      name: "txt",
+      record: result.ownership_verification.value,
+      domain: result.ownership_verification.name,
+    },
+  ];
+
   return {
     custom_domain_id: result.id,
     domain: result.hostname,
     primary: result.primary,
     status: result.status === "active" ? "ready" : "pending",
     type: "auth0_managed_certs",
+    verification: {
+      methods: z.array(verificationMethodsSchema).parse(methods),
+    },
   };
 }
 
@@ -46,7 +64,7 @@ export function createCustomDomainsAdapter(
             {
               hostname: domain.domain,
               ssl: {
-                method: "http",
+                method: "txt",
                 type: "dv",
               },
               custom_metadata: config.enterprise
@@ -89,11 +107,12 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      const { result, errors, success } = customDomainResponseSchema.parse(
-        await getClient(config)
-          .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
-          .json(),
-      );
+      const body = await getClient(config)
+        .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+        .json();
+
+      const { result, errors, success } =
+        customDomainResponseSchema.parse(body);
 
       if (!success) {
         throw new HTTPException(503, {
@@ -114,9 +133,10 @@ export function createCustomDomainsAdapter(
     list: async (tenant_id: string) => {
       const customDomains = await config.customDomainAdapter.list(tenant_id);
 
-      const { result, errors, success } = customDomainListResponseSchema.parse(
-        await getClient(config).get("/custom_hostnames").json(),
-      );
+      const body = await getClient(config).get("/custom_hostnames").json();
+
+      const { result, errors, success } =
+        customDomainListResponseSchema.parse(body);
 
       if (!success) {
         throw new HTTPException(503, {

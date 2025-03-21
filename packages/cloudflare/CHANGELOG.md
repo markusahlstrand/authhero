@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 1.3.0
+
+### Minor Changes
+
+- Add domain verification info
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.54.0
+
 ## 1.2.0
 
 ### Minor Changes
