@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.4.0
+
+### Minor Changes
+
+- Create a migration to make the id column for custom domains longer
+
 ## 10.3.0
 
 ### Minor Changes

@@ -112,6 +112,8 @@ export function createCustomDomainsAdapter(
       return mapCustomDomainResponse({ ...customDomain, ...result });
     },
     list: async (tenant_id: string) => {
+      const customDomains = await config.customDomainAdapter.list(tenant_id);
+
       const { result, errors, success } = customDomainListResponseSchema.parse(
         await getClient(config).get("/custom_hostnames").json(),
       );
@@ -122,15 +124,26 @@ export function createCustomDomainsAdapter(
         });
       }
 
-      return result
-        .filter(
-          (domain) =>
-            !(
-              config.enterprise &&
-              domain.custom_metadata?.tenant_id !== tenant_id
-            ),
-        )
-        .map((item) => mapCustomDomainResponse({ ...item, primary: false }));
+      return (
+        result
+          // Make sure the custom domain is available for this tenant
+          .filter((domain) =>
+            customDomains.find((d) => d.custom_domain_id === domain.id),
+          )
+          .filter(
+            (domain) =>
+              !(
+                config.enterprise &&
+                domain.custom_metadata?.tenant_id !== tenant_id
+              ),
+          )
+          .map((domain) =>
+            mapCustomDomainResponse({
+              ...customDomains.find((d) => d.custom_domain_id === domain.id)!,
+              ...domain,
+            }),
+          )
+      );
     },
     remove: async (tenant_id: string, domain_id: string) => {
       if (config.enterprise) {

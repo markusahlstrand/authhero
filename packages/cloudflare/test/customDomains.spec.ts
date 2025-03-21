@@ -204,6 +204,11 @@ describe("customDomains", () => {
     const listCustomDomainsResult = await customDomains.list("tenantId");
     expect(listCustomDomainsResult.length).toBe(1);
 
+    // Check that this entry isn't displayed for other tenants
+    const listCustomDomainsForOtherTenantResult =
+      await customDomains.list("tenantId2");
+    expect(listCustomDomainsForOtherTenantResult.length).toBe(0);
+
     // ----------------------------------------
     // Delete
     // --------------------------------

@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.2.0
+
+### Minor Changes
+
+- Do not list custom domains from other tenants
+
 ## 1.1.0
 
 ### Minor Changes
