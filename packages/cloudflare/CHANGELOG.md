@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.4.0
+
+### Minor Changes
+
+- Update schemas and logic for valiation of domains
+
 ## 1.3.0
 
 ### Minor Changes

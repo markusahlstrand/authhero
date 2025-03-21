@@ -21,7 +21,7 @@ const SslSettingsSchema = z.object({
   ciphers: z.array(z.string()).optional(),
   early_hints: z.string().optional(),
   http2: z.string().optional(),
-  min_tls_version: z.string(),
+  min_tls_version: z.string().optional(),
   tls_1_3: z.string().optional(),
 });
 
@@ -64,8 +64,8 @@ const resultSchema = z.object({
   custom_metadata: z.record(z.string()).optional(),
   custom_origin_server: z.string().optional(),
   custom_origin_sni: z.string().optional(),
-  ownership_verification: OwnershipVerificationSchema,
-  ownership_verification_http: OwnershipVerificationHttpSchema,
+  ownership_verification: OwnershipVerificationSchema.optional(),
+  ownership_verification_http: OwnershipVerificationHttpSchema.optional(),
   status: z.string(),
   verification_errors: z.array(z.string()).optional(),
   created_at: z.string(),

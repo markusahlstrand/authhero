@@ -2,6 +2,7 @@ import {
   CustomDomain,
   CustomDomainInsert,
   CustomDomainsAdapter,
+  VerificationMethods,
   verificationMethodsSchema,
 } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
@@ -28,18 +29,27 @@ function getClient(config: CloudflareConfig) {
 function mapCustomDomainResponse(
   result: CustomDomainResult & { primary: boolean },
 ): CustomDomain {
-  const methods = [
-    ...(result.ssl.validation_records?.map((record) => ({
-      name: "txt",
-      record: record.txt_value!,
-      domain: record.txt_name!,
-    })) || []),
-    {
+  const methods: VerificationMethods[] = [];
+
+  if (result.ssl.validation_records) {
+    for (const record of result.ssl.validation_records) {
+      if (record.txt_name && record.txt_value) {
+        methods.push({
+          name: "txt",
+          record: record.txt_value,
+          domain: record.txt_name,
+        });
+      }
+    }
+  }
+
+  if (result.ownership_verification) {
+    methods.push({
       name: "txt",
       record: result.ownership_verification.value,
       domain: result.ownership_verification.name,
-    },
-  ];
+    });
+  }
 
   return {
     custom_domain_id: result.id,
