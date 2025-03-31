@@ -13,6 +13,7 @@ import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
 import { validateEmailRoutes } from "./validate-email";
 import { preSignupSentRoutes } from "./pre-signup-sent";
+import { tenantMiddleware } from "../../middlewares/tenant";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -20,7 +21,7 @@ export default function create(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
-  app.use(async (ctx, next) => {
+  app.use(tenantMiddleware).use(async (ctx, next) => {
     ctx.env.data = addDataHooks(ctx, config.dataAdapter);
     return next();
   });

@@ -17,6 +17,7 @@ import { sessionsRoutes } from "./sessions";
 import { refreshTokensRoutes } from "./refresh_tokens";
 import { customDomainRoutes } from "./custom-domains";
 import { addDataHooks } from "../../hooks";
+import { tenantMiddleware } from "../../middlewares/tenant";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -31,7 +32,7 @@ export default function create(config: AuthHeroConfig) {
     return next();
   });
 
-  app.use(createAuthMiddleware(app));
+  app.use(tenantMiddleware).use(createAuthMiddleware(app));
 
   const managementApp = app
     .route("/branding", brandingRoutes)
