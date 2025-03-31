@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "@authhero/kysely-adapter": "^11.0.0",
+    "@authhero/kysely-adapter": "workspace:*",
     "@hono/zod-openapi": "^0.18.0",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
