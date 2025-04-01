@@ -1,0 +1,4 @@
+# Ignore other projects in the monorepo
+../auth0-proxy
+../demo
+../../packages
