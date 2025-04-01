@@ -2,7 +2,7 @@
   "name": "@authhero/react-admin",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "pnpm install --no-frozen-lockfile && vite build",
     "serve": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint --fix --ext .js,.jsx,.ts,.tsx ./src",

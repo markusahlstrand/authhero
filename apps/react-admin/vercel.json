@@ -9,12 +9,9 @@
       "destination": "/favicon.ico"
     },
     {
-      "source": "/favicon.ico",
-      "destination": "/favicon.ico"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "buildCommand": "pnpm install --no-frozen-lockfile && pnpm build"
 }
