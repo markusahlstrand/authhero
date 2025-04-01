@@ -1,5 +1,11 @@
 # authhero
 
+## 0.101.0
+
+### Minor Changes
+
+- fetch vendor by subdomain
+
 ## 0.100.0
 
 ### Minor Changes
