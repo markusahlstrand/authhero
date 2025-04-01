@@ -45,3 +45,11 @@ export const customDomainSchema = z.object({
 export default customDomainSchema;
 
 export type CustomDomain = z.infer<typeof customDomainSchema>;
+
+export const customDomainWithTenantIdSchema = customDomainSchema.extend({
+  tenant_id: z.string(),
+});
+
+export type CustomDomainWithTenantId = z.infer<
+  typeof customDomainWithTenantIdSchema
+>;

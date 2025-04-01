@@ -6,6 +6,7 @@ import { Database } from "../db";
 import { remove } from "./remove";
 import { get } from "./get";
 import { update } from "./update";
+import { getByDomain } from "./getByDomain";
 
 export function createCustomDomainsAdapter(
   db: Kysely<Database>,
@@ -13,6 +14,7 @@ export function createCustomDomainsAdapter(
   return {
     create: create(db),
     get: get(db),
+    getByDomain: getByDomain(db),
     list: list(db),
     remove: remove(db),
     update: update(db),

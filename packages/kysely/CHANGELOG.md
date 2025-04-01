@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.6.0
+
+### Minor Changes
+
+- Add a getByDomain function for cutsom domains and a tenant-id middleware
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.55.0
+
 ## 10.5.0
 
 ### Patch Changes

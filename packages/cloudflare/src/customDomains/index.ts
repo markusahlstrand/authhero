@@ -140,6 +140,10 @@ export function createCustomDomainsAdapter(
       // Merge the database data with the Cloudflare data
       return mapCustomDomainResponse({ ...customDomain, ...result });
     },
+    getByDomain: async (domain: string) => {
+      // This is used for tenant id resolution and needs to be fast
+      return config.customDomainAdapter.getByDomain(domain);
+    },
     list: async (tenant_id: string) => {
       const customDomains = await config.customDomainAdapter.list(tenant_id);
 

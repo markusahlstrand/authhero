@@ -13,6 +13,7 @@ import { passwordlessRoutes } from "./passwordless";
 import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
 import { addDataHooks } from "../../hooks";
+import { tenantMiddleware } from "../../middlewares/tenant";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -25,7 +26,7 @@ export default function create(config: AuthHeroConfig) {
     return next();
   });
 
-  app.use(createAuthMiddleware(app));
+  app.use(tenantMiddleware).use(createAuthMiddleware(app));
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)

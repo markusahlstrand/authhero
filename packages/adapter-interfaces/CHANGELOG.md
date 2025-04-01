@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.55.0
+
+### Minor Changes
+
+- Add a getByDomain function for cutsom domains and a tenant-id middleware
+
 ## 0.54.0
 
 ### Minor Changes
