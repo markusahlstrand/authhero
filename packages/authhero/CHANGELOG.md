@@ -1,5 +1,11 @@
 # authhero
 
+## 0.102.0
+
+### Minor Changes
+
+- Allow signup if explicit
+
 ## 0.101.0
 
 ### Minor Changes
