@@ -1,5 +1,11 @@
 # authhero
 
+## 0.105.0
+
+### Minor Changes
+
+- Change iss to custom domain
+
 ## 0.104.0
 
 ### Minor Changes

@@ -17,6 +17,7 @@ export async function tenantMiddleware(
     const domain = await ctx.env.data.customDomains.getByDomain(xForwardedHost);
     if (domain) {
       ctx.set("tenant_id", domain.tenant_id);
+      ctx.set("custom_domain", xForwardedHost);
       return await next();
     }
   }
