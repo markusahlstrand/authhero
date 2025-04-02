@@ -9,6 +9,7 @@ export type Variables = {
   connection?: string;
   body?: any;
   log?: string;
+  custom_domain?: string;
   // This is set by auth middleware
   user?: { sub: string; tenant_id: string };
   // This is used by the hooks
