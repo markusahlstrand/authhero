@@ -87,23 +87,30 @@ export async function preUserSignupHook(
 ) {
   // Check the disabled flag on the client
   if (client.disable_sign_ups) {
-    // If there is another user with the same email, allow the signup as they will be linked together
-    const existingUser = await getPrimaryUserByEmail({
-      userAdapter: data.users,
-      tenant_id: client.tenant.id,
-      email,
-    });
+    // Check if prompt=signup was specified in the authorization URL
+    const isExplicitSignup =
+      ctx.var.loginSession?.authParams?.prompt === "signup";
 
-    if (!existingUser) {
-      const log = createLogMessage(ctx, {
-        type: LogTypes.FAILED_SIGNUP,
-        description: "Public signup is disabled",
+    // If prompt=signup was specified, allow the signup regardless of the disable_sign_ups setting
+    if (!isExplicitSignup) {
+      // If there is another user with the same email, allow the signup as they will be linked together
+      const existingUser = await getPrimaryUserByEmail({
+        userAdapter: data.users,
+        tenant_id: client.tenant.id,
+        email,
       });
-      await data.logs.create(client.tenant.id, log);
 
-      throw new HTTPException(400, {
-        message: "Signups are disabled for this client",
-      });
+      if (!existingUser) {
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_SIGNUP,
+          description: "Public signup is disabled",
+        });
+        await data.logs.create(client.tenant.id, log);
+
+        throw new HTTPException(400, {
+          message: "Signups are disabled for this client",
+        });
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.101.0",
+  "version": "0.102.0",
   "files": [
     "dist"
   ],
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@authhero/kysely-adapter": "workspace:^",
-    "@hono/zod-openapi": "^0.18.0",
+    "@hono/zod-openapi": "^0.19.2",
     "@types/node": "^22.9.1",
     "better-sqlite3": "^11.5.0",
     "dts-bundle-generator": "^9.5.1",
@@ -46,7 +46,7 @@
     "oslo": "^1.2.1"
   },
   "peerDependencies": {
-    "@hono/zod-openapi": "^0.18.0",
+    "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.6.11"
   }
 }

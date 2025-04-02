@@ -30,8 +30,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.18.0",
-    "@authhero/adapter-interfaces": "workspace:^",
+    "@hono/zod-openapi": "^0.19.2",
+    "@authhero/adapter-interfaces": "workspace:*",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
@@ -49,8 +49,8 @@
     "nanoid": "^5.0.8"
   },
   "peerDependencies": {
-    "@authhero/adapter-interfaces": "workspace:^",
-    "@hono/zod-openapi": "^0.16.4",
+    "@authhero/adapter-interfaces": "workspace:*",
+    "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.6.8",
     "kysely-bun-sqlite": "^0.3.2",
     "kysely-planetscale": "^1.5.0"
