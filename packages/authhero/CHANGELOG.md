@@ -1,5 +1,11 @@
 # authhero
 
+## 0.103.0
+
+### Minor Changes
+
+- Add cors middleware for api endpoints"
+
 ## 0.102.0
 
 ### Minor Changes

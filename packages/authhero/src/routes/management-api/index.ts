@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
 import { brandingRoutes } from "./branding";
 import { userRoutes } from "./users";
@@ -24,6 +25,34 @@ export default function create(config: AuthHeroConfig) {
     Bindings: Bindings;
     Variables: Variables;
   }>();
+
+  app.use(
+    "/api/v2/*",
+    cors({
+      origin: (origin) => {
+        if (!origin) {
+          return "";
+        }
+        if (config.allowedOrigins?.includes(origin)) {
+          return origin;
+        }
+        return "";
+      },
+      allowHeaders: [
+        "Tenant-Id",
+        "Content-Type",
+        "Content-Range",
+        "Auth0-Client",
+        "Authorization",
+        "Range",
+        "Upgrade-Insecure-Requests",
+      ],
+      allowMethods: ["POST", "PUT", "GET", "DELETE", "PATCH", "OPTIONS"],
+      exposeHeaders: ["Content-Length", "Content-Range"],
+      maxAge: 600,
+      credentials: true,
+    }),
+  );
 
   registerComponent(app);
 
