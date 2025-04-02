@@ -27,7 +27,6 @@ export default function create(config: AuthHeroConfig) {
   }>();
 
   app.use(
-    "/api/v2/*",
     cors({
       origin: (origin) => {
         if (!origin) {

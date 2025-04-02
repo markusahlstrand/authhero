@@ -1,5 +1,11 @@
 # authhero
 
+## 0.104.0
+
+### Minor Changes
+
+- Add cors for token endpoint
+
 ## 0.103.0
 
 ### Minor Changes
