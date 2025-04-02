@@ -1,8 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { registerComponent } from "../../middlewares/register-component";
 import { createAuthMiddleware } from "../../middlewares/authentication";
-
 import { callbackRoutes } from "./callback";
 import { logoutRoutes } from "./logout";
 import { userinfoRoutes } from "./userinfo";
@@ -25,6 +25,23 @@ export default function create(config: AuthHeroConfig) {
     ctx.env.data = addDataHooks(ctx, config.dataAdapter);
     return next();
   });
+
+  app.use(
+    "/oauth/token",
+    cors({
+      origin: (origin) => {
+        return origin || "";
+      },
+      allowHeaders: [
+        "Tenant-Id",
+        "Content-Type",
+        "Auth0-Client",
+        "Upgrade-Insecure-Requests",
+      ],
+      allowMethods: ["POST"],
+      maxAge: 600,
+    }),
+  );
 
   app.use(tenantMiddleware).use(createAuthMiddleware(app));
 
