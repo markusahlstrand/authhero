@@ -32,7 +32,7 @@
   "devDependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
     "@authhero/kysely-adapter": "workspace:*",
-    "@hono/zod-openapi": "^0.18.0",
+    "@hono/zod-openapi": "^0.19.2",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
@@ -47,7 +47,7 @@
   },
   "peerDependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "@hono/zod-openapi": "^0.18.0",
+    "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.6.8"
   },
   "dependencies": {
