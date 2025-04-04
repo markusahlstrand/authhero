@@ -32,6 +32,17 @@ module.exports = defineConfig({
     },
     rollupOptions: {
       external: ["@hono/zod-openapi", "hono"],
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'style.css') return 'tailwind.css';
+          return assetInfo.name || '';
+        },
+      },
+    },
+  },
+  css: {
+    postcss: {
+      plugins: [require('tailwindcss'), require('autoprefixer')],
     },
   },
   resolve: {
