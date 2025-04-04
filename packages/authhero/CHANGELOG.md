@@ -1,5 +1,11 @@
 # authhero
 
+## 0.107.0
+
+### Minor Changes
+
+- Update iss in id-token as well
+
 ## 0.106.0
 
 ### Minor Changes

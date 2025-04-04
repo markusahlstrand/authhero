@@ -56,15 +56,16 @@ export async function createAuthTokens(
   }
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
+  const iss = ctx.var.custom_domain
+    ? `https://${ctx.var.custom_domain}/`
+    : ctx.env.ISSUER;
 
   const accessTokenPayload = {
     // TODO: consider if the dafault should be removed
     aud: authParams.audience || "default",
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
-    iss: ctx.var.custom_domain
-      ? `https://${ctx.var.custom_domain}/`
-      : ctx.env.ISSUER,
+    iss,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
   };
@@ -75,9 +76,7 @@ export async function createAuthTokens(
           // The audience for an id token is the client id
           aud: authParams.client_id,
           sub: user.user_id,
-          iss: ctx.var.custom_domain
-            ? `https://${ctx.var.custom_domain}`
-            : ctx.env.ISSUER,
+          iss,
           sid: session_id,
           nonce: authParams.nonce,
           given_name: user.given_name,
