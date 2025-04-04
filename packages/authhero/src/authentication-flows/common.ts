@@ -63,7 +63,7 @@ export async function createAuthTokens(
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
     iss: ctx.var.custom_domain
-      ? `https://${ctx.var.custom_domain}`
+      ? `https://${ctx.var.custom_domain}/`
       : ctx.env.ISSUER,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,

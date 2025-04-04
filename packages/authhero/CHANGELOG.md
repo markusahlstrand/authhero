@@ -1,5 +1,11 @@
 # authhero
 
+## 0.106.0
+
+### Minor Changes
+
+- Add trailing slash to custom domain iss
+
 ## 0.105.0
 
 ### Minor Changes
