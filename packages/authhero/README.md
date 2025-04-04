@@ -81,3 +81,14 @@ Contributions are welcome! Feel free to open issues and submit pull requests to 
 ## License
 
 Authhero is open-source and available under the MIT License.
+# Using Tailwind CSS with authhero components
+
+To use the Tailwind CSS styles with authhero components, import the CSS file in your application:
+
+```js
+// Import the CSS
+import 'authhero/styles';
+
+// Then use the components
+import { Button, Form } from 'authhero';
+```
