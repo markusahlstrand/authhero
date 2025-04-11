@@ -10,7 +10,7 @@
     "@hono/swagger-ui": "^0.5.0",
     "@hono/zod-openapi": "^0.19.2",
     "@peculiar/x509": "^1.12.3",
-    "authhero": "workspace:^",
+    "authhero": "^0.107.0",
     "hono": "^4.6.15",
     "hono-openapi-middlewares": "^1.0.11",
     "kysely": "^0.27.4",

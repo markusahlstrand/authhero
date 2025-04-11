@@ -1,4 +1,4 @@
-import { VendorSettings } from "authhero";
+import { VendorSettings } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
 import i18next from "i18next";
 import Footer from "./Footer";
@@ -63,7 +63,7 @@ const Layout = ({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        <link rel="stylesheet" href="/css/tailwind.css" />
+        <link rel="stylesheet" href={"/u/css/tailwind.css"} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"

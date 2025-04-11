@@ -11,11 +11,12 @@ const tailwindConfig = require('./tailwind.config.js');
 // Source file - your CSS with Tailwind directives
 const inputFile = path.resolve(__dirname, 'src/styles/tailwind.css');
 
-// Destination file
-const outputFile = path.resolve(__dirname, 'dist/tailwind.css');
+// Destination files
+const outputCssFile = path.resolve(__dirname, 'dist/tailwind.css');
+const outputTsFile = path.resolve(__dirname, 'src/styles/tailwind.ts');
 
 // Ensure dist directory exists
-const distDir = path.dirname(outputFile);
+const distDir = path.dirname(outputCssFile);
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
 }
@@ -29,11 +30,23 @@ postcss([
   autoprefixer,
   cssnano({ preset: 'default' })
 ])
-  .process(css, { from: inputFile, to: outputFile })
+  .process(css, { from: inputFile, to: outputCssFile })
   .then(result => {
-    // Write the result to the output file
-    fs.writeFileSync(outputFile, result.css);
-    console.log(`Tailwind CSS build completed: ${outputFile}`);
+    // Write the result to the output CSS file
+    fs.writeFileSync(outputCssFile, result.css);
+    console.log(`Tailwind CSS build completed: ${outputCssFile}`);
+    
+    // Generate TypeScript file with CSS content as a string
+    const cssContentCleaned = result.css.replaceAll('`', "'");
+    const doubleEscaped = cssContentCleaned.replaceAll('\\', '\\\\');
+    
+    const tsContent = `export const tailwindCss = \`
+${doubleEscaped}\`
+`;
+    
+    // Write the TypeScript file
+    fs.writeFileSync(outputTsFile, tsContent);
+    console.log(`Tailwind CSS TypeScript file generated: ${outputTsFile}`);
   })
   .catch(error => {
     console.error('Error building Tailwind CSS:', error);

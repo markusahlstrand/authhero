@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { Context } from "hono";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { enterEmailRoutes } from "./enter-email";
 import { enterCodeRoutes } from "./enter-code";
@@ -14,6 +15,7 @@ import { infoRoutes } from "./info";
 import { validateEmailRoutes } from "./validate-email";
 import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { tailwindCss } from "../../styles";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -24,6 +26,14 @@ export default function create(config: AuthHeroConfig) {
   app.use(tenantMiddleware).use(async (ctx, next) => {
     ctx.env.data = addDataHooks(ctx, config.dataAdapter);
     return next();
+  });
+
+  app.get("/css/tailwind.css", async (ctx: Context) => {
+    const css = tailwindCss;
+
+    return ctx.text(css, 200, {
+      "content-type": "text/css; charset=utf-8",
+    });
   });
 
   const universalApp = app

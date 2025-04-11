@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: workspace:^
-        version: link:../..
+        specifier: ^0.107.0
+        version: 0.107.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3)
       hono:
         specifier: ^4.6.15
         version: 4.6.15
@@ -243,6 +243,9 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
     devDependencies:
+      '@ape-egg/tailwind-rows-columns':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@authhero/kysely-adapter':
         specifier: workspace:^
         version: link:../kysely
@@ -443,6 +446,9 @@ packages:
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
+
+  '@ape-egg/tailwind-rows-columns@1.0.2':
+    resolution: {integrity: sha512-4Fy3KFWTNp6yBqHrbuu5OIUceekFb/EgNpNzyFONBImUNuo/p6vScYj7p998PSr2D3IhDMrgBJmT9YDShMuZYw==}
 
   '@asteasolutions/zod-to-openapi@7.1.1':
     resolution: {integrity: sha512-lF0d1gAc0lYLO9/BAGivwTwE2Sh9h6CHuDcbk5KnGBfIuAsAkDC+Fdat4dkQY3CS/zUWKHRmFEma0B7X132Ymw==}
@@ -2097,6 +2103,12 @@ packages:
   attr-accept@2.2.2:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
+
+  authhero@0.107.0:
+    resolution: {integrity: sha512-N8ohpSqz9dsUXT2toLXTUwjqZ1V3q1viV2r0gw8DUwwZ/bcUi9tLVq5cn65qR6Jqm5gNcYpcqeVk0MpxgdmQ+Q==}
+    peerDependencies:
+      '@hono/zod-openapi': ^0.19.2
+      hono: ^4.6.11
 
   autoprefixer@10.4.18:
     resolution: {integrity: sha512-1DKbDfsr6KUElM6wg+0zRNkB/Q7WcKYAaK+pzXn+Xqmszm/5Xa9coeNdtP88Vi+dPzZnMjhge8GIV49ZQkDa+g==}
@@ -5016,6 +5028,8 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
+  '@ape-egg/tailwind-rows-columns@1.0.2': {}
+
   '@asteasolutions/zod-to-openapi@7.1.1(zod@3.23.8)':
     dependencies:
       openapi3-ts: 4.3.3
@@ -6912,6 +6926,23 @@ snapshots:
   asynckit@0.4.0: {}
 
   attr-accept@2.2.2: {}
+
+  authhero@0.107.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3):
+    dependencies:
+      '@authhero/adapter-interfaces': 0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))
+      '@hono/zod-openapi': 0.19.2(hono@4.6.15)(zod@3.23.8)
+      '@peculiar/x509': 1.12.3
+      arctic: 3.1.2
+      bcryptjs: 2.4.3
+      check-password-strength: 2.0.10
+      classnames: 2.5.1
+      fast-xml-parser: 4.5.1
+      hono: 4.6.15
+      i18next: 24.2.0(typescript@5.6.3)
+      nanoid: 5.0.8
+      oslo: 1.2.1
+    transitivePeerDependencies:
+      - typescript
 
   autoprefixer@10.4.18(postcss@8.4.36):
     dependencies:

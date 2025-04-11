@@ -26,6 +26,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@ape-egg/tailwind-rows-columns": "^1.0.2",
     "@authhero/kysely-adapter": "workspace:^",
     "@hono/zod-openapi": "^0.19.2",
     "@types/node": "^22.9.1",
