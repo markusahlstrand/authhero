@@ -68,7 +68,12 @@ export async function universalAuth({
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
     });
-    await sendLink(ctx, login_hint, otp, authParams);
+    await sendLink(ctx, {
+      connection,
+      code: otp,
+      to: login_hint,
+      authParams,
+    });
 
     return ctx.redirect(`/u/enter-code?state=${loginSession.id}`);
   }

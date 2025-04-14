@@ -93,6 +93,7 @@
   "sign_in": "Přihlásit se",
   "signup": "Registrace",
   "signup_success": "Úspěšná registrace",
+  "sms_code_text": "{{code}} je váš přihlašovací kód pro {{vendorName}}",
   "spotify_already_linked_body": "Zdá se, že váš účet Spotify je v současné době propojen s jiným účtem Sesamy. Ale nebojte se, jsme tu, abychom vás provedli procesem, jak to napravit.",
   "spotify_already_linked_cta": "Přejděte na stránku Spotify pro přístup k obsahu",
   "spotify_already_linked_step1_body": "Začněme odpojením účtu Spotify. Kliknutím na tlačítko níže přejděte na stránku přístupu k obsahu služby Spotify. Po přihlášení k účtu Spotify najděte v seznamu připojených platforem položku Sesamy. Klikněte na tlačítko \"Unlink\" vedle loga Sesamy.",

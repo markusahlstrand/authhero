@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.107.0",
+  "version": "0.108.0",
   "files": [
     "dist"
   ],
@@ -18,7 +18,9 @@
     "dev": "bun --watch src/bun.ts",
     "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "start": "pnpm build && node dist/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "pull-translations": "i18nexus pull -k U5P1_tq3Teu7FZx4OrfI9w --path ./src/locales && prettier --write ./src/locales/**/*.json",
+    "sort-translations": "sort-json src/locales/*/*.json"
   },
   "devDependencies": {
     "@authhero/kysely-adapter": "workspace:^",
@@ -27,7 +29,9 @@
     "better-sqlite3": "^11.5.0",
     "dts-bundle-generator": "^9.5.1",
     "hono": "^4.6.11",
+    "i18nexus-cli": "^3.5.0",
     "kysely": "^0.27.4",
+    "sort-json": "^2.0.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vite-plugin-dts": "^4.3.0",

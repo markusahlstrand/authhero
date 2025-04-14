@@ -22,3 +22,4 @@ export * from "./Theme";
 export * from "./PromptSetting";
 export * from "./EmailProvider";
 export * from "./RefreshTokens";
+export * from "./SmsProvider";

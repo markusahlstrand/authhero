@@ -93,6 +93,7 @@
   "sign_in": "Kirjaudu sisään",
   "signup": "Rekisteröityminen",
   "signup_success": "Rekisteröidy onnistuneesti",
+  "sms_code_text": "{{code}} on kirjautumiskoodisi {{vendorName}}",
   "spotify_already_linked_body": "Näyttää siltä, että Spotify-tilisi on tällä hetkellä yhdistetty toiseen Sesamy-tiliin. Mutta älä pelkää, me opastamme sinua prosessin läpi, jotta saat tämän korjattua.",
   "spotify_already_linked_cta": "Siirry Spotifyn Content Access -sivulle",
   "spotify_already_linked_step1_body": "Aloitetaan poistamalla Spotify-tilisi linkitys. Klikkaa alla olevaa painiketta siirtyäksesi Spotifyn Content Access -sivulle. Kun olet kirjautunut sisään Spotify-tilillesi, etsi Sesamy yhdistettyjen alustojen luettelosta. Napsauta \"Unlink\" Sesamyn logon vieressä.",
