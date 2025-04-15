@@ -114,18 +114,18 @@ const Layout = ({
       </body>
       {html`
         <script>
-          function swapButtons() {
-            document.getElementById("initial-btn").classList.add("hidden");
-            document.getElementById("loading-btn").classList.remove("hidden");
-          }
-
-          const initialBtn = document.getElementById("initial-btn");
-
-          if (initialBtn) {
-            document.getElementById("form").onsubmit = function () {
-              swapButtons();
-            };
-          }
+          // Add loading class to submit button on form submission
+          var form = document.getElementById("form");
+          var submitBtn = form.querySelector("button[type=submit]");
+          form.onsubmit = function () {
+            submitBtn.classList.add("is-loading");
+          };
+          // Remove loading class if the page is loaded from browser bfcache
+          window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+              submitBtn.classList.remove("is-loading");
+            }
+          });
         </script>
       `}
     </html>

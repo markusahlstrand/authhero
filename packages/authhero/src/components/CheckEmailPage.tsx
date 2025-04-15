@@ -4,7 +4,7 @@ import { VendorSettings, User } from "@authhero/adapter-interfaces";
 import i18next, { t } from "i18next";
 import Trans from "./Trans";
 import Form from "./Form";
-import DisabledSubmitButton from "./DisabledSubmitButton";
+import Button from "./Button";
 
 type Props = {
   vendorSettings: VendorSettings;
@@ -35,11 +35,9 @@ const CheckEmailPage: FC<Props> = ({ vendorSettings, state, user }) => {
 
         <div className="space-y-6">
           <Form>
-            <DisabledSubmitButton className="w-full text-base sm:mt-4 md:text-base">
-              <div className="flex items-center justify-center space-x-2">
-                <span>{i18next.t("yes_continue_with_existing_account")}</span>
-              </div>
-            </DisabledSubmitButton>
+            <Button className="!text-base">
+              <span>{i18next.t("yes_continue_with_existing_account")}</span>
+            </Button>
           </Form>
           <a
             className="block text-center text-primary hover:text-primaryHover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900"

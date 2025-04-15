@@ -3,7 +3,6 @@ import Layout from "./Layout";
 import Button from "./Button";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Icon from "./Icon";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
@@ -49,12 +48,10 @@ const EnterPasswordPage: FC<Props> = (params) => {
             required
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <DisabledSubmitButton className="text-base sm:mt-4 md:text-base">
-            <div className="flex items-center space-x-2">
-              <span>{i18next.t("login")}</span>
-              <Icon className="text-xs" name="arrow-right" />
-            </div>
-          </DisabledSubmitButton>
+          <Button className="sm:mt-4 !text-base">
+            <span>{i18next.t("login")}</span>
+            <Icon className="text-xs" name="arrow-right" />
+          </Button>
         </Form>
         <a
           href={`/u/forgot-password?${loginLinkParams.toString()}`}

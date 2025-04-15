@@ -11,9 +11,9 @@ import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import SocialButton from "./SocialButton";
 import Google from "./GoogleLogo";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import VippsLogo from "./VippsLogo";
+import Button from "./Button";
 
 type Props = {
   error?: string;
@@ -78,12 +78,10 @@ const EnterEmailPage: FC<Props> = ({
             />
           )}
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <DisabledSubmitButton className="text-base sm:mt-4 md:text-base">
-            <div className="flex items-center space-x-2">
-              <span>{i18next.t("continue")}</span>
-              <Icon className="text-xs" name="arrow-right" />
-            </div>
-          </DisabledSubmitButton>
+          <Button className="sm:mt-4 !text-base">
+            <span>{i18next.t("continue")}</span>
+            <Icon className="text-xs" name="arrow-right" />
+          </Button>
         </Form>
         {anySocialLogin && (
           <div className="relative mb-5 block text-center text-gray-300 dark:text-gray-300">

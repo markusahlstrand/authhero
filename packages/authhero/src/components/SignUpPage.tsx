@@ -3,9 +3,9 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import ErrorMessage from "./ErrorMessage";
 import i18next from "i18next";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
+import Button from "./Button";
 
 type Props = {
   state: string;
@@ -54,9 +54,9 @@ const SignupPage: FC<Props> = (params) => {
             className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <DisabledSubmitButton className="text-base sm:mt-2 md:text-base">
+          <Button className="sm:mt-4 !text-base">
             {i18next.t("continue")}
-          </DisabledSubmitButton>
+          </Button>
         </Form>
         <GoBack state={state} />
       </div>

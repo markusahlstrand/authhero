@@ -3,8 +3,8 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
+import Button from "./Button";
 
 type ResetPasswordPageProps = {
   error?: string;
@@ -41,9 +41,9 @@ const ResetPasswordPage: FC<ResetPasswordPageProps> = (params) => {
             className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <DisabledSubmitButton className="text-base sm:mt-2 md:text-base">
+          <Button className="sm:mt-4 !text-base">
             {i18next.t("reset_password_cta")}
-          </DisabledSubmitButton>
+          </Button>
         </Form>
       </div>
     </Layout>

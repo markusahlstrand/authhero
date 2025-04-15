@@ -3,9 +3,9 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
+import Button from "./Button";
 
 type Props = {
   error?: string;
@@ -39,9 +39,9 @@ const ForgotPasswordPage: FC<Props> = (parms) => {
             disabled={!!email}
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <DisabledSubmitButton className="sm:mt-4">
+          <Button className="sm:mt-4 !text-base">
             {i18next.t("forgot_password_cta")}
-          </DisabledSubmitButton>
+          </Button>
         </Form>
         <GoBack state={state} />
       </div>
