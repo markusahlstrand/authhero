@@ -46,6 +46,7 @@ export async function sendEmail(
 export type SendSmsParams = {
   to: string;
   text: string;
+  code: string;
 };
 
 export async function sendSms(
@@ -85,7 +86,7 @@ export async function sendSms(
     text: params.text,
     template: "auth-code",
     data: {
-      code: params.text,
+      code: params.code,
       tenantName: tenant.name,
       tenantId: tenant.id,
     },
@@ -193,6 +194,7 @@ export async function sendCode(
     await sendSms(ctx, {
       to,
       text: t("sms_code_text", options),
+      code,
     });
   }
 

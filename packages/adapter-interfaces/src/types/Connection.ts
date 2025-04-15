@@ -24,6 +24,9 @@ export const connectionInsertSchema = z.object({
       discovery_url: z.string().default("").optional(),
       issuer: z.string().default("").optional(),
       provider: z.string().optional(),
+      from: z.string().optional(),
+      twilio_sid: z.string().optional(),
+      twilio_token: z.string().optional(),
     })
     .default({})
     .optional(),

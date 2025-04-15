@@ -6,6 +6,7 @@ export enum GrantType {
   ClientCredential = "client_credentials",
   Passwordless = "passwordless",
   Password = "password",
+  OTP = "http://auth0.com/oauth/grant-type/passwordless/otp",
 }
 
 export const tokenResponseSchema = z.object({
