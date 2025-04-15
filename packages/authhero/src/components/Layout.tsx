@@ -106,8 +106,6 @@ const Layout = ({
                       {i18next.t("contact_support")}
                     </a>
                   )}
-                  <span className="text-gray-300">|</span>{" "}
-                  <span>{i18next.t("copyright_sesamy")}</span>
                 </div>
               </div>
             </div>
