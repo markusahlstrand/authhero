@@ -3,7 +3,8 @@ const tailwindRowsColumns = require("@ape-egg/tailwind-rows-columns");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   plugins: [tailwindRowsColumns],
-  content: ["./src/components/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
+  content: ["./src/components/*.tsx"],
   theme: {
     extend: {
       screens: {
@@ -16,22 +17,7 @@ module.exports = {
         primaryHover: "var(--primary-hover)",
         textOnPrimary: "var(--text-on-primary)",
       },
-      fontFamily: {
-        sans: [
-          '"KHTeka"',
-          '"Helvetica Neue"',
-          "HelveticaNeue",
-          '"TeX Gyre Heros"',
-          "TeXGyreHeros",
-          "FreeSans",
-          '"Nimbus Sans L"',
-          '"Liberation Sans"',
-          "Arimo",
-          "Helvetica",
-          "sans-serif",
-        ],
-      },
     },
   },
-  plugins: [],
+  presets: [require("./tailwind.shared.config.js")],
 };
