@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "authhero";
+import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
