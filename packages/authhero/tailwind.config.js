@@ -6,20 +6,30 @@ module.exports = {
   content: ["./src/components/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
-      colors: {
-        primary: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
-          950: "#1e1b4b",
+      screens: {
+        short: {
+          raw: "(max-height: 900px) and (min-width: 640px)", // 640px = sm. Prevent this from ever triggering on phones
         },
+      },
+      colors: {
+        primary: "var(--primary-color)",
+        primaryHover: "var(--primary-hover)",
+        textOnPrimary: "var(--text-on-primary)",
+      },
+      fontFamily: {
+        sans: [
+          '"KHTeka"',
+          '"Helvetica Neue"',
+          "HelveticaNeue",
+          '"TeX Gyre Heros"',
+          "TeXGyreHeros",
+          "FreeSans",
+          '"Nimbus Sans L"',
+          '"Liberation Sans"',
+          "Arimo",
+          "Helvetica",
+          "sans-serif",
+        ],
       },
     },
   },
