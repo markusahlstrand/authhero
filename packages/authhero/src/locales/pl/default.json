@@ -93,6 +93,7 @@
   "sign_in": "Zaloguj się",
   "signup": "Rejestracja",
   "signup_success": "Rejestracja zakończona sukcesem",
+  "sms_code_text": "{{code}} to kod logowania do {{vendorName}}",
   "spotify_already_linked_body": "Wygląda na to, że Twoje konto Spotify jest obecnie połączone z innym kontem Sesamy. Ale nie martw się, jesteśmy tutaj, aby poprowadzić Cię przez proces, aby to naprawić.",
   "spotify_already_linked_cta": "Przejdź do strony dostępu do treści Spotify",
   "spotify_already_linked_step1_body": "Zacznijmy od odłączenia konta Spotify. Kliknij poniższy przycisk, aby przejść do strony dostępu do treści Spotify. Po zalogowaniu się na swoje konto Spotify, znajdź Sesamy na liście połączonych platform. Kliknij \"Odłącz\" obok logo Sesamy.",

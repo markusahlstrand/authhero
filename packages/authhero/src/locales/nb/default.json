@@ -93,6 +93,7 @@
   "sign_in": "Logg inn",
   "signup": "Påmelding",
   "signup_success": "Vellykket registrering",
+  "sms_code_text": "{{code}} er innloggingskoden din for {{vendorName}}",
   "spotify_already_linked_body": "Det ser ut til at Spotify-kontoen din for øyeblikket er koblet til en annen Sesamy-konto. Men ikke vær redd, vi er her for å veilede deg gjennom prosessen for å få dette fikset.",
   "spotify_already_linked_cta": "Gå til Spotifys innholdstilgangsside",
   "spotify_already_linked_step1_body": "La oss starte med å koble fra Spotify-kontoen din. Klikk på knappen nedenfor for å gå til Spotifys innholdstilgang-side. Etter at du har logget på Spotify-kontoen din, finner du Sesamy på listen over tilkoblede plattformer. Klikk \"Fjern kobling\" ved siden av Sesamy-logoen.",

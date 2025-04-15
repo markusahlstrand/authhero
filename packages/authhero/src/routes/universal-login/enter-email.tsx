@@ -216,15 +216,22 @@ export const enterEmailRoutes = new OpenAPIHono<{
       if (sendType === "link" && !params.username.includes("online.no")) {
         waitUntil(
           ctx,
-          sendLink(
-            ctx,
-            params.username,
-            createdCode.code_id,
-            loginSession.authParams,
-          ),
+          sendLink(ctx, {
+            connection: "email",
+            to: params.username,
+            code: createdCode.code_id,
+            authParams: loginSession.authParams,
+          }),
         );
       } else {
-        waitUntil(ctx, sendCode(ctx, params.username, createdCode.code_id));
+        waitUntil(
+          ctx,
+          sendCode(ctx, {
+            to: params.username,
+            code: createdCode.code_id,
+            connection: "email",
+          }),
+        );
       }
 
       return ctx.redirect(`/u/enter-code?state=${state}`);

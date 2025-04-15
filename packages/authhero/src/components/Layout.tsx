@@ -1,10 +1,10 @@
-import { VendorSettings } from "authhero";
 import AppLogo from "./AppLogo";
 import i18next from "i18next";
 import Footer from "./Footer";
 import Icon from "./Icon";
 import { html } from "hono/html";
 import { PropsWithChildren } from "hono/jsx";
+import { VendorSettings } from "@authhero/adapter-interfaces";
 
 type LayoutProps = {
   title: string;
