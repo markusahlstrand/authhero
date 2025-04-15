@@ -34,8 +34,6 @@
   font-family: "uicon" !important;
   font-size: inherit;
   font-style: normal;
-  letter-spacing: 0;
-  line-height: 100%;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
 }
@@ -167,4 +165,21 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"] {
   -webkit-appearance: none;
   -moz-appearance: textfield !important;
+}
+
+.btn.is-loading {
+  @apply pointer-events-none cursor-not-allowed opacity-40;
+}
+.btn .btn-spinner,
+.btn.is-loading .btn-label {
+  @apply opacity-0 invisible;
+}
+.btn.is-loading .btn-spinner {
+  @apply opacity-100 visible;
+}
+
+[class^="uicon-"],
+[class*=" uicon-"] {
+  line-height: 100%;
+  letter-spacing: 0;
 }
