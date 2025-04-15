@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.56.0
+
+### Minor Changes
+
+- Sms support
+
 ## 0.55.0
 
 ### Minor Changes

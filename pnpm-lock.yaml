@@ -61,8 +61,8 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^10.6.0
-        version: 10.6.0(@authhero/adapter-interfaces@0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8)))(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
+        specifier: ^10.7.0
+        version: 10.7.0(@authhero/adapter-interfaces@0.56.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8)))(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.0(hono@4.6.15)
@@ -73,8 +73,8 @@ importers:
         specifier: ^1.12.3
         version: 1.12.3
       authhero:
-        specifier: ^0.107.0
-        version: 0.107.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3)
+        specifier: ^0.108.0
+        version: 0.108.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3)
       hono:
         specifier: ^4.6.15
         version: 4.6.15
@@ -270,12 +270,18 @@ importers:
       hono:
         specifier: ^4.6.11
         version: 4.6.11
+      i18nexus-cli:
+        specifier: ^3.5.0
+        version: 3.5.0
       kysely:
         specifier: ^0.27.4
         version: 0.27.4
       postcss:
         specifier: 8.4.36
         version: 8.4.36
+      sort-json:
+        specifier: ^2.0.1
+        version: 2.0.1
       tailwindcss:
         specifier: 3.4.1
         version: 3.4.1
@@ -458,16 +464,16 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.55.0':
-    resolution: {integrity: sha512-p/UGMAnWPaAjAhsEKZNETd2JHWlAbT3+lneqGsRALuKnhyTp2Bpe2QHlv6KoqdlQqmjoff5L81XSVoNv7XCJlw==}
+  '@authhero/adapter-interfaces@0.56.0':
+    resolution: {integrity: sha512-EdCxzM9YpdW3iCE15DXP/CgVFC8b7r6/JI+TFVQtxWT0WbGHV3zgEj1uyyEEQYI0NNakZ9VDdGho3U2FqGXIRA==}
     peerDependencies:
-      '@hono/zod-openapi': ^0.16.4
+      '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/kysely-adapter@10.6.0':
-    resolution: {integrity: sha512-NYJ6eB5wPtsPyvLec4vy+M8o+aA2KV7KavQ8yv/nXVSbN1jM03eYgwJ05dawWfansn0QUf/0m+8uw743d6a5rA==}
+  '@authhero/kysely-adapter@10.7.0':
+    resolution: {integrity: sha512-Bm2AXobIPnjdyLlRatwgT8c+6bLhT+N0j0N4VtrRFP/2xSN3n0+Qk/tdSE77IPxcGGQHoMzvhPf3Nzcyx+5H9A==}
     peerDependencies:
-      '@authhero/adapter-interfaces': 0.55.0
-      '@hono/zod-openapi': ^0.16.4
+      '@authhero/adapter-interfaces': 0.56.0
+      '@hono/zod-openapi': ^0.19.2
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
       kysely-planetscale: ^1.5.0
@@ -1135,6 +1141,9 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@next/env@11.1.4':
+    resolution: {integrity: sha512-vEW+fSulzZams4nYmcX9LByb1moMBlkwOAVf0eF+44u+1N/h7HDeznPBWIjEfihzTku8rdLB0k7u8VT8AGtNkQ==}
 
   '@node-rs/argon2-android-arm-eabi@1.7.0':
     resolution: {integrity: sha512-udDqkr5P9E+wYX1SZwAVPdyfYvaF4ry9Tm+R9LkfSHbzWH0uhU6zjIwNRp7m+n4gx691rk+lqqDAIP8RLKwbhg==}
@@ -1964,6 +1973,10 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  agent-base@6.0.2:
+    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+    engines: {node: '>= 6.0.0'}
+
   agent-base@7.1.1:
     resolution: {integrity: sha512-H0TSyFNDMomMNJQBn8wFV5YC/2eJ+VXECwOadZJT554xP6cODZHPX3H9QMQECxvrgiSOP1pHjy1sMWQVYJOUOA==}
     engines: {node: '>= 14'}
@@ -2104,8 +2117,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.107.0:
-    resolution: {integrity: sha512-N8ohpSqz9dsUXT2toLXTUwjqZ1V3q1viV2r0gw8DUwwZ/bcUi9tLVq5cn65qR6Jqm5gNcYpcqeVk0MpxgdmQ+Q==}
+  authhero@0.108.0:
+    resolution: {integrity: sha512-i3ZCL3XA4NsJu16zIyOhkZm4GgWDmR3NRAh3V8YxYoZFfVUfuZU/D6oioznhdr4UeUerlLD9K9l2smZch3o8QQ==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.6.11
@@ -2286,6 +2299,10 @@ packages:
 
   colord@2.9.3:
     resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
+
+  colors@1.4.0:
+    resolution: {integrity: sha512-a+UqTh4kgZg/SlGvfbzDHpgRu7AAQOmmqRHJnxhRZICKFUT91brVhNNt58CMWU9PsBbv3PDCZUHbVxuDiH2mtA==}
+    engines: {node: '>=0.1.90'}
 
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
@@ -2490,6 +2507,10 @@ packages:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
 
+  detect-indent@5.0.0:
+    resolution: {integrity: sha512-rlpvsxUtM0PQvy9iZe640/IWwWYyBsTApREbA1pHOpmOUIl9MkP/U4z7vTtg4Oaojvqhxt7sdufnT0EzGaR31g==}
+    engines: {node: '>=4'}
+
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
     engines: {node: '>=8'}
@@ -2497,6 +2518,10 @@ packages:
   detect-libc@2.0.3:
     resolution: {integrity: sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==}
     engines: {node: '>=8'}
+
+  detect-newline@2.1.0:
+    resolution: {integrity: sha512-CwffZFvlJffUg9zZA0uqrjQayUTC8ob94pnr5sFwaVv3IOmkfUHcWH+jXaQK3askE51Cqe8/9Ql/0uXNwqZ8Zg==}
+    engines: {node: '>=0.10.0'}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -2986,6 +3011,10 @@ packages:
     resolution: {integrity: sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==}
     engines: {node: '>= 14'}
 
+  https-proxy-agent@5.0.1:
+    resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
+    engines: {node: '>= 6'}
+
   https-proxy-agent@7.0.5:
     resolution: {integrity: sha512-1e4Wqeblerz+tMKPIq2EMGiiWW1dIjZOksyHWSUm1rmuvw/how9hBHZ38lAGj5ID4Ik6EdkOw7NmWPy6LAwalw==}
     engines: {node: '>= 14'}
@@ -3009,6 +3038,10 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  i18nexus-cli@3.5.0:
+    resolution: {integrity: sha512-ZXqj+FcHS0+ASy9CDDAMEmm+Fl2mXbpCZXuT48S3Uzi5u80ajiwRCZOhouF1cvu4+sf+nxyrsYUdvF6dbbrTPg==}
+    hasBin: true
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -3519,6 +3552,15 @@ packages:
   node-abi@3.71.0:
     resolution: {integrity: sha512-SZ40vRiy/+wRTf21hxkkEjPJZpARzUMVcJoQse2EF8qkUWbbO2z7vd5oA/H6bVH6SZQ5STGcu0KRDS7biNRfxw==}
     engines: {node: '>=10'}
+
+  node-fetch@2.7.0:
+    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
 
   node-polyglot@2.5.0:
     resolution: {integrity: sha512-zXVwHNhFsG3mls+LKHxoHF70GQOL3FTDT3jH7ldkb95kG76RdU7F/NbvxV7D2hNIL9VpWXW6y78Fz+3KZkatRg==}
@@ -4369,6 +4411,10 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
 
+  sort-json@2.0.1:
+    resolution: {integrity: sha512-s8cs2bcsQCzo/P2T/uoU6Js4dS/jnX8+4xunziNoq9qmSpZNCrRIAIvp4avsz0ST18HycV4z/7myJ7jsHWB2XQ==}
+    hasBin: true
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -4589,6 +4635,9 @@ packages:
   tough-cookie@4.1.4:
     resolution: {integrity: sha512-Loo5UUvLD9ScZ6jh8beX1T6sO1w2/MpCRpEP7V280GKMVUQ0Jzar2U3UJPsrdbziLEMMhu3Ujnq//rhiFuIeag==}
     engines: {node: '>=6'}
+
+  tr46@0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
   tr46@5.0.0:
     resolution: {integrity: sha512-tk2G5R2KRwBd+ZN0zaEXpmzdKyOYksXwywulIX95MBODjSzMIuQnQ3m8JxgbhnL1LeVo7lqQKsYa1O3Htl7K5g==}
@@ -4882,6 +4931,9 @@ packages:
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
 
+  webidl-conversions@3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
@@ -4897,6 +4949,9 @@ packages:
   whatwg-url@14.0.0:
     resolution: {integrity: sha512-1lfMEm2IEr7RIV+f4lUNPOqfFL+pO+Xw3fJSqmjX9AbXcXcYOkCe1P6+9VBZB6n94af16NfZf+sSk0JCBZC9aw==}
     engines: {node: '>=18'}
+
+  whatwg-url@5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   which-boxed-primitive@1.0.2:
     resolution: {integrity: sha512-bwZdv0AKLpplFY2KZRX6TvyuN7ojjr7lwkg6ml0roIy9YeuSr7JS372qlNW18UQYzgYK9ziGcerWqZOmEn9VNg==}
@@ -5037,14 +5092,14 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))':
+  '@authhero/adapter-interfaces@0.56.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))':
     dependencies:
       '@hono/zod-openapi': 0.19.2(hono@4.6.15)(zod@3.23.8)
       nanoid: 5.0.8
 
-  '@authhero/kysely-adapter@10.6.0(@authhero/adapter-interfaces@0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8)))(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
+  '@authhero/kysely-adapter@10.7.0(@authhero/adapter-interfaces@0.56.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8)))(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(kysely-bun-sqlite@0.3.2(kysely@0.27.4))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.27.4))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))
+      '@authhero/adapter-interfaces': 0.56.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))
       '@hono/zod-openapi': 0.19.2(hono@4.6.15)(zod@3.23.8)
       hono: 4.6.15
       kysely: 0.27.4
@@ -5857,6 +5912,8 @@ snapshots:
       react-is: 18.3.1
     optionalDependencies:
       '@types/react': 18.3.3
+
+  '@next/env@11.1.4': {}
 
   '@node-rs/argon2-android-arm-eabi@1.7.0':
     optional: true
@@ -6756,6 +6813,12 @@ snapshots:
 
   acorn@8.12.0: {}
 
+  agent-base@6.0.2:
+    dependencies:
+      debug: 4.3.7
+    transitivePeerDependencies:
+      - supports-color
+
   agent-base@7.1.1:
     dependencies:
       debug: 4.3.7
@@ -6927,9 +6990,9 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.107.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3):
+  authhero@0.108.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))(hono@4.6.15)(typescript@5.6.3):
     dependencies:
-      '@authhero/adapter-interfaces': 0.55.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))
+      '@authhero/adapter-interfaces': 0.56.0(@hono/zod-openapi@0.19.2(hono@4.6.15)(zod@3.23.8))
       '@hono/zod-openapi': 0.19.2(hono@4.6.15)(zod@3.23.8)
       '@peculiar/x509': 1.12.3
       arctic: 3.1.2
@@ -7141,6 +7204,8 @@ snapshots:
 
   colord@2.9.3: {}
 
+  colors@1.4.0: {}
+
   combined-stream@1.0.8:
     dependencies:
       delayed-stream: 1.0.0
@@ -7346,9 +7411,13 @@ snapshots:
 
   dequal@2.0.3: {}
 
+  detect-indent@5.0.0: {}
+
   detect-indent@6.1.0: {}
 
   detect-libc@2.0.3: {}
+
+  detect-newline@2.1.0: {}
 
   didyoumean@1.2.2: {}
 
@@ -7999,6 +8068,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  https-proxy-agent@5.0.1:
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.3.7
+    transitivePeerDependencies:
+      - supports-color
+
   https-proxy-agent@7.0.5:
     dependencies:
       agent-base: 7.1.1
@@ -8017,6 +8093,17 @@ snapshots:
       '@babel/runtime': 7.25.7
     optionalDependencies:
       typescript: 5.6.3
+
+  i18nexus-cli@3.5.0:
+    dependencies:
+      '@next/env': 11.1.4
+      colors: 1.4.0
+      commander: 7.2.0
+      https-proxy-agent: 5.0.1
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
 
   iconv-lite@0.4.24:
     dependencies:
@@ -8505,6 +8592,10 @@ snapshots:
   node-abi@3.71.0:
     dependencies:
       semver: 7.6.2
+
+  node-fetch@2.7.0:
+    dependencies:
+      whatwg-url: 5.0.0
 
   node-polyglot@2.5.0:
     dependencies:
@@ -9378,6 +9469,12 @@ snapshots:
 
   slash@3.0.0: {}
 
+  sort-json@2.0.1:
+    dependencies:
+      detect-indent: 5.0.0
+      detect-newline: 2.1.0
+      minimist: 1.2.8
+
   source-map-js@1.2.1: {}
 
   source-map@0.5.7: {}
@@ -9618,6 +9715,8 @@ snapshots:
       punycode: 2.3.1
       universalify: 0.2.0
       url-parse: 1.5.10
+
+  tr46@0.0.3: {}
 
   tr46@5.0.0:
     dependencies:
@@ -9960,6 +10059,8 @@ snapshots:
     dependencies:
       defaults: 1.0.4
 
+  webidl-conversions@3.0.1: {}
+
   webidl-conversions@7.0.0: {}
 
   whatwg-encoding@3.1.1:
@@ -9972,6 +10073,11 @@ snapshots:
     dependencies:
       tr46: 5.0.0
       webidl-conversions: 7.0.0
+
+  whatwg-url@5.0.0:
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
 
   which-boxed-primitive@1.0.2:
     dependencies:

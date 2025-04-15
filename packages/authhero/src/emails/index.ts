@@ -43,6 +43,55 @@ export async function sendEmail(
   });
 }
 
+export type SendSmsParams = {
+  to: string;
+  text: string;
+};
+
+export async function sendSms(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: SendSmsParams,
+) {
+  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  if (!tenant) {
+    throw new HTTPException(500, { message: "Tenant not found" });
+  }
+
+  const smsProvider =
+    (await ctx.env.data.connections.list(ctx.var.tenant_id)).connections.find(
+      (c) => c.strategy === "sms",
+    ) ||
+    // Fallback to default tenant
+    (ctx.env.DEFAULT_TENANT_ID
+      ? (
+          await ctx.env.data.connections.list(ctx.env.DEFAULT_TENANT_ID)
+        ).connections.find((c) => c.strategy === "sms")
+      : null);
+
+  if (!smsProvider) {
+    throw new HTTPException(500, { message: "SMS provider not found" });
+  }
+
+  const provider = smsProvider.options?.provider || "twilio";
+
+  const smsService = ctx.env.smsProviders?.[provider];
+  if (!smsService) {
+    throw new HTTPException(500, { message: "SMS provider not found" });
+  }
+
+  await smsService({
+    options: smsProvider.options,
+    to: params.to,
+    text: params.text,
+    template: "auth-code",
+    data: {
+      code: params.text,
+      tenantName: tenant.name,
+      tenantId: tenant.id,
+    },
+  });
+}
+
 export async function sendResetPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   to: string,
@@ -83,47 +132,69 @@ export async function sendResetPassword(
       supportInfo: t("support_info", options),
       contactUs: t("contact_us", options),
       copyright: t("copyright", options),
+      tenantName: tenant.name,
+      tenantId: tenant.id,
     },
   });
 }
 
+export interface SendCodeParams {
+  to: string;
+  code: string;
+  connection: "email" | "sms";
+}
+
+export interface SendLinkParams extends SendCodeParams {
+  authParams: AuthParams;
+}
+
 export async function sendCode(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  to: string,
-  code: string,
+  { to, code, connection }: SendCodeParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
 
+  const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
+
   const options = {
     vendorName: tenant.name,
+    vendorId: tenant.id,
+    loginDomain: loginUrl.hostname,
     code,
     lng: tenant.language || "en",
   };
 
-  await sendEmail(ctx, {
-    to,
-    subject: t("code_email_subject", options),
-    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
-    template: "auth-code",
-    data: {
-      code,
-      vendorName: tenant.name,
-      logo: tenant.logo || "",
-      supportUrl: tenant.support_url || "",
-      buttonColor: tenant.primary_color || "",
-      welcomeToYourAccount: t("welcome_to_your_account", options),
-      linkEmailClickToLogin: t("link_email_click_to_login", options),
-      linkEmailLogin: t("link_email_login", options),
-      linkEmailOrEnterCode: t("link_email_or_enter_code", options),
-      codeValid30Mins: t("code_valid_30_minutes", options),
-      supportInfo: t("support_info", options),
-      contactUs: t("contact_us", options),
-      copyright: t("copyright", options),
-    },
-  });
+  if (connection === "email") {
+    await sendEmail(ctx, {
+      to,
+      subject: t("code_email_subject", options),
+      html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
+      template: "auth-code",
+      data: {
+        code,
+        vendorName: tenant.name,
+        logo: tenant.logo || "",
+        supportUrl: tenant.support_url || "",
+        buttonColor: tenant.primary_color || "",
+        welcomeToYourAccount: t("welcome_to_your_account", options),
+        linkEmailClickToLogin: t("link_email_click_to_login", options),
+        linkEmailLogin: t("link_email_login", options),
+        linkEmailOrEnterCode: t("link_email_or_enter_code", options),
+        codeValid30Mins: t("code_valid_30_minutes", options),
+        supportInfo: t("support_info", options),
+        contactUs: t("contact_us", options),
+        copyright: t("copyright", options),
+      },
+    });
+  } else if (connection === "sms") {
+    await sendSms(ctx, {
+      to,
+      text: t("sms_code_text", options),
+    });
+  }
 
   const log = createLogMessage(ctx, {
     type: LogTypes.CODE_LINK_SENT,
@@ -134,9 +205,7 @@ export async function sendCode(
 
 export async function sendLink(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  to: string,
-  code: string,
-  authParams: AuthParams,
+  { to, code, authParams, connection }: SendLinkParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -150,10 +219,10 @@ export async function sendLink(
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";
   magicLink.searchParams.set("verification_code", code);
-  magicLink.searchParams.set("connection", "email");
+  magicLink.searchParams.set("connection", connection);
   magicLink.searchParams.set("client_id", authParams.client_id);
   magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
-  magicLink.searchParams.set("email", to);
+  magicLink.searchParams.set("username", to);
   if (authParams.response_type) {
     magicLink.searchParams.set("response_type", authParams.response_type);
   }
@@ -184,6 +253,12 @@ export async function sendLink(
     code,
     lng: tenant.language || "en",
   };
+
+  if (connection !== "email") {
+    throw new HTTPException(400, {
+      message: "Only email connections are supported for magic links",
+    });
+  }
 
   await sendEmail(ctx, {
     to,

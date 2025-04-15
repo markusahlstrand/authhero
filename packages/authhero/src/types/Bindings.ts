@@ -6,6 +6,7 @@ import {
 } from "./Hooks";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
+import { smsService } from "./SMSService";
 
 declare type Fetcher = {
   fetch: typeof fetch;
@@ -29,6 +30,7 @@ export type Bindings = {
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
   };
   emailProviders?: { [key: string]: EmailService };
+  smsProviders?: { [key: string]: smsService };
 
   // Tenant for default configuration
   DEFAULT_TENANT_ID?: string;

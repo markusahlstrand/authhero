@@ -1,5 +1,16 @@
 # authhero
 
+## 0.108.0
+
+### Minor Changes
+
+- Sms support
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.56.0
+
 ## 0.107.0
 
 ### Minor Changes

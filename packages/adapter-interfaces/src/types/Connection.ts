@@ -23,6 +23,7 @@ export const connectionInsertSchema = z.object({
       jwks_uri: z.string().default("").optional(),
       discovery_url: z.string().default("").optional(),
       issuer: z.string().default("").optional(),
+      provider: z.string().optional(),
     })
     .default({})
     .optional(),

@@ -30,13 +30,22 @@ export const passwordlessRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z.object({
-                client_id: z.string(),
-                connection: z.string(),
-                email: z.string().transform((u) => u.toLowerCase()),
-                send: z.enum(["link", "code"]),
-                authParams: authParamsSchema.omit({ client_id: true }),
-              }),
+              schema: z.union([
+                z.object({
+                  connection: z.literal("email"),
+                  client_id: z.string(),
+                  email: z.string().transform((u) => u.toLowerCase()),
+                  send: z.enum(["link", "code"]),
+                  authParams: authParamsSchema.omit({ client_id: true }),
+                }),
+                z.object({
+                  client_id: z.string(),
+                  connection: z.literal("sms"),
+                  phone_number: z.string(),
+                  send: z.enum(["link", "code"]),
+                  authParams: authParamsSchema.omit({ client_id: true }),
+                }),
+              ]),
             },
           },
         },
@@ -50,7 +59,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("json");
       const { env } = ctx;
-      const { client_id, email, send, authParams } = body;
+      const { client_id, send, authParams, connection } = body;
       const client = await ctx.env.data.clients.get(client_id);
       if (!client) {
         throw new HTTPException(400, {
@@ -60,10 +69,12 @@ export const passwordlessRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.id);
       ctx.set("tenant_id", client.tenant.id);
 
+      const username = connection === "email" ? body.email : body.phone_number;
+
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,
         {
-          authParams: { ...authParams, client_id, username: email },
+          authParams: { ...authParams, client_id, username },
           expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
           csrf_token: nanoid(),
           ...getClientInfo(ctx.req),
@@ -78,9 +89,21 @@ export const passwordlessRoutes = new OpenAPIHono<{
       });
 
       if (send === "link") {
-        await sendLink(ctx, email, code.code_id, { ...authParams, client_id });
+        await sendLink(ctx, {
+          to: username,
+          code: code.code_id,
+          authParams: {
+            ...authParams,
+            client_id,
+          },
+          connection,
+        });
       } else {
-        await sendCode(ctx, email, code.code_id);
+        await sendCode(ctx, {
+          to: username,
+          code: code.code_id,
+          connection,
+        });
       }
 
       return ctx.html("OK");

@@ -93,6 +93,7 @@
   "sign_in": "Logga in",
   "signup": "Registrera dig",
   "signup_success": "Registrera dig framgångsrik",
+  "sms_code_text": "{{code}} är din inloggningskod för {{vendorName}}",
   "spotify_already_linked_body": "Det verkar som att ditt Spotify-konto för närvarande är kopplat till ett annat Sesamy-konto. Ingen fara, vi är här för att guida dig genom processen för att lösa detta.",
   "spotify_already_linked_cta": "Gå till Spotify's Content Access sida",
   "spotify_already_linked_step1_body": "Vi börjar med att avlänka ditt Spotify-konto. Klicka på knappen nedan för att komma till Spotify's Content Access sida. När du har loggat in på ditt Spotify-konto, leta upp Sesamy i listan över anslutna plattformar. Klicka på \"Unlink\" bredvid Sesamys logotyp.",
