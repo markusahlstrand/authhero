@@ -1,5 +1,16 @@
 # authhero
 
+## 0.110.0
+
+### Minor Changes
+
+- Add a otp grant flow for token
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.57.0
+
 ## 0.109.0
 
 ### Minor Changes
