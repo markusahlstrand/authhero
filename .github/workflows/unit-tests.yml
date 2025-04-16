@@ -30,5 +30,8 @@ jobs:
       - name: Build interfaces
         run: pnpm interfaces build
 
+      - name: Build kysely
+        run: pnpm kysely build
+
       - name: Run tests
         run: pnpm -r test
