@@ -1,12 +1,7 @@
 import { Context } from "hono";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { DataAdapters, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
-import {
-  createAuthMiddleware,
-  registerComponent,
-} from "hono-openapi-middlewares";
 import packageJson from "../package.json";
 
 export default function create(dataAdapter: DataAdapters) {

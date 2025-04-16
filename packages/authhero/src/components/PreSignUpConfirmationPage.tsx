@@ -1,6 +1,6 @@
 import type { FC, JSXNode } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "authhero";
+import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { GoBack } from "./GoBack";
 import Icon from "./Icon";

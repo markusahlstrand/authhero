@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.10.0
+
+### Minor Changes
+
+- Add build scripts for tailwind
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.109.0
+
 ## 0.9.51
 
 ### Patch Changes

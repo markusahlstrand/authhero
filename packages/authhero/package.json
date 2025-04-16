@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.108.0",
+  "version": "0.109.0",
   "files": [
     "dist"
   ],
@@ -12,25 +12,35 @@
       "require": "./dist/authhero.cjs",
       "import": "./dist/authhero.mjs",
       "types": "./dist/authhero.d.ts"
+    },
+    "./styles": {
+      "import": "./dist/tailwind.css",
+      "require": "./dist/tailwind.css"
     }
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build": "pnpm build:tailwind && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build:tailwind": "node build-tailwind.js",
     "start": "pnpm build && node dist/index.js",
     "test": "vitest run",
     "pull-translations": "i18nexus pull -k U5P1_tq3Teu7FZx4OrfI9w --path ./src/locales && prettier --write ./src/locales/**/*.json",
     "sort-translations": "sort-json src/locales/*/*.json"
   },
   "devDependencies": {
+    "@ape-egg/tailwind-rows-columns": "^1.0.2",
     "@authhero/kysely-adapter": "workspace:^",
     "@hono/zod-openapi": "^0.19.2",
     "@types/node": "^22.9.1",
+    "autoprefixer": "10.4.18",
     "better-sqlite3": "^11.5.0",
+    "cssnano": "6.0.5",
     "dts-bundle-generator": "^9.5.1",
     "hono": "^4.6.11",
     "i18nexus-cli": "^3.5.0",
     "kysely": "^0.27.4",
+    "postcss": "8.4.36",
+    "tailwindcss": "3.4.1",
     "sort-json": "^2.0.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",

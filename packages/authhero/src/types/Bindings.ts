@@ -16,6 +16,7 @@ export type Bindings = {
   ENVIRONMENT: string;
   AUTH_URL: string;
   JWKS_URL: string;
+  CSS_URL?: string;
   JWKS_SERVICE: Fetcher;
   ISSUER: string;
   UNIVERSAL_LOGIN_URL?: string;

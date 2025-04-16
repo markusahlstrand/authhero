@@ -11,3 +11,7 @@ export function getUniversalLoginUrl(env: Bindings) {
 export function getAuthUrl(env: Bindings) {
   return env.OAUTH_API_URL || env.ISSUER;
 }
+
+export function getCssUrl(env: Bindings) {
+  return env.CSS_URL || `${getUniversalLoginUrl(env)}css/tailwind.css`;
+}

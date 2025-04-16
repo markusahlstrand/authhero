@@ -1,0 +1,185 @@
+/* @import "./fonts.css"; */
+@font-face {
+  font-display: swap;
+  font-family: "KHTeka";
+  font-style: normal;
+  font-weight: 400;
+  src: url("https://assets.sesamy.com/fonts/khteka/WOFF2/KHTeka-Regular.woff2")
+    format("woff2");
+}
+@font-face {
+  font-display: swap;
+  font-family: "KHTeka";
+  font-style: normal;
+  font-weight: 500;
+  src: url("https://assets.sesamy.com/fonts/khteka/WOFF2/KHTeka-Medium.woff2")
+    format("woff2");
+}
+@font-face {
+  font-display: swap;
+  font-family: "KHTeka";
+  font-style: normal;
+  font-weight: 600;
+  src: url("https://assets.sesamy.com/fonts/khteka/WOFF2/KHTeka-Bold.woff2")
+    format("woff2");
+}
+
+/* TODO: Replace this with better icon handling */
+@font-face {
+  font-family: "uicon";
+  src: url("https://login2.sesamy.com/_next/static/media/uicon.0b00e08a.woff2");
+}
+[class^="uicon-"],
+[class*=" uicon-"] {
+  font-family: "uicon" !important;
+  font-size: inherit;
+  font-style: normal;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+}
+.uicon-apple:before {
+  content: "\ea01";
+}
+.uicon-arrow-down:before {
+  content: "\ea02";
+}
+.uicon-arrow-left:before {
+  content: "\ea03";
+}
+.uicon-arrow-right:before {
+  content: "\ea04";
+}
+.uicon-arrow-up:before {
+  content: "\ea05";
+}
+.uicon-facebook:before {
+  content: "\ea06";
+}
+.uicon-google:before {
+  content: "\ea07";
+}
+.uicon-info-bubble:before {
+  content: "\ea08";
+}
+.uicon-info:before {
+  content: "\ea09";
+}
+.uicon-sesamy:before {
+  content: "\ea0a";
+}
+.uicon-spinner-circle:before {
+  content: "\ea0b";
+}
+.uicon-spinner-inner:before {
+  content: "\ea0c";
+}
+/* ------  */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply h-full;
+  }
+  body {
+    @apply bg-gray-100 text-base leading-[120%] tracking-[0.0125rem] antialiased dark:text-white;
+  }
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    @apply text-sm tracking-[0.0125rem];
+  }
+  .text-display {
+    @apply text-3xl font-medium sm:text-6xl sm:tracking-[-0.125rem] md:text-7xl md:tracking-[-0.125rem];
+  }
+  h1 {
+    @apply text-2xl font-medium sm:text-4xl sm:tracking-[-0.0625rem] md:text-5xl md:tracking-[-0.0625rem];
+  }
+  h2 {
+    @apply text-xl font-medium sm:text-3xl sm:tracking-normal md:text-4xl md:tracking-[-0.0625rem];
+  }
+  h3 {
+    @apply text-lg font-medium sm:text-2xl md:text-3xl;
+  }
+  h4 {
+    @apply text-base font-medium sm:text-lg md:text-2xl;
+  }
+  h5 {
+    @apply text-sm font-medium sm:text-base md:text-lg;
+  }
+  h6 {
+    @apply text-xs font-medium sm:text-sm md:text-base;
+  }
+}
+.text-5xl {
+  @apply md:text-6xl;
+}
+.text-4xl {
+  @apply md:text-5xl;
+}
+.text-3xl {
+  @apply md:text-4xl;
+}
+.text-2xl {
+  @apply md:text-3xl;
+}
+.text-xl {
+  @apply md:text-2xl;
+}
+.text-lg {
+  @apply md:text-xl;
+}
+.text-base {
+  @apply md:text-lg;
+}
+.text-sm {
+  @apply md:text-base;
+}
+.text-xs {
+  @apply md:text-sm;
+}
+
+:root {
+  --primary-color: #7d68f4;
+  --primary-hover: #7e69f4;
+  --text-on-primary: #ffffff;
+}
+
+svg {
+  @apply transform-gpu;
+}
+
+*,
+*::before,
+*::after {
+  @apply underline-offset-4;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield !important;
+}
+
+.btn.is-loading {
+  @apply pointer-events-none cursor-not-allowed opacity-40;
+}
+.btn .btn-spinner,
+.btn.is-loading .btn-label {
+  @apply opacity-0 invisible;
+}
+.btn.is-loading .btn-spinner {
+  @apply opacity-100 visible;
+}
+
+[class^="uicon-"],
+[class*=" uicon-"] {
+  line-height: 100%;
+  letter-spacing: 0;
+}

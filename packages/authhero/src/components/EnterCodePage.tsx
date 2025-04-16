@@ -5,7 +5,6 @@ import i18next from "i18next";
 import cn from "classnames";
 import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
 import { VendorSettings, Client } from "@authhero/adapter-interfaces";
@@ -78,14 +77,10 @@ const EnterCodePage: FC<Props> = ({
             id="code-input"
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          <div className="text-center sm:mt-2">
-            <DisabledSubmitButton className="text-base sm:mt-4 md:text-base">
-              <div className="flex items-center space-x-2">
-                <span>{i18next.t("login")}</span>
-                <Icon className="text-xs" name="arrow-right" />
-              </div>
-            </DisabledSubmitButton>
-          </div>
+          <Button className="sm:mt-4 !text-base">
+            <span>{i18next.t("login")}</span>
+            <Icon className="text-xs" name="arrow-right" />
+          </Button>
           <div className="my-4 flex space-x-2 text-sm text-[#B2B2B2]">
             <Icon className="text-base" name="info-bubble" />
             <div className="text-sm text-gray-300 md:text-sm">
