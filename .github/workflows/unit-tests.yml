@@ -27,5 +27,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
 
+      - name: Build interfaces
+        run: pnpm interfaces build
+
       - name: Run tests
         run: pnpm -r test
