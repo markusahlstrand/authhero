@@ -65,7 +65,7 @@ describe("tenants", () => {
     expect(tenantsList[1]?.id).toEqual(createdTenant.id);
   });
 
-  it.only("should remove a tenant", async () => {
+  it("should remove a tenant", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);
 

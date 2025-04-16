@@ -87,11 +87,14 @@ export async function preUserSignupHook(
 ) {
   // Check the disabled flag on the client
   if (client.disable_sign_ups) {
-    // Check if prompt=signup was specified in the authorization URL
-    const isExplicitSignup =
-      ctx.var.loginSession?.authParams?.prompt === "signup";
+    const authorizeUrl = ctx.var.loginSession?.authorization_url;
 
-    // If prompt=signup was specified, allow the signup regardless of the disable_sign_ups setting
+    // Check if screen_hint=signup was specified in the authorization URL
+    const isExplicitSignup =
+      authorizeUrl &&
+      new URL(authorizeUrl).searchParams.get("screen_hint") === "signup";
+
+    // If screen_hint=signup was specified, allow the signup regardless of the disable_sign_ups setting
     if (!isExplicitSignup) {
       // If there is another user with the same email, allow the signup as they will be linked together
       const existingUser = await getPrimaryUserByEmail({

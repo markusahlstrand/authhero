@@ -58,6 +58,14 @@ export const authorizeRoutes = new OpenAPIHono<{
           auth0Client: z.string().optional(),
           organization: z.string().optional(),
           login_hint: z.string().optional(),
+          screen_hint: z
+            .string()
+            .openapi({
+              example: "signup",
+              description:
+                'Optional hint for the screen to show, like "signup" or "login".',
+            })
+            .optional(),
           ui_locales: z.string().optional(),
         }),
       },
