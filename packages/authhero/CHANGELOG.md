@@ -1,5 +1,11 @@
 # authhero
 
+## 0.111.0
+
+### Minor Changes
+
+- Add screen_hint for signup
+
 ## 0.110.0
 
 ### Minor Changes
