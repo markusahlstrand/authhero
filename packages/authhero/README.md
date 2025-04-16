@@ -81,3 +81,52 @@ Contributions are welcome! Feel free to open issues and submit pull requests to 
 ## License
 
 Authhero is open-source and available under the MIT License.
+
+## Using Tailwind CSS with authhero components
+
+There are two ways to use the Tailwind CSS styles with authhero components:
+
+### 1. Import the CSS file (for environments with filesystem access)
+
+```js
+// Import the CSS
+import 'authhero/styles';
+
+// Then use the components
+import { Button, Form } from 'authhero';
+```
+
+### 2. Inject CSS programmatically (for Cloudflare Workers and similar environments)
+
+For environments that don't support filesystem access, you can inject the CSS programmatically:
+
+```js
+// Import the helper function
+import { injectTailwindCSS } from 'authhero';
+
+// Call this function once to inject the CSS into the document
+injectTailwindCSS();
+
+// Then use the components
+import { Button, Form } from 'authhero';
+```
+
+You can also access the raw CSS string:
+
+```js
+import { tailwindCss } from 'authhero';
+
+// Use the CSS string as needed
+// For example, in a Cloudflare Worker:
+const html = `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <style>${tailwindCss}</style>
+    </head>
+    <body>
+      <!-- Your content -->
+    </body>
+  </html>
+`;
+```

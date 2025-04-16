@@ -1,5 +1,11 @@
 # authhero
 
+## 0.109.0
+
+### Minor Changes
+
+- Add build scripts for tailwind
+
 ## 0.108.0
 
 ### Minor Changes

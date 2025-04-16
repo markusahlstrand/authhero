@@ -1,10 +1,10 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "authhero";
+import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
-import DisabledSubmitButton from "./DisabledSubmitButton";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
+import Button from "./Button";
 
 type Props = {
   state: string;
@@ -37,11 +37,7 @@ const PreSignupPage: FC<Props> = (params) => {
             value={email}
             disabled
           />
-          <DisabledSubmitButton className="text-base sm:mt-4 md:text-base">
-            <div className="flex items-center space-x-2">
-              <span>{i18next.t("send")}</span>
-            </div>
-          </DisabledSubmitButton>
+          <Button className="sm:mt-4 !text-base">{i18next.t("send")}</Button>
         </Form>
       </div>
       <GoBack state={state} />

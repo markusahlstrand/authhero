@@ -1,10 +1,10 @@
+import { VendorSettings } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
 import i18next from "i18next";
 import Footer from "./Footer";
 import Icon from "./Icon";
 import { html } from "hono/html";
 import { PropsWithChildren } from "hono/jsx";
-import { VendorSettings } from "@authhero/adapter-interfaces";
 
 type LayoutProps = {
   title: string;
@@ -63,7 +63,7 @@ const Layout = ({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        <link rel="stylesheet" href="/css/tailwind.css" />
+        <link rel="stylesheet" href={"/u/css/tailwind.css"} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"
@@ -106,8 +106,6 @@ const Layout = ({
                       {i18next.t("contact_support")}
                     </a>
                   )}
-                  <span className="text-gray-300">|</span>{" "}
-                  <span>{i18next.t("copyright_sesamy")}</span>
                 </div>
               </div>
             </div>
@@ -116,18 +114,18 @@ const Layout = ({
       </body>
       {html`
         <script>
-          function swapButtons() {
-            document.getElementById("initial-btn").classList.add("hidden");
-            document.getElementById("loading-btn").classList.remove("hidden");
-          }
-
-          const initialBtn = document.getElementById("initial-btn");
-
-          if (initialBtn) {
-            document.getElementById("form").onsubmit = function () {
-              swapButtons();
-            };
-          }
+          // Add loading class to submit button on form submission
+          var form = document.getElementById("form");
+          var submitBtn = form.querySelector("button[type=submit]");
+          form.onsubmit = function () {
+            submitBtn.classList.add("is-loading");
+          };
+          // Remove loading class if the page is loaded from browser bfcache
+          window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+              submitBtn.classList.remove("is-loading");
+            }
+          });
         </script>
       `}
     </html>

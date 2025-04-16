@@ -31,36 +31,29 @@ const Button = ({
     // @ts-expect-error - refactor this when migrating to authhero
     <Component
       class={cn(
-        "relative w-full rounded-lg text-center",
-        className,
+        "btn relative w-full rounded-lg text-center",
         {
           "px-4 py-5": variant !== "custom",
           "bg-primary text-textOnPrimary hover:bg-primaryHover":
             variant === "primary",
           "border border-gray-300 bg-white text-black": variant === "secondary",
           "pointer-events-none cursor-not-allowed opacity-40": disabled,
+          "is-loading": isLoading,
         },
-        // focus styles
         "focus:outline-none focus:ring",
+        className,
       )}
       type="submit"
       disabled={disabled}
       id={id}
       {...hrefProps}
     >
-      <span
-        className={`
-    flex items-center justify-center space-x-2
-    ${isLoading ? "invisible h-0" : "visible h-auto"}
-  `}
-      >
+      <span className="btn-label flex items-center justify-center space-x-2">
         {children}
       </span>
-      {isLoading && (
-        <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center">
-          <Spinner size="medium" />
-        </div>
-      )}
+      <div className="btn-spinner absolute left-0 top-0 flex h-full w-full items-center justify-center">
+        <Spinner size="medium" />
+      </div>
     </Component>
   );
 };

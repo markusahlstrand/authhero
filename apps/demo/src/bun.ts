@@ -35,12 +35,23 @@ if (keys.length === 0) {
     sender_name: "SenderName",
   });
 
+  await dataAdapter.applications.create("default", {
+    id: "default",
+    client_secret: "clientSecret",
+    name: "Default Client",
+    callbacks: ["http://localhost:5173/auth-callback"],
+    allowed_logout_urls: ["http://localhost:5173/callback"],
+    web_origins: ["https://localhost:5173"],
+    disable_sign_ups: false,
+  });
+
   console.log("Initiated database");
 }
 
 const server = {
   async fetch(request: Request): Promise<Response> {
     return app.fetch(request, {
+      // @ts-ignore
       ...process.env,
       data: dataAdapter,
     });
