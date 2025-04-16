@@ -15,6 +15,7 @@ import {
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
 import { MockEmailService } from "./mock-email-service";
+import { MockSmsService } from "./mock-sms-service";
 import { mockStrategy } from "./mock-strategy";
 
 type getEnvParams = {
@@ -31,6 +32,7 @@ type getEnvParams = {
 type TestServer = {
   env: Bindings;
   getSentEmails: () => any[];
+  getSentSms: () => any[];
 } & ReturnType<typeof init>;
 
 export async function getTestServer(
@@ -102,12 +104,16 @@ export async function getTestServer(
   const publicKey = await certificate.publicKey.export();
   const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);
   const mockEmailService = new MockEmailService();
+  const mockSmsService = new MockSmsService();
 
   const env: Bindings = {
     data,
     hooks: args.hooks,
     emailProviders: {
       "mock-email": mockEmailService.sendEmail.bind(mockEmailService),
+    },
+    smsProviders: {
+      twilio: mockSmsService.sendSms.bind(mockSmsService),
     },
     JWKS_SERVICE: {
       fetch: async () =>
@@ -138,5 +144,6 @@ export async function getTestServer(
     ...apps,
     env,
     getSentEmails: mockEmailService.getSentEmails.bind(mockEmailService),
+    getSentSms: mockSmsService.getSentSms.bind(mockSmsService),
   };
 }

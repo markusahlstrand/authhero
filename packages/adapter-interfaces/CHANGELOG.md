@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.57.0
+
+### Minor Changes
+
+- Add a otp grant flow for token
+
 ## 0.56.0
 
 ### Minor Changes

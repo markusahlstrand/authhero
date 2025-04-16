@@ -14,6 +14,10 @@ import {
   refreshTokenGrant,
   refreshTokenParamsSchema,
 } from "../../authentication-flows/refresh-token";
+import {
+  passwordlessGrant,
+  passwordlessGrantParamsSchema,
+} from "../../authentication-flows/passwordless";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -45,6 +49,14 @@ const CreateRequestSchema = z.union([
     client_id: z.string(),
     refresh_token: z.string(),
     redirect_uri: z.string().optional(),
+  }),
+  // OTP
+  z.object({
+    grant_type: z.literal("http://auth0.com/oauth/grant-type/passwordless/otp"),
+    client_id: z.string(),
+    username: z.string(),
+    otp: z.string(),
+    realm: z.enum(["email", "sms"]),
   }),
 ]);
 
@@ -118,6 +130,11 @@ export const tokenRoutes = new OpenAPIHono<{
           );
         case GrantType.RefreshToken:
           return refreshTokenGrant(ctx, refreshTokenParamsSchema.parse(params));
+        case GrantType.OTP:
+          return passwordlessGrant(
+            ctx,
+            passwordlessGrantParamsSchema.parse(params),
+          );
         default:
           throw new HTTPException(400, { message: "Not implemented" });
       }

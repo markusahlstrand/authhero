@@ -1,5 +1,12 @@
 import { Context } from "hono";
-import { AuthParams, Client } from "@authhero/adapter-interfaces";
+import { z } from "@hono/zod-openapi";
+import {
+  AuthorizationResponseType,
+  AuthorizationResponseMode,
+  AuthParams,
+  authParamsSchema,
+  Client,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { getClientInfo } from "../utils/client-info";
@@ -8,11 +15,46 @@ import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
 import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 
+export const passwordlessGrantParamsSchema = z.object({
+  client_id: z.string(),
+  username: z.string().transform((u) => u.toLowerCase()),
+  realm: z.enum(["email", "sms"]),
+  otp: z.string(),
+  authParams: authParamsSchema.optional(),
+});
+
+export async function passwordlessGrant(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  {
+    client_id,
+    username,
+    otp,
+    authParams,
+  }: z.infer<typeof passwordlessGrantParamsSchema>,
+) {
+  const client = await ctx.env.data.clients.get(client_id);
+  if (!client) {
+    throw new HTTPException(403, { message: "Client not found" });
+  }
+
+  return loginWithPasswordless(
+    ctx,
+    client,
+    authParams || {
+      client_id,
+      response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+      response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+    },
+    username,
+    otp,
+  );
+}
+
 export async function loginWithPasswordless(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
   authParams: AuthParams,
-  email: string,
+  username: string,
   verification_code: string,
   ticketAuth?: boolean,
   validateIP?: boolean,
@@ -24,6 +66,7 @@ export async function loginWithPasswordless(
     verification_code,
     "otp",
   );
+
   if (!code) {
     throw new HTTPException(400, {
       message: "Code not found or expired",
@@ -46,7 +89,8 @@ export async function loginWithPasswordless(
     client.tenant.id,
     code.login_id,
   );
-  if (!loginSession || loginSession.authParams.username !== email) {
+
+  if (!loginSession || loginSession.authParams.username !== username) {
     throw new HTTPException(400, {
       message: "Code not found or expired",
     });
@@ -73,7 +117,7 @@ export async function loginWithPasswordless(
 
   const user = await getOrCreateUserByEmailAndProvider(ctx, {
     client,
-    email,
+    email: username,
     provider: "email",
     connection: "email",
     isSocial: false,
