@@ -1,8 +1,4 @@
 {
-  "Server error: Invalid code": "Koden är inte giltig",
-  "Wrong email or verification code": {
-    "": "Fel e-post eller verifieringskod."
-  },
   "account_detected": "Fortsätt med existerande konto",
   "account_with_sso_provider": "Det verkar som att du redan har skapat ett konto genom",
   "agree_to": "Genom att logga in godkänner du våra",
@@ -52,6 +48,7 @@
   "forgot_password_link": "Har du glömt lösenordet?",
   "forgot_password_title": "Har du glömt lösenordet?",
   "go_back": "Gå tillbaka",
+  "hide_password": "Dölj lösenord",
   "invalid-email": "Ogiltig e-postadress",
   "invalid_password": "Ogiltigt lösenord",
   "invalid_session_body": "Länken är inte längre giltig.\n\nVänligen se till att öppna inloggningslänken i samma webbläsare som du startade inloggningen med.\n\nDu kan klicka på länken nedan för att starta en ny inloggning.",
@@ -89,7 +86,9 @@
   "send": "Skicka",
   "send_me_a_new_magic_link": "Skicka en ny inloggninglänk",
   "sent_code_spam": "Kom ihåg att kontrollera din skräppost om du inte kan hitta mailet vi har skickat.",
+  "Server error: Invalid code": "Koden är inte giltig",
   "set_password": "Välj lösenord",
+  "show_password": "Visa lösenord",
   "sign_in": "Logga in",
   "signup": "Registrera dig",
   "signup_success": "Registrera dig framgångsrik",
@@ -116,9 +115,12 @@
   "verify_email_title": "Bekräfta din e-postadress",
   "verify_email_verify": "Verifiera konto",
   "verify_your_email": "Ange engångskod",
-  "we_sent_a_code_to": "Vänligen kontrollera din e-post för <0>{{email}}</0> och ange den sexsiffriga koden som vi har skickat till dig.",
   "welcome": "Välkommen",
   "welcome_to_your_account": "Välkommen till ditt {{vendorName}}-konto!",
+  "we_sent_a_code_to": "Vänligen kontrollera din e-post för <0>{{email}}</0> och ange den sexsiffriga koden som vi har skickat till dig.",
+  "Wrong email or verification code": {
+    "": "Fel e-post eller verifieringskod."
+  },
   "yes_continue": "Fortsätt med konto",
   "yes_continue_with": "Ja, fortsätt med {{text}}",
   "yes_continue_with_existing_account": "Ja, fortsätt med detta kontot"
