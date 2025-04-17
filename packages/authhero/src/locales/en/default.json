@@ -1,8 +1,4 @@
 {
-  "Server error: Invalid code": "Invalid code",
-  "Wrong email or verification code": {
-    "": "Wrong email or verification code."
-  },
   "account_detected": "Account detected",
   "account_with_sso_provider": "We have detected that you have already created an account through",
   "agree_to": "By signing in, you agree to our",
@@ -52,6 +48,7 @@
   "forgot_password_link": "Forgot password?",
   "forgot_password_title": "Forgot password?",
   "go_back": "Go back",
+  "hide_password": "Hide password",
   "invalid-email": "Invalid email",
   "invalid_password": "Invalid password",
   "invalid_session_body": "The link is no longer valid.\n\nPlease make sure to open the login link in the same browser you started the login with.\n\nYou can click the link below to start a new login.",
@@ -89,7 +86,9 @@
   "send": "Send",
   "send_me_a_new_magic_link": "Send me a new magic link",
   "sent_code_spam": "Remember to check your spam folder if the email did not arrive.",
+  "Server error: Invalid code": "Invalid code",
   "set_password": "Set password",
+  "show_password": "Show password",
   "sign_in": "Sign in",
   "signup": "Signup",
   "signup_success": "Sign up successful",
@@ -116,9 +115,12 @@
   "verify_email_title": "Validate your email address",
   "verify_email_verify": "Verify account",
   "verify_your_email": "Verify your email",
-  "we_sent_a_code_to": "Please check your email at <0>{{email}}</0> and enter the six-digit code that we've sent you.",
   "welcome": "Welcome",
   "welcome_to_your_account": "Welcome to your {{vendorName}} account!",
+  "we_sent_a_code_to": "Please check your email at <0>{{email}}</0> and enter the six-digit code that we've sent you.",
+  "Wrong email or verification code": {
+    "": "Wrong email or verification code."
+  },
   "yes_continue": "Continue with this account",
   "yes_continue_with": "Yes, continue with {{text}}",
   "yes_continue_with_existing_account": "Yes, continue with existing account"

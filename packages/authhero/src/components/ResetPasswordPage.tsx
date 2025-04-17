@@ -5,6 +5,7 @@ import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import Form from "./Form";
 import Button from "./Button";
+import PasswordInput from "./PasswordInput";
 
 type ResetPasswordPageProps = {
   error?: string;
@@ -28,17 +29,13 @@ const ResetPasswordPage: FC<ResetPasswordPageProps> = (params) => {
       </div>
       <div className="flex flex-1 flex-col justify-center">
         <Form>
-          <input
-            type="password"
+          <PasswordInput
             name="password"
             placeholder={i18next.t("enter_new_password_placeholder")}
-            className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
           />
-          <input
-            type="password"
+          <PasswordInput
             name="re-enter-password"
             placeholder={i18next.t("reenter_new_password_placeholder")}
-            className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
           />
           {error && <ErrorMessage>{error}</ErrorMessage>}
           <Button className="sm:mt-4 !text-base">

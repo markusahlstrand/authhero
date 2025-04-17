@@ -1,8 +1,4 @@
 {
-  "Server error: Invalid code": "Ugyldig kode",
-  "Wrong email or verification code": {
-    "": "Feil e-post eller bekreftelseskode."
-  },
   "account_detected": "Konto oppdaget",
   "account_with_sso_provider": "Vi har oppdaget at du allerede har opprettet en konto gjennom",
   "agree_to": "Ved å logge på godtar du vår",
@@ -52,6 +48,7 @@
   "forgot_password_link": "Har du glemt passordet?",
   "forgot_password_title": "Har du glemt passordet?",
   "go_back": "Gå tilbake",
+  "hide_password": "Skjul passord",
   "invalid-email": "Ugyldig epost",
   "invalid_password": "Ugyldig passord",
   "invalid_session_body": "Lenken er ikke lenger gyldig.\n\nSørg for å åpne påloggingslenken i samme nettleser som du startet påloggingen med.\n\nDu kan klikke på lenken nedenfor for å starte en ny pålogging.",
@@ -89,7 +86,9 @@
   "send": "Send",
   "send_me_a_new_magic_link": "Send meg en ny magisk lenke",
   "sent_code_spam": "Husk å sjekke søppelpostmappen din hvis e-posten ikke kom.",
+  "Server error: Invalid code": "Ugyldig kode",
   "set_password": "Angi passord",
+  "show_password": "Vis passord",
   "sign_in": "Logg inn",
   "signup": "Påmelding",
   "signup_success": "Vellykket registrering",
@@ -116,9 +115,12 @@
   "verify_email_title": "Bekreft e-postadressen din",
   "verify_email_verify": "Bekreft konto",
   "verify_your_email": "Bekreft e-posten din",
-  "we_sent_a_code_to": "Vennligst sjekk e-posten din på <0>{{email}}</0> og skriv inn den sekssifrede koden som vi har sendt deg.",
   "welcome": "Velkommen",
   "welcome_to_your_account": "Velkommen til din brukerkonto hos {{vendorName}} !",
+  "we_sent_a_code_to": "Vennligst sjekk e-posten din på <0>{{email}}</0> og skriv inn den sekssifrede koden som vi har sendt deg.",
+  "Wrong email or verification code": {
+    "": "Feil e-post eller bekreftelseskode."
+  },
   "yes_continue": "Fortsett med denne kontoen",
   "yes_continue_with": "Ja, fortsett med {{text}}",
   "yes_continue_with_existing_account": "Ja, fortsett med eksisterende konto"

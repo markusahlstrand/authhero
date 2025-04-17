@@ -7,6 +7,7 @@ import Icon from "./Icon";
 import Form from "./Form";
 import { GoBack } from "./GoBack";
 import { Client, VendorSettings } from "@authhero/adapter-interfaces";
+import PasswordInput from "./PasswordInput";
 
 type Props = {
   error?: string;
@@ -40,13 +41,7 @@ const EnterPasswordPage: FC<Props> = (params) => {
             className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
             value={email}
           />
-          <input
-            type="password"
-            name="password"
-            placeholder={i18next.t("password") || ""}
-            className="mb-2 w-full rounded-lg bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base"
-            required
-          />
+          <PasswordInput name="password" />
           {error && <ErrorMessage>{error}</ErrorMessage>}
           <Button className="sm:mt-4 !text-base">
             <span>{i18next.t("login")}</span>
