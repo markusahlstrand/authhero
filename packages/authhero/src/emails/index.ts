@@ -224,7 +224,7 @@ export async function sendLink(
   magicLink.searchParams.set("connection", connection);
   magicLink.searchParams.set("client_id", authParams.client_id);
   magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
-  magicLink.searchParams.set("username", to);
+  magicLink.searchParams.set("email", to);
   if (authParams.response_type) {
     magicLink.searchParams.set("response_type", authParams.response_type);
   }

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.112.0
+
+### Minor Changes
+
+- Fix broken magic link
+
 ## 0.111.0
 
 ### Minor Changes
