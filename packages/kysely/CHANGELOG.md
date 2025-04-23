@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.8.0
+
+### Minor Changes
+
+- Create sms users
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.58.0
+
 ## 10.7.1
 
 ### Patch Changes

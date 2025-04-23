@@ -8,7 +8,6 @@ import { createLogMessage } from "../../utils/create-log-message";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import generateOTP from "../../utils/otp";
-import { waitUntil } from "../../helpers/wait-until";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 
@@ -214,24 +213,16 @@ export const enterEmailRoutes = new OpenAPIHono<{
       );
 
       if (sendType === "link" && !params.username.includes("online.no")) {
-        waitUntil(
-          ctx,
-          sendLink(ctx, {
-            connection: "email",
-            to: params.username,
-            code: createdCode.code_id,
-            authParams: loginSession.authParams,
-          }),
-        );
+        await sendLink(ctx, {
+          to: params.username,
+          code: createdCode.code_id,
+          authParams: loginSession.authParams,
+        });
       } else {
-        waitUntil(
-          ctx,
-          sendCode(ctx, {
-            to: params.username,
-            code: createdCode.code_id,
-            connection: "email",
-          }),
-        );
+        await sendCode(ctx, {
+          to: params.username,
+          code: createdCode.code_id,
+        });
       }
 
       return ctx.redirect(`/u/enter-code?state=${state}`);

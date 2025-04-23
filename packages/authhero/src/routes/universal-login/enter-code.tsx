@@ -3,8 +3,8 @@ import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import EnterCodePage from "../../components/EnterCodePage";
-import { getPrimaryUserByEmailAndProvider } from "../../helpers/users";
-import { loginWithPasswordless } from "../../authentication-flows/passwordless";
+import { getPrimaryUserByProvider } from "../../helpers/users";
+import { passwordlessGrant } from "../../authentication-flows/passwordless";
 
 type Auth0Client = {
   name: string;
@@ -68,10 +68,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      const passwordUser = await getPrimaryUserByEmailAndProvider({
+      const passwordUser = await getPrimaryUserByProvider({
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
-        email: loginSession.authParams.username,
+        username: loginSession.authParams.username,
         provider: "auth2",
       });
 
@@ -133,20 +133,19 @@ export const enterCodeRoutes = new OpenAPIHono<{
       }
 
       try {
-        return await loginWithPasswordless(
-          ctx,
-          client,
-          loginSession.authParams,
-          loginSession.authParams.username,
-          code,
-        );
+        return await passwordlessGrant(ctx, {
+          client_id: client.id,
+          authParams: loginSession.authParams,
+          username: loginSession.authParams.username,
+          otp: code,
+        });
       } catch (e) {
         const err = e as Error;
 
-        const passwordUser = await getPrimaryUserByEmailAndProvider({
+        const passwordUser = await getPrimaryUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
-          email: loginSession.authParams.username,
+          username: loginSession.authParams.username,
           provider: "auth2",
         });
 

@@ -12,13 +12,13 @@ import { HTTPException } from "hono/http-exception";
 import { getClientInfo } from "../utils/client-info";
 import { getUniversalLoginUrl } from "../variables";
 import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
-import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
+import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
+import { getConnectionFromUsername } from "../utils/username";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
   username: z.string().transform((u) => u.toLowerCase()),
-  realm: z.enum(["email", "sms"]),
   otp: z.string(),
   authParams: authParamsSchema.optional(),
 });
@@ -50,6 +50,7 @@ export async function passwordlessGrant(
   );
 }
 
+// TODO: this is a legacy function. Use passwordlessGrant instead
 export async function loginWithPasswordless(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
@@ -85,6 +86,8 @@ export async function loginWithPasswordless(
     });
   }
 
+  const connection = getConnectionFromUsername(username);
+
   const loginSession = await env.data.loginSessions.get(
     client.tenant.id,
     code.login_id,
@@ -115,11 +118,11 @@ export async function loginWithPasswordless(
     });
   }
 
-  const user = await getOrCreateUserByEmailAndProvider(ctx, {
+  const user = await getOrCreateUserByProvider(ctx, {
     client,
-    email: username,
-    provider: "email",
-    connection: "email",
+    username,
+    provider: connection,
+    connection: connection,
     isSocial: false,
     ip: ctx.req.header("x-real-ip"),
   });

@@ -19,24 +19,28 @@ export async function getUsersByEmail(
   return response.users;
 }
 
-interface GetUserByEmailAndProviderParams {
+interface GetUserByProviderParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
-  email: string;
+  username: string;
   provider: string;
 }
 
-export async function getUserByEmailAndProvider({
+export async function getUserByProvider({
   userAdapter,
   tenant_id,
-  email,
+  username,
   provider,
-}: GetUserByEmailAndProviderParams): Promise<User | null> {
+}: GetUserByProviderParams): Promise<User | null> {
+  // This handles that sms users are stored with the phone number. Username accounts are not yet handled
+  const userIdQuery =
+    provider === "sms" ? `phone_number:${username}` : `email:${username}`;
+
   const { users } = await userAdapter.list(tenant_id, {
     page: 0,
     per_page: 10,
     include_totals: false,
-    q: `email:${email} provider:${provider}`,
+    q: `${userIdQuery} provider:${provider}`,
   });
 
   if (users.length > 1) {
@@ -102,23 +106,23 @@ export async function getPrimaryUserByEmail({
   return primaryAccount;
 }
 
-interface GetPrimaryUserByEmailAndProviderParams {
+interface GetPrimaryUserByProviderParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
-  email: string;
+  username: string;
   provider: string;
 }
 
-export async function getPrimaryUserByEmailAndProvider({
+export async function getPrimaryUserByProvider({
   userAdapter,
   tenant_id,
-  email,
+  username,
   provider,
-}: GetPrimaryUserByEmailAndProviderParams): Promise<User | null> {
-  const user = await getUserByEmailAndProvider({
+}: GetPrimaryUserByProviderParams): Promise<User | null> {
+  const user = await getUserByProvider({
     userAdapter,
     tenant_id,
-    email,
+    username,
     provider,
   });
 
@@ -133,9 +137,9 @@ export async function getPrimaryUserByEmailAndProvider({
   return userAdapter.get(tenant_id, user.linked_to);
 }
 
-interface GetOrCreateUserByEmailAndProviderParams {
+interface GetOrCreateUserByProviderParams {
   client: Client;
-  email: string;
+  username: string;
   provider: string;
   connection: string;
   userId?: string;
@@ -149,12 +153,12 @@ interface GetOrCreateUserByEmailAndProviderParams {
  * @param param0
  * @returns
  */
-export async function getOrCreateUserByEmailAndProvider(
+export async function getOrCreateUserByProvider(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: GetOrCreateUserByEmailAndProviderParams,
+  params: GetOrCreateUserByProviderParams,
 ): Promise<User> {
   const {
-    email,
+    username,
     provider,
     connection,
     client,
@@ -164,18 +168,19 @@ export async function getOrCreateUserByEmailAndProvider(
     ip = "",
   } = params;
 
-  let user = await getPrimaryUserByEmailAndProvider({
+  let user = await getPrimaryUserByProvider({
     userAdapter: ctx.env.data.users,
     tenant_id: params.client.tenant.id,
-    email,
+    username,
     provider,
   });
 
   if (!user) {
     const userData = {
       user_id: `${provider}|${userId || userIdGenerate()}`,
-      email,
-      name: email,
+      email: connection !== "sms" ? username : undefined,
+      phone_number: connection === "sms" ? username : undefined,
+      name: username,
       provider,
       connection,
       // Assume all auth providers verify emails for now

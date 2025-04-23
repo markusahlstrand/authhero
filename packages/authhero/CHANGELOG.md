@@ -1,5 +1,16 @@
 # authhero
 
+## 0.113.0
+
+### Minor Changes
+
+- Create sms users
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.58.0
+
 ## 0.112.0
 
 ### Minor Changes

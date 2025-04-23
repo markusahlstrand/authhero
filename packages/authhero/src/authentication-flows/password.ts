@@ -9,10 +9,7 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import {
-  getOrCreateUserByEmailAndProvider,
-  getUserByEmailAndProvider,
-} from "../helpers/users";
+import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
@@ -40,10 +37,10 @@ export async function loginWithPassword(
     throw new HTTPException(400, { message: "Username is required" });
   }
 
-  const user = await getUserByEmailAndProvider({
+  const user = await getUserByProvider({
     userAdapter: ctx.env.data.users,
     tenant_id: client.tenant.id,
-    email,
+    username: email,
     provider: "auth2",
   });
 
@@ -166,9 +163,9 @@ export async function requestPasswordReset(
   state: string,
 ) {
   // Create the user if if doesn't exist. We probably want to wait with this until the user resets the password?
-  await getOrCreateUserByEmailAndProvider(ctx, {
+  await getOrCreateUserByProvider(ctx, {
     client,
-    email,
+    username: email,
     provider: "auth2",
     connection: "Username-Password-Authentication",
     isSocial: false,

@@ -2,10 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
-import {
-  getUserByEmailAndProvider,
-  getUsersByEmail,
-} from "../../helpers/users";
+import { getUserByProvider, getUsersByEmail } from "../../helpers/users";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
 
 export const validateEmailRoutes = new OpenAPIHono<{
@@ -53,10 +50,10 @@ export const validateEmailRoutes = new OpenAPIHono<{
         });
       }
 
-      const user = await getUserByEmailAndProvider({
+      const user = await getUserByProvider({
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
-        email,
+        username: email,
         provider: "auth2",
       });
       if (!user) {

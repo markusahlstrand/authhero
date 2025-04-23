@@ -39,7 +39,7 @@ export const userSchema = z.object({
   user_id: z.string(),
   is_social: z.boolean(),
   // TODO: this not might be correct if you use the username
-  email: z.string(),
+  email: z.string().optional(),
   login_count: z.number(),
   identities: z.array(identitySchema).optional(),
 });

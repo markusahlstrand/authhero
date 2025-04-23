@@ -6,7 +6,7 @@ import { Bindings, Variables } from "../../types";
 import { fetchVendorSettings, initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
 import validatePasswordStrength from "../../utils/password";
-import { getUserByEmailAndProvider } from "../../helpers/users";
+import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
 import MessagePage from "../../components/Message";
 import { sendValidateEmailAddress } from "../../emails";
@@ -164,10 +164,10 @@ export const signupRoutes = new OpenAPIHono<{
         : undefined;
 
       try {
-        const existingUser = await getUserByEmailAndProvider({
+        const existingUser = await getUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
-          email,
+          username: email,
           provider: "auth2",
         });
 
