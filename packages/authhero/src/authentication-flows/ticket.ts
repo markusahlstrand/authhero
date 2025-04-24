@@ -61,7 +61,7 @@ export async function ticketAuth(
     ip: ctx.req.header("x-real-ip"),
   });
 
-  ctx.set("username", user.email);
+  ctx.set("username", user.email || user.phone_number);
   ctx.set("user_id", user.user_id);
 
   const session = await createSession(ctx, {

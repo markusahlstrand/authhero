@@ -12,6 +12,11 @@ export async function up(_: Kysely<Database>): Promise<void> {
   //   .addColumn("phone_verified", "boolean")
   //   .addColumn("username", "varchar(128)")
   //   .alterColumn("email", "varchar(255)")
+  //   .addUniqueConstraint("unique_phone_provider", [
+  //     "phone_number",
+  //     "provider",
+  //     "tenant_id",
+  //   ])
   //   .execute();
 }
 

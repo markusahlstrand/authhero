@@ -31,16 +31,16 @@ export async function loginWithPassword(
 ) {
   const { env } = ctx;
 
-  const email = authParams.username;
-  ctx.set("username", email);
-  if (!email) {
+  const { username } = authParams;
+  ctx.set("username", username);
+  if (!username) {
     throw new HTTPException(400, { message: "Username is required" });
   }
 
   const user = await getUserByProvider({
     userAdapter: ctx.env.data.users,
     tenant_id: client.tenant.id,
-    username: email,
+    username,
     provider: "auth2",
   });
 

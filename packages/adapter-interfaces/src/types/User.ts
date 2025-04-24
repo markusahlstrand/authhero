@@ -5,6 +5,7 @@ import { identitySchema } from "./Identity";
 export const baseUserSchema = z.object({
   email: z.string().optional(),
   username: z.string().optional(),
+  phone_number: z.string().optional(),
   given_name: z.string().optional(),
   family_name: z.string().optional(),
   nickname: z.string().optional(),

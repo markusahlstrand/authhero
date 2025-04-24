@@ -118,8 +118,8 @@ export const signupRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.id);
       ctx.set("connection", connection);
 
-      const email = loginSession.authParams.username;
-      if (!email) {
+      const { username } = loginSession.authParams;
+      if (!username) {
         throw new HTTPException(400, { message: "Username required" });
       }
 
@@ -167,7 +167,7 @@ export const signupRoutes = new OpenAPIHono<{
         const existingUser = await getUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
-          username: email,
+          username: username,
           provider: "auth2",
         });
 
@@ -176,13 +176,13 @@ export const signupRoutes = new OpenAPIHono<{
         }
 
         const email_verified =
-          emailVerificationSession?.authParams.username === email;
+          emailVerificationSession?.authParams.username === username;
 
         const newUser = await getDataAdapter(ctx).users.create(
           client.tenant.id,
           {
             user_id: `auth2|${userIdGenerate()}`,
-            email,
+            email: username,
             email_verified,
             provider: "auth2",
             connection,
@@ -231,7 +231,7 @@ export const signupRoutes = new OpenAPIHono<{
             state={state}
             vendorSettings={vendorSettings}
             error={error.message}
-            email={email}
+            email={username}
           />,
           400,
         );

@@ -61,6 +61,11 @@ export async function up(db: Kysely<Database>): Promise<void> {
       "provider",
       "tenant_id",
     ])
+    .addUniqueConstraint("unique_phone_provider", [
+      "phone_number",
+      "provider",
+      "tenant_id",
+    ])
     .execute();
 
   await db.schema
