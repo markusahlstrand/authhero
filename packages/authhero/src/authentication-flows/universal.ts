@@ -69,7 +69,6 @@ export async function universalAuth({
       ).toISOString(),
     });
     await sendLink(ctx, {
-      connection,
       code: otp,
       to: login_hint,
       authParams,

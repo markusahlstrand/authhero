@@ -5,6 +5,7 @@ import { identitySchema } from "./Identity";
 export const baseUserSchema = z.object({
   email: z.string().optional(),
   username: z.string().optional(),
+  phone_number: z.string().optional(),
   given_name: z.string().optional(),
   family_name: z.string().optional(),
   nickname: z.string().optional(),
@@ -39,7 +40,7 @@ export const userSchema = z.object({
   user_id: z.string(),
   is_social: z.boolean(),
   // TODO: this not might be correct if you use the username
-  email: z.string(),
+  email: z.string().optional(),
   login_count: z.number(),
   identities: z.array(identitySchema).optional(),
 });

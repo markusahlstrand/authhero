@@ -5,8 +5,8 @@ import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { createLogMessage } from "../../utils/create-log-message";
 import {
-  getPrimaryUserByEmailAndProvider,
-  getUserByEmailAndProvider,
+  getPrimaryUserByProvider,
+  getUserByProvider,
 } from "../../helpers/users";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { userIdGenerate } from "../../utils/user-id";
@@ -47,7 +47,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
             "application/json": {
               schema: z.object({
                 _id: z.string(),
-                email: z.string(),
+                email: z.string().optional(),
                 email_verified: z.boolean(),
                 app_metadata: z.object({}),
                 user_metadata: z.object({}),
@@ -77,10 +77,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
 
-      const existingUser = await getPrimaryUserByEmailAndProvider({
+      const existingUser = await getPrimaryUserByProvider({
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
-        email,
+        username: email,
         provider: "auth2",
       });
 
@@ -165,10 +165,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.id);
       ctx.set("tenant_id", client.tenant.id);
 
-      const existingUser = await getUserByEmailAndProvider({
+      const existingUser = await getUserByProvider({
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
-        email,
+        username: email,
         provider: "auth2",
       });
 

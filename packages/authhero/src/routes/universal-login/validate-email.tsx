@@ -2,10 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
-import {
-  getUserByEmailAndProvider,
-  getUsersByEmail,
-} from "../../helpers/users";
+import { getUserByProvider, getUsersByEmail } from "../../helpers/users";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
 
 export const validateEmailRoutes = new OpenAPIHono<{
@@ -46,17 +43,17 @@ export const validateEmailRoutes = new OpenAPIHono<{
         state,
       );
 
-      const email = loginSession.authParams.username;
-      if (!email) {
+      const { username } = loginSession.authParams;
+      if (!username) {
         throw new HTTPException(400, {
           message: "Username not found in state",
         });
       }
 
-      const user = await getUserByEmailAndProvider({
+      const user = await getUserByProvider({
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
-        email,
+        username: username,
         provider: "auth2",
       });
       if (!user) {
@@ -80,7 +77,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
       const usersWithSameEmail = await getUsersByEmail(
         env.data.users,
         client.tenant.id,
-        email,
+        username,
       );
 
       const usersWithSameEmailButNotUsernamePassword =
@@ -93,11 +90,11 @@ export const validateEmailRoutes = new OpenAPIHono<{
 
         // these cases are currently not handled! if we think they're edge cases and we release this, we should at least inform datadog!
         if (primaryUsers.length > 1) {
-          console.error("More than one primary user found for email", email);
+          console.error("More than one primary user found for email", username);
         }
 
         if (primaryUsers.length === 0) {
-          console.error("No primary user found for email", email);
+          console.error("No primary user found for email", username);
           // so here we should ... hope there is only one usersWithSameEmailButNotUsernamePassword
           // and then follow that linked_to chain?
         }

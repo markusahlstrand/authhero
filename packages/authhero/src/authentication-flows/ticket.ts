@@ -2,7 +2,7 @@ import { AuthParams } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
+import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse, createSession } from "./common";
 
 function getProviderFromRealm(realm: string) {
@@ -51,8 +51,8 @@ export async function ticketAuth(
 
   const provider = getProviderFromRealm(realm);
 
-  let user = await getOrCreateUserByEmailAndProvider(ctx, {
-    email: loginSession.authParams.username,
+  let user = await getOrCreateUserByProvider(ctx, {
+    username: loginSession.authParams.username,
     provider,
     client,
     connection:
@@ -61,7 +61,7 @@ export async function ticketAuth(
     ip: ctx.req.header("x-real-ip"),
   });
 
-  ctx.set("username", user.email);
+  ctx.set("username", user.email || user.phone_number);
   ctx.set("user_id", user.user_id);
 
   const session = await createSession(ctx, {

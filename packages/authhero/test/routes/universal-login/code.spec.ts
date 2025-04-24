@@ -80,7 +80,7 @@ describe("code", () => {
     expect(magicLinkUrl.searchParams.get("redirect_uri")).toBe(
       "https://example.com/callback",
     );
-    expect(magicLinkUrl.searchParams.get("username")).toBe("foo@example.com");
+    expect(magicLinkUrl.searchParams.get("email")).toBe("foo@example.com");
     expect(magicLinkUrl.searchParams.get("client_id")).toBe("clientId");
     expect(magicLinkUrl.searchParams.get("connection")).toBe("email");
 

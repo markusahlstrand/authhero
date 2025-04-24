@@ -96,13 +96,11 @@ export const passwordlessRoutes = new OpenAPIHono<{
             ...authParams,
             client_id,
           },
-          connection,
         });
       } else {
         await sendCode(ctx, {
           to: username,
           code: code.code_id,
-          connection,
         });
       }
 

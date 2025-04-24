@@ -84,6 +84,12 @@ export async function samlCallback(
     });
   }
 
+  if (!user.email) {
+    throw new HTTPException(400, {
+      message: "Missing email in user",
+    });
+  }
+
   const [signingKey] = await ctx.env.data.keys.list();
 
   if (!signingKey) {

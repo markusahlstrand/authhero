@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { waitUntil } from "../helpers/wait-until";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
+import { getConnectionFromUsername } from "../utils/username";
 
 export type SendEmailParams = {
   to: string;
@@ -142,7 +143,6 @@ export async function sendResetPassword(
 export interface SendCodeParams {
   to: string;
   code: string;
-  connection: "email" | "sms";
 }
 
 export interface SendLinkParams extends SendCodeParams {
@@ -151,12 +151,14 @@ export interface SendLinkParams extends SendCodeParams {
 
 export async function sendCode(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  { to, code, connection }: SendCodeParams,
+  { to, code }: SendCodeParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+
+  const connection = getConnectionFromUsername(to);
 
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
@@ -207,7 +209,7 @@ export async function sendCode(
 
 export async function sendLink(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  { to, code, authParams, connection }: SendLinkParams,
+  { to, code, authParams }: SendLinkParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -218,13 +220,15 @@ export async function sendLink(
     throw new HTTPException(400, { message: "redirect_uri is required" });
   }
 
+  const connection = getConnectionFromUsername(to);
+
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";
   magicLink.searchParams.set("verification_code", code);
   magicLink.searchParams.set("connection", connection);
   magicLink.searchParams.set("client_id", authParams.client_id);
   magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
-  magicLink.searchParams.set("username", to);
+  magicLink.searchParams.set("email", to);
   if (authParams.response_type) {
     magicLink.searchParams.set("response_type", authParams.response_type);
   }
@@ -299,6 +303,10 @@ export async function sendValidateEmailAddress(
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
+  }
+
+  if (!user.email) {
+    throw new HTTPException(400, { message: "User has no email" });
   }
 
   const options = {

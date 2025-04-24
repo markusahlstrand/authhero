@@ -23,13 +23,16 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("tenant_id", "varchar(255)", (col) =>
       col.references("tenants.id").onDelete("cascade").notNull(),
     )
-    .addColumn("email", "varchar(255)", (col) => col.notNull())
+    .addColumn("email", "varchar(255)")
     .addColumn("given_name", "varchar(255)")
     .addColumn("family_name", "varchar(255)")
     .addColumn("nickname", "varchar(255)")
     .addColumn("name", "varchar(255)")
     .addColumn("picture", "varchar(2083)")
     .addColumn("tags", "varchar(255)")
+    .addColumn("phone_number", "varchar(17)")
+    .addColumn("phone_verified", "boolean")
+    .addColumn("username", "varchar(128)")
     .addColumn("created_at", "varchar(255)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .addPrimaryKeyConstraint("users_tenants", ["user_id", "tenant_id"])
@@ -55,6 +58,11 @@ export async function up(db: Kysely<Database>): Promise<void> {
     )
     .addUniqueConstraint("unique_email_provider", [
       "email",
+      "provider",
+      "tenant_id",
+    ])
+    .addUniqueConstraint("unique_phone_provider", [
+      "phone_number",
       "provider",
       "tenant_id",
     ])

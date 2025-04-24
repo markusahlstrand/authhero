@@ -11,7 +11,7 @@ import {
 import { getStrategy } from "../strategies";
 import { getClientWithDefaults } from "../helpers/client";
 import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
-import { getOrCreateUserByEmailAndProvider } from "../helpers/users";
+import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 import { nanoid } from "nanoid";
 
@@ -168,9 +168,9 @@ export async function connectionCallback(
 
   ctx.set("username", email);
 
-  const user = await getOrCreateUserByEmailAndProvider(ctx, {
+  const user = await getOrCreateUserByProvider(ctx, {
     client,
-    email,
+    username: email,
     provider: connection.strategy,
     connection: connection.name,
     userId: sub,

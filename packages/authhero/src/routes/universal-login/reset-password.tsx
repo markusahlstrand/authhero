@@ -8,7 +8,7 @@ import { initJSXRoute } from "./common";
 import ResetPasswordPage from "../../components/ResetPasswordPage";
 import MessagePage from "../../components/Message";
 import validatePasswordStrength from "../../utils/password";
-import { getUserByEmailAndProvider } from "../../helpers/users";
+import { getUserByProvider } from "../../helpers/users";
 
 export const resetPasswordRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -129,10 +129,10 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
       // Note! we don't use the primary user here. Something to be careful of
       // this means the primary user could have a totally different email address
-      const user = await getUserByEmailAndProvider({
+      const user = await getUserByProvider({
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
-        email: loginSession.authParams.username,
+        username: loginSession.authParams.username,
         provider: "auth2",
       });
 

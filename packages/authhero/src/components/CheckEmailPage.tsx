@@ -27,7 +27,7 @@ const CheckEmailPage: FC<Props> = ({ vendorSettings, state, user }) => {
                 />
               ) as unknown as JSXNode,
             ]}
-            values={{ email: user.email }}
+            values={{ email: user.email || "" }}
           />
           <br />
           {t("continue_with_sso_provider_headline")}
