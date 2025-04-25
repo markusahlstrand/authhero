@@ -55,7 +55,7 @@ describe("callback", () => {
       throw new Error("No location header");
     }
     const redirectUri = new URL(location);
-    expect(redirectUri.pathname).toEqual("/u/enter-email");
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
     expect(redirectUri.searchParams.get("error")).toEqual("error");
     expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });

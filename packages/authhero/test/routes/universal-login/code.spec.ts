@@ -33,15 +33,17 @@ describe("code", () => {
     // --------------------------------
     // enter email
     // --------------------------------
-    const enterEmailGetResponse = await universalClient["enter-email"].$get({
+    const enterEmailGetResponse = await universalClient.login.identifier.$get({
       query: { state },
     });
     expect(enterEmailGetResponse.status).toBe(200);
 
-    const enterEmailPostResponse = await universalClient["enter-email"].$post({
-      query: { state },
-      form: { username: "foo@example.com" },
-    });
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
+        query: { state },
+        form: { username: "foo@example.com" },
+      },
+    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     // --------------------------------
@@ -143,15 +145,17 @@ describe("code", () => {
     // --------------------------------
     // enter email
     // --------------------------------
-    const enterEmailGetResponse = await universalClient["enter-email"].$get({
+    const enterEmailGetResponse = await universalClient.login.identifier.$get({
       query: { state },
     });
     expect(enterEmailGetResponse.status).toBe(200);
 
-    const enterEmailPostResponse = await universalClient["enter-email"].$post({
-      query: { state },
-      form: { username: "new-account@example.com" },
-    });
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
+        query: { state },
+        form: { username: "new-account@example.com" },
+      },
+    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     // --------------------------------

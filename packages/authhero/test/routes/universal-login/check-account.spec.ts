@@ -38,7 +38,7 @@ describe("check account", () => {
     expect(enterEmailGetResponse.status).toBe(302);
 
     const loginLocation = enterEmailGetResponse.headers.get("location");
-    expect(loginLocation).toContain(`/u/enter-email?state=${state}`);
+    expect(loginLocation).toContain(`/u/login/identifier?state=${state}`);
   });
 
   it("should return a code if there is a session", async () => {

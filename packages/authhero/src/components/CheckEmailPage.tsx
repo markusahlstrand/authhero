@@ -41,7 +41,7 @@ const CheckEmailPage: FC<Props> = ({ vendorSettings, state, user }) => {
           </Form>
           <a
             className="block text-center text-primary hover:text-primaryHover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            href={`/u/enter-email?state=${encodeURIComponent(state)}`}
+            href={`/u/login/identifier?state=${encodeURIComponent(state)}`}
           >
             {i18next.t("no_use_another")}
           </a>

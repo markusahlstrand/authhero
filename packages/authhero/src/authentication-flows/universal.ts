@@ -82,5 +82,5 @@ export async function universalAuth({
     return ctx.redirect(`/u/check-account?state=${loginSession.id}`);
   }
 
-  return ctx.redirect(`/u/enter-email?state=${loginSession.id}`);
+  return ctx.redirect(`/u/login/identifier?state=${loginSession.id}`);
 }

@@ -24,7 +24,7 @@ type Props = {
   impersonation?: boolean;
 };
 
-const EnterEmailPage: FC<Props> = ({
+const IdentifierPage: FC<Props> = ({
   error,
   vendorSettings,
   loginSession,
@@ -148,4 +148,4 @@ const EnterEmailPage: FC<Props> = ({
   );
 };
 
-export default EnterEmailPage;
+export default IdentifierPage;

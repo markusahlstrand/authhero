@@ -63,15 +63,17 @@ describe("sms", () => {
     // --------------------------------
     // enter phone number
     // --------------------------------
-    const enterEmailGetResponse = await universalClient["enter-email"].$get({
+    const enterEmailGetResponse = await universalClient.login.identifier.$get({
       query: { state },
     });
     expect(enterEmailGetResponse.status).toBe(200);
 
-    const enterEmailPostResponse = await universalClient["enter-email"].$post({
-      query: { state },
-      form: { username: "+1234567890" },
-    });
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
+        query: { state },
+        form: { username: "+1234567890" },
+      },
+    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     const sentSms = getSentSms();
