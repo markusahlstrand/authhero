@@ -55,7 +55,7 @@ async function returnError(
   });
 
   return ctx.redirect(
-    `${getUniversalLoginUrl(ctx.env)}enter-email?state=${loginSession.id}&error=${error}`,
+    `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${loginSession.id}&error=${error}`,
   );
 }
 

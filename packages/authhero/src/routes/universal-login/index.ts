@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
-import { enterEmailRoutes } from "./enter-email";
+import { identifierRoutes } from "./identifier";
 import { enterCodeRoutes } from "./enter-code";
 import { enterPasswordRoutes } from "./enter-password";
 import { signupRoutes } from "./signup";
@@ -39,7 +39,7 @@ export default function create(config: AuthHeroConfig) {
   const universalApp = app
     .route("/info", infoRoutes)
     .route("/check-account", checkAccountRoutes)
-    .route("/enter-email", enterEmailRoutes)
+    .route("/login/identifier", identifierRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
     .route("/invalid-session", invalidSessionRoutes)

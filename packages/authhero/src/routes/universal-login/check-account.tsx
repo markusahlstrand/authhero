@@ -47,7 +47,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         : null;
 
       if (!authSession) {
-        return ctx.redirect(`/u/enter-email?state=${state}`);
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
       const user = await env.data.users.get(
@@ -56,7 +56,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/enter-email?state=${state}`);
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
       return ctx.html(
@@ -105,7 +105,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         : null;
 
       if (!authSession) {
-        return ctx.redirect(`/u/enter-email?state=${state}`);
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
       const user = await env.data.users.get(
@@ -114,7 +114,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/enter-email?state=${state}`);
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
       return createAuthResponse(ctx, {

@@ -67,7 +67,7 @@ describe("authorize", () => {
     const redirectUri = new URL("https://example.com" + location);
 
     // Validate the redirect uri
-    expect(redirectUri.pathname).toEqual("/u/enter-email");
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
 
     // Fetch the login session
     const login = await env.data.loginSessions.get(

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.114.0
+
+### Minor Changes
+
+- Change enter-email page to identifier
+
 ## 0.113.0
 
 ### Minor Changes

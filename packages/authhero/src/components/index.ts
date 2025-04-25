@@ -4,7 +4,7 @@ import Button from "./Button";
 import CheckEmailPage from "./CheckEmailPage";
 import EmailValidatedPage from "./EmailValidatedPage";
 import EnterCodePage from "./EnterCodePage";
-import EnterEmailPage from "./EnterEmailPage";
+import IdentifierPage from "./IdentifierPage";
 import EnterPasswordPage from "./EnterPasswordPage";
 import ErrorMessage from "./ErrorMessage";
 import Footer from "./Footer";
@@ -35,7 +35,7 @@ export {
   CheckEmailPage,
   EmailValidatedPage,
   EnterCodePage,
-  EnterEmailPage,
+  IdentifierPage,
   EnterPasswordPage,
   ErrorMessage,
   Footer,

@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute, usePasswordLogin } from "./common";
-import EnterEmailPage from "../../components/EnterEmailPage";
+import IdentifierPage from "../../components/IdentifierPage";
 import { getPrimaryUserByEmail } from "../../helpers/users";
 import { preUserSignupHook } from "../../hooks";
 import { createLogMessage } from "../../utils/create-log-message";
@@ -36,12 +36,12 @@ export function getSendParamFromAuth0ClientHeader(
   return isAppClient ? "code" : "link";
 }
 
-export const enterEmailRoutes = new OpenAPIHono<{
+export const identifierRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()
   // --------------------------------
-  // GET /u/enter-email
+  // GET /u/login/identifier
   // --------------------------------
   .openapi(
     createRoute({
@@ -71,7 +71,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
       );
 
       return ctx.html(
-        <EnterEmailPage
+        <IdentifierPage
           vendorSettings={vendorSettings}
           loginSession={loginSession}
           client={client}
@@ -82,7 +82,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
     },
   )
   // --------------------------------
-  // POST /u/enter-email
+  // POST /u/login/identifier
   // --------------------------------
   .openapi(
     createRoute({
@@ -152,7 +152,7 @@ export const enterEmailRoutes = new OpenAPIHono<{
           await ctx.env.data.logs.create(client.tenant.id, log);
 
           return ctx.html(
-            <EnterEmailPage
+            <IdentifierPage
               vendorSettings={vendorSettings}
               loginSession={loginSession}
               error={i18next.t("user_account_does_not_exist")}

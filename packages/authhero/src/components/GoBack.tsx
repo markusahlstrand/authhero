@@ -8,7 +8,7 @@ export const GoBack = (props: Props) => {
   return (
     <a
       className="block text-primary hover:text-primaryHover text-center"
-      href={`/u/enter-email?state=${props.state}`}
+      href={`/u/login/identifier?state=${props.state}`}
     >
       {i18next.t("go_back")}
     </a>
