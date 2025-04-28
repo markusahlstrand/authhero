@@ -1,5 +1,12 @@
 # authhero
 
+## 0.115.0
+
+### Minor Changes
+
+- Use idle expires at for refresh tokens
+- 51c5158: pnpm changeset version
+
 ## 0.114.0
 
 ### Minor Changes
