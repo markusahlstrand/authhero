@@ -227,21 +227,23 @@ export async function createRefreshToken(
     session_id,
   } = params;
 
+  const clientInfo = getClientInfo(ctx.req);
+
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
       id: nanoid(),
       session_id,
       client_id: client.id,
-      expires_at: new Date(
+      idle_expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
       ).toISOString(),
       user_id: params.user.user_id,
       device: {
-        last_ip: ctx.req.header("x-real-ip") || "",
-        initial_ip: ctx.req.header("x-real-ip") || "",
-        last_user_agent: ctx.req.header("user-agent") || "",
-        initial_user_agent: ctx.req.header("user-agent") || "",
+        last_ip: clientInfo.ip || "",
+        initial_ip: clientInfo.ip || "",
+        last_user_agent: clientInfo.useragent || "",
+        initial_user_agent: clientInfo.useragent || "",
         // TODO: add Authentication Strength Name
         initial_asn: "",
         last_asn: "",

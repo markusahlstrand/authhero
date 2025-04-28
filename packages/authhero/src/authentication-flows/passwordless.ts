@@ -11,7 +11,6 @@ import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { getClientInfo } from "../utils/client-info";
 import { getUniversalLoginUrl } from "../variables";
-import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 import { getConnectionFromUsername } from "../utils/username";
@@ -105,17 +104,6 @@ export async function loginWithPasswordless(
     return ctx.redirect(
       `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
     );
-  }
-
-  if (
-    authParams.redirect_uri &&
-    !isValidRedirectUrl(authParams.redirect_uri, client.callbacks, {
-      allowPathWildcards: true,
-    })
-  ) {
-    throw new HTTPException(400, {
-      message: `Invalid redirect URI - ${authParams.redirect_uri}`,
-    });
   }
 
   const user = await getOrCreateUserByProvider(ctx, {

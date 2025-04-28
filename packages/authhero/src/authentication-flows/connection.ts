@@ -10,7 +10,6 @@ import {
 } from "../constants";
 import { getStrategy } from "../strategies";
 import { getClientWithDefaults } from "../helpers/client";
-import { isValidRedirectUrl } from "../utils/is-valid-redirect-url";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 import { nanoid } from "nanoid";
@@ -130,24 +129,6 @@ export async function connectionCallback(
     });
     await env.data.logs.create(client.tenant.id, log);
     throw new HTTPException(403, { message: "Redirect URI not defined" });
-  }
-
-  if (
-    !isValidRedirectUrl(
-      loginSession.authParams.redirect_uri,
-      client.callbacks || [],
-      { allowPathWildcards: true },
-    )
-  ) {
-    const invalidRedirectUriMessage = `Invalid redirect URI - ${loginSession.authParams.redirect_uri}`;
-    const log = createLogMessage(ctx, {
-      type: LogTypes.FAILED_LOGIN,
-      description: invalidRedirectUriMessage,
-    });
-    await env.data.logs.create(client.tenant.id, log);
-    throw new HTTPException(403, {
-      message: invalidRedirectUriMessage,
-    });
   }
 
   const strategy = getStrategy(ctx, connection.strategy);
