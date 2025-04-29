@@ -1,8 +1,4 @@
 {
-  "Server error: Invalid code": "Virheellinen koodi",
-  "Wrong email or verification code": {
-    "": "Väärä sähköpostiosoite tai vahvistuskoodi."
-  },
   "account_detected": "Tili havaittu",
   "account_with_sso_provider": "Olemme havainneet, että olet jo luonut tilin kautta",
   "agree_to": "Kirjautumalla sisään hyväksyt",
@@ -52,6 +48,7 @@
   "forgot_password_link": "Unohditko salasanan?",
   "forgot_password_title": "Unohditko salasanan?",
   "go_back": "Palaa takaisin",
+  "hide_password": "Piilota salasana",
   "invalid-email": "Virheellinen sähköpostiosoite",
   "invalid_password": "Virheellinen salasana",
   "invalid_session_body": "Linkki ei ole enää voimassa.\n\nVarmista, että avaat kirjautumislinkin samalla selaimella, jolla aloitit kirjautumisen.\n\nVoit aloittaa uuden kirjautumisen klikkaamalla alla olevaa linkkiä.",
@@ -89,7 +86,9 @@
   "send": "Lähetä",
   "send_me_a_new_magic_link": "Lähetä minulle uusi maaginen linkki",
   "sent_code_spam": "Muista tarkistaa roskapostikansiosi, jos sähköposti ei ole saapunut.",
+  "Server error: Invalid code": "Virheellinen koodi",
   "set_password": "Aseta salasana",
+  "show_password": "Näytä salasana",
   "sign_in": "Kirjaudu sisään",
   "signup": "Rekisteröityminen",
   "signup_success": "Rekisteröidy onnistuneesti",
@@ -116,9 +115,12 @@
   "verify_email_title": "Vahvista sähköpostiosoitteesi",
   "verify_email_verify": "Vahvista tili",
   "verify_your_email": "Vahvista sähköpostiosoitteesi",
-  "we_sent_a_code_to": "Tarkista sähköpostisi osoitteesta <0>{{email}}</0> ja syötä lähettämämme kuusinumeroinen koodi.",
   "welcome": "Tervetuloa",
   "welcome_to_your_account": "Tervetuloa tilillesi {{vendorName}}!",
+  "we_sent_a_code_to": "Tarkista sähköpostisi osoitteesta <0>{{email}}</0> ja syötä lähettämämme kuusinumeroinen koodi.",
+  "Wrong email or verification code": {
+    "": "Väärä sähköpostiosoite tai vahvistuskoodi."
+  },
   "yes_continue": "Jatka tällä tilillä",
   "yes_continue_with": "Kyllä, jatka {{text}}",
   "yes_continue_with_existing_account": "Kyllä, jatka olemassa olevalla tilillä"

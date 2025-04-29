@@ -1,8 +1,4 @@
 {
-  "Server error: Invalid code": "Nieprawidłowy kod",
-  "Wrong email or verification code": {
-    "": "Nieprawidłowy adres e-mail lub kod weryfikacyjny."
-  },
   "account_detected": "Wykryto konto",
   "account_with_sso_provider": "Wykryliśmy, że użytkownik utworzył już konto za pośrednictwem",
   "agree_to": "Logując się, wyrażasz zgodę na nasze",
@@ -52,6 +48,7 @@
   "forgot_password_link": "Zapomniałeś hasła?",
   "forgot_password_title": "Zapomniałeś hasła?",
   "go_back": "Wróć",
+  "hide_password": "Ukryj hasło",
   "invalid-email": "Nieprawidłowy adres e-mail",
   "invalid_password": "Nieprawidłowe hasło",
   "invalid_session_body": "Link jest już nieaktualny.\n\nUpewnij się, że otworzyłeś link logowania w tej samej przeglądarce, w której rozpocząłeś logowanie.\n\nMożesz kliknąć poniższy link, aby rozpocząć nowe logowanie.",
@@ -89,7 +86,9 @@
   "send": "Wyślij",
   "send_me_a_new_magic_link": "Wyślij mi nowy magiczny link",
   "sent_code_spam": "Pamiętaj, aby sprawdzić folder spamu, jeśli wiadomość e-mail nie dotarła.",
+  "Server error: Invalid code": "Nieprawidłowy kod",
   "set_password": "Ustaw hasło",
+  "show_password": "Pokaż hasło",
   "sign_in": "Zaloguj się",
   "signup": "Rejestracja",
   "signup_success": "Rejestracja zakończona sukcesem",
@@ -116,9 +115,12 @@
   "verify_email_title": "Potwierdź swój adres e-mail",
   "verify_email_verify": "Zweryfikuj konto",
   "verify_your_email": "Zweryfikuj swój adres e-mail",
-  "we_sent_a_code_to": "Sprawdź swoją skrzynkę e-mail pod adresem <0>{{email}}</0> i wprowadź sześciocyfrowy kod, który wysłaliśmy.",
   "welcome": "Witamy",
   "welcome_to_your_account": "Witamy na koncie {{vendorName}}!",
+  "we_sent_a_code_to": "Sprawdź swoją skrzynkę e-mail pod adresem <0>{{email}}</0> i wprowadź sześciocyfrowy kod, który wysłaliśmy.",
+  "Wrong email or verification code": {
+    "": "Nieprawidłowy adres e-mail lub kod weryfikacyjny."
+  },
   "yes_continue": "Kontynuuj korzystanie z tego konta",
   "yes_continue_with": "Tak, kontynuuj {{text}}",
   "yes_continue_with_existing_account": "Tak, kontynuuj korzystanie z istniejącego konta"
