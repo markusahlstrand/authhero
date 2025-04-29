@@ -21,7 +21,6 @@ type Props = {
   loginSession: LoginSession;
   email?: string;
   client: Client;
-  impersonation?: boolean;
 };
 
 const IdentifierPage: FC<Props> = ({
@@ -30,14 +29,37 @@ const IdentifierPage: FC<Props> = ({
   loginSession,
   email,
   client,
-  impersonation,
 }) => {
   const connections = client.connections.map(({ name }) => name);
+  
+  // Determine which input fields to show based on available connections
+  const showEmailInput = connections.includes("email");
+  const showPhoneInput = connections.includes("sms");
+  
+  // Determine which social logins to show
   const showFacebook = connections.includes("facebook");
   const showGoogle = connections.includes("google-oauth2");
   const showApple = connections.includes("apple");
   const showVipps = connections.includes("vipps");
   const anySocialLogin = showFacebook || showGoogle || showApple || showVipps;
+  
+  // Determine if any auth form should be shown
+  const showForm = showEmailInput || showPhoneInput;
+
+  // Configure input type and placeholder based on available connections
+  let inputType = "text";
+  let inputName = "identifier";
+  let inputPlaceholder = i18next.t("email_or_phone_placeholder", "Email or Phone Number");
+
+  if (showEmailInput && !showPhoneInput) {
+    inputType = "email";
+    inputName = "username";
+    inputPlaceholder = i18next.t("email_placeholder", "Email address");
+  } else if (!showEmailInput && showPhoneInput) {
+    inputType = "tel";
+    inputName = "phone";
+    inputPlaceholder = i18next.t("phone_placeholder", "Phone number");
+  }
 
   return (
     <Layout title={i18next.t("welcome")} vendorSettings={vendorSettings}>
@@ -46,26 +68,12 @@ const IdentifierPage: FC<Props> = ({
       </div>
       <div className="mb-8 text-gray-300">{i18next.t("login_description")}</div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form className="mb-7">
-          <input
-            type="email"
-            name="username"
-            placeholder={i18next.t("email_placeholder")}
-            className={cn(
-              "mb-2 w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base",
-              {
-                "border-red": error,
-                "border-gray-100 dark:border-gray-500": !error,
-              },
-            )}
-            required
-            value={email || ""}
-          />
-          {impersonation && (
+        {showForm && (
+          <Form className="mb-7">
             <input
-              type="email"
-              name="act_as"
-              placeholder="Impersonate as"
+              type={inputType}
+              name={inputName}
+              placeholder={inputPlaceholder}
               className={cn(
                 "mb-2 w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base",
                 {
@@ -74,16 +82,16 @@ const IdentifierPage: FC<Props> = ({
                 },
               )}
               required
-              value={""}
+              value={email || ""}
             />
-          )}
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          <Button className="sm:mt-4 !text-base">
-            <span>{i18next.t("continue")}</span>
-            <Icon className="text-xs" name="arrow-right" />
-          </Button>
-        </Form>
-        {anySocialLogin && (
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+            <Button className="sm:mt-4 !text-base">
+              <span>{i18next.t("continue")}</span>
+              <Icon className="text-xs" name="arrow-right" />
+            </Button>
+          </Form>
+        )}
+        {showForm && anySocialLogin && (
           <div className="relative mb-5 block text-center text-gray-300 dark:text-gray-300">
             <div className="absolute left-0 right-0 top-1/2 border-b border-gray-200 dark:border-gray-600" />
             <div className="relative inline-block bg-white px-2 dark:bg-gray-800">

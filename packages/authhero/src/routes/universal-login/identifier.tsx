@@ -63,7 +63,7 @@ export const identifierRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { state, impersonation } = ctx.req.valid("query");
+      const { state } = ctx.req.valid("query");
 
       const { vendorSettings, loginSession, client } = await initJSXRoute(
         ctx,
@@ -76,7 +76,6 @@ export const identifierRoutes = new OpenAPIHono<{
           loginSession={loginSession}
           client={client}
           email={loginSession.authParams.username}
-          impersonation={impersonation === "true"}
         />,
       );
     },
