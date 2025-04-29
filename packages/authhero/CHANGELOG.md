@@ -1,5 +1,11 @@
 # authhero
 
+## 0.116.0
+
+### Minor Changes
+
+- Add support for sms in universal login
+
 ## 0.115.0
 
 ### Minor Changes
