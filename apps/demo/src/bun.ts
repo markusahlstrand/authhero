@@ -21,7 +21,10 @@ await migrateToLatest(db);
 
 const dataAdapter = createAdapters(db);
 
-const app = createApp(dataAdapter);
+const app = createApp({
+  dataAdapter,
+  allowedOrigins: ["http://localhost:5173", "https://local.authhe.ro"],
+});
 const keys = await dataAdapter.keys.list();
 if (keys.length === 0) {
   const signingKey = await createX509Certificate({

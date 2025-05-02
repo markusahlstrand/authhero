@@ -1,6 +1,16 @@
-import querystring from "query-string";
 import { fetchUtils, DataProvider } from "ra-core";
 import { UpdateParams } from "react-admin";
+
+// Add this at the top of the file with other imports
+function stringify(obj: Record<string, any>): string {
+  return Object.entries(obj)
+    .filter(([_, value]) => value !== undefined)
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+    )
+    .join("&");
+}
 
 function removeExtraFields(params: UpdateParams) {
   // delete params.data?.id; // this is required for patch... but not for put?
@@ -44,10 +54,12 @@ function getIdKeyFromResource(resource: string) {
       return "user_id";
     case "logs":
       return "log_id";
+    case "hooks":
+      return "hook_id";
     case "tenants":
       return "tenant_id";
-    case "applications":
-      return "application_id";
+    case "clients":
+      return "client_id";
     default:
       throw new Error(`unknown resource ${resource}`);
   }
@@ -62,8 +74,8 @@ export default (
   tenantId?: string,
 ): DataProvider => ({
   getList: async (resource, params) => {
-    const { page, perPage } = params.pagination || { page: 1, perPage: 10 };
-    const { field, order } = params.sort || { field: "id", order: "ASC" };
+    const { page = 1, perPage } = params.pagination || {};
+    const { field, order } = params.sort || {};
 
     const query = {
       include_totals: true,
@@ -72,7 +84,7 @@ export default (
       sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
       q: params.filter.q,
     };
-    const url = `${apiUrl}/api/v2/${resource}?${querystring.stringify(query)}`;
+    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
 
     const headers = new Headers();
 
@@ -109,7 +121,7 @@ export default (
   },
 
   getMany: (resource, params) => {
-    const query = `id:(${params.ids.join(" ")})})`;
+    const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
 
     const url = `${apiUrl}/api/v2/${resource}?q=${query}`;
     return httpClient(url).then(({ json }) => ({
@@ -123,12 +135,6 @@ export default (
   getManyReference: async (resource, params) => {
     const { page, perPage } = params.pagination;
     const { field, order } = params.sort;
-
-    if (resource !== "logs") {
-      return Promise.reject(
-        "not supporting getManyReference for anything but resource logs",
-      );
-    }
 
     const query = {
       include_totals: true,
@@ -144,12 +150,12 @@ export default (
       headers.set("tenant-id", tenantId);
     }
 
-    const url = `${apiUrl}/api/v2/${resource}?${querystring.stringify(query)}`;
+    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
 
     const res = await httpClient(url, { headers });
 
     return {
-      data: res.json.logs.map((item: any) => ({
+      data: res.json[resource].map((item: any) => ({
         id: item[getIdKeyFromResource(resource)],
         ...item,
       })),
@@ -170,7 +176,13 @@ export default (
       headers,
       method: "PATCH",
       body: JSON.stringify(cleanParams.data),
-    }).then(({ json }) => ({ data: json }));
+    }).then(({ json }) => {
+      if (!json.id) {
+        json.id = json[`${resource}_id`];
+        delete json[`${resource}_id`];
+      }
+      return { data: json };
+    });
   },
 
   updateMany: () => Promise.reject("not supporting updateMany"),

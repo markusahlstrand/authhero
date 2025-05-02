@@ -9,7 +9,7 @@ import {
   ApplicationCreate,
   ApplicationEdit,
   ApplicationsList,
-} from "./components/applications";
+} from "./components/clients";
 import {
   ConnectionsList,
   ConnectionCreate,
@@ -17,8 +17,15 @@ import {
 } from "./components/connections";
 import { tenantLayout } from "./components/TenantLayout";
 import { UserCreate, UserEdit, UsersList } from "./components/users";
-import { DomainCreate, DomainEdit, DomainList } from "./components/domains";
+import {
+  DomainCreate,
+  DomainEdit,
+  DomainList,
+} from "./components/custom-domains";
 import { LogsList, LogShow } from "./components/logs";
+import { HookEdit, HookList, HooksCreate } from "./components/hooks";
+import WebhookIcon from "@mui/icons-material/Webhook";
+import DnsIcon from "@mui/icons-material/Dns";
 
 interface AppProps {
   tenantId: string;
@@ -36,7 +43,7 @@ export function App(props: AppProps) {
     >
       <Resource
         icon={Layers}
-        name="applications"
+        name="clients"
         list={ApplicationsList}
         edit={ApplicationEdit}
         create={ApplicationCreate}
@@ -59,10 +66,18 @@ export function App(props: AppProps) {
         show={ShowGuesser}
       />
       <Resource
+        icon={DnsIcon}
         name="domains"
         create={DomainCreate}
         list={DomainList}
         edit={DomainEdit}
+      />
+      <Resource
+        icon={WebhookIcon}
+        name="hooks"
+        create={HooksCreate}
+        list={HookList}
+        edit={HookEdit}
       />
       <Resource
         icon={PickALogsIcon}
