@@ -7,6 +7,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { waitUntil } from "../helpers/wait-until";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromUsername } from "../utils/username";
+import { getClientWithDefaults } from "../helpers/client";
 
 export type SendEmailParams = {
   to: string;
@@ -54,22 +55,13 @@ export async function sendSms(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: SendSmsParams,
 ) {
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-  if (!tenant) {
-    throw new HTTPException(500, { message: "Tenant not found" });
+  if (!ctx.var.client_id) {
+    throw new HTTPException(500, { message: "Client not found" });
   }
 
-  const smsProvider =
-    (await ctx.env.data.connections.list(ctx.var.tenant_id)).connections.find(
-      (c) => c.strategy === "sms",
-    ) ||
-    // Fallback to default tenant
-    (ctx.env.DEFAULT_TENANT_ID
-      ? (
-          await ctx.env.data.connections.list(ctx.env.DEFAULT_TENANT_ID)
-        ).connections.find((c) => c.strategy === "sms")
-      : null);
+  const client = await getClientWithDefaults(ctx.env, ctx.var.client_id);
 
+  const smsProvider = client.connections.find((c) => c.strategy === "sms");
   if (!smsProvider) {
     throw new HTTPException(500, { message: "SMS provider not found" });
   }
@@ -88,8 +80,8 @@ export async function sendSms(
     template: "auth-code",
     data: {
       code: params.code,
-      tenantName: tenant.name,
-      tenantId: tenant.id,
+      tenantName: client.tenant.name,
+      tenantId: client.tenant.id,
     },
   });
 }

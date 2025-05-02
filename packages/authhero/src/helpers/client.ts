@@ -1,5 +1,9 @@
 import { HTTPException } from "hono/http-exception";
-import { Client, connectionSchema } from "@authhero/adapter-interfaces";
+import {
+  Client,
+  connectionOptionsSchema,
+  connectionSchema,
+} from "@authhero/adapter-interfaces";
 import { Bindings } from "../types";
 import { getUniversalLoginUrl } from "../variables";
 
@@ -36,10 +40,12 @@ export async function getClientWithDefaults(
       const mergedConnection = connectionSchema.parse({
         ...(defaultConnection || {}),
         ...connection,
-        options: {
-          ...(defaultConnection.options || {}),
-          ...connection.options,
-        },
+      });
+
+      // Add the passthrough to allow extra options
+      mergedConnection.options = connectionOptionsSchema.passthrough().parse({
+        ...(defaultConnection.options || {}),
+        ...connection.options,
       });
 
       return mergedConnection;

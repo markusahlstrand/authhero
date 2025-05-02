@@ -99,10 +99,6 @@ export const identifierRoutes = new OpenAPIHono<{
             "application/x-www-form-urlencoded": {
               schema: z.object({
                 username: z.string().transform((u) => u.toLowerCase()),
-                act_as: z
-                  .string()
-                  .transform((u) => u.toLowerCase())
-                  .optional(),
                 login_selection: z.enum(["code", "password"]).optional(),
               }),
             },
@@ -165,7 +161,6 @@ export const identifierRoutes = new OpenAPIHono<{
 
       // Add the username to the state
       loginSession.authParams.username = params.username;
-      loginSession.authParams.act_as = params.act_as;
       await env.data.loginSessions.update(
         client.tenant.id,
         loginSession.id,

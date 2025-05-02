@@ -30,34 +30,37 @@ const IdentifierPage: FC<Props> = ({
   email,
   client,
 }) => {
-  const connections = client.connections.map(({ name }) => name);
-  
+  const connections = client.connections.map(({ strategy }) => strategy);
+
   // Determine which input fields to show based on available connections
-  const showEmailInput = connections.includes("email");
+  const showEmailInput =
+    connections.includes("email") ||
+    connections.includes("Username-Password-Authentication");
   const showPhoneInput = connections.includes("sms");
-  
+
   // Determine which social logins to show
   const showFacebook = connections.includes("facebook");
   const showGoogle = connections.includes("google-oauth2");
   const showApple = connections.includes("apple");
   const showVipps = connections.includes("vipps");
   const anySocialLogin = showFacebook || showGoogle || showApple || showVipps;
-  
+
   // Determine if any auth form should be shown
   const showForm = showEmailInput || showPhoneInput;
 
   // Configure input type and placeholder based on available connections
   let inputType = "text";
-  let inputName = "identifier";
-  let inputPlaceholder = i18next.t("email_or_phone_placeholder", "Email or Phone Number");
+  let inputName = "username"; // Always use username as the input name
+  let inputPlaceholder = i18next.t(
+    "email_or_phone_placeholder",
+    "Email or Phone Number",
+  );
 
   if (showEmailInput && !showPhoneInput) {
     inputType = "email";
-    inputName = "username";
     inputPlaceholder = i18next.t("email_placeholder", "Email address");
   } else if (!showEmailInput && showPhoneInput) {
     inputType = "tel";
-    inputName = "phone";
     inputPlaceholder = i18next.t("phone_placeholder", "Phone number");
   }
 
