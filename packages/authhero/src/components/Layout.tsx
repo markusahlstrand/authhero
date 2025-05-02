@@ -126,28 +126,6 @@ const Layout = ({
               submitBtn.classList.remove("is-loading");
             }
           });
-
-          // Show password toggle
-          var passwordInputs = document.querySelectorAll(".password-input");
-          passwordInputs.forEach(function (wrapper) {
-            var showPasswordBtn = wrapper.querySelector(
-              ".show-password-toggle-show",
-            );
-            var hidePasswordBtn = wrapper.querySelector(
-              ".show-password-toggle-hide",
-            );
-            var passwordField = wrapper.querySelector("input[type=password]");
-            showPasswordBtn.addEventListener("click", function () {
-              passwordField.type = "text";
-              showPasswordBtn.classList.add("!hidden");
-              hidePasswordBtn.classList.remove("!hidden");
-            });
-            hidePasswordBtn.addEventListener("click", function () {
-              passwordField.type = "password";
-              hidePasswordBtn.classList.add("!hidden");
-              showPasswordBtn.classList.remove("!hidden");
-            });
-          });
         </script>
       `}
     </html>
