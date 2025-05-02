@@ -132,3 +132,4 @@ dist
  auth-server
 
  .DS_Store
+ db.sqlite
