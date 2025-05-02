@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.59.0
+
+### Minor Changes
+
+- Separated the connections option schema
+
 ## 0.58.0
 
 ### Minor Changes

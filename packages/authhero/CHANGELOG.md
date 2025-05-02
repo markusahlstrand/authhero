@@ -1,5 +1,16 @@
 # authhero
 
+## 0.117.0
+
+### Minor Changes
+
+- Separated the connections option schema
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.59.0
+
 ## 0.116.0
 
 ### Minor Changes
