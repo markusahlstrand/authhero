@@ -1,6 +1,6 @@
 # @authhero/kysely-adapter
 
-## 11.0.0
+## 10.9.0
 
 ### Patch Changes
 
