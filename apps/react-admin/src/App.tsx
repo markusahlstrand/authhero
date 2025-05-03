@@ -5,11 +5,7 @@ import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
 import { getDataproviderForTenant } from "./dataProvider";
 import { authProvider } from "./authProvider";
-import {
-  ApplicationCreate,
-  ApplicationEdit,
-  ApplicationsList,
-} from "./components/clients";
+import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
 import {
   ConnectionsList,
   ConnectionCreate,
@@ -44,9 +40,9 @@ export function App(props: AppProps) {
       <Resource
         icon={Layers}
         name="clients"
-        list={ApplicationsList}
-        edit={ApplicationEdit}
-        create={ApplicationCreate}
+        list={ClientList}
+        edit={ClientEdit}
+        create={ClientCreate}
         show={ShowGuesser}
       />
       <Resource

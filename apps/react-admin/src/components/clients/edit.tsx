@@ -15,7 +15,7 @@ import {
 } from "react-admin";
 import { JsonOutput } from "../common/JsonOutput";
 
-export function ApplicationEdit() {
+export function ClientEdit() {
   return (
     <Edit>
       <SimpleShowLayout>
@@ -73,8 +73,8 @@ export function ApplicationEdit() {
             parse={(value) => {
               try {
                 return value ? JSON.parse(value) : {};
-              } catch (e) {
-                return {};
+              } catch {
+                throw new Error("Invalid JSON");
               }
             }}
           />

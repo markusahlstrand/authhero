@@ -5,6 +5,8 @@ import {
   FieldTitle,
   Labeled,
   NumberInput,
+  regex,
+  required,
   SelectInput,
   SimpleForm,
   TextInput,
@@ -14,7 +16,14 @@ export function HookEdit() {
   return (
     <Edit>
       <SimpleForm>
-        <TextInput source="url" />
+        <TextInput
+          source="url"
+          validate={[
+            required(),
+            regex(/^https?:\/\/./, "Must be a valid HTTP/HTTPS URL"),
+          ]}
+          helperText="The webhook endpoint URL that will be called"
+        />
         <SelectInput
           source="trigger_id"
           choices={[

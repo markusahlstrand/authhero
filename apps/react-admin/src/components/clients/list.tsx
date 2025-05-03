@@ -7,7 +7,7 @@ import {
 } from "react-admin";
 import { PostListActions } from "../listActions/PostListActions";
 
-export function ApplicationsList() {
+export function ClientList() {
   return (
     <List actions={<PostListActions />}>
       <Datagrid rowClick="edit" bulkActionButtons={false}>

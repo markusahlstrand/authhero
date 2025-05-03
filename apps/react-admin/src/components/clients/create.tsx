@@ -1,6 +1,6 @@
 import { Create, SimpleForm, TextInput, required } from "react-admin";
 
-export function ApplicationCreate() {
+export function ClientCreate() {
   return (
     <Create>
       <SimpleForm>
