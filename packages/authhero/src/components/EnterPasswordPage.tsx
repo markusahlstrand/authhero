@@ -8,6 +8,7 @@ import Form from "./Form";
 import { GoBack } from "./GoBack";
 import { Client, VendorSettings } from "@authhero/adapter-interfaces";
 import PasswordInput from "./PasswordInput";
+import { html } from "hono/html";
 
 type Props = {
   error?: string;
@@ -74,6 +75,31 @@ const EnterPasswordPage: FC<Props> = (params) => {
         </div>
         <GoBack state={state} />
       </div>
+      {html`
+        <script>
+          // Show password toggle
+          var passwordInputs = document.querySelectorAll(".password-input");
+          passwordInputs.forEach(function (wrapper) {
+            var showPasswordBtn = wrapper.querySelector(
+              ".show-password-toggle-show",
+            );
+            var hidePasswordBtn = wrapper.querySelector(
+              ".show-password-toggle-hide",
+            );
+            var passwordField = wrapper.querySelector("input[type=password]");
+            showPasswordBtn.addEventListener("click", function () {
+              passwordField.type = "text";
+              showPasswordBtn.classList.add("!hidden");
+              hidePasswordBtn.classList.remove("!hidden");
+            });
+            hidePasswordBtn.addEventListener("click", function () {
+              passwordField.type = "password";
+              hidePasswordBtn.classList.add("!hidden");
+              showPasswordBtn.classList.remove("!hidden");
+            });
+          });
+        </script>
+      `}
     </Layout>
   );
 };

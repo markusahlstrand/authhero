@@ -9,8 +9,7 @@ const getUrlByEnvironment = () => {
     return `https://${VITE_VERCEL_URL}`;
   }
 
-  // rename this? and nuke VITE_LOGIN_REDIRECT_URL env var
-  return import.meta.env.VITE_LOGOUT_REDIRECT_URL;
+  return import.meta.env.VITE_URL;
 };
 
 export const baseRedirectUri = getUrlByEnvironment();

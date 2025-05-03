@@ -1,13 +1,11 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DataAdapters, init } from "authhero";
+import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 import packageJson from "../package.json";
 
-export default function create(dataAdapter: DataAdapters) {
-  const { app } = init({
-    dataAdapter,
-  });
+export default function create(config: AuthHeroConfig) {
+  const { app } = init(config);
 
   app
     .onError((err, ctx) => {
