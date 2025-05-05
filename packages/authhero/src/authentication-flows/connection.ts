@@ -99,6 +99,32 @@ export async function connectionCallback(
     throw new HTTPException(403, { message: "Session not found" });
   }
 
+  // Check if the login was initiated from a custom domain that doesn't match the current request
+  if (loginSession.authorization_url) {
+    const authorizationUrlDomain = new URL(loginSession.authorization_url)
+      .hostname;
+    const currentRequestDomain = ctx.req.header("host") || "";
+
+    // If the domains don't match and we have a custom domain in the current tenant
+    if (
+      authorizationUrlDomain !== currentRequestDomain &&
+      authorizationUrlDomain
+    ) {
+      // Redirect to the same callback endpoint but on the original domain
+      // Use 307 Temporary Redirect to preserve the HTTP method (POST/GET)
+      const url = new URL(`https://${authorizationUrlDomain}/callback`);
+      url.searchParams.set("state", state);
+      url.searchParams.set("code", code);
+
+      return new Response("Redirecting", {
+        status: 307, // Temporary Redirect - preserves the HTTP method
+        headers: {
+          location: url.toString(),
+        },
+      });
+    }
+  }
+
   const client = await getClientWithDefaults(
     env,
     loginSession.authParams.client_id,
