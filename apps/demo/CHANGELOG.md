@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.11.0
+
+### Minor Changes
+
+- eb8fd65: Update the demo app and react admin
+- eb8fd65: Setup of the demo app and react admin to run locally.
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.118.0
+
 ## 0.10.8
 
 ### Patch Changes
