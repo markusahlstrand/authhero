@@ -1,5 +1,11 @@
 # authhero
 
+## 0.118.0
+
+### Minor Changes
+
+- Use custom domain for auth cookies
+
 ## 0.117.0
 
 ### Minor Changes

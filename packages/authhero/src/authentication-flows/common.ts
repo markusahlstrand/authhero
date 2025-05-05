@@ -420,7 +420,7 @@ export async function createAuthResponse(
     "set-cookie": serializeAuthCookie(
       client.tenant.id,
       session_id,
-      ctx.req.header("host"),
+      ctx.var.custom_domain || ctx.req.header("host"),
     ),
   });
 
