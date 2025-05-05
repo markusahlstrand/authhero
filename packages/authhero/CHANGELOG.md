@@ -1,5 +1,11 @@
 # authhero
 
+## 0.119.0
+
+### Minor Changes
+
+- Redirect callback to custom domain
+
 ## 0.118.0
 
 ### Minor Changes

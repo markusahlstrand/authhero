@@ -26,6 +26,11 @@ export async function universalAuth({
   connection,
   login_hint,
 }: UniversalAuthParams) {
+  const url = new URL(ctx.req.url);
+  if (ctx.var.custom_domain) {
+    url.hostname = ctx.var.custom_domain;
+  }
+
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,
     {
@@ -34,7 +39,7 @@ export async function universalAuth({
       ).toISOString(),
       authParams,
       csrf_token: nanoid(),
-      authorization_url: ctx.req.url,
+      authorization_url: url.toString(),
       ...getClientInfo(ctx.req),
     },
   );
