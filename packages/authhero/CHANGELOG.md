@@ -1,5 +1,11 @@
 # authhero
 
+## 0.122.0
+
+### Minor Changes
+
+- Add caching for adapters
+
 ## 0.121.0
 
 ### Minor Changes
