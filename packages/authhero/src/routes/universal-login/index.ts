@@ -9,6 +9,7 @@ import { resetPasswordRoutes } from "./reset-password";
 import { forgotPasswordRoutes } from "./forgot-password";
 import { checkAccountRoutes } from "./check-account";
 import { addDataHooks } from "../../hooks";
+import { addTimingLogs } from "../../helpers/server-timing";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
@@ -24,7 +25,10 @@ export default function create(config: AuthHeroConfig) {
   }>();
 
   app.use(tenantMiddleware).use(async (ctx, next) => {
-    ctx.env.data = addDataHooks(ctx, config.dataAdapter);
+    // First add data hooks
+    const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
+    // Then wrap with timing logs
+    ctx.env.data = addTimingLogs(ctx, dataWithHooks);
     return next();
   });
 

@@ -13,6 +13,7 @@ import { passwordlessRoutes } from "./passwordless";
 import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
 import { addDataHooks } from "../../hooks";
+import { addTimingLogs } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 
 export default function create(config: AuthHeroConfig) {
@@ -22,7 +23,10 @@ export default function create(config: AuthHeroConfig) {
   }>();
 
   app.use(async (ctx, next) => {
-    ctx.env.data = addDataHooks(ctx, config.dataAdapter);
+    // First add data hooks
+    const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
+    // Then wrap with timing logs
+    ctx.env.data = addTimingLogs(ctx, dataWithHooks);
     return next();
   });
 

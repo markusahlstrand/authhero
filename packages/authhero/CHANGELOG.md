@@ -1,5 +1,11 @@
 # authhero
 
+## 0.121.0
+
+### Minor Changes
+
+- Add server timings
+
 ## 0.120.0
 
 ### Minor Changes
