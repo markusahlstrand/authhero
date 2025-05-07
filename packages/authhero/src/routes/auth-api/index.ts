@@ -14,6 +14,7 @@ import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
+import { addCaching } from "../../helpers/cache-wrapper";
 import { tenantMiddleware } from "../../middlewares/tenant";
 
 export default function create(config: AuthHeroConfig) {
@@ -25,8 +26,13 @@ export default function create(config: AuthHeroConfig) {
   app.use(async (ctx, next) => {
     // First add data hooks
     const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-    // Then wrap with timing logs
-    ctx.env.data = addTimingLogs(ctx, dataWithHooks);
+    // Then wrap with caching (specifically for tenants, connections, and clients)
+    const cachedData = addCaching(dataWithHooks, {
+      defaultTtl: 300000, // 5 minutes default TTL
+      cacheEntities: ["tenants", "connections", "clients"],
+    });
+    // Finally wrap with timing logs
+    ctx.env.data = addTimingLogs(ctx, cachedData);
     return next();
   });
 

@@ -10,6 +10,7 @@ import { forgotPasswordRoutes } from "./forgot-password";
 import { checkAccountRoutes } from "./check-account";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
+import { addCaching } from "../../helpers/cache-wrapper";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
@@ -24,13 +25,20 @@ export default function create(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
-  app.use(tenantMiddleware).use(async (ctx, next) => {
-    // First add data hooks
-    const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-    // Then wrap with timing logs
-    ctx.env.data = addTimingLogs(ctx, dataWithHooks);
-    return next();
-  });
+  app
+    .use(async (ctx, next) => {
+      // First add data hooks
+      const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
+      // Then wrap with caching
+      const cachedData = addCaching(dataWithHooks, {
+        defaultTtl: 300000, // 5 minutes default TTL
+        cacheEntities: ["tenants", "connections", "clients"],
+      });
+      // Finally wrap with timing logs
+      ctx.env.data = addTimingLogs(ctx, cachedData);
+      return next();
+    })
+    .use(tenantMiddleware);
 
   app.get("/css/tailwind.css", async (ctx: Context) => {
     const css = tailwindCss;
