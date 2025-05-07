@@ -374,8 +374,26 @@ export async function createAuthResponse(
 
   let postHookUser = user;
 
-  // If there is no session id, create a new session
-  if (!session_id) {
+  // If there is no session id, check if the login session already has one
+  if (!session_id && params.loginSession?.session_id) {
+    session_id = params.loginSession.session_id;
+
+    // When reusing an existing session, check if we need to add the current client
+    // to the session's clients array if it's not already there
+    const existingSession = await ctx.env.data.sessions.get(
+      client.tenant.id,
+      session_id,
+    );
+
+    if (existingSession && !existingSession.clients.includes(client.id)) {
+      // Add the current client to the existing session
+      await ctx.env.data.sessions.update(client.tenant.id, session_id, {
+        clients: [...existingSession.clients, client.id],
+      });
+    }
+  }
+  // If still no session, create a new one
+  else if (!session_id) {
     if (!params.loginSession) {
       throw new HTTPException(500, {
         message: "Login session not found",

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.124.0
+
+### Minor Changes
+
+- Fix duplicate sessions
+
 ## 0.123.0
 
 ### Minor Changes
