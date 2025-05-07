@@ -167,4 +167,102 @@ describe("common", () => {
       user_id: "email|userId",
     });
   });
+
+  it("should reuse an existing session when loginSession already has a session_id", async () => {
+    const { env } = await getTestServer();
+
+    // Setup a mock context with minimal requirements
+    const ctx = {
+      env,
+      var: {
+        tenant_id: "tenantId",
+      },
+      req: {
+        header: () => {},
+        queries: () => {},
+      },
+    } as unknown as Context<{
+      Bindings: Bindings;
+      Variables: Variables;
+    }>;
+
+    // Create a session first
+    const session = await env.data.sessions.create("tenantId", {
+      id: "existingSessionId",
+      user_id: "email|userId",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+
+    // Create a login session with the existing session_id
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@example.com",
+        scope: "openid",
+        audience: "http://example.com",
+        redirect_uri: "http://example.com/callback",
+      },
+      session_id: session.id, // Link to the existing session
+    });
+
+    const client = await env.data.clients.get("clientId");
+    const user = await getPrimaryUserByEmail({
+      userAdapter: env.data.users,
+      tenant_id: "tenantId",
+      email: "foo@example.com",
+    });
+
+    if (!client || !user) {
+      throw new Error("Client or user not found");
+    }
+
+    // Call createAuthResponse which should reuse the existing session
+    const authResponse = await createAuthResponse(ctx, {
+      authParams: {
+        client_id: "clientId",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid",
+        redirect_uri: "http://example.com/callback",
+      },
+      client,
+      user,
+      loginSession,
+    });
+
+    // Verify that no new session was created
+    const sessionsList = await env.data.sessions.list("tenantId", {
+      page: 0,
+      per_page: 10,
+      include_totals: true,
+    });
+
+    // We expect only one session to exist (the one we created)
+    expect(sessionsList.sessions.length).toEqual(1);
+
+    // Verify that the code created uses the existing session
+    expect(authResponse.status).toEqual(302);
+    const location = authResponse.headers.get("location");
+    if (!location) {
+      throw new Error("No location header");
+    }
+
+    // Get the updated login session to confirm session_id is still the original
+    const updatedLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      loginSession.id,
+    );
+    expect(updatedLoginSession?.session_id).toEqual("existingSessionId");
+  });
 });
