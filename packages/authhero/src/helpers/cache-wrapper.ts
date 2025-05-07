@@ -37,6 +37,10 @@ class MemoryCache implements CacheInterface {
 
   // Set a value in the cache with TTL in milliseconds
   set<T>(key: string, value: T, ttlMs: number): void {
+    if (ttlMs <= 0) {
+      // TTL ≤ 0 ⇒ do not cache
+      return;
+    }
     const expiresAt = Date.now() + ttlMs;
     this.cacheStore.set(key, { value, expiresAt });
   }
@@ -171,8 +175,6 @@ export function addCaching(
         wrappedAdapter[methodName] = async (...args: any[]) => {
           // For write operations, invalidate cache entries related to the adapter
           if (isWriteOperation) {
-            console.log("Invalidating cache for write operation:", methodName);
-
             // Simple approach: clear all cache entries for this adapter
             // A more sophisticated approach would be to selectively invalidate related entries
             const keysToDelete = await Promise.resolve(
@@ -183,7 +185,7 @@ export function addCaching(
             }
 
             // Execute the original method without caching
-            return await method(...args);
+            return await (method as any).apply(adapter, args);
           }
 
           // For read operations, try to get from cache first
@@ -195,7 +197,7 @@ export function addCaching(
           }
 
           // Cache miss, execute the original method
-          const result = await method(...args);
+          const result = await (method as any).apply(adapter, args);
 
           await cache.set(cacheKey, result, ttl);
 
