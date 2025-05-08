@@ -10,16 +10,12 @@ interface TenantsAppProps {
 }
 
 export function TenantsApp({ initialDomain }: TenantsAppProps) {
-  console.log("TenantsApp rendering with domain:", initialDomain);
-
   const authProvider = getAuthProvider(initialDomain);
 
   // Get the dataProvider with the selected domain
   const dataProvider = getDataprovider(
     initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
   );
-
-  console.log("Current path:", window.location.pathname);
 
   // Use a direct component approach with React Admin's functionality
   const AdminWithBasename = () => {

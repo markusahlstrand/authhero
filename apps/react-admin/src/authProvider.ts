@@ -46,41 +46,6 @@ export const getAuthProvider = (domain: string) => {
   });
 };
 
-// Export this function to initiate login with the Auth0 client
-export const initiateLogin = (domain: string): void => {
-  try {
-    console.log("Initiating login with domain:", domain);
-
-    // Get client ID for this domain
-    const clientId = getClientIdFromCookie(domain);
-    console.log("Using client ID:", clientId);
-
-    // Get current URL for the redirect
-    const redirectUri = `${window.location.origin}/auth-callback`;
-
-    // Handle audience if present
-    const audience = import.meta.env.VITE_AUTH0_AUDIENCE || "";
-
-    // Construct the authorization URL directly with all required parameters
-    const authUrl = new URL(`https://${domain}/authorize`);
-    authUrl.searchParams.set("client_id", clientId);
-    authUrl.searchParams.set("redirect_uri", redirectUri);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", "openid profile email");
-    if (audience) {
-      authUrl.searchParams.set("audience", audience);
-    }
-    // Add state parameter to prevent CSRF
-    authUrl.searchParams.set("state", Math.random().toString(36).substring(2));
-
-    // Force immediate redirect using window.location.replace for cleaner redirect
-    console.log("Redirecting to:", authUrl.toString());
-    window.location.replace(authUrl.toString());
-  } catch (error) {
-    console.error("Error initiating login:", error);
-  }
-};
-
 // For backward compatibility
 const auth0 = createAuth0Client(getSelectedDomainFromCookie());
 const authProvider = getAuthProvider(getSelectedDomainFromCookie());

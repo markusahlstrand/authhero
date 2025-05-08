@@ -73,22 +73,8 @@ export default (
   httpClient = fetchUtils.fetchJson,
   tenantId?: string,
 ): DataProvider => {
-  console.log(
-    "Creating auth0DataProvider with apiUrl:",
-    apiUrl,
-    "tenantId:",
-    tenantId,
-  );
-
   return {
     getList: async (resource, params) => {
-      console.log(
-        "getList called for resource:",
-        resource,
-        "with params:",
-        params,
-      );
-
       const { page = 1, perPage } = params.pagination || {};
       const { field, order } = params.sort || {};
 
@@ -101,7 +87,6 @@ export default (
       };
       const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
 
-      console.log("Making request to URL:", url);
       const headers = new Headers();
 
       if (tenantId) {
@@ -110,7 +95,6 @@ export default (
 
       try {
         const res = await httpClient(url, { headers });
-        console.log("getList received response:", res);
 
         return {
           data:
@@ -127,12 +111,6 @@ export default (
     },
 
     getOne: (resource, params) => {
-      console.log(
-        "getOne called for resource:",
-        resource,
-        "with params:",
-        params,
-      );
       const headers = new Headers();
 
       if (tenantId) {
@@ -150,12 +128,6 @@ export default (
     },
 
     getMany: (resource, params) => {
-      console.log(
-        "getMany called for resource:",
-        resource,
-        "with params:",
-        params,
-      );
       const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
 
       const url = `${apiUrl}/api/v2/${resource}?q=${query}`;

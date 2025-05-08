@@ -6,17 +6,12 @@ import {
   UrlField,
   SimpleList,
   TextInput,
-  useListContext,
 } from "react-admin";
 import { useMediaQuery } from "@mui/material";
 import { PostListActions } from "../listActions/PostListActions";
 
 // Use the standard List component but with proper logging
 export function TenantsList(props) {
-  console.log(
-    "TenantsList component rendering on path:",
-    window.location.pathname,
-  );
   const isSmall = useMediaQuery((theme: any) => theme.breakpoints.down("sm"));
 
   // The standard filters
