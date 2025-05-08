@@ -1,21 +1,54 @@
 import { Admin, Resource, ShowGuesser } from "react-admin";
 import { getDataprovider } from "./dataProvider";
-import { authProvider } from "./authProvider";
-import { TenantsCreate, TenantsList } from "./components/tenants";
+import { getAuthProvider } from "./authProvider";
+import { TenantsList } from "./components/tenants/list";
 import { TenantsEdit } from "./components/tenants/edit";
+import { TenantsCreate } from "./components/tenants/create";
 
-export function TenantsApp() {
-  const dataProvider = getDataprovider();
+interface TenantsAppProps {
+  initialDomain: string;
+}
 
-  return (
-    <Admin dataProvider={dataProvider} authProvider={authProvider}>
-      <Resource
-        name="tenants"
-        list={TenantsList}
-        edit={TenantsEdit}
-        create={TenantsCreate}
-        show={ShowGuesser}
-      />
-    </Admin>
+export function TenantsApp({ initialDomain }: TenantsAppProps) {
+  console.log("TenantsApp rendering with domain:", initialDomain);
+
+  const authProvider = getAuthProvider(initialDomain);
+
+  // Get the dataProvider with the selected domain
+  const dataProvider = getDataprovider(
+    initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
   );
+
+  console.log("Current path:", window.location.pathname);
+
+  // Use a direct component approach with React Admin's functionality
+  const AdminWithBasename = () => {
+    // Extract the base path to avoid duplicate "tenants" in the URL
+    // If we're on /tenants/* route, use /tenants as basename
+    // Otherwise, use empty string as basename
+    const pathname = window.location.pathname;
+    const isTenantsRoute = pathname.startsWith("/tenants");
+    const basename = isTenantsRoute ? "/tenants" : "";
+
+    return (
+      <Admin
+        dataProvider={dataProvider}
+        authProvider={authProvider}
+        requireAuth={false}
+        basename={basename}
+        // Create a dashboard component that passes the resource prop
+        dashboard={() => <TenantsList resource="tenants" />}
+      >
+        <Resource
+          name="tenants"
+          list={TenantsList}
+          edit={TenantsEdit}
+          create={TenantsCreate}
+          show={ShowGuesser}
+        />
+      </Admin>
+    );
+  };
+
+  return <AdminWithBasename />;
 }
