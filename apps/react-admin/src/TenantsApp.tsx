@@ -27,12 +27,10 @@ export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
 
   // Use a direct component approach with React Admin's functionality
   const AdminWithBasename = () => {
-    // Extract the base path to avoid duplicate "tenants" in the URL
-    // If we're on /tenants/* route, use /tenants as basename
-    // Otherwise, use empty string as basename
-    const pathname = window.location.pathname;
-    const isTenantsRoute = pathname.startsWith("/tenants");
-    const basename = isTenantsRoute ? "/tenants" : "";
+    // We don't need a custom basename when rendering TenantsApp
+    // The route is already set to "/tenants/*" in index.tsx
+    // Using an empty string prevents the duplication
+    const basename = "";
 
     return (
       <Admin

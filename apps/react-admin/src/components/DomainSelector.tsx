@@ -10,7 +10,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   CircularProgress,
   Typography,
@@ -58,10 +57,23 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
     // Close dialog
     setShowDomainDialog(false);
 
-    // Navigate to tenants page to trigger auth flow
-    setTimeout(() => {
-      window.location.href = "/tenants";
-    }, 100);
+    // Get the current path to preserve tenant segment if it exists
+    const currentPath = window.location.pathname;
+    const pathSegments = currentPath.split("/").filter(Boolean);
+
+    // Check if the first segment is a tenant ID (not "tenants")
+    if (pathSegments.length > 0 && pathSegments[0] !== "tenants") {
+      const tenantId = pathSegments[0];
+      // Preserve the tenant ID in the URL
+      setTimeout(() => {
+        window.location.href = `/${tenantId}`;
+      }, 100);
+    } else {
+      // Otherwise navigate to the tenants page to trigger auth flow
+      setTimeout(() => {
+        window.location.href = "/tenants";
+      }, 100);
+    }
   };
 
   const handleAddDomain = () => {
@@ -141,26 +153,46 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
               {domains.map((domain) => (
                 <ListItem
                   key={domain.url}
-                  button
-                  onClick={() => handleSelectDomain(domain.url)}
-                  selected={domain.url === selectedDomain}
-                >
-                  <ListItemText
-                    primary={domain.url}
-                    secondary={
-                      domain.clientId
-                        ? `Client ID: ${domain.clientId}`
-                        : undefined
-                    }
-                  />
-                  <ListItemSecondaryAction>
+                  disablePadding
+                  secondaryAction={
                     <IconButton
                       edge="end"
-                      onClick={() => handleRemoveDomain(domain.url)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveDomain(domain.url);
+                      }}
                     >
                       <DeleteIcon />
                     </IconButton>
-                  </ListItemSecondaryAction>
+                  }
+                >
+                  <Box
+                    onClick={() => handleSelectDomain(domain.url)}
+                    sx={{
+                      textAlign: "left",
+                      justifyContent: "flex-start",
+                      width: "100%",
+                      cursor: "pointer",
+                      textTransform: "none",
+                      padding: "8px 16px",
+                      backgroundColor:
+                        domain.url === selectedDomain
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "transparent",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    <ListItemText
+                      primary={domain.url}
+                      secondary={
+                        domain.clientId
+                          ? `Client ID: ${domain.clientId}`
+                          : undefined
+                      }
+                    />
+                  </Box>
                 </ListItem>
               ))}
             </List>
