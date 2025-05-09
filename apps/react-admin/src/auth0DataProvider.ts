@@ -72,161 +72,172 @@ export default (
   apiUrl: string,
   httpClient = fetchUtils.fetchJson,
   tenantId?: string,
-): DataProvider => ({
-  getList: async (resource, params) => {
-    const { page = 1, perPage } = params.pagination || {};
-    const { field, order } = params.sort || {};
+): DataProvider => {
+  return {
+    getList: async (resource, params) => {
+      const { page = 1, perPage } = params.pagination || {};
+      const { field, order } = params.sort || {};
 
-    const query = {
-      include_totals: true,
-      page: page - 1,
-      per_page: perPage,
-      sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-      q: params.filter.q,
-    };
-    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
+      const query = {
+        include_totals: true,
+        page: page - 1,
+        per_page: perPage,
+        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        q: params.filter?.q || "", // Make q optional with default empty string
+      };
+      const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
 
-    const headers = new Headers();
+      const headers = new Headers();
 
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
-
-    const res = await httpClient(url, { headers });
-
-    return {
-      data: res.json[resource].map((item: any) => ({
-        id: item[getIdKeyFromResource(resource)],
-        ...item,
-      })),
-      total: res.json.length,
-    };
-  },
-
-  getOne: (resource, params) => {
-    const headers = new Headers();
-
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
-
-    return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
-      headers,
-    }).then(({ json }) => ({
-      data: {
-        id: json[getIdKeyFromResource(resource)],
-        ...json,
-      },
-    }));
-  },
-
-  getMany: (resource, params) => {
-    const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
-
-    const url = `${apiUrl}/api/v2/${resource}?q=${query}`;
-    return httpClient(url).then(({ json }) => ({
-      data: {
-        id: json[getIdKeyFromResource(resource)],
-        ...json,
-      },
-    }));
-  },
-
-  getManyReference: async (resource, params) => {
-    const { page, perPage } = params.pagination;
-    const { field, order } = params.sort;
-
-    const query = {
-      include_totals: true,
-      page: page - 1,
-      per_page: perPage,
-      sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-      q: `user_id:${params.id}`,
-    };
-
-    const headers = new Headers();
-
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
-
-    const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
-
-    const res = await httpClient(url, { headers });
-
-    return {
-      data: res.json[resource].map((item: any) => ({
-        id: item[getIdKeyFromResource(resource)],
-        ...item,
-      })),
-      total: res.json.length,
-    };
-  },
-
-  update: (resource, params) => {
-    const headers = new Headers();
-
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
-
-    const cleanParams = removeExtraFields(params);
-
-    return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
-      headers,
-      method: "PATCH",
-      body: JSON.stringify(cleanParams.data),
-    }).then(({ json }) => {
-      if (!json.id) {
-        json.id = json[`${resource}_id`];
-        delete json[`${resource}_id`];
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
       }
-      return { data: json };
-    });
-  },
 
-  updateMany: () => Promise.reject("not supporting updateMany"),
+      try {
+        const res = await httpClient(url, { headers });
 
-  create: async (resource, params) => {
-    const headers = new Headers();
+        return {
+          data:
+            res.json[resource]?.map((item: any) => ({
+              id: item[getIdKeyFromResource(resource)],
+              ...item,
+            })) || [],
+          total: res.json.length || 0,
+        };
+      } catch (error) {
+        console.error("Error in getList:", error);
+        throw error;
+      }
+    },
 
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
+    getOne: (resource, params) => {
+      const headers = new Headers();
 
-    const res = await httpClient(`${apiUrl}/api/v2/${resource}`, {
-      method: "POST",
-      body: JSON.stringify(params.data),
-      headers,
-    });
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
 
-    const data = {
-      ...res.json,
-      id: res.json.id,
-    };
+      return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
+        headers,
+      }).then(({ json }) => ({
+        data: {
+          id: json[getIdKeyFromResource(resource)],
+          ...json,
+        },
+      }));
+    },
 
-    return {
-      data,
-    };
-  },
+    getMany: (resource, params) => {
+      const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
 
-  delete: async (resource, params) => {
-    const headers = new Headers({
-      "Content-Type": "text/plain",
-    });
+      const url = `${apiUrl}/api/v2/${resource}?q=${query}`;
+      return httpClient(url).then(({ json }) => ({
+        data: {
+          id: json[getIdKeyFromResource(resource)],
+          ...json,
+        },
+      }));
+    },
 
-    if (tenantId) {
-      headers.set("tenant-id", tenantId);
-    }
+    getManyReference: async (resource, params) => {
+      const { page, perPage } = params.pagination;
+      const { field, order } = params.sort;
 
-    const res = await httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
-      method: "DELETE",
-      headers,
-    });
+      const query = {
+        include_totals: true,
+        page: page - 1,
+        per_page: perPage,
+        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        q: `user_id:${params.id}`,
+      };
 
-    return {
-      data: res.json,
-    };
-  },
-  deleteMany: () => Promise.reject("not supporting updateMany"),
-});
+      const headers = new Headers();
+
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
+
+      const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
+
+      const res = await httpClient(url, { headers });
+
+      return {
+        data: res.json[resource].map((item: any) => ({
+          id: item[getIdKeyFromResource(resource)],
+          ...item,
+        })),
+        total: res.json.total,
+      };
+    },
+
+    update: (resource, params) => {
+      const headers = new Headers();
+
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
+
+      const cleanParams = removeExtraFields(params);
+
+      return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
+        headers,
+        method: "PATCH",
+        body: JSON.stringify(cleanParams.data),
+      }).then(({ json }) => {
+        if (!json.id) {
+          json.id = json[`${resource}_id`];
+          delete json[`${resource}_id`];
+        }
+        return { data: json };
+      });
+    },
+
+    updateMany: () => Promise.reject("not supporting updateMany"),
+
+    create: async (resource, params) => {
+      const headers = new Headers();
+
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
+
+      const res = await httpClient(`${apiUrl}/api/v2/${resource}`, {
+        method: "POST",
+        body: JSON.stringify(params.data),
+        headers,
+      });
+
+      const data = {
+        ...res.json,
+        id: res.json.id,
+      };
+
+      return {
+        data,
+      };
+    },
+
+    delete: async (resource, params) => {
+      const headers = new Headers({
+        "Content-Type": "text/plain",
+      });
+
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
+
+      const res = await httpClient(
+        `${apiUrl}/api/v2/${resource}/${params.id}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      );
+
+      return {
+        data: res.json,
+      };
+    },
+    deleteMany: () => Promise.reject("not supporting updateMany"),
+  };
+};

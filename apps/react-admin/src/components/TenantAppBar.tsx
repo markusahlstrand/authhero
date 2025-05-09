@@ -1,6 +1,6 @@
 import { AppBar, TitlePortal } from "react-admin";
 import { useEffect, useState } from "react";
-import { Link } from "@mui/material";
+import { Link, Box } from "@mui/material";
 import { authorizedHttpClient } from "../authProvider";
 
 type TenantResponse = {
@@ -17,7 +17,13 @@ type TenantResponse = {
   sender_name: string;
 };
 
-export function TenantAppBar() {
+interface TenantAppBarProps {
+  domainSelectorButton?: React.ReactNode;
+  [key: string]: any;
+}
+
+export function TenantAppBar(props: TenantAppBarProps) {
+  const { domainSelectorButton, ...rest } = props;
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const tenantId = pathSegments[0];
   const [tenant, setTenant] = useState<TenantResponse>();
@@ -35,12 +41,21 @@ export function TenantAppBar() {
   const isDefaultSettings = tenantId === "DEFAULT_SETTINGS";
 
   return (
-    <AppBar sx={{ ...(isDefaultSettings && { backgroundColor: "red" }) }}>
+    <AppBar
+      {...rest}
+      sx={{
+        ...rest.sx,
+        ...(isDefaultSettings && { backgroundColor: "red" }),
+      }}
+    >
       <TitlePortal />
-      <p>{tenant?.name}&nbsp;-&nbsp;</p>
-      <Link color="inherit" href="/tenants" underline="none">
-        Tenants
-      </Link>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <p>{tenant?.name}&nbsp;-&nbsp;</p>
+        <Link color="inherit" href="/tenants" underline="none" sx={{ mr: 2 }}>
+          Tenants
+        </Link>
+        {domainSelectorButton}
+      </Box>
     </AppBar>
   );
 }

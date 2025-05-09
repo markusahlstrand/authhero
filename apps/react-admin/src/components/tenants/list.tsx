@@ -10,15 +10,21 @@ import {
 import { useMediaQuery } from "@mui/material";
 import { PostListActions } from "../listActions/PostListActions";
 
-export function TenantsList() {
+// Use the standard List component but with proper logging
+export function TenantsList(props) {
   const isSmall = useMediaQuery((theme: any) => theme.breakpoints.down("sm"));
 
+  // The standard filters
   const postFilters = [
     <TextInput key="search" label="Search" source="q" alwaysOn />,
   ];
 
   return (
-    <List actions={<PostListActions />} filters={postFilters}>
+    <List
+      resource={props.resource || "tenants"}
+      actions={<PostListActions />}
+      filters={postFilters}
+    >
       {isSmall ? (
         <SimpleList
           primaryText={(record) => record.name}

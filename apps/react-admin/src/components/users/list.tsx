@@ -15,7 +15,11 @@ export function UsersList() {
   ];
 
   return (
-    <List actions={<PostListActions />} filters={postFilters}>
+    <List
+      actions={<PostListActions />}
+      filters={postFilters}
+      sort={{ field: "user_id", order: "DESC" }}
+    >
       <Datagrid rowClick="edit" bulkActionButtons={false}>
         <EmailField source="email" />
         <TextField source="connection" />
