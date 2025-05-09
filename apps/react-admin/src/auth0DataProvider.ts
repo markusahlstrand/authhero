@@ -166,7 +166,7 @@ export default (
           id: item[getIdKeyFromResource(resource)],
           ...item,
         })),
-        total: res.json.length,
+        total: res.json.total,
       };
     },
 

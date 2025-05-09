@@ -15,6 +15,20 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
   const callbackProcessedRef = useRef(false);
   const navigationAttemptedRef = useRef(false);
 
+  // Helper function to ensure navigation happens and prevent infinite loops
+  const forceNavigate = (path: string) => {
+    if (!navigationAttemptedRef.current) {
+      navigationAttemptedRef.current = true;
+
+      // Signal that auth flow is complete before navigation
+      if (onAuthComplete) onAuthComplete();
+
+      // Use window.location for a hard redirect instead of React Router's navigate
+      // This ensures we get a clean page load without any state issues
+      window.location.href = path;
+    }
+  };
+
   useEffect(() => {
     const handleCallback = async () => {
       // Skip if we've already processed this callback
@@ -76,20 +90,6 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
           // Still try to navigate after a short delay even on error
           setTimeout(() => forceNavigate("/tenants"), 3000);
         }
-      }
-    };
-
-    // Helper function to ensure navigation happens and prevent infinite loops
-    const forceNavigate = (path: string) => {
-      if (!navigationAttemptedRef.current) {
-        navigationAttemptedRef.current = true;
-
-        // Signal that auth flow is complete before navigation
-        if (onAuthComplete) onAuthComplete();
-
-        // Use window.location for a hard redirect instead of React Router's navigate
-        // This ensures we get a clean page load without any state issues
-        window.location.href = path;
       }
     };
 

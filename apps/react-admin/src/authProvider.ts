@@ -52,7 +52,7 @@ export const createAuth0Client = (domain: string) => {
     const now = Date.now();
 
     // Check if we already have an active session
-    const hasActiveSession = await checkExistingSession(auth0Client);
+    const hasActiveSession = await auth0Client.isAuthenticated();
     if (hasActiveSession) {
       return Promise.resolve();
     }
@@ -96,26 +96,6 @@ export const createAuth0Client = (domain: string) => {
   auth0ClientCache.set(domain, auth0Client);
   return auth0Client;
 };
-
-// Helper function to check if we already have a valid session for a domain
-async function checkExistingSession(
-  auth0Client: Auth0Client,
-): Promise<boolean> {
-  try {
-    // Check if the client is already authenticated
-    const isAuthenticated = await auth0Client.isAuthenticated();
-    if (isAuthenticated) {
-      // Verify the token is not expired
-      const claims = await auth0Client.getIdTokenClaims();
-      if (claims && claims.exp && claims.exp * 1000 > Date.now()) {
-        return true;
-      }
-    }
-    return false;
-  } catch (error) {
-    return false;
-  }
-}
 
 // Create a function to get the auth provider with the specified domain
 export const getAuthProvider = (
