@@ -20,7 +20,6 @@ async function removeExtraFields(params: UpdateParams) {
 }
 
 export function getDataprovider(auth0Domain?: string) {
-  console.log("Initializing dataProvider with domain:", auth0Domain);
   // Create the complete base URL using the selected domain
   let baseUrl = import.meta.env.VITE_SIMPLE_REST_URL;
 

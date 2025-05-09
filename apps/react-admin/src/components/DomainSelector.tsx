@@ -49,6 +49,21 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
     }
   }, []);
 
+  // Helper function to navigate after domain selection
+  const selectDomainAndNavigate = (domain: string) => {
+    // Save the selected domain to cookies and notify parent
+    saveSelectedDomainToCookie(domain);
+    onDomainSelected(domain);
+
+    // Close dialog
+    setShowDomainDialog(false);
+
+    // Navigate to tenants page to trigger auth flow
+    setTimeout(() => {
+      window.location.href = "/tenants";
+    }, 100);
+  };
+
   const handleAddDomain = () => {
     if (inputDomain.trim() === "") return;
 
@@ -67,11 +82,8 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
     setInputClientId("");
     setInputRestApiUrl("");
 
-    // Save the selected domain to cookies and notify parent
-    saveSelectedDomainToCookie(inputDomain);
-    onDomainSelected(inputDomain);
-
-    setShowDomainDialog(false);
+    // Use the helper function to select domain and navigate
+    selectDomainAndNavigate(inputDomain);
   };
 
   const handleRemoveDomain = (domainToRemove: string) => {
@@ -93,11 +105,8 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
   const handleSelectDomain = (domain: string) => {
     setSelectedDomain(domain);
 
-    // Save the selected domain to cookies and notify parent
-    saveSelectedDomainToCookie(domain);
-    onDomainSelected(domain);
-
-    setShowDomainDialog(false);
+    // Use the helper function to select domain and navigate
+    selectDomainAndNavigate(domain);
   };
 
   if (isLoading) {

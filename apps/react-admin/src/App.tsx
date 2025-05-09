@@ -22,8 +22,8 @@ import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
-import { useState, useEffect } from "react";
-import { Box, Button } from "@mui/material";
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@mui/material";
 import { DomainSelector } from "./components/DomainSelector";
 import {
   DomainConfig,
@@ -35,6 +35,7 @@ import {
 interface AppProps {
   tenantId: string;
   initialDomain?: string;
+  onAuthComplete?: () => void;
 }
 
 export function App(props: AppProps) {
@@ -44,8 +45,6 @@ export function App(props: AppProps) {
     props.initialDomain || "",
   );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
-  // State for auth provider to prevent authentication until domain is selected
-  const [authProvider, setAuthProvider] = useState<any>(null);
 
   // Load domains from cookies on component mount
   useEffect(() => {
@@ -73,13 +72,12 @@ export function App(props: AppProps) {
     }
   }, [props.initialDomain, selectedDomain]);
 
-  // Initialize auth provider when domain is selected
-  useEffect(() => {
-    if (selectedDomain) {
-      saveSelectedDomainToCookie(selectedDomain);
-      setAuthProvider(getAuthProvider(selectedDomain));
-    }
-  }, [selectedDomain]);
+  // Use memoization for creating the auth provider to prevent re-authentication
+  const authProvider = useMemo(() => {
+    if (!selectedDomain) return null;
+    saveSelectedDomainToCookie(selectedDomain);
+    return getAuthProvider(selectedDomain, props.onAuthComplete);
+  }, [selectedDomain, props.onAuthComplete]);
 
   // Save domains to cookies when they change
   useEffect(() => {
@@ -97,14 +95,18 @@ export function App(props: AppProps) {
     setShowDomainDialog(true);
   };
 
-  // Include the Auth0 domain in the API URL
-  const dataProvider = getDataproviderForTenant(
-    props.tenantId,
-    selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+  // Memoize the data provider to prevent unnecessary re-creations
+  const dataProvider = useMemo(
+    () =>
+      getDataproviderForTenant(
+        props.tenantId,
+        selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+      ),
+    [props.tenantId, selectedDomain],
   );
 
   // If no domain is selected and dialog is not open, show a loading state
-  if (!selectedDomain && !showDomainDialog) {
+  if (!authProvider || (!selectedDomain && !showDomainDialog)) {
     return <div>Loading...</div>;
   }
 

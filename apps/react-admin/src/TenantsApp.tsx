@@ -4,17 +4,25 @@ import { getAuthProvider } from "./authProvider";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsEdit } from "./components/tenants/edit";
 import { TenantsCreate } from "./components/tenants/create";
+import { useMemo } from "react";
 
 interface TenantsAppProps {
   initialDomain: string;
+  onAuthComplete?: () => void;
 }
 
-export function TenantsApp({ initialDomain }: TenantsAppProps) {
-  const authProvider = getAuthProvider(initialDomain);
+export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
+  // Use useMemo to prevent recreating the auth provider on every render
+  const authProvider = useMemo(
+    () => getAuthProvider(initialDomain, onAuthComplete),
+    [initialDomain, onAuthComplete],
+  );
 
-  // Get the dataProvider with the selected domain
-  const dataProvider = getDataprovider(
-    initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+  // Get the dataProvider with the selected domain - also memoize this
+  const dataProvider = useMemo(
+    () =>
+      getDataprovider(initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || ""),
+    [initialDomain],
   );
 
   // Use a direct component approach with React Admin's functionality

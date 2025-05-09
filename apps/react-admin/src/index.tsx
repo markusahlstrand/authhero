@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { App } from "./App";
@@ -9,6 +9,7 @@ import { getSelectedDomainFromCookie } from "./utils/domainUtils";
 
 function Root() {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const authFlowInProgressRef = useRef<boolean>(false);
   const isAuthCallback = window.location.pathname === "/auth-callback";
   const isRootPath = window.location.pathname === "/";
 
@@ -20,20 +21,25 @@ function Root() {
     }
   }, []);
 
-  // If we're on the auth callback route, bypass domain selection
-  // and render the callback component directly
-  if (isAuthCallback && selectedDomain) {
+  // If we're on the auth callback route, we need to make sure the AuthCallback component handles it
+  if (isAuthCallback) {
+    // Ensure we're using BrowserRouter for the callback
     return (
       <React.StrictMode>
-        <TenantsApp initialDomain={selectedDomain} />
+        <BrowserRouter>
+          <AuthCallback
+            onAuthComplete={() => {
+              authFlowInProgressRef.current = false;
+            }}
+          />
+        </BrowserRouter>
       </React.StrictMode>
     );
   }
 
-  // Only show the domain selector if:
-  // 1. No domain is selected yet, AND
-  // 2. We're on the root path OR we don't have a saved domain in cookies
-  if (!selectedDomain && isRootPath) {
+  // Always show the domain selector when on the root path,
+  // regardless of whether a domain has been previously selected
+  if (isRootPath) {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
@@ -55,18 +61,38 @@ function Root() {
     <React.StrictMode>
       <BrowserRouter>
         <Routes>
-          <Route path="/auth-callback" element={<AuthCallback />} />
           <Route
             path="/tenants/*"
-            element={<TenantsApp initialDomain={selectedDomain} />}
+            element={
+              <TenantsApp
+                initialDomain={selectedDomain}
+                onAuthComplete={() => {
+                  authFlowInProgressRef.current = false;
+                }}
+              />
+            }
           />
           <Route
             path="/:tenantId/*"
-            element={<AppWrapper selectedDomain={selectedDomain} />}
+            element={
+              <AppWrapper
+                selectedDomain={selectedDomain}
+                onAuthComplete={() => {
+                  authFlowInProgressRef.current = false;
+                }}
+              />
+            }
           />
           <Route
             path="/*"
-            element={<TenantsApp initialDomain={selectedDomain} />}
+            element={
+              <TenantsApp
+                initialDomain={selectedDomain}
+                onAuthComplete={() => {
+                  authFlowInProgressRef.current = false;
+                }}
+              />
+            }
           />
         </Routes>
       </BrowserRouter>
@@ -75,7 +101,13 @@ function Root() {
 }
 
 // Component to handle the tenant ID from the URL
-function AppWrapper({ selectedDomain }: { selectedDomain: string }) {
+function AppWrapper({
+  selectedDomain,
+  onAuthComplete,
+}: {
+  selectedDomain: string;
+  onAuthComplete: () => void;
+}) {
   const pathname = window.location.pathname;
   const pathSegments = pathname.split("/").filter(Boolean);
   const tenantId = pathSegments[0] || "";
@@ -86,7 +118,13 @@ function AppWrapper({ selectedDomain }: { selectedDomain: string }) {
 
   // Use the App component with tenantId but without creating a new router
   // The existing router context from the parent will be used
-  return <App tenantId={tenantId} initialDomain={selectedDomain} />;
+  return (
+    <App
+      tenantId={tenantId}
+      initialDomain={selectedDomain}
+      onAuthComplete={onAuthComplete}
+    />
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<Root />);
