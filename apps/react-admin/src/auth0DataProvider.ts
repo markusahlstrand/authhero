@@ -151,6 +151,33 @@ export default (
       const { page, perPage } = params.pagination;
       const { field, order } = params.sort;
 
+      // Special case for sessions which are nested under users
+      if (resource === "sessions") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/users/${params.id}/sessions?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        return {
+          data: res.json.sessions.map((item: any) => ({
+            id: item.id,
+            ...item,
+          })),
+          total: res.json.length || 0,
+        };
+      }
+
+      // Original implementation for other resources
       const query = {
         include_totals: true,
         page: page - 1,

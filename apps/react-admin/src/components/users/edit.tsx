@@ -6,7 +6,6 @@ import {
   Labeled,
   Pagination,
   ReferenceManyField,
-  List,
   TabbedForm,
   TextField,
   TextInput,
@@ -14,68 +13,11 @@ import {
   BooleanField,
   ArrayField,
   SimpleShowLayout,
-  useRecordContext,
-  useGetList,
 } from "react-admin";
 import { LogType, LogIcon } from "../logs";
 import { DateAgo } from "../common";
 import { Stack } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
-
-const SessionsList = () => {
-  const record = useRecordContext();
-
-  if (!record || !record.id) return null;
-
-  const { data, isLoading, error } = useGetList(`users/${record.id}/sessions`, {
-    pagination: { page: 1, perPage: 10 },
-    sort: { field: "used_at", order: "DESC" },
-  });
-
-  if (isLoading) return <div>Loading sessions...</div>;
-  if (error) return <div>Error loading sessions: {error.message}</div>;
-  if (!data || !data.length) return <div>No active sessions found</div>;
-
-  return (
-    <div>
-      <Datagrid
-        sx={{
-          width: "100%",
-          "& .column-comment": {
-            maxWidth: "20em",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          },
-        }}
-        bulkActionButtons={false}
-        data={data}
-        rowClick="show"
-      >
-        <TextField source="id" />
-        <DateField source="used_at" showTime={true} emptyText="-" />
-        <DateField source="idle_expires_at" showTime={true} />
-        <TextField source="device.last_ip" label="IP Address" emptyText="-" />
-        <TextField
-          source="device.last_user_agent"
-          label="User Agent"
-          emptyText="-"
-        />
-        <FunctionField
-          label="Client IDs"
-          render={(record) =>
-            record.clients ? record.clients.join(", ") : "-"
-          }
-        />
-        <DateField source="created_at" showTime={true} />
-        <FunctionField
-          label="Status"
-          render={(record) => (record.revoked_at ? "Revoked" : "Active")}
-        />
-      </Datagrid>
-    </div>
-  );
-};
 
 export function UserEdit() {
   return (
@@ -120,7 +62,51 @@ export function UserEdit() {
           </Labeled>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="sessions">
-          <SessionsList />
+          <ReferenceManyField
+            reference="sessions"
+            target="_"
+            pagination={<Pagination />}
+          >
+            <Datagrid
+              sx={{
+                width: "100%",
+                "& .column-comment": {
+                  maxWidth: "20em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
+              sort={{ field: "used_at", order: "DESC" }}
+              rowClick="show"
+              empty={<div>No active sessions found</div>}
+            >
+              <TextField source="id" />
+              <DateField source="used_at" showTime={true} emptyText="-" />
+              <DateField source="idle_expires_at" showTime={true} />
+              <TextField
+                source="device.last_ip"
+                label="IP Address"
+                emptyText="-"
+              />
+              <TextField
+                source="device.last_user_agent"
+                label="User Agent"
+                emptyText="-"
+              />
+              <FunctionField
+                label="Client IDs"
+                render={(record) =>
+                  record.clients ? record.clients.join(", ") : "-"
+                }
+              />
+              <DateField source="created_at" showTime={true} />
+              <FunctionField
+                label="Status"
+                render={(record) => (record.revoked_at ? "Revoked" : "Active")}
+              />
+            </Datagrid>
+          </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="logs">
           <ReferenceManyField
