@@ -164,7 +164,7 @@ export function App(props: AppProps) {
         />
         <Resource
           icon={DnsIcon}
-          name="domains"
+          name="custom_domains"
           create={DomainCreate}
           list={DomainList}
           edit={DomainEdit}

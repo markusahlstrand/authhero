@@ -44,11 +44,15 @@ function removeExtraFields(params: UpdateParams) {
   return params;
 }
 
+function parseResource(resourcePath: string) {
+  return resourcePath.split("/").pop() || resourcePath;
+}
+
 function getIdKeyFromResource(resource: string) {
   switch (resource) {
     case "connections":
       return "connnection_id";
-    case "domains":
+    case "custom_domains":
       return "domain_id";
     case "users":
       return "user_id";
@@ -60,6 +64,8 @@ function getIdKeyFromResource(resource: string) {
       return "tenant_id";
     case "clients":
       return "client_id";
+    case "sessions":
+      return "id";
     default:
       throw new Error(`unknown resource ${resource}`);
   }
@@ -74,7 +80,8 @@ export default (
   tenantId?: string,
 ): DataProvider => {
   return {
-    getList: async (resource, params) => {
+    getList: async (resourcePath, params) => {
+      const resource = parseResource(resourcePath);
       const { page = 1, perPage } = params.pagination || {};
       const { field, order } = params.sort || {};
 
@@ -85,7 +92,7 @@ export default (
         sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
         q: params.filter?.q || "", // Make q optional with default empty string
       };
-      const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
+      const url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
 
       const headers = new Headers();
 
@@ -127,10 +134,11 @@ export default (
       }));
     },
 
-    getMany: (resource, params) => {
+    getMany: (resourcePath, params) => {
+      const resource = parseResource(resourcePath);
       const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
 
-      const url = `${apiUrl}/api/v2/${resource}?q=${query}`;
+      const url = `${apiUrl}/api/v2/${resourcePath}?q=${query}`;
       return httpClient(url).then(({ json }) => ({
         data: {
           id: json[getIdKeyFromResource(resource)],

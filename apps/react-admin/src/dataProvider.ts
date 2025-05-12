@@ -60,27 +60,17 @@ export function getDataproviderForTenant(
   tenantId: string,
   auth0Domain?: string,
 ) {
-  console.log(
-    "getDataproviderForTenant called with tenantId:",
-    tenantId,
-    "auth0Domain:",
-    auth0Domain,
-  );
-
   // Start with a default API URL
   let apiUrl;
 
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromCookies();
-    console.log("Domains from cookies:", domains);
 
     const domainConfig = domains.find((d) => d.url === auth0Domain);
-    console.log("Found domain config:", domainConfig);
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured
-      console.log("Using restApiUrl from cookie:", domainConfig.restApiUrl);
       apiUrl = domainConfig.restApiUrl;
     } else {
       // Otherwise construct an API URL using the auth0Domain
@@ -90,19 +80,16 @@ export function getDataproviderForTenant(
       } else {
         apiUrl = auth0Domain;
       }
-      console.log("Using constructed apiUrl:", apiUrl);
     }
   } else {
     // Fallback to the environment variable or a hard-coded default
     apiUrl = import.meta.env.VITE_AUTH0_API_URL || "https://auth2.sesamy.dev";
-    console.log("Using fallback apiUrl:", apiUrl);
   }
 
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
 
   // Create the auth0Provider with the API URL and tenant ID
-  console.log("Creating auth0DataProvider with final apiUrl:", apiUrl);
   const auth0Provider = auth0DataProvider(
     apiUrl,
     authorizedHttpClient,
