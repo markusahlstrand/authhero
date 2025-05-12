@@ -8,7 +8,7 @@ export function SessionsList() {
 
   return (
     <List
-      actions={<PostListActions create="false" />}
+      actions={<PostListActions />}
       filters={postFilters}
       sort={{ field: "date", order: "DESC" }}
     >
