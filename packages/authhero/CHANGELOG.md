@@ -1,5 +1,11 @@
 # authhero
 
+## 0.126.0
+
+### Minor Changes
+
+- Facebook app update
+
 ## 0.125.0
 
 ### Minor Changes

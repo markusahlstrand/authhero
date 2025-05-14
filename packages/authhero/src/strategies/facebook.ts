@@ -54,7 +54,7 @@ export async function validateAuthorizationCodeAndGetUser(
   const tokens = await facebook.validateAuthorizationCode(code);
 
   const userinfoResponse = await fetch(
-    "https://graph.facebook.com/v16.0/me?fields=id,email,name",
+    "https://graph.facebook.com/v22.0/me?fields=id,email,name",
     {
       headers: {
         Authorization: `Bearer ${tokens.accessToken()}`,
