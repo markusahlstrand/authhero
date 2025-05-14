@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import { StatusCode } from "hono/utils/http-status";
+import { ContentfulStatusCode } from "hono/utils/http-status";
 
 export type HttpExceptionCode =
   | "EMAIL_NOT_VERIFIED"
@@ -17,7 +17,7 @@ export type HttpExceptionOptions = {
 export class AuthError extends HTTPException {
   private _code?: HttpExceptionCode;
 
-  constructor(status?: StatusCode, options?: HttpExceptionOptions) {
+  constructor(status?: ContentfulStatusCode, options?: HttpExceptionOptions) {
     super(status, options);
     this._code = options?.code;
   }

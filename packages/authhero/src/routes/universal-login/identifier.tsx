@@ -10,6 +10,8 @@ import i18next from "i18next";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
+import { getConnectionFromIdentifier } from "../../utils/username";
+import { getClientInfo } from "../../utils/client-info";
 
 type Auth0Client = {
   name: string;
@@ -124,7 +126,25 @@ export const identifierRoutes = new OpenAPIHono<{
       );
       ctx.set("client_id", client.id);
 
-      const username = params.username;
+      const { countryCode } = getClientInfo(ctx.req);
+
+      const { normalized: username } = getConnectionFromIdentifier(
+        params.username,
+        countryCode,
+      );
+
+      if (!username) {
+        return ctx.html(
+          <IdentifierPage
+            vendorSettings={vendorSettings}
+            loginSession={loginSession}
+            error={i18next.t("invalid_identifier")}
+            email={params.username}
+            client={client}
+          />,
+          400,
+        );
+      }
 
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
@@ -137,7 +157,7 @@ export const identifierRoutes = new OpenAPIHono<{
 
       if (!user) {
         try {
-          await preUserSignupHook(ctx, client, ctx.env.data, params.username);
+          await preUserSignupHook(ctx, client, ctx.env.data, username);
         } catch {
           const log = createLogMessage(ctx, {
             type: LogTypes.FAILED_SIGNUP,
@@ -160,7 +180,7 @@ export const identifierRoutes = new OpenAPIHono<{
       }
 
       // Add the username to the state
-      loginSession.authParams.username = params.username;
+      loginSession.authParams.username = username;
       await env.data.loginSessions.update(
         client.tenant.id,
         loginSession.id,
@@ -206,15 +226,15 @@ export const identifierRoutes = new OpenAPIHono<{
         loginSession.auth0Client,
       );
 
-      if (sendType === "link" && !params.username.includes("online.no")) {
+      if (sendType === "link" && !username.includes("online.no")) {
         await sendLink(ctx, {
-          to: params.username,
+          to: username,
           code: createdCode.code_id,
           authParams: loginSession.authParams,
         });
       } else {
         await sendCode(ctx, {
-          to: params.username,
+          to: username,
           code: createdCode.code_id,
         });
       }

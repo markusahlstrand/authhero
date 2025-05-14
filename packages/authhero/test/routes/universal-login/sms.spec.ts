@@ -61,6 +61,35 @@ describe("sms", () => {
     }
 
     // --------------------------------
+    // enter phone number without country code
+    // --------------------------------
+    const enterEmailGetResponseWithoutCountryCode =
+      await universalClient.login.identifier.$get({
+        query: { state },
+      });
+    expect(enterEmailGetResponseWithoutCountryCode.status).toBe(200);
+
+    const enterEmailPostResponseWithoutCountryCode =
+      await universalClient.login.identifier.$post(
+        {
+          query: { state },
+          form: { username: "0707123456" },
+        },
+        {
+          headers: {
+            "cf-ipcountry": "SE",
+          },
+        },
+      );
+    expect(enterEmailPostResponseWithoutCountryCode.status).toBe(302);
+
+    let sentSms = getSentSms();
+    expect(sentSms.length).toBe(1);
+
+    const codeSmsWithoutCountryCode = sentSms[0];
+    expect(codeSmsWithoutCountryCode.to).toBe("+46707123456");
+
+    // --------------------------------
     // enter phone number
     // --------------------------------
     const enterEmailGetResponse = await universalClient.login.identifier.$get({
@@ -71,16 +100,16 @@ describe("sms", () => {
     const enterEmailPostResponse = await universalClient.login.identifier.$post(
       {
         query: { state },
-        form: { username: "+1234567890" },
+        form: { username: "+46707222222" },
       },
     );
     expect(enterEmailPostResponse.status).toBe(302);
 
-    const sentSms = getSentSms();
-    expect(sentSms.length).toBe(1);
+    sentSms = getSentSms();
+    expect(sentSms.length).toBe(2);
 
-    const codeSms = sentSms[0];
-    expect(codeSms.to).toBe("+1234567890");
+    const codeSms = sentSms[1];
+    expect(codeSms.to).toBe("+46707222222");
 
     // --------------------------------
     // enter correct code
@@ -108,7 +137,7 @@ describe("sms", () => {
           "tenant-id": "tenantId",
         },
         query: {
-          q: "+1234567890",
+          q: "+46707222222",
         },
       },
       {

@@ -253,7 +253,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        200: {
+        201: {
           content: {
             "application/json": {
               schema: auth0UserResponseSchema,
@@ -483,7 +483,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        200: {
+        201: {
           content: {
             "application/json": {
               schema: z.array(

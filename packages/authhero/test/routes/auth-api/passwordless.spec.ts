@@ -181,7 +181,7 @@ describe("passwordless", async () => {
           json: {
             client_id: "clientId",
             connection: "sms",
-            phone_number: "+1234567890",
+            phone_number: "+46707123456",
             send: "code",
             authParams: {},
           },
@@ -215,7 +215,7 @@ describe("passwordless", async () => {
             otp: code,
             client_id: "clientId",
             realm: "sms",
-            username: "+1234567890",
+            username: "+46707123456",
           },
         },
         {
