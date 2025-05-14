@@ -252,34 +252,41 @@ export async function sendLink(
     lng: tenant.language || "en",
   };
 
-  if (connection !== "email") {
+  if (connection === "email") {
+    await sendEmail(ctx, {
+      to,
+      subject: t("code_email_subject", options),
+      html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
+      template: "auth-link",
+      data: {
+        code,
+        vendorName: tenant.name,
+        logo: tenant.logo || "",
+        supportUrl: tenant.support_url || "",
+        magicLink: magicLink.toString(),
+        buttonColor: tenant.primary_color || "",
+        welcomeToYourAccount: t("welcome_to_your_account", options),
+        linkEmailClickToLogin: t("link_email_click_to_login", options),
+        linkEmailLogin: t("link_email_login", options),
+        linkEmailOrEnterCode: t("link_email_or_enter_code", options),
+        codeValid30Mins: t("code_valid_30_minutes", options),
+        supportInfo: t("support_info", options),
+        contactUs: t("contact_us", options),
+        copyright: t("copyright", options),
+      },
+    });
+  } else if (connection === "sms") {
+    // For SMS connection, send the magic link via SMS
+    await sendSms(ctx, {
+      to,
+      text: `${t("link_sms_login", options)}: ${magicLink.toString()}`,
+      code,
+    });
+  } else {
     throw new HTTPException(400, {
-      message: "Only email connections are supported for magic links",
+      message: "Only email and SMS connections are supported for magic links",
     });
   }
-
-  await sendEmail(ctx, {
-    to,
-    subject: t("code_email_subject", options),
-    html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
-    template: "auth-link",
-    data: {
-      code,
-      vendorName: tenant.name,
-      logo: tenant.logo || "",
-      supportUrl: tenant.support_url || "",
-      magicLink: magicLink.toString(),
-      buttonColor: tenant.primary_color || "",
-      welcomeToYourAccount: t("welcome_to_your_account", options),
-      linkEmailClickToLogin: t("link_email_click_to_login", options),
-      linkEmailLogin: t("link_email_login", options),
-      linkEmailOrEnterCode: t("link_email_or_enter_code", options),
-      codeValid30Mins: t("code_valid_30_minutes", options),
-      supportInfo: t("support_info", options),
-      contactUs: t("contact_us", options),
-      copyright: t("copyright", options),
-    },
-  });
 
   const log = createLogMessage(ctx, {
     type: LogTypes.CODE_LINK_SENT,

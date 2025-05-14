@@ -226,7 +226,15 @@ export const identifierRoutes = new OpenAPIHono<{
         loginSession.auth0Client,
       );
 
-      if (sendType === "link" && !username.includes("online.no")) {
+      // Use the connection type to determine the send method
+      // Always use sendCode for SMS, only use sendLink for email
+      const { connection } = getConnectionFromIdentifier(username);
+
+      if (
+        connection === "email" &&
+        sendType === "link" &&
+        !username.includes("online.no")
+      ) {
         await sendLink(ctx, {
           to: username,
           code: createdCode.code_id,

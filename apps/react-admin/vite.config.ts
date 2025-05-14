@@ -12,4 +12,9 @@ export default defineConfig({
     host: true,
   },
   base: "./",
+  // @ts-expect-error
+  test: {
+    environment: "jsdom", // Set JSDOM as the default test environment
+    globals: true, // Make test globals available
+  },
 });

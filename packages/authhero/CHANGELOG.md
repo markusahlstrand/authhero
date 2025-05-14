@@ -1,5 +1,11 @@
 # authhero
 
+## 0.127.0
+
+### Minor Changes
+
+- Fix issue with country code column missing
+
 ## 0.126.0
 
 ### Minor Changes

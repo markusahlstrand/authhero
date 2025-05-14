@@ -31,6 +31,8 @@ export async function universalAuth({
     url.hostname = ctx.var.custom_domain;
   }
 
+  const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,
     {
@@ -40,7 +42,9 @@ export async function universalAuth({
       authParams,
       csrf_token: nanoid(),
       authorization_url: url.toString(),
-      ...getClientInfo(ctx.req),
+      ip,
+      useragent,
+      auth0Client,
     },
   );
 
