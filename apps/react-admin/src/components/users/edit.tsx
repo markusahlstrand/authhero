@@ -78,7 +78,7 @@ export function UserEdit() {
                 },
               }}
               sort={{ field: "used_at", order: "DESC" }}
-              rowClick="show"
+              rowClick="edit"
               empty={<div>No active sessions found</div>}
             >
               <TextField source="id" />

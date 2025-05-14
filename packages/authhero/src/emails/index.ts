@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { waitUntil } from "../helpers/wait-until";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
-import { getConnectionFromUsername } from "../utils/username";
+import { getConnectionFromIdentifier } from "../utils/username";
 import { getClientWithDefaults } from "../helpers/client";
 
 export type SendEmailParams = {
@@ -150,7 +150,7 @@ export async function sendCode(
     throw new HTTPException(500, { message: "Tenant not found" });
   }
 
-  const connection = getConnectionFromUsername(to);
+  const { connection } = getConnectionFromIdentifier(to);
 
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
@@ -212,7 +212,7 @@ export async function sendLink(
     throw new HTTPException(400, { message: "redirect_uri is required" });
   }
 
-  const connection = getConnectionFromUsername(to);
+  const { connection } = getConnectionFromIdentifier(to);
 
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.125.0
+
+### Minor Changes
+
+- Format phonenumbers
+
 ## 0.124.0
 
 ### Minor Changes

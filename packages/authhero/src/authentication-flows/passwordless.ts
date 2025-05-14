@@ -13,7 +13,7 @@ import { getClientInfo } from "../utils/client-info";
 import { getUniversalLoginUrl } from "../variables";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
-import { getConnectionFromUsername } from "../utils/username";
+import { getConnectionFromIdentifier } from "../utils/username";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -85,7 +85,17 @@ export async function loginWithPasswordless(
     });
   }
 
-  const connection = getConnectionFromUsername(username);
+  const clientInfo = getClientInfo(ctx.req);
+  const { connection, normalized } = getConnectionFromIdentifier(
+    username,
+    clientInfo.countryCode,
+  );
+
+  if (!normalized) {
+    throw new HTTPException(400, {
+      message: "Invalid username format",
+    });
+  }
 
   const loginSession = await env.data.loginSessions.get(
     client.tenant.id,
@@ -98,8 +108,6 @@ export async function loginWithPasswordless(
     });
   }
 
-  const clientInfo = getClientInfo(ctx.req);
-
   if (validateIP && loginSession.ip !== clientInfo.ip) {
     return ctx.redirect(
       `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
@@ -108,7 +116,7 @@ export async function loginWithPasswordless(
 
   const user = await getOrCreateUserByProvider(ctx, {
     client,
-    username,
+    username: normalized,
     provider: connection,
     connection: connection,
     isSocial: false,

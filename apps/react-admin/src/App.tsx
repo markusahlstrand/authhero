@@ -3,6 +3,7 @@ import Group from "@mui/icons-material/Group";
 import CloudQueue from "@mui/icons-material/CloudQueue";
 import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
+import HistoryIcon from "@mui/icons-material/History";
 import { getDataproviderForTenant } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
@@ -20,6 +21,7 @@ import {
 } from "./components/custom-domains";
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
+import { SessionsList, SessionEdit } from "./components/sessions";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import { useState, useEffect, useMemo } from "react";
@@ -181,6 +183,13 @@ export function App(props: AppProps) {
           name="logs"
           list={LogsList}
           show={LogShow}
+        />
+        <Resource
+          icon={HistoryIcon}
+          name="sessions"
+          list={SessionsList}
+          edit={SessionEdit}
+          show={ShowGuesser}
         />
       </Admin>
     </>
