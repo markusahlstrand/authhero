@@ -47,6 +47,7 @@ export async function sendEmail(
 
 export type SendSmsParams = {
   to: string;
+  from?: string;
   text: string;
   code: string;
 };
@@ -76,6 +77,7 @@ export async function sendSms(
   await smsService({
     options: smsProvider.options,
     to: params.to,
+    from: params.from,
     text: params.text,
     template: "auth-code",
     data: {
@@ -189,6 +191,7 @@ export async function sendCode(
       to,
       text: t("sms_code_text", options),
       code,
+      from: tenant.name,
     });
   }
 
@@ -281,6 +284,7 @@ export async function sendLink(
       to,
       text: `${t("link_sms_login", options)}: ${magicLink.toString()}`,
       code,
+      from: tenant.name,
     });
   } else {
     throw new HTTPException(400, {

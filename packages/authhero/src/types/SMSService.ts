@@ -1,5 +1,6 @@
 export type SendSMSParams = {
   to: string;
+  from?: string;
   text: string;
   template: string;
   options: any;
