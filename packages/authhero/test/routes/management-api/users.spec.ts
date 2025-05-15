@@ -6,8 +6,7 @@ import { User } from "@authhero/adapter-interfaces";
 
 describe("users management API endpoint", () => {
   describe("POST", () => {
-    // this is different to Auth0 where user_id OR email is required
-    it("should return a 400 if try and create a new user for a tenant without an email", async () => {
+    it("should create a new sms user", async () => {
       const { managementApp, env } = await getTestServer();
       const managementClient = testClient(managementApp, env);
 
@@ -15,8 +14,9 @@ describe("users management API endpoint", () => {
       const createUserResponse = await managementClient.users.$post(
         {
           json: {
-            username: "test@example.com",
-            connection: "email",
+            phone_number: "+46707123456",
+            connection: "sms",
+            provider: "sms",
           },
           header: {
             "tenant-id": "tenantId",
@@ -29,7 +29,10 @@ describe("users management API endpoint", () => {
         },
       );
 
-      expect(createUserResponse.status).toBe(400);
+      expect(createUserResponse.status).toBe(201);
+      const newUser = await createUserResponse.json();
+      expect(newUser.user_id).toMatch(/^sms\|[a-zA-Z0-9]+$/);
+      expect(newUser.phone_number).toBe("+46707123456");
     });
 
     it("should create a new user for an empty tenant", async () => {

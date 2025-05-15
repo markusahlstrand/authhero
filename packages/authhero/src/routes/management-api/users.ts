@@ -268,13 +268,16 @@ export const userRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       ctx.set("body", body);
 
-      const { email: emailRaw } = body;
-
-      if (!emailRaw) {
-        throw new HTTPException(400, { message: "Email is required" });
-      }
-
-      const email = emailRaw.toLowerCase();
+      // As for instance verify_email is not persisted, we need to remove it from the body
+      const {
+        email,
+        phone_number,
+        name,
+        linked_to,
+        email_verified,
+        provider,
+        connection,
+      } = body;
 
       const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
 
@@ -283,12 +286,12 @@ export const userRoutes = new OpenAPIHono<{
         const data = await ctx.env.data.users.create(tenant_id, {
           email,
           user_id,
-          name: body.name || email,
-          provider: body.provider,
-          connection: body.connection,
-          // we need to be careful with this as the profile service was setting this true in places where I don't think it's correct
-          // AND when does the account linking happen then? here? first login?
-          email_verified: body.email_verified || false,
+          name: name || email || phone_number,
+          phone_number,
+          provider,
+          connection,
+          linked_to: linked_to ?? undefined,
+          email_verified: email_verified || false,
           last_ip: "",
           is_social: false,
           last_login: new Date().toISOString(),

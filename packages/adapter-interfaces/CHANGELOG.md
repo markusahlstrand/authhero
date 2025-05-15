@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.60.0
+
+### Minor Changes
+
+- Update the post users
+
 ## 0.59.0
 
 ### Minor Changes
