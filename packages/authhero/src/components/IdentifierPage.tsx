@@ -51,24 +51,26 @@ const IdentifierPage: FC<Props> = ({
   // Configure input type and placeholder based on available connections
   let inputType = "text";
   let inputName = "username"; // Always use username as the input name
-  let inputPlaceholder = i18next.t(
-    "email_or_phone_placeholder",
-    "Email or Phone Number",
-  );
-
-  // Determine login description text based on available connections
-  const authMethodTemplateKey = "login_description_template";
-  const emailMethodKey = "auth_method_email";
-  const phoneMethodKey = "auth_method_phone";
-  const multipleMethodsKey = "auth_method_email_or_phone";
 
   // Determine which auth method text to use
   const authMethodKey =
     showEmailInput && showPhoneInput
-      ? multipleMethodsKey
+      ? "email_or_phone_placeholder"
       : showEmailInput
-        ? emailMethodKey
-        : phoneMethodKey;
+        ? "email_placeholder"
+        : "phone_placeholder";
+
+  let inputPlaceholder = i18next.t(
+    authMethodKey,
+    showEmailInput && showPhoneInput
+      ? "Email or Phone Number"
+      : showEmailInput
+        ? "Email Address"
+        : "Phone Number",
+  );
+
+  // Determine login description text based on available connections
+  const authMethodTemplateKey = "login_description_template";
 
   return (
     <Layout title={i18next.t("welcome")} vendorSettings={vendorSettings}>
@@ -77,14 +79,16 @@ const IdentifierPage: FC<Props> = ({
       </div>
       <div className="mb-8 text-gray-300">
         {i18next.t(authMethodTemplateKey, {
-          authMethod: i18next.t(authMethodKey, {
-            defaultValue:
-              showEmailInput && showPhoneInput
-                ? "email or phone number"
-                : showEmailInput
-                  ? "email address"
-                  : "phone number",
-          }),
+          authMethod: i18next
+            .t(authMethodKey, {
+              defaultValue:
+                showEmailInput && showPhoneInput
+                  ? "email or phone number"
+                  : showEmailInput
+                    ? "email address"
+                    : "phone number",
+            })
+            .toLocaleLowerCase(),
           defaultValue: "Sign in with your {{authMethod}}",
         })}
       </div>

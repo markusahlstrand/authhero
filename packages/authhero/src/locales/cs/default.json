@@ -74,7 +74,7 @@
   "login_description_combined": "Pro přihlášení zadejte svůj e-mail nebo telefonní číslo",
   "login_description_link": "Zadejte svou e-mailovou adresu a my vám zašleme odkaz pro přihlášení.",
   "login_description_phone": "Zadejte své telefonní číslo a přihlaste se",
-  "login_description_template": "Přihlaste se pomocí svého {{authMethod}}",
+  "login_description_template": "Pro přihlášení zadejte adresu {{authMethod}}.",
   "logout": "Odhlášení",
   "no_use_another": "Ne, chci použít jiný účet",
   "or": "nebo",
