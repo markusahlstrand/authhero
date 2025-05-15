@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Neplatný kód",
+  "Wrong email or verification code": {
+    "": "Špatný e-mail nebo ověřovací kód."
+  },
   "account_detected": "Zjištěný účet",
   "account_with_sso_provider": "Zjistili jsme, že jste si již vytvořili účet prostřednictvím",
   "agree_to": "Přihlášením souhlasíte s našimi",
   "and": "a",
+  "auth_method_email": "e-mailová adresa",
+  "auth_method_email_or_phone": "e-mail nebo telefonní číslo",
+  "auth_method_phone": "telefonní číslo",
   "callback_url_mismatch": "Neshoda adresy URL zpětného volání",
   "callback_url_not_allowed": "Zadané redirect_uri není v seznamu povolených zpětných adres URL.",
   "check_email_title": "pokračovat s uživatelem",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Pro dokončení přihlášení zadejte kód na adrese {{vendorName}}.",
   "code_email_subject": "Vítejte na {{vendorName}}! {{code}} je přihlašovací kód.",
   "code_email_title": "Vítejte na {{vendorName}}! {{code}} je přihlašovací kód.",
+  "code_sent_template": "Zkontrolujte prosím <0>{{username}}</0> a zadejte šestimístný kód, který jsme vám zaslali.",
   "code_valid_30_minutes": "Kód je platný po dobu 30 minut",
   "confirm_password": "Potvrzení hesla",
   "contact_support": "Potřebujete pomoc?",
@@ -63,7 +71,10 @@
   "login": "Přihlášení",
   "login_description": "Pro přihlášení zadejte svou e-mailovou adresu.",
   "login_description_code": "Zadejte svou e-mailovou adresu a my vám zašleme přihlašovací kód.",
+  "login_description_combined": "Pro přihlášení zadejte svůj e-mail nebo telefonní číslo",
   "login_description_link": "Zadejte svou e-mailovou adresu a my vám zašleme odkaz pro přihlášení.",
+  "login_description_phone": "Zadejte své telefonní číslo a přihlaste se",
+  "login_description_template": "Přihlaste se pomocí svého {{authMethod}}",
   "logout": "Odhlášení",
   "no_use_another": "Ne, chci použít jiný účet",
   "or": "nebo",
@@ -88,7 +99,6 @@
   "send": "Odeslat",
   "send_me_a_new_magic_link": "Pošlete mi nový kouzelný odkaz",
   "sent_code_spam": "Pokud e-mail nedorazil, nezapomeňte zkontrolovat složku nevyžádané pošty.",
-  "Server error: Invalid code": "Neplatný kód",
   "set_password": "Nastavení hesla",
   "show_password": "Zobrazit heslo",
   "sign_in": "Přihlásit se",
@@ -117,12 +127,9 @@
   "verify_email_title": "Ověřte svou e-mailovou adresu",
   "verify_email_verify": "Ověření účtu",
   "verify_your_email": "Ověření e-mailu",
+  "we_sent_a_code_to": "Zkontrolujte si prosím svůj e-mail na adrese <0>{{email}}</0> a zadejte šestimístný kód, který jsme vám zaslali.",
   "welcome": "Vítejte na",
   "welcome_to_your_account": "Vítejte na svém účtu {{vendorName}}!",
-  "we_sent_a_code_to": "Zkontrolujte si prosím svůj e-mail na adrese <0>{{email}}</0> a zadejte šestimístný kód, který jsme vám zaslali.",
-  "Wrong email or verification code": {
-    "": "Špatný e-mail nebo ověřovací kód."
-  },
   "yes_continue": "Pokračujte s tímto účtem",
   "yes_continue_with": "Ano, pokračujte {{text}}",
   "yes_continue_with_existing_account": "Ano, pokračujte ve stávajícím účtu"

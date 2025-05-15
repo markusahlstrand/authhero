@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Ugyldig kode",
+  "Wrong email or verification code": {
+    "": "Feil e-post eller bekreftelseskode."
+  },
   "account_detected": "Konto oppdaget",
   "account_with_sso_provider": "Vi har oppdaget at du allerede har opprettet en konto gjennom",
   "agree_to": "Ved å logge på godtar du våre",
   "and": "og",
+  "auth_method_email": "e-postadresse",
+  "auth_method_email_or_phone": "e-post eller telefonnummer",
+  "auth_method_phone": "telefonnummer",
   "callback_url_mismatch": "Callback-URLen samsvarer ikke",
   "callback_url_not_allowed": "Den oppgitte redirect_uri er ikke på listen over tillatte tilbakeringings-URLer.",
   "check_email_title": "fortsett med bruker",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Skriv inn koden på {{vendorName}} for å fullføre påloggingen",
   "code_email_subject": "Velkommen til {{vendorName}} ! {{code}} er påloggingskoden",
   "code_email_title": "Velkommen til {{vendorName}}! {{code}} er påloggingskoden",
+  "code_sent_template": "Vennligst sjekk <0>{{username}}</0> og skriv inn den sekssifrede koden som vi har sendt deg.",
   "code_valid_30_minutes": "Koden er gyldig i 30 minutter",
   "confirm_password": "Bekreft passord",
   "contact_support": "Trenger hjelp?",
@@ -63,7 +71,10 @@
   "login": "Logg inn",
   "login_description": "Skriv inn e-postadressen din for å logge på.",
   "login_description_code": "Skriv inn e-postadressen din og vi sender deg en påloggingskode.",
+  "login_description_combined": "Skriv inn e-postadressen eller telefonnummeret ditt for å logge på",
   "login_description_link": "Skriv inn e-postadressen din og vi sender deg en påloggingslenke.",
+  "login_description_phone": "Skriv inn telefonnummeret ditt for å logge på",
+  "login_description_template": "Logg inn med din {{authMethod}}",
   "logout": "Logg ut",
   "no_use_another": "Nei, jeg vil bruke en annen konto",
   "or": "eller",
@@ -88,7 +99,6 @@
   "send": "Send",
   "send_me_a_new_magic_link": "Send meg en ny magisk lenke",
   "sent_code_spam": "Husk å sjekke søppelpostmappen din hvis e-posten ikke kom.",
-  "Server error: Invalid code": "Ugyldig kode",
   "set_password": "Angi passord",
   "show_password": "Vis passord",
   "sign_in": "Logg inn",
@@ -117,12 +127,9 @@
   "verify_email_title": "Bekreft e-postadressen din",
   "verify_email_verify": "Bekreft konto",
   "verify_your_email": "Bekreft e-posten din",
+  "we_sent_a_code_to": "Vennligst sjekk e-posten din på <0>{{email}}</0> og skriv inn den sekssifrede koden som vi har sendt deg.",
   "welcome": "Velkommen",
   "welcome_to_your_account": "Velkommen til din brukerkonto hos {{vendorName}} !",
-  "we_sent_a_code_to": "Vennligst sjekk e-posten din på <0>{{email}}</0> og skriv inn den sekssifrede koden som vi har sendt deg.",
-  "Wrong email or verification code": {
-    "": "Feil e-post eller bekreftelseskode."
-  },
   "yes_continue": "Fortsett med denne kontoen",
   "yes_continue_with": "Ja, fortsett med {{text}}",
   "yes_continue_with_existing_account": "Ja, fortsett med eksisterende konto"

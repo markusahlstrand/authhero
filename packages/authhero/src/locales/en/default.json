@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Invalid code",
+  "Wrong email or verification code": {
+    "": "Wrong email or verification code."
+  },
   "account_detected": "Account detected",
   "account_with_sso_provider": "We have detected that you have already created an account through",
   "agree_to": "By signing in, you agree to our",
   "and": "and",
+  "auth_method_email": "email address",
+  "auth_method_email_or_phone": "email or phone number",
+  "auth_method_phone": "phone number",
   "callback_url_mismatch": "Callback URL mismatch",
   "callback_url_not_allowed": "The provided redirect_uri is not in the list of allowed callback URLs.",
   "check_email_title": "continue with user",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Enter the code at {{vendorName}} to complete the login",
   "code_email_subject": "Welcome to {{vendorName}}! {{code}} is the login code",
   "code_email_title": "Welcome to {{vendorName}}! {{code}} is the login code",
+  "code_sent_template": "Please check <0>{{username}}</0> and enter the six-digit code that we've sent you.",
   "code_valid_30_minutes": "The code is valid for 30 minutes",
   "confirm_password": "Confirm password",
   "contact_support": "Need Help?",
@@ -63,7 +71,10 @@
   "login": "Login",
   "login_description": "Enter your email address to sign in.",
   "login_description_code": "Enter your email address and we will send you a login code.",
+  "login_description_combined": "Enter your email or phone number to sign in",
   "login_description_link": "Enter your email address and we will send you a login link.",
+  "login_description_phone": "Enter your phone number to sign in",
+  "login_description_template": "Sign in with your {{authMethod}}",
   "logout": "Log out",
   "no_use_another": "No, I want to use another account",
   "or": "or",
@@ -88,7 +99,6 @@
   "send": "Send",
   "send_me_a_new_magic_link": "Send me a new magic link",
   "sent_code_spam": "Remember to check your spam folder if the email did not arrive.",
-  "Server error: Invalid code": "Invalid code",
   "set_password": "Set password",
   "show_password": "Show password",
   "sign_in": "Sign in",
@@ -117,12 +127,9 @@
   "verify_email_title": "Validate your email address",
   "verify_email_verify": "Verify account",
   "verify_your_email": "Verify your email",
+  "we_sent_a_code_to": "Please check your email at <0>{{email}}</0> and enter the six-digit code that we've sent you.",
   "welcome": "Welcome",
   "welcome_to_your_account": "Welcome to your {{vendorName}} account!",
-  "we_sent_a_code_to": "Please check your email at <0>{{email}}</0> and enter the six-digit code that we've sent you.",
-  "Wrong email or verification code": {
-    "": "Wrong email or verification code."
-  },
   "yes_continue": "Continue with this account",
   "yes_continue_with": "Yes, continue with {{text}}",
   "yes_continue_with_existing_account": "Yes, continue with existing account"

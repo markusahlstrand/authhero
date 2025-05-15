@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Nieprawidłowy kod",
+  "Wrong email or verification code": {
+    "": "Nieprawidłowy adres e-mail lub kod weryfikacyjny."
+  },
   "account_detected": "Wykryto konto",
   "account_with_sso_provider": "Wykryliśmy, że użytkownik utworzył już konto za pośrednictwem",
   "agree_to": "Logując się, wyrażasz zgodę na nasze",
   "and": "i",
+  "auth_method_email": "adres e-mail",
+  "auth_method_email_or_phone": "e-mail lub numer telefonu",
+  "auth_method_phone": "numer telefonu",
   "callback_url_mismatch": "Niezgodność adresu URL wywołania zwrotnego",
   "callback_url_not_allowed": "Podany adres redirect_uri nie znajduje się na liście dozwolonych adresów URL wywołania zwrotnego.",
   "check_email_title": "kontynuować z użytkownikiem",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Wpisz kod na stronie {{vendorName}}, aby się zalogować.",
   "code_email_subject": "Witamy na {{vendorName}}! {{code}} to kod logowania do Twojego konta.",
   "code_email_title": "Witamy na {{vendorName}}! {{code}} to kod logowania.",
+  "code_sent_template": "Sprawdź <0>{{username}}</0> i wprowadź sześciocyfrowy kod, który wysłaliśmy.",
   "code_valid_30_minutes": "Kod jest ważny przez 30 minut",
   "confirm_password": "Potwierdź hasło",
   "contact_support": "Potrzebujesz pomocy?",
@@ -63,7 +71,10 @@
   "login": "Logowanie",
   "login_description": "Wprowadź swój adres e-mail, aby się zalogować.",
   "login_description_code": "Wprowadź swój adres e-mail, a my wyślemy Ci kod logowania.",
+  "login_description_combined": "Wprowadź swój adres e-mail lub numer telefonu, aby się zalogować",
   "login_description_link": "Wprowadź swój adres e-mail, a my wyślemy Ci link do logowania.",
+  "login_description_phone": "Wprowadź swój numer telefonu, aby się zalogować",
+  "login_description_template": "Zaloguj się przy użyciu {{authMethod}}",
   "logout": "Wylogowanie",
   "no_use_another": "Nie, chcę użyć innego konta",
   "or": "lub",
@@ -88,7 +99,6 @@
   "send": "Wyślij",
   "send_me_a_new_magic_link": "Wyślij mi nowy magiczny link",
   "sent_code_spam": "Pamiętaj, aby sprawdzić folder spamu, jeśli wiadomość e-mail nie dotarła.",
-  "Server error: Invalid code": "Nieprawidłowy kod",
   "set_password": "Ustaw hasło",
   "show_password": "Pokaż hasło",
   "sign_in": "Zaloguj się",
@@ -117,12 +127,9 @@
   "verify_email_title": "Potwierdź swój adres e-mail",
   "verify_email_verify": "Zweryfikuj konto",
   "verify_your_email": "Zweryfikuj swój adres e-mail",
+  "we_sent_a_code_to": "Sprawdź swoją skrzynkę e-mail pod adresem <0>{{email}}</0> i wprowadź sześciocyfrowy kod, który wysłaliśmy.",
   "welcome": "Witamy",
   "welcome_to_your_account": "Witamy na koncie {{vendorName}}!",
-  "we_sent_a_code_to": "Sprawdź swoją skrzynkę e-mail pod adresem <0>{{email}}</0> i wprowadź sześciocyfrowy kod, który wysłaliśmy.",
-  "Wrong email or verification code": {
-    "": "Nieprawidłowy adres e-mail lub kod weryfikacyjny."
-  },
   "yes_continue": "Kontynuuj korzystanie z tego konta",
   "yes_continue_with": "Tak, kontynuuj {{text}}",
   "yes_continue_with_existing_account": "Tak, kontynuuj korzystanie z istniejącego konta"

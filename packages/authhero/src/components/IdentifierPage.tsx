@@ -56,20 +56,38 @@ const IdentifierPage: FC<Props> = ({
     "Email or Phone Number",
   );
 
-  if (showEmailInput && !showPhoneInput) {
-    inputType = "email";
-    inputPlaceholder = i18next.t("email_placeholder", "Email address");
-  } else if (!showEmailInput && showPhoneInput) {
-    inputType = "tel";
-    inputPlaceholder = i18next.t("phone_placeholder", "Phone number");
-  }
+  // Determine login description text based on available connections
+  const authMethodTemplateKey = "login_description_template";
+  const emailMethodKey = "auth_method_email";
+  const phoneMethodKey = "auth_method_phone";
+  const multipleMethodsKey = "auth_method_email_or_phone";
+
+  // Determine which auth method text to use
+  const authMethodKey =
+    showEmailInput && showPhoneInput
+      ? multipleMethodsKey
+      : showEmailInput
+        ? emailMethodKey
+        : phoneMethodKey;
 
   return (
     <Layout title={i18next.t("welcome")} vendorSettings={vendorSettings}>
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("welcome")}
       </div>
-      <div className="mb-8 text-gray-300">{i18next.t("login_description")}</div>
+      <div className="mb-8 text-gray-300">
+        {i18next.t(authMethodTemplateKey, {
+          authMethod: i18next.t(authMethodKey, {
+            defaultValue:
+              showEmailInput && showPhoneInput
+                ? "email or phone number"
+                : showEmailInput
+                  ? "email address"
+                  : "phone number",
+          }),
+          defaultValue: "Sign in with your {{authMethod}}",
+        })}
+      </div>
       <div className="flex flex-1 flex-col justify-center">
         {showForm && (
           <Form className="mb-7">

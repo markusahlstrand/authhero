@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Codice non valido",
+  "Wrong email or verification code": {
+    "": "Email o codice di verifica errati."
+  },
   "account_detected": "Account rilevato",
   "account_with_sso_provider": "Abbiamo rilevato che l'utente ha già creato un account tramite",
   "agree_to": "Effettuando l'accesso, l'utente accetta la nostra",
   "and": "e",
+  "auth_method_email": "indirizzo e-mail",
+  "auth_method_email_or_phone": "e-mail o numero di telefono",
+  "auth_method_phone": "numero di telefono",
   "callback_url_mismatch": "Mancata corrispondenza dell'URL di callback",
   "callback_url_not_allowed": "Il redirect_uri fornito non è nell'elenco degli URL di callback consentiti.",
   "check_email_title": "continuare con l'utente",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Inserite il codice all'indirizzo {{vendorName}} per completare il login.",
   "code_email_subject": "Benvenuti su {{vendorName}}! {{code}} è il codice di accesso",
   "code_email_title": "Benvenuti su {{vendorName}}! {{code}} è il codice di accesso",
+  "code_sent_template": "Controllare <0>{{username}}</0> e inserire il codice a sei cifre che vi abbiamo inviato.",
   "code_valid_30_minutes": "Il codice è valido per 30 minuti",
   "confirm_password": "Confermare la password",
   "contact_support": "Avete bisogno di aiuto?",
@@ -63,7 +71,10 @@
   "login": "Accesso",
   "login_description": "Inserire l'indirizzo e-mail per accedere.",
   "login_description_code": "Inserite il vostro indirizzo e-mail e vi invieremo un codice di accesso.",
+  "login_description_combined": "Inserire l'e-mail o il numero di telefono per accedere",
   "login_description_link": "Inserite il vostro indirizzo e-mail e vi invieremo un link di accesso.",
+  "login_description_phone": "Inserire il numero di telefono per accedere",
+  "login_description_template": "Accedere con il proprio account {{authMethod}}",
   "logout": "Disconnettersi",
   "no_use_another": "No, voglio usare un altro account",
   "or": "o",
@@ -88,7 +99,6 @@
   "send": "Inviare",
   "send_me_a_new_magic_link": "Inviami un nuovo link magico",
   "sent_code_spam": "Ricordate di controllare la cartella spam se l'e-mail non è arrivata.",
-  "Server error: Invalid code": "Codice non valido",
   "set_password": "Impostare la password",
   "show_password": "Mostra password",
   "sign_in": "Accedi",
@@ -117,12 +127,9 @@
   "verify_email_title": "Convalidare l'indirizzo e-mail",
   "verify_email_verify": "Verifica dell'account",
   "verify_your_email": "Verificare l'e-mail",
+  "we_sent_a_code_to": "Controllate la vostra e-mail all'indirizzo <0>{{email}}</0> e inserisca il codice a sei cifre che le abbiamo inviato.",
   "welcome": "Benvenuti",
   "welcome_to_your_account": "Benvenuto nel tuo account {{vendorName}}!",
-  "we_sent_a_code_to": "Controllate la vostra e-mail all'indirizzo <0>{{email}}</0> e inserisca il codice a sei cifre che le abbiamo inviato.",
-  "Wrong email or verification code": {
-    "": "Email o codice di verifica errati."
-  },
   "yes_continue": "Continuare con questo account",
   "yes_continue_with": "Sì, continuare con {{text}}",
   "yes_continue_with_existing_account": "Sì, continuare con l'account esistente"

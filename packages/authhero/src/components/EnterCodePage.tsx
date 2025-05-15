@@ -46,13 +46,15 @@ const EnterCodePage: FC<Props> = ({
       </div>
       <div className="mb-8 text-gray-300">
         <Trans
-          i18nKey="we_sent_a_code_to"
+          i18nKey="code_sent_template"
           components={[
             (
               <span className="text-black dark:text-white" key="span" />
             ) as unknown as JSXNode,
           ]}
-          values={{ email }}
+          values={{
+            username: email,
+          }}
         />
       </div>
       <div className="flex flex-1 flex-col justify-center">
