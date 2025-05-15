@@ -1,5 +1,17 @@
 # authhero
 
+## 0.131.0
+
+### Minor Changes
+
+- Update the copy on the identifier page
+
+## 0.130.0
+
+### Minor Changes
+
+- 370eb2f: pnpm changeset version
+
 ## 0.129.0
 
 ### Minor Changes
