@@ -3,7 +3,10 @@ import { baseEntitySchema } from "./BaseEntity";
 import { identitySchema } from "./Identity";
 
 export const baseUserSchema = z.object({
-  email: z.string().optional(),
+  email: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.toLowerCase() : val)),
   username: z.string().optional(),
   phone_number: z.string().optional(),
   given_name: z.string().optional(),
@@ -39,9 +42,8 @@ export const userSchema = z.object({
   ...baseEntitySchema.shape,
   user_id: z.string(),
   is_social: z.boolean(),
-  // TODO: this not might be correct if you use the username
   email: z.string().optional(),
-  login_count: z.number(),
+  login_count: z.number().default(0),
   identities: z.array(identitySchema).optional(),
 });
 

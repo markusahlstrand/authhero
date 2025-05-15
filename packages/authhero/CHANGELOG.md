@@ -1,5 +1,16 @@
 # authhero
 
+## 0.132.0
+
+### Minor Changes
+
+- Update the post users
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.60.0
+
 ## 0.131.0
 
 ### Minor Changes

@@ -12,7 +12,6 @@ export interface PostUsersBody extends BaseUser {
 
 export const userResponseSchema = baseUserSchema
   .extend({
-    email: z.string(),
     login_count: z.number(),
     multifactor: z.array(z.string()).optional(),
     last_ip: z.string().optional(),
