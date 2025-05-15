@@ -1,5 +1,11 @@
 # authhero
 
+## 0.129.0
+
+### Minor Changes
+
+- d64c18d: pnpm changeset version
+
 ## 0.128.0
 
 ### Minor Changes

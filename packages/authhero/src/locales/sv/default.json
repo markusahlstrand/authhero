@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Koden är inte giltig",
+  "Wrong email or verification code": {
+    "": "Fel e-post eller verifieringskod."
+  },
   "account_detected": "Fortsätt med existerande konto",
   "account_with_sso_provider": "Det verkar som att du redan har skapat ett konto genom",
   "agree_to": "Genom att logga in godkänner du våra",
   "and": "och",
+  "auth_method_email": "E-postadress",
+  "auth_method_email_or_phone": "e-post eller telefonnummer",
+  "auth_method_phone": "telefonnummer",
   "callback_url_mismatch": "Callback URL mismatch",
   "callback_url_not_allowed": "The provided redirect_uri is not in the list of allowed callback URLs.",
   "check_email_title": "fortsätt med användaren",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Skriv in koden på {{vendorName}} för att slutföra inloggningen",
   "code_email_subject": "Välkommen till {{vendorName}}! {{code}} är koden för att logga in",
   "code_email_title": "Välkommen till {{vendorName}}! {{code}} är koden för att logga in",
+  "code_sent_template": "Vänligen kontrollera <0>{{username}}</0> och ange den sexsiffriga koden som vi har skickat till dig.",
   "code_valid_30_minutes": "Koden är giltig i 30 minuter",
   "confirm_password": "Bekräfta lösenord",
   "contact_support": "Behöver du hjälp?",
@@ -63,7 +71,10 @@
   "login": "Logga in",
   "login_description": "Ange din e-postadress för att logga in.",
   "login_description_code": "Ange din mejladress, så skickar vi en kod till dig som du kan logga in med.",
+  "login_description_combined": "Ange din e-postadress eller ditt telefonnummer för att logga in",
   "login_description_link": "Ange din mejladress, så skickar vi en länk till dig som du kan logga in med.",
+  "login_description_phone": "Ange ditt telefonnummer för att logga in",
+  "login_description_template": "Logga in med din {{authMethod}}",
   "logout": "Logga ut",
   "no_use_another": "Nej, jag vill använda ett annat konto",
   "or": "eller",
@@ -88,7 +99,6 @@
   "send": "Skicka",
   "send_me_a_new_magic_link": "Skicka en ny inloggninglänk",
   "sent_code_spam": "Kom ihåg att kontrollera din skräppost om du inte kan hitta mailet vi har skickat.",
-  "Server error: Invalid code": "Koden är inte giltig",
   "set_password": "Välj lösenord",
   "show_password": "Visa lösenord",
   "sign_in": "Logga in",
@@ -117,12 +127,9 @@
   "verify_email_title": "Bekräfta din e-postadress",
   "verify_email_verify": "Verifiera konto",
   "verify_your_email": "Ange engångskod",
+  "we_sent_a_code_to": "Vänligen kontrollera din e-post för <0>{{email}}</0> och ange den sexsiffriga koden som vi har skickat till dig.",
   "welcome": "Välkommen",
   "welcome_to_your_account": "Välkommen till ditt {{vendorName}}-konto!",
-  "we_sent_a_code_to": "Vänligen kontrollera din e-post för <0>{{email}}</0> och ange den sexsiffriga koden som vi har skickat till dig.",
-  "Wrong email or verification code": {
-    "": "Fel e-post eller verifieringskod."
-  },
   "yes_continue": "Fortsätt med konto",
   "yes_continue_with": "Ja, fortsätt med {{text}}",
   "yes_continue_with_existing_account": "Ja, fortsätt med detta kontot"

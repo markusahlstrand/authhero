@@ -1,8 +1,15 @@
 {
+  "Server error: Invalid code": "Virheellinen koodi",
+  "Wrong email or verification code": {
+    "": "Väärä sähköpostiosoite tai vahvistuskoodi."
+  },
   "account_detected": "Tili havaittu",
   "account_with_sso_provider": "Olemme havainneet, että olet jo luonut tilin kautta",
   "agree_to": "Kirjautumalla sisään hyväksyt",
   "and": "ja",
+  "auth_method_email": "sähköpostiosoite",
+  "auth_method_email_or_phone": "sähköpostiosoite tai puhelinnumero",
+  "auth_method_phone": "puhelinnumero",
   "callback_url_mismatch": "Takaisinkutsun URL-osoite ei vastaa toisiaan",
   "callback_url_not_allowed": "Annettu redirect_uri ei ole sallittujen takaisinsoitto-URL-osoitteiden luettelossa.",
   "check_email_title": "jatka käyttäjän kanssa",
@@ -10,6 +17,7 @@
   "code_email_enter_code": "Kirjoita koodi osoitteessa {{vendorName}} kirjautumisen loppuun saattamiseksi.",
   "code_email_subject": "Tervetuloa osoitteeseen {{vendorName}}! {{code}} on kirjautumiskoodi.",
   "code_email_title": "Tervetuloa osoitteeseen {{vendorName}}! {{code}} on kirjautumiskoodi.",
+  "code_sent_template": "Tarkista <0>{{username}}</0> ja syötä lähettämämme kuusinumeroinen koodi.",
   "code_valid_30_minutes": "Koodi on voimassa 30 minuuttia",
   "confirm_password": "Vahvista salasana",
   "contact_support": "Tarvitsetko apua?",
@@ -63,7 +71,10 @@
   "login": "Kirjaudu sisään",
   "login_description": "Kirjoita sähköpostiosoitteesi kirjautuaksesi sisään.",
   "login_description_code": "Anna sähköpostiosoitteesi, niin lähetämme sinulle kirjautumiskoodin.",
+  "login_description_combined": "Kirjoita sähköpostiosoitteesi tai puhelinnumerosi kirjautuaksesi sisään",
   "login_description_link": "Anna sähköpostiosoitteesi, niin lähetämme sinulle kirjautumislinkin.",
+  "login_description_phone": "Anna puhelinnumerosi kirjautuaksesi sisään",
+  "login_description_template": "Kirjaudu sisään {{authMethod}}",
   "logout": "Kirjaudu ulos",
   "no_use_another": "Ei, haluan käyttää toista tiliä",
   "or": "tai",
@@ -88,7 +99,6 @@
   "send": "Lähetä",
   "send_me_a_new_magic_link": "Lähetä minulle uusi maaginen linkki",
   "sent_code_spam": "Muista tarkistaa roskapostikansiosi, jos sähköposti ei ole saapunut.",
-  "Server error: Invalid code": "Virheellinen koodi",
   "set_password": "Aseta salasana",
   "show_password": "Näytä salasana",
   "sign_in": "Kirjaudu sisään",
@@ -117,12 +127,9 @@
   "verify_email_title": "Vahvista sähköpostiosoitteesi",
   "verify_email_verify": "Vahvista tili",
   "verify_your_email": "Vahvista sähköpostiosoitteesi",
+  "we_sent_a_code_to": "Tarkista sähköpostisi osoitteesta <0>{{email}}</0> ja syötä lähettämämme kuusinumeroinen koodi.",
   "welcome": "Tervetuloa",
   "welcome_to_your_account": "Tervetuloa tilillesi {{vendorName}}!",
-  "we_sent_a_code_to": "Tarkista sähköpostisi osoitteesta <0>{{email}}</0> ja syötä lähettämämme kuusinumeroinen koodi.",
-  "Wrong email or verification code": {
-    "": "Väärä sähköpostiosoite tai vahvistuskoodi."
-  },
   "yes_continue": "Jatka tällä tilillä",
   "yes_continue_with": "Kyllä, jatka {{text}}",
   "yes_continue_with_existing_account": "Kyllä, jatka olemassa olevalla tilillä"
