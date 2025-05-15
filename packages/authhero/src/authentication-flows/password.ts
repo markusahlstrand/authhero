@@ -189,6 +189,8 @@ export async function requestPasswordReset(
     );
   }
 
+  const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,
     {
@@ -200,7 +202,9 @@ export async function requestPasswordReset(
         username: email,
       },
       csrf_token: nanoid(),
-      ...getClientInfo(ctx.req),
+      ip,
+      useragent,
+      auth0Client,
     },
   );
 

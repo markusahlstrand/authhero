@@ -43,13 +43,17 @@ export async function connectionAuth(
   );
 
   if (!loginSession) {
+    const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+
     loginSession = await ctx.env.data.loginSessions.create(client.tenant.id, {
       expires_at: new Date(
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
       authParams,
       csrf_token: nanoid(),
-      ...getClientInfo(ctx.req),
+      ip,
+      useragent,
+      auth0Client,
     });
   }
 

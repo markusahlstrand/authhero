@@ -1,5 +1,11 @@
 # authhero
 
+## 0.133.0
+
+### Minor Changes
+
+- fix issue with getClientInfo returning country code
+
 ## 0.132.0
 
 ### Minor Changes

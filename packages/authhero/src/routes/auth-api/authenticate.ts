@@ -69,6 +69,7 @@ export const authenticateRoutes = new OpenAPIHono<{
       ctx.set("tenant_id", client.tenant.id);
 
       const email = username.toLocaleLowerCase();
+      const clientInfo = getClientInfo(ctx.req);
 
       if ("otp" in body) {
         return loginWithPasswordless(
@@ -91,7 +92,9 @@ export const authenticateRoutes = new OpenAPIHono<{
               username: email,
             },
             csrf_token: nanoid(),
-            ...getClientInfo(ctx.req),
+            ip: clientInfo.ip,
+            useragent: clientInfo.useragent,
+            auth0Client: clientInfo.auth0Client,
           },
         );
 

@@ -175,6 +175,8 @@ export async function createCodeData(
   params: CreateCodeParams,
 ) {
   if (!params.loginSession) {
+    const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+
     // This is a short term solution to create codes for silent auth where the login session isn't available.
     // Maybe a code could be connected to either a login session or a session in the future?
     params.loginSession = await ctx.env.data.loginSessions.create(
@@ -186,7 +188,9 @@ export async function createCodeData(
         authParams: params.authParams,
         authorization_url: ctx.req.url,
         csrf_token: nanoid(),
-        ...getClientInfo(ctx.req),
+        ip,
+        useragent,
+        auth0Client,
       },
     );
   }
