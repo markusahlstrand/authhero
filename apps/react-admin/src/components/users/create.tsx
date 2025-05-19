@@ -6,11 +6,15 @@ import {
   SelectInput,
   useGetList,
   FormDataConsumer,
+  useNotify,
+  useRedirect,
 } from "react-admin";
 import { useState } from "react";
 
 export function UserCreate() {
   const [selectedConnection, setSelectedConnection] = useState(null);
+  const notify = useNotify();
+  const redirect = useRedirect();
 
   // Fetch available connections for the tenant
   const { data: connections, isLoading } = useGetList("connections", {
@@ -18,8 +22,21 @@ export function UserCreate() {
     sort: { field: "name", order: "ASC" },
   });
 
+  const transform = (data) => {
+    // Set the provider based on the connection if available
+    if (data.connection) {
+      const connectionData = connections?.find(
+        (c) => c.name === data.connection,
+      );
+      if (connectionData) {
+        data.provider = connectionData.strategy || "database";
+      }
+    }
+    return data;
+  };
+
   return (
-    <Create>
+    <Create transform={transform}>
       <SimpleForm>
         <SelectInput
           source="connection"

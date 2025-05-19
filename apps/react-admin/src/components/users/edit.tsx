@@ -16,6 +16,7 @@ import {
   useNotify,
   useDataProvider,
   useRecordContext,
+  useRefresh,
 } from "react-admin";
 import { LogType, LogIcon } from "../logs";
 import { DateAgo } from "../common";
@@ -33,10 +34,14 @@ import {
   Box,
   Typography,
   CircularProgress,
+  IconButton,
+  Tooltip,
+  DialogContentText,
 } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
 import { useState } from "react";
 import LinkIcon from "@mui/icons-material/Link";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import SearchIcon from "@mui/icons-material/Search";
 
 const LinkUserButton = () => {
@@ -84,14 +89,21 @@ const LinkUserButton = () => {
     }
   };
 
-  if (!record) {
-    return null;
-  }
+  // Removed the condition that might hide the button
+  // if (!record) {
+  //   return null;
+  // }
 
   const handleLinkUser = async (userId) => {
+    if (!record) {
+      notify("Error: No user selected", { type: "error" });
+      return;
+    }
+
     try {
-      await dataProvider.create(`users/${record.id}/identities`, {
-        data: { link_with: userId },
+      // Changed API endpoint to link the current user TO the selected user instead
+      await dataProvider.create(`users/${userId}/identities`, {
+        data: { link_with: record.id },
       });
       notify("User linked successfully", { type: "success" });
       handleClose();
@@ -119,7 +131,7 @@ const LinkUserButton = () => {
         <DialogTitle>Link User</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Search for a user to link to {record.email || record.user_id}
+            Search for a user to link this user to
           </Typography>
 
           <Box sx={{ display: "flex", mb: 2 }}>
@@ -176,6 +188,70 @@ const LinkUserButton = () => {
   );
 };
 
+const UnlinkButton = () => {
+  const [open, setOpen] = useState(false);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const identity = useRecordContext();
+
+  // Get the user ID from the URL path - this approach works better with the multi-tenant structure
+  const urlPath = window.location.pathname;
+  const matches = urlPath.match(/\/([^/]+)\/users\/([^/]+)/);
+  const userId = matches ? matches[2] : null;
+
+  if (!identity || !userId || identity.provider === "auth0") {
+    // Don't allow unlinking the primary identity
+    return null;
+  }
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const handleUnlink = async () => {
+    try {
+      // Create the endpoint URL with proper parameters
+      const endpoint = `users/${userId}/identities/${identity.provider}/${identity.user_id}`;
+
+      await dataProvider.delete(endpoint, {
+        id: "stuff",
+      });
+      notify("Identity unlinked successfully", { type: "success" });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error unlinking identity:", error);
+      notify("Error unlinking identity", { type: "error" });
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Unlink identity">
+        <IconButton onClick={handleOpen} color="error" size="small">
+          <LinkOffIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Unlink Identity</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to unlink this identity ({identity.provider}/
+            {identity.user_id})? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleUnlink} color="error" autoFocus>
+            Unlink
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 export function UserEdit() {
   return (
     <Edit>
@@ -203,11 +279,12 @@ export function UserEdit() {
           </Stack>
           <TextInput source="picture" />
           <ArrayField source="identities">
-            <Datagrid bulkActionButtons={false} sx={{ my: 4 }}>
+            <Datagrid bulkActionButtons={false} sx={{ my: 4 }} rowClick="">
               <TextField source="connection" />
               <TextField source="provider" />
               <TextField source="user_id" />
               <BooleanField source="isSocial" />
+              <UnlinkButton />
             </Datagrid>
           </ArrayField>
 
