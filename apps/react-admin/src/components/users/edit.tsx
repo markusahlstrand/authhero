@@ -13,11 +13,168 @@ import {
   BooleanField,
   ArrayField,
   SimpleShowLayout,
+  useNotify,
+  useDataProvider,
+  useRecordContext,
 } from "react-admin";
 import { LogType, LogIcon } from "../logs";
 import { DateAgo } from "../common";
-import { Stack } from "@mui/material";
+import {
+  Stack,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  TextField as MuiTextField,
+  Box,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
+import { useState } from "react";
+import LinkIcon from "@mui/icons-material/Link";
+import SearchIcon from "@mui/icons-material/Search";
+
+const LinkUserButton = () => {
+  const [open, setOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const record = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setSearchText("");
+    setSearchResults([]);
+  };
+
+  const handleSearch = async () => {
+    if (!searchText.trim()) return;
+
+    setSearching(true);
+    try {
+      // Search for users by email
+      const { data } = await dataProvider.getList("users", {
+        pagination: { page: 1, perPage: 10 },
+        sort: { field: "email", order: "ASC" },
+        filter: { q: searchText },
+      });
+
+      // Filter out the current user from results
+      const filteredData = data.filter((user) => user.id !== record?.id);
+      setSearchResults(filteredData);
+    } catch (error) {
+      console.error("Error searching for users:", error);
+      notify("Error searching for users", { type: "error" });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  if (!record) {
+    return null;
+  }
+
+  const handleLinkUser = async (userId) => {
+    try {
+      await dataProvider.create(`users/${record.id}/identities`, {
+        data: { link_with: userId },
+      });
+      notify("User linked successfully", { type: "success" });
+      handleClose();
+      // Refresh the current view
+      window.location.reload();
+    } catch (error) {
+      console.error("Error linking users:", error);
+      notify("Error linking users", { type: "error" });
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<LinkIcon />}
+        onClick={handleOpen}
+        sx={{ mt: 2 }}
+      >
+        Link User
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Link User</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Search for a user to link to {record.email || record.user_id}
+          </Typography>
+
+          <Box sx={{ display: "flex", mb: 2 }}>
+            <MuiTextField
+              label="Search by email"
+              variant="outlined"
+              fullWidth
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              sx={{ mr: 1 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleSearch}
+              startIcon={<SearchIcon />}
+              disabled={searching || !searchText.trim()}
+            >
+              Search
+            </Button>
+          </Box>
+
+          {searching ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+              <CircularProgress />
+            </Box>
+          ) : searchResults.length > 0 ? (
+            <List sx={{ width: "100%" }}>
+              {searchResults.map((user) => (
+                <ListItem
+                  component="button"
+                  key={user.id}
+                  onClick={() => handleLinkUser(user.id)}
+                  divider
+                >
+                  <ListItemText
+                    primary={user.email || user.phone_number || user.id}
+                    secondary={`ID: ${user.id} | Connection: ${user.connection}`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          ) : searchText && !searching ? (
+            <Typography color="textSecondary" align="center" sx={{ p: 2 }}>
+              No users found
+            </Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
 
 export function UserEdit() {
   return (
@@ -53,6 +210,8 @@ export function UserEdit() {
               <BooleanField source="isSocial" />
             </Datagrid>
           </ArrayField>
+
+          <LinkUserButton />
 
           <Labeled label={<FieldTitle source="created_at" />}>
             <DateField source="created_at" showTime={true} />
