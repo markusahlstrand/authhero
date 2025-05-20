@@ -262,12 +262,8 @@ export function UserEdit() {
       <TabbedForm>
         <TabbedForm.Tab label="details">
           <Stack spacing={2} direction="row">
-            <Labeled label={<FieldTitle source="email" />}>
-              <TextField source="email" sx={{ mb: 4 }} />
-            </Labeled>
-            <Labeled label={<FieldTitle source="name" />}>
-              <TextField source="name" sx={{ mb: 4 }} />
-            </Labeled>
+            <TextInput source="email" sx={{ mb: 4 }} />
+            <TextInput source="phone_number" sx={{ mb: 4 }} />
             <Labeled label={<FieldTitle source="id" />}>
               <TextField source="id" sx={{ mb: 4 }} />
             </Labeled>
@@ -276,6 +272,12 @@ export function UserEdit() {
             <TextInput source="given_name" />
             <TextInput source="family_name" />
             <TextInput source="nickname" />
+          </Stack>
+          <Stack spacing={2} direction="row">
+            <TextInput source="name" />
+            <Labeled label={<FieldTitle source="connection" />}>
+              <TextField source="connection" />
+            </Labeled>
           </Stack>
           <TextInput source="picture" />
           <ArrayField source="identities">
