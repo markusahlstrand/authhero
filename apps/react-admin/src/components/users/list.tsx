@@ -22,6 +22,7 @@ export function UsersList() {
     >
       <Datagrid rowClick="edit" bulkActionButtons={false}>
         <EmailField source="email" />
+        <TextField source="phone_number" />
         <TextField source="connection" />
         <TextField source="login_count" />
         <FunctionField
