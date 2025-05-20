@@ -1,6 +1,6 @@
 import { AppBar, TitlePortal } from "react-admin";
 import { useEffect, useState } from "react";
-import { Link, Box } from "@mui/material";
+import { Link, Box, Typography } from "@mui/material";
 import { authorizedHttpClient } from "../authProvider";
 
 type TenantResponse = {
@@ -50,9 +50,8 @@ export function TenantAppBar(props: TenantAppBarProps) {
     >
       <TitlePortal />
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <p>{tenant?.name}&nbsp;-&nbsp;</p>
         <Link color="inherit" href="/tenants" underline="none" sx={{ mr: 2 }}>
-          Tenants
+          {tenant?.name || tenantId || "Unknown"} - Tenants
         </Link>
         {domainSelectorButton}
       </Box>
