@@ -6,15 +6,11 @@ import {
   SelectInput,
   useGetList,
   FormDataConsumer,
-  useNotify,
-  useRedirect,
 } from "react-admin";
 import { useState } from "react";
 
 export function UserCreate() {
-  const [selectedConnection, setSelectedConnection] = useState(null);
-  const notify = useNotify();
-  const redirect = useRedirect();
+  const [_, setSelectedConnection] = useState(null);
 
   // Fetch available connections for the tenant
   const { data: connections, isLoading } = useGetList("connections", {
