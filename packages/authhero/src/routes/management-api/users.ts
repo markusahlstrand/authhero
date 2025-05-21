@@ -629,13 +629,13 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { include_totals } = ctx.req.valid("query");
+      const { include_totals, page, per_page } = ctx.req.valid("query");
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       const sessions = await ctx.env.data.sessions.list(tenant_id, {
-        page: 0,
-        per_page: 10,
-        include_totals: false,
+        page,
+        per_page,
+        include_totals,
         q: `user_id:${user_id}`,
       });
 

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.134.0
+
+### Minor Changes
+
+- Enable query string filters for sessions
+
 ## 0.133.0
 
 ### Minor Changes

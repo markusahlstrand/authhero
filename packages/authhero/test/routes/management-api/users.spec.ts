@@ -35,6 +35,51 @@ describe("users management API endpoint", () => {
       expect(newUser.phone_number).toBe("+46707123456");
     });
 
+    it("should fail to create a new sms user with the same phone number", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+
+      const token = await getAdminToken();
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            phone_number: "+46707123456",
+            connection: "sms",
+            provider: "sms",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      expect(createUserResponse.status).toBe(201);
+
+      const duplicatedCreateUserRequest = await managementClient.users.$post(
+        {
+          json: {
+            phone_number: "+46707123456",
+            connection: "sms",
+            provider: "sms",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(duplicatedCreateUserRequest.status).toBe(409);
+    });
+
     it("should create a new user for an empty tenant", async () => {
       const token = await getAdminToken();
 
