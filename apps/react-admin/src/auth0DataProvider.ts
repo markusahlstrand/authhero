@@ -49,11 +49,14 @@ function parseResource(resourcePath: string) {
 }
 
 function getIdKeyFromResource(resource: string) {
-  switch (resource) {
+  // Normalize resource name by converting hyphens to underscores
+  const normalizedResource = resource.replace(/-/g, "_");
+
+  switch (normalizedResource) {
     case "connections":
       return "connnection_id";
     case "custom_domains":
-      return "domain_id";
+      return "custom_domain_id";
     case "users":
       return "user_id";
     case "logs":
@@ -66,8 +69,30 @@ function getIdKeyFromResource(resource: string) {
       return "client_id";
     case "sessions":
       return "id";
+    case "roles":
+      return "role_id";
+    case "permissions":
+      return "permission_id";
+    case "organizations":
+      return "organization_id";
+    case "actions":
+      return "action_id";
+    case "branding":
+      return "branding_id";
+    case "prompts":
+      return "prompt_id";
+    case "rules":
+      return "rule_id";
+    case "emails":
+      return "email_id";
+    case "email_templates":
+      return "template_id";
     default:
-      throw new Error(`unknown resource ${resource}`);
+      console.warn(
+        `No specific ID key defined for resource "${resource}", falling back to "${resource}_id" or "id"`,
+      );
+      // Try resource-specific ID first, then generic ID
+      return `${normalizedResource}_id`;
   }
 }
 
@@ -103,13 +128,25 @@ export default (
       try {
         const res = await httpClient(url, { headers });
 
+        // Handle case where API returns an array directly (like custom_domains)
+        if (Array.isArray(res.json)) {
+          return {
+            data: res.json.map((item) => ({
+              id: item[getIdKeyFromResource(resource)],
+              ...item,
+            })),
+            total: res.json.length,
+          };
+        }
+
+        // Handle standard case where API returns an object with a property named after the resource
         return {
           data:
             res.json[resource]?.map((item: any) => ({
               id: item[getIdKeyFromResource(resource)],
               ...item,
             })) || [],
-          total: res.json.length || 0,
+          total: res.json.total || res.json.length || 0,
         };
       } catch (error) {
         console.error("Error in getList:", error);
@@ -128,7 +165,7 @@ export default (
         headers,
       }).then(({ json }) => ({
         data: {
-          id: json[getIdKeyFromResource(resource)],
+          id: json.id || json[getIdKeyFromResource(resource)],
           ...json,
         },
       }));

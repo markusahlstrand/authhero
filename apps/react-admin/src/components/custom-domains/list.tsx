@@ -1,14 +1,15 @@
-import { List, Datagrid, TextField, DateField } from "react-admin";
+import { List, Datagrid, TextField, BooleanField } from "react-admin";
 import { PostListActions } from "../listActions/PostListActions";
 
 export function DomainList() {
   return (
     <List actions={<PostListActions />}>
       <Datagrid rowClick="edit" bulkActionButtons={false}>
-        <TextField source="id" />
+        <TextField source="custom_domain_id" label="ID" />
         <TextField source="domain" />
-        <DateField source="created_at" showTime={true} />
-        <DateField source="updated_at" showTime={true} />
+        <TextField source="status" />
+        <BooleanField source="primary" />
+        <TextField source="type" />
       </Datagrid>
     </List>
   );
