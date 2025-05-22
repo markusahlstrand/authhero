@@ -3,7 +3,7 @@ import Layout from "./Layout";
 import { VendorSettings, User } from "@authhero/adapter-interfaces";
 import i18next, { t } from "i18next";
 import Trans from "./Trans";
-import Form from "./Form";
+import FormComponent from "./Form";
 import Button from "./Button";
 
 type Props = {
@@ -34,11 +34,11 @@ const CheckEmailPage: FC<Props> = ({ vendorSettings, state, user }) => {
         </div>
 
         <div className="space-y-6">
-          <Form>
+          <FormComponent>
             <Button className="!text-base">
               <span>{i18next.t("yes_continue_with_existing_account")}</span>
             </Button>
-          </Form>
+          </FormComponent>
           <a
             className="block text-center text-primary hover:text-primaryHover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900"
             href={`/u/login/identifier?state=${encodeURIComponent(state)}`}

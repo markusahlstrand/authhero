@@ -5,7 +5,7 @@ import i18next from "i18next";
 import cn from "classnames";
 import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import { VendorSettings, Client } from "@authhero/adapter-interfaces";
 import Trans from "./Trans";
@@ -58,7 +58,7 @@ const EnterCodePage: FC<Props> = ({
         />
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form className="pt-2">
+        <FormComponent className="pt-2">
           <input
             autoFocus
             type="text"
@@ -107,7 +107,7 @@ const EnterCodePage: FC<Props> = ({
               </Button>
             </div>
           )}
-        </Form>
+        </FormComponent>
         <GoBack state={state} />
       </div>
     </Layout>

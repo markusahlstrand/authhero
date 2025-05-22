@@ -78,6 +78,7 @@ import * as n78_login_sessions from "./2025-03-14T22:41:00_login_sessions";
 import * as n79_drop_sessions_2 from "./2025-03-19T15:47:00_drop_sessions_2";
 import * as n80_recreate_custom_domains from "./2025-03-21T11:08:00_recreate_custom_domains";
 import * as n81_phone from "./2025-04-22T14:00:00_phone";
+import * as n82_forms from "./2025-05-21T10:00:00_forms";
 
 // These need to be in alphabetic order
 export default {
@@ -161,4 +162,5 @@ export default {
   n79_drop_sessions_2,
   n80_recreate_custom_domains,
   n81_phone,
+  n82_forms,
 };

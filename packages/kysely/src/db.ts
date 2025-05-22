@@ -6,6 +6,7 @@ import {
   connectionSchema,
   customDomainSchema,
   emailProviderSchema,
+  formSchema,
   hookSchema,
   loginSessionSchema,
   Password,
@@ -107,6 +108,16 @@ const sqlCustomDomainSchema = z.object({
   updated_at: z.string(),
 });
 
+const sqlFormSchema = z.object({
+  ...formSchema.shape,
+  tenant_id: z.string(),
+  // Store complex data as JSON strings
+  fields: z.string(),
+  controls: z.string().optional().default("[]"),
+  layout: z.string().optional().default("{}"),
+  active: z.number(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -114,6 +125,7 @@ export interface Database {
   connections: z.infer<typeof sqlConnectionSchema>;
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;
   email_providers: z.infer<typeof sqlEmailProvidersSchema>;
+  forms: z.infer<typeof sqlFormSchema>;
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
   login_sessions: z.infer<typeof sqlLoginSchema>;

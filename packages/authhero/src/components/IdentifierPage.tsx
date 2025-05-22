@@ -11,7 +11,7 @@ import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import SocialButton from "./SocialButton";
 import Google from "./GoogleLogo";
-import Form from "./Form";
+import FormComponent from "./Form";
 import VippsLogo from "./VippsLogo";
 import Button from "./Button";
 
@@ -94,7 +94,7 @@ const IdentifierPage: FC<Props> = ({
       </div>
       <div className="flex flex-1 flex-col justify-center">
         {showForm && (
-          <Form className="mb-7">
+          <FormComponent className="mb-7">
             <input
               type={inputType}
               name={inputName}
@@ -114,7 +114,7 @@ const IdentifierPage: FC<Props> = ({
               <span>{i18next.t("continue")}</span>
               <Icon className="text-xs" name="arrow-right" />
             </Button>
-          </Form>
+          </FormComponent>
         )}
         {showForm && anySocialLogin && (
           <div className="relative mb-5 block text-center text-gray-300 dark:text-gray-300">

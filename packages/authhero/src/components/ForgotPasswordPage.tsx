@@ -3,7 +3,7 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import Button from "./Button";
 
@@ -29,7 +29,7 @@ const ForgotPasswordPage: FC<Props> = (parms) => {
         {i18next.t("forgot_password_description")}
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form className="pt-2">
+        <FormComponent className="pt-2">
           <input
             type="email"
             name="username"
@@ -42,7 +42,7 @@ const ForgotPasswordPage: FC<Props> = (parms) => {
           <Button className="sm:mt-4 !text-base">
             {i18next.t("forgot_password_cta")}
           </Button>
-        </Form>
+        </FormComponent>
         <GoBack state={state} />
       </div>
     </Layout>

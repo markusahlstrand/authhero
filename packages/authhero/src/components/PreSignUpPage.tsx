@@ -2,7 +2,7 @@ import type { FC } from "hono/jsx";
 import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import Button from "./Button";
 
@@ -27,7 +27,7 @@ const PreSignupPage: FC<Props> = (params) => {
         {i18next.t("enter_email_for_verification_description")}
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form className="pt-2">
+        <FormComponent className="pt-2">
           <input
             type="email"
             name="username"
@@ -38,7 +38,7 @@ const PreSignupPage: FC<Props> = (params) => {
             disabled
           />
           <Button className="sm:mt-4 !text-base">{i18next.t("send")}</Button>
-        </Form>
+        </FormComponent>
       </div>
       <GoBack state={state} />
     </Layout>

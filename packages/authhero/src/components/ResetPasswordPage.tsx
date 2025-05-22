@@ -3,7 +3,7 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
-import Form from "./Form";
+import FormComponent from "./Form";
 import Button from "./Button";
 import PasswordInput from "./PasswordInput";
 
@@ -28,7 +28,7 @@ const ResetPasswordPage: FC<ResetPasswordPageProps> = (params) => {
         {`${i18next.t("reset_password_description")} ${email}`}
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form>
+        <FormComponent>
           <PasswordInput
             name="password"
             placeholder={i18next.t("enter_new_password_placeholder")}
@@ -41,7 +41,7 @@ const ResetPasswordPage: FC<ResetPasswordPageProps> = (params) => {
           <Button className="sm:mt-4 !text-base">
             {i18next.t("reset_password_cta")}
           </Button>
-        </Form>
+        </FormComponent>
       </div>
     </Layout>
   );
