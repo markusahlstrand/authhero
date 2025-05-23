@@ -87,6 +87,8 @@ function getIdKeyFromResource(resource: string) {
       return "email_id";
     case "email_templates":
       return "template_id";
+    case "forms":
+      return "form_id";
     default:
       console.warn(
         `No specific ID key defined for resource "${resource}", falling back to "${resource}_id" or "id"`,
@@ -110,14 +112,20 @@ export default (
       const { page = 1, perPage } = params.pagination || {};
       const { field, order } = params.sort || {};
 
-      const query = {
-        include_totals: true,
-        page: page - 1,
-        per_page: perPage,
-        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        q: params.filter?.q || "", // Make q optional with default empty string
-      };
-      const url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
+      // Special case for forms endpoint which doesn't accept query parameters
+      let url;
+      if (resource === "forms") {
+        url = `${apiUrl}/api/v2/${resourcePath}`;
+      } else {
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          q: params.filter?.q || "", // Make q optional with default empty string
+        };
+        url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
+      }
 
       const headers = new Headers();
 
@@ -136,6 +144,18 @@ export default (
               ...item,
             })),
             total: res.json.length,
+          };
+        }
+
+        // Handle special case for forms resource which returns a simple array
+        if (resource === "forms") {
+          const forms = res.json[resource] || [];
+          return {
+            data: forms.map((item: any) => ({
+              id: item[getIdKeyFromResource(resource)],
+              ...item,
+            })),
+            total: forms.length,
           };
         }
 
