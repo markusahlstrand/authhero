@@ -3,6 +3,7 @@ import { Auth0Client } from "@auth0/auth0-spa-js";
 import {
   getSelectedDomainFromStorage,
   getClientIdFromStorage,
+  getDomainFromStorage,
 } from "./utils/domainUtils";
 
 // Track auth requests globally
@@ -102,6 +103,46 @@ export const getAuthProvider = (
   domain: string,
   onAuthComplete?: () => void,
 ) => {
+  // Get domain config to check connection method
+  const domains = getDomainFromStorage();
+  const domainConfig = domains.find((d) => d.url === domain);
+
+  // If using token auth, create a simple auth provider that uses the token
+  if (domainConfig?.connectionMethod === "token" && domainConfig.token) {
+    return {
+      login: async () => {
+        // Token auth is already authenticated
+        return Promise.resolve();
+      },
+      logout: async () => {
+        // No need to do anything for token auth
+        return Promise.resolve();
+      },
+      checkError: async (error: any) => {
+        if (error.status === 401) {
+          return Promise.reject();
+        }
+        return Promise.resolve();
+      },
+      checkAuth: async () => {
+        // Token auth is always authenticated
+        return Promise.resolve();
+      },
+      getIdentity: async () => {
+        // Return a dummy UserIdentity for token-based auth
+        return Promise.resolve({
+          id: "token-user",
+          fullName: "API Token User",
+          avatar: undefined,
+        });
+      },
+      getPermissions: async () => {
+        return Promise.resolve(["admin"]);
+      },
+    };
+  }
+
+  // For non-token auth, use Auth0
   const auth0 = createAuth0Client(domain);
 
   // Get the current app's URL for redirect
@@ -152,13 +193,18 @@ export const getAuthProvider = (
   };
 };
 
-// Create a singleton auth0 client for the selected domain
-const auth0 = createAuth0Client(getSelectedDomainFromStorage());
-const authProvider = getAuthProvider(getSelectedDomainFromStorage());
+// Create a singleton auth0 client and auth provider for the selected domain
+const selectedDomain = getSelectedDomainFromStorage();
+const auth0 = createAuth0Client(selectedDomain);
+const authProvider = getAuthProvider(selectedDomain);
 
 // Create a debounced http client to prevent parallel token requests
 let pendingRequests = new Map<string, Promise<any>>();
-const authorizedHttpClient = (url: string, options = {}) => {
+interface HttpOptions extends RequestInit {
+  headers?: HeadersInit;
+}
+
+const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   const requestKey = `${url}-${JSON.stringify(options)}`;
 
   // If there's already a pending request for this URL and options, return it
@@ -166,9 +212,71 @@ const authorizedHttpClient = (url: string, options = {}) => {
     return pendingRequests.get(requestKey)!;
   }
 
-  // Otherwise, create a new request and cache it
-  const request = httpClient(auth0)(url, options).finally(() => {
-    // Remove from pending requests when done
+  // Check if we're using token-based auth
+  const domains = getDomainFromStorage();
+  const selectedDomain = getSelectedDomainFromStorage();
+  const domainConfig = domains.find((d) => d.url === selectedDomain);
+
+  let request;
+  if (domainConfig?.connectionMethod === "token" && domainConfig.token) {
+    // For token auth, add the token to the Authorization header
+    // Create a Headers object that can handle any HeadersInit type
+    // If I pass the options.headers I get a CORS error. Not sure why?
+    // const headersObj = new Headers(options.headers || {});
+
+    // Set the Authorization header with the token
+    const headersObj = new Headers({});
+    headersObj.set("Authorization", `Bearer ${domainConfig.token}`);
+
+    request = fetch(url, { ...options, headers: headersObj }).then(
+      async (response) => {
+        if (response.status < 200 || response.status >= 300) {
+          const text = await response.text();
+
+          // Check for 401 with "Bad audience" message on /v2/tenants endpoint - Auth0 doesn't support this endpoint
+          if (
+            response.status === 401 &&
+            text.includes("Bad audience") &&
+            url.includes("/v2/tenants")
+          ) {
+            console.warn(
+              "Auth0 server detected without multi-tenant support. Navigating to Auth0 page",
+            );
+            // Use history.pushState for a soft navigation instead of a hard redirect
+            window.history.pushState({}, "", "/auth0");
+            // Dispatch a navigation event so the app can respond to the URL change
+            window.dispatchEvent(new PopStateEvent("popstate"));
+            // Return a promise that never resolves, as we're redirecting
+            return new Promise(() => {});
+          }
+
+          throw new Error(response.statusText);
+        }
+
+        const text = await response.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch (e) {
+          json = text;
+        }
+
+        // Return in the format expected by react-admin's dataProvider
+        return {
+          json,
+          status: response.status,
+          headers: response.headers,
+          body: text,
+        };
+      },
+    );
+  } else {
+    // For Auth0, use the httpClient as before
+    request = httpClient(auth0)(url, options);
+  }
+
+  // Handle cleanup when request is done
+  request.finally(() => {
     pendingRequests.delete(requestKey);
   });
 
