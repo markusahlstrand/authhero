@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2025-05-23"
 
 routes = [
-  { pattern = "proxy.authhe.ro", custom_domain = true }
+  { pattern = "proxy.authhe.ro/*", custom_domain = true }
 ]
 
 [observability]
