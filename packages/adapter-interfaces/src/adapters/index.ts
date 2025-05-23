@@ -16,6 +16,7 @@ import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
 import { EmailProvidersAdapter } from "./EmailProviders";
 import { RefreshTokensAdapter } from "./RefreshTokens";
+import { FormsAdapter } from "./Forms";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -25,6 +26,7 @@ export interface DataAdapters {
   connections: ConnectionsAdapter;
   customDomains: CustomDomainsAdapter;
   emailProviders: EmailProvidersAdapter;
+  forms: FormsAdapter;
   hooks: HooksAdapter;
   keys: KeysAdapter;
   loginSessions: LoginSessionsAdapter;

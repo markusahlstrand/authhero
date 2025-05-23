@@ -3,7 +3,7 @@ import Layout from "./Layout";
 import { VendorSettings } from "@authhero/adapter-interfaces";
 import ErrorMessage from "./ErrorMessage";
 import i18next from "i18next";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import Button from "./Button";
 
@@ -30,7 +30,7 @@ const SignupPage: FC<Props> = (params) => {
         {i18next.t("create_account_description")}
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form>
+        <FormComponent>
           <input type="hidden" name="code" value={code} />
           <input
             type="email"
@@ -57,7 +57,7 @@ const SignupPage: FC<Props> = (params) => {
           <Button className="sm:mt-4 !text-base">
             {i18next.t("continue")}
           </Button>
-        </Form>
+        </FormComponent>
         <GoBack state={state} />
       </div>
     </Layout>

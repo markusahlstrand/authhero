@@ -10,7 +10,7 @@ import ErrorMessage from "./ErrorMessage";
 import Footer from "./Footer";
 import ForgotPasswordPage from "./ForgotPasswordPage";
 import ForgotPasswordSentPage from "./ForgotPasswordSentPage";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import GoogleLogo from "./GoogleLogo";
 import Icon from "./Icon";
@@ -41,7 +41,7 @@ export {
   Footer,
   ForgotPasswordPage,
   ForgotPasswordSentPage,
-  Form,
+  FormComponent,
   GoBack,
   GoogleLogo,
   Icon,

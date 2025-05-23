@@ -20,6 +20,7 @@ import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
 import { createCleanup } from "./cleanup";
+import { createFormsAdapter } from "./forms";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -35,6 +36,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     connections: createConnectionsAdapter(db),
     emailProviders: createEmailProvidersAdapter(db),
     customDomains: createCustomDomainsAdapter(db),
+    forms: createFormsAdapter(db),
     hooks: createHooksAdapter(db),
     keys: createKeysAdapter(db),
     loginSessions: createLoginAdapter(db),

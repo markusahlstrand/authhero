@@ -302,8 +302,10 @@ export function UserEdit() {
         <TabbedForm.Tab label="sessions">
           <ReferenceManyField
             reference="sessions"
-            target="_"
+            target="user_id"
             pagination={<Pagination />}
+            perPage={10}
+            sort={{ field: "used_at", order: "DESC" }}
           >
             <Datagrid
               sx={{
@@ -315,7 +317,6 @@ export function UserEdit() {
                   whiteSpace: "nowrap",
                 },
               }}
-              sort={{ field: "used_at", order: "DESC" }}
               rowClick="edit"
               empty={<div>No active sessions found</div>}
             >

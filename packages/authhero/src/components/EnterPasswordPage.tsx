@@ -4,7 +4,7 @@ import Button from "./Button";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
-import Form from "./Form";
+import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import { Client, VendorSettings } from "@authhero/adapter-interfaces";
 import PasswordInput from "./PasswordInput";
@@ -34,7 +34,7 @@ const EnterPasswordPage: FC<Props> = (params) => {
         {i18next.t("enter_password_description")}
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Form className="mb-7">
+        <FormComponent className="mb-7">
           <input
             type="text"
             name="username"
@@ -48,7 +48,7 @@ const EnterPasswordPage: FC<Props> = (params) => {
             <span>{i18next.t("login")}</span>
             <Icon className="text-xs" name="arrow-right" />
           </Button>
-        </Form>
+        </FormComponent>
         <a
           href={`/u/forgot-password?${loginLinkParams.toString()}`}
           className="text-primary hover:underline mb-4"

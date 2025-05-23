@@ -1,5 +1,22 @@
 # authhero
 
+## 0.135.0
+
+### Minor Changes
+
+- Add forms
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.61.0
+
+## 0.134.0
+
+### Minor Changes
+
+- Enable query string filters for sessions
+
 ## 0.133.0
 
 ### Minor Changes

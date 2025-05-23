@@ -4,7 +4,7 @@ type Props = {
   className?: string;
 };
 
-const Form = ({ children, className }: PropsWithChildren<Props>) => {
+const FormComponent = ({ children, className }: PropsWithChildren<Props>) => {
   return (
     <form id="form" method="post" className={className}>
       {children}
@@ -12,4 +12,4 @@ const Form = ({ children, className }: PropsWithChildren<Props>) => {
   );
 };
 
-export default Form;
+export default FormComponent;

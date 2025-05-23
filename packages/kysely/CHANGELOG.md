@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.11.0
+
+### Minor Changes
+
+- Add forms
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.61.0
+
 ## 10.10.0
 
 ### Patch Changes
