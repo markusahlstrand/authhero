@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CircularProgress, Box, Typography, Alert } from "@mui/material";
-import { getSelectedDomainFromCookie } from "./utils/domainUtils";
+import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 import { createAuth0Client } from "./authProvider";
 
 interface AuthCallbackProps {
@@ -38,7 +38,7 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
 
       try {
         // Get the currently selected domain from cookies
-        const selectedDomain = getSelectedDomainFromCookie();
+        const selectedDomain = getSelectedDomainFromStorage();
 
         if (!selectedDomain) {
           // If no domain is selected, redirect to the home page to select one

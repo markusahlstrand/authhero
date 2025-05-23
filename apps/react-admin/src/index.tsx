@@ -5,7 +5,7 @@ import { App } from "./App";
 import { TenantsApp } from "./TenantsApp";
 import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
-import { getSelectedDomainFromCookie } from "./utils/domainUtils";
+import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 
 function Root() {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
@@ -15,7 +15,7 @@ function Root() {
 
   // Load domain from cookies on component mount
   useEffect(() => {
-    const savedDomain = getSelectedDomainFromCookie();
+    const savedDomain = getSelectedDomainFromStorage();
     if (savedDomain) {
       setSelectedDomain(savedDomain);
     }
@@ -43,6 +43,7 @@ function Root() {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
+        disableCloseOnRootPath={true}
       />
     );
   }
@@ -53,6 +54,7 @@ function Root() {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
+        disableCloseOnRootPath={isRootPath}
       />
     );
   }
