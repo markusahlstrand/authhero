@@ -1,0 +1,12 @@
+# Example .dev.vars file for local development
+# Copy this to .dev.vars and fill in your values
+
+# Auth0 Domain URL
+AUTH0_DOMAIN=https://your-tenant.auth0.com
+
+# Auth0 Management API Key (split if needed)
+API_KEY=your_api_key_here
+API_KEY2=
+
+# Worker Environment
+WORKER_ENV=development

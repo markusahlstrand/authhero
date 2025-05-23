@@ -35,8 +35,34 @@ The proxy will be available on `http://localhost:3000` by default.
 
 You can verify that the proxy is working by making a request to it:
 
+### Using Environment Variables
+
+If you've set up the environment variables correctly:
+
 ```bash
 curl http://localhost:3000/api/v2/users
 ```
 
-If properly configured, this should return a list of users from your Auth0 tenant.
+### Using Request Headers
+
+If you prefer to use request headers instead:
+
+```bash
+curl http://localhost:3000/api/v2/users \
+  -H "x-auth0-domain: https://your-tenant.auth0.com" \
+  -H "authorization: Bearer YOUR_AUTH0_TOKEN"
+```
+
+If properly configured, either method should return a list of users from your Auth0 tenant.
+
+## Using the Public Deployment
+
+If you don't want to run the proxy locally, you can use the public deployment at **https://proxy.authhe.ro**:
+
+```bash
+curl https://proxy.authhe.ro/api/v2/users \
+  -H "x-auth0-domain: https://your-tenant.auth0.com" \
+  -H "authorization: Bearer YOUR_AUTH0_TOKEN"
+```
+
+The public deployment has no environment variables configured, so you must always include the `x-auth0-domain` and `authorization` headers with every request.
