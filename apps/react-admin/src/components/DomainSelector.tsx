@@ -13,32 +13,54 @@ import {
   IconButton,
   CircularProgress,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import {
+  ConnectionMethod,
   DomainConfig,
-  getDomainFromCookies,
-  saveDomainsToCookies,
-  saveSelectedDomainToCookie,
+  getDomainFromStorage,
+  saveDomainToStorage,
+  saveSelectedDomainToStorage,
+  formatDomain,
 } from "../utils/domainUtils";
 
 interface DomainSelectorProps {
   onDomainSelected: (domain: string) => void;
+  disableCloseOnRootPath?: boolean;
 }
 
-export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
+export function DomainSelector({
+  onDomainSelected,
+  disableCloseOnRootPath = false,
+}: DomainSelectorProps) {
   const [domains, setDomains] = useState<DomainConfig[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string>("");
   const [inputDomain, setInputDomain] = useState<string>("");
+  const [connectionMethod, setConnectionMethod] =
+    useState<ConnectionMethod>("login");
+
+  // Login method fields
   const [inputClientId, setInputClientId] = useState<string>("");
   const [inputRestApiUrl, setInputRestApiUrl] = useState<string>("");
+
+  // Token method field
+  const [inputToken, setInputToken] = useState<string>("");
+
+  // Client credentials fields
+  const [inputClientSecret, setInputClientSecret] = useState<string>("");
+
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Load domains from cookies on component mount
   useEffect(() => {
-    const savedDomains = getDomainFromCookies();
+    const savedDomains = getDomainFromStorage();
     setDomains(savedDomains);
     setIsLoading(false);
 
@@ -51,7 +73,7 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
   // Helper function to navigate after domain selection
   const selectDomainAndNavigate = (domain: string) => {
     // Save the selected domain to cookies and notify parent
-    saveSelectedDomainToCookie(domain);
+    saveSelectedDomainToStorage(domain);
     onDomainSelected(domain);
 
     // Close dialog
@@ -65,37 +87,78 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
     if (pathSegments.length > 0 && pathSegments[0] !== "tenants") {
       const tenantId = pathSegments[0];
       // Preserve the tenant ID in the URL
-      setTimeout(() => {
-        window.location.href = `/${tenantId}`;
-      }, 100);
+      window.location.href = `/${tenantId}`;
     } else {
       // Otherwise navigate to the tenants page to trigger auth flow
-      setTimeout(() => {
-        window.location.href = "/tenants";
-      }, 100);
+      window.location.href = "/tenants";
     }
   };
 
   const handleAddDomain = () => {
     if (inputDomain.trim() === "") return;
 
-    const newDomains = [
-      ...domains,
-      {
-        url: inputDomain,
-        clientId: inputClientId,
-        restApiUrl: inputRestApiUrl.trim() || undefined,
-      },
-    ];
+    // Format the domain to ensure consistency (remove http/https)
+    const formattedDomain = formatDomain(inputDomain);
+
+    let newDomainConfig: DomainConfig;
+
+    switch (connectionMethod) {
+      case "login":
+        newDomainConfig = {
+          url: formattedDomain, // Use formatted domain
+          connectionMethod: "login",
+          clientId: inputClientId,
+          restApiUrl: inputRestApiUrl.trim() || undefined,
+        };
+        break;
+      case "token":
+        newDomainConfig = {
+          url: formattedDomain, // Use formatted domain
+          connectionMethod: "token",
+          token: inputToken,
+        };
+        break;
+      case "client_credentials":
+        newDomainConfig = {
+          url: formattedDomain, // Use formatted domain
+          connectionMethod: "client_credentials",
+          clientId: inputClientId,
+          clientSecret: inputClientSecret,
+        };
+        break;
+      default:
+        return; // Invalid connection method
+    }
+
+    // Check if domain with the same formatted URL already exists
+    const domainExists = domains.some((d) => d.url === formattedDomain);
+    let newDomains;
+
+    if (domainExists) {
+      // Update existing domain
+      newDomains = domains.map((d) =>
+        d.url === formattedDomain ? newDomainConfig : d,
+      );
+    } else {
+      // Add new domain
+      newDomains = [...domains, newDomainConfig];
+    }
+
+    // Save the domains to storage and update state
+    saveDomainToStorage(newDomains);
     setDomains(newDomains);
-    saveDomainsToCookies(newDomains);
-    setSelectedDomain(inputDomain);
+
+    // Don't automatically navigate, just highlight the new domain
+    setSelectedDomain(formattedDomain);
+
+    // Reset all input fields
     setInputDomain("");
     setInputClientId("");
     setInputRestApiUrl("");
+    setInputToken("");
+    setInputClientSecret("");
 
-    // Use the helper function to select domain and navigate
-    selectDomainAndNavigate(inputDomain);
+    // Toast or feedback message could be added here
   };
 
   const handleRemoveDomain = (domainToRemove: string) => {
@@ -103,7 +166,7 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
       (domain) => domain.url !== domainToRemove,
     );
     setDomains(newDomains);
-    saveDomainsToCookies(newDomains);
+    saveDomainToStorage(newDomains);
 
     if (selectedDomain === domainToRemove) {
       setSelectedDomain("");
@@ -115,10 +178,11 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
   };
 
   const handleSelectDomain = (domain: string) => {
-    setSelectedDomain(domain);
+    const formattedDomain = formatDomain(domain);
+    setSelectedDomain(formattedDomain);
 
     // Use the helper function to select domain and navigate
-    selectDomainAndNavigate(domain);
+    selectDomainAndNavigate(formattedDomain);
   };
 
   if (isLoading) {
@@ -139,7 +203,16 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
   return (
     <Dialog
       open={showDomainDialog}
-      onClose={() => (domains.length > 0 ? setShowDomainDialog(false) : null)}
+      onClose={() => {
+        // If we're on root path and disableCloseOnRootPath is true, don't allow closing
+        if (disableCloseOnRootPath) {
+          return;
+        }
+        // Otherwise follow the existing logic
+        if (domains.length > 0) {
+          setShowDomainDialog(false);
+        }
+      }}
     >
       <DialogTitle>Select Auth Domain</DialogTitle>
       <DialogContent>
@@ -187,9 +260,27 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
                     <ListItemText
                       primary={domain.url}
                       secondary={
-                        domain.clientId
-                          ? `Client ID: ${domain.clientId}`
-                          : undefined
+                        <>
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            color="text.primary"
+                          >
+                            {domain.connectionMethod === "login"
+                              ? "Login"
+                              : domain.connectionMethod === "token"
+                                ? "API Token"
+                                : "Client Credentials"}
+                          </Typography>
+                          {domain.connectionMethod === "login" &&
+                            domain.clientId && (
+                              <> · Client ID: {domain.clientId}</>
+                            )}
+                          {domain.connectionMethod === "client_credentials" &&
+                            domain.clientId && (
+                              <> · Client ID: {domain.clientId}</>
+                            )}
+                        </>
                       }
                     />
                   </Box>
@@ -207,22 +298,88 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
               onChange={(e) => setInputDomain(e.target.value)}
               placeholder="e.g., auth2.sesamy.dev"
             />
-            <TextField
-              fullWidth
-              label="Client ID"
-              variant="outlined"
-              value={inputClientId}
-              onChange={(e) => setInputClientId(e.target.value)}
-              placeholder="e.g., your-client-id"
-            />
-            <TextField
-              fullWidth
-              label="REST API URL"
-              variant="outlined"
-              value={inputRestApiUrl}
-              onChange={(e) => setInputRestApiUrl(e.target.value)}
-              placeholder="e.g., https://api.example.com"
-            />
+
+            <FormControl fullWidth>
+              <InputLabel id="connection-method-label">
+                Connection Method
+              </InputLabel>
+              <Select
+                labelId="connection-method-label"
+                id="connection-method"
+                value={connectionMethod}
+                label="Connection Method"
+                onChange={(e) =>
+                  setConnectionMethod(e.target.value as ConnectionMethod)
+                }
+              >
+                <MenuItem value="login">Login (Authentication Flow)</MenuItem>
+                <MenuItem value="token">API Token</MenuItem>
+                <MenuItem value="client_credentials">
+                  Client Credentials
+                </MenuItem>
+              </Select>
+              <FormHelperText>
+                Select how you want to connect to the Auth domain
+              </FormHelperText>
+            </FormControl>
+
+            {/* Conditional fields based on connection method */}
+            {connectionMethod === "login" && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Client ID"
+                  variant="outlined"
+                  value={inputClientId}
+                  onChange={(e) => setInputClientId(e.target.value)}
+                  placeholder="e.g., your-client-id"
+                />
+                <TextField
+                  fullWidth
+                  label="REST API URL"
+                  variant="outlined"
+                  value={inputRestApiUrl}
+                  onChange={(e) => setInputRestApiUrl(e.target.value)}
+                  placeholder="e.g., https://api.example.com"
+                />
+              </>
+            )}
+
+            {connectionMethod === "token" && (
+              <TextField
+                fullWidth
+                label="API Token"
+                variant="outlined"
+                value={inputToken}
+                onChange={(e) => setInputToken(e.target.value)}
+                placeholder="Bearer eyJhbGciOiJIUzI1..."
+                multiline
+                rows={3}
+              />
+            )}
+
+            {connectionMethod === "client_credentials" && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Client ID"
+                  variant="outlined"
+                  value={inputClientId}
+                  onChange={(e) => setInputClientId(e.target.value)}
+                  placeholder="e.g., your-client-id"
+                />
+                <TextField
+                  fullWidth
+                  label="Client Secret"
+                  variant="outlined"
+                  type="password"
+                  value={inputClientSecret}
+                  onChange={(e) => setInputClientSecret(e.target.value)}
+                  placeholder="e.g., your-client-secret"
+                />
+              </>
+            )}
+
             <Button
               variant="contained"
               color="primary"
@@ -234,7 +391,7 @@ export function DomainSelector({ onDomainSelected }: DomainSelectorProps) {
           </Box>
         </Box>
       </DialogContent>
-      {domains.length > 0 && (
+      {domains.length > 0 && !disableCloseOnRootPath && (
         <DialogActions>
           <Button onClick={() => setShowDomainDialog(false)}>Cancel</Button>
         </DialogActions>

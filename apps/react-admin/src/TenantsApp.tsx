@@ -7,7 +7,7 @@ import { TenantsCreate } from "./components/tenants/create";
 import { useMemo, useState } from "react";
 import { Button } from "@mui/material";
 import { DomainSelector } from "./components/DomainSelector";
-import { saveSelectedDomainToCookie } from "./utils/domainUtils";
+import { saveSelectedDomainToStorage } from "./utils/domainUtils";
 import { tenantsLayout } from "./components/TenantsLayout";
 
 interface TenantsAppProps {
@@ -42,7 +42,7 @@ export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
   const handleDomainSelected = (domain: string) => {
     setSelectedDomain(domain);
     setShowDomainDialog(false);
-    saveSelectedDomainToCookie(domain);
+    saveSelectedDomainToStorage(domain);
   };
 
   // Create the domain selector button that will be passed to the AppBar

@@ -1,7 +1,7 @@
 import { UpdateParams, withLifecycleCallbacks } from "react-admin";
 import { authorizedHttpClient } from "./authProvider";
 import auth0DataProvider from "./auth0DataProvider";
-import { getDomainFromCookies } from "./utils/domainUtils";
+import { getDomainFromStorage } from "./utils/domainUtils";
 
 async function removeExtraFields(params: UpdateParams) {
   delete params.data?.id;
@@ -25,7 +25,7 @@ export function getDataprovider(auth0Domain?: string) {
 
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
-    const domains = getDomainFromCookies();
+    const domains = getDomainFromStorage();
     const domainConfig = domains.find((d) => d.url === auth0Domain);
 
     if (domainConfig?.restApiUrl) {
@@ -65,7 +65,7 @@ export function getDataproviderForTenant(
 
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
-    const domains = getDomainFromCookies();
+    const domains = getDomainFromStorage();
 
     const domainConfig = domains.find((d) => d.url === auth0Domain);
 

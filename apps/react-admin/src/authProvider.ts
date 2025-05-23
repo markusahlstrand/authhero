@@ -1,8 +1,8 @@
 import { Auth0AuthProvider, httpClient } from "ra-auth-auth0";
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import {
-  getSelectedDomainFromCookie,
-  getClientIdFromCookie,
+  getSelectedDomainFromStorage,
+  getClientIdFromStorage,
 } from "./utils/domainUtils";
 
 // Track auth requests globally
@@ -36,7 +36,7 @@ export const createAuth0Client = (domain: string) => {
 
   const auth0Client = new Auth0Client({
     domain, // Just the domain without protocol for Auth0 client config
-    clientId: getClientIdFromCookie(domain),
+    clientId: getClientIdFromStorage(domain),
     cacheLocation: "localstorage",
     authorizationParams: {
       audience: import.meta.env.VITE_AUTH0_AUDIENCE,
@@ -153,8 +153,8 @@ export const getAuthProvider = (
 };
 
 // Create a singleton auth0 client for the selected domain
-const auth0 = createAuth0Client(getSelectedDomainFromCookie());
-const authProvider = getAuthProvider(getSelectedDomainFromCookie());
+const auth0 = createAuth0Client(getSelectedDomainFromStorage());
+const authProvider = getAuthProvider(getSelectedDomainFromStorage());
 
 // Create a debounced http client to prevent parallel token requests
 let pendingRequests = new Map<string, Promise<any>>();
