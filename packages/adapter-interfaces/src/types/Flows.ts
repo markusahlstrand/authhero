@@ -11,10 +11,8 @@ export const coordinatesSchema = z.object({
   y: z.number(),
 });
 
-export type Coordinates = {
-  x: number;
-  y: number;
-};
+// TypeScript type for Coordinates inferred from Zod schema
+export type Coordinates = z.infer<typeof coordinatesSchema>;
 
 // Component types used in forms
 export enum ComponentType {
@@ -117,96 +115,42 @@ export const fieldComponentSchema = baseComponentSchema.extend({
     .passthrough(),
 });
 
+// Generic component schema
+export const genericComponentSchema = z
+  .object({
+    id: z.string(),
+    category: z.string(),
+    type: z.string(),
+  })
+  .passthrough();
+
 // Union of all component schemas
 export const componentSchema = z.union([
   richTextComponentSchema,
   buttonComponentSchema,
   legalComponentSchema,
   fieldComponentSchema,
+  genericComponentSchema,
 ]);
 
-// For TypeScript types using standard interfaces
-// TypeScript type for RichTextComponent
-export interface RichTextComponent {
-  id: string;
-  category: ComponentCategory.BLOCK;
-  type: ComponentType.RICH_TEXT;
-  config: {
-    content: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript types using Zod inference
+// TypeScript type for RichTextComponent inferred from Zod schema
+export type RichTextComponent = z.infer<typeof richTextComponentSchema>;
 
-// TypeScript type for ButtonComponent
-export interface ButtonComponent {
-  id: string;
-  category: ComponentCategory.BLOCK;
-  type:
-    | ComponentType.NEXT_BUTTON
-    | ComponentType.BACK_BUTTON
-    | ComponentType.SUBMIT_BUTTON;
-  config: {
-    text: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for ButtonComponent inferred from Zod schema
+export type ButtonComponent = z.infer<typeof buttonComponentSchema>;
 
-// TypeScript type for LegalComponent
-export interface LegalComponent {
-  id: string;
-  category: ComponentCategory.FIELD;
-  type: ComponentType.LEGAL;
-  required?: boolean;
-  sensitive?: boolean;
-  config: {
-    text: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for LegalComponent inferred from Zod schema
+export type LegalComponent = z.infer<typeof legalComponentSchema>;
 
-// TypeScript type for FieldComponent
-export interface FieldComponent {
-  id: string;
-  category: ComponentCategory.FIELD;
-  type:
-    | ComponentType.TEXT
-    | ComponentType.EMAIL
-    | ComponentType.PASSWORD
-    | ComponentType.NUMBER
-    | ComponentType.PHONE
-    | ComponentType.DATE
-    | ComponentType.CHECKBOX
-    | ComponentType.RADIO
-    | ComponentType.SELECT
-    | ComponentType.HIDDEN;
-  required?: boolean;
-  sensitive?: boolean;
-  config: {
-    label?: string;
-    placeholder?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for FieldComponent inferred from Zod schema
+export type FieldComponent = z.infer<typeof fieldComponentSchema>;
 
-// Generic component type to catch any unknown component types
-export interface GenericComponent {
-  id: string;
-  category: string;
-  type: string;
-  [key: string]: any;
-}
+// TypeScript type for GenericComponent inferred from Zod schema
+export type GenericComponent = z.infer<typeof genericComponentSchema>;
 
-// Union type for all components
-export type Component =
-  | RichTextComponent
-  | ButtonComponent
-  | LegalComponent
-  | FieldComponent
-  | GenericComponent;
+// Union type for all components inferred from component schema
+export type Component = z.infer<typeof componentSchema>;
 
 // Node types in the flow
 export enum NodeType {
@@ -241,46 +185,33 @@ export const flowNodeSchema = z.object({
   }),
 });
 
+// Generic node schema for zod
+export const genericNodeSchema = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    coordinates: coordinatesSchema,
+  })
+  .passthrough();
+
 // Node schema for zod
-export const nodeSchema = z.union([stepNodeSchema, flowNodeSchema]);
+export const nodeSchema = z.union([
+  stepNodeSchema,
+  flowNodeSchema,
+  genericNodeSchema,
+]);
 
-// TypeScript interface for StepNode
-export interface StepNode {
-  id: string;
-  type: NodeType.STEP;
-  coordinates: Coordinates;
-  alias?: string;
-  config: {
-    components: Component[];
-    next_node: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for StepNode inferred from Zod schema
+export type StepNode = z.infer<typeof stepNodeSchema>;
 
-// TypeScript interface for FlowNode
-export interface FlowNode {
-  id: string;
-  type: NodeType.FLOW;
-  coordinates: Coordinates;
-  config: {
-    flow_id: string;
-    next_node: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for FlowNode inferred from Zod schema
+export type FlowNode = z.infer<typeof flowNodeSchema>;
 
-// Generic node type to catch any unknown node types
-export interface GenericNode {
-  id: string;
-  type: string;
-  coordinates: Coordinates;
-  [key: string]: any;
-}
+// TypeScript type for GenericNode inferred from Zod schema
+export type GenericNode = z.infer<typeof genericNodeSchema>;
 
-// Union type for all nodes
-export type Node = StepNode | FlowNode | GenericNode;
+// Union type for all nodes inferred from nodeSchema
+export type Node = z.infer<typeof nodeSchema>;
 
 // Start node schema for zod
 export const startSchema = z
@@ -298,19 +229,11 @@ export const endingSchema = z
   })
   .passthrough();
 
-// TypeScript interface for Start
-export interface Start {
-  next_node: string;
-  coordinates: Coordinates;
-  [key: string]: any;
-}
+// TypeScript type for Start inferred from Zod schema
+export type Start = z.infer<typeof startSchema>;
 
-// TypeScript interface for Ending
-export interface Ending {
-  resume_flow?: boolean;
-  coordinates: Coordinates;
-  [key: string]: any;
-}
+// TypeScript type for Ending inferred from Zod schema
+export type Ending = z.infer<typeof endingSchema>;
 
 // Auth0 flow schema for zod
 export const auth0FlowSchema = z
@@ -336,26 +259,8 @@ export const auth0FlowSchema = z
   })
   .passthrough();
 
-// TypeScript interface for Auth0Flow
-export interface Auth0Flow {
-  id: string;
-  name: string;
-  languages: {
-    primary: string;
-    [key: string]: any;
-  };
-  nodes: Node[];
-  start: Start;
-  ending: Ending;
-  created_at: string;
-  updated_at: string;
-  links: {
-    sdkSrc?: string;
-    sdk_src?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+// TypeScript type for Auth0Flow inferred from Zod schema
+export type Auth0Flow = z.infer<typeof auth0FlowSchema>;
 
 // Schema for creating or updating a flow
 export const auth0FlowInsertSchema = auth0FlowSchema.omit({
