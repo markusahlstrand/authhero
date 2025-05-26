@@ -109,8 +109,6 @@ app.post("/oauth/token", async (c) => {
       }
     });
 
-    responseHeaders.set("Access-Control-Allow-Origin", "*");
-
     return new Response(text, {
       status: response.status,
       headers: responseHeaders,

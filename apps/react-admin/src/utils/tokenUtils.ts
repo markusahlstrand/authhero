@@ -57,6 +57,8 @@ export default async function getToken(
     return token;
   }
 
-  // If no token is available, return null
-  throw null;
+  // If no token is available, throw an error
+  throw new Error(
+    "No authentication method available. Configure either a token or client credentials.",
+  );
 }

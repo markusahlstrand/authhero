@@ -1,11 +1,18 @@
 declare module "reactflow" {
-  export interface NodeProps {
+  export interface NodeProps<T = Record<string, unknown>> {
     id: string;
-    data: any;
+    data: T;
     position: { x: number; y: number };
     type?: string;
     className?: string;
     style?: React.CSSProperties;
+  }
+
+  export interface Connection {
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
   }
 
   export interface EdgeProps {
@@ -56,7 +63,7 @@ declare module "reactflow" {
     edges: Edge[];
     onNodesChange?: (changes: NodeChange[]) => void;
     onEdgesChange?: (changes: EdgeChange[]) => void;
-    onConnect?: (connection: any) => void;
+    onConnect?: (connection: Connection) => void;
     nodeTypes?: Record<string, React.ComponentType<any>>;
     edgeTypes?: Record<string, React.ComponentType<any>>;
     connectionLineType?: ConnectionLineType;

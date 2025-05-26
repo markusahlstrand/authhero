@@ -126,14 +126,6 @@ export function App(props: AppProps) {
         edit={FormEdit}
         show={ShowGuesser}
       />
-      <Resource
-        icon={FormatAlignLeftIcon}
-        name="forms"
-        list={FormsList}
-        edit={FormEdit}
-        create={FormCreate}
-        show={ShowGuesser}
-      />
     </Admin>
   );
 }
