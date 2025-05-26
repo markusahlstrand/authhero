@@ -94,8 +94,14 @@ export default function create(config: AuthHeroConfig) {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",
-      title: "Management api",
+      title: "Management API",
     },
+    servers: [
+      {
+        url: "/api/v2",
+        description: "API V2",
+      },
+    ],
     security: [
       {
         oauth2: ["openid", "email", "profile"],

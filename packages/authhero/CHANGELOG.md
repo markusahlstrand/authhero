@@ -1,5 +1,11 @@
 # authhero
 
+## 0.137.0
+
+### Minor Changes
+
+- Update the path for the mangement api
+
 ## 0.136.0
 
 ### Minor Changes
