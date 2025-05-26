@@ -232,10 +232,28 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
     // For token auth or client credentials, use the getToken helper
     request = getToken(domainConfig)
       .then((token) => {
-        // Set the Authorization header with the token
-        const headersObj = new Headers({});
-        headersObj.set("Authorization", `Bearer ${token}`);
-
+        let headersObj: Headers;
+        const method = (options.method || "GET").toUpperCase();
+        if (method === "GET") {
+          // Only send Authorization for GET to avoid CORS issues
+          headersObj = new Headers();
+          headersObj.set("Authorization", `Bearer ${token}`);
+        } else if (
+          method === "POST" ||
+          method === "DELETE" ||
+          method === "PATCH"
+        ) {
+          // For POST, DELETE, PATCH: only send Authorization and content-type (force application/json for POST/PATCH)
+          headersObj = new Headers();
+          headersObj.set("Authorization", `Bearer ${token}`);
+          if (method === "POST" || method === "PATCH") {
+            headersObj.set("content-type", "application/json");
+          }
+        } else {
+          // For other methods, merge all headers and set Authorization
+          headersObj = new Headers(options.headers || {});
+          headersObj.set("Authorization", `Bearer ${token}`);
+        }
         return fetch(url, { ...options, headers: headersObj });
       })
       .then(async (response) => {

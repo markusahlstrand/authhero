@@ -19,7 +19,6 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
 // Import the NodeEditor component
 import NodeEditor from "./NodeEditor";
-import type { NodeProps } from "@xyflow/react";
 
 // Type definitions
 export interface ComponentConfig {
@@ -471,6 +470,24 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     const warnings: string[] = [];
 
     try {
+      // Add ending node if present (move this up)
+      if (ending) {
+        const endNode: Node<CustomNodeData> = {
+          id: "end",
+          type: "end",
+          position: getNodePosition(
+            ending.coordinates,
+            flowNodes.length * 350 + 250,
+            200,
+          ),
+          data: {
+            resumeFlow: ending.resume_flow ? "Yes" : "No",
+          },
+          style: NODE_STYLES.end,
+        };
+        flowNodes.push(endNode);
+      }
+
       // Add start node if present
       if (start) {
         const startNode: Node<CustomNodeData> = {
@@ -486,19 +503,25 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
 
         // Create edge from start to its next node
         if (start.next_node) {
-          const edgeId = `start-to-${start.next_node}`;
-          // Determine if the target is a step or flow node
-          const targetNodeType = nodes.find(
-            (n) => n.id === start.next_node,
-          )?.type;
-          const targetHandle =
-            targetNodeType === "FLOW" ? "flow-input" : "step-input";
+          let target = start.next_node;
+          let targetHandle = "step-input";
+          if (start.next_node === "$ending") {
+            target = "end";
+            targetHandle = "end-input";
+          } else {
+            // Determine if the target is a step or flow node
+            const targetNodeType = nodes.find(
+              (n) => n.id === start.next_node,
+            )?.type;
+            targetHandle =
+              targetNodeType === "FLOW" ? "flow-input" : "step-input";
+          }
 
           flowEdges.push({
-            id: edgeId,
+            id: `start-to-${target}`,
             source: "start",
             sourceHandle: "start-output",
-            target: start.next_node,
+            target: target,
             targetHandle: targetHandle,
             type: "smoothstep",
             animated: true,
@@ -506,6 +529,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               type: MarkerType.ArrowClosed,
             },
             style: { stroke: "#1976d2", strokeWidth: 2 },
+            label: start.next_node === "$ending" ? "End" : undefined,
           });
         }
       }
@@ -581,24 +605,6 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         }
       });
 
-      // Add ending node if present
-      if (ending) {
-        const endNode: Node<CustomNodeData> = {
-          id: "end",
-          type: "end",
-          position: getNodePosition(
-            ending.coordinates,
-            flowNodes.length * 350 + 250,
-            200,
-          ),
-          data: {
-            resumeFlow: ending.resume_flow ? "Yes" : "No",
-          },
-          style: NODE_STYLES.end,
-        };
-        flowNodes.push(endNode);
-      }
-
       // Validation logic
       const connectedNodeIds = new Set<string>();
       flowEdges.forEach((edge) => {
@@ -651,8 +657,17 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     return { flowNodes, edges: flowEdges, warnings };
   }, [nodes, start, ending, onError]);
 
-  const [flowNodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, _setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [flowNodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Sync nodes and edges state with initial values when they change
+  React.useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  React.useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
 
   // Handle node selection
   const handleNodeClick = useCallback(
@@ -713,8 +728,32 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     );
   }
 
+  // Add Step handler
+  const handleAddStep = useCallback(() => {
+    // Generate a short random id (4 alphanumeric chars)
+    const randomId = () => Math.random().toString(36).slice(2, 6);
+    const stepId = `step_${randomId()}`;
+    const nextButtonId = `next_button_${randomId()}`;
+    const newStep: FlowNodeData = {
+      id: stepId,
+      type: "STEP",
+      coordinates: { x: 620, y: -106 },
+      alias: "New step",
+      config: {
+        components: [
+          {
+            id: nextButtonId,
+            type: "NEXT_BUTTON",
+            config: { text: "Continue" },
+          },
+        ],
+      },
+    };
+    onNodeUpdate?.(stepId, newStep);
+  }, [onNodeUpdate]);
+
   return (
-    <Box sx={{ width: "100%", height: "600px", position: "relative" }}>
+    <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
       {warnings.length > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           <Typography variant="subtitle2">Flow Validation Warnings:</Typography>
@@ -747,6 +786,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         minZoom={FLOW_CONFIG.minZoom}
         maxZoom={FLOW_CONFIG.maxZoom}
         attributionPosition="bottom-left"
+        style={{ height: "100%" }}
       >
         <Controls showInteractive={false} />
         <Background color="#f0f0f0" gap={12} size={1} />
@@ -797,6 +837,83 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           </Box>
         </Panel>
       </ReactFlow>
+
+      {/* Bottom center add buttons */}
+      <Box
+        sx={{
+          position: "absolute",
+          left: "50%",
+          bottom: 12,
+          transform: "translateX(-50%)",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          bgcolor: "white",
+          borderRadius: 2,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          px: 1.5,
+          py: 0.5,
+          gap: 1,
+        }}
+      >
+        <AddCircleOutlineIcon sx={{ color: "#1976d2", mr: 1 }} />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <button
+            type="button"
+            style={{
+              border: "1px solid #e0e0e0",
+              background: "#fff",
+              borderRadius: 6,
+              padding: "4px 16px",
+              fontWeight: 500,
+              fontSize: 15,
+              color: "#424242",
+              cursor: "pointer",
+              outline: "none",
+              transition: "background 0.2s, border 0.2s",
+            }}
+            onClick={handleAddStep}
+          >
+            Step
+          </button>
+          <button
+            type="button"
+            style={{
+              border: "1px solid #e0e0e0",
+              background: "#fff",
+              borderRadius: 6,
+              padding: "4px 16px",
+              fontWeight: 500,
+              fontSize: 15,
+              color: "#424242",
+              cursor: "pointer",
+              outline: "none",
+              transition: "background 0.2s, border 0.2s",
+            }}
+            // onClick={handleAddRouter}
+          >
+            Router
+          </button>
+          <button
+            type="button"
+            style={{
+              border: "1px solid #e0e0e0",
+              background: "#fff",
+              borderRadius: 6,
+              padding: "4px 16px",
+              fontWeight: 500,
+              fontSize: 15,
+              color: "#424242",
+              cursor: "pointer",
+              outline: "none",
+              transition: "background 0.2s, border 0.2s",
+            }}
+            // onClick={handleAddFlow}
+          >
+            Flow
+          </button>
+        </Box>
+      </Box>
 
       {/* Node Editor */}
       <NodeEditor

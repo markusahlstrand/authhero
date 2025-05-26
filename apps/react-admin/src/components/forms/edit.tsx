@@ -3,12 +3,8 @@ import {
   Edit,
   FieldTitle,
   Labeled,
-  SelectInput,
   TextInput,
   required,
-  ArrayInput,
-  SimpleFormIterator,
-  NumberInput,
   useRecordContext,
   TabbedForm,
   FormTab,
@@ -16,12 +12,15 @@ import {
 import FlowEditor from "./FlowEditor";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
+import * as React from "react";
+import { useSaveContext } from "react-admin";
 
 // A component to render the flow diagram
 const FlowDiagram = () => {
   const record = useRecordContext();
 
-  if (!record || !record.nodes) {
+  // Allow rendering if there is a start or ending node, even if nodes is missing or empty
+  if (!record || (!record.nodes && !record.start && !record.ending)) {
     return <div>No flow data available</div>;
   }
 
@@ -49,35 +48,90 @@ const FlowDiagram = () => {
 // A component to display raw JSON
 const RawJsonEditor = () => {
   const record = useRecordContext();
+  const saveContext = useSaveContext();
+  const [jsonValue, setJsonValue] = React.useState(() =>
+    record ? JSON.stringify(record, null, 2) : "",
+  );
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState(false);
 
   if (!record) {
     return <div>No form data available</div>;
   }
 
-  // Create a formatted string of the JSON data
-  const formattedJson = JSON.stringify(record, null, 2);
+  // Handle JSON edit
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setJsonValue(value);
+    setSuccess(false);
+    try {
+      JSON.parse(value);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Invalid JSON");
+    }
+  };
+
+  // Save JSON to record
+  const handleSave = () => {
+    try {
+      const parsed = JSON.parse(jsonValue);
+      setError(null);
+      if (saveContext && typeof saveContext.save === "function") {
+        saveContext.save(parsed);
+        setSuccess(true);
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid JSON");
+      setSuccess(false);
+    }
+  };
 
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
         Raw JSON representation of the form data:
       </Typography>
-
       <Box
-        component="pre"
+        component="textarea"
+        value={jsonValue}
+        onChange={handleChange}
         sx={{
           backgroundColor: "#f5f5f5",
           border: "1px solid #e0e0e0",
           borderRadius: "4px",
           padding: 2,
           maxHeight: "600px",
+          minHeight: "300px",
+          width: "100%",
           overflow: "auto",
           fontSize: "0.9rem",
           fontFamily: "monospace",
+          resize: "vertical",
         }}
-      >
-        {formattedJson}
+      />
+      <Box sx={{ mt: 1, display: "flex", gap: 2, alignItems: "center" }}>
+        <button
+          onClick={handleSave}
+          disabled={!!error || !saveContext?.save}
+          style={{
+            padding: "6px 16px",
+            borderRadius: 4,
+            border: "1px solid #1976d2",
+            background: "#1976d2",
+            color: "white",
+            cursor: error ? "not-allowed" : "pointer",
+          }}
+        >
+          Save JSON
+        </button>
+        {success && <Typography color="success.main">Saved!</Typography>}
       </Box>
+      {error && (
+        <Typography color="error" sx={{ mt: 1 }}>
+          Invalid JSON: {error}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -87,43 +141,8 @@ export const FormEdit = () => {
     <Edit>
       <TabbedForm>
         <FormTab label="Basic Information">
-          <TextInput source="id" disabled />
-          <TextInput source="name" validate={[required()]} />
-          <SelectInput
-            source="type"
-            validate={[required()]}
-            choices={[
-              { id: "classic", name: "Classic" },
-              { id: "page", name: "Page" },
-            ]}
-          />
-          <ArrayInput source="layout.fields">
-            <SimpleFormIterator>
-              <TextInput source="id" validate={[required()]} />
-              <TextInput source="label" validate={[required()]} />
-              <SelectInput
-                source="type"
-                choices={[
-                  { id: "text", name: "Text" },
-                  { id: "email", name: "Email" },
-                  { id: "password", name: "Password" },
-                  { id: "checkbox", name: "Checkbox" },
-                  { id: "select", name: "Select" },
-                ]}
-                validate={[required()]}
-              />
-              <NumberInput source="order" />
-              <TextInput source="placeholder" />
-              <TextInput source="description" />
-              <SelectInput
-                source="required"
-                choices={[
-                  { id: true, name: "True" },
-                  { id: false, name: "False" },
-                ]}
-              />
-            </SimpleFormIterator>
-          </ArrayInput>
+          <TextInput source="id" disabled fullWidth />
+          <TextInput source="name" validate={[required()]} fullWidth />
           <Labeled label={<FieldTitle source="created_at" />}>
             <DateField source="created_at" showTime={true} />
           </Labeled>
@@ -137,7 +156,9 @@ export const FormEdit = () => {
         </FormTab>
 
         <FormTab label="Raw">
-          <RawJsonEditor />
+          <Box sx={{ width: "100%" }}>
+            <RawJsonEditor />
+          </Box>
         </FormTab>
       </TabbedForm>
     </Edit>
