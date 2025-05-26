@@ -4,6 +4,7 @@ import CloudQueue from "@mui/icons-material/CloudQueue";
 import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
+import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import { getDataproviderForTenant } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
@@ -14,6 +15,7 @@ import {
 } from "./components/connections";
 import { tenantLayout } from "./components/TenantLayout";
 import { UserCreate, UserEdit, UsersList } from "./components/users";
+import { FormCreate, FormEdit, FormsList } from "./components/forms";
 import {
   DomainCreate,
   DomainEdit,
@@ -114,6 +116,14 @@ export function App(props: AppProps) {
         name="sessions"
         list={SessionsList}
         edit={SessionEdit}
+        show={ShowGuesser}
+      />
+      <Resource
+        icon={FormatAlignLeftIcon}
+        name="forms"
+        list={FormsList}
+        create={FormCreate}
+        edit={FormEdit}
         show={ShowGuesser}
       />
     </Admin>
