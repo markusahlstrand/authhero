@@ -24,7 +24,7 @@ export default function create(config: AuthHeroConfig) {
         version: packageJson.version,
       });
     })
-    .get("/docs", swaggerUI({ url: "/spec" }));
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
 
   return app;
 }
