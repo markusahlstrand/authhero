@@ -1,5 +1,11 @@
 # authhero
 
+## 0.136.0
+
+### Minor Changes
+
+- Add rest endpoints for forms
+
 ## 0.135.0
 
 ### Minor Changes

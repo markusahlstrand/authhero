@@ -21,6 +21,7 @@ import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { addCaching } from "../../helpers/cache-wrapper";
+import { formsRoutes } from "./forms";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -86,7 +87,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/connections", connectionRoutes)
     .route("/prompts", promptsRoutes)
     .route("/sessions", sessionsRoutes)
-    .route("/refresh_tokens", refreshTokensRoutes);
+    .route("/refresh_tokens", refreshTokensRoutes)
+    .route("/forms", formsRoutes);
 
   managementApp.doc("/spec", {
     openapi: "3.0.0",

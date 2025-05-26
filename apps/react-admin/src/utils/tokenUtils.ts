@@ -1,4 +1,3 @@
-import auth0DataProvider from "src/auth0DataProvider";
 import { DomainConfig } from "./domainUtils";
 
 async function fetchTokenWithClientCredentials(
