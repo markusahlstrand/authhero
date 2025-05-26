@@ -5,6 +5,7 @@ import {
   getClientIdFromStorage,
   getDomainFromStorage,
 } from "./utils/domainUtils";
+import getToken from "./utils/tokenUtils";
 
 // Track auth requests globally
 let authRequestInProgress = false;
@@ -107,8 +108,12 @@ export const getAuthProvider = (
   const domains = getDomainFromStorage();
   const domainConfig = domains.find((d) => d.url === domain);
 
-  // If using token auth, create a simple auth provider that uses the token
-  if (domainConfig?.connectionMethod === "token" && domainConfig.token) {
+  // If using token auth or client credentials, create a simple auth provider that uses the token
+  if (
+    ["token", "client_credentials"].includes(
+      domainConfig?.connectionMethod || "",
+    )
+  ) {
     return {
       login: async () => {
         // Token auth is already authenticated
@@ -212,24 +217,28 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
     return pendingRequests.get(requestKey)!;
   }
 
-  // Check if we're using token-based auth
+  // Check if we're using token-based auth or client credentials
   const domains = getDomainFromStorage();
   const selectedDomain = getSelectedDomainFromStorage();
   const domainConfig = domains.find((d) => d.url === selectedDomain);
 
   let request;
-  if (domainConfig?.connectionMethod === "token" && domainConfig.token) {
-    // For token auth, add the token to the Authorization header
-    // Create a Headers object that can handle any HeadersInit type
-    // If I pass the options.headers I get a CORS error. Not sure why?
-    // const headersObj = new Headers(options.headers || {});
+  if (
+    domainConfig &&
+    ["token", "client_credentials"].includes(
+      domainConfig.connectionMethod || "",
+    )
+  ) {
+    // For token auth or client credentials, use the getToken helper
+    request = getToken(domainConfig)
+      .then((token) => {
+        // Set the Authorization header with the token
+        const headersObj = new Headers({});
+        headersObj.set("Authorization", `Bearer ${token}`);
 
-    // Set the Authorization header with the token
-    const headersObj = new Headers({});
-    headersObj.set("Authorization", `Bearer ${domainConfig.token}`);
-
-    request = fetch(url, { ...options, headers: headersObj }).then(
-      async (response) => {
+        return fetch(url, { ...options, headers: headersObj });
+      })
+      .then(async (response) => {
         if (response.status < 200 || response.status >= 300) {
           const text = await response.text();
 
@@ -268,8 +277,7 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
           headers: response.headers,
           body: text,
         };
-      },
-    );
+      });
   } else {
     // For Auth0, use the httpClient as before
     request = httpClient(auth0)(url, options);

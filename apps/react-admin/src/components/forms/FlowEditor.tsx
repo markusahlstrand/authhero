@@ -4,7 +4,6 @@ import {
   Node,
   Edge,
   MarkerType,
-  ConnectionLineType,
   useNodesState,
   useEdgesState,
   Background,
@@ -12,7 +11,7 @@ import {
   Panel,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 interface FlowEditorProps {
   nodes: any[];
@@ -23,75 +22,205 @@ interface FlowEditorProps {
 // Custom node styles
 const nodeStyles = {
   start: {
-    background: "#e6f7ff",
-    border: "1px solid #1890ff",
-    borderRadius: "8px",
-    padding: "10px",
-    color: "#0050b3",
-    minWidth: "150px",
+    background: "#f5f5f5",
+    border: "1px solid #e0e0e0",
+    borderRadius: "4px",
+    padding: "12px",
+    color: "#424242",
+    minWidth: "180px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   },
   step: {
-    background: "#f6ffed",
-    border: "1px solid #52c41a",
-    borderRadius: "8px",
-    padding: "10px",
-    color: "#135200",
-    minWidth: "180px",
+    background: "#ffffff",
+    border: "1px solid #e0e0e0",
+    borderRadius: "4px",
+    padding: "12px",
+    color: "#424242",
+    minWidth: "280px",
+    maxWidth: "320px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   },
-  condition: {
-    background: "#fff7e6",
-    border: "1px solid #faad14",
-    borderRadius: "8px",
-    padding: "10px",
-    color: "#874d00",
+  flow: {
+    background: "#f8f9fa",
+    border: "1px solid #e0e0e0",
+    borderRadius: "4px",
+    padding: "12px",
+    color: "#424242",
     minWidth: "180px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   },
   end: {
-    background: "#fff1f0",
-    border: "1px solid #ff4d4f",
-    borderRadius: "8px",
-    padding: "10px",
-    color: "#820014",
-    minWidth: "150px",
+    background: "#f5f5f5",
+    border: "1px solid #e0e0e0",
+    borderRadius: "4px",
+    padding: "12px",
+    color: "#424242",
+    minWidth: "180px",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   },
 };
 
-// Custom node data component
-const NodeData = ({ data }: { data: any }) => {
-  return (
+// Custom node types
+const nodeTypes = {
+  start: ({ data }: { data: any }) => (
     <Box sx={{ padding: "8px" }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-        {data.label}
+      <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+        Start
       </Typography>
-      {data.type && (
-        <Typography variant="caption" display="block">
-          Type: {data.type}
+      <Typography variant="body2" color="text.secondary">
+        {data.next && `Next: ${data.next}`}
+      </Typography>
+    </Box>
+  ),
+  step: ({ data }: { data: any }) => (
+    <Box sx={{ padding: "8px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+          {data.label || "Step"}
         </Typography>
-      )}
-      {data.next && (
-        <Typography variant="caption" display="block">
-          Next: {data.next}
-        </Typography>
-      )}
-      {data.components && (
-        <Box>
-          <Typography variant="caption" display="block">
-            Components: {data.components.length}
-          </Typography>
-          <Paper
-            variant="outlined"
-            sx={{ maxHeight: "100px", overflow: "auto", mt: 1, p: 1 }}
+        <Box sx={{ display: "flex", gap: "4px" }}>
+          <Box
+            component="span"
+            sx={{
+              width: 20,
+              height: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #ddd",
+              borderRadius: "2px",
+              fontSize: "12px",
+              color: "#666",
+            }}
           >
-            {data.components.map((comp: any) => (
-              <Typography key={comp.id} variant="caption" display="block">
-                {comp.type}: {comp.id}
-              </Typography>
-            ))}
-          </Paper>
+            ⎘
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              width: 20,
+              height: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #ddd",
+              borderRadius: "2px",
+              fontSize: "12px",
+              color: "#666",
+            }}
+          >
+            ✕
+          </Box>
+        </Box>
+      </Box>
+
+      {data.components && (
+        <Box sx={{ mt: 1 }}>
+          {data.components.map((comp: any) => (
+            <Box
+              key={comp.id}
+              sx={{
+                py: 0.5,
+                borderBottom:
+                  comp.type === "NEXT_BUTTON" ? "none" : "1px solid #f0f0f0",
+              }}
+            >
+              {comp.type === "RICH_TEXT" && (
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {comp.config?.content
+                    ? "Text content: " +
+                      comp.config.content
+                        .replace(/<[^>]*>/g, "")
+                        .substring(0, 20) +
+                      "..."
+                    : "Rich text"}
+                </Typography>
+              )}
+              {comp.type === "LEGAL" && (
+                <Typography variant="body2" color="text.secondary">
+                  {comp.config?.text
+                    ? "Legal: " +
+                      comp.config.text
+                        .replace(/<[^>]*>/g, "")
+                        .substring(0, 20) +
+                      "..."
+                    : "Legal checkbox"}
+                </Typography>
+              )}
+              {comp.type === "NEXT_BUTTON" && (
+                <Box
+                  sx={{
+                    mt: 1,
+                    p: 1,
+                    textAlign: "center",
+                    bgcolor: "#1976d2",
+                    color: "white",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                  }}
+                >
+                  {comp.config?.text || "Continue"}
+                </Box>
+              )}
+            </Box>
+          ))}
         </Box>
       )}
     </Box>
-  );
+  ),
+  flow: ({ data }: { data: any }) => (
+    <Box sx={{ padding: "8px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+          Flow
+        </Typography>
+      </Box>
+      <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
+        <Box
+          component="span"
+          sx={{
+            width: 24,
+            height: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid #1976d2",
+            borderRadius: "50%",
+            color: "#1976d2",
+            fontSize: "16px",
+          }}
+        >
+          ⟳
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          {data.flowId ? `Update ${data.flowId}` : "Update metadata"}
+        </Typography>
+      </Box>
+    </Box>
+  ),
+  end: ({ data }: { data: any }) => (
+    <Box sx={{ padding: "8px" }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+        Ending screen
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {data.resumeFlow ? "Resume authentication flow" : "End flow"}
+      </Typography>
+    </Box>
+  ),
 };
 
 const FlowEditor: React.FC<FlowEditorProps> = ({
@@ -108,15 +237,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     if (start) {
       const startNode = {
         id: "start",
-        type: "default",
+        type: "start",
         position: {
           x: start.coordinates?.x || 100,
           y: start.coordinates?.y || 100,
         },
         data: {
-          label: "Start",
           next: start.next_node,
-          type: "START",
         },
         style: nodeStyles.start,
       };
@@ -131,16 +258,24 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           markerEnd: {
             type: MarkerType.ArrowClosed,
           },
+          animated: false,
           type: "smoothstep",
+          style: { stroke: "#999", strokeWidth: 1 },
         });
       }
     }
 
     // Add form nodes
     nodes.forEach((node) => {
+      // Determine node type based on the node.type in the data
+      let nodeType = "step";
+      if (node.type === "FLOW") {
+        nodeType = "flow";
+      }
+
       const flowNode = {
         id: node.id,
-        type: "default",
+        type: nodeType,
         position: {
           x: node.coordinates?.x || 200,
           y: node.coordinates?.y || 200,
@@ -150,21 +285,26 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           type: node.type,
           next: node.config?.next_node,
           components: node.config?.components,
+          flowId: node.config?.flow_id,
         },
-        style: node.type === "STEP" ? nodeStyles.step : nodeStyles.condition,
+        style: node.type === "STEP" ? nodeStyles.step : nodeStyles.flow,
       };
       flowNodes.push(flowNode);
 
       // Create edge to the next node
       if (node.config?.next_node) {
+        const target =
+          node.config.next_node === "$ending" ? "end" : node.config.next_node;
         flowEdges.push({
-          id: `${node.id}-to-${node.config.next_node}`,
+          id: `${node.id}-to-${target}`,
           source: node.id,
-          target: node.config.next_node,
+          target: target,
           markerEnd: {
             type: MarkerType.ArrowClosed,
           },
+          animated: false,
           type: "smoothstep",
+          style: { stroke: "#999", strokeWidth: 1 },
         });
       }
     });
@@ -173,15 +313,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     if (ending) {
       const endNode = {
         id: "end",
-        type: "default",
+        type: "end",
         position: {
           x: ending.coordinates?.x || 300,
           y: ending.coordinates?.y || 300,
         },
         data: {
-          label: "End",
           resumeFlow: ending.resume_flow ? "Yes" : "No",
-          type: "END",
         },
         style: nodeStyles.end,
       };
@@ -192,10 +330,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   }, [nodes, start, ending]);
 
   const initialElements = createFlowElements();
-  const [flowNodes, setNodes, onNodesChange] = useNodesState(
-    initialElements.nodes,
-  );
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialElements.edges);
+  const [flowNodes, , onNodesChange] = useNodesState(initialElements.nodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialElements.edges);
 
   // Fallback display for when ReactFlow cannot be initialized properly
   if (flowNodes.length === 0) {
@@ -208,19 +344,34 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   }
 
   return (
-    <Box sx={{ width: "100%", height: "500px" }}>
+    <Box sx={{ width: "100%", height: "600px" }}>
       <ReactFlow
         nodes={flowNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.5}
+        maxZoom={1.5}
         attributionPosition="bottom-left"
       >
-        <Controls />
-        <Background color="#aaa" gap={16} />
+        <Controls showInteractive={false} />
+        <Background color="#f0f0f0" gap={12} size={1} />
         <Panel position="top-right">
-          <Typography variant="caption">Form Flow Diagram</Typography>
+          <Box
+            sx={{
+              p: 1,
+              bgcolor: "white",
+              borderRadius: "4px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Form Flow Diagram
+            </Typography>
+          </Box>
         </Panel>
       </ReactFlow>
     </Box>

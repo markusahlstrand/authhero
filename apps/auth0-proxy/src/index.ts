@@ -13,22 +13,23 @@ app.get("/", async (c: Context) => {
   });
 });
 
-app.use(
-  "/api/*",
-  cors({
-    origin: [
-      "https://manage.authhe.ro",
-      "https://local.authhe.ro",
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-    allowHeaders: ["Content-Type", "Authorization", "x-auth0-domain"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    exposeHeaders: ["Content-Length", "X-Requested-With"],
-    maxAge: 86400,
-    credentials: true,
-  }),
-);
+// Apply CORS middleware to both API and OAuth endpoints
+const corsMiddleware = cors({
+  origin: [
+    "https://manage.authhe.ro",
+    "https://local.authhe.ro",
+    "http://localhost:3000",
+    "http://localhost:5173",
+  ],
+  allowHeaders: ["Content-Type", "Authorization", "x-auth0-domain"],
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  exposeHeaders: ["Content-Length", "X-Requested-With"],
+  maxAge: 86400,
+  credentials: true,
+});
+
+app.use("/api/*", corsMiddleware);
+app.use("/oauth/*", corsMiddleware);
 
 app.get("/api/v2/tenants", async (ctx: Context) => {
   // This enptoint does't exist on Auth0 as they only hanle one tenant per subdomain.
@@ -49,6 +50,74 @@ app.get("/api/v2/tenants", async (ctx: Context) => {
     limit: 10,
     length: 1,
   });
+});
+
+// Special handler for OAuth token endpoint that doesn't require additional auth
+app.post("/oauth/token", async (c) => {
+  const envVars = env<{ AUTH0_DOMAIN?: string }>(c);
+  const auth0Domain = envVars.AUTH0_DOMAIN || c.req.header("x-auth0-domain");
+
+  if (!auth0Domain) {
+    return c.json(
+      {
+        error:
+          "Missing Auth0 domain. Set AUTH0_DOMAIN env variable or provide x-auth0-domain header.",
+      },
+      400,
+    );
+  }
+
+  // Ensure the domain has a protocol prefix
+  let domainWithProtocol = auth0Domain;
+  if (
+    !domainWithProtocol.startsWith("http://") &&
+    !domainWithProtocol.startsWith("https://")
+  ) {
+    domainWithProtocol = `https://${domainWithProtocol}`;
+  }
+
+  // Validate the domain format
+  try {
+    new URL(domainWithProtocol);
+  } catch (error) {
+    return c.json({ error: "Invalid Auth0 domain URL format" }, 400);
+  }
+
+  // Create the target URL for the token endpoint
+  const targetUrl = new URL(`${domainWithProtocol}/oauth/token`);
+
+  // Pass through the request without requiring additional auth
+  const headers = new Headers();
+  c.req.raw.headers.forEach((value, key) => {
+    if (!EXCLUDE_HEADERS.includes(key)) {
+      headers.set(key, value);
+    }
+  });
+
+  try {
+    const response = await fetch(targetUrl.toString(), {
+      method: "POST",
+      headers,
+      body: c.req.raw.body,
+    });
+
+    const text = await response.text();
+    const responseHeaders = new Headers();
+    response.headers.forEach((value, key) => {
+      if (!EXCLUDE_HEADERS.includes(key)) {
+        responseHeaders.set(key, value);
+      }
+    });
+
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+
+    return new Response(text, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch token from Auth0" }, 500);
+  }
 });
 
 app.all("*", async (c) => {
@@ -72,15 +141,24 @@ app.all("*", async (c) => {
     );
   }
 
+  // Ensure the domain has a protocol prefix
+  let domainWithProtocol = auth0Domain;
+  if (
+    !domainWithProtocol.startsWith("http://") &&
+    !domainWithProtocol.startsWith("https://")
+  ) {
+    domainWithProtocol = `https://${domainWithProtocol}`;
+  }
+
   // Validate the domain format
   try {
-    new URL(auth0Domain);
+    new URL(domainWithProtocol);
   } catch (error) {
     return c.json({ error: "Invalid Auth0 domain URL format" }, 400);
   }
 
   const sourceUrl = new URL(c.req.url);
-  const targetUrl = new URL(auth0Domain);
+  const targetUrl = new URL(domainWithProtocol);
   targetUrl.pathname = sourceUrl.pathname;
   targetUrl.search = sourceUrl.search;
 
