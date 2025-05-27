@@ -480,3 +480,38 @@ export async function createAuthResponse(
     headers,
   });
 }
+
+// Wrapper to trigger OnExecutePostLogin before issuing tokens
+export async function completeLogin(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: CreateAuthTokensParams,
+): Promise<TokenResponse> {
+  let user = params.user;
+
+  // Trigger OnExecutePostLogin if defined
+  if (user && ctx.env.hooks?.onExecutePostLogin) {
+    // The hook may mutate the user object via the API, but for now we just call it
+    await ctx.env.hooks.onExecutePostLogin(
+      {
+        client: params.client,
+        user,
+        request: {
+          ip: ctx.req.header("x-real-ip") || "",
+          user_agent: ctx.req.header("user-agent") || "",
+          method: ctx.req.method,
+          url: ctx.req.url,
+        },
+        scope: params.authParams.scope || "",
+        grant_type: "",
+      },
+      {
+        prompt: {
+          render: (_formId: string) => {},
+        },
+      },
+    );
+  }
+
+  // Call createAuthTokens with possibly updated user
+  return createAuthTokens(ctx, { ...params, user });
+}

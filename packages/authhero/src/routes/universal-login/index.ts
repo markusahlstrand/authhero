@@ -18,6 +18,7 @@ import { validateEmailRoutes } from "./validate-email";
 import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { tailwindCss } from "../../styles";
+import { formNodeRoutes } from "./form-node";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -60,7 +61,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/reset-password", resetPasswordRoutes)
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/validate-email", validateEmailRoutes)
-    .route("/signup", signupRoutes);
+    .route("/signup", signupRoutes)
+    .route("/form", formNodeRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",

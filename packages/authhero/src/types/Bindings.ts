@@ -1,8 +1,9 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import {
   OnExecuteCredentialsExchange,
-  OnExecutePostUserRegistration,
   OnExecutePreUserRegistration,
+  OnExecutePostUserRegistration,
+  OnExecutePostLogin, // <-- Add this import
 } from "./Hooks";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
@@ -28,6 +29,7 @@ export type Bindings = {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
+    onExecutePostLogin?: OnExecutePostLogin; // <-- Add this property
   };
   emailProviders?: { [key: string]: EmailService };
   smsProviders?: { [key: string]: smsService };

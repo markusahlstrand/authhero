@@ -11,7 +11,7 @@ import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getClientWithDefaults } from "../../helpers/client";
-import { loginWithPasswordless } from "../../authentication-flows/passwordless";
+import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 
 export const passwordlessRoutes = new OpenAPIHono<{
@@ -168,14 +168,11 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
       };
 
-      return loginWithPasswordless(
-        ctx,
-        client,
+      return passwordlessGrant(ctx, {
+        client_id,
+        username: email,
+        otp: verification_code,
         authParams,
-        email,
-        verification_code,
-        false,
-        true,
-      );
+      });
     },
   );
