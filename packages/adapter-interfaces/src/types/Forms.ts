@@ -2,86 +2,6 @@ import { z } from "@hono/zod-openapi";
 import { baseEntitySchema } from "./BaseEntity";
 
 /**
- * Form field types supported by Auth0
- */
-export enum FormFieldType {
-  TEXT = "text",
-  EMAIL = "email",
-  PASSWORD = "password",
-  NUMBER = "number",
-  PHONE = "phone",
-  DATE = "date",
-  CHECKBOX = "checkbox",
-  RADIO = "radio",
-  SELECT = "select",
-  HIDDEN = "hidden",
-}
-
-/**
- * Form field validation types
- */
-export enum ValidationErrorType {
-  REQUIRED = "required",
-  FORMAT = "format",
-  MIN_LENGTH = "min_length",
-  MAX_LENGTH = "max_length",
-  MIN = "min",
-  MAX = "max",
-  MATCHING_PATTERN = "matching_pattern",
-}
-
-/**
- * Validation schema for form fields
- */
-export const formFieldValidationSchema = z.object({
-  type: z.nativeEnum(ValidationErrorType),
-  message: z.string(),
-  // Additional validation properties
-  min_length: z.number().optional(),
-  max_length: z.number().optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-  pattern: z.string().optional(),
-  format: z.string().optional(),
-});
-
-export type FormFieldValidation = z.infer<typeof formFieldValidationSchema>;
-
-/**
- * Options for select, radio, and checkbox fields
- */
-export const formFieldOptionSchema = z.object({
-  label: z.string(),
-  value: z.string(),
-  checked: z.boolean().optional(),
-});
-
-export type FormFieldOption = z.infer<typeof formFieldOptionSchema>;
-
-/**
- * Schema for form fields
- */
-export const formFieldSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.nativeEnum(FormFieldType),
-  label: z.string(),
-  placeholder: z.string().optional(),
-  required: z.boolean().optional().default(false),
-  disabled: z.boolean().optional().default(false),
-  readOnly: z.boolean().optional().default(false),
-  defaultValue: z.union([z.string(), z.number(), z.boolean()]).optional(),
-  validations: z.array(formFieldValidationSchema).optional(),
-  options: z.array(formFieldOptionSchema).optional(),
-  description: z.string().optional(),
-  order: z.number().optional(),
-  visible: z.boolean().optional().default(true),
-  customizations: z.record(z.string(), z.any()).optional(),
-});
-
-export type FormField = z.infer<typeof formFieldSchema>;
-
-/**
  * Schema for form controls (like submit buttons)
  */
 export const formControlSchema = z.object({
@@ -96,20 +16,6 @@ export const formControlSchema = z.object({
 });
 
 export type FormControl = z.infer<typeof formControlSchema>;
-
-/**
- * Supported form types
- */
-export enum FormType {
-  LOGIN = "login",
-  SIGNUP = "signup",
-  RESET_PASSWORD = "reset-password",
-  MFA = "mfa",
-  MFA_ENROLLMENT = "mfa-enrollment",
-  VERIFICATION_CODE = "verification-code",
-  INVITATION = "invitation",
-  CUSTOM = "custom",
-}
 
 /**
  * Schema for forms (flow-based, matches new JSON structure)
@@ -134,13 +40,48 @@ export const formInsertSchema = z
     translations: z.record(z.string(), z.any()).optional(),
     nodes: z
       .array(
-        z.object({
-          id: z.string(),
-          type: z.string(),
-          coordinates: z.object({ x: z.number(), y: z.number() }),
-          alias: z.string(),
-          config: z.record(z.string(), z.any()), // Accepts any config shape
-        }),
+        z.discriminatedUnion("type", [
+          // FLOW node
+          z.object({
+            id: z.string(),
+            type: z.literal("FLOW"),
+            coordinates: z.object({ x: z.number(), y: z.number() }),
+            alias: z.string().min(1).max(150),
+            config: z.object({
+              flow_id: z.string().max(30),
+              next_node: z.array(z.string()), // Accepts string[] (forms-custom-identifier or "$ending")
+            }),
+          }),
+          // ROUTER node
+          z.object({
+            id: z.string(),
+            type: z.literal("ROUTER"),
+            coordinates: z.object({ x: z.number(), y: z.number() }),
+            alias: z.string().min(1).max(150),
+            config: z.object({
+              rules: z.array(
+                z.object({
+                  id: z.string(),
+                  alias: z.string().min(1).max(150),
+                  condition: z.any(), // condition is required but type is not specified
+                  next_node: z.array(z.string()),
+                }),
+              ),
+              fallback: z.array(z.string()),
+            }),
+          }),
+          // STEP node
+          z.object({
+            id: z.string(),
+            type: z.literal("STEP"),
+            coordinates: z.object({ x: z.number(), y: z.number() }),
+            alias: z.string().min(1).max(150),
+            config: z.object({
+              components: z.array(z.any()), // components is an array of objects, structure not specified
+              next_node: z.array(z.string()),
+            }),
+          }),
+        ]),
       )
       .optional(),
     start: z

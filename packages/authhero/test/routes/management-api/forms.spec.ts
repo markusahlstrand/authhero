@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
-import { Form, FormFieldType, FormType } from "@authhero/adapter-interfaces";
+import { Form } from "@authhero/adapter-interfaces";
 
 describe("forms", () => {
   it("should support crud", async () => {
@@ -17,19 +17,6 @@ describe("forms", () => {
       {
         json: {
           name: "signup",
-          type: FormType.SIGNUP,
-          fields: [
-            {
-              type: FormFieldType.TEXT,
-              name: "email",
-              id: "email",
-              label: "Email",
-              required: true,
-              readOnly: false,
-              disabled: false,
-              visible: true,
-            },
-          ],
         },
         header: {
           "tenant-id": "tenantId",
