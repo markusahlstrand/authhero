@@ -112,57 +112,64 @@ export enum FormType {
 }
 
 /**
- * Schema for forms
+ * Schema for forms (flow-based, matches new JSON structure)
  */
-export const formInsertSchema = z.object({
-  name: z.string().openapi({
-    description: "The name of the form",
-  }),
-  type: z.nativeEnum(FormType).openapi({
-    description: "The type of the form",
-  }),
-  client_id: z.string().optional().openapi({
-    description: "The client ID the form is associated with",
-  }),
-  fields: z.array(formFieldSchema).openapi({
-    description: "The fields in the form",
-  }),
-  controls: z.array(formControlSchema).optional().openapi({
-    description: "The controls (like submit buttons) in the form",
-  }),
-  redirect_uri: z.string().optional().openapi({
-    description: "The URI to redirect to after form submission",
-  }),
-  post_submit_action: z.enum(["redirect", "message"]).optional().openapi({
-    description: "The action to take after form submission",
-    example: "redirect",
-  }),
-  success_message: z.string().optional().openapi({
-    description: "Message to display on successful form submission",
-  }),
-  language: z.string().optional().openapi({
-    description: "The language code for the form",
-    example: "en",
-  }),
-  active: z.boolean().default(true).openapi({
-    description: "Whether the form is active or not",
-  }),
-  layout: z
-    .object({
-      columns: z.number().optional().default(1),
-      template: z.string().optional(),
-    })
-    .optional()
-    .openapi({
-      description: "Layout settings for the form",
+export const formInsertSchema = z
+  .object({
+    name: z.string().openapi({
+      description: "The name of the form",
     }),
-  css: z.string().optional().openapi({
-    description: "Custom CSS for the form",
-  }),
-  javascript: z.string().optional().openapi({
-    description: "Custom JavaScript for the form",
-  }),
-});
+    messages: z
+      .object({
+        errors: z.record(z.string(), z.any()).optional(),
+        custom: z.record(z.string(), z.any()).optional(),
+      })
+      .optional(),
+    languages: z
+      .object({
+        primary: z.string().optional(),
+        default: z.string().optional(),
+      })
+      .optional(),
+    translations: z.record(z.string(), z.any()).optional(),
+    nodes: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          coordinates: z.object({ x: z.number(), y: z.number() }),
+          alias: z.string(),
+          config: z.record(z.string(), z.any()), // Accepts any config shape
+        }),
+      )
+      .optional(),
+    start: z
+      .object({
+        hidden_fields: z
+          .array(z.object({ key: z.string(), value: z.string() }))
+          .optional(),
+        next_node: z.array(z.string()).optional(),
+        coordinates: z.object({ x: z.number(), y: z.number() }).optional(),
+      })
+      .optional(),
+    ending: z
+      .object({
+        redirection: z
+          .object({
+            delay: z.number().optional(),
+            target: z.string().optional(),
+          })
+          .optional(),
+        after_submit: z.object({ flow_id: z.string().optional() }).optional(),
+        coordinates: z.object({ x: z.number(), y: z.number() }).optional(),
+        resume_flow: z.boolean().optional(),
+      })
+      .optional(),
+    style: z.object({ css: z.string().optional() }).optional(),
+  })
+  .openapi({
+    description: "Schema for flow-based forms (matches new JSON structure)",
+  });
 
 export type FormInsert = z.input<typeof formInsertSchema>;
 

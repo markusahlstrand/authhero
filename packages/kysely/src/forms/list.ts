@@ -30,22 +30,26 @@ export function list(db: Kysely<Database>) {
     // Execute the query
     const results = await filteredQuery.selectAll().execute();
 
-    // Parse JSON strings back to objects for each result
-    const forms = results.map((result) =>
-      formSchema.parse(
-        removeNullProperties({
-          ...result,
-          fields: JSON.parse(result.fields as string),
-          controls: result.controls
-            ? JSON.parse(result.controls as string)
-            : undefined,
-          layout: result.layout
-            ? JSON.parse(result.layout as string)
-            : undefined,
-          active: result.active === 1,
-        }),
-      ),
-    );
+    // Parse JSON columns or stringified JSON for each result
+    const forms = results.map((result) => {
+      const parsed = { ...result };
+      if (typeof parsed.nodes === "string") {
+        try {
+          parsed.nodes = JSON.parse(parsed.nodes);
+        } catch {}
+      }
+      if (typeof parsed.start === "string") {
+        try {
+          parsed.start = JSON.parse(parsed.start);
+        } catch {}
+      }
+      if (typeof parsed.ending === "string") {
+        try {
+          parsed.ending = JSON.parse(parsed.ending);
+        } catch {}
+      }
+      return formSchema.parse(removeNullProperties(parsed));
+    });
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))

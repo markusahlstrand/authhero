@@ -46,13 +46,6 @@ describe("forms", () => {
     const { created_at, updated_at, id, ...rest } = createdForm;
     expect(rest).toMatchObject({
       name: "signup",
-      type: "signup",
-      fields: [
-        expect.objectContaining({
-          name: "email",
-          label: "Email",
-        }),
-      ],
     });
     expect(created_at).toBeTypeOf("string");
     expect(updated_at).toBeTypeOf("string");

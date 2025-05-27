@@ -112,10 +112,9 @@ const sqlFormSchema = z.object({
   ...formSchema.shape,
   tenant_id: z.string(),
   // Store complex data as JSON strings
-  fields: z.string(),
-  controls: z.string().optional().default("[]"),
-  layout: z.string().optional().default("{}"),
-  active: z.number(),
+  nodes: z.string().optional().default("[]"),
+  start: z.string().optional().default("{}"),
+  ending: z.string().optional().default("{}"),
 });
 
 export interface Database {
