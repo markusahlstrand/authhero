@@ -14,16 +14,16 @@ export function update(db: Kysely<Database>) {
     };
 
     // Convert complex objects to JSON strings
-    if (form.fields) {
-      updateValues.fields = JSON.stringify(form.fields);
+    if (form.nodes) {
+      updateValues.fields = JSON.stringify(form.nodes);
     }
 
-    if (form.controls) {
-      updateValues.controls = JSON.stringify(form.controls);
+    if (form.start) {
+      updateValues.controls = JSON.stringify(form.start);
     }
 
-    if (form.layout) {
-      updateValues.layout = JSON.stringify(form.layout);
+    if (form.ending) {
+      updateValues.layout = JSON.stringify(form.ending);
     }
 
     const { numUpdatedRows } = await db

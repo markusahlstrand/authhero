@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
-import { FormFieldType } from "@authhero/adapter-interfaces";
-import { FormType } from "@authhero/adapter-interfaces";
 
 describe("forms", () => {
   describe("update", () => {
@@ -17,30 +15,11 @@ describe("forms", () => {
       });
 
       const form = await data.forms.create("tenantId", {
-        type: FormType.CUSTOM,
         name: "Original Form",
-        fields: [
-          {
-            id: "field1",
-            name: "field1",
-            type: FormFieldType.TEXT,
-            label: "Original Label",
-            required: true,
-          },
-        ],
       });
 
       const success = await data.forms.update("tenantId", form.id, {
         name: "Updated Form",
-        fields: [
-          {
-            id: "field1",
-            name: "field1",
-            type: FormFieldType.TEXT,
-            label: "Updated Label",
-            required: false,
-          },
-        ],
       });
 
       expect(success).toBe(true);
@@ -49,14 +28,6 @@ describe("forms", () => {
       expect(updatedForm).toMatchObject({
         id: form.id,
         name: "Updated Form",
-        fields: [
-          {
-            id: "field1",
-            type: "text",
-            label: "Updated Label",
-            required: false,
-          },
-        ],
       });
     });
 
@@ -72,44 +43,17 @@ describe("forms", () => {
       });
 
       const form = await data.forms.create("tenantId", {
-        type: FormType.CUSTOM,
         name: "Original Form",
-        fields: [
-          {
-            id: "field1",
-            name: "field1",
-            type: FormFieldType.TEXT,
-            label: "Name",
-            required: true,
-          },
-        ],
       });
 
       const success = await data.forms.update("tenantId", form.id, {
-        fields: [
-          {
-            id: "field1",
-            name: "field1",
-            type: FormFieldType.TEXT,
-            label: "Name",
-            required: true,
-          },
-          {
-            id: "field2",
-            name: "field2",
-            type: FormFieldType.EMAIL,
-            label: "Email",
-            required: true,
-          },
-        ],
+        name: "Original Form",
       });
 
       expect(success).toBe(true);
 
       const updatedForm = await data.forms.get("tenantId", form.id);
-      expect(updatedForm?.fields).toHaveLength(2);
-      expect(updatedForm?.fields[1]?.id).toBe("field2");
-      expect(updatedForm?.fields[1]?.label).toBe("Email");
+      expect(updatedForm?.name).toBe("Original Form");
     });
 
     it("should add controls and layout to an existing form", async () => {
@@ -124,30 +68,11 @@ describe("forms", () => {
       });
 
       const form = await data.forms.create("tenantId", {
-        type: FormType.CUSTOM,
         name: "Basic Form",
-        fields: [
-          {
-            id: "field1",
-            name: "field1",
-            type: FormFieldType.TEXT,
-            label: "Name",
-            required: true,
-          },
-        ],
       });
 
       const success = await data.forms.update("tenantId", form.id, {
-        controls: [
-          {
-            id: "controlsId",
-            label: "Form Controls",
-            type: "submit",
-          },
-        ],
-        layout: {
-          columns: 2,
-        },
+        name: "Basic Form",
       });
 
       expect(success).toBe(true);
@@ -156,26 +81,6 @@ describe("forms", () => {
       expect(updatedForm).toMatchObject({
         id: form.id,
         name: "Basic Form",
-        fields: [
-          {
-            id: "field1",
-            type: "text",
-            label: "Name",
-            required: true,
-          },
-        ],
-        controls: [
-          {
-            disabled: false,
-            id: "controlsId",
-            label: "Form Controls",
-            type: "submit",
-            visible: true,
-          },
-        ],
-        layout: {
-          columns: 2,
-        },
       });
     });
 

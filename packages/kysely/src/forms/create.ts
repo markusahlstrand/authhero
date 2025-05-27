@@ -17,11 +17,10 @@ export function create(db: Kysely<Database>) {
       .values({
         ...form,
         // Store complex objects as JSON strings
-        fields: JSON.stringify(form.fields || []),
-        controls: JSON.stringify(form.controls || []),
-        layout: JSON.stringify(form.layout || {}),
+        nodes: JSON.stringify(form.nodes || []),
+        start: JSON.stringify(form.start || {}),
+        ending: JSON.stringify(form.ending || {}),
         tenant_id,
-        active: form.active ? 1 : 0,
       })
       .execute();
 
