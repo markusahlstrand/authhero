@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { loginWithPassword } from "../../authentication-flows/password";
-import { loginWithPasswordless } from "../../authentication-flows/passwordless";
+import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { getClientInfo } from "../../utils/client-info";
 import { nanoid } from "nanoid";
@@ -72,14 +72,11 @@ export const authenticateRoutes = new OpenAPIHono<{
       const clientInfo = getClientInfo(ctx.req);
 
       if ("otp" in body) {
-        return loginWithPasswordless(
-          ctx,
-          client,
-          { client_id, username: email },
-          email,
-          body.otp,
-          true,
-        );
+        return passwordlessGrant(ctx, {
+          client_id,
+          username: email,
+          otp: body.otp,
+        });
       } else if ("password" in body) {
         const loginSession = await ctx.env.data.loginSessions.create(
           client.tenant.id,

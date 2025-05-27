@@ -86,3 +86,14 @@ export type OnExecutePostUserRegistration = (
   event: HookEvent,
   api: OnExecutePostUserRegistrationAPI,
 ) => Promise<void>;
+
+export type OnExecutePostLoginAPI = {
+  prompt: {
+    render: (formId: string) => void;
+  };
+};
+
+export type OnExecutePostLogin = (
+  event: HookEvent,
+  api: OnExecutePostLoginAPI,
+) => Promise<void>;
