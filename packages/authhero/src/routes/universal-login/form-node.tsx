@@ -64,7 +64,7 @@ export const formNodeRoutes = new OpenAPIHono<{
     },
   )
   // --------------------------------
-  // POST /u/form/:formId/nodes/:nodeId
+  // POST /u/forms/:formId/nodes/:nodeId
   // --------------------------------
   .openapi(
     createRoute({
@@ -97,8 +97,8 @@ export const formNodeRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       // Use initJSXRoute to get vendorSettings and client for POST as well
       const { vendorSettings, client } = await initJSXRoute(ctx, state);
-      const tenantId = ctx.var.tenant_id;
-      const form = await ctx.env.data.forms.get(tenantId, formId);
+
+      const form = await ctx.env.data.forms.get(client.tenant.id, formId);
       if (!form) throw new HTTPException(404, { message: "Form not found" });
       // Only STEP nodes have components
       const node = (form.nodes || []).find(
@@ -117,6 +117,7 @@ export const formNodeRoutes = new OpenAPIHono<{
           state={state}
           formName={form.name}
           nodeAlias={node.alias || node.type}
+          components={"components" in node.config ? node.config.components : []}
         />,
       );
     },
