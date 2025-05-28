@@ -62,7 +62,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/validate-email", validateEmailRoutes)
     .route("/signup", signupRoutes)
-    .route("/form", formNodeRoutes);
+    .route("/forms", formNodeRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",
