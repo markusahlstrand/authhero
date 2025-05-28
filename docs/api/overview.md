@@ -39,6 +39,10 @@ The API is versioned to ensure backward compatibility. The current version is ac
 
 See the [Endpoints](endpoints.md) page for a complete list of available API endpoints.
 
+## Forms
+
+For details on the forms system, including form structure, components, and implementation, see the [Forms](forms.md) documentation.
+
 ## Error Handling
 
 See the [Error Codes](error-codes.md) page for details on error responses and status codes.

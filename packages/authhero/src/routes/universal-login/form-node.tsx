@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import FormComponent from "../../components/Form";
+import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
 
 export const formNodeRoutes = new OpenAPIHono<{
@@ -9,7 +9,7 @@ export const formNodeRoutes = new OpenAPIHono<{
   Variables: Variables;
 }>()
   // --------------------------------
-  // GET /u/form/:formId/nodes/:nodeId
+  // GET /u/forms/:formId/nodes/:nodeId
   // --------------------------------
   .openapi(
     createRoute({
@@ -33,63 +33,38 @@ export const formNodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
-      await initJSXRoute(ctx, state); // Only for session validation
-      const tenantId = ctx.var.tenant_id;
-      const form = await ctx.env.data.forms.get(tenantId, formId);
-      if (!form) throw new HTTPException(404, { message: "Form not found" });
+      const { client, vendorSettings } = await initJSXRoute(ctx, state);
+
+      const form = await ctx.env.data.forms.get(client.tenant.id, formId);
+
+      if (!form) {
+        throw new HTTPException(404, { message: "Form not found" });
+      }
       // Only STEP nodes have components
       const node = (form.nodes || []).find(
         (n: any) => n.id === nodeId && n.type === "STEP",
       );
-      if (!node)
+
+      if (!node) {
         throw new HTTPException(404, {
           message: "Node not found or not a STEP node",
         });
-      // Render node components (simple example)
+      }
+
       return ctx.html(
-        <FormComponent>
-          <h1>{form.name}</h1>
-          <div>{node.alias || node.type}</div>
-          {node.config &&
-            "components" in node.config &&
-            (node.config.components || []).map((comp: any) => {
-              if (comp.type === "RICH_TEXT") {
-                return (
-                  <div
-                    key={comp.id}
-                    dangerouslySetInnerHTML={{ __html: comp.config.content }}
-                  />
-                );
-              }
-              if (comp.type === "LEGAL") {
-                return (
-                  <label key={comp.id}>
-                    <input
-                      type="checkbox"
-                      name={comp.id}
-                      required={!!comp.required}
-                    />
-                    <span
-                      dangerouslySetInnerHTML={{ __html: comp.config.text }}
-                    />
-                  </label>
-                );
-              }
-              if (comp.type === "NEXT_BUTTON") {
-                return (
-                  <button key={comp.id} type="submit">
-                    {comp.config.text || "Continue"}
-                  </button>
-                );
-              }
-              return null;
-            })}
-        </FormComponent>,
+        <FormNodePage
+          vendorSettings={vendorSettings}
+          client={client}
+          state={state}
+          formName={form.name}
+          nodeAlias={node.alias || node.type}
+          components={"components" in node.config ? node.config.components : []}
+        />,
       );
     },
   )
   // --------------------------------
-  // POST /u/form/:formId/nodes/:nodeId
+  // POST /u/forms/:formId/nodes/:nodeId
   // --------------------------------
   .openapi(
     createRoute({
@@ -120,9 +95,10 @@ export const formNodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
-      await initJSXRoute(ctx, state); // Only for session validation
-      const tenantId = ctx.var.tenant_id;
-      const form = await ctx.env.data.forms.get(tenantId, formId);
+      // Use initJSXRoute to get vendorSettings and client for POST as well
+      const { vendorSettings, client } = await initJSXRoute(ctx, state);
+
+      const form = await ctx.env.data.forms.get(client.tenant.id, formId);
       if (!form) throw new HTTPException(404, { message: "Form not found" });
       // Only STEP nodes have components
       const node = (form.nodes || []).find(
@@ -135,11 +111,14 @@ export const formNodeRoutes = new OpenAPIHono<{
       // TODO: handle form submission, validation, next_node, etc.
       // For now, just re-render the form node
       return ctx.html(
-        <FormComponent>
-          <h1>{form.name}</h1>
-          <div>{node.alias || node.type}</div>
-          <div>Form submitted! (not yet implemented)</div>
-        </FormComponent>,
+        <FormNodePage
+          vendorSettings={vendorSettings}
+          client={client}
+          state={state}
+          formName={form.name}
+          nodeAlias={node.alias || node.type}
+          components={"components" in node.config ? node.config.components : []}
+        />,
       );
     },
   );

@@ -1,5 +1,16 @@
 # authhero
 
+## 0.140.0
+
+### Minor Changes
+
+- Add form components schemas
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.64.0
+
 ## 0.139.0
 
 ### Minor Changes
