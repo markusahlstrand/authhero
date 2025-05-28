@@ -135,7 +135,31 @@ export const passwordlessRoutes = new OpenAPIHono<{
       },
       responses: {
         302: {
-          description: "Status",
+          description: "Successful verification, redirecting to continue flow.",
+          headers: z.object({ Location: z.string().url() }).openapi({}), // Added Location header spec
+        },
+        400: {
+          description:
+            "Bad Request (e.g., invalid client, invalid code, missing parameters).",
+          content: {
+            "application/json": {
+              schema: z.object({
+                error: z.string(),
+                error_description: z.string().optional(),
+              }),
+            },
+          },
+        },
+        500: {
+          description: "Internal Server Error.",
+          content: {
+            "application/json": {
+              schema: z.object({
+                error: z.string(),
+                error_description: z.string().optional(),
+              }),
+            },
+          },
         },
       },
     }),
@@ -152,6 +176,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
         nonce,
       } = ctx.req.valid("query");
+
       const client = await getClientWithDefaults(env, client_id);
 
       ctx.set("client_id", client.id);
@@ -168,11 +193,19 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
       };
 
-      return passwordlessGrant(ctx, {
+      const result = await passwordlessGrant(ctx, {
         client_id,
         username: email,
         otp: verification_code,
         authParams,
       });
+
+      if (result instanceof Response) {
+        return result;
+      } else {
+        throw new HTTPException(500, {
+          message: "Unexpected response type",
+        });
+      }
     },
   );

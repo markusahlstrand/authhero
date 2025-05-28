@@ -6,6 +6,7 @@ import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { getClientInfo } from "../../utils/client-info";
 import { nanoid } from "nanoid";
+import { TokenResponse } from "@authhero/adapter-interfaces";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -71,8 +72,10 @@ export const authenticateRoutes = new OpenAPIHono<{
       const email = username.toLocaleLowerCase();
       const clientInfo = getClientInfo(ctx.req);
 
+      let response: Response | TokenResponse;
+
       if ("otp" in body) {
-        return passwordlessGrant(ctx, {
+        response = await passwordlessGrant(ctx, {
           client_id,
           username: email,
           otp: body.otp,
@@ -96,7 +99,7 @@ export const authenticateRoutes = new OpenAPIHono<{
         );
 
         // This will throw if the login fails
-        return loginWithPassword(
+        response = await loginWithPassword(
           ctx,
           client,
           {
@@ -110,5 +113,12 @@ export const authenticateRoutes = new OpenAPIHono<{
       } else {
         throw new HTTPException(400, { message: "Code or password required" });
       }
+
+      if (!(response instanceof Response)) {
+        throw new HTTPException(500, {
+          message: "Unexpected response from loginWithPassword",
+        });
+      }
+      return response;
     },
   );

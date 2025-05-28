@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { Log, LogType } from "@authhero/adapter-interfaces";
 import { Variables, Bindings } from "../types";
 
-type LogParams = {
+export type LogParams = {
   type: LogType;
   description?: string;
   userId?: string;

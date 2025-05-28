@@ -6,6 +6,7 @@ import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
   CodeChallengeMethod,
+  tokenResponseSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
@@ -71,10 +72,45 @@ export const authorizeRoutes = new OpenAPIHono<{
       },
       responses: {
         200: {
-          description: "Silent authentication page",
+          description:
+            "Successful authorization response. This can be an HTML page (e.g., for silent authentication iframe or universal login page) or a JSON object containing tokens (e.g., for response_mode=web_message).",
+          content: {
+            "text/html": {
+              schema: z.string().openapi({ example: "<html>...</html>" }),
+            },
+            "application/json": {
+              schema: tokenResponseSchema,
+            },
+          },
         },
         302: {
-          description: "Redirect to the client's redirect uri",
+          description:
+            "Redirect to the client's redirect URI, an authentication page, or an external identity provider.",
+          headers: z.object({
+            Location: z.string().url(),
+          }),
+        },
+        400: {
+          description:
+            "Bad Request. Invalid parameters or other client-side errors.",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
+        },
+        403: {
+          description:
+            "Forbidden. The request is not allowed (e.g., invalid origin).",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
         },
       },
     }),
@@ -164,6 +200,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           });
         }
 
+        // silentAuth returns Promise<Response>, which is fine directly.
         return silentAuth({
           ctx,
           session: validSession || undefined,
@@ -189,18 +226,27 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       // Connection auth flow
       if (connection && connection !== "email") {
+        // connectionAuth returns Promise<Response>, which is fine directly.
         return connectionAuth(ctx, client, connection, authParams);
       } else if (login_ticket) {
-        return ticketAuth(
+        const ticketAuthResult = await ticketAuth(
           ctx,
           client.tenant.id,
           login_ticket,
           authParams,
           realm!,
         );
+
+        if (ticketAuthResult instanceof Response) {
+          return ticketAuthResult;
+        } else {
+          // ticketAuthResult is TokenResponse
+          return ctx.json(ticketAuthResult);
+        }
       }
 
-      return universalAuth({
+      // universalAuth can return Promise<TokenResponse | Response>
+      const universalAuthResult = await universalAuth({
         ctx,
         client,
         auth0Client,
@@ -209,5 +255,12 @@ export const authorizeRoutes = new OpenAPIHono<{
         connection,
         login_hint,
       });
+
+      if (universalAuthResult instanceof Response) {
+        return universalAuthResult;
+      } else {
+        // universalAuthResult is TokenResponse
+        return ctx.json(universalAuthResult);
+      }
     },
   );

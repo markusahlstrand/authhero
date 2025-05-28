@@ -12,6 +12,7 @@ import MessagePage from "../../components/Message";
 import { sendValidateEmailAddress } from "../../emails";
 import { loginWithPassword } from "../../authentication-flows/password";
 import { getDataAdapter } from "../../helpers/data";
+import { AuthError } from "../../types/AuthError"; // Ensure AuthError is imported
 
 export const signupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -99,7 +100,24 @@ export const signupRoutes = new OpenAPIHono<{
       },
       responses: {
         200: {
-          description: "Response",
+          description:
+            "HTML page indicating success (e.g., email verification sent) or a next step.",
+          content: { "text/html": { schema: z.string() } },
+        },
+        302: {
+          description:
+            "Redirect to continue the authentication flow (e.g., to client, MFA, consent) after successful login.",
+          headers: z.object({ Location: z.string().url() }),
+        },
+        400: {
+          description:
+            "Bad Request - HTML page with an error message (e.g., passwords don't match, weak password, user exists).",
+          content: { "text/html": { schema: z.string() } },
+        },
+        500: {
+          description:
+            "Internal Server Error - HTML page with an error message.",
+          content: { "text/html": { schema: z.string() } },
         },
       },
     }),
@@ -109,61 +127,79 @@ export const signupRoutes = new OpenAPIHono<{
       const loginParams = ctx.req.valid("form");
       const { env } = ctx;
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
-
-      const connection = "Username-Password-Authentication";
-      ctx.set("client_id", client.id);
-      ctx.set("connection", connection);
-
-      const { username } = loginSession.authParams;
-      if (!username) {
-        throw new HTTPException(400, { message: "Username required" });
-      }
-
-      if (loginParams.password !== loginParams["re-enter-password"]) {
-        return ctx.html(
-          <SignupPage
-            state={state}
-            code={loginParams.code}
-            vendorSettings={vendorSettings}
-            error={i18next.t("create_account_passwords_didnt_match")}
-            email={loginSession.authParams.username}
-          />,
-          400,
-        );
-      }
-
-      if (!validatePasswordStrength(loginParams.password)) {
-        return ctx.html(
-          <SignupPage
-            state={state}
-            code={loginParams.code}
-            vendorSettings={vendorSettings}
-            error={i18next.t("create_account_weak_password")}
-            email={loginSession.authParams.username}
-          />,
-          400,
-        );
-      }
-
-      const emailVerificationCode = loginParams.code
-        ? await env.data.codes.get(
-            client.tenant.id,
-            loginParams.code,
-            "email_verification",
-          )
-        : undefined;
-      const emailVerificationSession = emailVerificationCode
-        ? await env.data.loginSessions.get(
-            client.tenant.id,
-            emailVerificationCode.login_id,
-          )
-        : undefined;
+      // These are declared here so they are available in the catch block's scope
+      let vendorSettings;
+      let client;
+      let loginSession;
+      let username;
 
       try {
+        ({ vendorSettings, client, loginSession } = await initJSXRoute(
+          ctx,
+          state,
+        ));
+
+        const connection = "Username-Password-Authentication";
+        ctx.set("client_id", client.id);
+        ctx.set("connection", connection);
+
+        ({ username } = loginSession.authParams);
+        if (!username) {
+          // This case should ideally be caught by initJSXRoute or earlier validation
+          // but as a safeguard:
+          return ctx.html(
+            <MessagePage
+              vendorSettings={vendorSettings} // vendorSettings should be available
+              state={state}
+              pageTitle={i18next.t("error_page_title") || "Error"}
+              message={
+                i18next.t("username_required_error") || "Username required"
+              }
+            />,
+            400,
+          );
+        }
+
+        if (loginParams.password !== loginParams["re-enter-password"]) {
+          return ctx.html(
+            <SignupPage
+              state={state}
+              code={loginParams.code}
+              vendorSettings={vendorSettings}
+              error={i18next.t("create_account_passwords_didnt_match")}
+              email={username}
+            />,
+            400,
+          );
+        }
+
+        if (!validatePasswordStrength(loginParams.password)) {
+          return ctx.html(
+            <SignupPage
+              state={state}
+              code={loginParams.code}
+              vendorSettings={vendorSettings}
+              error={i18next.t("create_account_weak_password")}
+              email={username}
+            />,
+            400,
+          );
+        }
+
+        const emailVerificationCode = loginParams.code
+          ? await env.data.codes.get(
+              client.tenant.id,
+              loginParams.code,
+              "email_verification",
+            )
+          : undefined;
+        const emailVerificationSession = emailVerificationCode
+          ? await env.data.loginSessions.get(
+              client.tenant.id,
+              emailVerificationCode.login_id,
+            )
+          : undefined;
+
         const existingUser = await getUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
@@ -172,7 +208,16 @@ export const signupRoutes = new OpenAPIHono<{
         });
 
         if (existingUser) {
-          throw new HTTPException(400, { message: "Invalid sign up" });
+          return ctx.html(
+            <SignupPage
+              state={state}
+              code={loginParams.code}
+              vendorSettings={vendorSettings}
+              error={i18next.t("user_exists_error") || "User already exists"} // Provide a fallback translation key
+              email={username}
+            />,
+            400,
+          );
         }
 
         const email_verified =
@@ -209,7 +254,7 @@ export const signupRoutes = new OpenAPIHono<{
           );
         }
 
-        return await loginWithPassword(
+        const loginResult = await loginWithPassword(
           ctx,
           client,
           {
@@ -218,22 +263,76 @@ export const signupRoutes = new OpenAPIHono<{
           },
           loginSession,
         );
-      } catch (err: unknown) {
-        const vendorSettings = await fetchVendorSettings(
-          env,
-          client.id,
-          loginSession.authParams.vendor_id,
-        );
 
-        const error = err as Error;
+        if (loginResult instanceof Response) {
+          return loginResult; // Handles redirects or other direct Response objects from login
+        } else {
+          // loginResult is TokenResponse - this is unexpected for this HTML route
+          console.error(
+            "Unexpected TokenResponse in POST /u/signup after login. This might indicate a flow misconfiguration as this route expects HTML or redirect.",
+            loginResult,
+          );
+          return ctx.html(
+            <MessagePage
+              vendorSettings={vendorSettings}
+              state={state}
+              pageTitle={i18next.t("error_page_title") || "Error"}
+              message={
+                i18next.t("unexpected_error_try_again") ||
+                "An unexpected error occurred. Please try again."
+              }
+            />,
+            500,
+          );
+        }
+      } catch (err: unknown) {
+        // Ensure vendorSettings is available if initJSXRoute failed before it was assigned
+        if (!vendorSettings) {
+          try {
+            vendorSettings = await fetchVendorSettings(
+              env,
+              client?.id,
+              loginSession?.authParams?.vendor_id,
+            );
+          } catch (fetchErr) {
+            console.error(
+              "Failed to fetch vendor settings in error handler:",
+              fetchErr,
+            );
+            // Use a very basic fallback if vendorSettings can't be fetched
+            vendorSettings = {
+              styles: "",
+              disable_signup: false,
+              disable_connection_signup: false,
+              domains: [],
+            };
+          }
+        }
+
+        let errorMessage =
+          i18next.t("unknown_error_message") || "An unknown error occurred.";
+        let errorStatus: 400 | 500 = 400;
+
+        if (err instanceof HTTPException) {
+          errorMessage = err.message || errorMessage;
+          errorStatus = err.status === 400 ? 400 : 500; // Only allow 400 or 500 from HTTPException
+        } else if (err instanceof AuthError) {
+          errorMessage = err.message || errorMessage;
+          // AuthError might have more specific status, but for signup page, 400 is usually appropriate
+        } else if (err instanceof Error) {
+          errorMessage = err.message || errorMessage;
+          errorStatus = 500; // Default to 500 for generic errors
+        }
+
         return ctx.html(
           <SignupPage
             state={state}
             vendorSettings={vendorSettings}
-            error={error.message}
-            email={username}
+            error={errorMessage}
+            email={username} // username might be undefined if initJSXRoute failed early
+            code={loginParams.code}
           />,
-          400,
+          errorStatus,
         );
       }
     },

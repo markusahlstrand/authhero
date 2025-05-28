@@ -5,7 +5,10 @@ import { createAuthResponse } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { safeCompare } from "../utils/safe-compare";
-import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  TokenResponse,
+} from "@authhero/adapter-interfaces";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -37,7 +40,7 @@ export type AuthorizationCodeGrantTypeParams = z.infer<
 export async function authorizationCodeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
-) {
+): Promise<TokenResponse | Response> {
   const client = await ctx.env.data.clients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
@@ -109,13 +112,21 @@ export async function authorizationCodeGrant(
 
   await ctx.env.data.codes.used(client.tenant.id, params.code);
 
+  // createAuthResponse will handle returning TokenResponse directly for WEB_MESSAGE
+  // or a full Response for other cases (though not expected here due to fixed response_mode)
   return createAuthResponse(ctx, {
     user,
     client,
     loginSession,
     authParams: {
       ...loginSession.authParams,
+      // Ensure WEB_MESSAGE is explicitly passed, as createAuthResponse relies on it
       response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+      // Pass through other relevant authParams from the loginSession or original request if necessary
+      // For authorization_code grant, these are usually fixed or derived, not directly from params
+      client_id: client.id, // ensure client_id is from the validated client
+      scope: loginSession.authParams.scope, // scope from original authorization request
+      audience: loginSession.authParams.audience, // audience from original authorization request
     },
   });
 }

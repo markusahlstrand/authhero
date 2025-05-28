@@ -8,6 +8,8 @@ import { connectionCallback } from "../../authentication-flows/connection";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
 import { getUniversalLoginUrl } from "../../variables";
+// Ensure Response is available, usually global or from Hono if specific types are needed.
+// import { Response } from 'hono'; // Not usually needed for instanceof global Response
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -87,6 +89,26 @@ export const callbackRoutes = new OpenAPIHono<{
         302: {
           description: "Redirect to the client's redirect uri",
         },
+        400: {
+          description: "Bad Request",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
+        },
+        500: {
+          description: "Internal Server Error",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
+        },
       },
     }),
     async (ctx) => {
@@ -110,14 +132,20 @@ export const callbackRoutes = new OpenAPIHono<{
       }
 
       if (!code) {
-        // The code is not present if there's an error, so this will not be reached
+        // This specific HTTPException will be handled by Hono's default error handler.
         throw new HTTPException(400, { message: "Code is required" });
       }
 
-      return connectionCallback(ctx, {
+      const result = await connectionCallback(ctx, {
         code,
         state,
       });
+
+      if (!(result instanceof Response)) {
+        throw new HTTPException(500, { message: "Internal server error" });
+      }
+
+      return result;
     },
   )
   // --------------------------------
@@ -150,6 +178,26 @@ export const callbackRoutes = new OpenAPIHono<{
         302: {
           description: "Redirect to the client's redirect uri",
         },
+        400: {
+          description: "Bad Request",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
+        },
+        500: {
+          description: "Internal Server Error",
+          content: {
+            "application/json": {
+              schema: z.object({
+                message: z.string(),
+              }),
+            },
+          },
+        },
       },
     }),
     async (ctx) => {
@@ -173,13 +221,18 @@ export const callbackRoutes = new OpenAPIHono<{
         );
       }
       if (!code) {
-        // The code is not present if there's an error, so this will not be reached
         throw new HTTPException(400, { message: "Code is required" });
       }
 
-      return connectionCallback(ctx, {
+      const result = await connectionCallback(ctx, {
         code,
         state,
       });
+
+      if (!(result instanceof Response)) {
+        throw new HTTPException(500, { message: "Internal server error" });
+      }
+
+      return result;
     },
   );

@@ -72,6 +72,7 @@ export async function initJSXRoute(
     ctx.var.tenant_id || "",
     state,
   );
+
   if (!loginSession) {
     throw new HTTPException(400, { message: "Login session not found" });
   } else if (loginSession.session_id && allowSession) {
