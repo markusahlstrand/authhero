@@ -179,6 +179,7 @@ export const flowNodeSchema = z.object({
   id: z.string(),
   type: z.literal(NodeType.FLOW),
   coordinates: coordinatesSchema,
+  alias: z.string().optional(),
   config: z.object({
     flow_id: z.string(),
     next_node: z.string(),

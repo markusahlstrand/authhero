@@ -11,7 +11,7 @@ import {
 } from "react-admin";
 import FlowEditor from "./FlowEditor";
 import { ReactFlowProvider } from "@xyflow/react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import * as React from "react";
 import { useSaveContext } from "react-admin";
 
@@ -49,6 +49,7 @@ const FlowDiagram = () => {
 const RawJsonEditor = () => {
   const record = useRecordContext();
   const saveContext = useSaveContext();
+  const theme = useTheme();
   const [jsonValue, setJsonValue] = React.useState(() =>
     record ? JSON.stringify(record, null, 2) : "",
   );
@@ -87,6 +88,12 @@ const RawJsonEditor = () => {
     }
   };
 
+  // Theme-aware colors
+  const isDark = theme.palette.mode === "dark";
+  const textareaBg = isDark ? theme.palette.background.paper : "#f5f5f5";
+  const textareaBorder = isDark ? theme.palette.divider : "#e0e0e0";
+  const textareaColor = isDark ? theme.palette.text.primary : "inherit";
+
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -97,9 +104,10 @@ const RawJsonEditor = () => {
         value={jsonValue}
         onChange={handleChange}
         sx={{
-          backgroundColor: "#f5f5f5",
-          border: "1px solid #e0e0e0",
+          backgroundColor: textareaBg,
+          border: `1px solid ${textareaBorder}`,
           borderRadius: "4px",
+          color: textareaColor,
           padding: 2,
           maxHeight: "600px",
           minHeight: "300px",
@@ -117,9 +125,9 @@ const RawJsonEditor = () => {
           style={{
             padding: "6px 16px",
             borderRadius: 4,
-            border: "1px solid #1976d2",
-            background: "#1976d2",
-            color: "white",
+            border: `1px solid ${theme.palette.primary.main}`,
+            background: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
             cursor: error ? "not-allowed" : "pointer",
           }}
         >

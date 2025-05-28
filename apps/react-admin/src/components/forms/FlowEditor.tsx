@@ -14,8 +14,9 @@ import {
   Position,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Box, Typography, Alert } from "@mui/material";
+import { Box, Typography, Alert, GlobalStyles } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import { useTheme } from "@mui/material/styles";
 
 // Import the NodeEditor component
 import NodeEditor from "./NodeEditor";
@@ -76,46 +77,6 @@ interface CustomNodeData extends Record<string, unknown> {
 }
 
 // Constants moved outside component
-const NODE_STYLES = {
-  start: {
-    background: "#f5f5f5",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "12px",
-    color: "#424242",
-    minWidth: "180px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
-  step: {
-    background: "#ffffff",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "12px",
-    color: "#424242",
-    minWidth: "280px",
-    maxWidth: "320px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
-  flow: {
-    background: "#f8f9fa",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "12px",
-    color: "#424242",
-    minWidth: "180px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
-  end: {
-    background: "#f5f5f5",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "12px",
-    color: "#424242",
-    minWidth: "180px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
-} as const;
-
 const DEFAULT_EDGE_OPTIONS = {
   type: "smoothstep" as const,
   animated: true,
@@ -172,7 +133,10 @@ const StartNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
       >
         ▶
       </Box>
-      <Typography variant="body2" color="text.secondary">
+      <Typography
+        variant="body2"
+        sx={{ color: (theme) => theme.palette.text.secondary }}
+      >
         {data.next ? `Next: ${data.next}` : "No connection"}
       </Typography>
     </Box>
@@ -347,7 +311,10 @@ const StepNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
 
     {data.next && (
       <Box sx={{ mt: 1, borderTop: "1px dashed #ddd", pt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{ color: (theme) => theme.palette.text.secondary }}
+        >
           Next: {data.next === "$ending" ? "End" : data.next}
         </Typography>
       </Box>
@@ -407,7 +374,10 @@ const FlowNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
 
     {data.next && (
       <Box sx={{ mt: 1, borderTop: "1px dashed #ddd", pt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          sx={{ color: (theme) => theme.palette.text.secondary }}
+        >
           Next: {data.next === "$ending" ? "End" : data.next}
         </Typography>
       </Box>
@@ -434,7 +404,10 @@ const EndNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
     <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
       Ending screen
     </Typography>
-    <Typography variant="body2" color="text.secondary">
+    <Typography
+      variant="body2"
+      sx={{ color: (theme) => theme.palette.text.secondary }}
+    >
       {data.resumeFlow === "Yes" ? "Resume authentication flow" : "End flow"}
     </Typography>
   </Box>
@@ -456,6 +429,61 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   onNodeUpdate,
   onError,
 }) => {
+  const theme = useTheme();
+
+  // Theme-aware node styles
+  const NODE_STYLES = React.useMemo(() => {
+    // Use original light mode colors, and only override for dark mode
+    const isDark = theme.palette.mode === "dark";
+    return {
+      start: {
+        background: isDark ? theme.palette.grey[800] : "#f5f5f5",
+        border: isDark
+          ? `1px solid ${theme.palette.divider}`
+          : "1px solid #e0e0e0",
+        borderRadius: "4px",
+        padding: "12px",
+        color: theme.palette.text.primary,
+        minWidth: "180px",
+        boxShadow: theme.shadows[1],
+      },
+      step: {
+        background: isDark ? theme.palette.grey[900] : "#ffffff",
+        border: isDark
+          ? `1px solid ${theme.palette.divider}`
+          : "1px solid #e0e0e0",
+        borderRadius: "4px",
+        padding: "12px",
+        color: theme.palette.text.primary,
+        minWidth: "280px",
+        maxWidth: "320px",
+        boxShadow: theme.shadows[1],
+      },
+      flow: {
+        background: isDark ? theme.palette.grey[850] : "#f8f9fa",
+        border: isDark
+          ? `1px solid ${theme.palette.divider}`
+          : "1px solid #e0e0e0",
+        borderRadius: "4px",
+        padding: "12px",
+        color: theme.palette.text.primary,
+        minWidth: "180px",
+        boxShadow: theme.shadows[1],
+      },
+      end: {
+        background: isDark ? theme.palette.grey[800] : "#f5f5f5",
+        border: isDark
+          ? `1px solid ${theme.palette.divider}`
+          : "1px solid #e0e0e0",
+        borderRadius: "4px",
+        padding: "12px",
+        color: theme.palette.text.primary,
+        minWidth: "180px",
+        boxShadow: theme.shadows[1],
+      },
+    };
+  }, [theme]);
+
   // State for node selection and editor
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -754,6 +782,37 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
 
   return (
     <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
+      {/* Global styles for ReactFlow Controls to support dark mode */}
+      <GlobalStyles
+        styles={(theme) => ({
+          ".react-flow__controls": {
+            background: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 8,
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "0 2px 8px rgba(0,0,0,0.32)"
+                : "0 2px 8px rgba(0,0,0,0.08)",
+            margin: 8,
+          },
+          ".react-flow__controls-button": {
+            background: "none",
+            color: theme.palette.text.primary,
+            border: "none",
+            transition: "background 0.2s",
+            "&:hover": {
+              background:
+                theme.palette.mode === "dark"
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.04)",
+            },
+          },
+          ".react-flow__controls-button svg": {
+            fill: theme.palette.text.primary,
+          },
+        })}
+      />
+
       {warnings.length > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           <Typography variant="subtitle2">Flow Validation Warnings:</Typography>
@@ -786,15 +845,34 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         minZoom={FLOW_CONFIG.minZoom}
         maxZoom={FLOW_CONFIG.maxZoom}
         attributionPosition="bottom-left"
-        style={{ height: "100%" }}
+        style={{ height: "100%", background: theme.palette.background.default }}
       >
-        <Controls showInteractive={false} />
-        <Background color="#f0f0f0" gap={12} size={1} />
+        <Controls
+          showInteractive={false}
+          style={{
+            background: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            borderRadius: 8,
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "0 2px 8px rgba(0,0,0,0.32)"
+                : "0 2px 8px rgba(0,0,0,0.08)",
+            border: `1px solid ${theme.palette.divider}`,
+            margin: 8,
+          }}
+        />
+        <Background
+          color={
+            theme.palette.mode === "dark" ? theme.palette.divider : "#f0f0f0"
+          }
+          gap={12}
+          size={1}
+        />
         <Panel position="top-right">
           <Box
             sx={{
               p: 1,
-              bgcolor: "white",
+              bgcolor: theme.palette.background.paper,
               borderRadius: "4px",
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
               minWidth: 160,
@@ -848,7 +926,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           zIndex: 10,
           display: "flex",
           alignItems: "center",
-          bgcolor: "white",
+          bgcolor: theme.palette.background.paper,
           borderRadius: 2,
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           px: 1.5,
@@ -861,13 +939,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           <button
             type="button"
             style={{
-              border: "1px solid #e0e0e0",
-              background: "#fff",
+              border: `1px solid ${theme.palette.divider}`,
+              background: theme.palette.background.paper,
               borderRadius: 6,
               padding: "4px 16px",
               fontWeight: 500,
               fontSize: 15,
-              color: "#424242",
+              color: theme.palette.text.primary,
               cursor: "pointer",
               outline: "none",
               transition: "background 0.2s, border 0.2s",
@@ -879,13 +957,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           <button
             type="button"
             style={{
-              border: "1px solid #e0e0e0",
-              background: "#fff",
+              border: `1px solid ${theme.palette.divider}`,
+              background: theme.palette.background.paper,
               borderRadius: 6,
               padding: "4px 16px",
               fontWeight: 500,
               fontSize: 15,
-              color: "#424242",
+              color: theme.palette.text.primary,
               cursor: "pointer",
               outline: "none",
               transition: "background 0.2s, border 0.2s",
@@ -897,13 +975,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           <button
             type="button"
             style={{
-              border: "1px solid #e0e0e0",
-              background: "#fff",
+              border: `1px solid ${theme.palette.divider}`,
+              background: theme.palette.background.paper,
               borderRadius: 6,
               padding: "4px 16px",
               fontWeight: 500,
               fontSize: 15,
-              color: "#424242",
+              color: theme.palette.text.primary,
               cursor: "pointer",
               outline: "none",
               transition: "background 0.2s, border 0.2s",
@@ -914,7 +992,6 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           </button>
         </Box>
       </Box>
-
       {/* Node Editor */}
       <NodeEditor
         open={isEditorOpen}
