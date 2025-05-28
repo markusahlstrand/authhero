@@ -46,10 +46,10 @@ export const formInsertSchema = z
             id: z.string(),
             type: z.literal("FLOW"),
             coordinates: z.object({ x: z.number(), y: z.number() }),
-            alias: z.string().min(1).max(150),
+            alias: z.string().min(1).max(150).optional(),
             config: z.object({
               flow_id: z.string().max(30),
-              next_node: z.array(z.string()), // Accepts string[] (forms-custom-identifier or "$ending")
+              next_node: z.string(),
             }),
           }),
           // ROUTER node
@@ -62,9 +62,9 @@ export const formInsertSchema = z
               rules: z.array(
                 z.object({
                   id: z.string(),
-                  alias: z.string().min(1).max(150),
+                  alias: z.string().min(1).max(150).optional(),
                   condition: z.any(), // condition is required but type is not specified
-                  next_node: z.array(z.string()),
+                  next_node: z.string(),
                 }),
               ),
               fallback: z.array(z.string()),
@@ -75,10 +75,10 @@ export const formInsertSchema = z
             id: z.string(),
             type: z.literal("STEP"),
             coordinates: z.object({ x: z.number(), y: z.number() }),
-            alias: z.string().min(1).max(150),
+            alias: z.string().min(1).max(150).optional(),
             config: z.object({
               components: z.array(z.any()), // components is an array of objects, structure not specified
-              next_node: z.array(z.string()),
+              next_node: z.string(),
             }),
           }),
         ]),
@@ -89,7 +89,7 @@ export const formInsertSchema = z
         hidden_fields: z
           .array(z.object({ key: z.string(), value: z.string() }))
           .optional(),
-        next_node: z.array(z.string()).optional(),
+        next_node: z.string().optional(),
         coordinates: z.object({ x: z.number(), y: z.number() }).optional(),
       })
       .optional(),

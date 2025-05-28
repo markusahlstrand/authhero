@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.63.0
+
+### Minor Changes
+
+- Update forms schema
+
 ## 0.62.0
 
 ### Minor Changes
