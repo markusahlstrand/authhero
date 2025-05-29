@@ -32,7 +32,7 @@ const webHookInsertSchema = z.object({
 const formHookInsertSchema = z.object({
   ...hookBaseCommonProperties,
   trigger_id: formHookAllowedTriggers,
-  forms_id: z.string(),
+  form_id: z.string(),
 });
 
 export const hookInsertSchema = z.union([
@@ -54,7 +54,7 @@ const formHookSchema = z.object({
   trigger_id: formHookAllowedTriggers,
   ...baseEntitySchema.shape,
   hook_id: z.string(),
-  forms_id: z.string(),
+  form_id: z.string(),
 });
 
 export const hookSchema = z.union([webHookSchema, formHookSchema]);

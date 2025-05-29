@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
-  await db.schema.alterTable("hooks").addColumn("forms_id", "text").execute();
+  await db.schema.alterTable("hooks").addColumn("form_id", "text").execute();
   await db.schema
     .alterTable("hooks")
     .alterColumn("url", (ac) => ac.setDataType("varchar(512)"))

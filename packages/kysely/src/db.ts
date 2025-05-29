@@ -76,7 +76,7 @@ const sqlHookSchema = z.object({
   enabled: z.number(),
   synchronous: z.number(),
   url: z.string().optional().nullable(),
-  forms_id: z.string().optional().nullable(),
+  form_id: z.string().optional().nullable(),
 });
 
 const sqlEmailProvidersSchema = z.object({
