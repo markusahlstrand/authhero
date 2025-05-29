@@ -81,7 +81,7 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         body: {
           content: {
             "application/json": {
-              schema: z.object(hookInsertSchema.shape),
+              schema: hookInsertSchema, // Directly use the union schema
             },
           },
         },
@@ -129,10 +129,11 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         body: {
           content: {
             "application/json": {
-              schema: z
-                .object(hookInsertSchema.shape)
-                .omit({ hook_id: true })
-                .partial(),
+              // Apply transformations to each member of the hookInsertSchema union
+              schema: z.union([
+                hookInsertSchema.options[0].omit({ hook_id: true }).partial(),
+                hookInsertSchema.options[1].omit({ hook_id: true }).partial(),
+              ]),
             },
           },
         },
@@ -146,7 +147,7 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         200: {
           content: {
             "application/json": {
-              schema: hookSchema.shape,
+              schema: hookSchema, // Directly use the union schema
             },
           },
           description: "The updated hook",
