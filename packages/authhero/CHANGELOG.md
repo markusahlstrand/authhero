@@ -1,5 +1,11 @@
 # authhero
 
+## 0.141.0
+
+### Minor Changes
+
+- Update logic for when refresh tokens are created
+
 ## 0.140.0
 
 ### Minor Changes

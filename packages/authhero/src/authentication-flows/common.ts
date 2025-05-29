@@ -299,19 +299,7 @@ export async function createSession(
     session_id: session.id,
   });
 
-  const { scope, audience } = loginSession.authParams;
-
-  const refresh_token = scope?.split(" ").includes("offline_access")
-    ? await createRefreshToken(ctx, {
-        session_id: session.id,
-        user,
-        client,
-        scope,
-        audience,
-      })
-    : undefined;
-
-  return { ...session, refresh_token };
+  return session;
 }
 
 export interface CreateAuthResponseParams {
@@ -372,39 +360,60 @@ export async function createAuthResponse(
     });
   }
 
+  // Initialize with params.refreshToken, may be updated based on offline_access scope and session status.
   let refresh_token = params.refreshToken;
   let session_id = params.sessionId;
 
   let postHookUser = user;
 
   if (!session_id && params.loginSession?.session_id) {
+    // Scenario 1: Reusing an existing session indicated by loginSession.session_id
     session_id = params.loginSession.session_id;
     const existingSession = await ctx.env.data.sessions.get(
       client.tenant.id,
       session_id,
     );
+
+    // Ensure the client is associated with the existing session
     if (existingSession && !existingSession.clients.includes(client.id)) {
       await ctx.env.data.sessions.update(client.tenant.id, session_id, {
         clients: [...existingSession.clients, client.id],
       });
     }
+
+    // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
+    if (
+      !refresh_token &&
+      authParams.scope?.split(" ").includes("offline_access")
+    ) {
+      const newRefreshToken = await createRefreshToken(ctx, {
+        user: postHookUser,
+        client,
+        session_id,
+        scope: authParams.scope,
+        audience: authParams.audience,
+      });
+      refresh_token = newRefreshToken.id;
+    }
   } else if (!session_id) {
+    // Scenario 2: Creating a new session
     if (!params.loginSession) {
       throw new HTTPException(500, {
         message: "Login session not found for creating a new session.",
       });
     }
+    // User might be modified by post-login hook before session creation
     postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
       client.tenant.id,
       user,
     );
-    const session = await createSession(ctx, {
+
+    const newSession = await createSession(ctx, {
       user: postHookUser,
       client,
       loginSession: params.loginSession,
     });
-    session_id = session.id;
-    refresh_token = session.refresh_token?.id;
+    session_id = newSession.id;
   }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
@@ -427,7 +436,7 @@ export async function createAuthResponse(
     user: postHookUser,
     client,
     session_id,
-    refresh_token,
+    refresh_token: refresh_token, // Pass the determined refresh token ID
   });
 
   if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
