@@ -5,6 +5,21 @@ import { parseJWT } from "oslo/jwt";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
 import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
 
+// Define interfaces for expected JSON response shapes
+interface TokenResponse {
+  access_token: string;
+  id_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  scope?: string;
+}
+
+interface ErrorResponse {
+  error: string;
+  error_description: string;
+}
+
 describe("token", () => {
   describe("client_credentials", () => {
     it("should return an access token", async () => {
@@ -28,7 +43,7 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as TokenResponse;
 
       const accessToken = parseJWT(body.access_token);
       expect(accessToken?.payload).toMatchObject({
@@ -58,7 +73,7 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as TokenResponse;
 
       const accessToken = parseJWT(body.access_token);
       expect(accessToken?.payload).toMatchObject({
@@ -140,7 +155,7 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(200);
-        const body = await response.json();
+        const body = (await response.json()) as TokenResponse;
 
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
@@ -194,7 +209,7 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(200);
-        const body = await response.json();
+        const body = (await response.json()) as TokenResponse;
 
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
@@ -497,7 +512,7 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(200);
-        const body = await response.json();
+        const body = (await response.json()) as TokenResponse;
 
         const accessToken = parseJWT(body.access_token);
 
@@ -560,7 +575,7 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(200);
-        const body = await response.json();
+        const body = (await response.json()) as TokenResponse;
 
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
@@ -619,7 +634,7 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(200);
-        const body = await response.json();
+        const body = (await response.json()) as TokenResponse;
 
         const accessToken = parseJWT(body.access_token);
         expect(accessToken?.payload).toMatchObject({
@@ -730,7 +745,7 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as TokenResponse;
       expect(body).toMatchObject({
         access_token: expect.any(String),
         refresh_token: expect.any(String),
@@ -787,7 +802,7 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(403);
-      const body = await response.json();
+      const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_grant",
         error_description: "Refresh token has expired",
@@ -833,7 +848,7 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(403);
-      const body = await response.json();
+      const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_grant",
         error_description: "Refresh token has expired",

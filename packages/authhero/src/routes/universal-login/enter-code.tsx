@@ -4,7 +4,7 @@ import { initJSXRoute } from "./common";
 import EnterCodePage from "../../components/EnterCodePage";
 import { getPrimaryUserByProvider } from "../../helpers/users";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
-import MessagePage from "../../components/Message";
+import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { HTTPException } from "hono/http-exception";
 

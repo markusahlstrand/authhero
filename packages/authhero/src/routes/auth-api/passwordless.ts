@@ -202,6 +202,12 @@ export const passwordlessRoutes = new OpenAPIHono<{
 
       if (result instanceof Response) {
         return result;
+      } else if (
+        result &&
+        typeof result === "object" &&
+        "access_token" in result
+      ) {
+        return ctx.json(result);
       } else {
         throw new HTTPException(500, {
           message: "Unexpected response type",

@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import ResetPasswordPage from "../../components/ResetPasswordPage";
-import MessagePage from "../../components/Message";
+import MessagePage from "../../components/MessagePage";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
 

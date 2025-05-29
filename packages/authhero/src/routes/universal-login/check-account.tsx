@@ -4,8 +4,8 @@ import { initJSXRoute } from "./common";
 import CheckEmailPage from "../../components/CheckEmailPage";
 import { getAuthCookie } from "../../utils/cookies";
 import { createAuthResponse } from "../../authentication-flows/common";
-import MessagePage from "../../components/Message"; // Corrected import path for MessagePage
-import i18next from "i18next"; // For error messages
+import MessagePage from "../../components/MessagePage";
+import i18next from "i18next";
 import { HTTPException } from "hono/http-exception";
 
 export const checkAccountRoutes = new OpenAPIHono<{

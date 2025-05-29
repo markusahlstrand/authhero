@@ -3,12 +3,12 @@ import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
-import { fetchVendorSettings, initJSXRoute } from "./common";
+import { initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
-import MessagePage from "../../components/Message";
+import MessagePage from "../../components/MessagePage";
 import { sendValidateEmailAddress } from "../../emails";
 import { loginWithPassword } from "../../authentication-flows/password";
 import { getDataAdapter } from "../../helpers/data";
@@ -265,7 +265,7 @@ export const signupRoutes = new OpenAPIHono<{
         );
 
         if (loginResult instanceof Response) {
-          return loginResult; // Handles redirects or other direct Response objects from login
+          return loginResult;
         } else {
           // loginResult is TokenResponse - this is unexpected for this HTML route
           console.error(
@@ -286,29 +286,6 @@ export const signupRoutes = new OpenAPIHono<{
           );
         }
       } catch (err: unknown) {
-        // Ensure vendorSettings is available if initJSXRoute failed before it was assigned
-        if (!vendorSettings) {
-          try {
-            vendorSettings = await fetchVendorSettings(
-              env,
-              client?.id,
-              loginSession?.authParams?.vendor_id,
-            );
-          } catch (fetchErr) {
-            console.error(
-              "Failed to fetch vendor settings in error handler:",
-              fetchErr,
-            );
-            // Use a very basic fallback if vendorSettings can't be fetched
-            vendorSettings = {
-              styles: "",
-              disable_signup: false,
-              disable_connection_signup: false,
-              domains: [],
-            };
-          }
-        }
-
         let errorMessage =
           i18next.t("unknown_error_message") || "An unknown error occurred.";
         let errorStatus: 400 | 500 = 400;
@@ -329,7 +306,7 @@ export const signupRoutes = new OpenAPIHono<{
             state={state}
             vendorSettings={vendorSettings}
             error={errorMessage}
-            email={username} // username might be undefined if initJSXRoute failed early
+            email={username}
             code={loginParams.code}
           />,
           errorStatus,

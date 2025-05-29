@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { fetchVendorSettings } from "./common";
-import MessagePage from "../../components/Message";
+import MessagePage from "../../components/MessagePage";
 
 export const infoRoutes = new OpenAPIHono<{
   Bindings: Bindings;
