@@ -105,6 +105,7 @@ describe("code", () => {
     // --------------------------------
     // re-use code
     // --------------------------------
+    console.log("Re-using code...");
     const reUseCodeResponse = await universalClient["enter-code"].$post({
       query: { state },
       form: { code: email.data.code },

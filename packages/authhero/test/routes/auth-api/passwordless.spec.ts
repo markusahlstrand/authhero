@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  TokenResponse,
+} from "@authhero/adapter-interfaces";
 
 describe("passwordless", async () => {
   describe("email", () => {
@@ -226,7 +229,10 @@ describe("passwordless", async () => {
       );
 
       expect(loginResponse.status).toBe(200);
-      // TODO: Check the response body and validate that the correct user is created
+      const loginResponseBody = (await loginResponse.json()) as TokenResponse;
+
+      expect(loginResponseBody.access_token).toBeTypeOf("string");
+      expect(loginResponseBody.token_type).toBe("Bearer");
     });
   });
 });

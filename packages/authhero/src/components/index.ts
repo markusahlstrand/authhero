@@ -16,7 +16,7 @@ import GoogleLogo from "./GoogleLogo";
 import Icon from "./Icon";
 import InvalidSession from "./InvalidSession";
 import Layout from "./Layout";
-import Message from "./Message";
+import MessagePage from "./MessagePage";
 import PreSignUpConfirmationPage from "./PreSignUpConfirmationPage";
 import PreSignUpPage from "./PreSignUpPage";
 import ResetPasswordPage from "./ResetPasswordPage";
@@ -47,7 +47,7 @@ export {
   Icon,
   InvalidSession,
   Layout,
-  Message,
+  MessagePage as Message,
   PreSignUpConfirmationPage,
   PreSignUpPage,
   ResetPasswordPage,

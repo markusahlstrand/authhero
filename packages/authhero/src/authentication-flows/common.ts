@@ -327,7 +327,7 @@ export interface CreateAuthResponseParams {
 export async function createAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
-) {
+): Promise<TokenResponse | Response> {
   const { authParams, user, client, ticketAuth } = params;
 
   const logMessage = createLogMessage(ctx, {
@@ -351,7 +351,7 @@ export async function createAuthResponse(
   if (ticketAuth) {
     if (!params.loginSession) {
       throw new HTTPException(500, {
-        message: "Login session not found",
+        message: "Login session not found for ticket auth.",
       });
     }
     const co_verifier = generateCodeVerifier();
@@ -362,7 +362,6 @@ export async function createAuthResponse(
       code_type: "ticket",
       login_id: params.loginSession.id,
       expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),
-      // Concat the co_id and co_verifier
       code_verifier: [co_id, co_verifier].join("|"),
     });
 
@@ -378,49 +377,42 @@ export async function createAuthResponse(
 
   let postHookUser = user;
 
-  // If there is no session id, check if the login session already has one
   if (!session_id && params.loginSession?.session_id) {
     session_id = params.loginSession.session_id;
-
-    // When reusing an existing session, check if we need to add the current client
-    // to the session's clients array if it's not already there
     const existingSession = await ctx.env.data.sessions.get(
       client.tenant.id,
       session_id,
     );
-
     if (existingSession && !existingSession.clients.includes(client.id)) {
-      // Add the current client to the existing session
       await ctx.env.data.sessions.update(client.tenant.id, session_id, {
         clients: [...existingSession.clients, client.id],
       });
     }
-  }
-  // If still no session, create a new one
-  else if (!session_id) {
+  } else if (!session_id) {
     if (!params.loginSession) {
       throw new HTTPException(500, {
-        message: "Login session not found",
+        message: "Login session not found for creating a new session.",
       });
     }
-
     postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
       client.tenant.id,
       user,
     );
-
     const session = await createSession(ctx, {
-      user,
+      user: postHookUser,
       client,
       loginSession: params.loginSession,
     });
-
     session_id = session.id;
-    // The refresh token is only returned for new sessions and if the offline_access scope is requested
     refresh_token = session.refresh_token?.id;
   }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
+    if (!session_id) {
+      throw new HTTPException(500, {
+        message: "Session ID not available for SAML response",
+      });
+    }
     return samlCallback(
       ctx,
       params.client,
@@ -438,31 +430,45 @@ export async function createAuthResponse(
     refresh_token,
   });
 
-  const headers = new Headers({
-    "set-cookie": serializeAuthCookie(
+  if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
+    if (session_id) {
+      const authCookie = serializeAuthCookie(
+        client.tenant.id,
+        session_id,
+        ctx.var.custom_domain || ctx.req.header("host") || "",
+      );
+      if (authCookie) {
+        ctx.header("set-cookie", authCookie);
+      }
+    } else {
+      console.warn(
+        "Session ID not available for WEB_MESSAGE, cookie will not be set.",
+      );
+    }
+    return tokens; // Return TokenResponse directly
+  }
+
+  const headers = new Headers();
+  if (session_id) {
+    const authCookie = serializeAuthCookie(
       client.tenant.id,
       session_id,
-      ctx.var.custom_domain || ctx.req.header("host"),
-    ),
-  });
-
-  // If it's a web message request, return the tokens in the body
-  if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
-    return ctx.json(tokens, {
-      headers,
-    });
+      ctx.var.custom_domain || ctx.req.header("host") || "",
+    );
+    if (authCookie) {
+      headers.set("set-cookie", authCookie);
+    }
   }
 
   const responseType =
     authParams.response_type || AuthorizationResponseType.CODE;
 
-  // If the response type is code, generate a code and redirect
   if (responseType === AuthorizationResponseType.CODE) {
     const codeData = await createCodeData(ctx, params);
 
     if (!authParams.redirect_uri) {
       throw new HTTPException(400, {
-        message: "Redirect uri not found",
+        message: "Redirect uri not found for code response type.",
       });
     }
 
@@ -471,10 +477,42 @@ export async function createAuthResponse(
     if (codeData.state) {
       redirectUri.searchParams.set("state", codeData.state);
     }
-
     headers.set("location", redirectUri.toString());
+    return new Response("Redirecting", {
+      status: 302,
+      headers,
+    });
   }
 
+  // Fallback for other redirect-based responses (e.g., implicit flow style)
+  if (!authParams.redirect_uri) {
+    throw new HTTPException(400, {
+      message: "Redirect uri not found for this response mode.",
+    });
+  }
+  const redirectUri = new URL(authParams.redirect_uri);
+
+  if (
+    responseType === AuthorizationResponseType.TOKEN ||
+    responseType === AuthorizationResponseType.TOKEN_ID_TOKEN
+  ) {
+    redirectUri.hash = new URLSearchParams({
+      access_token: tokens.access_token,
+      ...(tokens.id_token && { id_token: tokens.id_token }),
+      token_type: tokens.token_type,
+      expires_in: tokens.expires_in.toString(),
+      ...(authParams.state && { state: authParams.state }),
+      ...(authParams.scope && { scope: authParams.scope }),
+    }).toString();
+  } else {
+    // This case should ideally be narrowed down or handled if there are other valid response_types
+    // that lead to a redirect with tokens in the URL.
+    throw new HTTPException(500, {
+      message: `Unsupported response type ('${responseType}') for redirect with tokens.`,
+    });
+  }
+
+  headers.set("location", redirectUri.toString());
   return new Response("Redirecting", {
     status: 302,
     headers,
