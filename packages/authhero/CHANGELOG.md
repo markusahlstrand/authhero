@@ -1,5 +1,16 @@
 # authhero
 
+## 0.142.0
+
+### Minor Changes
+
+- Add a form_id property to hooks
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.65.0
+
 ## 0.141.0
 
 ### Minor Changes

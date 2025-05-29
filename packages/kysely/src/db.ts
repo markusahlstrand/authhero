@@ -7,7 +7,6 @@ import {
   customDomainSchema,
   emailProviderSchema,
   formSchema,
-  hookSchema,
   loginSessionSchema,
   Password,
   promptSettingSchema,
@@ -68,10 +67,16 @@ const sqlUserSchema = z.object({
 });
 
 const sqlHookSchema = z.object({
-  ...hookSchema.shape,
   tenant_id: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  hook_id: z.string(),
+  trigger_id: z.string(),
+  priority: z.number().optional().nullable(),
   enabled: z.number(),
   synchronous: z.number(),
+  url: z.string().optional().nullable(),
+  form_id: z.string().optional().nullable(),
 });
 
 const sqlEmailProvidersSchema = z.object({

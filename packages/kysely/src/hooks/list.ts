@@ -17,7 +17,7 @@ export function list(db: Kysely<Database>) {
     let query = db.selectFrom("hooks").where("hooks.tenant_id", "=", tenant_id);
 
     if (params.q) {
-      query = luceneFilter(db, query, params.q, ["url"]);
+      query = luceneFilter(db, query, params.q, ["url", "form_id"]);
     }
 
     const filteredQuery = query

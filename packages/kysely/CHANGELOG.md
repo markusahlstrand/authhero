@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.15.0
+
+### Minor Changes
+
+- Add a form_id property to hooks
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.65.0
+
 ## 10.14.0
 
 ### Patch Changes

@@ -16,7 +16,7 @@ async function invokeHooks(
 ) {
   const token = await createServiceToken(ctx, data.tenant_id, "webhook");
 
-  for await (const hook of hooks) {
+  for await (const hook of hooks.filter((h) => "url" in h)) {
     const response = await fetch(hook.url, {
       method: "POST",
       headers: {
