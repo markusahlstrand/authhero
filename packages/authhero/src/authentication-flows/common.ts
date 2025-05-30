@@ -26,7 +26,7 @@ import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
-import { postUserLoginWebhook } from "../hooks/webhooks";
+import { postUserLoginHook } from "../hooks/index";
 import { getClientInfo } from "../utils/client-info";
 
 export interface CreateAuthTokensParams {
@@ -402,11 +402,20 @@ export async function createAuthResponse(
         message: "Login session not found for creating a new session.",
       });
     }
-    // User might be modified by post-login hook before session creation
-    postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
+    // Use the unified postUserLoginHook for all post-login logic
+    const postLoginResult = await postUserLoginHook(
+      ctx,
+      ctx.env.data,
       client.tenant.id,
       user,
+      params.loginSession,
+      { client, authParams },
     );
+    // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
+    if (postLoginResult instanceof Response) {
+      return postLoginResult;
+    }
+    postHookUser = postLoginResult;
 
     const newSession = await createSession(ctx, {
       user: postHookUser,
@@ -535,27 +544,15 @@ export async function completeLogin(
 ): Promise<TokenResponse> {
   let user = params.user;
 
-  // Trigger OnExecutePostLogin if defined
-  if (user && ctx.env.hooks?.onExecutePostLogin) {
-    // The hook may mutate the user object via the API, but for now we just call it
-    await ctx.env.hooks.onExecutePostLogin(
-      {
-        client: params.client,
-        user,
-        request: {
-          ip: ctx.req.header("x-real-ip") || "",
-          user_agent: ctx.req.header("user-agent") || "",
-          method: ctx.req.method,
-          url: ctx.req.url,
-        },
-        scope: params.authParams.scope || "",
-        grant_type: "",
-      },
-      {
-        prompt: {
-          render: (_formId: string) => {},
-        },
-      },
+  // Use the unified postUserLoginHook for all post-login logic
+  if (user) {
+    await postUserLoginHook(
+      ctx,
+      ctx.env.data,
+      params.client.tenant.id,
+      user,
+      ctx.var.loginSession,
+      { client: params.client, authParams: params.authParams },
     );
   }
 
