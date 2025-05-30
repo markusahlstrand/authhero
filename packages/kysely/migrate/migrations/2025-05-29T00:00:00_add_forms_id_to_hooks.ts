@@ -2,10 +2,23 @@ import { Kysely } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.alterTable("hooks").addColumn("form_id", "text").execute();
+  // 1. Add a new nullable column with the desired type
   await db.schema
     .alterTable("hooks")
-    .alterColumn("url", (ac) => ac.setDataType("varchar(512)"))
+    .addColumn("url_tmp", "varchar(512)")
     .execute();
+
+  // 2. Copy existing values
+  await db
+    .updateTable("hooks")
+    .set((eb) => ({ url_tmp: eb.ref("url") }))
+    .execute();
+
+  // 3. Drop the old column
+  await db.schema.alterTable("hooks").dropColumn("url").execute();
+
+  // 4. Rename the new column to 'url'
+  await db.schema.alterTable("hooks").renameColumn("url_tmp", "url").execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

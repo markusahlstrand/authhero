@@ -10,20 +10,74 @@ import {
   SelectInput,
   SimpleForm,
   TextInput,
+  useGetList,
+  FormDataConsumer,
+  useRecordContext,
 } from "react-admin";
+import { Typography } from "@mui/material";
 
 export function HookEdit() {
+  // Fetch forms for the current tenant
+  const { data: forms, isLoading: formsLoading } = useGetList("forms", {
+    pagination: { page: 1, perPage: 100 },
+    sort: { field: "name", order: "ASC" },
+  });
+  const record = useRecordContext();
+
+  // Determine type from record or formData
+  const getType = (formData: any) => {
+    if (formData?.url) return "webhook";
+    if (formData?.form_id) return "form";
+    return undefined;
+  };
+
   return (
     <Edit>
       <SimpleForm>
-        <TextInput
-          source="url"
-          validate={[
-            required(),
-            regex(/^https?:\/\/./, "Must be a valid HTTP/HTTPS URL"),
-          ]}
-          helperText="The webhook endpoint URL that will be called"
-        />
+        <FormDataConsumer>
+          {({ formData }) => {
+            const type = getType(formData ?? record);
+            return (
+              <>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  {type === "webhook"
+                    ? "Webhook"
+                    : type === "form"
+                      ? "Form hook"
+                      : ""}
+                </Typography>
+                {type === "webhook" && (
+                  <TextInput
+                    source="url"
+                    validate={[
+                      required(),
+                      regex(/^https?:\/\/.*/, "Must be a valid HTTP/HTTPS URL"),
+                    ]}
+                    label="Webhook URL"
+                    fullWidth
+                    helperText="The webhook endpoint URL that will be called"
+                  />
+                )}
+                {type === "form" && (
+                  <SelectInput
+                    source="form_id"
+                    label="Form"
+                    choices={
+                      formsLoading
+                        ? []
+                        : (forms || []).map((form) => ({
+                            id: form.id,
+                            name: form.name,
+                          }))
+                    }
+                    validate={[required()]}
+                    fullWidth
+                  />
+                )}
+              </>
+            );
+          }}
+        </FormDataConsumer>
         <SelectInput
           source="trigger_id"
           choices={[
@@ -31,6 +85,7 @@ export function HookEdit() {
             { id: "post-user-registration", name: "Post User Registration" },
             { id: "post-user-login", name: "Post User Login" },
           ]}
+          required
         />
         <BooleanInput source="enabled" />
         <BooleanInput

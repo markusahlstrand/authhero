@@ -8,6 +8,7 @@ export function HookList() {
         <TextField source="id" />
         <TextField source="trigger_id" />
         <TextField source="url" />
+        <TextField source="form_id" label="Form" />
         <BooleanField source="enabled" />
         <BooleanField source="synchronous" />
       </Datagrid>
