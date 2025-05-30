@@ -112,7 +112,7 @@ describe("token", () => {
 
   describe("authorization_code", () => {
     describe("authorization_code", () => {
-      it.only("should return an access token but no id token if the openid scope is missing", async () => {
+      it("should return an access token but no id token if the openid scope is missing", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
