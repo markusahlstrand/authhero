@@ -17,7 +17,7 @@ export function isFormHook(
 export async function handleFormHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   form_id: string,
-  loginSession?: LoginSession,
+  loginSession: LoginSession,
 ): Promise<Response> {
   const data = ctx.env.data;
   const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
@@ -39,11 +39,10 @@ export async function handleFormHook(
     throw new HTTPException(400, { message: "No start node found in form" });
   }
   // If loginSession is provided, pass state as a query param if available
-  let url = `/u/forms/${form.id}/nodes/${firstNodeId}`;
-  const state = loginSession?.authParams?.state;
-  if (state) {
-    url += `?state=${encodeURIComponent(state)}`;
-  }
+  let url = `/u/forms/${form.id}/nodes/${firstNodeId}?state=${encodeURIComponent(
+    loginSession.id,
+  )}`;
+
   return new Response(null, {
     status: 302,
     headers: { location: url },

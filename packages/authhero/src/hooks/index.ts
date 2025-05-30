@@ -185,10 +185,12 @@ export async function postUserLoginHook(
     include_totals: false,
   });
 
-  // Handle form hook (redirect)
-  const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
-  if (formHook && isFormHook(formHook)) {
-    return handleFormHook(ctx, formHook.form_id, loginSession);
+  // Handle form hook (redirect) if we have a login session
+  if (loginSession) {
+    const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
+    if (formHook && isFormHook(formHook)) {
+      return handleFormHook(ctx, formHook.form_id, loginSession);
+    }
   }
 
   // Handle webhook hooks (invoke all enabled webhooks)
