@@ -16,7 +16,6 @@ export function ConnectionCreate() {
           label="Strategy"
           choices={[
             { id: "email", name: "Email" },
-            { id: "sms", name: "Sms" },
             { id: "google-oauth2", name: "Google" },
             { id: "facebook", name: "Facebook" },
             { id: "apple", name: "Apple" },
