@@ -1,0 +1,102 @@
+import { describe, expect, it } from "vitest";
+import { getTestServer } from "../helpers/test-server";
+
+describe("loginSessions", () => {
+  it("should support crud operations", async () => {
+    const { data } = await getTestServer();
+
+    await data.tenants.create({
+      id: "tenantId",
+      name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    // ----------------------------------------
+    // Create
+    // --------------------------------
+    const {
+      AuthorizationResponseType,
+    } = require("@authhero/adapter-interfaces");
+    const createdLoginSession = await data.loginSessions.create("tenantId", {
+      csrf_token: "csrf123",
+      authParams: {
+        client_id: "client123",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid profile",
+        state: "state123",
+      },
+      expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      ip: "127.0.0.1",
+      useragent: "jest",
+      login_completed: false,
+    });
+
+    expect(createdLoginSession).toMatchObject({
+      csrf_token: "csrf123",
+      authParams: expect.objectContaining({
+        client_id: "client123",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid profile",
+        state: "state123",
+      }),
+      ip: "127.0.0.1",
+      useragent: "jest",
+      login_completed: false,
+      id: expect.any(String),
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+      expires_at: expect.any(String),
+    });
+
+    // ----------------------------------------
+    // Update
+    // --------------------------------
+    const updateLoginSessionResult = await data.loginSessions.update(
+      "tenantId",
+      createdLoginSession.id,
+      {
+        login_completed: true,
+      },
+    );
+    expect(updateLoginSessionResult).toBe(true);
+
+    // ----------------------------------------
+    // Get
+    // --------------------------------
+    const getLoginSessionResult = await data.loginSessions.get(
+      "tenantId",
+      createdLoginSession.id,
+    );
+    expect(getLoginSessionResult).toMatchObject({
+      csrf_token: "csrf123",
+      authParams: expect.objectContaining({
+        client_id: "client123",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid profile",
+        state: "state123",
+      }),
+      login_completed: true,
+      id: createdLoginSession.id,
+    });
+
+    // ----------------------------------------
+    // Delete
+    // --------------------------------
+    const deleteLoginSessionResult = await data.loginSessions.remove(
+      "tenantId",
+      createdLoginSession.id,
+    );
+    expect(deleteLoginSessionResult).toBe(true);
+
+    // ----------------------------------------
+    // Get with not found
+    // --------------------------------
+    const getLoginSessionResultNotFound = await data.loginSessions.get(
+      "tenantId",
+      createdLoginSession.id,
+    );
+    expect(getLoginSessionResultNotFound).toBe(null);
+  });
+});

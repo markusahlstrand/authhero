@@ -21,14 +21,17 @@ export function flattenObject(obj, prefix = "", res = {}) {
   for (let key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const newKey = prefix ? `${prefix}_${key}` : key;
+      const value = obj[key];
       if (
-        typeof obj[key] === "object" &&
-        obj[key] !== null &&
-        !Array.isArray(obj[key])
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
       ) {
-        flattenObject(obj[key], newKey, res);
+        flattenObject(value, newKey, res);
+      } else if (typeof value === "boolean") {
+        res[newKey] = value ? 1 : 0;
       } else {
-        res[newKey] = obj[key];
+        res[newKey] = value;
       }
     }
   }

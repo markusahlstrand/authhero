@@ -80,6 +80,7 @@ import * as n80_recreate_custom_domains from "./2025-03-21T11:08:00_recreate_cus
 import * as n81_phone from "./2025-04-22T14:00:00_phone";
 import * as n82_forms from "./2025-05-21T10:00:00_forms";
 import * as n83_addFormsIdToHooks from "./2025-05-29T00:00:00_add_forms_id_to_hooks";
+import * as n84_login_completed from "./2025-05-30T00:00:00_login_completed";
 
 // These need to be in alphabetic order
 export default {
@@ -165,4 +166,5 @@ export default {
   n81_phone,
   n82_forms,
   n83_addFormsIdToHooks,
+  n84_login_completed,
 };

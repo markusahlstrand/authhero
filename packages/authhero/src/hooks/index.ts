@@ -3,6 +3,7 @@ import {
   DataAdapters,
   LogTypes,
   User,
+  LoginSession,
 } from "@authhero/adapter-interfaces";
 import { linkUsersHook } from "./link-users";
 import { postUserRegistrationWebhook, preUserSignupWebhook } from "./webhooks";
@@ -12,6 +13,12 @@ import { getPrimaryUserByEmail } from "../helpers/users";
 import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
 import { HookRequest } from "../types/Hooks";
+import { isFormHook, handleFormHook } from "./formhooks";
+
+// Type guard for webhook hooks
+function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
+  return typeof hook.url === "string";
+}
 
 function createUserHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -128,4 +135,89 @@ export function addDataHooks(
     ...data,
     users: { ...data.users, create: createUserHooks(ctx, data) },
   };
+}
+
+/**
+ * postUserLoginHook: Checks for post-user-login hooks (form or webhook) and handles:
+ * - Form hooks: redirects to the first node in the form
+ * - Webhook hooks: invokes the webhook and logs errors if any
+ * If neither, returns the user as normal.
+ */
+export async function postUserLoginHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+  tenant_id: string,
+  user: User,
+  loginSession?: LoginSession,
+  params?: { client?: Client; authParams?: any },
+): Promise<User | Response> {
+  // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
+  if (
+    ctx.env.hooks?.onExecutePostLogin &&
+    params?.client &&
+    params?.authParams
+  ) {
+    await ctx.env.hooks.onExecutePostLogin(
+      {
+        client: params.client,
+        user,
+        request: {
+          ip: ctx.req.header("x-real-ip") || "",
+          user_agent: ctx.req.header("user-agent") || "",
+          method: ctx.req.method,
+          url: ctx.req.url,
+        },
+        scope: params.authParams.scope || "",
+        grant_type: "",
+      },
+      {
+        prompt: {
+          render: (_formId: string) => {},
+        },
+      },
+    );
+  }
+
+  const { hooks } = await data.hooks.list(tenant_id, {
+    q: "trigger_id:post-user-login",
+    page: 0,
+    per_page: 100,
+    include_totals: false,
+  });
+
+  // Handle form hook (redirect) if we have a login session
+  if (loginSession) {
+    const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
+    if (formHook && isFormHook(formHook)) {
+      return handleFormHook(ctx, formHook.form_id, loginSession);
+    }
+  }
+
+  // Handle webhook hooks (invoke all enabled webhooks)
+  const webHooks = hooks.filter((h: any) => h.enabled && isWebHook(h));
+  for (const hook of webHooks) {
+    if (!isWebHook(hook)) continue;
+    try {
+      await fetch(hook.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenant_id,
+          user,
+          trigger_id: "post-user-login",
+        }),
+      });
+    } catch (err) {
+      const log = createLogMessage(ctx, {
+        type: LogTypes.FAILED_HOOK,
+        description: `Failed to invoke post-user-login webhook: ${hook.url}`,
+      });
+      await data.logs.create(tenant_id, log);
+    }
+  }
+
+  // If no form hook, just return the user
+  return user;
 }

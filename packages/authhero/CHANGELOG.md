@@ -1,5 +1,16 @@
 # authhero
 
+## 0.143.0
+
+### Minor Changes
+
+- Add a login_completed flag to the login sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.66.0
+
 ## 0.142.0
 
 ### Minor Changes

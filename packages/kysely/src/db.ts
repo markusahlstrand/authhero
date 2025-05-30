@@ -26,6 +26,7 @@ const sqlThemeSchema = flattenSchema(themeSchema).extend({
 
 const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   tenant_id: z.string(),
+  login_completed: z.number().optional().default(0),
 });
 
 const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
@@ -57,7 +58,7 @@ const sqlPromptSettingSchema = z.object({
   tenant_id: z.string(),
 });
 
-const sqlUserSchema = z.object({
+export const sqlUserSchema = z.object({
   ...userSchema.shape,
   email_verified: z.number(),
   is_social: z.number(),

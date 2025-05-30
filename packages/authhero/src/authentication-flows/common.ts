@@ -20,13 +20,12 @@ import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   TICKET_EXPIRATION_TIME,
-  UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
-import { postUserLoginWebhook } from "../hooks/webhooks";
+import { postUserLoginHook } from "../hooks/index";
 import { getClientInfo } from "../utils/client-info";
 
 export interface CreateAuthTokensParams {
@@ -166,40 +165,19 @@ export async function createAuthTokens(
 export interface CreateCodeParams {
   user: User;
   client: Client;
-  loginSession?: LoginSession;
   authParams: AuthParams;
+  login_id: string;
 }
 
 export async function createCodeData(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateCodeParams,
 ) {
-  if (!params.loginSession) {
-    const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
-
-    // This is a short term solution to create codes for silent auth where the login session isn't available.
-    // Maybe a code could be connected to either a login session or a session in the future?
-    params.loginSession = await ctx.env.data.loginSessions.create(
-      params.client.tenant.id,
-      {
-        expires_at: new Date(
-          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-        ).toISOString(),
-        authParams: params.authParams,
-        authorization_url: ctx.req.url,
-        csrf_token: nanoid(),
-        ip,
-        useragent,
-        auth0Client,
-      },
-    );
-  }
-
   const code = await ctx.env.data.codes.create(params.client.tenant.id, {
     code_id: nanoid(),
     user_id: params.user.user_id,
     code_type: "authorization_code",
-    login_id: params.loginSession.id,
+    login_id: params.login_id,
     expires_at: new Date(
       Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
     ).toISOString(),
@@ -402,11 +380,20 @@ export async function createAuthResponse(
         message: "Login session not found for creating a new session.",
       });
     }
-    // User might be modified by post-login hook before session creation
-    postHookUser = await postUserLoginWebhook(ctx, ctx.env.data)(
+    // Use the unified postUserLoginHook for all post-login logic
+    const postLoginResult = await postUserLoginHook(
+      ctx,
+      ctx.env.data,
       client.tenant.id,
       user,
+      params.loginSession,
+      { client, authParams },
     );
+    // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
+    if (postLoginResult instanceof Response) {
+      return postLoginResult;
+    }
+    postHookUser = postLoginResult;
 
     const newSession = await createSession(ctx, {
       user: postHookUser,
@@ -473,7 +460,12 @@ export async function createAuthResponse(
     authParams.response_type || AuthorizationResponseType.CODE;
 
   if (responseType === AuthorizationResponseType.CODE) {
-    const codeData = await createCodeData(ctx, params);
+    const codeData = await createCodeData(ctx, {
+      user: postHookUser,
+      client,
+      authParams,
+      login_id: session_id,
+    });
 
     if (!authParams.redirect_uri) {
       throw new HTTPException(400, {
@@ -535,27 +527,15 @@ export async function completeLogin(
 ): Promise<TokenResponse> {
   let user = params.user;
 
-  // Trigger OnExecutePostLogin if defined
-  if (user && ctx.env.hooks?.onExecutePostLogin) {
-    // The hook may mutate the user object via the API, but for now we just call it
-    await ctx.env.hooks.onExecutePostLogin(
-      {
-        client: params.client,
-        user,
-        request: {
-          ip: ctx.req.header("x-real-ip") || "",
-          user_agent: ctx.req.header("user-agent") || "",
-          method: ctx.req.method,
-          url: ctx.req.url,
-        },
-        scope: params.authParams.scope || "",
-        grant_type: "",
-      },
-      {
-        prompt: {
-          render: (_formId: string) => {},
-        },
-      },
+  // Use the unified postUserLoginHook for all post-login logic
+  if (user) {
+    await postUserLoginHook(
+      ctx,
+      ctx.env.data,
+      params.client.tenant.id,
+      user,
+      ctx.var.loginSession,
+      { client: params.client, authParams: params.authParams },
     );
   }
 

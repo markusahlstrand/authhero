@@ -20,7 +20,13 @@ export function get(db: Kysely<Database>) {
     if (!login) return null;
 
     return loginSessionSchema.parse(
-      unflattenObject(removeNullProperties(login), ["authParams"]),
+      unflattenObject(
+        removeNullProperties({
+          ...login,
+          login_completed: Boolean(login.login_completed),
+        }),
+        ["authParams"],
+      ),
     );
   };
 }
