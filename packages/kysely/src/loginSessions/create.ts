@@ -12,11 +12,15 @@ export function create(db: Kysely<Database>) {
       authorization_url: login.authorization_url?.slice(0, 1024),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      login_completed: !!login.login_completed,
     };
 
     await db
       .insertInto("login_sessions")
-      .values({ ...flattenObject(createdLogin), tenant_id })
+      .values({
+        ...flattenObject(createdLogin),
+        tenant_id,
+      })
       .execute();
 
     return createdLogin;

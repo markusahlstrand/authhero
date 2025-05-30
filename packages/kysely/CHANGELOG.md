@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.16.0
+
+### Minor Changes
+
+- Add a login_completed flag to the login sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.66.0
+
 ## 10.15.0
 
 ### Minor Changes

@@ -11,7 +11,11 @@ export function update(db: Kysely<Database>) {
   ) => {
     const results = await db
       .updateTable("login_sessions")
-      .set(flattenObject(login))
+      .set(
+        flattenObject({
+          ...login,
+        }),
+      )
       .where("login_sessions.id", "=", login_id)
       .where("login_sessions.tenant_id", "=", tenant_id)
       .execute();

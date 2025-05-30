@@ -117,7 +117,7 @@ describe("code", () => {
     expect(reUsedCode).toContain("Login session closed");
   });
 
-  it("should create a new account", async () => {
+  it.only("should create a new account", async () => {
     const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,
     });

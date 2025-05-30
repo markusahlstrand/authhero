@@ -12,12 +12,13 @@ export const loginSessionInsertSchema = z
     useragent: z.string().optional(),
     session_id: z.string().optional(),
     authorization_url: z.string().optional(),
+    login_completed: z.boolean().optional().default(false),
   })
   .openapi({
     description: "This represents a login sesion",
   });
 
-export type LoginSessionInsert = z.infer<typeof loginSessionInsertSchema>;
+export type LoginSessionInsert = z.input<typeof loginSessionInsertSchema>;
 
 export const loginSessionSchema = z.object({
   ...loginSessionInsertSchema.shape,

@@ -20,7 +20,6 @@ import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   TICKET_EXPIRATION_TIME,
-  UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
@@ -166,40 +165,19 @@ export async function createAuthTokens(
 export interface CreateCodeParams {
   user: User;
   client: Client;
-  loginSession?: LoginSession;
   authParams: AuthParams;
+  login_id: string;
 }
 
 export async function createCodeData(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateCodeParams,
 ) {
-  if (!params.loginSession) {
-    const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
-
-    // This is a short term solution to create codes for silent auth where the login session isn't available.
-    // Maybe a code could be connected to either a login session or a session in the future?
-    params.loginSession = await ctx.env.data.loginSessions.create(
-      params.client.tenant.id,
-      {
-        expires_at: new Date(
-          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-        ).toISOString(),
-        authParams: params.authParams,
-        authorization_url: ctx.req.url,
-        csrf_token: nanoid(),
-        ip,
-        useragent,
-        auth0Client,
-      },
-    );
-  }
-
   const code = await ctx.env.data.codes.create(params.client.tenant.id, {
     code_id: nanoid(),
     user_id: params.user.user_id,
     code_type: "authorization_code",
-    login_id: params.loginSession.id,
+    login_id: params.login_id,
     expires_at: new Date(
       Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
     ).toISOString(),
@@ -482,7 +460,12 @@ export async function createAuthResponse(
     authParams.response_type || AuthorizationResponseType.CODE;
 
   if (responseType === AuthorizationResponseType.CODE) {
-    const codeData = await createCodeData(ctx, params);
+    const codeData = await createCodeData(ctx, {
+      user: postHookUser,
+      client,
+      authParams,
+      login_id: session_id,
+    });
 
     if (!authParams.redirect_uri) {
       throw new HTTPException(400, {
