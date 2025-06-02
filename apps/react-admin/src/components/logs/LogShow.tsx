@@ -1,6 +1,5 @@
 import { Show, FunctionField, SimpleShowLayout, TextField } from "react-admin";
 import { LogType, LogIcon } from "../logs";
-import { DateAgo } from "../common";
 import { JsonOutput } from "../common/JsonOutput";
 
 export function LogShow() {
@@ -31,7 +30,11 @@ export function LogShow() {
         />
         <FunctionField
           source="date"
-          render={(record: any) => <DateAgo date={record.date} />}
+          render={(record: any) => (
+            <span>
+              {record.date ? new Date(record.date).toLocaleString() : "-"}
+            </span>
+          )}
         />
         <TextField source="auth0_client" />
         <TextField source="isMobile" />

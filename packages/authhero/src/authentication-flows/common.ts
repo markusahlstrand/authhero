@@ -460,11 +460,16 @@ export async function createAuthResponse(
     authParams.response_type || AuthorizationResponseType.CODE;
 
   if (responseType === AuthorizationResponseType.CODE) {
+    if (!params.loginSession) {
+      throw new HTTPException(500, {
+        message: "Login session not found for code response type.",
+      });
+    }
     const codeData = await createCodeData(ctx, {
       user: postHookUser,
       client,
       authParams,
-      login_id: session_id,
+      login_id: params.loginSession.id, // Use login session id instead of session_id
     });
 
     if (!authParams.redirect_uri) {

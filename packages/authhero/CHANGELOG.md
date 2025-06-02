@@ -1,5 +1,11 @@
 # authhero
 
+## 0.144.0
+
+### Minor Changes
+
+- Fix an issue where we passed the session is rather than the login session id
+
 ## 0.143.0
 
 ### Minor Changes
