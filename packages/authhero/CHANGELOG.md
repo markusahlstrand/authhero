@@ -1,5 +1,11 @@
 # authhero
 
+## 0.145.0
+
+### Minor Changes
+
+- Complete the login after the form is posted
+
 ## 0.144.0
 
 ### Minor Changes

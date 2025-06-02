@@ -380,6 +380,14 @@ export async function createAuthResponse(
         message: "Login session not found for creating a new session.",
       });
     }
+
+    const newSession = await createSession(ctx, {
+      user: postHookUser,
+      client,
+      loginSession: params.loginSession,
+    });
+    session_id = newSession.id;
+
     // Use the unified postUserLoginHook for all post-login logic
     const postLoginResult = await postUserLoginHook(
       ctx,
@@ -389,18 +397,13 @@ export async function createAuthResponse(
       params.loginSession,
       { client, authParams },
     );
+
     // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
     if (postLoginResult instanceof Response) {
       return postLoginResult;
     }
-    postHookUser = postLoginResult;
 
-    const newSession = await createSession(ctx, {
-      user: postHookUser,
-      client,
-      loginSession: params.loginSession,
-    });
-    session_id = newSession.id;
+    postHookUser = postLoginResult;
   }
 
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
