@@ -352,6 +352,7 @@ export function UserEdit() {
             reference="logs"
             target="userId"
             pagination={<Pagination />}
+            sort={{ field: "date", order: "DESC" }}
           >
             <Datagrid
               sx={{
@@ -363,7 +364,6 @@ export function UserEdit() {
                   whiteSpace: "nowrap",
                 },
               }}
-              sort={{ field: "timestamp", order: "DESC" }}
               rowClick="show"
             >
               <FunctionField
@@ -377,6 +377,7 @@ export function UserEdit() {
               <FunctionField
                 source="date"
                 render={(record: any) => <DateAgo date={record.date} />}
+                sortable={true}
               />
               <TextField source="description" />
             </Datagrid>
