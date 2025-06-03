@@ -3,7 +3,7 @@ import {
   OnExecuteCredentialsExchange,
   OnExecutePreUserRegistration,
   OnExecutePostUserRegistration,
-  OnExecutePostLogin, // <-- Add this import
+  OnExecutePostLogin,
 } from "./Hooks";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
@@ -29,7 +29,7 @@ export type Bindings = {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
-    onExecutePostLogin?: OnExecutePostLogin; // <-- Add this property
+    onExecutePostLogin?: OnExecutePostLogin;
   };
   emailProviders?: { [key: string]: EmailService };
   smsProviders?: { [key: string]: smsService };

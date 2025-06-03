@@ -63,6 +63,7 @@ hooks: {
 - `onExecuteCredentialsExchange`
 - `onExecutePreUserRegistration`
 - `onExecutePostUserRegistration`
+- `onExecutePostUserLogin`
 
 ## Email Providers
 
@@ -90,10 +91,10 @@ There are two ways to use the Tailwind CSS styles with authhero components:
 
 ```js
 // Import the CSS
-import 'authhero/styles';
+import "authhero/styles";
 
 // Then use the components
-import { Button, Form } from 'authhero';
+import { Button, Form } from "authhero";
 ```
 
 ### 2. Inject CSS programmatically (for Cloudflare Workers and similar environments)
@@ -102,19 +103,19 @@ For environments that don't support filesystem access, you can inject the CSS pr
 
 ```js
 // Import the helper function
-import { injectTailwindCSS } from 'authhero';
+import { injectTailwindCSS } from "authhero";
 
 // Call this function once to inject the CSS into the document
 injectTailwindCSS();
 
 // Then use the components
-import { Button, Form } from 'authhero';
+import { Button, Form } from "authhero";
 ```
 
 You can also access the raw CSS string:
 
 ```js
-import { tailwindCss } from 'authhero';
+import { tailwindCss } from "authhero";
 
 // Use the CSS string as needed
 // For example, in a Cloudflare Worker:
