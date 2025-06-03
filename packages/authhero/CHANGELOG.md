@@ -1,5 +1,11 @@
 # authhero
 
+## 0.148.0
+
+### Minor Changes
+
+- Pass the context to the events
+
 ## 0.147.0
 
 ### Minor Changes

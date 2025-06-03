@@ -92,6 +92,7 @@ export async function createAuthTokens(
   if (ctx.env.hooks?.onExecuteCredentialsExchange) {
     await ctx.env.hooks.onExecuteCredentialsExchange(
       {
+        ctx,
         client,
         user,
         request: {
