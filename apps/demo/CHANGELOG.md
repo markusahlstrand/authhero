@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.13.0
+
+### Minor Changes
+
+- Expose the onPostLogin type
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.147.0
+
 ## 0.12.11
 
 ### Patch Changes

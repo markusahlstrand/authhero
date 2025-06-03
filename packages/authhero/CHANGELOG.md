@@ -1,5 +1,11 @@
 # authhero
 
+## 0.147.0
+
+### Minor Changes
+
+- Expose the onPostLogin type
+
 ## 0.146.0
 
 ### Minor Changes
