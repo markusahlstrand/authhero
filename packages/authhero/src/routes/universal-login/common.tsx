@@ -76,6 +76,7 @@ export async function initJSXRoute(
   if (!loginSession) {
     throw new HTTPException(400, { message: "Login session not found" });
   }
+
   ctx.set("loginSession", loginSession);
 
   const client = await getClientWithDefaults(
