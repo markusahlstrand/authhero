@@ -1,5 +1,11 @@
 # authhero
 
+## 0.146.0
+
+### Minor Changes
+
+- Add a html response for expired code links
+
 ## 0.145.0
 
 ### Minor Changes

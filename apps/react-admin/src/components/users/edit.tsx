@@ -320,29 +320,42 @@ export function UserEdit() {
               rowClick="edit"
               empty={<div>No active sessions found</div>}
             >
-              <TextField source="id" />
-              <DateField source="used_at" showTime={true} emptyText="-" />
-              <DateField source="idle_expires_at" showTime={true} />
+              <TextField source="id" sortable={true} />
+              <DateField
+                source="used_at"
+                showTime={true}
+                emptyText="-"
+                sortable={true}
+              />
+              <DateField
+                source="idle_expires_at"
+                showTime={true}
+                sortable={true}
+              />
               <TextField
                 source="device.last_ip"
                 label="IP Address"
                 emptyText="-"
+                sortable={false}
               />
               <TextField
                 source="device.last_user_agent"
                 label="User Agent"
                 emptyText="-"
+                sortable={false}
               />
               <FunctionField
                 label="Client IDs"
                 render={(record) =>
                   record.clients ? record.clients.join(", ") : "-"
                 }
+                sortable={false}
               />
-              <DateField source="created_at" showTime={true} />
+              <DateField source="created_at" showTime={true} sortable={true} />
               <FunctionField
                 label="Status"
                 render={(record) => (record.revoked_at ? "Revoked" : "Active")}
+                sortable={false}
               />
             </Datagrid>
           </ReferenceManyField>

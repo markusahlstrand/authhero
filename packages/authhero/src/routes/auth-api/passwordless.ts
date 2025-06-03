@@ -193,25 +193,51 @@ export const passwordlessRoutes = new OpenAPIHono<{
         response_type,
       };
 
-      const result = await passwordlessGrant(ctx, {
-        client_id,
-        username: email,
-        otp: verification_code,
-        authParams,
-      });
-
-      if (result instanceof Response) {
-        return result;
-      } else if (
-        result &&
-        typeof result === "object" &&
-        "access_token" in result
-      ) {
-        return ctx.json(result);
-      } else {
-        throw new HTTPException(500, {
-          message: "Unexpected response type",
+      let errorMessage = "Something went wrong. Please try again later.";
+      try {
+        const result = await passwordlessGrant(ctx, {
+          client_id,
+          username: email,
+          otp: verification_code,
+          authParams,
         });
+
+        if (result instanceof Response) {
+          return result;
+        } else if (
+          result &&
+          typeof result === "object" &&
+          "access_token" in result
+        ) {
+          return ctx.json(result);
+        }
+      } catch (err: unknown) {
+        const error = err as Error;
+        if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        }
       }
+
+      // Create a new login session with the error message
+      const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+      const loginSession = await env.data.loginSessions.create(
+        client.tenant.id,
+        {
+          authParams: {
+            ...authParams,
+            username: email,
+          },
+          expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
+          csrf_token: nanoid(),
+          ip,
+          useragent,
+          auth0Client,
+        },
+      );
+
+      return ctx.redirect(
+        `/u/invalid-session?state=${loginSession.id}&error=${encodeURIComponent(errorMessage)}`,
+        302,
+      );
     },
   );
