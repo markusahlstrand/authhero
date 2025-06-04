@@ -1,6 +1,6 @@
 # @authhero/kysely-adapter
 
-## 11.0.0
+## 10.18.0
 
 ### Minor Changes
 
