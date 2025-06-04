@@ -673,6 +673,7 @@ describe("token", () => {
           code_id: "123456",
           login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_verifier: codeChallenge,
         });
 
         const response = await client.oauth.token.$post(

@@ -182,6 +182,7 @@ export async function createCodeData(
     expires_at: new Date(
       Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
     ).toISOString(),
+    code_verifier: params.authParams.code_challenge,
   });
 
   return {
@@ -474,7 +475,7 @@ export async function createAuthResponse(
       user: postHookUser,
       client,
       authParams,
-      login_id: params.loginSession.id, // Use login session id instead of session_id
+      login_id: params.loginSession.id,
     });
 
     if (!authParams.redirect_uri) {
