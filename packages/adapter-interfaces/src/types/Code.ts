@@ -25,6 +25,12 @@ export const codeInsertSchema = z.object({
   code_verifier: z.string().optional().openapi({
     description: "The code verifier used in PKCE in outbound flows",
   }),
+  code_challenge: z.string().optional().openapi({
+    description: "The code challenge used in PKCE in outbound flows",
+  }),
+  code_challenge_method: z.enum(["plain", "S256"]).optional().openapi({
+    description: "The code challenge method used in PKCE in outbound flows",
+  }),
   expires_at: z.string(),
   used_at: z.string().optional(),
   user_id: z.string().optional(),
