@@ -182,7 +182,8 @@ export async function createCodeData(
     expires_at: new Date(
       Date.now() + AUTHORIZATION_CODE_EXPIRES_IN_SECONDS * 1000,
     ).toISOString(),
-    code_verifier: params.authParams.code_challenge,
+    code_challenge: params.authParams.code_challenge,
+    code_challenge_method: params.authParams.code_challenge_method,
   });
 
   return {

@@ -81,18 +81,16 @@ export async function authorizationCodeGrant(
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   } else if (
-    "code_verifier" in params &&
-    typeof params.code_verifier === "string" &&
-    "code_challenge_method" in loginSession.authParams &&
-    typeof loginSession.authParams.code_challenge_method === "string"
+    code.code_challenge &&
+    code.code_challenge_method &&
+    params.code_verifier
   ) {
     // PKCE flow
     const challenge = await computeCodeChallenge(
       params.code_verifier,
-      loginSession.authParams.code_challenge_method,
+      code.code_challenge_method,
     );
-
-    if (!safeCompare(challenge, loginSession.authParams.code_challenge || "")) {
+    if (!safeCompare(challenge, code.code_challenge)) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
   }

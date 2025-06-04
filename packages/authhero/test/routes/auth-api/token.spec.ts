@@ -662,8 +662,6 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: codeChallenge,
-            code_challenge_method: CodeChallengeMethod.Plain,
           },
         });
 
@@ -673,7 +671,8 @@ describe("token", () => {
           code_id: "123456",
           login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-          code_verifier: codeChallenge,
+          code_challenge: codeChallenge,
+          code_challenge_method: CodeChallengeMethod.S256,
         });
 
         const response = await client.oauth.token.$post(

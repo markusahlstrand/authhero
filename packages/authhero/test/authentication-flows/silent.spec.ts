@@ -95,7 +95,7 @@ describe("silent", () => {
     );
     expect(code).toBeDefined();
     expect(code?.login_id).toEqual(loginSession.id);
-    expect(code?.code_verifier).toEqual(
+    expect(code?.code_challenge).toEqual(
       "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
     );
 

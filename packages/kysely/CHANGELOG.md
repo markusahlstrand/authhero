@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.18.0
+
+### Minor Changes
+
+- Add code_challenge to codes table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.68.0
+
 ## 10.17.0
 
 ### Minor Changes

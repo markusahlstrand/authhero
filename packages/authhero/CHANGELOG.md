@@ -1,5 +1,16 @@
 # authhero
 
+## 0.151.0
+
+### Minor Changes
+
+- Add code_challenge to codes table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.68.0
+
 ## 0.150.0
 
 ### Minor Changes

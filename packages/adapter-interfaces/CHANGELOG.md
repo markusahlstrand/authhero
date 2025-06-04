@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.68.0
+
+### Minor Changes
+
+- Add code_challenge to codes table
+
 ## 0.67.0
 
 ### Minor Changes
