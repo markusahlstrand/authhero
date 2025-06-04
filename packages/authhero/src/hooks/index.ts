@@ -36,6 +36,7 @@ function createUserHooks(
       try {
         await ctx.env.hooks.onExecutePreUserRegistration(
           {
+            ctx,
             user,
             request,
           },
@@ -63,6 +64,7 @@ function createUserHooks(
       try {
         await ctx.env.hooks.onExecutePostUserRegistration(
           {
+            ctx,
             user,
             request,
           },
@@ -159,6 +161,7 @@ export async function postUserLoginHook(
   ) {
     await ctx.env.hooks.onExecutePostLogin(
       {
+        ctx,
         client: params.client,
         user,
         request: {

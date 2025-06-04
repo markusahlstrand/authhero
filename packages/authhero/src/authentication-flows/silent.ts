@@ -110,7 +110,7 @@ export async function silentAuth({
           user,
           client,
           authParams: tokenResponseOptions.authParams,
-          login_id: session.id,
+          login_id: session.login_session_id,
         })
       : await createAuthTokens(ctx, tokenResponseOptions);
 

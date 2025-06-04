@@ -19,7 +19,7 @@ type RichTextComponentProps = Extract<FormNodeComponent, { type: "RICH_TEXT" }>;
 const RichTextComponent = (comp: RichTextComponentProps) => {
   return (
     <div
-      className="rich-text"
+      className="rich-text mb-6 prose prose-gray max-w-none [&>*:last-child]:mb-0 [&_h1]:mb-6 [&_h2]:mb-6"
       dangerouslySetInnerHTML={{ __html: comp.config.content }}
       key={comp.id}
     />
@@ -103,7 +103,10 @@ const FormNodePage: FC<FormNodePageProps> = ({
                 if (comp.type === "NEXT_BUTTON") return null;
                 const node = renderFormComponent(comp);
                 return node ? (
-                  <div key={comp.id} className="mb-4">
+                  <div
+                    key={comp.id}
+                    className={comp.type === "RICH_TEXT" ? "mb-6" : "mb-4"}
+                  >
                     {node}
                   </div>
                 ) : null;

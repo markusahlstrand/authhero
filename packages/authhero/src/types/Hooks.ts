@@ -4,6 +4,9 @@ import {
   Client,
   User,
 } from "@authhero/adapter-interfaces";
+import { Context } from "hono";
+import { Bindings } from "./Bindings";
+import { Variables } from "./Variables";
 
 export type Transaction = {
   locale: string;
@@ -41,6 +44,7 @@ export type HookRequest = {
 };
 
 export type HookEvent = {
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
   client?: Client;
   request: HookRequest;
   transaction?: Transaction;
