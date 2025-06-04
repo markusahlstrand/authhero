@@ -80,13 +80,16 @@ export async function authorizationCodeGrant(
     ) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
-  } else if (code.code_challenge && code.code_challenge_method) {
+  } else if (
+    code.code_challenge &&
+    code.code_challenge_method &&
+    params.code_verifier
+  ) {
     // PKCE flow
     const challenge = await computeCodeChallenge(
-      code.code_challenge,
+      params.code_verifier,
       code.code_challenge_method,
     );
-
     if (!safeCompare(challenge, code.code_challenge)) {
       throw new HTTPException(403, { message: "Invalid client credentials" });
     }
