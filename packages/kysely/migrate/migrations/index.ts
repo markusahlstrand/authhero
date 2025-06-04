@@ -82,6 +82,7 @@ import * as n82_forms from "./2025-05-21T10:00:00_forms";
 import * as n83_addFormsIdToHooks from "./2025-05-29T00:00:00_add_forms_id_to_hooks";
 import * as n84_login_completed from "./2025-05-30T00:00:00_login_completed";
 import * as n85_add_login_session_id_to_sessions from "./2025-06-04T12:00:00_add_login_session_id_to_sessions";
+import * as n86_index_sessions_login_session_id from "./2025-06-04T13:00:00_index_sessions_login_session_id";
 
 // These need to be in alphabetic order
 export default {
@@ -169,4 +170,5 @@ export default {
   n83_addFormsIdToHooks,
   n84_login_completed,
   n85_add_login_session_id_to_sessions,
+  n86_index_sessions_login_session_id,
 };

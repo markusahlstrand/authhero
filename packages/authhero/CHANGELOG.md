@@ -1,5 +1,11 @@
 # authhero
 
+## 0.150.0
+
+### Minor Changes
+
+- Use codes-code_verifier to store pkce challenge
+
 ## 0.149.0
 
 ### Minor Changes
