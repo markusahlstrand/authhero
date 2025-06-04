@@ -1,5 +1,16 @@
 # authhero
 
+## 0.149.0
+
+### Minor Changes
+
+- pnpm changeset version
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.67.0
+
 ## 0.148.0
 
 ### Minor Changes

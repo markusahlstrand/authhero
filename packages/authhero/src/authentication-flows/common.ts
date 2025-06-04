@@ -258,6 +258,7 @@ export async function createSession(
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
     user_id: user.user_id,
+    login_session_id: loginSession.id,
     idle_expires_at: new Date(
       Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
     ).toISOString(),

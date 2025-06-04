@@ -7,6 +7,7 @@ export const sessionInsertSchema = z.object({
   used_at: z.string().optional(),
   user_id: z.string().describe("The user ID associated with the session"),
   expires_at: z.string().optional(),
+  login_session_id: z.string(),
   idle_expires_at: z.string().optional(),
   device: deviceSchema.describe(
     "Metadata related to the device used in the session",
