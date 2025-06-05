@@ -84,6 +84,7 @@ import * as n84_login_completed from "./2025-05-30T00:00:00_login_completed";
 import * as n85_add_login_session_id_to_sessions from "./2025-06-04T12:00:00_add_login_session_id_to_sessions";
 import * as n86_index_sessions_login_session_id from "./2025-06-04T13:00:00_index_sessions_login_session_id";
 import * as n87_code_challenge from "./2025-06-04T14:00:00_code_challenge";
+import * as n88_add_redirect_uri_to_codes from "./2025-06-05T09:40:00_add_redirect_uri_to_codes";
 
 // These need to be in alphabetic order
 export default {
@@ -173,4 +174,5 @@ export default {
   n85_add_login_session_id_to_sessions,
   n86_index_sessions_login_session_id,
   n87_code_challenge,
+  n88_add_redirect_uri_to_codes,
 };

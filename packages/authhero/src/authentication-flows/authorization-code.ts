@@ -96,10 +96,7 @@ export async function authorizationCodeGrant(
   }
 
   // Validate the redirect_uri
-  if (
-    loginSession.authParams.redirect_uri &&
-    loginSession.authParams.redirect_uri !== params.redirect_uri
-  ) {
+  if (code.redirect_uri && code.redirect_uri !== params.redirect_uri) {
     throw new HTTPException(403, { message: "Invalid redirect uri" });
   }
 

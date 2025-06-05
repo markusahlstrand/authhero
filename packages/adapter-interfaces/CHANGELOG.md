@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.69.0
+
+### Minor Changes
+
+- Add redirect_uri to codes
+
 ## 0.68.0
 
 ### Minor Changes

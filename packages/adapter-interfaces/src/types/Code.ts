@@ -31,6 +31,9 @@ export const codeInsertSchema = z.object({
   code_challenge_method: z.enum(["plain", "S256"]).optional().openapi({
     description: "The code challenge method used in PKCE in outbound flows",
   }),
+  redirect_uri: z.string().optional().openapi({
+    description: "The redirect URI associated with the code",
+  }),
   expires_at: z.string(),
   used_at: z.string().optional(),
   user_id: z.string().optional(),

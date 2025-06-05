@@ -1,5 +1,16 @@
 # authhero
 
+## 0.152.0
+
+### Minor Changes
+
+- Add redirect_uri to codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.69.0
+
 ## 0.151.0
 
 ### Minor Changes
