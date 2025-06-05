@@ -8,6 +8,7 @@ export const connectionOptionsSchema = z.object({
   kid: z.string().optional(),
   team_id: z.string().optional(),
   realms: z.string().optional(),
+  authentication_method: z.string().optional(),
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
   app_secret: z.string().optional(),

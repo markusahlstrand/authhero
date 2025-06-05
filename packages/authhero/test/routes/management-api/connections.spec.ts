@@ -148,6 +148,7 @@ describe("connections", () => {
 
     expect(listConnectionsResponse.status).toBe(200);
     const connections = await listConnectionsResponse.json();
-    expect(connections).toEqual([]);
+    // There is a default email connection created by the test server
+    expect(connections.length).toEqual(1);
   });
 });

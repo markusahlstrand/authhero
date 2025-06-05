@@ -12,6 +12,7 @@ import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { getClientInfo } from "../../utils/client-info";
+import { HTTPException } from "hono/http-exception";
 
 type Auth0Client = {
   name: string;
@@ -229,12 +230,25 @@ export const identifierRoutes = new OpenAPIHono<{
 
       // Use the connection type to determine the send method
       // Always use sendCode for SMS, only use sendLink for email
-      const { connection } = getConnectionFromIdentifier(username);
+      const { connectionType } = getConnectionFromIdentifier(username);
+
+      const connection = client.connections.find(
+        (p) => p.strategy === connectionType,
+      );
+
+      if (!connection) {
+        throw new HTTPException(400, {
+          message: i18next.t("connection_not_found", {
+            connection: connectionType,
+          }),
+        });
+      }
 
       if (
-        connection === "email" &&
+        connectionType === "email" &&
         sendType === "link" &&
-        !username.includes("online.no")
+        // This is different to how it works in auth0
+        connection.options.authentication_method === "magic_link"
       ) {
         await sendLink(ctx, {
           to: username,

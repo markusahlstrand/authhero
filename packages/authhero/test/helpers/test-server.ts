@@ -87,6 +87,16 @@ export async function getTestServer(
     disable_sign_ups: false,
   });
 
+  // Add the email connection
+  await data.connections.create("tenantId", {
+    id: "email",
+    name: "Email",
+    strategy: "email",
+    options: {
+      authentication_method: "magic_link",
+    },
+  });
+
   // Add a test user
   await data.users.create("tenantId", {
     email: "foo@example.com",

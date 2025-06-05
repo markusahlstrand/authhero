@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.71.0
+
+### Minor Changes
+
+- pnpm changeset version
+
 ## 0.70.0
 
 ### Minor Changes
