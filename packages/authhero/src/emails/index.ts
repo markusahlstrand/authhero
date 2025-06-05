@@ -152,7 +152,7 @@ export async function sendCode(
     throw new HTTPException(500, { message: "Tenant not found" });
   }
 
-  const { connection } = getConnectionFromIdentifier(to);
+  const { connectionType } = getConnectionFromIdentifier(to);
 
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
@@ -164,7 +164,7 @@ export async function sendCode(
     lng: tenant.language || "en",
   };
 
-  if (connection === "email") {
+  if (connectionType === "email") {
     await sendEmail(ctx, {
       to,
       subject: t("code_email_subject", options),
@@ -186,7 +186,7 @@ export async function sendCode(
         copyright: t("copyright", options),
       },
     });
-  } else if (connection === "sms") {
+  } else if (connectionType === "sms") {
     await sendSms(ctx, {
       to,
       text: t("sms_code_text", options),
@@ -215,12 +215,12 @@ export async function sendLink(
     throw new HTTPException(400, { message: "redirect_uri is required" });
   }
 
-  const { connection } = getConnectionFromIdentifier(to);
+  const { connectionType } = getConnectionFromIdentifier(to);
 
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";
   magicLink.searchParams.set("verification_code", code);
-  magicLink.searchParams.set("connection", connection);
+  magicLink.searchParams.set("connection", connectionType);
   magicLink.searchParams.set("client_id", authParams.client_id);
   magicLink.searchParams.set("redirect_uri", authParams.redirect_uri);
   magicLink.searchParams.set("email", to);
@@ -255,7 +255,7 @@ export async function sendLink(
     lng: tenant.language || "en",
   };
 
-  if (connection === "email") {
+  if (connectionType === "email") {
     await sendEmail(ctx, {
       to,
       subject: t("code_email_subject", options),
@@ -278,7 +278,7 @@ export async function sendLink(
         copyright: t("copyright", options),
       },
     });
-  } else if (connection === "sms") {
+  } else if (connectionType === "sms") {
     // For SMS connection, send the magic link via SMS
     await sendSms(ctx, {
       to,

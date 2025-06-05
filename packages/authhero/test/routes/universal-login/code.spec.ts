@@ -44,6 +44,11 @@ describe("code", () => {
         form: { username: "foo@example.com" },
       },
     );
+
+    console.log(
+      "Enter email post response:",
+      await enterEmailPostResponse.text(),
+    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     // --------------------------------

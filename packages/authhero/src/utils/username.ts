@@ -3,7 +3,7 @@ import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js";
 type ConnectionType = "email" | "sms" | "username";
 
 interface NormalizedResult {
-  connection: ConnectionType;
+  connectionType: ConnectionType;
   normalized: string | null;
   isValid: boolean;
 }
@@ -18,7 +18,7 @@ export function getConnectionFromIdentifier(
     const normalized = username.toLowerCase();
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
     return {
-      connection: "email",
+      connectionType: "email",
       normalized: isValid ? normalized : null,
       isValid,
     };
@@ -28,20 +28,20 @@ export function getConnectionFromIdentifier(
     });
     if (phoneNumber && phoneNumber.isValid()) {
       return {
-        connection: "sms",
+        connectionType: "sms",
         normalized: phoneNumber.number, // E.164 format
         isValid: true,
       };
     } else {
       return {
-        connection: "sms",
+        connectionType: "sms",
         normalized: null,
         isValid: false,
       };
     }
   } else {
     return {
-      connection: "username",
+      connectionType: "username",
       normalized: username,
       isValid: true,
     };

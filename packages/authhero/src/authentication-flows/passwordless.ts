@@ -30,7 +30,7 @@ export async function passwordlessGrant(
   }: z.infer<typeof passwordlessGrantParamsSchema>,
 ) {
   const clientInfo = getClientInfo(ctx.req);
-  const { connection, normalized } = getConnectionFromIdentifier(
+  const { connectionType, normalized } = getConnectionFromIdentifier(
     username,
     clientInfo.countryCode,
   );
@@ -87,8 +87,8 @@ export async function passwordlessGrant(
   const user = await getOrCreateUserByProvider(ctx, {
     client,
     username: normalized,
-    provider: connection,
-    connection: connection,
+    provider: connectionType,
+    connection: connectionType,
     isSocial: false,
     ip: ctx.req.header("x-real-ip"),
   });

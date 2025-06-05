@@ -1,5 +1,17 @@
 # authhero
 
+## 0.154.0
+
+### Minor Changes
+
+- pnpm changeset version
+- Add config to connection to enable magic links
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.71.0
+
 ## 0.153.0
 
 ### Minor Changes
