@@ -115,6 +115,9 @@ export async function authorizationCodeGrant(
     loginSession,
     authParams: {
       ...loginSession.authParams,
+      // Use the state and nonce from the code as it might differ if it's a silent auth login
+      state: code.state,
+      nonce: code.nonce,
       // Ensure WEB_MESSAGE is explicitly passed, as createAuthResponse relies on it
       response_mode: AuthorizationResponseMode.WEB_MESSAGE,
       // Pass through other relevant authParams from the loginSession or original request if necessary

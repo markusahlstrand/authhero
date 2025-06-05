@@ -1,5 +1,16 @@
 # authhero
 
+## 0.153.0
+
+### Minor Changes
+
+- Added state and nonce to codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.70.0
+
 ## 0.152.0
 
 ### Minor Changes

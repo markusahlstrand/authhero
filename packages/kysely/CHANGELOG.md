@@ -4,6 +4,17 @@
 
 ### Minor Changes
 
+- Added state and nonce to codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.70.0
+
+## 10.19.0
+
+### Minor Changes
+
 - Add redirect_uri to codes
 
 ### Patch Changes
