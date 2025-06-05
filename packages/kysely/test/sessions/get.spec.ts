@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { nanoid } from "nanoid";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("sessions", () => {
   describe("get", () => {
@@ -41,9 +42,24 @@ describe("sessions", () => {
 
       const id = nanoid();
 
+      const createdLoginSession = await data.loginSessions.create("tenantId", {
+        csrf_token: "csrf123",
+        authParams: {
+          client_id: "client123",
+          response_type: AuthorizationResponseType.CODE,
+          scope: "openid profile",
+          state: "state123",
+        },
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        ip: "127.0.0.1",
+        useragent: "jest",
+        login_completed: false,
+      });
+
       await data.sessions.create("tenantId", {
         id,
         user_id: "email|userId",
+        login_session_id: createdLoginSession.id,
         used_at: "2021-01-01T00:00:00.000Z",
         device: {
           last_ip: "",
@@ -61,6 +77,7 @@ describe("sessions", () => {
       expect(session).toMatchObject({
         id,
         user_id: "email|userId",
+        login_session_id: createdLoginSession.id,
         used_at: "2021-01-01T00:00:00.000Z",
         device: {
           last_ip: "",

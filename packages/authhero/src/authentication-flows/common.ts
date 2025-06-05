@@ -184,6 +184,7 @@ export async function createCodeData(
     ).toISOString(),
     code_challenge: params.authParams.code_challenge,
     code_challenge_method: params.authParams.code_challenge_method,
+    redirect_uri: params.authParams.redirect_uri,
   });
 
   return {
@@ -333,6 +334,7 @@ export async function createAuthResponse(
       login_id: params.loginSession.id,
       expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),
       code_verifier: [co_id, co_verifier].join("|"),
+      redirect_uri: authParams.redirect_uri,
     });
 
     return ctx.json({

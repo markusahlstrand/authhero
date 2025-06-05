@@ -90,6 +90,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         code_type: "otp",
         login_id: loginSession.id,
         expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
+        redirect_uri: authParams.redirect_uri,
       });
 
       if (send === "link") {

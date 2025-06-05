@@ -76,6 +76,7 @@ export async function universalAuth({
       expires_at: new Date(
         Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
       ).toISOString(),
+      redirect_uri: authParams.redirect_uri,
     });
     await sendLink(ctx, {
       code: otp,

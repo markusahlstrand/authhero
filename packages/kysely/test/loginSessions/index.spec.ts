@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("loginSessions", () => {
   it("should support crud operations", async () => {
@@ -16,9 +17,7 @@ describe("loginSessions", () => {
     // ----------------------------------------
     // Create
     // --------------------------------
-    const {
-      AuthorizationResponseType,
-    } = require("@authhero/adapter-interfaces");
+
     const createdLoginSession = await data.loginSessions.create("tenantId", {
       csrf_token: "csrf123",
       authParams: {

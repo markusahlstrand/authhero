@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.19.0
+
+### Minor Changes
+
+- Add redirect_uri to codes
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.69.0
+
 ## 10.18.0
 
 ### Minor Changes
