@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.70.0
+
+### Minor Changes
+
+- Added state and nonce to codes
+
 ## 0.69.0
 
 ### Minor Changes

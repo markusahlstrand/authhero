@@ -34,6 +34,12 @@ export const codeInsertSchema = z.object({
   redirect_uri: z.string().optional().openapi({
     description: "The redirect URI associated with the code",
   }),
+  nonce: z.string().optional().openapi({
+    description: "The nonce value used for security in OIDC flows",
+  }),
+  state: z.string().optional().openapi({
+    description: "The state parameter used for CSRF protection in OAuth flows",
+  }),
   expires_at: z.string(),
   used_at: z.string().optional(),
   user_id: z.string().optional(),
