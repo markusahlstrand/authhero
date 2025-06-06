@@ -140,11 +140,22 @@ describe("authorize", () => {
 
       const idle_expires_at = new Date(Date.now() + 1000).toISOString();
 
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
       await env.data.sessions.create("tenantId", {
         id: "sessionId",
         user_id: "email|userId",
         clients: ["clientId"],
         idle_expires_at,
+        login_session_id: loginSession.id,
         device: {
           last_ip: "",
           initial_ip: "",
@@ -181,11 +192,31 @@ describe("authorize", () => {
       expect(response.status).toEqual(200);
       const body = await response.text();
       expect(body).toContain('"code":"');
+      const codeMatch = body.match(/"code":"([^"]+)"/);
 
       // Fetch the session
       const session = await env.data.sessions.get("tenantId", "sessionId");
       expect(session?.used_at).toBeDefined();
       expect(session?.idle_expires_at).not.toBe(idle_expires_at);
+
+      // Fetch the code
+      const code = await env.data.codes.get(
+        "tenantId",
+        codeMatch?.[1] || "",
+        "authorization_code",
+      );
+
+      expect(code).toMatchObject({
+        code_type: "authorization_code",
+        user_id: "email|userId",
+        login_id: loginSession.id,
+        expires_at: expect.any(String),
+        code_challenge: "codeChallenge",
+        code_challenge_method: CodeChallengeMethod.S256,
+        state: "state",
+        nonce: "nonce",
+        redirect_uri: "https://example.com/callback",
+      });
     });
 
     it("should return a web_message response with a access_token for a valid session", async () => {
@@ -194,11 +225,22 @@ describe("authorize", () => {
 
       const idle_expires_at = new Date(Date.now() + 1000).toISOString();
 
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
       await env.data.sessions.create("tenantId", {
         id: "sessionId",
         user_id: "email|userId",
         clients: ["clientId"],
         idle_expires_at,
+        login_session_id: loginSession.id,
         device: {
           last_ip: "",
           initial_ip: "",
@@ -246,11 +288,22 @@ describe("authorize", () => {
       const { oauthApp, env } = await getTestServer();
       const oauthClient = testClient(oauthApp, env);
 
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
       await env.data.sessions.create("tenantId", {
         id: "sessionId",
         user_id: "email|userId",
         clients: ["clientId"],
         expires_at: new Date(Date.now() - 1000).toISOString(),
+        login_session_id: loginSession.id,
         device: {
           last_ip: "",
           initial_ip: "",
