@@ -1,5 +1,11 @@
 # authhero
 
+## 0.156.0
+
+### Minor Changes
+
+- Fetch expired login sessions
+
 ## 0.155.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.21.0
+
+### Minor Changes
+
+- Fetch expired login sessions
+
 ## 10.20.0
 
 ### Patch Changes

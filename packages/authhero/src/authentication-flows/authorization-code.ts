@@ -64,6 +64,7 @@ export async function authorizationCodeGrant(
     client.tenant.id,
     code.login_id,
   );
+
   if (!loginSession) {
     throw new HTTPException(403, { message: "Invalid login" });
   }
