@@ -98,6 +98,7 @@ export async function silentAuth({
       state,
       nonce,
       response_type,
+      redirect_uri,
     },
     user,
     session_id: session.id,

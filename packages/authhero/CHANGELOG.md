@@ -1,5 +1,11 @@
 # authhero
 
+## 0.155.0
+
+### Minor Changes
+
+- Store the redirect_uri in codes table on silent auth
+
 ## 0.154.0
 
 ### Minor Changes
