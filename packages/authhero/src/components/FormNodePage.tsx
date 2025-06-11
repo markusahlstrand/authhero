@@ -44,12 +44,30 @@ const LegalComponent = (comp: LegalComponentProps) => {
   );
 };
 
+type TextComponentProps = Extract<FormNodeComponent, { type: "TEXT" }>;
+const TextComponent = (comp: TextComponentProps) => {
+  return (
+    <div key={comp.id} className="mb-4">
+      <input
+        type="text"
+        name={comp.id}
+        placeholder={comp.config?.placeholder || ""}
+        required={!!comp.required}
+        className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-500"
+        id={comp.id}
+      />
+    </div>
+  );
+};
+
 function renderFormComponent(comp: FormNodeComponent) {
   switch (comp.type) {
     case "RICH_TEXT":
       return RichTextComponent(comp);
     case "LEGAL":
       return LegalComponent(comp);
+    case "TEXT":
+      return TextComponent(comp);
     default:
       return null;
   }

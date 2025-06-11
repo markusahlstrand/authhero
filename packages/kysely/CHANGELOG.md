@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.22.0
+
+### Minor Changes
+
+- Use normaized user to handle sms login
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.72.0
+
 ## 10.21.0
 
 ### Minor Changes

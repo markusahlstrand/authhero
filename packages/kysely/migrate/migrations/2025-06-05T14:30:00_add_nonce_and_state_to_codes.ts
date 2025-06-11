@@ -9,7 +9,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
   await db.schema
     .alterTable("codes")
-    .addColumn("state", "varchar(1024)")
+    .addColumn("state", "varchar(2048)")
     .execute();
 }
 

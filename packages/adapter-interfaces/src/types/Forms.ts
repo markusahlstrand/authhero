@@ -43,6 +43,18 @@ export const formNodeComponentDefinition = z.discriminatedUnion("type", [
   }),
   z.object({
     id: z.string(),
+    type: z.literal("TEXT"),
+    config: z.object({
+      placeholder: z.string().optional(),
+      multiline: z.boolean().optional(),
+    }),
+    required: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+    order: z.number().optional(),
+    visible: z.boolean().optional().default(true),
+  }),
+  z.object({
+    id: z.string(),
     type: z.literal("NEXT_BUTTON"),
     config: z.object({
       text: z.string().optional(),
