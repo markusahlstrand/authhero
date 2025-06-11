@@ -1,5 +1,16 @@
 # authhero
 
+## 0.157.0
+
+### Minor Changes
+
+- Use normaized user to handle sms login
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.72.0
+
 ## 0.156.0
 
 ### Minor Changes

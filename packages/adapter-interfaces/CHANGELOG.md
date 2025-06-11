@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.72.0
+
+### Minor Changes
+
+- Add text form component
+
 ## 0.71.0
 
 ### Minor Changes

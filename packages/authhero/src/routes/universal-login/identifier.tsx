@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute, usePasswordLogin } from "./common";
 import IdentifierPage from "../../components/IdentifierPage";
-import { getPrimaryUserByEmail } from "../../helpers/users";
+import { getPrimaryUserByProvider } from "../../helpers/users";
 import { preUserSignupHook } from "../../hooks";
 import { createLogMessage } from "../../utils/create-log-message";
 import { LogTypes } from "@authhero/adapter-interfaces";
@@ -129,10 +129,8 @@ export const identifierRoutes = new OpenAPIHono<{
 
       const { countryCode } = getClientInfo(ctx.req);
 
-      const { normalized: username } = getConnectionFromIdentifier(
-        params.username,
-        countryCode,
-      );
+      const { normalized: username, connectionType } =
+        getConnectionFromIdentifier(params.username, countryCode);
 
       if (!username) {
         return ctx.html(
@@ -147,10 +145,11 @@ export const identifierRoutes = new OpenAPIHono<{
         );
       }
 
-      const user = await getPrimaryUserByEmail({
+      const user = await getPrimaryUserByProvider({
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
-        email: username,
+        username,
+        provider: connectionType,
       });
       if (user) {
         ctx.set("user_id", user.user_id);
@@ -227,10 +226,6 @@ export const identifierRoutes = new OpenAPIHono<{
       const sendType = getSendParamFromAuth0ClientHeader(
         loginSession.auth0Client,
       );
-
-      // Use the connection type to determine the send method
-      // Always use sendCode for SMS, only use sendLink for email
-      const { connectionType } = getConnectionFromIdentifier(username);
 
       const connection = client.connections.find(
         (p) => p.strategy === connectionType,
