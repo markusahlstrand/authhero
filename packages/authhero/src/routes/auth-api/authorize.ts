@@ -17,14 +17,7 @@ import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
 import { getClientWithDefaults } from "../../helpers/client";
 
-// const UI_STRATEGIES = [
-//   "email",
-//   "sms",
-//   "auth0",
-//   "authhero",
-//   // TODO: this is a legacy strategy. Remove once migrated
-//   "Username-Password-Authentication",
-// ];
+const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
 
 export const authorizeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -200,7 +193,6 @@ export const authorizeRoutes = new OpenAPIHono<{
           });
         }
 
-        // silentAuth returns Promise<Response>, which is fine directly.
         return silentAuth({
           ctx,
           session: validSession || undefined,
@@ -216,13 +208,19 @@ export const authorizeRoutes = new OpenAPIHono<{
         });
       }
 
-      // If there's only one connection and it's not a u
-      // if (
-      //   client.connections.length === 1 &&
-      //   !UI_STRATEGIES.includes(client.connections[0].strategy || "")
-      // ) {
-      //   return socialAuth(ctx, client, client.connections[0].name, authParams);
-      // }
+      // If there's only one connection and it's a OIDC provider, we can redirect to that provider directly
+      if (
+        client.connections.length === 1 &&
+        client.connections[0] &&
+        !UI_STRATEGIES.includes(client.connections[0].strategy || "")
+      ) {
+        return connectionAuth(
+          ctx,
+          client,
+          client.connections[0].name,
+          authParams,
+        );
+      }
 
       // Connection auth flow
       if (connection && connection !== "email") {
@@ -240,12 +238,10 @@ export const authorizeRoutes = new OpenAPIHono<{
         if (ticketAuthResult instanceof Response) {
           return ticketAuthResult;
         } else {
-          // ticketAuthResult is TokenResponse
           return ctx.json(ticketAuthResult);
         }
       }
 
-      // universalAuth can return Promise<TokenResponse | Response>
       const universalAuthResult = await universalAuth({
         ctx,
         client,
@@ -259,7 +255,6 @@ export const authorizeRoutes = new OpenAPIHono<{
       if (universalAuthResult instanceof Response) {
         return universalAuthResult;
       } else {
-        // universalAuthResult is TokenResponse
         return ctx.json(universalAuthResult);
       }
     },

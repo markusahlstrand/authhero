@@ -1,5 +1,11 @@
 # authhero
 
+## 0.158.0
+
+### Minor Changes
+
+- Redirect straight to single OIDC connection
+
 ## 0.157.0
 
 ### Minor Changes
