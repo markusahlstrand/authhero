@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Invalid code",
-  "Wrong email or verification code": {
-    "": "Wrong email or verification code."
-  },
   "account_detected": "Account detected",
   "account_with_sso_provider": "We have detected that you have already created an account through",
   "agree_to": "By signing in, you agree to our",

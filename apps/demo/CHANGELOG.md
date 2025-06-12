@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.14.0
+
+### Minor Changes
+
+- Updated packages and added danish
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.159.0
+  - @authhero/kysely-adapter@10.23.0
+
 ## 0.13.11
 
 ### Patch Changes

@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Neplatný kód",
-  "Wrong email or verification code": {
-    "": "Špatný e-mail nebo ověřovací kód."
-  },
   "account_detected": "Zjištěný účet",
   "account_with_sso_provider": "Zjistili jsme, že jste si již vytvořili účet prostřednictvím",
   "agree_to": "Přihlášením souhlasíte s našimi",

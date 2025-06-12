@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Nieprawidłowy kod",
-  "Wrong email or verification code": {
-    "": "Nieprawidłowy adres e-mail lub kod weryfikacyjny."
-  },
   "account_detected": "Wykryto konto",
   "account_with_sso_provider": "Wykryliśmy, że użytkownik utworzył już konto za pośrednictwem",
   "agree_to": "Logując się, wyrażasz zgodę na nasze",

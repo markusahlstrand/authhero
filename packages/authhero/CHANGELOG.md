@@ -1,5 +1,11 @@
 # authhero
 
+## 0.159.0
+
+### Minor Changes
+
+- Updated packages and added danish
+
 ## 0.158.0
 
 ### Minor Changes

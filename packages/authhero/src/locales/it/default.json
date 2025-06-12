@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Codice non valido",
-  "Wrong email or verification code": {
-    "": "Email o codice di verifica errati."
-  },
   "account_detected": "Account rilevato",
   "account_with_sso_provider": "Abbiamo rilevato che l'utente ha già creato un account tramite",
   "agree_to": "Effettuando l'accesso, l'utente accetta la nostra",

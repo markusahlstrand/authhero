@@ -441,8 +441,8 @@ importers:
         specifier: ^22.9.1
         version: 22.15.17
       better-sqlite3:
-        specifier: ^11.5.0
-        version: 11.5.0
+        specifier: ^11.10.0
+        version: 11.10.0
       dts-bundle-generator:
         specifier: ^9.5.1
         version: 9.5.1
@@ -2660,6 +2660,9 @@ packages:
   better-path-resolve@1.0.0:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
     engines: {node: '>=4'}
+
+  better-sqlite3@11.10.0:
+    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
 
   better-sqlite3@11.5.0:
     resolution: {integrity: sha512-e/6eggfOutzoK0JWiU36jsisdWoHOfN9iWiW/SieKvb7SAa6aGNmBM/UKyp+/wWSXpLlWNN8tCPwoDNPhzUvuQ==}
@@ -8121,6 +8124,11 @@ snapshots:
   better-path-resolve@1.0.0:
     dependencies:
       is-windows: 1.0.2
+
+  better-sqlite3@11.10.0:
+    dependencies:
+      bindings: 1.5.0
+      prebuild-install: 7.1.2
 
   better-sqlite3@11.5.0:
     dependencies:
