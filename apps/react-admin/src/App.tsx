@@ -5,6 +5,7 @@ import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { getDataproviderForTenant } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
@@ -24,10 +25,9 @@ import {
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionsList, SessionEdit } from "./components/sessions";
-import { BrandingEdit, BrandingShow } from "./components/branding";
+import { CustomMenu } from "./components/CustomMenu";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
-import PaletteIcon from "@mui/icons-material/Palette";
 import { useMemo } from "react";
 
 interface AppProps {
@@ -67,7 +67,9 @@ export function App(props: AppProps) {
       authProvider={authProvider}
       requireAuth={!!selectedDomain} // Only require auth when domain is selected
       basename={`/${props.tenantId}`} // Set the basename to the tenant ID
-      layout={tenantLayout}
+      layout={(layoutProps) =>
+        tenantLayout({ ...layoutProps, menu: CustomMenu })
+      }
     >
       <Resource
         icon={Layers}
@@ -92,12 +94,6 @@ export function App(props: AppProps) {
         edit={UserEdit}
         create={UserCreate}
         show={ShowGuesser}
-      />
-      <Resource
-        icon={PaletteIcon}
-        name="branding"
-        show={BrandingShow}
-        edit={BrandingEdit}
       />
       <Resource
         icon={DnsIcon}

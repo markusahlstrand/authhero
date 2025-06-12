@@ -6,10 +6,11 @@ interface TenantLayoutProps extends LayoutProps {
   appBarProps?: {
     domainSelectorButton?: ReactNode;
   };
+  menu?: React.ComponentType<any>;
 }
 
 export function tenantLayout(props: TenantLayoutProps) {
-  const { appBarProps, children, ...rest } = props;
+  const { appBarProps, children, menu, ...rest } = props;
   const tenantId = location.pathname.split("/").filter(Boolean)[0];
   const isDefaultSettings = tenantId === "DEFAULT_SETTINGS";
 
@@ -22,6 +23,7 @@ export function tenantLayout(props: TenantLayoutProps) {
           domainSelectorButton={props.appBarProps?.domainSelectorButton}
         />
       )}
+      menu={menu}
       sx={{ ...(isDefaultSettings && { backgroundColor: "red" }) }}
     >
       {children}
