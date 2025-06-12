@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Virheellinen koodi",
-  "Wrong email or verification code": {
-    "": "Väärä sähköpostiosoite tai vahvistuskoodi."
-  },
   "account_detected": "Tili havaittu",
   "account_with_sso_provider": "Olemme havainneet, että olet jo luonut tilin kautta",
   "agree_to": "Kirjautumalla sisään hyväksyt",
