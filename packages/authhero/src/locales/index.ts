@@ -5,5 +5,6 @@ import sv from "./sv/default.json";
 import pl from "./pl/default.json";
 import cs from "./cs/default.json";
 import fi from "./fi/default.json";
+import da from "./da/default.json";
 
-export { en, it, nb, sv, pl, cs, fi };
+export { en, it, nb, sv, pl, cs, fi, da };

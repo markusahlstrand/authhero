@@ -24,8 +24,10 @@ import {
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionsList, SessionEdit } from "./components/sessions";
+import { BrandingEdit, BrandingShow } from "./components/branding";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { useMemo } from "react";
 
 interface AppProps {
@@ -90,6 +92,12 @@ export function App(props: AppProps) {
         edit={UserEdit}
         create={UserCreate}
         show={ShowGuesser}
+      />
+      <Resource
+        icon={PaletteIcon}
+        name="branding"
+        show={BrandingShow}
+        edit={BrandingEdit}
       />
       <Resource
         icon={DnsIcon}
