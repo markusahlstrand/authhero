@@ -98,6 +98,9 @@ function getIdKeyFromResource(resource: string) {
   }
 }
 
+// List of singleton resources (no id in URL, e.g. /api/v2/branding)
+const SINGLETON_RESOURCES = ["branding"];
+
 /**
  * Maps react-admin queries to the auth0 mamagement api
  */
@@ -179,6 +182,18 @@ export default (
 
       if (tenantId) {
         headers.set("tenant-id", tenantId);
+      }
+
+      // Handle singleton resources
+      if (SINGLETON_RESOURCES.includes(resource)) {
+        return httpClient(`${apiUrl}/api/v2/${resource}`, {
+          headers,
+        }).then(({ json }) => ({
+          data: {
+            id: resource, // Use a constant id for singleton
+            ...json,
+          },
+        }));
       }
 
       return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
@@ -270,6 +285,17 @@ export default (
       }
 
       const cleanParams = removeExtraFields(params);
+
+      // Handle singleton resources
+      if (SINGLETON_RESOURCES.includes(resource)) {
+        return httpClient(`${apiUrl}/api/v2/${resource}`, {
+          headers,
+          method: "PATCH",
+          body: JSON.stringify(cleanParams.data),
+        }).then(({ json }) => ({
+          data: { id: resource, ...json },
+        }));
+      }
 
       return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
         headers,
