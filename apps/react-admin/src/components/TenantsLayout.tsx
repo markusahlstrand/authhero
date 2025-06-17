@@ -1,5 +1,5 @@
 import { Layout, LayoutProps, AppBar, TitlePortal } from "react-admin";
-import { Box, Button, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { ReactNode } from "react";
 
 // Custom AppBar specifically for the Tenants management interface

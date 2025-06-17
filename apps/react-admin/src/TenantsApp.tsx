@@ -11,13 +11,17 @@ import { saveSelectedDomainToStorage } from "./utils/domainUtils";
 import { tenantsLayout } from "./components/TenantsLayout";
 
 interface TenantsAppProps {
-  initialDomain: string;
+  initialDomain?: string;
   onAuthComplete?: () => void;
 }
 
-export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
+export function TenantsApp(props: TenantsAppProps = {}) {
+  const { initialDomain, onAuthComplete } = props;
+
   // State for domains and domain selector dialog
-  const [selectedDomain, setSelectedDomain] = useState<string>(initialDomain);
+  const [selectedDomain, setSelectedDomain] = useState<string>(
+    initialDomain || "",
+  );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
 
   // Use useMemo to prevent recreating the auth provider on every render
@@ -56,43 +60,31 @@ export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
     </Button>
   );
 
-  // Use a direct component approach with React Admin's functionality
-  const AdminWithBasename = () => {
-    // We don't need a custom basename when rendering TenantsApp
-    // The route is already set to "/tenants/*" in index.tsx
-    // Using an empty string prevents the duplication
-    const basename = "";
+  return (
+    <>
+      {showDomainDialog && (
+        <DomainSelector onDomainSelected={handleDomainSelected} />
+      )}
 
-    return (
-      <>
-        {showDomainDialog && (
-          <DomainSelector onDomainSelected={handleDomainSelected} />
-        )}
-
-        <Admin
-          dataProvider={dataProvider}
-          authProvider={authProvider}
-          requireAuth={false}
-          basename={basename}
-          dashboard={() => <TenantsList resource="tenants" />}
-          layout={(props) =>
-            tenantsLayout({
-              ...props,
-              domainSelectorButton: DomainSelectorButton,
-            })
-          }
-        >
-          <Resource
-            name="tenants"
-            list={TenantsList}
-            edit={TenantsEdit}
-            create={TenantsCreate}
-            show={ShowGuesser}
-          />
-        </Admin>
-      </>
-    );
-  };
-
-  return <AdminWithBasename />;
+      <Admin
+        dataProvider={dataProvider}
+        authProvider={authProvider}
+        requireAuth={false}
+        layout={(props) =>
+          tenantsLayout({
+            ...props,
+            domainSelectorButton: DomainSelectorButton,
+          })
+        }
+      >
+        <Resource
+          name="tenants"
+          list={TenantsList}
+          edit={TenantsEdit}
+          create={TenantsCreate}
+          show={ShowGuesser}
+        />
+      </Admin>
+    </>
+  );
 }

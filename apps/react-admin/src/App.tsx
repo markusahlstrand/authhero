@@ -37,8 +37,9 @@ interface AppProps {
 }
 
 export function App(props: AppProps) {
-  // Use the domain passed from parent component
-  const selectedDomain = props.initialDomain || "";
+  // Use a default domain for now - in the working project, domain selection might be handled differently
+  const selectedDomain =
+    props.initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "";
 
   // Use memoization for creating the auth provider to prevent re-authentication
   const authProvider = useMemo(() => {
@@ -66,7 +67,6 @@ export function App(props: AppProps) {
       dataProvider={dataProvider}
       authProvider={authProvider}
       requireAuth={!!selectedDomain} // Only require auth when domain is selected
-      basename={`/${props.tenantId}`} // Set the basename to the tenant ID
       layout={tenantLayout}
     >
       <Resource
