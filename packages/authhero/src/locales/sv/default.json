@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Koden är inte giltig",
-  "Wrong email or verification code": {
-    "": "Fel e-post eller verifieringskod."
-  },
   "account_detected": "Fortsätt med existerande konto",
   "account_with_sso_provider": "Det verkar som att du redan har skapat ett konto genom",
   "agree_to": "Genom att logga in godkänner du våra",

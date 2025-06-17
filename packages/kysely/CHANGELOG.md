@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.23.0
+
+### Minor Changes
+
+- Updated packages and added danish
+
 ## 10.22.0
 
 ### Minor Changes

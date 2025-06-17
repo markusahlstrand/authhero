@@ -6,7 +6,7 @@ import createManagementApi from "./routes/management-api";
 import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import { createX509Certificate } from "./utils/encryption";
-import { en, it, nb, sv, pl, cs, fi } from "./locales";
+import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
 export * from "@authhero/adapter-interfaces";
 export * from "./types/Hooks";
@@ -14,7 +14,7 @@ export * from "./components";
 export * from "./styles";
 
 i18next.init({
-  supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi"],
+  supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
   fallbackLng: "en",
   resources: {
     en: { translation: en },
@@ -24,6 +24,7 @@ i18next.init({
     pl: { translation: pl },
     cs: { translation: cs },
     fi: { translation: fi },
+    da: { translation: da },
   },
 });
 

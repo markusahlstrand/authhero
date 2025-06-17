@@ -1,8 +1,5 @@
 {
   "Server error: Invalid code": "Ugyldig kode",
-  "Wrong email or verification code": {
-    "": "Feil e-post eller bekreftelseskode."
-  },
   "account_detected": "Konto oppdaget",
   "account_with_sso_provider": "Vi har oppdaget at du allerede har opprettet en konto gjennom",
   "agree_to": "Ved å logge på godtar du våre",
