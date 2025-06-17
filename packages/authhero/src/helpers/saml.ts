@@ -40,6 +40,7 @@ export interface SAMLResponseParams {
 export async function inflateRaw(
   compressedData: Uint8Array,
 ): Promise<Uint8Array> {
+  // TODO: this is not supported in Node.js, so we need to use a polyfill
   const ds = new DecompressionStream("deflate-raw");
   const decompressedStream = new Blob([compressedData])
     .stream()
@@ -267,6 +268,7 @@ async function signSAML(
       action: "after",
     },
   });
+
   return sig.getSignedXml();
 }
 

@@ -50,6 +50,7 @@ export const samlpRoutes = new OpenAPIHono<{
         });
       }
 
+      // TODO: Get the most recent signing key
       const [signingKey] = await ctx.env.data.keys.list();
 
       if (!signingKey) {
@@ -113,6 +114,8 @@ export const samlpRoutes = new OpenAPIHono<{
       const { client_id } = ctx.req.valid("param");
       const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
+      // TODO: Validate the Signature and SigAlg if provided
+
       const samlRequest = await parseSamlRequestQuery(SAMLRequest);
       const issuer = samlRequest["samlp:AuthnRequest"]["saml:Issuer"]["#text"];
 
@@ -129,9 +132,10 @@ export const samlpRoutes = new OpenAPIHono<{
             }),
             response_mode: AuthorizationResponseMode.SAML_POST,
             redirect_uri:
+              // TODO: validate this URL against the saml settings
               samlRequest["samlp:AuthnRequest"][
                 "@_AssertionConsumerServiceURL"
-              ] || "https://auth.sesamy.dev/login/callback",
+              ],
             audience: issuer,
           },
           expires_at: new Date(
