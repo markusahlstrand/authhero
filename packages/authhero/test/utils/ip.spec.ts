@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { isIpMatch, isIPv4, isIPv6, normalizeIp } from "../../src/utils/ip";
+import {
+  isIpMatch,
+  isIPv4,
+  isIPv6,
+  normalizeIp,
+  stripPort,
+} from "../../src/utils/ip";
 
 // IPv4 tests
 describe("isIpMatch - IPv4", () => {
@@ -52,8 +58,8 @@ describe("isIpMatch - edge cases", () => {
     expect(isIpMatch("192.168.1.1", "::1")).toBe(false);
   });
   it("should not treat IPv4 with port as IPv6", () => {
-    expect(isIpMatch("127.0.0.1:3000", "127.0.0.1")).toBe(false);
-    expect(isIpMatch("127.0.0.1", "127.0.0.1:3000")).toBe(false);
+    expect(isIpMatch("127.0.0.1:3000", "127.0.0.1")).toBe(true);
+    expect(isIpMatch("127.0.0.1", "127.0.0.1:3000")).toBe(true);
   });
   it("should not treat single colon as IPv6", () => {
     expect(isIpMatch("foo:bar", "foo:bar")).toBe(false);
@@ -143,5 +149,31 @@ describe("normalizeIp", () => {
     expect(normalizeIp("abcd")).toBeNull();
     expect(normalizeIp("192.168.1")).toBeNull();
     expect(normalizeIp("2001:db8:85a3:0:0:8a2e:370:7334:1234:5678")).toBeNull();
+  });
+});
+
+// stripPort tests
+describe("stripPort", () => {
+  it("should remove port from IPv4 address", () => {
+    expect(stripPort("127.0.0.1:3000")).toBe("127.0.0.1");
+    expect(stripPort("192.168.1.1:8080")).toBe("192.168.1.1");
+  });
+  it("should not modify IPv4 address without port", () => {
+    expect(stripPort("127.0.0.1")).toBe("127.0.0.1");
+  });
+  it("should remove port from bracketed IPv6 address", () => {
+    expect(stripPort("[::1]:3000")).toBe("::1");
+    expect(stripPort("[2001:db8::1]:443")).toBe("2001:db8::1");
+  });
+  it("should not remove anything from plain IPv6 address", () => {
+    expect(stripPort("2001:db8::1")).toBe("2001:db8::1");
+    expect(stripPort("::1")).toBe("::1");
+  });
+  it("should handle extra whitespace", () => {
+    expect(stripPort(" 127.0.0.1:3000 ")).toBe("127.0.0.1");
+    expect(stripPort(" [::1]:3000 ")).toBe("::1");
+  });
+  it("should not remove port-like suffix from non-IP string", () => {
+    expect(stripPort("foo:bar")).toBe("foo:bar");
   });
 });
