@@ -5,6 +5,13 @@
 ### Patch Changes
 
 - Updated dependencies
+  - authhero@0.159.0
+
+## 0.13.11
+
+### Patch Changes
+
+- Updated dependencies
   - authhero@0.158.0
 
 ## 0.13.10

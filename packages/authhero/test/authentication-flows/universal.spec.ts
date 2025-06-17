@@ -43,8 +43,19 @@ describe("universal", () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@example.com",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
     const session = await env.data.sessions.create("tenantId", {
       id: "sessionId",
+      login_session_id: loginSession.id,
       user_id: "email|userId",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 1000).toISOString(),

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.159.0
+
+### Minor Changes
+
+- Only enforce ip check on magic link flow
+
 ## 0.158.0
 
 ### Minor Changes
