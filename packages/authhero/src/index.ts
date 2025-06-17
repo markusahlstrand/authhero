@@ -5,6 +5,7 @@ import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
 import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
+import createSamlpApi from "./routes/saml";
 import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
@@ -46,10 +47,14 @@ export function init(config: AuthHeroConfig) {
   const universalApp = createUniversalLogin(config);
   app.route("/u", universalApp);
 
+  const samlApp = createSamlpApi(config);
+  app.route("/samlp", samlApp);
+
   return {
     app,
     managementApp,
     oauthApp,
+    samlApp,
     universalApp,
     createX509Certificate,
   };

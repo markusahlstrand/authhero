@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.159.0",
+  "version": "0.160.0",
   "files": [
     "dist"
   ],
@@ -57,7 +57,8 @@
     "i18next": "^24.2.0",
     "libphonenumber-js": "^1.12.8",
     "nanoid": "^5.0.8",
-    "oslo": "^1.2.1"
+    "oslo": "^1.2.1",
+    "xml-crypto": "^6.1.2"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.19.2",
