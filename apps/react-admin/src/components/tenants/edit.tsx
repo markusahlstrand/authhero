@@ -39,6 +39,9 @@ export function TenantsEdit() {
               { id: "sv", name: "Swedish" },
               { id: "it", name: "Italian" },
               { id: "pl", name: "Polish" },
+              { id: "da", name: "Danish" },
+              { id: "cs", name: "Czech" },
+              { id: "fi", name: "Finnish" },
             ]}
           />
           <ColorInput source="primary_color" label="Primary Color" />

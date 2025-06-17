@@ -5,6 +5,7 @@
 ### Minor Changes
 
 - Only enforce ip check on magic link flow
+- Updated packages and added danish
 
 ## 0.158.0
 
