@@ -201,6 +201,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
           username: email,
           otp: verification_code,
           authParams,
+          enforceIpCheck: true,
         });
 
         if (result instanceof Response) {

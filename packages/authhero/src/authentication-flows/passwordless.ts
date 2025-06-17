@@ -12,12 +12,14 @@ import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
+import { isIpMatch } from "../utils/ip";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
   username: z.string().transform((u) => u.toLowerCase()),
   otp: z.string(),
   authParams: authParamsSchema.optional(),
+  enforceIpCheck: z.boolean().optional().default(false),
 });
 
 export async function passwordlessGrant(
@@ -27,7 +29,8 @@ export async function passwordlessGrant(
     username,
     otp,
     authParams,
-  }: z.infer<typeof passwordlessGrantParamsSchema>,
+    enforceIpCheck = false,
+  }: z.input<typeof passwordlessGrantParamsSchema>,
 ) {
   const clientInfo = getClientInfo(ctx.req);
   const { connectionType, normalized } = getConnectionFromIdentifier(
@@ -78,10 +81,12 @@ export async function passwordlessGrant(
     });
   }
 
-  if (loginSession.ip && clientInfo.ip && loginSession.ip !== clientInfo.ip) {
-    return ctx.redirect(
-      `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
-    );
+  if (enforceIpCheck && loginSession.ip && clientInfo.ip) {
+    if (!isIpMatch(loginSession.ip, clientInfo.ip)) {
+      return ctx.redirect(
+        `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
+      );
+    }
   }
 
   const user = await getOrCreateUserByProvider(ctx, {

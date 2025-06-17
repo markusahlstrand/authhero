@@ -21,11 +21,13 @@ import {
   DomainEdit,
   DomainList,
 } from "./components/custom-domains";
+import { BrandingList, BrandingEdit } from "./components/branding";
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionsList, SessionEdit } from "./components/sessions";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
+import PaletteIcon from "@mui/icons-material/Palette";
 import { useMemo } from "react";
 
 interface AppProps {
@@ -68,7 +70,7 @@ export function App(props: AppProps) {
       layout={tenantLayout}
     >
       <Resource
-        icon={Layers}
+        icon={DnsIcon}
         name="clients"
         list={ClientList}
         edit={ClientEdit}
@@ -92,7 +94,7 @@ export function App(props: AppProps) {
         show={ShowGuesser}
       />
       <Resource
-        icon={DnsIcon}
+        icon={Layers}
         name="custom-domains"
         create={DomainCreate}
         list={DomainList}
@@ -105,14 +107,9 @@ export function App(props: AppProps) {
         list={HookList}
         edit={HookEdit}
       />
+      <Resource icon={HistoryIcon} name="logs" list={LogsList} show={LogShow} />
       <Resource
         icon={PickALogsIcon}
-        name="logs"
-        list={LogsList}
-        show={LogShow}
-      />
-      <Resource
-        icon={HistoryIcon}
         name="sessions"
         list={SessionsList}
         edit={SessionEdit}
@@ -124,6 +121,14 @@ export function App(props: AppProps) {
         list={FormsList}
         create={FormCreate}
         edit={FormEdit}
+        show={ShowGuesser}
+      />
+      <Resource
+        icon={PaletteIcon}
+        name="branding"
+        options={{ hasSingle: true }}
+        list={BrandingList}
+        edit={BrandingEdit}
         show={ShowGuesser}
       />
     </Admin>
