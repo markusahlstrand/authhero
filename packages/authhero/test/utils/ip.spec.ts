@@ -21,11 +21,12 @@ describe("isIpMatch - IPv6", () => {
       ),
     ).toBe(true);
   });
-  it("should match if first 4 segments are the same (current logic)", () => {
+  it("should match if first 4 segments are the same with a strict false flag", () => {
     expect(
       isIpMatch(
         "2001:db8:85a3:0:1234:5678:9abc:def0",
         "2001:db8:85a3:0:abcd:ef01:2345:6789",
+        false,
       ),
     ).toBe(true);
   });
@@ -36,6 +37,9 @@ describe("isIpMatch - IPv6", () => {
         "2001:db8:85a3:0:abcd:ef01:2345:6789",
       ),
     ).toBe(false);
+  });
+  it("should not match when IPv6 addresses differ after compression", () => {
+    expect(isIpMatch("2001:db8::", "2001:db8::1")).toBe(false);
   });
 });
 

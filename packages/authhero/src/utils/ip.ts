@@ -58,14 +58,18 @@ export function normalizeIp(
   return null;
 }
 
-export function isIpMatch(ipA: string, ipB: string): boolean {
+export function isIpMatch(
+  ipA: string,
+  ipB: string,
+  strict: boolean = true,
+): boolean {
   const a = normalizeIp(ipA);
   const b = normalizeIp(ipB);
   if (!a || !b || a.family !== b.family) return false;
   if (a.family === 4) {
     return a.normalized === b.normalized;
   }
-  // IPv6: compare first 4 segments (expand compressed form)
+  // IPv6: compare all 8 segments if strict, else first 4 segments
   const expand = (ip: string): string[] => {
     if (ip.includes("::")) {
       let [head, tail] = ip.split("::");
@@ -82,9 +86,15 @@ export function isIpMatch(ipA: string, ipB: string): boolean {
       return ip.split(":").map((s) => s.toLowerCase() || "0");
     }
   };
-  const segA = expand(a.normalized).slice(0, 4);
-  const segB = expand(b.normalized).slice(0, 4);
-  return (
-    segA.length === 4 && segB.length === 4 && segA.join(":") === segB.join(":")
-  );
+  const segA = expand(a.normalized);
+  const segB = expand(b.normalized);
+  if (strict) {
+    return (
+      segA.length === 8 &&
+      segB.length === 8 &&
+      segA.join(":") === segB.join(":")
+    );
+  } else {
+    return segA.slice(0, 4).join(":") === segB.slice(0, 4).join(":");
+  }
 }
