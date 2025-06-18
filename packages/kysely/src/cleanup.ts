@@ -39,8 +39,13 @@ export function createCleanup(db: Kysely<Database>) {
     console.log("delete refresh tokens");
     await db
       .deleteFrom("refresh_tokens")
-      .where("expires_at", "<", oneWeekAgo)
-      .limit(100000)
+      .where((eb) =>
+        eb.or([
+          eb("expires_at", "<", oneWeekAgo),
+          eb("idle_expires_at", "<", oneWeekAgo),
+        ]),
+      )
+      .limit(10000)
       .execute();
 
     console.log("delete sessions");
