@@ -136,6 +136,20 @@ export async function loginWithPassword(
     });
   }
 
+  if (
+    primaryUser.app_metadata?.strategy !== "Username-Password-Authentication"
+  ) {
+    waitUntil(
+      ctx,
+      ctx.env.data.users.update(client.tenant.id, primaryUser.user_id, {
+        app_metadata: {
+          ...(primaryUser.app_metadata || {}),
+          strategy: "Username-Password-Authentication",
+        },
+      }),
+    );
+  }
+
   const log = createLogMessage(ctx, {
     type: LogTypes.SUCCESS_LOGIN,
     description: "Successful login",

@@ -4,7 +4,6 @@ import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
 import {
   Client,
-  LogTypes,
   VendorSettings,
   vendorSettingsSchema,
 } from "@authhero/adapter-interfaces";
@@ -142,27 +141,8 @@ export async function usePasswordLogin(
     email: username,
   });
 
-  if (user) {
-    // Get last login
-    const lastLogins = await ctx.env.data.logs.list(client.tenant.id, {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-      sort: { sort_by: "date", sort_order: "desc" },
-      q: `type:${LogTypes.SUCCESS_LOGIN} user_id:${user.user_id}`,
-    });
-
-    const [lastLogin] = lastLogins.logs.filter(
-      (log) =>
-        log.strategy &&
-        ["Username-Password-Authentication", "passwordless", "email"].includes(
-          log.strategy,
-        ),
-    );
-
-    if (lastLogin) {
-      return lastLogin.strategy === "Username-Password-Authentication";
-    }
+  if (user?.app_metadata.strategy) {
+    return user.app_metadata.strategy === "Username-Password-Authentication";
   }
 
   const promptSettings = await ctx.env.data.promptSettings.get(

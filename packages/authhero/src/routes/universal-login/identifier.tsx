@@ -13,6 +13,7 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { getClientInfo } from "../../utils/client-info";
 import { HTTPException } from "hono/http-exception";
+import { waitUntil } from "../../helpers/wait-until";
 
 type Auth0Client = {
   name: string;
@@ -164,7 +165,7 @@ export const identifierRoutes = new OpenAPIHono<{
             description: "Public signup is disabled",
           });
 
-          await ctx.env.data.logs.create(client.tenant.id, log);
+          waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
           return ctx.html(
             <IdentifierPage
