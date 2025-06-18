@@ -1,5 +1,11 @@
 # authhero
 
+## 0.161.0
+
+### Minor Changes
+
+- Use profile to store preferred login method
+
 ## 0.160.0
 
 ### Minor Changes

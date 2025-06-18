@@ -110,6 +110,12 @@ describe("passwords", () => {
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
     expect(redirectUri.searchParams.get("state")).toBe("state");
 
+    const user = await env.data.users.get("tenantId", "auth2|userId");
+    if (!user) {
+      throw new Error("User not found");
+    }
+    expect(user.app_metadata.strategy).toBe("Username-Password-Authentication");
+
     // --------------------------------
     // request password reset
     // --------------------------------

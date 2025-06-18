@@ -136,6 +136,18 @@ export async function loginWithPassword(
     });
   }
 
+  if (user.app_metadata?.strategy !== "Username-Password-Authentication") {
+    waitUntil(
+      ctx,
+      ctx.env.data.users.update(client.tenant.id, user.user_id, {
+        app_metadata: {
+          ...user.app_metadata,
+          strategy: "Username-Password-Authentication",
+        },
+      }),
+    );
+  }
+
   const log = createLogMessage(ctx, {
     type: LogTypes.SUCCESS_LOGIN,
     description: "Successful login",

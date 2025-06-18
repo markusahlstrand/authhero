@@ -31,9 +31,12 @@ import { getClientInfo } from "../utils/client-info";
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
   client: Client;
+  loginSession?: LoginSession;
   user?: User;
   session_id?: string;
   refresh_token?: string;
+  strategy?: string;
+  ticketAuth?: boolean;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -543,7 +546,15 @@ export async function completeLogin(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ): Promise<TokenResponse> {
-  let user = params.user;
+  const { user, strategy } = params;
+
+  if (user && user?.app_metadata.strategy !== strategy) {
+    // Update the user's app_metadata with the strategy used for login
+    user.app_metadata.strategy = strategy;
+    await ctx.env.data.users.update(ctx.var.tenant_id, user.user_id, {
+      app_metadata: user.app_metadata,
+    });
+  }
 
   // Use the unified postUserLoginHook for all post-login logic
   if (user) {

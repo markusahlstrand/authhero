@@ -13,6 +13,7 @@ import { createAuthResponse } from "./common";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
 import { isIpMatch } from "../utils/ip";
+import { waitUntil } from "../helpers/wait-until";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -99,6 +100,18 @@ export async function passwordlessGrant(
   });
 
   await env.data.codes.used(client.tenant.id, otp);
+
+  if (user.app_metadata?.strategy !== "email") {
+    waitUntil(
+      ctx,
+      ctx.env.data.users.update(client.tenant.id, user.user_id, {
+        app_metadata: {
+          ...user.app_metadata,
+          strategy: "email",
+        },
+      }),
+    );
+  }
 
   return createAuthResponse(ctx, {
     user,
