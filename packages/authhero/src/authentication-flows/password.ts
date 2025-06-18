@@ -136,12 +136,14 @@ export async function loginWithPassword(
     });
   }
 
-  if (user.app_metadata?.strategy !== "Username-Password-Authentication") {
+  if (
+    primaryUser.app_metadata?.strategy !== "Username-Password-Authentication"
+  ) {
     waitUntil(
       ctx,
-      ctx.env.data.users.update(client.tenant.id, user.user_id, {
+      ctx.env.data.users.update(client.tenant.id, primaryUser.user_id, {
         app_metadata: {
-          ...user.app_metadata,
+          ...(primaryUser.app_metadata || {}),
           strategy: "Username-Password-Authentication",
         },
       }),

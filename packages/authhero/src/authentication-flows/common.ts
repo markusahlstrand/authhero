@@ -552,7 +552,10 @@ export async function completeLogin(
     // Update the user's app_metadata with the strategy used for login
     user.app_metadata.strategy = strategy;
     await ctx.env.data.users.update(ctx.var.tenant_id, user.user_id, {
-      app_metadata: user.app_metadata,
+      app_metadata: {
+        ...(user.app_metadata || {}),
+        strategy: user.app_metadata.strategy,
+      },
     });
   }
 

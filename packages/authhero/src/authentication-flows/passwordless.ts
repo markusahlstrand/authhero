@@ -106,7 +106,7 @@ export async function passwordlessGrant(
       ctx,
       ctx.env.data.users.update(client.tenant.id, user.user_id, {
         app_metadata: {
-          ...user.app_metadata,
+          ...(user.app_metadata || {}),
           strategy: "email",
         },
       }),
