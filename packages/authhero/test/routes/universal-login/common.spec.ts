@@ -256,7 +256,7 @@ describe("initJSXRoute", () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RedirectException);
         expect((error as RedirectException).status).toBe(302);
-        
+
         // Verify that the redirect URL contains the required error parameters
         const redirectUrl = new URL((error as RedirectException).location);
         expect(redirectUrl.searchParams.get("error")).toBe("access_denied");
@@ -264,7 +264,9 @@ describe("initJSXRoute", () => {
           "Login session closed",
         );
         expect(redirectUrl.searchParams.get("state")).toBe("auth-state");
-        expect(redirectUrl.origin + redirectUrl.pathname).toBe("https://example.com/callback");
+        expect(redirectUrl.origin + redirectUrl.pathname).toBe(
+          "https://example.com/callback",
+        );
       }
     });
 
