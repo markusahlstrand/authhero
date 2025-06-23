@@ -19,12 +19,28 @@ import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { tailwindCss } from "../../styles";
 import { formNodeRoutes } from "./form-node";
+import { RedirectException } from "../../errors/redirect-exception";
+import { HTTPException } from "hono/http-exception";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
     Bindings: Bindings;
     Variables: Variables;
   }>();
+
+  // As we want to be able to redirect on errors, we need to handle all errors explicitly
+  app.onError((err, c) => {
+    if (err instanceof RedirectException) {
+      return c.redirect(err.location, err.status);
+    }
+
+    // Optionally handle other error types
+    if (err instanceof HTTPException) {
+      return c.text(err.message || "Error", err.status);
+    }
+
+    return c.text("Unexpected error", 500);
+  });
 
   app
     .use(async (ctx, next) => {
