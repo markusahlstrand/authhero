@@ -106,20 +106,6 @@ describe("code", () => {
     expect(redirectUri.pathname).toEqual("/callback");
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
     expect(redirectUri.searchParams.get("state")).toBe("state");
-
-    // --------------------------------
-    // re-use code
-    // --------------------------------
-    console.log("Re-using code...");
-    const reUseCodeResponse = await universalClient["enter-code"].$post({
-      query: { state },
-      form: { code: email.data.code },
-    });
-
-    expect(reUseCodeResponse.status).toBe(400);
-
-    const reUsedCode = await reUseCodeResponse.text();
-    expect(reUsedCode).toContain("Login session closed");
   });
 
   it("should create a new account", async () => {

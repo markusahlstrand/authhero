@@ -8,6 +8,7 @@ import {
   vendorSettingsSchema,
 } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../../helpers/users";
+import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 
 // there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
@@ -89,7 +90,23 @@ export async function initJSXRoute(
   if (!tenant) {
     throw new HTTPException(400, { message: "Tenant not found" });
   } else if (loginSession.session_id && !allowSession) {
-    throw new HTTPException(400, { message: "Login session closed" });
+    // Return redirect response with error parameters as per RFC 6749 section 4.1.2.1
+    if (!loginSession.authParams.redirect_uri) {
+      throw new HTTPException(400, {
+        message: "Login session closed and no redirect URI available",
+      });
+    }
+
+    const redirectUrl = new URL(loginSession.authParams.redirect_uri);
+    redirectUrl.searchParams.set("error", "access_denied");
+    redirectUrl.searchParams.set("error_description", "Login session closed");
+
+    // Include state parameter if it was present in the original request
+    if (loginSession.authParams.state) {
+      redirectUrl.searchParams.set("state", loginSession.authParams.state);
+    }
+
+    throw new RedirectException(redirectUrl.toString(), 302);
   }
 
   const vendorSettings = await fetchVendorSettings(

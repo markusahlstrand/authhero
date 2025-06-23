@@ -1,5 +1,11 @@
 # authhero
 
+## 0.162.0
+
+### Minor Changes
+
+- Redirect back to callback url with error
+
 ## 0.161.0
 
 ### Minor Changes
