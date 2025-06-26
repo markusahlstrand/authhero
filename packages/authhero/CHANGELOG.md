@@ -1,5 +1,11 @@
 # authhero
 
+## 0.163.0
+
+### Minor Changes
+
+- Remove fragments from redirect_uri
+
 ## 0.162.0
 
 ### Minor Changes

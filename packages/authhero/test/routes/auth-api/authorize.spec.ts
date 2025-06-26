@@ -102,6 +102,58 @@ describe("authorize", () => {
     expect(authorizationUrl.searchParams.get("firstName")).toEqual("firstName");
   });
 
+  it("should not store fragments in redirect_uri according to RFC 6749 section 3.1.2", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri:
+            "https://example.com/callback#fragment-should-not-be-stored",
+          state: "state",
+          ui_locales: "en",
+          scope: "openid email profile",
+          vendor_id: "vendorId",
+          response_mode: AuthorizationResponseMode.QUERY,
+          response_type: AuthorizationResponseType.CODE,
+          auth0Client:
+            "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
+          organization: "organization",
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    const redirectUri = new URL("https://example.com" + location);
+
+    // Fetch the login session
+    const login = await env.data.loginSessions.get(
+      "clientId",
+      redirectUri.searchParams.get("state")!,
+    );
+
+    if (!login) {
+      throw new Error("Login session not found");
+    }
+
+    // Verify that the fragment is not stored in the redirect_uri
+    // According to RFC 6749 section 3.1.2, the fragment component should not be included
+    expect(login.authParams.redirect_uri).toEqual(
+      "https://example.com/callback",
+    );
+    expect(login.authParams.redirect_uri).not.toContain(
+      "#fragment-should-not-be-stored",
+    );
+  });
+
   describe("silent authentication", () => {
     it("should return a web_message response with login required if no valid session exists", async () => {
       const { oauthApp, env } = await getTestServer();
