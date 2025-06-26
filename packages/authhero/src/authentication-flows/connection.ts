@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { AuthParams, Client, LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
-import { getClientInfo } from "../utils/client-info";
+import { stringifyAuth0Client } from "../utils/client-info";
 import { Bindings, Variables } from "../types";
 import {
   OAUTH2_CODE_EXPIRES_IN_SECONDS,
@@ -43,7 +43,9 @@ export async function connectionAuth(
   );
 
   if (!loginSession) {
-    const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+    const ip = ctx.get("ip");
+    const useragent = ctx.get("useragent");
+    const auth0_client = ctx.get("auth0_client");
 
     loginSession = await ctx.env.data.loginSessions.create(client.tenant.id, {
       expires_at: new Date(
@@ -53,7 +55,7 @@ export async function connectionAuth(
       csrf_token: nanoid(),
       ip,
       useragent,
-      auth0Client,
+      auth0Client: stringifyAuth0Client(auth0_client),
     });
   }
 

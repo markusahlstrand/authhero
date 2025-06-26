@@ -18,7 +18,6 @@ import {
   LOGIN_SESSION_EXPIRATION_TIME,
   PASSWORD_RESET_EXPIRATION_TIME,
 } from "../constants";
-import { getClientInfo } from "../utils/client-info";
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
 
@@ -203,7 +202,14 @@ export async function requestPasswordReset(
     );
   }
 
-  const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+  const ip = ctx.get("ip");
+  const useragent = ctx.get("useragent");
+  const auth0_client = ctx.get("auth0_client");
+
+  // Convert structured auth0_client back to string for storage
+  const auth0Client = auth0_client
+    ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
+    : undefined;
 
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,

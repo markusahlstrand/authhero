@@ -1,5 +1,11 @@
 # authhero
 
+## 0.164.0
+
+### Minor Changes
+
+- Refactor auth0client
+
 ## 0.163.0
 
 ### Minor Changes

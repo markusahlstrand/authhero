@@ -45,10 +45,6 @@ describe("code", () => {
       },
     );
 
-    console.log(
-      "Enter email post response:",
-      await enterEmailPostResponse.text(),
-    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     // --------------------------------

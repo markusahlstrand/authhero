@@ -1,7 +1,6 @@
 import { Context } from "hono";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
 import { AuthParams, Client, Session } from "@authhero/adapter-interfaces";
-import { getClientInfo } from "../utils/client-info";
 import { Bindings, Variables } from "../types";
 import { createAuthResponse } from "./common";
 import { sendLink } from "../emails";
@@ -31,7 +30,12 @@ export async function universalAuth({
     url.hostname = ctx.var.custom_domain;
   }
 
-  const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+  const { ip, auth0_client, useragent } = ctx.var;
+
+  // Convert structured auth0_client back to string for storage
+  const auth0Client = auth0_client
+    ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
+    : undefined;
 
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,

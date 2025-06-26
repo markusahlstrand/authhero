@@ -7,7 +7,6 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
-import { getClientInfo } from "../utils/client-info";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createAuthResponse } from "./common";
 import { getConnectionFromIdentifier } from "../utils/username";
@@ -33,10 +32,12 @@ export async function passwordlessGrant(
     enforceIpCheck = false,
   }: z.input<typeof passwordlessGrantParamsSchema>,
 ) {
-  const clientInfo = getClientInfo(ctx.req);
+  const ip = ctx.get("ip");
+  const countryCode = ctx.get("countryCode");
+
   const { connectionType, normalized } = getConnectionFromIdentifier(
     username,
-    clientInfo.countryCode,
+    countryCode,
   );
 
   if (!normalized) {
@@ -82,8 +83,8 @@ export async function passwordlessGrant(
     });
   }
 
-  if (enforceIpCheck && loginSession.ip && clientInfo.ip) {
-    if (!isIpMatch(loginSession.ip, clientInfo.ip)) {
+  if (enforceIpCheck && loginSession.ip && ip) {
+    if (!isIpMatch(loginSession.ip, ip)) {
       return ctx.redirect(
         `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
       );

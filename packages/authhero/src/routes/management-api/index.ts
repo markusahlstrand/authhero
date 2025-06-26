@@ -20,6 +20,7 @@ import { customDomainRoutes } from "./custom-domains";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { formsRoutes } from "./forms";
 
@@ -71,7 +72,10 @@ export default function create(config: AuthHeroConfig) {
     return next();
   });
 
-  app.use(tenantMiddleware).use(createAuthMiddleware(app));
+  app
+    .use(clientInfoMiddleware)
+    .use(tenantMiddleware)
+    .use(createAuthMiddleware(app));
 
   const managementApp = app
     .route("/branding", brandingRoutes)

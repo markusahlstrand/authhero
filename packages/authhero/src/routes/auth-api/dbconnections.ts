@@ -11,7 +11,6 @@ import {
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
-import { getClientInfo } from "../../utils/client-info";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
 
@@ -192,7 +191,14 @@ export const dbConnectionRoutes = new OpenAPIHono<{
           ).toISOString(),
           authParams,
           csrf_token: nanoid(),
-          ...getClientInfo(ctx.req),
+          ip: ctx.get("ip"),
+          useragent: ctx.get("useragent"),
+          auth0Client: (() => {
+            const auth0_client = ctx.get("auth0_client");
+            return auth0_client
+              ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
+              : undefined;
+          })(),
         },
       );
 
