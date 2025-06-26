@@ -138,7 +138,7 @@ export const authorizeRoutes = new OpenAPIHono<{
       ctx.set("tenant_id", client.tenant.id);
 
       const authParams: AuthParams = {
-        redirect_uri,
+        redirect_uri: redirect_uri.split("#")[0], // Remove fragment if present
         scope,
         state,
         client_id,
