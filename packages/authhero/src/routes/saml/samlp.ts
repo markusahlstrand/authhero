@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { createSamlMetadata, parseSamlRequestQuery } from "../../helpers/saml";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const samlpRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -142,12 +143,7 @@ export const samlpRoutes = new OpenAPIHono<{
           ).toISOString(),
           ip: ctx.get("ip"),
           useragent: ctx.get("useragent"),
-          auth0Client: (() => {
-            const auth0_client = ctx.get("auth0_client");
-            return auth0_client
-              ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-              : undefined;
-          })(),
+          auth0Client: stringifyAuth0Client(ctx.get("auth0_client")),
         },
       );
 

@@ -12,6 +12,7 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getClientWithDefaults } from "../../helpers/client";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -75,9 +76,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const auth0_client = ctx.get("auth0_client");
 
       // Convert structured auth0_client back to string for storage
-      const auth0Client = auth0_client
-        ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-        : undefined;
+      const auth0Client = stringifyAuth0Client(auth0_client);
 
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,
@@ -232,9 +231,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const auth0_client = ctx.get("auth0_client");
 
       // Convert structured auth0_client back to string for storage
-      const auth0Client = auth0_client
-        ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-        : undefined;
+      const auth0Client = stringifyAuth0Client(auth0_client);
 
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,

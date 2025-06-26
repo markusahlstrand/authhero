@@ -6,6 +6,7 @@ import { createAuthResponse } from "./common";
 import { sendLink } from "../emails";
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
+import { stringifyAuth0Client } from "../utils/client-info";
 
 interface UniversalAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -33,9 +34,7 @@ export async function universalAuth({
   const { ip, auth0_client, useragent } = ctx.var;
 
   // Convert structured auth0_client back to string for storage
-  const auth0Client = auth0_client
-    ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-    : undefined;
+  const auth0Client = stringifyAuth0Client(auth0_client);
 
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,

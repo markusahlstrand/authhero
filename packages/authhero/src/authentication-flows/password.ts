@@ -13,6 +13,7 @@ import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
+import { stringifyAuth0Client } from "../utils/client-info";
 import { createAuthResponse } from "./common";
 import {
   LOGIN_SESSION_EXPIRATION_TIME,
@@ -207,9 +208,7 @@ export async function requestPasswordReset(
   const auth0_client = ctx.get("auth0_client");
 
   // Convert structured auth0_client back to string for storage
-  const auth0Client = auth0_client
-    ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-    : undefined;
+  const auth0Client = stringifyAuth0Client(auth0_client);
 
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,

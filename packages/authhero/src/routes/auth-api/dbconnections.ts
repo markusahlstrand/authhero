@@ -13,6 +13,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -193,12 +194,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
           csrf_token: nanoid(),
           ip: ctx.get("ip"),
           useragent: ctx.get("useragent"),
-          auth0Client: (() => {
-            const auth0_client = ctx.get("auth0_client");
-            return auth0_client
-              ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-              : undefined;
-          })(),
+          auth0Client: stringifyAuth0Client(ctx.get("auth0_client")),
         },
       );
 

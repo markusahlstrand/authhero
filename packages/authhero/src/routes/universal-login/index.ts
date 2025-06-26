@@ -31,8 +31,6 @@ export default function create(config: AuthHeroConfig) {
 
   // As we want to be able to redirect on errors, we need to handle all errors explicitly
   app.onError((err, c) => {
-    console.log("Error in universal login route:", err);
-
     if (err instanceof RedirectException) {
       return c.redirect(err.location, err.status);
     }

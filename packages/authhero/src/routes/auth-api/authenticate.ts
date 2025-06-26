@@ -6,6 +6,7 @@ import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { nanoid } from "nanoid";
 import { TokenResponse } from "@authhero/adapter-interfaces";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -95,9 +96,7 @@ export const authenticateRoutes = new OpenAPIHono<{
             csrf_token: nanoid(),
             ip,
             useragent,
-            auth0Client: auth0_client
-              ? `${auth0_client.name}/${auth0_client.version}${auth0_client.env?.node ? ` (env: node/${auth0_client.env.node})` : ""}`
-              : undefined,
+            auth0Client: stringifyAuth0Client(auth0_client),
           },
         );
 
