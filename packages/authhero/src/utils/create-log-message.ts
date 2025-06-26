@@ -18,8 +18,9 @@ export function createLogMessage(
   const log: Log = {
     type: params.type,
     description: params.description || "",
-    ip: ctx.req.header("x-real-ip") || "",
-    user_agent: ctx.req.header("user-agent") || "",
+    ip: ctx.var.ip,
+    user_agent: ctx.var.useragent || "",
+    auth0_client: ctx.var.auth0_client,
     date: new Date().toISOString(),
     details: {
       request: {
@@ -37,7 +38,6 @@ export function createLogMessage(
     user_name: ctx.var.username || "",
     connection_id: "",
     connection: ctx.var.connection || "",
-    // auth0_client: ctx.var.auth0_client,
     strategy: params.strategy || "",
     strategy_type: params.strategy_type || "",
     audience: "",

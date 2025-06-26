@@ -11,34 +11,10 @@ import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
-import { getClientInfo } from "../../utils/client-info";
 import { HTTPException } from "hono/http-exception";
 import { waitUntil } from "../../helpers/wait-until";
 
-type Auth0Client = {
-  name: string;
-  version: string;
-};
-
-const APP_CLIENT_IDS = ["Auth0.swift"];
-
 export type SendType = "link" | "code";
-
-export function getSendParamFromAuth0ClientHeader(
-  auth0ClientHeader?: string,
-): SendType {
-  if (!auth0ClientHeader) {
-    return "code";
-  }
-
-  const decodedAuth0Client = atob(auth0ClientHeader);
-
-  const auth0Client = JSON.parse(decodedAuth0Client) as Auth0Client;
-
-  const isAppClient = APP_CLIENT_IDS.includes(auth0Client.name);
-
-  return isAppClient ? "code" : "link";
-}
 
 export const identifierRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -128,7 +104,7 @@ export const identifierRoutes = new OpenAPIHono<{
       );
       ctx.set("client_id", client.id);
 
-      const { countryCode } = getClientInfo(ctx.req);
+      const countryCode = ctx.get("countryCode");
 
       const { normalized: username, connectionType } =
         getConnectionFromIdentifier(params.username, countryCode);
@@ -224,10 +200,6 @@ export const identifierRoutes = new OpenAPIHono<{
         redirect_uri: loginSession.authParams.redirect_uri,
       });
 
-      const sendType = getSendParamFromAuth0ClientHeader(
-        loginSession.auth0Client,
-      );
-
       const connection = client.connections.find(
         (p) => p.strategy === connectionType,
       );
@@ -242,7 +214,6 @@ export const identifierRoutes = new OpenAPIHono<{
 
       if (
         connectionType === "email" &&
-        sendType === "link" &&
         // This is different to how it works in auth0
         connection.options.authentication_method === "magic_link"
       ) {

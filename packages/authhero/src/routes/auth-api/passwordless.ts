@@ -5,7 +5,6 @@ import {
   AuthorizationResponseType,
   authParamsSchema,
 } from "@authhero/adapter-interfaces";
-import { getClientInfo } from "../../utils/client-info";
 import { Bindings, Variables } from "../../types";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
@@ -13,6 +12,7 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getClientWithDefaults } from "../../helpers/client";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -71,7 +71,12 @@ export const passwordlessRoutes = new OpenAPIHono<{
 
       const username = connection === "email" ? body.email : body.phone_number;
 
-      const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+      const ip = ctx.get("ip");
+      const useragent = ctx.get("useragent");
+      const auth0_client = ctx.get("auth0_client");
+
+      // Convert structured auth0_client back to string for storage
+      const auth0Client = stringifyAuth0Client(auth0_client);
 
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,
@@ -221,7 +226,13 @@ export const passwordlessRoutes = new OpenAPIHono<{
       }
 
       // Create a new login session with the error message
-      const { ip, useragent, auth0Client } = getClientInfo(ctx.req);
+      const ip = ctx.get("ip");
+      const useragent = ctx.get("useragent");
+      const auth0_client = ctx.get("auth0_client");
+
+      // Convert structured auth0_client back to string for storage
+      const auth0Client = stringifyAuth0Client(auth0_client);
+
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,
         {

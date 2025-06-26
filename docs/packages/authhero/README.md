@@ -19,5 +19,8 @@ This package provides:
 - Multi-tenant support
 - JWT token handling
 - Custom domain support
+- Type-safe Hono context variables system
 
-For installation instructions, see the [Installation](installation.md) page. For configuration details, see the [Configuration](configuration.md) page. For the API reference, see the [API Reference](api-reference.md) page.
+## Documentation
+
+For installation instructions, see the [Installation](installation.md) page. For configuration details, see the [Configuration](configuration.md) page. For the API reference, see the [API Reference](api-reference.md) page. For information about Hono context variables, see the [Hono Variables](hono-variables.md) page.

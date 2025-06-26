@@ -90,9 +90,7 @@ describe("authorize", () => {
       ui_locales: "en",
       organization: "organization",
     });
-    expect(login.auth0Client).toBe(
-      "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
-    );
+    expect(login.auth0Client).toBe("auth0-spa-js/2.1.3");
 
     if (!login.authorization_url) {
       throw new Error("Authorization URL not set");

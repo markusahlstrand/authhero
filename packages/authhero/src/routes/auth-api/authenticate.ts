@@ -4,9 +4,9 @@ import { Bindings, Variables } from "../../types";
 import { loginWithPassword } from "../../authentication-flows/password";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
-import { getClientInfo } from "../../utils/client-info";
 import { nanoid } from "nanoid";
 import { TokenResponse } from "@authhero/adapter-interfaces";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -70,7 +70,9 @@ export const authenticateRoutes = new OpenAPIHono<{
       ctx.set("tenant_id", client.tenant.id);
 
       const email = username.toLocaleLowerCase();
-      const clientInfo = getClientInfo(ctx.req);
+      const ip = ctx.get("ip");
+      const useragent = ctx.get("useragent");
+      const auth0_client = ctx.get("auth0_client");
 
       let response: Response | TokenResponse;
 
@@ -92,9 +94,9 @@ export const authenticateRoutes = new OpenAPIHono<{
               username: email,
             },
             csrf_token: nanoid(),
-            ip: clientInfo.ip,
-            useragent: clientInfo.useragent,
-            auth0Client: clientInfo.auth0Client,
+            ip,
+            useragent,
+            auth0Client: stringifyAuth0Client(auth0_client),
           },
         );
 

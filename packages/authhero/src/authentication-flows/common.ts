@@ -26,7 +26,6 @@ import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginHook } from "../hooks/index";
-import { getClientInfo } from "../utils/client-info";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -218,8 +217,6 @@ export async function createRefreshToken(
     session_id,
   } = params;
 
-  const clientInfo = getClientInfo(ctx.req);
-
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
@@ -231,10 +228,10 @@ export async function createRefreshToken(
       ).toISOString(),
       user_id: params.user.user_id,
       device: {
-        last_ip: clientInfo.ip || "",
-        initial_ip: clientInfo.ip || "",
-        last_user_agent: clientInfo.useragent || "",
-        initial_user_agent: clientInfo.useragent || "",
+        last_ip: ctx.var.ip,
+        initial_ip: ctx.var.ip,
+        last_user_agent: ctx.var.useragent || "",
+        initial_user_agent: ctx.var.useragent || "",
         // TODO: add Authentication Strength Name
         initial_asn: "",
         last_asn: "",

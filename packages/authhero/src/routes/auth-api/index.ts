@@ -16,6 +16,7 @@ import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { clientInfoMiddleware } from "../../middlewares/client-info";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -53,7 +54,10 @@ export default function create(config: AuthHeroConfig) {
     }),
   );
 
-  app.use(tenantMiddleware).use(createAuthMiddleware(app));
+  app
+    .use(clientInfoMiddleware)
+    .use(tenantMiddleware)
+    .use(createAuthMiddleware(app));
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)

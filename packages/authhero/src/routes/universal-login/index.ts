@@ -17,6 +17,7 @@ import { infoRoutes } from "./info";
 import { validateEmailRoutes } from "./validate-email";
 import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { tailwindCss } from "../../styles";
 import { formNodeRoutes } from "./form-node";
 import { RedirectException } from "../../errors/redirect-exception";
@@ -55,6 +56,7 @@ export default function create(config: AuthHeroConfig) {
       ctx.env.data = addTimingLogs(ctx, cachedData);
       return next();
     })
+    .use(clientInfoMiddleware)
     .use(tenantMiddleware);
 
   app.get("/css/tailwind.css", async (ctx: Context) => {

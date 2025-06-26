@@ -2,11 +2,11 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { X509Certificate } from "@peculiar/x509";
-import { getClientInfo } from "../../utils/client-info";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { createSamlMetadata, parseSamlRequestQuery } from "../../helpers/saml";
+import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const samlpRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -141,7 +141,9 @@ export const samlpRoutes = new OpenAPIHono<{
           expires_at: new Date(
             Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
           ).toISOString(),
-          ...getClientInfo(ctx.req),
+          ip: ctx.get("ip"),
+          useragent: ctx.get("useragent"),
+          auth0Client: stringifyAuth0Client(ctx.get("auth0_client")),
         },
       );
 

@@ -6,6 +6,7 @@ import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { samlpRoutes } from "./samlp";
 
 export default function create(config: AuthHeroConfig) {
@@ -27,7 +28,10 @@ export default function create(config: AuthHeroConfig) {
     return next();
   });
 
-  app.use(tenantMiddleware).use(createAuthMiddleware(app));
+  app
+    .use(clientInfoMiddleware)
+    .use(tenantMiddleware)
+    .use(createAuthMiddleware(app));
 
   const samlApp = app.route("/", samlpRoutes);
 
