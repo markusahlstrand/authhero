@@ -9,3 +9,5 @@ export const auth0ClientSchema = z.object({
     })
     .optional(),
 });
+
+export type Auth0Client = z.infer<typeof auth0ClientSchema>;

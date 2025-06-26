@@ -1,5 +1,6 @@
 import { LoginSession } from "@authhero/adapter-interfaces";
 import { CountryCode } from "libphonenumber-js";
+import { Auth0Client } from "./Auth0Client";
 
 export type Variables = {
   tenant_id: string;
@@ -16,17 +17,7 @@ export type Variables = {
   // This is used by the hooks
   loginSession?: LoginSession;
   // Client info from middleware
-  auth0_client?:
-    | {
-        name: string;
-        version: string;
-        env?:
-          | {
-              node?: string | undefined;
-            }
-          | undefined;
-      }
-    | undefined;
+  auth0_client?: Auth0Client;
   useragent?: string;
   countryCode?: CountryCode;
 };
