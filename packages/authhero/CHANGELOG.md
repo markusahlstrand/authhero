@@ -1,5 +1,11 @@
 # authhero
 
+## 0.168.0
+
+### Minor Changes
+
+- Use corret response type for web message
+
 ## 0.167.0
 
 ### Minor Changes
