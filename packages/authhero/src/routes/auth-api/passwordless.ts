@@ -13,6 +13,7 @@ import { getClientWithDefaults } from "../../helpers/client";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
+import { getUniversalLoginUrl } from "../../variables";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -249,7 +250,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       );
 
       return ctx.redirect(
-        `/u/invalid-session?state=${loginSession.id}&error=${encodeURIComponent(errorMessage)}`,
+        `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}&error=${encodeURIComponent(errorMessage)}`,
         302,
       );
     },

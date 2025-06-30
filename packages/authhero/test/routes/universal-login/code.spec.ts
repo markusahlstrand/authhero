@@ -58,7 +58,7 @@ describe("code", () => {
     expect(increctCodeResponse.status).toBe(400);
 
     const incorrectCodeBody = await increctCodeResponse.text();
-    expect(incorrectCodeBody).toContain("Code not found or expired");
+    expect(incorrectCodeBody).toContain("Ogiltig kod");
 
     // --------------------------------
     // enter correct code

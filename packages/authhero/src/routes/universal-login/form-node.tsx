@@ -3,7 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
-import { createAuthResponse } from "../../authentication-flows/common";
+import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -166,7 +166,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         if (!user) {
           throw new Error("Session expired");
         }
-        const result = await createAuthResponse(ctx, {
+        const result = await createFrontChannelAuthResponse(ctx, {
           authParams: loginSession.authParams,
           client,
           user,

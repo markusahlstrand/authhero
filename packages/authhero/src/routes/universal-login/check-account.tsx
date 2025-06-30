@@ -3,7 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import CheckEmailPage from "../../components/CheckEmailPage";
 import { getAuthCookie } from "../../utils/cookies";
-import { createAuthResponse } from "../../authentication-flows/common";
+import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { HTTPException } from "hono/http-exception";
@@ -154,10 +154,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
             vendorSettings={vendorSettings} // Pass even if partial
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") ||
-              "A configuration error occurred."
-            }
+            message={i18next.t("configuration_error_message")}
           />,
           500,
         );
@@ -184,7 +181,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
-      const authResult = await createAuthResponse(ctx, {
+      const authResult = await createFrontChannelAuthResponse(ctx, {
         user,
         authParams: loginSession.authParams,
         client,
@@ -193,9 +190,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
 
       if (!(authResult instanceof Response)) {
         throw new HTTPException(500, {
-          message:
-            i18next.t("unexpected_error_try_again") ||
-            "An unexpected error occurred. Please try again.",
+          message: i18next.t("unexpected_error_try_again"),
         });
       }
       return authResult;

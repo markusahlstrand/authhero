@@ -11,7 +11,7 @@ import {
 import { getStrategy } from "../strategies";
 import { getClientWithDefaults } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
-import { createAuthResponse } from "./common";
+import { createFrontChannelAuthResponse } from "./common";
 import { nanoid } from "nanoid";
 
 export async function connectionAuth(
@@ -193,7 +193,7 @@ export async function connectionCallback(
     ip: ctx.req.header("x-real-ip"),
   });
 
-  return createAuthResponse(ctx, {
+  return createFrontChannelAuthResponse(ctx, {
     client,
     authParams: loginSession.authParams,
     loginSession,

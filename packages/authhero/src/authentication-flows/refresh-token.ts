@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
-import { createAuthResponse } from "./common";
+import { createAuthTokens } from "./common";
 import { Bindings, Variables } from "../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
@@ -74,11 +74,11 @@ export async function refreshTokenGrant(
     });
   }
 
-  return createAuthResponse(ctx, {
+  return createAuthTokens(ctx, {
     user,
     client,
-    refreshToken: refreshToken.id,
-    sessionId: refreshToken.session_id,
+    refresh_token: refreshToken.id,
+    session_id: refreshToken.session_id,
     authParams: {
       client_id: client.id,
       audience: resourceServer?.audience,

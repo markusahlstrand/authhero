@@ -26,6 +26,7 @@ import { samlCallback } from "../strategies/saml";
 import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginHook } from "../hooks/index";
+import renderAuthIframe from "../utils/authIframe";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -297,7 +298,7 @@ export interface CreateAuthResponseParams {
   ticketAuth?: boolean;
 }
 
-export async function createAuthResponse(
+export async function createFrontChannelAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
 ): Promise<TokenResponse | Response> {
@@ -368,21 +369,6 @@ export async function createAuthResponse(
         clients: [...existingSession.clients, client.id],
       });
     }
-
-    // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
-    if (
-      !refresh_token &&
-      authParams.scope?.split(" ").includes("offline_access")
-    ) {
-      const newRefreshToken = await createRefreshToken(ctx, {
-        user: postHookUser,
-        client,
-        session_id,
-        scope: authParams.scope,
-        audience: authParams.audience,
-      });
-      refresh_token = newRefreshToken.id;
-    }
   } else if (!session_id) {
     // Scenario 2: Creating a new session
     if (!params.loginSession) {
@@ -416,6 +402,25 @@ export async function createAuthResponse(
     postHookUser = postLoginResult;
   }
 
+  // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
+  if (
+    !refresh_token &&
+    authParams.scope?.split(" ").includes("offline_access") &&
+    authParams.response_type &&
+    ![AuthorizationResponseType.TOKEN, AuthorizationResponseType.CODE].includes(
+      authParams.response_type,
+    )
+  ) {
+    const newRefreshToken = await createRefreshToken(ctx, {
+      user: postHookUser,
+      client,
+      session_id,
+      scope: authParams.scope,
+      audience: authParams.audience,
+    });
+    refresh_token = newRefreshToken.id;
+  }
+
   if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
     if (!session_id) {
       throw new HTTPException(500, {
@@ -436,10 +441,17 @@ export async function createAuthResponse(
     user: postHookUser,
     client,
     session_id,
-    refresh_token: refresh_token, // Pass the determined refresh token ID
+    refresh_token,
   });
 
   if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
+    if (!authParams.redirect_uri) {
+      throw new HTTPException(400, {
+        message: "Redirect URI not allowed for WEB_MESSAGE response mode.",
+      });
+    }
+
+    const headers = new Headers();
     if (session_id) {
       const authCookie = serializeAuthCookie(
         client.tenant.id,
@@ -447,14 +459,20 @@ export async function createAuthResponse(
         ctx.var.custom_domain || ctx.req.header("host") || "",
       );
       if (authCookie) {
-        ctx.header("set-cookie", authCookie);
+        headers.set("set-cookie", authCookie);
       }
     } else {
       console.warn(
         "Session ID not available for WEB_MESSAGE, cookie will not be set.",
       );
     }
-    return tokens; // Return TokenResponse directly
+
+    const redirectURL = new URL(authParams.redirect_uri);
+    const originUrl = `${redirectURL.protocol}//${redirectURL.host}`;
+
+    return ctx.html(renderAuthIframe(originUrl, JSON.stringify(tokens)), {
+      headers,
+    });
   }
 
   const headers = new Headers();
