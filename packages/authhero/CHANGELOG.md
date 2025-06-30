@@ -1,5 +1,11 @@
 # authhero
 
+## 0.165.0
+
+### Minor Changes
+
+- c5fb2fa: Refactor grant flows
+
 ## 0.164.0
 
 ### Minor Changes
