@@ -436,13 +436,21 @@ export async function createFrontChannelAuthResponse(
     );
   }
 
-  const tokens = await createAuthTokens(ctx, {
-    authParams,
-    user: postHookUser,
-    client,
-    session_id,
-    refresh_token,
-  });
+  const tokens =
+    authParams.response_type === AuthorizationResponseType.CODE
+      ? await createCodeData(ctx, {
+          user: postHookUser,
+          client,
+          authParams,
+          login_id: params.loginSession?.id || "",
+        })
+      : await createAuthTokens(ctx, {
+          authParams,
+          user: postHookUser,
+          client,
+          session_id,
+          refresh_token,
+        });
 
   if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
     if (!authParams.redirect_uri) {
@@ -539,14 +547,21 @@ export async function createFrontChannelAuthResponse(
     responseType === AuthorizationResponseType.TOKEN ||
     responseType === AuthorizationResponseType.TOKEN_ID_TOKEN
   ) {
-    redirectUri.hash = new URLSearchParams({
-      access_token: tokens.access_token,
-      ...(tokens.id_token && { id_token: tokens.id_token }),
-      token_type: tokens.token_type,
-      expires_in: tokens.expires_in.toString(),
-      ...(authParams.state && { state: authParams.state }),
-      ...(authParams.scope && { scope: authParams.scope }),
-    }).toString();
+    // Only handle token responses for implicit flow
+    if ("access_token" in tokens) {
+      redirectUri.hash = new URLSearchParams({
+        access_token: tokens.access_token,
+        ...(tokens.id_token && { id_token: tokens.id_token }),
+        token_type: tokens.token_type,
+        expires_in: tokens.expires_in.toString(),
+        ...(authParams.state && { state: authParams.state }),
+        ...(authParams.scope && { scope: authParams.scope }),
+      }).toString();
+    } else {
+      throw new HTTPException(500, {
+        message: "Invalid token response for implicit flow.",
+      });
+    }
   } else {
     // This case should ideally be narrowed down or handled if there are other valid response_types
     // that lead to a redirect with tokens in the URL.
