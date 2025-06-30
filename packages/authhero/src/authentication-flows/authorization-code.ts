@@ -9,6 +9,7 @@ import {
   AuthorizationResponseMode,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
+import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -41,7 +42,7 @@ export type AuthorizationCodeGrantTypeParams = z.infer<
 export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
-) {
+): Promise<GrantFlowUserResult> {
   const client = await ctx.env.data.clients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });

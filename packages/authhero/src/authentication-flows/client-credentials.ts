@@ -2,9 +2,9 @@ import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { AuthParams } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
-import { createAuthTokens } from "./common";
 import { Bindings, Variables } from "../types";
 import { safeCompare } from "../utils/safe-compare";
+import { GrantFlowResult } from "../types/GrantFlowResult";
 
 export const clientCredentialGrantParamsSchema = z.object({
   grant_type: z.literal("client_credentials"),
@@ -17,7 +17,7 @@ export const clientCredentialGrantParamsSchema = z.object({
 export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof clientCredentialGrantParamsSchema>,
-) {
+): Promise<GrantFlowResult> {
   const client = await ctx.env.data.clients.get(params.client_id);
 
   if (!client) {
@@ -37,6 +37,8 @@ export async function clientCredentialsGrant(
     audience: params.audience,
   };
 
-  const tokens = await createAuthTokens(ctx, { authParams, client });
-  return ctx.json(tokens);
+  return {
+    client,
+    authParams,
+  };
 }
