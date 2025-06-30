@@ -1,7 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
-import { createAuthTokens } from "./common";
-import { Bindings, Variables } from "../types";
+import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 
@@ -15,7 +14,7 @@ export const refreshTokenParamsSchema = z.object({
 export async function refreshTokenGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof refreshTokenParamsSchema>,
-) {
+): Promise<GrantFlowUserResult> {
   const client = await ctx.env.data.clients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
@@ -74,7 +73,7 @@ export async function refreshTokenGrant(
     });
   }
 
-  return createAuthTokens(ctx, {
+  return {
     user,
     client,
     refresh_token: refreshToken.id,
@@ -85,5 +84,5 @@ export async function refreshTokenGrant(
       scope: resourceServer?.scopes,
       response_mode: AuthorizationResponseMode.WEB_MESSAGE,
     },
-  });
+  };
 }

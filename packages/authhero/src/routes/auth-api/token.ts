@@ -1,8 +1,4 @@
-import {
-  GrantType,
-  tokenResponseSchema,
-  TokenResponse,
-} from "@authhero/adapter-interfaces";
+import { GrantType, tokenResponseSchema } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
@@ -24,6 +20,7 @@ import {
 } from "../../authentication-flows/passwordless";
 import { createAuthTokens } from "../../authentication-flows/common";
 import { serializeAuthCookie } from "../../utils/cookies";
+import { GrantFlowResult } from "src/types/GrantFlowResult";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -149,31 +146,15 @@ export const tokenRoutes = new OpenAPIHono<{
       }
       ctx.set("client_id", params.client_id);
 
-      let grantResult: TokenResponse | Response;
+      let grantResult: GrantFlowResult;
 
       switch (body.grant_type) {
         case GrantType.AuthorizationCode:
-          const codeGrantResult = await authorizationCodeGrantUser(
+          grantResult = await authorizationCodeGrantUser(
             ctx,
             authorizationCodeGrantParamsSchema.parse(params),
           );
-
-          const headers = new Headers();
-
-          if (codeGrantResult.session_id) {
-            const codeGrantAuthCookie = serializeAuthCookie(
-              codeGrantResult.client.tenant.id,
-              codeGrantResult.session_id,
-              ctx.var.custom_domain || ctx.req.header("host") || "",
-            );
-
-            headers.set("Set-Cookie", codeGrantAuthCookie);
-          }
-
-          const codeGrantTokens = await createAuthTokens(ctx, codeGrantResult);
-          return ctx.json(codeGrantTokens, {
-            headers,
-          });
+          break;
         case GrantType.ClientCredential:
           grantResult = await clientCredentialsGrant(
             ctx,
@@ -187,27 +168,11 @@ export const tokenRoutes = new OpenAPIHono<{
           );
           break;
         case GrantType.OTP:
-          const passwordlessResult = await passwordlessGrantUser(
+          grantResult = await passwordlessGrantUser(
             ctx,
             passwordlessGrantParamsSchema.parse(params),
           );
-
-          const passwordlessHeaders = new Headers();
-
-          if (passwordlessResult.session_id) {
-            const passwordlessAuthCookie = serializeAuthCookie(
-              passwordlessResult.client.tenant.id,
-              passwordlessResult.session_id,
-              ctx.var.custom_domain || ctx.req.header("host") || "",
-            );
-
-            passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);
-          }
-
-          const tokens = await createAuthTokens(ctx, passwordlessResult);
-          return ctx.json(tokens, {
-            headers: passwordlessHeaders,
-          });
+          break;
         default:
           return ctx.json(
             {
@@ -218,36 +183,21 @@ export const tokenRoutes = new OpenAPIHono<{
           );
       }
 
-      if (grantResult instanceof Response) {
-        // This is a raw Response object from a grant function.
-        // We need to inspect it and use appropriate ctx methods.
-        const status = grantResult.status;
-        const location = grantResult.headers.get("Location");
+      const passwordlessHeaders = new Headers();
 
-        if (status === 302 && location) {
-          return ctx.redirect(location, 302);
-        }
+      if (grantResult.session_id) {
+        const passwordlessAuthCookie = serializeAuthCookie(
+          grantResult.client.tenant.id,
+          grantResult.session_id,
+          ctx.var.custom_domain || ctx.req.header("host") || "",
+        );
 
-        // For other raw Response objects, attempt to parse as JSON error
-        // This assumes error responses from grant flows might be raw Response with JSON body
-        try {
-          const errorBody = await grantResult.json();
-          return ctx.json(errorBody, status as any);
-        } catch (e) {
-          // If not JSON, or other issue, return a generic server error
-          console.error("Failed to process raw Response from grant flow:", e);
-          return ctx.json(
-            {
-              error: "server_error",
-              error_description:
-                "Invalid response format from authentication flow.",
-            },
-            500,
-          );
-        }
-      } else {
-        // grantResult is TokenResponse
-        return ctx.json(grantResult);
+        passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);
       }
+
+      const tokens = await createAuthTokens(ctx, grantResult);
+      return ctx.json(tokens, {
+        headers: passwordlessHeaders,
+      });
     },
   );
