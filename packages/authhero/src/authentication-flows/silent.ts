@@ -150,7 +150,16 @@ export async function silentAuth({
   );
   headers.set("set-cookie", cookie);
 
-  return ctx.html(renderAuthIframe(originUrl, JSON.stringify(tokenResponse)), {
-    headers,
-  });
+  return ctx.html(
+    renderAuthIframe(
+      originUrl,
+      JSON.stringify({
+        ...tokenResponse,
+        state,
+      }),
+    ),
+    {
+      headers,
+    },
+  );
 }

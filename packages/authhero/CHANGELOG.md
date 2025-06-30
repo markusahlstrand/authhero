@@ -1,5 +1,11 @@
 # authhero
 
+## 0.167.0
+
+### Minor Changes
+
+- Add the state to the web message
+
 ## 0.166.0
 
 ### Minor Changes

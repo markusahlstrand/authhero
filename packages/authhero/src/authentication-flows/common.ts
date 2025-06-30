@@ -470,9 +470,15 @@ export async function createFrontChannelAuthResponse(
     const redirectURL = new URL(authParams.redirect_uri);
     const originUrl = `${redirectURL.protocol}//${redirectURL.host}`;
 
-    return ctx.html(renderAuthIframe(originUrl, JSON.stringify(tokens)), {
-      headers,
-    });
+    return ctx.html(
+      renderAuthIframe(
+        originUrl,
+        JSON.stringify({ ...tokens, state: authParams.state }),
+      ),
+      {
+        headers,
+      },
+    );
   }
 
   const headers = new Headers();
