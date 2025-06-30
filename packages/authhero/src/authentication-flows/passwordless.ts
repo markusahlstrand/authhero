@@ -116,7 +116,7 @@ export async function passwordlessGrantUser(
     user,
     client,
     loginSession,
-    session_id: loginSession.id,
+    session_id: loginSession.session_id,
     authParams: {
       ...loginSession.authParams,
       // Merge in any authParams from the request, allowing them to override

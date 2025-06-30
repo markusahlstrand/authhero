@@ -158,17 +158,21 @@ export const tokenRoutes = new OpenAPIHono<{
             authorizationCodeGrantParamsSchema.parse(params),
           );
 
-          const codeGrantAuthCookie = serializeAuthCookie(
-            codeGrantResult.client.tenant.id,
-            codeGrantResult.session_id,
-            ctx.var.custom_domain || ctx.req.header("host") || "",
-          );
+          const headers = new Headers();
+
+          if (codeGrantResult.session_id) {
+            const codeGrantAuthCookie = serializeAuthCookie(
+              codeGrantResult.client.tenant.id,
+              codeGrantResult.session_id,
+              ctx.var.custom_domain || ctx.req.header("host") || "",
+            );
+
+            headers.set("Set-Cookie", codeGrantAuthCookie);
+          }
 
           const codeGrantTokens = await createAuthTokens(ctx, codeGrantResult);
           return ctx.json(codeGrantTokens, {
-            headers: {
-              "Set-Cookie": codeGrantAuthCookie,
-            },
+            headers,
           });
         case GrantType.ClientCredential:
           grantResult = await clientCredentialsGrant(
@@ -188,17 +192,21 @@ export const tokenRoutes = new OpenAPIHono<{
             passwordlessGrantParamsSchema.parse(params),
           );
 
-          const authCookie = serializeAuthCookie(
-            passwordlessResult.client.tenant.id,
-            passwordlessResult.session_id,
-            ctx.var.custom_domain || ctx.req.header("host") || "",
-          );
+          const passwordlessHeaders = new Headers();
+
+          if (passwordlessResult.session_id) {
+            const passwordlessAuthCookie = serializeAuthCookie(
+              passwordlessResult.client.tenant.id,
+              passwordlessResult.session_id,
+              ctx.var.custom_domain || ctx.req.header("host") || "",
+            );
+
+            passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);
+          }
 
           const tokens = await createAuthTokens(ctx, passwordlessResult);
           return ctx.json(tokens, {
-            headers: {
-              "Set-Cookie": authCookie,
-            },
+            headers: passwordlessHeaders,
           });
         default:
           return ctx.json(
