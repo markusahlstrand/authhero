@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getOrCreateUserByProvider } from "../helpers/users";
-import { createAuthResponse, createSession } from "./common";
+import { createFrontChannelAuthResponse, createSession } from "./common";
 
 function getProviderFromRealm(realm: string) {
   if (realm === "Username-Password-Authentication") {
@@ -69,7 +69,7 @@ export async function ticketAuth(
     client,
     loginSession,
   });
-  return createAuthResponse(ctx, {
+  return createFrontChannelAuthResponse(ctx, {
     authParams: {
       scope: loginSession.authParams?.scope,
       ...authParams,

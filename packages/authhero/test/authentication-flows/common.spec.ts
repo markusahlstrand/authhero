@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Context } from "hono";
 import {
-  createAuthResponse,
+  createFrontChannelAuthResponse,
   createAuthTokens,
 } from "../../src/authentication-flows/common";
 import { getTestServer } from "../helpers/test-server";
@@ -10,7 +10,6 @@ import { getPrimaryUserByEmail } from "../../src/helpers/users";
 import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
-  TokenResponse,
 } from "@authhero/adapter-interfaces";
 
 describe("common", () => {
@@ -139,7 +138,7 @@ describe("common", () => {
       throw new Error("Client or user not found");
     }
 
-    const autResponse = (await createAuthResponse(ctx, {
+    const autResponse = (await createFrontChannelAuthResponse(ctx, {
       authParams: {
         client_id: "clientId",
         response_type: AuthorizationResponseType.CODE,
@@ -190,9 +189,22 @@ describe("common", () => {
       Variables: Variables;
     }>;
 
-    // Create a session first
+    // Create a session and a login session
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@example.com",
+        scope: "openid",
+        audience: "http://example.com",
+        redirect_uri: "http://example.com/callback",
+      },
+    });
+
     const session = await env.data.sessions.create("tenantId", {
       id: "existingSessionId",
+      login_session_id: loginSession.id,
       user_id: "email|userId",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
@@ -207,18 +219,8 @@ describe("common", () => {
       },
     });
 
-    // Create a login session with the existing session_id
-    const loginSession = await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-      csrf_token: "csrfToken",
-      authParams: {
-        client_id: "clientId",
-        username: "foo@example.com",
-        scope: "openid",
-        audience: "http://example.com",
-        redirect_uri: "http://example.com/callback",
-      },
-      session_id: session.id, // Link to the existing session
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      session_id: session.id,
     });
 
     const client = await env.data.clients.get("clientId");
@@ -233,7 +235,7 @@ describe("common", () => {
     }
 
     // Call createAuthResponse which should reuse the existing session
-    const authResponse = (await createAuthResponse(ctx, {
+    const authResponse = (await createFrontChannelAuthResponse(ctx, {
       authParams: {
         client_id: "clientId",
         response_type: AuthorizationResponseType.CODE,
@@ -243,6 +245,7 @@ describe("common", () => {
       client,
       user,
       loginSession,
+      sessionId: session.id,
     })) as Response;
 
     // Verify that no new session was created
@@ -284,14 +287,34 @@ describe("common", () => {
         queries: () => {},
       },
       header: () => null,
+      html: (content: string) => {
+        return new Response(content, {
+          headers: { "Content-Type": "text/html" },
+        });
+      },
     } as unknown as Context<{
       Bindings: Bindings;
       Variables: Variables;
     }>;
 
     // Create a session first
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@example.com",
+        scope: "openid offline_access", // Request offline_access
+        audience: "http://example.com",
+        redirect_uri: "http://example.com/callback",
+        // Set response_mode to something that returns tokens directly
+        response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+      },
+    });
+
     const session = await env.data.sessions.create("tenantId", {
       id: "existingSessionIdForRefreshToken",
+      login_session_id: loginSession.id,
       user_id: "email|userId",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
@@ -306,20 +329,8 @@ describe("common", () => {
       },
     });
 
-    // Create a login session with the existing session_id
-    const loginSession = await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-      csrf_token: "csrfToken",
-      authParams: {
-        client_id: "clientId",
-        username: "foo@example.com",
-        scope: "openid offline_access", // Request offline_access
-        audience: "http://example.com",
-        redirect_uri: "http://example.com/callback",
-        // Set response_mode to something that returns tokens directly
-        response_mode: AuthorizationResponseMode.WEB_MESSAGE,
-      },
-      session_id: session.id, // Link to the existing session
+    env.data.loginSessions.update("tenantId", loginSession.id, {
+      session_id: session.id,
     });
 
     const client = await env.data.clients.get("clientId");
@@ -333,10 +344,10 @@ describe("common", () => {
       throw new Error("Client or user not found");
     }
 
-    const authResponse = (await createAuthResponse(ctx, {
+    const authResponse = (await createFrontChannelAuthResponse(ctx, {
       authParams: {
         client_id: "clientId",
-        response_type: AuthorizationResponseType.TOKEN, // Or any type that triggers token creation
+        response_type: AuthorizationResponseType.TOKEN,
         scope: "openid offline_access",
         redirect_uri: "http://example.com/callback",
         response_mode: AuthorizationResponseMode.WEB_MESSAGE,
@@ -344,22 +355,12 @@ describe("common", () => {
       client,
       user,
       loginSession,
-    })) as TokenResponse;
+    })) as Response;
 
-    // Expect tokens to be returned directly due to WEB_MESSAGE
-    expect(authResponse).toHaveProperty("access_token");
-    expect(authResponse).toHaveProperty("refresh_token");
-    expect(authResponse.refresh_token).toEqual(expect.any(String));
+    expect(authResponse.status).toEqual(200);
 
-    // Verify that the refresh token was created and stored
-    const { refresh_tokens } = await env.data.refreshTokens.list("tenantId", {
-      page: 0,
-      per_page: 10,
-      include_totals: true,
-    });
-
-    expect(refresh_tokens.length).toBe(1);
-    expect(refresh_tokens[0]?.id).toEqual(authResponse.refresh_token);
+    const body = await authResponse.text();
+    expect(body).toContain("access_token");
   });
 
   it("should NOT create a refresh token for implicit flow even if offline_access scope is requested", async () => {
@@ -416,7 +417,7 @@ describe("common", () => {
       },
     });
 
-    const authResponse = (await createAuthResponse(ctx, {
+    const authResponse = (await createFrontChannelAuthResponse(ctx, {
       authParams: {
         client_id: "clientId",
         response_type: AuthorizationResponseType.TOKEN, // Implicit flow

@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
 import { AuthParams, Client, Session } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { createAuthResponse } from "./common";
+import { createFrontChannelAuthResponse } from "./common";
 import { sendLink } from "../emails";
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
@@ -59,7 +59,7 @@ export async function universalAuth({
     );
 
     if (user?.email === login_hint) {
-      return createAuthResponse(ctx, {
+      return createFrontChannelAuthResponse(ctx, {
         client,
         loginSession,
         authParams,

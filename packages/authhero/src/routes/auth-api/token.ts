@@ -11,17 +11,19 @@ import {
   clientCredentialGrantParamsSchema,
 } from "../../authentication-flows/client-credentials";
 import {
-  authorizationCodeGrant,
   authorizationCodeGrantParamsSchema,
+  authorizationCodeGrantUser,
 } from "../../authentication-flows/authorization-code";
 import {
   refreshTokenGrant,
   refreshTokenParamsSchema,
 } from "../../authentication-flows/refresh-token";
 import {
-  passwordlessGrant,
   passwordlessGrantParamsSchema,
+  passwordlessGrantUser,
 } from "../../authentication-flows/passwordless";
+import { createAuthTokens } from "../../authentication-flows/common";
+import { serializeAuthCookie } from "../../utils/cookies";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -151,11 +153,23 @@ export const tokenRoutes = new OpenAPIHono<{
 
       switch (body.grant_type) {
         case GrantType.AuthorizationCode:
-          grantResult = await authorizationCodeGrant(
+          const codeGrantResult = await authorizationCodeGrantUser(
             ctx,
             authorizationCodeGrantParamsSchema.parse(params),
           );
-          break;
+
+          const codeGrantAuthCookie = serializeAuthCookie(
+            codeGrantResult.client.tenant.id,
+            codeGrantResult.session_id,
+            ctx.var.custom_domain || ctx.req.header("host") || "",
+          );
+
+          const codeGrantTokens = await createAuthTokens(ctx, codeGrantResult);
+          return ctx.json(codeGrantTokens, {
+            headers: {
+              "Set-Cookie": codeGrantAuthCookie,
+            },
+          });
         case GrantType.ClientCredential:
           grantResult = await clientCredentialsGrant(
             ctx,
@@ -169,11 +183,23 @@ export const tokenRoutes = new OpenAPIHono<{
           );
           break;
         case GrantType.OTP:
-          grantResult = await passwordlessGrant(
+          const passwordlessResult = await passwordlessGrantUser(
             ctx,
             passwordlessGrantParamsSchema.parse(params),
           );
-          break;
+
+          const authCookie = serializeAuthCookie(
+            passwordlessResult.client.tenant.id,
+            passwordlessResult.session_id,
+            ctx.var.custom_domain || ctx.req.header("host") || "",
+          );
+
+          const tokens = await createAuthTokens(ctx, passwordlessResult);
+          return ctx.json(tokens, {
+            headers: {
+              "Set-Cookie": authCookie,
+            },
+          });
         default:
           return ctx.json(
             {

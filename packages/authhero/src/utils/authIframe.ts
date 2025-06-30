@@ -1,4 +1,4 @@
-export default async function renderAuthIframe(
+export default function renderAuthIframe(
   targetOrigin: string,
   response: string,
 ) {

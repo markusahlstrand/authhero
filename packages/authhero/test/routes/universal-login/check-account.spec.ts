@@ -49,8 +49,17 @@ describe("check account", () => {
     const universalClient = testClient(universalApp, env);
 
     // Create the login session and the session
+    const { id } = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+      },
+    });
+
     const session = await env.data.sessions.create("tenantId", {
       id: "sessionId",
+      login_session_id: id,
       user_id: "email|userId",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 1000).toISOString(),
@@ -65,17 +74,8 @@ describe("check account", () => {
       },
     });
 
-    await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-      csrf_token: "csrfToken",
+    await env.data.loginSessions.update("tenantId", id, {
       session_id: session.id,
-      authParams: {
-        client_id: "clientId",
-        username: "foo@exampl.com",
-        scope: "",
-        audience: "http://example.com",
-        redirect_uri: "http://example.com/callback",
-      },
     });
 
     const authorizeResponse = await oauthClient.authorize.$get(

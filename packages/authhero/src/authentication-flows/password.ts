@@ -14,7 +14,7 @@ import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { waitUntil } from "../helpers/wait-until";
 import { stringifyAuth0Client } from "../utils/client-info";
-import { createAuthResponse } from "./common";
+import { createFrontChannelAuthResponse } from "./common";
 import {
   LOGIN_SESSION_EXPIRATION_TIME,
   PASSWORD_RESET_EXPIRATION_TIME,
@@ -158,7 +158,7 @@ export async function loginWithPassword(
   });
   waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
-  return createAuthResponse(ctx, {
+  return createFrontChannelAuthResponse(ctx, {
     client,
     authParams,
     user: primaryUser,

@@ -4,6 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
 import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
+import { createSessions } from "../../helpers/create-session";
 
 // Define interfaces for expected JSON response shapes
 interface TokenResponse {
@@ -410,22 +411,13 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.loginSessions.create("tenantId", {
-          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-          csrf_token: "csrfToken",
-          authParams: {
-            client_id: "clientId",
-            username: "foo@exampl.com",
-            scope: "openid",
-            audience: "http://example.com",
-          },
-        });
+        const { loginSession, session } = await createSessions(env.data);
 
         await env.data.codes.create("tenantId", {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.id,
+          login_id: loginSession.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 
@@ -475,23 +467,13 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const loginSesssion = await env.data.loginSessions.create("tenantId", {
-          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-          csrf_token: "csrfToken",
-          authParams: {
-            client_id: "clientId",
-            username: "foo@example.com",
-            scope: "",
-            audience: "http://example.com",
-            redirect_uri: "http://example.com/callback",
-          },
-        });
+        const { loginSession } = await createSessions(env.data);
 
         await env.data.codes.create("tenantId", {
           code_type: "authorization_code",
           user_id: "email|userId",
           code_id: "123456",
-          login_id: loginSesssion.id,
+          login_id: loginSession.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
         });
 

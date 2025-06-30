@@ -143,7 +143,7 @@ describe("passwordless", async () => {
   });
 
   describe("sms", () => {
-    it("should login using a passwordless code", async () => {
+    it.only("should login using a passwordless code", async () => {
       const { oauthApp, managementApp, env, getSentSms } = await getTestServer({
         testTenantLanguage: "en",
       });

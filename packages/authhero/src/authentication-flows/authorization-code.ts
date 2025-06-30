@@ -1,7 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import { createAuthResponse } from "./common";
+import { createFrontChannelAuthResponse } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { safeCompare } from "../utils/safe-compare";
@@ -37,10 +37,11 @@ export type AuthorizationCodeGrantTypeParams = z.infer<
   typeof authorizationCodeGrantParamsSchema
 >;
 
-export async function authorizationCodeGrant(
+// This is a new version that just returns the user
+export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
-): Promise<TokenResponse | Response> {
+) {
   const client = await ctx.env.data.clients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
@@ -108,12 +109,11 @@ export async function authorizationCodeGrant(
 
   await ctx.env.data.codes.used(client.tenant.id, params.code);
 
-  // createAuthResponse will handle returning TokenResponse directly for WEB_MESSAGE
-  // or a full Response for other cases (though not expected here due to fixed response_mode)
-  return createAuthResponse(ctx, {
+  return {
     user,
     client,
     loginSession,
+    session_id: loginSession.id,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login
@@ -127,5 +127,17 @@ export async function authorizationCodeGrant(
       scope: loginSession.authParams.scope, // scope from original authorization request
       audience: loginSession.authParams.audience, // audience from original authorization request
     },
-  });
+  };
+}
+
+// TODO: This should be removed and handeled in the authorize endpoint
+export async function authorizationCodeGrant(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: AuthorizationCodeGrantTypeParams,
+): Promise<TokenResponse | Response> {
+  const result = await authorizationCodeGrantUser(ctx, params);
+
+  // createAuthResponse will handle returning TokenResponse directly for WEB_MESSAGE
+  // or a full Response for other cases (though not expected here due to fixed response_mode)
+  return createFrontChannelAuthResponse(ctx, result);
 }

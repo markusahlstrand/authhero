@@ -1,18 +1,16 @@
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import {
-  AuthorizationResponseType,
-  AuthorizationResponseMode,
-  authParamsSchema,
-} from "@authhero/adapter-interfaces";
+import { authParamsSchema } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { getOrCreateUserByProvider } from "../helpers/users";
-import { createAuthResponse } from "./common";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
 import { isIpMatch } from "../utils/ip";
 import { waitUntil } from "../helpers/wait-until";
+import { t } from "i18next";
+import { createFrontChannelAuthResponse } from "./common";
+import { RedirectException } from "../errors/redirect-exception";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -22,7 +20,7 @@ export const passwordlessGrantParamsSchema = z.object({
   enforceIpCheck: z.boolean().optional().default(false),
 });
 
-export async function passwordlessGrant(
+export async function passwordlessGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   {
     client_id,
@@ -56,19 +54,19 @@ export async function passwordlessGrant(
 
   if (!code) {
     throw new HTTPException(400, {
-      message: "Code not found or expired",
+      message: t("code_invalid"),
     });
   }
 
   if (code.expires_at < new Date().toISOString()) {
     throw new HTTPException(400, {
-      message: "Code expired",
+      message: t("code_expired"),
     });
   }
 
   if (code.used_at) {
     throw new HTTPException(400, {
-      message: "Code already used",
+      message: t("code_used"),
     });
   }
 
@@ -85,7 +83,7 @@ export async function passwordlessGrant(
 
   if (enforceIpCheck && loginSession.ip && ip) {
     if (!isIpMatch(loginSession.ip, ip)) {
-      return ctx.redirect(
+      throw new RedirectException(
         `${getUniversalLoginUrl(ctx.env)}invalid-session?state=${loginSession.id}`,
       );
     }
@@ -114,15 +112,29 @@ export async function passwordlessGrant(
     );
   }
 
-  return createAuthResponse(ctx, {
+  return {
     user,
     client,
     loginSession,
-    authParams: authParams || {
-      client_id,
-      response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
-      response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+    session_id: loginSession.id,
+    authParams: {
+      ...loginSession.authParams,
+      // Merge in any authParams from the request, allowing them to override
+      ...(authParams || {}),
     },
-    // ticketAuth, // add if needed
+  };
+}
+
+export async function passwordlessGrant(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: z.input<typeof passwordlessGrantParamsSchema>,
+) {
+  const result = await passwordlessGrantUser(ctx, params);
+
+  return createFrontChannelAuthResponse(ctx, {
+    authParams: result.authParams,
+    client: result.client,
+    user: result.user,
+    loginSession: result.loginSession,
   });
 }
