@@ -301,7 +301,7 @@ export interface CreateAuthResponseParams {
 export async function createFrontChannelAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
-): Promise<TokenResponse | Response> {
+): Promise<Response> {
   const { authParams, user, client, ticketAuth } = params;
 
   const logMessage = createLogMessage(ctx, {

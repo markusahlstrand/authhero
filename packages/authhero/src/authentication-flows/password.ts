@@ -8,7 +8,7 @@ import {
   LoginSession,
   LogTypes,
 } from "@authhero/adapter-interfaces";
-import { Bindings, Variables } from "../types";
+import { Bindings, GrantFlowUserResult, Variables } from "../types";
 import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
@@ -22,14 +22,13 @@ import {
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
 
-export async function loginWithPassword(
+export async function passwordGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
-  ticketAuth?: boolean,
-) {
-  const { env } = ctx;
+): Promise<GrantFlowUserResult> {
+  const { data } = ctx.env;
 
   const { username } = authParams;
   ctx.set("username", username);
@@ -50,7 +49,7 @@ export async function loginWithPassword(
       description: "Invalid user",
     });
 
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
+    waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
     throw new AuthError(403, {
       message: "User not found",
@@ -59,7 +58,7 @@ export async function loginWithPassword(
   }
 
   const primaryUser = user.linked_to
-    ? await env.data.users.get(client.tenant.id, user.linked_to)
+    ? await data.users.get(client.tenant.id, user.linked_to)
     : user;
 
   if (!primaryUser) {
@@ -72,7 +71,7 @@ export async function loginWithPassword(
   ctx.set("connection", user.connection);
   ctx.set("user_id", primaryUser.user_id);
 
-  const password = await env.data.passwords.get(client.tenant.id, user.user_id);
+  const password = await data.passwords.get(client.tenant.id, user.user_id);
 
   const valid =
     password &&
@@ -84,7 +83,7 @@ export async function loginWithPassword(
       description: "Invalid password",
     });
 
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
+    waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
     throw new AuthError(403, {
       message: "Invalid password",
@@ -93,7 +92,7 @@ export async function loginWithPassword(
   }
 
   // Check the logs for failed login attempts
-  const logs = await env.data.logs.list(client.tenant.id, {
+  const logs = await data.logs.list(client.tenant.id, {
     page: 0,
     per_page: 10,
     include_totals: false,
@@ -113,7 +112,7 @@ export async function loginWithPassword(
       description: "Too many failed login attempts",
     });
 
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
+    waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
     throw new AuthError(403, {
       message: "Too many failed login attempts",
@@ -128,7 +127,7 @@ export async function loginWithPassword(
       type: LogTypes.FAILED_LOGIN,
       description: "Email not verified",
     });
-    await ctx.env.data.logs.create(client.tenant.id, log);
+    await data.logs.create(client.tenant.id, log);
 
     throw new AuthError(403, {
       message: "Email not verified",
@@ -141,7 +140,7 @@ export async function loginWithPassword(
   ) {
     waitUntil(
       ctx,
-      ctx.env.data.users.update(client.tenant.id, primaryUser.user_id, {
+      data.users.update(client.tenant.id, primaryUser.user_id, {
         app_metadata: {
           ...(primaryUser.app_metadata || {}),
           strategy: "Username-Password-Authentication",
@@ -156,14 +155,28 @@ export async function loginWithPassword(
     strategy_type: "Username-Password-Authentication",
     strategy: "Username-Password-Authentication",
   });
-  waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
+  waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
-  return createFrontChannelAuthResponse(ctx, {
+  return {
     client,
     authParams,
     user: primaryUser,
-    ticketAuth,
     loginSession,
+  };
+}
+
+export async function loginWithPassword(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client: Client,
+  authParams: AuthParams & { password: string },
+  loginSession?: LoginSession,
+  ticketAuth?: boolean,
+) {
+  const result = await passwordGrant(ctx, client, authParams, loginSession);
+
+  return createFrontChannelAuthResponse(ctx, {
+    ...result,
+    ticketAuth,
   });
 }
 

@@ -10,9 +10,9 @@ import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
 import MessagePage from "../../components/MessagePage";
 import { sendValidateEmailAddress } from "../../emails";
-import { loginWithPassword } from "../../authentication-flows/password";
-import { getDataAdapter } from "../../helpers/data";
-import { AuthError } from "../../types/AuthError"; // Ensure AuthError is imported
+import { passwordGrant } from "../../authentication-flows/password";
+import { AuthError } from "../../types/AuthError";
+import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 
 export const signupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -121,44 +121,23 @@ export const signupRoutes = new OpenAPIHono<{
         },
       },
     }),
-    //TODO: merge logic with dbconnections/signup
     async (ctx) => {
       const { state } = ctx.req.valid("query");
       const loginParams = ctx.req.valid("form");
       const { env } = ctx;
 
-      // These are declared here so they are available in the catch block's scope
-      let vendorSettings;
-      let client;
-      let loginSession;
-      let username;
+      const { vendorSettings, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       try {
-        ({ vendorSettings, client, loginSession } = await initJSXRoute(
-          ctx,
-          state,
-        ));
+        if (!loginSession.authParams.username) {
+          throw new HTTPException(400, { message: "Username required" });
+        }
 
         const connection = "Username-Password-Authentication";
-        ctx.set("client_id", client.id);
         ctx.set("connection", connection);
-
-        ({ username } = loginSession.authParams);
-        if (!username) {
-          // This case should ideally be caught by initJSXRoute or earlier validation
-          // but as a safeguard:
-          return ctx.html(
-            <MessagePage
-              vendorSettings={vendorSettings} // vendorSettings should be available
-              state={state}
-              pageTitle={i18next.t("error_page_title") || "Error"}
-              message={
-                i18next.t("username_required_error") || "Username required"
-              }
-            />,
-            400,
-          );
-        }
 
         if (loginParams.password !== loginParams["re-enter-password"]) {
           return ctx.html(
@@ -167,7 +146,7 @@ export const signupRoutes = new OpenAPIHono<{
               code={loginParams.code}
               vendorSettings={vendorSettings}
               error={i18next.t("create_account_passwords_didnt_match")}
-              email={username}
+              email={loginSession.authParams.username}
             />,
             400,
           );
@@ -180,7 +159,7 @@ export const signupRoutes = new OpenAPIHono<{
               code={loginParams.code}
               vendorSettings={vendorSettings}
               error={i18next.t("create_account_weak_password")}
-              email={username}
+              email={loginSession.authParams.username}
             />,
             400,
           );
@@ -193,6 +172,7 @@ export const signupRoutes = new OpenAPIHono<{
               "email_verification",
             )
           : undefined;
+
         const emailVerificationSession = emailVerificationCode
           ? await env.data.loginSessions.get(
               client.tenant.id,
@@ -203,7 +183,7 @@ export const signupRoutes = new OpenAPIHono<{
         const existingUser = await getUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
-          username: username,
+          username: loginSession.authParams.username,
           provider: "auth2",
         });
 
@@ -213,30 +193,31 @@ export const signupRoutes = new OpenAPIHono<{
               state={state}
               code={loginParams.code}
               vendorSettings={vendorSettings}
-              error={i18next.t("user_exists_error") || "User already exists"} // Provide a fallback translation key
-              email={username}
+              error={i18next.t("user_exists_error")}
+              email={loginSession.authParams.username}
             />,
             400,
           );
         }
 
         const email_verified =
-          emailVerificationSession?.authParams.username === username;
+          emailVerificationSession?.authParams.username ===
+          loginSession.authParams.username;
 
-        const newUser = await getDataAdapter(ctx).users.create(
-          client.tenant.id,
-          {
-            user_id: `auth2|${userIdGenerate()}`,
-            email: username,
-            email_verified,
-            provider: "auth2",
-            connection,
-            is_social: false,
-          },
-        );
+        const user_id = `auth2|${userIdGenerate()}`;
+
+        // This returns the primary user and not necessarily the one that is being created
+        const newUser = await env.data.users.create(client.tenant.id, {
+          user_id,
+          email: loginSession.authParams.username,
+          email_verified,
+          provider: "auth2",
+          connection,
+          is_social: false,
+        });
 
         await env.data.passwords.create(client.tenant.id, {
-          user_id: newUser.user_id,
+          user_id,
           password: await bcryptjs.hash(loginParams.password, 10),
           algorithm: "bcrypt",
         });
@@ -254,7 +235,7 @@ export const signupRoutes = new OpenAPIHono<{
           );
         }
 
-        const loginResult = await loginWithPassword(
+        const loginResult = await passwordGrant(
           ctx,
           client,
           {
@@ -264,35 +245,14 @@ export const signupRoutes = new OpenAPIHono<{
           loginSession,
         );
 
-        if (loginResult instanceof Response) {
-          return loginResult;
-        } else {
-          // loginResult is TokenResponse - this is unexpected for this HTML route
-          console.error(
-            "Unexpected TokenResponse in POST /u/signup after login. This might indicate a flow misconfiguration as this route expects HTML or redirect.",
-            loginResult,
-          );
-          return ctx.html(
-            <MessagePage
-              vendorSettings={vendorSettings}
-              state={state}
-              pageTitle={i18next.t("error_page_title") || "Error"}
-              message={
-                i18next.t("unexpected_error_try_again") ||
-                "An unexpected error occurred. Please try again."
-              }
-            />,
-            500,
-          );
-        }
+        return createFrontChannelAuthResponse(ctx, loginResult);
       } catch (err: unknown) {
-        let errorMessage =
-          i18next.t("unknown_error_message") || "An unknown error occurred.";
+        let errorMessage = i18next.t("unknown_error_message");
         let errorStatus: 400 | 500 = 400;
 
         if (err instanceof HTTPException) {
           errorMessage = err.message || errorMessage;
-          errorStatus = err.status === 400 ? 400 : 500; // Only allow 400 or 500 from HTTPException
+          errorStatus = err.status === 400 ? 400 : 500;
         } else if (err instanceof AuthError) {
           errorMessage = err.message || errorMessage;
           // AuthError might have more specific status, but for signup page, 400 is usually appropriate
@@ -306,7 +266,7 @@ export const signupRoutes = new OpenAPIHono<{
             state={state}
             vendorSettings={vendorSettings}
             error={errorMessage}
-            email={username}
+            email={loginSession.authParams.username}
             code={loginParams.code}
           />,
           errorStatus,

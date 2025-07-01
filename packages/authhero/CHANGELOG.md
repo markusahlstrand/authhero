@@ -1,5 +1,11 @@
 # authhero
 
+## 0.169.0
+
+### Minor Changes
+
+- Fix creation of password user in combination with linking of users
+
 ## 0.168.0
 
 ### Minor Changes
