@@ -1,12 +1,13 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import { createFrontChannelAuthResponse } from "./common";
+import { createFrontChannelAuthResponse, createRefreshToken } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
 import { safeCompare } from "../utils/safe-compare";
 import {
   AuthorizationResponseMode,
+  RefreshToken,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
@@ -110,11 +111,27 @@ export async function authorizationCodeGrantUser(
 
   await ctx.env.data.codes.used(client.tenant.id, params.code);
 
+  let refreshToken: RefreshToken | undefined;
+  if (
+    loginSession.session_id &&
+    loginSession.authParams.scope?.split(" ").includes("offline_access")
+  ) {
+    // If the offline_access scope is requested, we need to create a refresh token
+    refreshToken = await createRefreshToken(ctx, {
+      user,
+      client,
+      session_id: loginSession.session_id,
+      scope: loginSession.authParams.scope,
+      audience: loginSession.authParams.audience,
+    });
+  }
+
   return {
     user,
     client,
     loginSession,
     session_id: loginSession.session_id,
+    refresh_token: refreshToken?.id,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login
