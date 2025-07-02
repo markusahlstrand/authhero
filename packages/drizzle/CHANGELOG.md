@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.3.0
+
+### Minor Changes
+
+- Create refresh tokens for code grant flow
+
 ## 0.2.32
 
 ### Patch Changes

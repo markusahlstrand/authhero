@@ -1,5 +1,11 @@
 # authhero
 
+## 0.170.0
+
+### Minor Changes
+
+- Create refresh tokens for code grant flow
+
 ## 0.169.0
 
 ### Minor Changes
