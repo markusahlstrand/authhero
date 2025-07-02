@@ -32,10 +32,12 @@
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/node": "^20.14.9",
+    "drizzle-kit": "^0.31.4",
     "typescript": "^5.5.2",
     "vite": "^5.3.2"
   },
   "dependencies": {
-    "@authhero/adapter-interfaces": "workspace:^"
+    "@authhero/adapter-interfaces": "workspace:^",
+    "drizzle-orm": "^0.44.2"
   }
 }
