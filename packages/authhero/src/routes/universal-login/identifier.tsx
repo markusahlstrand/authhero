@@ -13,6 +13,7 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { HTTPException } from "hono/http-exception";
 import { waitUntil } from "../../helpers/wait-until";
+import { CountryCode } from "libphonenumber-js";
 
 export type SendType = "link" | "code";
 
@@ -105,9 +106,15 @@ export const identifierRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.id);
 
       const countryCode = ctx.get("countryCode");
+      const vendorCountryCode = vendorSettings.country as
+        | CountryCode
+        | undefined;
 
       const { normalized: username, connectionType } =
-        getConnectionFromIdentifier(params.username, countryCode);
+        getConnectionFromIdentifier(
+          params.username,
+          vendorCountryCode || countryCode,
+        );
 
       if (!username) {
         return ctx.html(

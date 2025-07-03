@@ -1,5 +1,16 @@
 # authhero
 
+## 0.171.0
+
+### Minor Changes
+
+- Use countrycode from vendor settings if available
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.73.0
+
 ## 0.170.0
 
 ### Minor Changes

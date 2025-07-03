@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.73.0
+
+### Minor Changes
+
+- Use countrycode from vendor settings if available
+
 ## 0.72.0
 
 ### Minor Changes

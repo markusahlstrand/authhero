@@ -30,6 +30,7 @@ export const vendorSettingsSchema = z.object({
     buttonTextColor: z.string(),
     primaryHoverColor: z.string(),
   }),
+  country: z.string().optional(),
   supportEmail: z.string().nullable(),
   supportUrl: z.string().nullable(),
   name: z.string(),
