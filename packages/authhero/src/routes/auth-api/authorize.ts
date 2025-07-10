@@ -16,6 +16,7 @@ import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
 import { getClientWithDefaults } from "../../helpers/client";
+import { getIssuer } from "../../variables";
 
 const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
 
@@ -166,7 +167,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         const validCallbacks = client.callbacks || [];
         if (ctx.var.host) {
           // Allow wildcard for the auth server
-          validCallbacks.push(`https://${ctx.var.host}/*`);
+          validCallbacks.push(`${getIssuer(ctx.env)}/*`);
         }
 
         if (
