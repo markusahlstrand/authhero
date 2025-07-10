@@ -129,8 +129,6 @@ export const enterPasswordRoutes = new OpenAPIHono<{
           loginSession,
         );
 
-        console.log("Result from loginWithPassword:", resultFromLogin);
-
         if (resultFromLogin instanceof Response) {
           return resultFromLogin; // Handles redirects, or HTML responses from loginWithPassword
         } else {
