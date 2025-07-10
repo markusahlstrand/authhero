@@ -1,5 +1,6 @@
 import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
+import { getIssuer } from "../variables";
 
 /**
  * Sets the tenant id in the context based on the url and headers
@@ -18,6 +19,7 @@ export async function tenantMiddleware(
     if (domain) {
       ctx.set("tenant_id", domain.tenant_id);
       ctx.set("custom_domain", xForwardedHost);
+      ctx.set("host", xForwardedHost);
       return await next();
     }
   }
@@ -25,6 +27,7 @@ export async function tenantMiddleware(
   // Check host header for subdomain matching tenant ID (direct requests)
   const host = ctx.req.header("host");
   if (host) {
+    ctx.set("host", host);
     const hostParts = host.split(".");
     if (hostParts.length > 1 && typeof hostParts[0] === "string") {
       const subdomain = hostParts[0];
@@ -34,6 +37,8 @@ export async function tenantMiddleware(
         ctx.set("tenant_id", subdomain);
       }
     }
+  } else {
+    ctx.set("host", new URL(getIssuer(ctx.env)).host);
   }
 
   return await next();

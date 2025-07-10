@@ -8,15 +8,19 @@ function getCookieName(tenant_id: string) {
   return `${tenant_id}-${SILENT_COOKIE_NAME}`;
 }
 
-function getWildcardDomain(hostname: string) {
+function getWildcardDomain(host: string) {
   // Return undefined for empty hostnames
+  if (!host) {
+    return undefined;
+  }
+  const [hostname] = host.split(":"); // Remove port if present
   if (!hostname) {
     return undefined;
   }
 
   // Don't apply wildcards to IP addresses or localhost
   if (hostname === "localhost" || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
-    return hostname;
+    return undefined;
   }
 
   // Split the domain into parts

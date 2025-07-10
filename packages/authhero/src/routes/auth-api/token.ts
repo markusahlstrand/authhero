@@ -189,7 +189,7 @@ export const tokenRoutes = new OpenAPIHono<{
         const passwordlessAuthCookie = serializeAuthCookie(
           grantResult.client.tenant.id,
           grantResult.session_id,
-          ctx.var.custom_domain || ctx.req.header("host") || "",
+          ctx.var.host || "",
         );
 
         passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);

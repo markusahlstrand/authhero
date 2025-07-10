@@ -163,11 +163,23 @@ export const authorizeRoutes = new OpenAPIHono<{
       }
 
       if (authParams.redirect_uri) {
+        const validCallbacks = client.callbacks || [];
+        if (ctx.var.host) {
+          // Allow wildcard for the auth server
+          validCallbacks.push(`https://${ctx.var.host}/*`);
+        }
+
         if (
-          !isValidRedirectUrl(authParams.redirect_uri, client.callbacks || [], {
+          !isValidRedirectUrl(authParams.redirect_uri, validCallbacks, {
             allowPathWildcards: true,
           })
         ) {
+          console.log(
+            "Invalid redirect URI:",
+            authParams.redirect_uri,
+            validCallbacks,
+          );
+
           throw new HTTPException(400, {
             message: `Invalid redirect URI - ${authParams.redirect_uri}`,
           });

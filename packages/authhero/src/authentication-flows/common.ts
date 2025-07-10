@@ -304,6 +304,11 @@ export async function createFrontChannelAuthResponse(
 ): Promise<Response> {
   const { authParams, user, client, ticketAuth } = params;
 
+  const responseType =
+    authParams.response_type || AuthorizationResponseType.CODE;
+  const responseMode =
+    authParams.response_mode || AuthorizationResponseMode.QUERY;
+
   const logMessage = createLogMessage(ctx, {
     type: LogTypes.SUCCESS_LOGIN,
     description: `Successful login for ${user.user_id}`,
@@ -406,9 +411,8 @@ export async function createFrontChannelAuthResponse(
   if (
     !refresh_token &&
     authParams.scope?.split(" ").includes("offline_access") &&
-    authParams.response_type &&
     ![AuthorizationResponseType.TOKEN, AuthorizationResponseType.CODE].includes(
-      authParams.response_type,
+      responseType,
     )
   ) {
     const newRefreshToken = await createRefreshToken(ctx, {
@@ -421,7 +425,7 @@ export async function createFrontChannelAuthResponse(
     refresh_token = newRefreshToken.id;
   }
 
-  if (params.authParams.response_mode === AuthorizationResponseMode.SAML_POST) {
+  if (responseMode === AuthorizationResponseMode.SAML_POST) {
     if (!session_id) {
       throw new HTTPException(500, {
         message: "Session ID not available for SAML response",
@@ -437,7 +441,7 @@ export async function createFrontChannelAuthResponse(
   }
 
   const tokens =
-    authParams.response_type === AuthorizationResponseType.CODE
+    responseType === AuthorizationResponseType.CODE
       ? await createCodeData(ctx, {
           user: postHookUser,
           client,
@@ -452,7 +456,7 @@ export async function createFrontChannelAuthResponse(
           refresh_token,
         });
 
-  if (authParams.response_mode === AuthorizationResponseMode.WEB_MESSAGE) {
+  if (responseMode === AuthorizationResponseMode.WEB_MESSAGE) {
     if (!authParams.redirect_uri) {
       throw new HTTPException(400, {
         message: "Redirect URI not allowed for WEB_MESSAGE response mode.",
@@ -464,7 +468,7 @@ export async function createFrontChannelAuthResponse(
       const authCookie = serializeAuthCookie(
         client.tenant.id,
         session_id,
-        ctx.var.custom_domain || ctx.req.header("host") || "",
+        ctx.var.host || "",
       );
       if (authCookie) {
         headers.set("set-cookie", authCookie);
@@ -489,6 +493,12 @@ export async function createFrontChannelAuthResponse(
     );
   }
 
+  if (!authParams.redirect_uri) {
+    throw new HTTPException(400, {
+      message: "Redirect uri not found for this response mode.",
+    });
+  }
+
   const headers = new Headers();
   if (session_id) {
     const authCookie = serializeAuthCookie(
@@ -501,72 +511,26 @@ export async function createFrontChannelAuthResponse(
     }
   }
 
-  const responseType =
-    authParams.response_type || AuthorizationResponseType.CODE;
-
-  if (responseType === AuthorizationResponseType.CODE) {
-    if (!params.loginSession) {
-      throw new HTTPException(500, {
-        message: "Login session not found for code response type.",
-      });
-    }
-    const codeData = await createCodeData(ctx, {
-      user: postHookUser,
-      client,
-      authParams,
-      login_id: params.loginSession.id,
-    });
-
-    if (!authParams.redirect_uri) {
-      throw new HTTPException(400, {
-        message: "Redirect uri not found for code response type.",
-      });
-    }
-
-    const redirectUri = new URL(authParams.redirect_uri);
-    redirectUri.searchParams.set("code", codeData.code);
-    if (codeData.state) {
-      redirectUri.searchParams.set("state", codeData.state);
-    }
-    headers.set("location", redirectUri.toString());
-    return new Response("Redirecting", {
-      status: 302,
-      headers,
-    });
-  }
-
-  // Fallback for other redirect-based responses (e.g., implicit flow style)
-  if (!authParams.redirect_uri) {
-    throw new HTTPException(400, {
-      message: "Redirect uri not found for this response mode.",
-    });
-  }
+  // Fallback for other redirect-based responses
   const redirectUri = new URL(authParams.redirect_uri);
 
-  if (
-    responseType === AuthorizationResponseType.TOKEN ||
-    responseType === AuthorizationResponseType.TOKEN_ID_TOKEN
-  ) {
-    // Only handle token responses for implicit flow
-    if ("access_token" in tokens) {
-      redirectUri.hash = new URLSearchParams({
-        access_token: tokens.access_token,
-        ...(tokens.id_token && { id_token: tokens.id_token }),
-        token_type: tokens.token_type,
-        expires_in: tokens.expires_in.toString(),
-        ...(authParams.state && { state: authParams.state }),
-        ...(authParams.scope && { scope: authParams.scope }),
-      }).toString();
-    } else {
-      throw new HTTPException(500, {
-        message: "Invalid token response for implicit flow.",
-      });
+  if ("code" in tokens) {
+    redirectUri.searchParams.set("code", tokens.code);
+    if (tokens.state) {
+      redirectUri.searchParams.set("state", tokens.state);
     }
+  } else if ("access_token" in tokens) {
+    redirectUri.hash = new URLSearchParams({
+      access_token: tokens.access_token,
+      ...(tokens.id_token && { id_token: tokens.id_token }),
+      token_type: tokens.token_type,
+      expires_in: tokens.expires_in.toString(),
+      ...(authParams.state && { state: authParams.state }),
+      ...(authParams.scope && { scope: authParams.scope }),
+    }).toString();
   } else {
-    // This case should ideally be narrowed down or handled if there are other valid response_types
-    // that lead to a redirect with tokens in the URL.
     throw new HTTPException(500, {
-      message: `Unsupported response type ('${responseType}') for redirect with tokens.`,
+      message: "Invalid token response for implicit flow.",
     });
   }
 
