@@ -109,8 +109,7 @@ export async function connectionCallback(
   if (loginSession.authorization_url) {
     const authorizationUrlDomain = new URL(loginSession.authorization_url)
       .hostname;
-    const currentRequestDomain =
-      ctx.var.custom_domain || ctx.req.header("host") || "";
+    const currentRequestDomain = ctx.var.host || "";
 
     // If the domains don't match and we have a custom domain in the current tenant
     if (

@@ -313,8 +313,6 @@ export default (
     updateMany: () => Promise.reject("not supporting updateMany"),
 
     create: async (resource, params) => {
-      console.log("Creating resource:", resource, params);
-
       const headers = new Headers({
         "content-type": "application/json",
       });

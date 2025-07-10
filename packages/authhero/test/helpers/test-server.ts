@@ -29,7 +29,7 @@ type getEnvParams = {
   };
 };
 
-type TestServer = {
+export type TestServer = {
   env: Bindings;
   getSentEmails: () => any[];
   getSentSms: () => any[];
@@ -81,7 +81,7 @@ export async function getTestServer(
     id: "clientId",
     client_secret: "clientSecret",
     name: "Test Client",
-    callbacks: ["https://example.com/callback"],
+    callbacks: ["https://example.com/callback", "http://localhost:3000/*"],
     allowed_logout_urls: ["https://example.com/callback"],
     web_origins: ["https://example.com"],
     disable_sign_ups: false,

@@ -24,8 +24,6 @@ export function ConnectionEdit(props: any) {
 function ConnectionTabbedFrom() {
   const record = useRecordContext();
 
-  console.log("strategy", record?.strategy);
-
   return (
     <Edit>
       <SimpleShowLayout>

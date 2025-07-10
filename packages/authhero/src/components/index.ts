@@ -14,7 +14,7 @@ import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import GoogleLogo from "./GoogleLogo";
 import Icon from "./Icon";
-import InvalidSession from "./InvalidSession";
+import InvalidSessionPage from "./InvalidSessionPage";
 import Layout from "./Layout";
 import MessagePage from "./MessagePage";
 import PreSignUpConfirmationPage from "./PreSignUpConfirmationPage";
@@ -45,7 +45,7 @@ export {
   GoBack,
   GoogleLogo,
   Icon,
-  InvalidSession,
+  InvalidSessionPage as InvalidSession,
   Layout,
   MessagePage as Message,
   PreSignUpConfirmationPage,

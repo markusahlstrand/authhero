@@ -16,6 +16,7 @@ import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
 import { getClientWithDefaults } from "../../helpers/client";
+import { getIssuer } from "../../variables";
 
 const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
 
@@ -163,8 +164,14 @@ export const authorizeRoutes = new OpenAPIHono<{
       }
 
       if (authParams.redirect_uri) {
+        const validCallbacks = client.callbacks || [];
+        if (ctx.var.host) {
+          // Allow wildcard for the auth server
+          validCallbacks.push(`${getIssuer(ctx.env)}/*`);
+        }
+
         if (
-          !isValidRedirectUrl(authParams.redirect_uri, client.callbacks || [], {
+          !isValidRedirectUrl(authParams.redirect_uri, validCallbacks, {
             allowPathWildcards: true,
           })
         ) {

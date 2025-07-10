@@ -29,6 +29,7 @@ describe("tenantMiddleware", () => {
             get: mockGet,
           },
         },
+        ISSUER: "https://example.com",
       },
       set: mockSet,
     };
@@ -101,7 +102,7 @@ describe("tenantMiddleware", () => {
     expect(mockHeaderFn).toHaveBeenCalledWith("x-forwarded-host");
     expect(mockHeaderFn).toHaveBeenCalledWith("host");
     expect(mockGet).toHaveBeenCalledWith("unknown");
-    expect(mockSet).not.toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalled();
   });
 
@@ -115,7 +116,7 @@ describe("tenantMiddleware", () => {
     // Assert
     expect(mockGetByDomain).not.toHaveBeenCalled();
     expect(mockGet).not.toHaveBeenCalled();
-    expect(mockSet).not.toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalled();
   });
 });

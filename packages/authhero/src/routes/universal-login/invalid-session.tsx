@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import InvalidSessionPage from "../../components/InvalidSession";
+import InvalidSessionPage from "../../components/InvalidSessionPage";
 
 export const invalidSessionRoutes = new OpenAPIHono<{
   Bindings: Bindings;

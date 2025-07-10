@@ -129,26 +129,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
           loginSession,
         );
 
-        if (resultFromLogin instanceof Response) {
-          return resultFromLogin; // Handles redirects, or HTML responses from loginWithPassword
-        } else {
-          // This branch handles an unexpected TokenResponse.
-          // Log it and show an error page, as this route should not return JSON.
-          console.error(
-            "Unexpected TokenResponse in POST /u/enter-password. This might indicate a flow misconfiguration as this route expects HTML or redirect.",
-            resultFromLogin,
-          );
-          return ctx.html(
-            <EnterPasswordPage
-              vendorSettings={vendorSettings}
-              email={username}
-              error={"An unexpected error occurred. Please try again."} // Generic error
-              state={state}
-              client={client}
-            />,
-            500, // Internal Server Error status
-          );
-        }
+        return resultFromLogin;
       } catch (err) {
         const customException = err as AuthError;
 

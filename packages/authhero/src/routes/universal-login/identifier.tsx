@@ -87,8 +87,11 @@ export const identifierRoutes = new OpenAPIHono<{
         },
       },
       responses: {
-        200: {
-          description: "Response",
+        400: {
+          description: "Error response",
+        },
+        302: {
+          description: "Redirect to enter code or password",
         },
       },
     }),
