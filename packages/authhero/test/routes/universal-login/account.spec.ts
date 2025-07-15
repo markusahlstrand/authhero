@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { loginWithCode } from "../../helpers/login";
 
@@ -8,12 +9,54 @@ describe("account", () => {
       mockEmail: true,
     });
 
-    const redirectUri = await loginWithCode(testServer, {
+    const { universalApp, env } = testServer;
+    const universalClient = testClient(universalApp, env);
+
+    const { cookieName, cookieValue } = await loginWithCode(testServer, {
       redirect_uri: "http://localhost:3000/u/account",
     });
 
-    const accountUrl = new URL(redirectUri);
+    const accountResponse = await universalClient["account"].$get(
+      {
+        query: { client_id: "clientId" },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
 
-    expect(accountUrl.pathname).toBe("/u/account");
+    expect(accountResponse.status).toBe(200);
+    const accountPage = await accountResponse.text();
+    expect(accountPage).toContain("foo@example.com");
+
+    // ---------------------------------
+    // Change email
+    // ---------------------------------
+    const changeEmailResponse = await universalClient["account"].$post(
+      {
+        query: { client_id: "clientId" },
+        form: {
+          action: "update_email",
+          email: "foo2@example.com",
+        },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
+
+    expect(changeEmailResponse.status).toBe(200);
+    const changeEmailPage = await changeEmailResponse.text();
+    expect(changeEmailPage).toContain("foo2@example.com");
+
+    const updatedUser = await env.data.users.get("tenantId", "email|userId");
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    expect(updatedUser.email).toBe("foo2@example.com");
   });
 });

@@ -98,5 +98,18 @@ export async function loginWithCode(
     throw new Error("No location header found");
   }
 
-  return enterCodeLocation;
+  const [cookieName, cookieValue] = enterCodePostResponse.headers
+    .get("set-cookie")
+    ?.split(";")[0]
+    ?.split("=") as string[];
+
+  if (typeof cookieName !== "string" || typeof cookieValue !== "string") {
+    throw new Error("Invalid session cookie format");
+  }
+
+  return {
+    redirectUri: enterCodeLocation,
+    cookieName,
+    cookieValue,
+  };
 }

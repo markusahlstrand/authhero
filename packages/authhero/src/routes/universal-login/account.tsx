@@ -1,9 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRoute } from "./common";
+import { initJSXRouteWithSession } from "./common";
 import AccountPage from "../../components/AccountPage";
-import { getAuthCookie } from "../../utils/cookies";
-import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 
 export const accountRoutes = new OpenAPIHono<{
@@ -20,7 +18,7 @@ export const accountRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          state: z.string(),
+          client_id: z.string(),
         }),
       },
       responses: {
@@ -36,53 +34,18 @@ export const accountRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { env } = ctx;
-      const { state } = ctx.req.valid("query");
-      const { vendorSettings, client } = await initJSXRoute(ctx, state);
+      const { client_id } = ctx.req.valid("query");
 
-      if (!client || !client.tenant?.id) {
-        return ctx.html(
-          <MessagePage
-            vendorSettings={vendorSettings}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") || "Configuration error"
-            }
-          />,
-          500,
-        );
-      }
-
-      // Get the current user session
-      const authCookie = getAuthCookie(
-        client.tenant.id,
-        ctx.req.header("cookie"),
+      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+        ctx,
+        client_id,
       );
-
-      const authSession = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : null;
-
-      if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
-      }
-
-      const user = await env.data.users.get(
-        client.tenant.id,
-        authSession.user_id,
-      );
-
-      if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
-      }
 
       return ctx.html(
         <AccountPage
           vendorSettings={vendorSettings}
           user={user}
           client={client}
-          state={state}
         />,
       );
     },
@@ -97,7 +60,7 @@ export const accountRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          state: z.string(),
+          client_id: z.string(),
         }),
         body: {
           content: {
@@ -126,46 +89,13 @@ export const accountRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { state } = ctx.req.valid("query");
+      const { client_id } = ctx.req.valid("query");
       const body = ctx.req.valid("form");
-      const { vendorSettings, client } = await initJSXRoute(ctx, state);
 
-      if (!client || !client.tenant?.id) {
-        return ctx.html(
-          <MessagePage
-            vendorSettings={vendorSettings}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") || "Configuration error"
-            }
-          />,
-          500,
-        );
-      }
-
-      // Get the current user session
-      const authCookie = getAuthCookie(
-        client.tenant.id,
-        ctx.req.header("cookie"),
+      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+        ctx,
+        client_id,
       );
-
-      const authSession = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : null;
-
-      if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
-      }
-
-      const user = await env.data.users.get(
-        client.tenant.id,
-        authSession.user_id,
-      );
-
-      if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
-      }
 
       let error: string | undefined;
       let success: string | undefined;
@@ -203,7 +133,7 @@ export const accountRoutes = new OpenAPIHono<{
       // Get updated user data
       const updatedUser = await env.data.users.get(
         client.tenant.id,
-        authSession.user_id,
+        user.user_id,
       );
 
       return ctx.html(
@@ -211,7 +141,6 @@ export const accountRoutes = new OpenAPIHono<{
           vendorSettings={vendorSettings}
           user={updatedUser || user}
           client={client}
-          state={state}
           error={error}
           success={success}
         />,

@@ -9,13 +9,12 @@ type Props = {
   vendorSettings: VendorSettings;
   user: User;
   client: Client;
-  state: string;
   error?: string;
   success?: string;
 };
 
 const AccountPage: FC<Props> = (params) => {
-  const { vendorSettings, user, state, error, success } = params;
+  const { vendorSettings, user, error, success } = params;
 
   const linkedIdentities =
     user.identities?.filter(
@@ -72,7 +71,7 @@ const AccountPage: FC<Props> = (params) => {
             <h2 className="mb-3 text-lg font-medium text-gray-900">
               {i18next.t("update_email") || "Update Email"}
             </h2>
-            <form method="post" action={`/u/account?state=${state}`}>
+            <form method="post">
               <input type="hidden" name="action" value="update_email" />
               <div className="mb-4">
                 <label
@@ -128,7 +127,6 @@ const AccountPage: FC<Props> = (params) => {
                       </div>
                       <form
                         method="post"
-                        action={`/u/account?state=${state}`}
                         className="inline"
                         onsubmit="return confirm('{i18next.t('confirm_unlink') || 'Are you sure you want to unlink this account?'}')"
                       >
