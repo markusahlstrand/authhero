@@ -1,5 +1,11 @@
 # authhero
 
+## 0.172.0
+
+### Minor Changes
+
+- Add a page to change the current users email
+
 ## 0.171.0
 
 ### Minor Changes

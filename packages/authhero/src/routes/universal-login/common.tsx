@@ -10,6 +10,7 @@ import {
 import { getPrimaryUserByEmail } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
+import { getAuthCookie } from "../../utils/cookies";
 
 // there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
 // some interaction with "dark mode"
@@ -138,6 +139,49 @@ export async function initJSXRoute(
     client,
     tenant,
     loginSession,
+  };
+}
+
+export async function initJSXRouteWithSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client_id: string,
+) {
+  const { env } = ctx;
+
+  const client = await getClientWithDefaults(env, client_id);
+  ctx.set("client_id", client.id);
+  ctx.set("tenant_id", client.tenant.id);
+
+  // Fetch the cookie
+  const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
+  if (!authCookie) {
+    throw new HTTPException(400, { message: "No auth cookie found" });
+  }
+
+  const session = await env.data.sessions.get(
+    ctx.var.tenant_id || "",
+    authCookie,
+  );
+
+  if (!session) {
+    throw new HTTPException(400, { message: "Session not found" });
+  }
+
+  const vendorSettings = await fetchVendorSettings(
+    env,
+    client.id,
+    client.tenant.id,
+  );
+
+  const user = await env.data.users.get(client.tenant.id, session.user_id);
+  if (!user) {
+    throw new HTTPException(400, { message: "User not found" });
+  }
+
+  return {
+    vendorSettings,
+    client,
+    user,
   };
 }
 
