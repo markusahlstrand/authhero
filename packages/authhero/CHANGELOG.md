@@ -1,5 +1,11 @@
 # authhero
 
+## 0.173.0
+
+### Minor Changes
+
+- Complete first version of change email flow
+
 ## 0.172.0
 
 ### Minor Changes

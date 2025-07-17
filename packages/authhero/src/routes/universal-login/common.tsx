@@ -11,6 +11,8 @@ import { getPrimaryUserByEmail } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
+import { getAuthUrl } from "../../variables";
+import { nanoid } from "nanoid";
 
 // there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
 // some interaction with "dark mode"
@@ -155,7 +157,12 @@ export async function initJSXRouteWithSession(
   // Fetch the cookie
   const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
   if (!authCookie) {
-    throw new HTTPException(400, { message: "No auth cookie found" });
+    const authorizeRedirectUrl = new URL(getAuthUrl(ctx.env));
+    authorizeRedirectUrl.pathname = "/authorize";
+    authorizeRedirectUrl.searchParams.set("client_id", client.id);
+    authorizeRedirectUrl.searchParams.set("redirect_uri", ctx.req.url);
+    authorizeRedirectUrl.searchParams.set("state", nanoid());
+    throw new RedirectException(authorizeRedirectUrl.toString());
   }
 
   const session = await env.data.sessions.get(
