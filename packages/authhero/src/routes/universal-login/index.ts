@@ -9,6 +9,7 @@ import { resetPasswordRoutes } from "./reset-password";
 import { forgotPasswordRoutes } from "./forgot-password";
 import { checkAccountRoutes } from "./check-account";
 import { accountRoutes } from "./account";
+import { changeEmailRoutes } from "./change-email";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
@@ -72,6 +73,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/info", infoRoutes)
     .route("/check-account", checkAccountRoutes)
     .route("/account", accountRoutes)
+    .route("/change-email", changeEmailRoutes)
     .route("/login/identifier", identifierRoutes)
     .route("/enter-code", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)

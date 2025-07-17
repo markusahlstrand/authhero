@@ -13,6 +13,8 @@ type Props = {
   success?: string;
 };
 
+const showLinkedAccounts = false;
+
 const AccountPage: FC<Props> = (params) => {
   const { vendorSettings, user, error, success } = params;
 
@@ -48,7 +50,7 @@ const AccountPage: FC<Props> = (params) => {
           {/* Current Email Section */}
           <div className="mb-6">
             <h2 className="mb-3 text-lg font-medium text-gray-900">
-              {i18next.t("current_email") || "Current Email"}
+              {i18next.t("email")}
             </h2>
             <div className="rounded-lg border border-gray-200 p-4">
               <div className="flex items-center justify-between">
@@ -69,39 +71,31 @@ const AccountPage: FC<Props> = (params) => {
           {/* Update Email Section */}
           <div className="mb-6">
             <h2 className="mb-3 text-lg font-medium text-gray-900">
-              {i18next.t("update_email") || "Update Email"}
+              {i18next.t("update_email")}
             </h2>
             <form method="post">
               <input type="hidden" name="action" value="update_email" />
               <div className="mb-4">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {i18next.t("new_email") || "New Email Address"}
-                </label>
                 <input
                   type="email"
                   id="email"
                   name="email"
                   required
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder={
-                    i18next.t("enter_new_email") || "Enter new email address"
-                  }
+                  placeholder={i18next.t("enter_new_email")}
                 />
               </div>
               <Button variant="primary" className="w-full">
-                {i18next.t("update_email") || "Update Email"}
+                {i18next.t("update_email")}
               </Button>
             </form>
           </div>
 
           {/* Linked Accounts Section */}
-          {linkedIdentities.length > 0 && (
+          {showLinkedAccounts && linkedIdentities.length > 0 && (
             <div className="mb-6">
               <h2 className="mb-3 text-lg font-medium text-gray-900">
-                {i18next.t("linked_accounts") || "Linked Social Accounts"}
+                {i18next.t("linked_accounts")}
               </h2>
               <div className="space-y-3">
                 {linkedIdentities.map((identity, index) => (
@@ -158,51 +152,6 @@ const AccountPage: FC<Props> = (params) => {
               </div>
             </div>
           )}
-
-          {/* Account Information */}
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-medium text-gray-900">
-              {i18next.t("account_information") || "Account Information"}
-            </h2>
-            <div className="rounded-lg border border-gray-200 p-4 space-y-2">
-              {user.name && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">
-                    {i18next.t("name") || "Name"}:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {user.name}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">
-                  {i18next.t("user_id") || "User ID"}:
-                </span>
-                <span className="text-sm font-mono text-gray-900">
-                  {user.user_id}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">
-                  {i18next.t("login_count") || "Login Count"}:
-                </span>
-                <span className="text-sm text-gray-900">
-                  {user.login_count}
-                </span>
-              </div>
-              {user.last_login && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">
-                    {i18next.t("last_login") || "Last Login"}:
-                  </span>
-                  <span className="text-sm text-gray-900">
-                    {new Date(user.last_login).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </Layout>
