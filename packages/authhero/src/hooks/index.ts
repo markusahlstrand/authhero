@@ -102,13 +102,14 @@ function createUserUpdateHooks(
 
     if (ctx.env.hooks?.onExecutePreUserUpdate) {
       try {
-        const result = await ctx.env.hooks.onExecutePreUserUpdate(
+        // The hook throws to cancel the update
+        await ctx.env.hooks.onExecutePreUserUpdate(
           {
             ctx,
             user_id,
             updates,
             request,
-          } as any,
+          },
           {
             user: {
               setUserMetadata: async (key, value) => {
@@ -122,13 +123,6 @@ function createUserUpdateHooks(
             },
           },
         );
-
-        // If the hook returns false, cancel the update
-        if (result === false) {
-          throw new HTTPException(400, {
-            message: "User update cancelled by pre-update hook",
-          });
-        }
       } catch (err) {
         // If it's already an HTTPException, re-throw it
         if (err instanceof HTTPException) {

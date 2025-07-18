@@ -99,9 +99,9 @@ export type OnExecutePreUserUpdateAPI = {
 };
 
 export type OnExecutePreUserUpdate = (
-  event: HookEvent,
+  event: HookEvent & { user_id: string; updates: Partial<User> },
   api: OnExecutePreUserUpdateAPI,
-) => Promise<void | boolean>;
+) => Promise<void>;
 
 export type OnExecutePostLoginAPI = {
   prompt: {
