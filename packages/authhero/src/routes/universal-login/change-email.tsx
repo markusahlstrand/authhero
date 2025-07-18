@@ -120,13 +120,13 @@ export const changeEmailRoutes = new OpenAPIHono<{
         );
 
         if (!changeRequest) {
-          error = i18next.t("invalid_request") || "Invalid request";
+          error = i18next.t("invalid_request");
         } else if (changeRequest.user_id !== user.user_id) {
-          error = i18next.t("invalid_request") || "Invalid request";
+          error = i18next.t("invalid_request");
         } else if (changeRequest.used_at) {
-          error = i18next.t("code_already_used") || "Code already used";
+          error = i18next.t("code_already_used");
         } else if (new Date(changeRequest.expires_at) < new Date()) {
-          error = i18next.t("code_expired") || "Code expired";
+          error = i18next.t("code_expired");
         } else {
           // Find the actual verification code
           const verificationCode = await env.data.codes.get(
@@ -136,13 +136,13 @@ export const changeEmailRoutes = new OpenAPIHono<{
           );
 
           if (!verificationCode) {
-            error = i18next.t("invalid_code") || "Invalid code";
+            error = i18next.t("invalid_code");
           } else if (verificationCode.used_at) {
-            error = i18next.t("code_already_used") || "Code already used";
+            error = i18next.t("code_already_used");
           } else if (new Date(verificationCode.expires_at) < new Date()) {
-            error = i18next.t("code_expired") || "Code expired";
+            error = i18next.t("code_expired");
           } else if (verificationCode.user_id !== user.user_id) {
-            error = i18next.t("invalid_code") || "Invalid code";
+            error = i18next.t("invalid_code");
           } else {
             // Mark both codes as used
             await env.data.codes.used(client.tenant.id, change_id);
@@ -154,19 +154,14 @@ export const changeEmailRoutes = new OpenAPIHono<{
               email_verified: true,
             });
 
-            // Return success message
-            return ctx.html(
-              <ChangeEmailPage
-                vendorSettings={vendorSettings}
-                client={client}
-                email={email}
-                success={true}
-              />,
+            // Redirect to confirmation page
+            return ctx.redirect(
+              `/u/change-email-confirmation?client_id=${client_id}&email=${encodeURIComponent(email.toLowerCase())}`,
             );
           }
         }
       } catch (err) {
-        error = i18next.t("operation_failed") || "Operation failed";
+        error = i18next.t("operation_failed");
       }
 
       return ctx.html(

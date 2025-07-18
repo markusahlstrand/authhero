@@ -115,15 +115,21 @@ const Layout = ({
       {html`
         <script>
           // Add loading class to submit button on form submission
-          var form = document.getElementById("form");
-          var submitBtn = form.querySelector("button[type=submit]");
-          form.onsubmit = function () {
-            submitBtn.classList.add("is-loading");
-          };
-          // Remove loading class if the page is loaded from browser bfcache
-          window.addEventListener("pageshow", function (event) {
-            if (event.persisted) {
-              submitBtn.classList.remove("is-loading");
+          document.addEventListener("DOMContentLoaded", function () {
+            var form = document.getElementById("form");
+            if (form) {
+              var submitBtn = form.querySelector("button[type=submit]");
+              if (submitBtn) {
+                form.onsubmit = function () {
+                  submitBtn.classList.add("is-loading");
+                };
+                // Remove loading class if the page is loaded from browser bfcache
+                window.addEventListener("pageshow", function (event) {
+                  if (event.persisted) {
+                    submitBtn.classList.remove("is-loading");
+                  }
+                });
+              }
             }
           });
         </script>
