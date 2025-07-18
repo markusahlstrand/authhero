@@ -91,6 +91,18 @@ export type OnExecutePostUserRegistration = (
   api: OnExecutePostUserRegistrationAPI,
 ) => Promise<void>;
 
+export type OnExecutePreUserUpdateAPI = {
+  user: {
+    setUserMetadata: (key: string, value: any) => void;
+  };
+  cancel: () => void;
+};
+
+export type OnExecutePreUserUpdate = (
+  event: HookEvent,
+  api: OnExecutePreUserUpdateAPI,
+) => Promise<void | boolean>;
+
 export type OnExecutePostLoginAPI = {
   prompt: {
     render: (formId: string) => void;
