@@ -100,11 +100,36 @@ describe("account", () => {
       },
     );
 
-    // Should return success message
-    expect(verifyCodeResponse.status).toBe(200);
-    const successPageContent = await verifyCodeResponse.text();
-    expect(successPageContent).toContain("new@example.com");
-    expect(successPageContent).toContain("Fortsätt");
+    // Should redirect to confirmation page
+    expect(verifyCodeResponse.status).toBe(302);
+    const confirmationLocation = verifyCodeResponse.headers.get("location");
+    expect(confirmationLocation).toContain("/u/change-email-confirmation");
+    expect(confirmationLocation).toContain("client_id=clientId");
+    expect(confirmationLocation).toContain("email=new%40example.com");
+
+    // ---------------------------------
+    // Access confirmation page
+    // ---------------------------------
+    const confirmationPageResponse = await universalClient[
+      "change-email-confirmation"
+    ].$get(
+      {
+        query: {
+          client_id: "clientId",
+          email: "new@example.com",
+        },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
+
+    expect(confirmationPageResponse.status).toBe(200);
+    const confirmationPageContent = await confirmationPageResponse.text();
+    expect(confirmationPageContent).toContain("new@example.com");
+    expect(confirmationPageContent).toContain("Klart");
 
     // ---------------------------------
     // Verify email was updated and verified
