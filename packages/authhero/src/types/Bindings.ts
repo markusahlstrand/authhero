@@ -3,6 +3,7 @@ import {
   OnExecuteCredentialsExchange,
   OnExecutePreUserRegistration,
   OnExecutePostUserRegistration,
+  OnExecutePreUserUpdate,
   OnExecutePostLogin,
 } from "./Hooks";
 import { EmailService } from "./EmailService";
@@ -29,6 +30,7 @@ export type Bindings = {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
+    onExecutePreUserUpdate?: OnExecutePreUserUpdate;
     onExecutePostLogin?: OnExecutePostLogin;
   };
   emailProviders?: { [key: string]: EmailService };

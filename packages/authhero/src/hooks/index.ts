@@ -88,6 +88,70 @@ function createUserHooks(
   };
 }
 
+function createUserUpdateHooks(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+) {
+  return async (tenant_id: string, user_id: string, updates: Partial<User>) => {
+    const request: HookRequest = {
+      method: ctx.req.method,
+      ip: ctx.req.query("x-real-ip") || "",
+      user_agent: ctx.req.query("user-agent"),
+      url: ctx.var.loginSession?.authorization_url || ctx.req.url,
+    };
+
+    if (ctx.env.hooks?.onExecutePreUserUpdate) {
+      try {
+        const result = await ctx.env.hooks.onExecutePreUserUpdate(
+          {
+            ctx,
+            user_id,
+            updates,
+            request,
+          } as any,
+          {
+            user: {
+              setUserMetadata: async (key, value) => {
+                updates[key] = value;
+              },
+            },
+            cancel: () => {
+              throw new HTTPException(400, {
+                message: "User update cancelled by pre-update hook",
+              });
+            },
+          },
+        );
+
+        // If the hook returns false, cancel the update
+        if (result === false) {
+          throw new HTTPException(400, {
+            message: "User update cancelled by pre-update hook",
+          });
+        }
+      } catch (err) {
+        // If it's already an HTTPException, re-throw it
+        if (err instanceof HTTPException) {
+          throw err;
+        }
+
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_HOOK,
+          description: "Pre user update hook failed",
+        });
+        await data.logs.create(tenant_id, log);
+
+        throw new HTTPException(500, {
+          message: "Pre user update hook failed",
+        });
+      }
+    }
+
+    // If we get here, proceed with the update
+    return await data.users.update(tenant_id, user_id, updates);
+  };
+}
+
 export async function preUserSignupHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: Client,
@@ -135,7 +199,11 @@ export function addDataHooks(
 ): DataAdapters {
   return {
     ...data,
-    users: { ...data.users, create: createUserHooks(ctx, data) },
+    users: {
+      ...data.users,
+      create: createUserHooks(ctx, data),
+      update: createUserUpdateHooks(ctx, data),
+    },
   };
 }
 
