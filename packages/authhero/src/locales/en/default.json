@@ -62,6 +62,7 @@
   "go_back": "Go back",
   "hide_password": "Hide password",
   "invalid-email": "Invalid email",
+  "invalid_identifier": "Invalid identifier",
   "invalid_password": "Invalid password",
   "invalid_session_body": "The link is no longer valid.\n\nPlease make sure to open the login link in the same browser you started the login with.\n\nYou can click the link below to start a new login.",
   "invalid_session_title": "Invalid link",

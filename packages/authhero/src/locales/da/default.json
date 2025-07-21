@@ -62,6 +62,7 @@
   "go_back": "Gå tilbage",
   "hide_password": "Skjul adgangskode",
   "invalid-email": "Ugyldig e-mail",
+  "invalid_identifier": "Ugyldig identifikator",
   "invalid_password": "Ugyldig adgangskode",
   "invalid_session_body": "Linket er ikke længere gyldigt. Sørg for at åbne login-linket i den samme browser, som du startede login med. Du kan klikke på linket nedenfor for at starte et nyt login.",
   "invalid_session_title": "Ugyldigt link",

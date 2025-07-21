@@ -152,9 +152,7 @@ describe("check account", () => {
       codeQueryString!,
       "authorization_code",
     );
-    expect(code).not.toBe(null);
-
-    // Make sure the session is set on the login session
+    expect(code).not.toBe(null);    // Make sure the session is set on the login session
     const loginSession = await env.data.loginSessions.get("tenantId", state);
     expect(loginSession).not.toBeNull();
     expect(loginSession?.session_id).toBeTypeOf("string");

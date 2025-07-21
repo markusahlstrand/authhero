@@ -62,6 +62,7 @@
   "go_back": "Torna indietro",
   "hide_password": "Nascondere la password",
   "invalid-email": "Email non valida",
+  "invalid_identifier": "Identificatore non valido",
   "invalid_password": "Password non valida",
   "invalid_session_body": "Il link non è più valido.\n\nAssicuratevi di aprire il link di accesso con lo stesso browser con cui avete iniziato l'accesso.\n\nPotete fare clic sul link sottostante per iniziare un nuovo accesso.",
   "invalid_session_title": "Collegamento non valido",

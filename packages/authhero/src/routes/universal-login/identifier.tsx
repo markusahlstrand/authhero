@@ -119,7 +119,10 @@ export const identifierRoutes = new OpenAPIHono<{
           vendorCountryCode || countryCode,
         );
 
-      if (!username) {
+      if (
+        !client.connections.find((c) => c.strategy === connectionType) ||
+        !username
+      ) {
         return ctx.html(
           <IdentifierPage
             vendorSettings={vendorSettings}

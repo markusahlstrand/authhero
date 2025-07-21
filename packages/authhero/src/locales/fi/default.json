@@ -62,6 +62,7 @@
   "go_back": "Palaa takaisin",
   "hide_password": "Piilota salasana",
   "invalid-email": "Virheellinen sähköpostiosoite",
+  "invalid_identifier": "Virheellinen tunniste",
   "invalid_password": "Virheellinen salasana",
   "invalid_session_body": "Linkki ei ole enää voimassa.\n\nVarmista, että avaat kirjautumislinkin samalla selaimella, jolla aloitit kirjautumisen.\n\nVoit aloittaa uuden kirjautumisen klikkaamalla alla olevaa linkkiä.",
   "invalid_session_title": "Virheellinen linkki",

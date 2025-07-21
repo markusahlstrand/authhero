@@ -62,6 +62,7 @@
   "go_back": "Vrátit se zpět",
   "hide_password": "Skrýt heslo",
   "invalid-email": "Neplatný e-mail",
+  "invalid_identifier": "Neplatný identifikátor",
   "invalid_password": "Neplatné heslo",
   "invalid_session_body": "Odkaz již není platný.\n\nUjistěte se, že jste odkaz na přihlášení otevřeli ve stejném prohlížeči, ve kterém jste přihlášení zahájili.\n\nKliknutím na odkaz níže můžete zahájit nové přihlášení.",
   "invalid_session_title": "Neplatný odkaz",
