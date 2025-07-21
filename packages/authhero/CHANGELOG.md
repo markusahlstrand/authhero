@@ -1,5 +1,11 @@
 # authhero
 
+## 0.174.0
+
+### Minor Changes
+
+- Add hook for pre user update
+
 ## 0.173.0
 
 ### Minor Changes
