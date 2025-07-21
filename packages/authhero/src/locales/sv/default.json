@@ -62,6 +62,7 @@
   "go_back": "Gå tillbaka",
   "hide_password": "Dölj lösenord",
   "invalid-email": "Ogiltig e-postadress",
+  "invalid_identifier": "Ogiltig identifierare",
   "invalid_password": "Ogiltigt lösenord",
   "invalid_session_body": "Länken är inte längre giltig.\n\nVänligen se till att öppna inloggningslänken i samma webbläsare som du startade inloggningen med.\n\nDu kan klicka på länken nedan för att starta en ny inloggning.",
   "invalid_session_title": "Ogiltig länk",

@@ -62,6 +62,7 @@
   "go_back": "Wróć",
   "hide_password": "Ukryj hasło",
   "invalid-email": "Nieprawidłowy adres e-mail",
+  "invalid_identifier": "Nieprawidłowy identyfikator",
   "invalid_password": "Nieprawidłowe hasło",
   "invalid_session_body": "Link jest już nieaktualny.\n\nUpewnij się, że otworzyłeś link logowania w tej samej przeglądarce, w której rozpocząłeś logowanie.\n\nMożesz kliknąć poniższy link, aby rozpocząć nowe logowanie.",
   "invalid_session_title": "Nieprawidłowy link",
