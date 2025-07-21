@@ -6,7 +6,6 @@ import { computeCodeChallenge } from "../../../src/utils/crypto";
 import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
 import { createSessions } from "../../helpers/create-session";
 
-// Define interfaces for expected JSON response shapes
 interface TokenResponse {
   access_token: string;
   id_token?: string;
@@ -411,7 +410,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create the login session and code
-        const { loginSession, session } = await createSessions(env.data);
+        const { loginSession } = await createSessions(env.data);
 
         await env.data.codes.create("tenantId", {
           code_type: "authorization_code",

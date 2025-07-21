@@ -11,6 +11,7 @@ import {
   OnExecuteCredentialsExchange,
   OnExecutePostUserRegistration,
   OnExecutePreUserRegistration,
+  OnExecutePreUserUpdate,
 } from "../../src";
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
@@ -26,6 +27,7 @@ type getEnvParams = {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
+    onExecutePreUserUpdate?: OnExecutePreUserUpdate;
   };
 };
 
