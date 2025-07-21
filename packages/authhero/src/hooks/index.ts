@@ -135,7 +135,7 @@ function createUserUpdateHooks(
         });
         await data.logs.create(tenant_id, log);
 
-        throw new HTTPException(500, {
+        throw new HTTPException(400, {
           message: "Pre user update hook failed",
         });
       }
