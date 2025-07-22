@@ -24,7 +24,7 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return "Success Cross Origin Authentication";
     case LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION:
       return "Failed Cross Origin Authentication";
-    case LogTypes.CODE_LINK_EMAIL_SENT:
+    case LogTypes.CODE_LINK_SENT:
       return "Code Link Email Sent";
     case LogTypes.FAILED_LOGIN:
       return "Failed Login";

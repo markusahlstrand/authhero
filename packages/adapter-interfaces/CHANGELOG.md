@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.74.0
+
+### Minor Changes
+
+- Refactor log types
+
 ## 0.73.0
 
 ### Minor Changes

@@ -142,7 +142,20 @@ function createUserUpdateHooks(
     }
 
     // If we get here, proceed with the update
-    return await data.users.update(tenant_id, user_id, updates);
+    await data.users.update(tenant_id, user_id, updates);
+
+    if (updates.email) {
+      const log = createLogMessage(ctx, {
+        type: LogTypes.SUCCESS_CHANGE_EMAIL,
+        description: `Email updated to ${updates.email}`,
+        userId: user_id,
+      });
+      await data.logs.create(tenant_id, log);
+
+      console.log("log:", log);
+    }
+
+    return true;
   };
 }
 
