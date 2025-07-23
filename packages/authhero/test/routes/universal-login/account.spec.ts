@@ -5,7 +5,7 @@ import { loginWithCode } from "../../helpers/login";
 import { LogTypes } from "@authhero/adapter-interfaces";
 
 describe("account", () => {
-  it.only("should send verification code and redirect to change-email page, then update email after code verification", async () => {
+  it("should send verification code and redirect to change-email page, then update email after code verification", async () => {
     const testServer = await getTestServer({
       mockEmail: true,
     });
