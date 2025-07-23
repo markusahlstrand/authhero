@@ -1,5 +1,16 @@
 # authhero
 
+## 0.175.0
+
+### Minor Changes
+
+- Refactor log types
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.74.0
+
 ## 0.174.0
 
 ### Minor Changes

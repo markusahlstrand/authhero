@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { loginWithCode } from "../../helpers/login";
+import { LogTypes } from "@authhero/adapter-interfaces";
 
 describe("account", () => {
   it("should send verification code and redirect to change-email page, then update email after code verification", async () => {
@@ -140,6 +141,17 @@ describe("account", () => {
     }
     expect(updatedUser.email).toBe("new@example.com");
     expect(updatedUser.email_verified).toBe(true);
+
+    // -----------------------------------
+    // Verify that there is a log entry for the email change
+    // -----------------------------------
+    const logs = await env.data.logs.list("tenantId", {
+      q: `user_id:email|userId type:${LogTypes.SUCCESS_CHANGE_EMAIL}`,
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(logs).toHaveLength(1);
   });
 
   it("should redirect to authorize endpoint when accessing /u/account without valid session", async () => {

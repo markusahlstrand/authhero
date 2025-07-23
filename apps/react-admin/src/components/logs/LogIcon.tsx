@@ -21,7 +21,7 @@ export function LogIcon({ type: logType }: { type: LogTypes }) {
     case LogTypes.FAILED_LOGIN_INVALID_EMAIL_USERNAME:
     case LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION:
       return <CloseIcon />;
-    case LogTypes.CODE_LINK_EMAIL_SENT:
+    case LogTypes.CODE_LINK_SENT:
       return <EmailIcon />;
     case LogTypes.FAILED_LOGIN:
       return <ErrorIcon />;
