@@ -42,15 +42,15 @@ describe("themes", () => {
     // Create/update theme
     const updateResponse = await managementClient.branding.themes.default.$put(
       {
-        header: {
-          "tenant-id": "tenantId",
-        },
         json: {
           displayName: "Custom Theme",
           colors: {
             primary_button: "#FF0000",
             primary_button_label: "#FFFFFF",
           },
+        },
+        header: {
+          "tenant-id": "tenantId",
         },
       },
       {

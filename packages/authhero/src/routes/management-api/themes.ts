@@ -1,10 +1,13 @@
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { themeSchema } from "@authhero/adapter-interfaces";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { deepMergePatch } from "../../utils/deep-merge";
 
-export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const themesRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/branding/themes/default
   // --------------------------------
@@ -15,7 +18,7 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       path: "/default",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -35,9 +38,7 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
-      const theme = await ctx.env.data.themes.get(tenant_id, "default");
+      const theme = await ctx.env.data.themes.get(ctx.var.tenant_id, "default");
 
       if (!theme) {
         return ctx.json(DEFAULT_THEME);
@@ -55,9 +56,6 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       method: "put",
       path: "/default",
       request: {
-        headers: z.object({
-          "tenant-id": z.string(),
-        }),
         body: {
           content: {
             "application/json": {
@@ -65,6 +63,9 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
             },
           },
         },
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
       },
       security: [
         {
@@ -83,25 +84,34 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const themeData = ctx.req.valid("json");
 
       // Get existing theme or use default
-      const existingTheme = await ctx.env.data.themes.get(tenant_id, "default");
+      const existingTheme = await ctx.env.data.themes.get(
+        ctx.var.tenant_id,
+        "default",
+      );
 
       if (existingTheme) {
         // Deep merge the partial update with existing theme
         const updatedTheme = deepMergePatch(existingTheme, themeData);
 
-        await ctx.env.data.themes.update(tenant_id, "default", updatedTheme);
-        const result = await ctx.env.data.themes.get(tenant_id, "default");
+        await ctx.env.data.themes.update(
+          ctx.var.tenant_id,
+          "default",
+          updatedTheme,
+        );
+        const result = await ctx.env.data.themes.get(
+          ctx.var.tenant_id,
+          "default",
+        );
         return ctx.json(result!);
       } else {
         // Create new theme with default values merged with provided data
         const newTheme = deepMergePatch(DEFAULT_THEME, themeData);
 
         const createdTheme = await ctx.env.data.themes.create(
-          tenant_id,
+          ctx.var.tenant_id,
           newTheme,
         );
         return ctx.json(createdTheme);

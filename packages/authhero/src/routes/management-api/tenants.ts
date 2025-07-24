@@ -198,7 +198,7 @@ export const tenantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         },
       ],
       responses: {
-        200: {
+        201: {
           content: {
             "tenant/json": {
               schema: tenantSchema,
