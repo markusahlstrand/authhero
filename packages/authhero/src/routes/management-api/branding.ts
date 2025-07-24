@@ -1,6 +1,7 @@
 import { Bindings } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { brandingSchema } from "@authhero/adapter-interfaces";
+import { themesRoutes } from "./themes";
 
 export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
@@ -84,4 +85,8 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       return ctx.text("OK");
     },
-  );
+  )
+  // --------------------------------
+  // Themes sub-routes
+  // --------------------------------
+  .route("/themes", themesRoutes);

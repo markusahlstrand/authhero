@@ -31,6 +31,7 @@ describe("tenantMiddleware", () => {
         },
         ISSUER: "https://example.com",
       },
+      var: {},
       set: mockSet,
     };
   });

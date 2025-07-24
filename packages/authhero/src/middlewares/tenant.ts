@@ -41,5 +41,12 @@ export async function tenantMiddleware(
     ctx.set("host", new URL(getIssuer(ctx.env)).host);
   }
 
+  if (!ctx.var.tenant_id) {
+    const tenantId = ctx.req.header("tenant-id");
+    if (tenantId) {
+      ctx.set("tenant_id", tenantId);
+    }
+  }
+
   return await next();
 }

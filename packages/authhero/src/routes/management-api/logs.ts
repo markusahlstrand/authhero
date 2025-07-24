@@ -24,7 +24,6 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           "tenant-id": z.string(),
         }),
       },
-
       security: [
         {
           Bearer: ["auth:read"],

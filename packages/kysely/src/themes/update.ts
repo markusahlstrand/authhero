@@ -17,7 +17,7 @@ export function update(db: Kysely<Database>) {
     await db
       .updateTable("themes")
       .set(sqlTheme)
-      .where("themes.id", "=", themeId)
+      .where("themes.themeId", "=", themeId)
       .where("themes.tenant_id", "=", tenant_id)
       .execute();
 

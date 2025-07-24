@@ -74,7 +74,7 @@ export const themeInsertSchema = z.object({
   widget: widgetSchema,
 });
 
-export type ThemeInsert = z.infer<typeof themeInsertSchema>;
+export type ThemeInsert = z.input<typeof themeInsertSchema>;
 
 export const themeSchema = themeInsertSchema.extend({
   themeId: z.string(),
