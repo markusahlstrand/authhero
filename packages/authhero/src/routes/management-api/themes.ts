@@ -61,16 +61,7 @@ export const themesRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         body: {
           content: {
             "application/json": {
-              schema: z.object({
-                displayName: z.string().optional(),
-                colors: z.record(z.string()).optional(),
-                borders: z
-                  .record(z.union([z.string(), z.number(), z.boolean()]))
-                  .optional(),
-                fonts: z.record(z.any()).optional(),
-                page_background: z.record(z.any()).optional(),
-                widget: z.record(z.any()).optional(),
-              }),
+              schema: themeSchema.deepPartial(),
             },
           },
         },
