@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.75.0
+
+### Minor Changes
+
+- Add themes endpoints
+
 ## 0.74.0
 
 ### Minor Changes

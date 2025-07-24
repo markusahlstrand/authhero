@@ -8,15 +8,18 @@ export function create(db: Kysely<Database>) {
   return async (tenant_id: string, theme: ThemeInsert): Promise<Theme> => {
     const createdTheme = {
       themeId: nanoid(),
-      ...theme,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...theme,
     };
 
-    await db
-      .insertInto("themes")
-      .values({ ...flattenObject(createdTheme), tenant_id })
-      .execute();
+    // Map themeId to theme_id for database storage
+    const dbValues = {
+      ...createdTheme,
+      tenant_id,
+    };
+
+    await db.insertInto("themes").values(flattenObject(dbValues)).execute();
 
     return createdTheme;
   };

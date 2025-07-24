@@ -20,9 +20,14 @@ import {
 import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./utils/flatten";
 
-const sqlThemeSchema = flattenSchema(themeSchema).extend({
-  tenant_id: z.string(),
-});
+const sqlThemeSchema = flattenSchema(themeSchema)
+  .extend({
+    tenant_id: z.string(),
+  })
+  .omit({ themeId: true })
+  .extend({
+    theme_id: z.string(),
+  });
 
 const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   tenant_id: z.string(),
