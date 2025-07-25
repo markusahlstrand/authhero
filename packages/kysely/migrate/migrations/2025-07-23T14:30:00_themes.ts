@@ -54,7 +54,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("borders_input_border_radius", "integer", (col) => col.notNull())
     .addColumn("borders_input_border_weight", "integer", (col) => col.notNull())
     .addColumn("borders_inputs_style", "varchar(24)", (col) => col.notNull())
-    .addColumn("borders_show_widget_shadow", "integer", (col) => col.notNull())
+    .addColumn("borders_show_widget_shadow", "boolean", (col) => col.notNull())
     .addColumn("borders_widget_border_weight", "integer", (col) =>
       col.notNull(),
     )
@@ -68,13 +68,13 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("fonts_font_url", "varchar(255)", (col) => col.notNull())
     .addColumn("fonts_input_labels_bold", "integer", (col) => col.notNull())
     .addColumn("fonts_input_labels_size", "integer", (col) => col.notNull())
-    .addColumn("fonts_links_bold", "integer", (col) => col.notNull())
+    .addColumn("fonts_links_bold", "boolean", (col) => col.notNull())
     .addColumn("fonts_links_size", "integer", (col) => col.notNull())
     .addColumn("fonts_links_style", "varchar(24)", (col) => col.notNull())
     .addColumn("fonts_reference_text_size", "integer", (col) => col.notNull())
-    .addColumn("fonts_subtitle_bold", "integer", (col) => col.notNull())
+    .addColumn("fonts_subtitle_bold", "boolean", (col) => col.notNull())
     .addColumn("fonts_subtitle_size", "integer", (col) => col.notNull())
-    .addColumn("fonts_title_bold", "integer", (col) => col.notNull())
+    .addColumn("fonts_title_bold", "boolean", (col) => col.notNull())
     .addColumn("fonts_title_size", "integer", (col) => col.notNull())
     .addColumn("page_background_background_color", "varchar(24)", (col) =>
       col.notNull(),

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.177.0
+
+### Minor Changes
+
+- Handle base path in auth middleware
+
 ## 0.176.0
 
 ### Minor Changes
