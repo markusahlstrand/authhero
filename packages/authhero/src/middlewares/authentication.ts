@@ -112,6 +112,10 @@ function decodeJwt(token: string): TokenData | null {
   };
 }
 
+function convertRouteSyntax(route: string) {
+  return route.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, "{$1}");
+}
+
 /**
  * This registeres the authentication middleware. As it needs to read the OpenAPI definition, it needs to have a reference to the app.
  * @param app
@@ -123,11 +127,33 @@ export function createAuthMiddleware(
     ctx: Context<{ Bindings: Bindings; Variables }>,
     next: Next,
   ) => {
+    const matchedRoute = ctx.req.matchedRoutes.find(
+      (route) =>
+        route.method.toUpperCase() === ctx.req.method && route.path !== "/*",
+    );
+
+    if (!matchedRoute) {
+      return await next();
+    }
+
+    // The basePath isn't in the types so we need to handle it manually
+    let matchedPath = matchedRoute.path;
+
+    if (
+      "basePath" in matchedRoute &&
+      typeof matchedRoute.basePath === "string"
+    ) {
+      // If the matched path starts with the basePath, we remove it
+      if (matchedPath.startsWith(matchedRoute.basePath)) {
+        matchedPath = matchedPath.replace(matchedRoute.basePath, "");
+      }
+    }
+
     const definition = app.openAPIRegistry.definitions.find(
       (def) =>
         "route" in def &&
-        def.route.path === ctx.req.path &&
-        def.route.method.toUpperCase() === ctx.req.method,
+        def.route.path === convertRouteSyntax(matchedPath) &&
+        def.route.method.toUpperCase() === ctx.req.method.toUpperCase(),
     );
 
     if (definition && "route" in definition) {
@@ -149,7 +175,7 @@ export function createAuthMiddleware(
       const token = decodeJwt(bearer);
 
       if (!token || !(await isValidJwtSignature(ctx, token))) {
-        throw new HTTPException(403, { message: "Invalid JWT signature" });
+        throw new HTTPException(403, { message: "Unauthorized" });
       }
 
       // Can we just keep the user?
@@ -173,6 +199,7 @@ export function createAuthMiddleware(
       }
     }
 
+    // If we can't find a matching route or definition we pass on the request
     return await next();
   };
 }
