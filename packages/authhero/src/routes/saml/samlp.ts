@@ -114,6 +114,15 @@ export const samlpRoutes = new OpenAPIHono<{
       const { client_id } = ctx.req.valid("param");
       const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
+      const client = await ctx.env.data.clients.get(client_id);
+      if (!client) {
+        throw new HTTPException(404, {
+          message: "Client not found",
+        });
+      }
+      ctx.set("client_id", client.id);
+      ctx.set("tenant_id", client.tenant.id);
+
       // TODO: Validate the Signature and SigAlg if provided
 
       const samlRequest = await parseSamlRequestQuery(SAMLRequest);
