@@ -2,6 +2,7 @@ import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
+import { decode, verify } from "hono/jwt";
 
 const JwksKeySchema = z.object({
   alg: z.literal("RS256"),
@@ -15,28 +16,15 @@ const JwksKeySchema = z.object({
 });
 type JwksKey = z.infer<typeof JwksKeySchema>;
 
-interface TokenData {
-  header: {
-    alg: string;
-    typ: string;
-    kid: string;
-  };
-  payload: {
-    sub: string;
-    iss: string;
-    aud: string[];
-    iat: number;
-    exp: number;
-    scope: string;
-    permissions?: string[];
-    azp?: string;
-  };
-  signature: string;
-  raw: {
-    header: string;
-    payload: string;
-    signature: string;
-  };
+interface JwtPayload {
+  sub: string;
+  iss: string;
+  aud: string[];
+  iat: number;
+  exp: number;
+  scope: string;
+  permissions?: string[];
+  azp?: string;
 }
 
 async function getJwks(bindings: Bindings) {
@@ -57,63 +45,51 @@ async function getJwks(bindings: Bindings) {
   }
 }
 
-async function isValidJwtSignature(ctx: Context, token: TokenData) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode([token.raw.header, token.raw.payload].join("."));
-  const signature = new Uint8Array(
-    Array.from(token.signature).map((c) => c.charCodeAt(0)),
-  );
-  const jwksKeys = await getJwks(ctx.env);
+async function validateJwtToken(
+  ctx: Context,
+  token: string,
+): Promise<JwtPayload> {
+  try {
+    // First decode the JWT to get the header and find the right key
+    const { header } = decode(token);
 
-  const jwksKey = jwksKeys.find((key) => key.kid === token.header.kid);
+    const jwksKeys = await getJwks(ctx.env);
+    const jwksKey = jwksKeys.find((key) => key.kid === header.kid);
 
-  if (!jwksKey) {
-    console.log("No matching kid found");
-    return false;
+    if (!jwksKey) {
+      throw new HTTPException(401, { message: "No matching kid found" });
+    }
+
+    // Convert JWKS key to CryptoKey for verification
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      jwksKey,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+
+    // Verify the token using hono/jwt with the CryptoKey
+    const verifiedPayload = await verify(token, cryptoKey, "RS256");
+
+    return verifiedPayload as unknown as JwtPayload;
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    throw new HTTPException(403, { message: "Invalid JWT signature" });
   }
-
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    jwksKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-
-  return crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data);
-}
-
-/**
- * Parse and decode a JWT.
- * A JWT is three, base64 encoded, strings concatenated with ‘.’:
- *   a header, a payload, and the signature.
- * The signature is “URL safe”, in that ‘/+’ characters have been replaced by ‘_-’
- *
- * Steps:
- * 1. Split the token at the ‘.’ character
- * 2. Base64 decode the individual parts
- * 3. Retain the raw Bas64 encoded strings to verify the signature
- */
-function decodeJwt(token: string): TokenData | null {
-  const [h, p, s] = token.split(".");
-  if (!h || !p || !s) {
-    return null;
-  }
-
-  const header = JSON.parse(atob(h));
-  const payload = JSON.parse(atob(p));
-  const signature = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
-
-  return {
-    header,
-    payload,
-    signature,
-    raw: { header: h, payload: p, signature: s },
-  };
 }
 
 function convertRouteSyntax(route: string) {
   return route.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, "{$1}");
+}
+
+function getAbsoluteDefinitionPath(basePath: string, definitionPath: string) {
+  if (definitionPath.startsWith(basePath)) {
+    return definitionPath;
+  }
+  return basePath + definitionPath;
 }
 
 /**
@@ -138,12 +114,17 @@ export function createAuthMiddleware(
 
     // Since the OpenAPI registry stores routes with their full paths (including basePaths),
     // we can directly use the matched route path to find the definition
-    const matchedPath = matchedRoute.path;
+    const matchedPath = convertRouteSyntax(matchedRoute.path);
+
+    const basePath =
+      "basePath" in matchedRoute && typeof matchedRoute.basePath === "string"
+        ? matchedRoute.basePath
+        : "";
 
     const definition = app.openAPIRegistry.definitions.find(
       (def) =>
         "route" in def &&
-        def.route.path === convertRouteSyntax(matchedPath) &&
+        getAbsoluteDefinitionPath(basePath, def.route.path) === matchedPath &&
         def.route.method.toUpperCase() === ctx.req.method.toUpperCase(),
     );
 
@@ -163,30 +144,33 @@ export function createAuthMiddleware(
         });
       }
 
-      const token = decodeJwt(bearer);
+      try {
+        const tokenPayload = await validateJwtToken(ctx, bearer);
+        // Can we just keep the user?
+        ctx.set("user_id", tokenPayload.sub);
+        ctx.set("user", tokenPayload);
 
-      if (!token || !(await isValidJwtSignature(ctx, token))) {
-        throw new HTTPException(403, { message: "Unauthorized" });
-      }
+        const permissions = tokenPayload.permissions || [];
+        const scopes = tokenPayload.scope?.split(" ") || [];
 
-      // Can we just keep the user?
-      ctx.set("user_id", token.payload.sub);
-      ctx.set("user", token.payload);
-
-      const permissions = token.payload.permissions || [];
-      const scopes = token.payload.scope?.split(" ") || [];
-
-      if (
-        requiredPermissions.length &&
-        !(
-          // Should we check both?
-          (
-            requiredPermissions.some((scope) => permissions.includes(scope)) ||
-            requiredPermissions.some((scope) => scopes.includes(scope))
+        if (
+          requiredPermissions.length &&
+          !(
+            // Should we check both?
+            (
+              requiredPermissions.some((scope) =>
+                permissions.includes(scope),
+              ) || requiredPermissions.some((scope) => scopes.includes(scope))
+            )
           )
-        )
-      ) {
-        throw new HTTPException(403, { message: "Unauthorized" });
+        ) {
+          throw new HTTPException(403, { message: "Unauthorized" });
+        }
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        throw new HTTPException(403, { message: "Invalid token" });
       }
     }
 

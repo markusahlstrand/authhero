@@ -42,9 +42,7 @@ export const userinfoRoutes = new OpenAPIHono<{
         ctx.var.user.sub,
       );
       if (!user) {
-        throw new HTTPException(404, {
-          message: "User not found",
-        });
+        throw new HTTPException(404, { message: "User not found" });
       }
 
       return ctx.json(userInfoSchema.parse({ ...user, sub: user.user_id }));
