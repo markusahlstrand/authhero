@@ -4,7 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { createToken } from "../../helpers/token";
 
 describe("userinfo", () => {
-  it.only("should return a user info for the current user", async () => {
+  it("should return a user info for the current user", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
