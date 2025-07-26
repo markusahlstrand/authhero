@@ -15,10 +15,12 @@ export async function getRedirect(
     throw new Error("Missing required authentication parameters");
   }
 
+  const callbackUrl = `${getAuthUrl(ctx.env)}callback`;
+
   const facebook = new Facebook(
     options.client_id,
     options.client_secret,
-    `${getAuthUrl(ctx.env)}callback`,
+    callbackUrl,
   );
 
   const code = nanoid();

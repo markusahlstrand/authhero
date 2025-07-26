@@ -17,10 +17,12 @@ export async function getRedirect(
     throw new Error("Missing required Google authentication parameters");
   }
 
+  const callbackUrl = `${getAuthUrl(ctx.env)}callback`;
+
   const google = new Google(
     options.client_id,
     options.client_secret,
-    `${getAuthUrl(ctx.env)}callback`,
+    callbackUrl,
   );
 
   const code = nanoid();

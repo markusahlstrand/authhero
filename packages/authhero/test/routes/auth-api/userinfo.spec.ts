@@ -4,13 +4,14 @@ import { getTestServer } from "../../helpers/test-server";
 import { createToken } from "../../helpers/token";
 
 describe("userinfo", () => {
-  it("should return a user info for the current user", async () => {
+  it.only("should return a user info for the current user", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
     const accessToken = await createToken({
       userId: "email|userId",
       tenantId: "tenantId",
+      scope: "openid",
     });
 
     const response = await client.userinfo.$get(

@@ -74,7 +74,13 @@ export async function connectionAuth(
     ).toISOString(),
   });
 
-  return ctx.redirect(result.redirectUrl);
+  // Use direct Response instead of ctx.redirect() to avoid double encoding
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: result.redirectUrl,
+    },
+  });
 }
 
 interface SocialAuthCallbackParams {
