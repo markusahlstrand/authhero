@@ -41,14 +41,14 @@ export function init(config: AuthHeroConfig) {
   const managementApp = createManagementApi(config);
   app.route("/api/v2", managementApp);
 
-  const oauthApp = createOauthApi(config);
-  app.route("/", oauthApp);
-
   const universalApp = createUniversalLogin(config);
   app.route("/u", universalApp);
 
   const samlApp = createSamlpApi(config);
   app.route("/samlp", samlApp);
+
+  const oauthApp = createOauthApi(config);
+  app.route("/", oauthApp);
 
   return {
     app,

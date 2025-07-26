@@ -1,5 +1,11 @@
 # authhero
 
+## 0.179.0
+
+### Minor Changes
+
+- Use hono jwt in middleware
+
 ## 0.178.0
 
 ### Minor Changes

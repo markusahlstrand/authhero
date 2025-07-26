@@ -44,6 +44,7 @@ export const createAuth0Client = (domain: string) => {
       audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       // Use the current app's URL as the redirect URI
       redirect_uri: redirectUri,
+      scope: "openid profile email auth:read auth:write",
     },
   });
 
