@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.177.0",
+  "version": "0.178.0",
   "files": [
     "dist"
   ],
@@ -35,7 +35,7 @@
     "better-sqlite3": "^11.5.0",
     "cssnano": "6.0.5",
     "dts-bundle-generator": "^9.5.1",
-    "hono": "^4.6.11",
+    "hono": "^4.8.7",
     "i18nexus-cli": "^3.5.0",
     "kysely": "^0.27.4",
     "postcss": "8.4.36",
@@ -62,6 +62,6 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.19.2",
-    "hono": "^4.6.11"
+    "hono": "^4.8.7"
   }
 }

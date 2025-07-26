@@ -136,18 +136,9 @@ export function createAuthMiddleware(
       return await next();
     }
 
-    // The basePath isn't in the types so we need to handle it manually
-    let matchedPath = matchedRoute.path;
-
-    if (
-      "basePath" in matchedRoute &&
-      typeof matchedRoute.basePath === "string"
-    ) {
-      // If the matched path starts with the basePath, we remove it
-      if (matchedPath.startsWith(matchedRoute.basePath)) {
-        matchedPath = matchedPath.replace(matchedRoute.basePath, "");
-      }
-    }
+    // Since the OpenAPI registry stores routes with their full paths (including basePaths),
+    // we can directly use the matched route path to find the definition
+    const matchedPath = matchedRoute.path;
 
     const definition = app.openAPIRegistry.definitions.find(
       (def) =>

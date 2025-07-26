@@ -11,6 +11,7 @@ describe("userinfo", () => {
     const accessToken = await createToken({
       userId: "email|userId",
       tenantId: "tenantId",
+      scope: "openid",
     });
 
     const response = await client.userinfo.$get(

@@ -38,12 +38,14 @@ export async function getRedirect(
 ) {
   const { options, keyArray } = getAppleOptions(connection);
 
+  const callbackUrl = `${getAuthUrl(ctx.env)}callback`;
+
   const apple = new Apple(
     options.client_id!,
     options.team_id!,
     options.kid!,
     keyArray,
-    `${getAuthUrl(ctx.env)}callback`,
+    callbackUrl,
   );
 
   const code = nanoid();
