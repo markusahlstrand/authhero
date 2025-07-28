@@ -99,7 +99,7 @@ function getIdKeyFromResource(resource: string) {
 }
 
 // List of singleton resources (no id in URL, e.g. /api/v2/branding)
-const SINGLETON_RESOURCES = ["branding"];
+const SINGLETON_RESOURCES = ["branding", "branding/themes/default"];
 
 /**
  * Maps react-admin queries to the auth0 mamagement api
@@ -186,6 +186,20 @@ export default (
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
+        // Special handling for branding to include theme data
+        if (resource === "branding") {
+          return Promise.all([
+            httpClient(`${apiUrl}/api/v2/${resource}`, { headers }),
+            httpClient(`${apiUrl}/api/v2/branding/themes/default`, { headers }).catch(() => ({ json: {} }))
+          ]).then(([brandingResponse, themeResponse]) => ({
+            data: {
+              id: resource,
+              ...brandingResponse.json,
+              themes: themeResponse.json,
+            },
+          }));
+        }
+        
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
         }).then(({ json }) => ({
@@ -288,6 +302,35 @@ export default (
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
+        // Special handling for branding to update theme data separately
+        if (resource === "branding" && cleanParams.data.themes) {
+          const themeData = cleanParams.data.themes;
+          delete cleanParams.data.themes;
+          
+          // Update branding and theme data in parallel
+          return Promise.all([
+            httpClient(`${apiUrl}/api/v2/${resource}`, {
+              headers,
+              method: "PATCH",
+              body: JSON.stringify(cleanParams.data),
+            }),
+            httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
+              headers,
+              method: "PATCH",
+              body: JSON.stringify(themeData),
+            }).catch((error) => {
+              console.warn("Failed to update theme data:", error);
+              return { json: {} };
+            })
+          ]).then(([brandingResponse, themeResponse]) => ({
+            data: { 
+              id: resource, 
+              ...brandingResponse.json,
+              themes: themeResponse.json,
+            },
+          }));
+        }
+        
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
           method: "PATCH",

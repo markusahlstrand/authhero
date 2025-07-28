@@ -9,6 +9,7 @@ import {
 import { ColorInput } from "react-admin-color-picker";
 import { useInput, useRecordContext } from "react-admin";
 import { useState, useEffect } from "react";
+import { ThemesTab } from "./ThemesTab";
 
 function PageBackgroundInput(props) {
   const { field } = useInput(props);
@@ -138,6 +139,9 @@ export function BrandingEdit() {
           <TextInput source="favicon_url" label="Favicon URL" />
           <TextInput source="logo_url" label="Logo URL" />
           <TextInput source="font.url" label="Font URL" />
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="Themes">
+          <ThemesTab />
         </TabbedForm.Tab>
       </TabbedForm>
     </Edit>
