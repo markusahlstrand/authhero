@@ -48,12 +48,12 @@ export const themesRoutes = new OpenAPIHono<{
     },
   )
   // --------------------------------
-  // PUT /api/v2/branding/themes/default
+  // PATCH /api/v2/branding/themes/default
   // --------------------------------
   .openapi(
     createRoute({
       tags: ["branding"],
-      method: "put",
+      method: "patch",
       path: "/default",
       request: {
         body: {

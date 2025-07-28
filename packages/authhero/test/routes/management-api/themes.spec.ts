@@ -40,25 +40,26 @@ describe("themes", () => {
     const token = await getAdminToken();
 
     // Create/update theme
-    const updateResponse = await managementClient.branding.themes.default.$put(
-      {
-        json: {
-          displayName: "Custom Theme",
-          colors: {
-            primary_button: "#FF0000",
-            primary_button_label: "#FFFFFF",
+    const updateResponse =
+      await managementClient.branding.themes.default.$patch(
+        {
+          json: {
+            displayName: "Custom Theme",
+            colors: {
+              primary_button: "#FF0000",
+              primary_button_label: "#FFFFFF",
+            },
+          },
+          header: {
+            "tenant-id": "tenantId",
           },
         },
-        header: {
-          "tenant-id": "tenantId",
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
         },
-      },
-      {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      },
-    );
+      );
     expect(updateResponse.status).toBe(200);
     const updatedTheme = await updateResponse.json();
 
