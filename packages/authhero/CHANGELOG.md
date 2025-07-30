@@ -1,5 +1,11 @@
 # authhero
 
+## 0.182.0
+
+### Minor Changes
+
+- Add a main tenant adapter
+
 ## 0.181.0
 
 ### Minor Changes

@@ -13,6 +13,7 @@ export * from "@authhero/adapter-interfaces";
 export * from "./types/Hooks";
 export * from "./components";
 export * from "./styles";
+export * from "./adapters";
 
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],

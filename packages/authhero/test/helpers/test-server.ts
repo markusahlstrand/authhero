@@ -149,6 +149,9 @@ export async function getTestServer(
       "mock-strategy": mockStrategy,
     },
     SAML_SIGN_URL: "http://localhost:3000/saml/sign",
+    // Add these for backward compatibility fallback logic
+    DEFAULT_TENANT_ID: "tenantId",
+    DEFAULT_CLIENT_ID: "clientId",
   };
 
   const apps = init({ dataAdapter: data });

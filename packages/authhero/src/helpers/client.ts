@@ -16,63 +16,83 @@ export async function getClientWithDefaults(
     throw new HTTPException(403, { message: "Client not found" });
   }
 
-  const defaultClient = env.DEFAULT_CLIENT_ID
-    ? await env.data.clients.get(env.DEFAULT_CLIENT_ID)
-    : undefined;
+  // Check if we have default tenant/client configuration for backward compatibility
+  // If we do, apply the old fallback logic for cases where main tenant adapter isn't used
+  let processedClient = client;
 
-  // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version
-  const clientConnections = await env.data.connections.list(client.tenant.id);
+  if (env.DEFAULT_CLIENT_ID || env.DEFAULT_TENANT_ID) {
+    const defaultClient = env.DEFAULT_CLIENT_ID
+      ? await env.data.clients.get(env.DEFAULT_CLIENT_ID)
+      : undefined;
 
-  const defaultConnections = env.DEFAULT_TENANT_ID
-    ? await env.data.connections.list(env.DEFAULT_TENANT_ID)
-    : { connections: [] };
+    // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version
+    const clientConnections = await env.data.connections.list(client.tenant.id);
 
-  const connections = clientConnections.connections
-    .map((connection) => {
-      const defaultConnection = defaultConnections.connections?.find(
-        (c) => c.name === connection.name,
-      );
+    const defaultConnections = env.DEFAULT_TENANT_ID
+      ? await env.data.connections.list(env.DEFAULT_TENANT_ID)
+      : { connections: [] };
 
-      if (!defaultConnection?.options) {
-        return connection;
-      }
+    const connections = clientConnections.connections
+      .map((connection) => {
+        const defaultConnection = defaultConnections.connections?.find(
+          (c) => c.name === connection.name,
+        );
 
-      const mergedConnection = connectionSchema.parse({
-        ...(defaultConnection || {}),
-        ...connection,
-      });
+        if (!defaultConnection?.options) {
+          return connection;
+        }
 
-      // Add the passthrough to allow extra options
-      mergedConnection.options = connectionOptionsSchema.passthrough().parse({
-        ...(defaultConnection.options || {}),
-        ...connection.options,
-      });
+        const mergedConnection = connectionSchema.parse({
+          ...(defaultConnection || {}),
+          ...connection,
+        });
 
-      return mergedConnection;
-    })
-    .filter((c) => c);
+        // Add the passthrough to allow extra options
+        mergedConnection.options = connectionOptionsSchema.passthrough().parse({
+          ...(defaultConnection.options || {}),
+          ...connection.options,
+        });
 
+        return mergedConnection;
+      })
+      .filter((c) => c);
+
+    processedClient = {
+      ...client,
+      web_origins: [
+        ...(defaultClient?.web_origins || []),
+        ...(client.web_origins || []),
+      ],
+      allowed_logout_urls: [
+        ...(defaultClient?.allowed_logout_urls || []),
+        ...(client.allowed_logout_urls || []),
+      ],
+      callbacks: [
+        ...(defaultClient?.callbacks || []),
+        ...(client.callbacks || []),
+      ],
+      connections,
+      tenant: {
+        ...(defaultClient?.tenant || {}),
+        ...client.tenant,
+      },
+    };
+  }
+
+  // Always add universal login URLs that are required
   return {
-    ...client,
+    ...processedClient,
     web_origins: [
-      ...(defaultClient?.web_origins || []),
-      ...(client.web_origins || []),
+      ...(processedClient.web_origins || []),
       `${getUniversalLoginUrl(env)}login`,
     ],
     allowed_logout_urls: [
-      ...(defaultClient?.allowed_logout_urls || []),
-      ...(client.allowed_logout_urls || []),
+      ...(processedClient.allowed_logout_urls || []),
       env.ISSUER,
     ],
     callbacks: [
-      ...(defaultClient?.callbacks || []),
-      ...(client.callbacks || []),
+      ...(processedClient.callbacks || []),
       `${getUniversalLoginUrl(env)}info`,
     ],
-    connections,
-    tenant: {
-      ...(defaultClient?.tenant || {}),
-      ...client.tenant,
-    },
   };
 }
