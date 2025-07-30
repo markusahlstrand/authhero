@@ -2,6 +2,7 @@ import { Bindings } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { brandingSchema } from "@authhero/adapter-interfaces";
 import { themesRoutes } from "./themes";
+import { DEFAULT_BRANDING } from "../../constants/defaultBranding";
 
 export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
@@ -39,7 +40,7 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const branding = await ctx.env.data.branding.get(tenant_id);
 
       if (!branding) {
-        return ctx.json({});
+        return ctx.json(DEFAULT_BRANDING);
       }
 
       return ctx.json(branding);

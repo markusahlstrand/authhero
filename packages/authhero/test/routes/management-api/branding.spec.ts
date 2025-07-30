@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
+import { DEFAULT_BRANDING } from "../../../src/constants/defaultBranding";
 
 describe("branding", () => {
   it("should set and get branding", async () => {
@@ -24,7 +25,7 @@ describe("branding", () => {
     expect(emptyBrandingResponse.status).toBe(200);
     const emptyBranding = await emptyBrandingResponse.json();
 
-    expect(emptyBranding).toEqual({});
+    expect(emptyBranding).toEqual(DEFAULT_BRANDING);
 
     const brandingData = {
       font: { url: "https://example.com/font" },
