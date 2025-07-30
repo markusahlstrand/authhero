@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.76.0
+
+### Minor Changes
+
+- Update the themes entity
+
 ## 0.75.0
 
 ### Minor Changes

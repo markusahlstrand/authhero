@@ -1,5 +1,16 @@
 # authhero
 
+## 0.181.0
+
+### Minor Changes
+
+- Update the themes entity
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.76.0
+
 ## 0.180.1
 
 ### Patch Changes

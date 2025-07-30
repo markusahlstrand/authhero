@@ -1,9 +1,4 @@
-import {
-  TextInput,
-  NumberInput,
-  BooleanInput,
-  SelectInput,
-} from "react-admin";
+import { TextInput, NumberInput, BooleanInput, SelectInput } from "react-admin";
 import { ColorInput } from "react-admin-color-picker";
 import { Box, Typography, Divider } from "@mui/material";
 
@@ -14,8 +9,9 @@ export function ThemesTab() {
         Theme Configuration
       </Typography>
 
-      <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-        Configure the visual theme for your authentication pages. These settings control colors, fonts, and layout.
+      <Typography variant="body2" sx={{ mb: 3, color: "text.secondary" }}>
+        Configure the visual theme for your authentication pages. These settings
+        control colors, fonts, and layout.
       </Typography>
 
       <TextInput source="themes.displayName" label="Display Name" fullWidth />
@@ -34,7 +30,10 @@ export function ThemesTab() {
           mb: 3,
         }}
       >
-        <ColorInput source="themes.colors.primary_button" label="Primary Button" />
+        <ColorInput
+          source="themes.colors.primary_button"
+          label="Primary Button"
+        />
         <ColorInput
           source="themes.colors.primary_button_label"
           label="Primary Button Label"
@@ -81,7 +80,10 @@ export function ThemesTab() {
           source="themes.colors.widget_background"
           label="Widget Background"
         />
-        <ColorInput source="themes.colors.widget_border" label="Widget Border" />
+        <ColorInput
+          source="themes.colors.widget_border"
+          label="Widget Border"
+        />
       </Box>
 
       <SelectInput
@@ -89,8 +91,8 @@ export function ThemesTab() {
         label="Captcha Widget Theme"
         choices={[
           { id: "auto", name: "Auto" },
-          { id: "light", name: "Light" },
           { id: "dark", name: "Dark" },
+          { id: "light", name: "Light" },
         ]}
       />
 
@@ -148,7 +150,7 @@ export function ThemesTab() {
           choices={[
             { id: "pill", name: "Pill" },
             { id: "rounded", name: "Rounded" },
-            { id: "square", name: "Square" },
+            { id: "sharp", name: "Sharp" },
           ]}
         />
         <SelectInput
@@ -157,7 +159,7 @@ export function ThemesTab() {
           choices={[
             { id: "pill", name: "Pill" },
             { id: "rounded", name: "Rounded" },
-            { id: "square", name: "Square" },
+            { id: "sharp", name: "Sharp" },
           ]}
         />
         <BooleanInput
@@ -203,7 +205,7 @@ export function ThemesTab() {
         label="Links Style"
         choices={[
           { id: "normal", name: "Normal" },
-          { id: "underline", name: "Underline" },
+          { id: "underlined", name: "Underlined" },
         ]}
       />
 
@@ -264,6 +266,7 @@ export function ThemesTab() {
           choices={[
             { id: "center", name: "Center" },
             { id: "left", name: "Left" },
+            { id: "none", name: "None" },
             { id: "right", name: "Right" },
           ]}
         />
@@ -273,7 +276,6 @@ export function ThemesTab() {
           choices={[
             { id: "bottom", name: "Bottom" },
             { id: "top", name: "Top" },
-            { id: "side", name: "Side" },
           ]}
         />
       </Box>

@@ -3,10 +3,10 @@ import { z } from "@hono/zod-openapi";
 export const bordersSchema = z.object({
   button_border_radius: z.number(),
   button_border_weight: z.number(),
-  buttons_style: z.enum(["pill"]),
+  buttons_style: z.enum(["pill", "rounded", "sharp"]),
   input_border_radius: z.number(),
   input_border_weight: z.number(),
-  inputs_style: z.enum(["pill"]),
+  inputs_style: z.enum(["pill", "rounded", "sharp"]),
   show_widget_shadow: z.boolean(),
   widget_border_weight: z.number(),
   widget_corner_radius: z.number(),
@@ -16,7 +16,7 @@ export const colorsSchema = z.object({
   base_focus_color: z.string(),
   base_hover_color: z.string(),
   body_text: z.string(),
-  captcha_widget_theme: z.enum(["auto"]),
+  captcha_widget_theme: z.enum(["auto", "dark", "light"]),
   error: z.string(),
   header: z.string(),
   icons: z.string(),
@@ -45,7 +45,7 @@ export const fontsSchema = z.object({
   font_url: z.string(),
   input_labels: fontDetailsSchema,
   links: fontDetailsSchema,
-  links_style: z.enum(["normal"]),
+  links_style: z.enum(["normal", "underlined"]),
   reference_text_size: z.number(),
   subtitle: fontDetailsSchema,
   title: fontDetailsSchema,
@@ -54,15 +54,15 @@ export const fontsSchema = z.object({
 export const pageBackgroundSchema = z.object({
   background_color: z.string(),
   background_image_url: z.string(),
-  page_layout: z.enum(["center"]),
+  page_layout: z.enum(["center", "left", "right"]),
 });
 
 export const widgetSchema = z.object({
-  header_text_alignment: z.enum(["center"]),
+  header_text_alignment: z.enum(["center", "left", "right"]),
   logo_height: z.number(),
-  logo_position: z.enum(["center"]),
+  logo_position: z.enum(["center", "left", "none", "right"]),
   logo_url: z.string(),
-  social_buttons_layout: z.enum(["bottom"]),
+  social_buttons_layout: z.enum(["bottom", "top"]),
 });
 
 export const themeInsertSchema = z.object({

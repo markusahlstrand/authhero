@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.28.0
+
+### Minor Changes
+
+- Update the themes entity
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.76.0
+
 ## 10.27.0
 
 ### Minor Changes

@@ -74,7 +74,11 @@ export function ThemesEdit() {
         <SelectInput
           source="borders.buttons_style"
           label="Buttons Style"
-          choices={[{ id: "pill", name: "Pill" }]}
+          choices={[
+            { id: "pill", name: "Pill" },
+            { id: "rounded", name: "Rounded" },
+            { id: "sharp", name: "Sharp" },
+          ]}
         />
         <NumberInput
           source="borders.input_border_radius"
@@ -87,7 +91,11 @@ export function ThemesEdit() {
         <SelectInput
           source="borders.inputs_style"
           label="Inputs Style"
-          choices={[{ id: "pill", name: "Pill" }]}
+          choices={[
+            { id: "pill", name: "Pill" },
+            { id: "rounded", name: "Rounded" },
+            { id: "sharp", name: "Sharp" },
+          ]}
         />
         <BooleanInput
           source="borders.show_widget_shadow"
@@ -128,7 +136,10 @@ export function ThemesEdit() {
         <SelectInput
           source="fonts.links_style"
           label="Links Style"
-          choices={[{ id: "normal", name: "Normal" }]}
+          choices={[
+            { id: "normal", name: "Normal" },
+            { id: "underlined", name: "Underlined" },
+          ]}
         />
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>Subtitle</h4>
@@ -167,13 +178,21 @@ export function ThemesEdit() {
         <SelectInput
           source="widget.logo_position"
           label="Logo Position"
-          choices={[{ id: "center", name: "Center" }]}
+          choices={[
+            { id: "center", name: "Center" },
+            { id: "left", name: "Left" },
+            { id: "none", name: "None" },
+            { id: "right", name: "Right" },
+          ]}
         />
         <TextInput source="widget.logo_url" label="Logo URL" fullWidth />
         <SelectInput
           source="widget.social_buttons_layout"
           label="Social Buttons Layout"
-          choices={[{ id: "bottom", name: "Bottom" }]}
+          choices={[
+            { id: "bottom", name: "Bottom" },
+            { id: "top", name: "Top" },
+          ]}
         />
       </SimpleForm>
     </Edit>
