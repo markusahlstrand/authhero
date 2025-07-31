@@ -1,12 +1,13 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import type { FormNodeComponent } from "@authhero/adapter-interfaces";
 import Button from "./Button";
 import Icon from "./Icon";
 
 export type FormNodePageProps = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   client: Client;
   state: string;
   formName: string;
@@ -74,7 +75,8 @@ function renderFormComponent(comp: FormNodeComponent) {
 }
 
 const FormNodePage: FC<FormNodePageProps> = ({
-  vendorSettings,
+  theme,
+  branding,
   formName,
   error,
   components,
@@ -87,7 +89,7 @@ const FormNodePage: FC<FormNodePageProps> = ({
   const nextButton = components?.find((c) => c.type === "NEXT_BUTTON");
 
   return (
-    <Layout title={formName} vendorSettings={vendorSettings}>
+    <Layout title={formName} theme={theme} branding={branding}>
       {error && <div className="mb-4 text-red-500">{error}</div>}
       <div className="flex flex-1 flex-col justify-center">
         <form className="pt-2" method="post">

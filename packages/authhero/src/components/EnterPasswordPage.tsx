@@ -6,27 +6,32 @@ import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
-import { Client, VendorSettings } from "@authhero/adapter-interfaces";
+import { Client, Theme, Branding } from "@authhero/adapter-interfaces";
 import PasswordInput from "./PasswordInput";
 import { html } from "hono/html";
 
 type Props = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   email: string;
   state: string;
   client: Client;
 };
 
 const EnterPasswordPage: FC<Props> = (params) => {
-  const { error, vendorSettings, email, state } = params;
+  const { error, theme, branding, email, state } = params;
 
   const loginLinkParams = new URLSearchParams({
     state,
   });
 
   return (
-    <Layout title={i18next.t("enter_password")} vendorSettings={vendorSettings}>
+    <Layout
+      title={i18next.t("enter_password")}
+      theme={theme}
+      branding={branding}
+    >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("enter_password")}
       </div>

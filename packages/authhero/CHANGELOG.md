@@ -1,5 +1,11 @@
 # authhero
 
+## 0.183.0
+
+### Minor Changes
+
+- Use theme instead of vendorSetting
+
 ## 0.182.0
 
 ### Minor Changes

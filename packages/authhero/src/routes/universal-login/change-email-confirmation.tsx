@@ -36,14 +36,15 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id, email } = ctx.req.valid("query");
 
-      const { vendorSettings, client } = await initJSXRouteWithSession(
+      const { theme, branding, client } = await initJSXRouteWithSession(
         ctx,
         client_id,
       );
 
       return ctx.html(
         <ChangeEmailPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           client={client}
           email={email}
           success={true}

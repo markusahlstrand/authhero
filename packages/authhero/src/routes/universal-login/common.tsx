@@ -2,68 +2,13 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
-import {
-  Client,
-  VendorSettings,
-  vendorSettingsSchema,
-} from "@authhero/adapter-interfaces";
+import { Client } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { getAuthUrl } from "../../variables";
 import { nanoid } from "nanoid";
-
-// there is no Sesamy vendor settings... we have this on login2 as a fallback and I think there's
-// some interaction with "dark mode"
-// But I don't want to have a Sesamy vendor on auth2
-export const SESAMY_VENDOR_SETTINGS: VendorSettings = {
-  name: "sesamy",
-  logoUrl: `https://assets.sesamy.com/static/images/email/sesamy-logo.png`,
-  style: {
-    primaryColor: "#7D68F4",
-    buttonTextColor: "#FFFFFF",
-    primaryHoverColor: "#A091F2",
-  },
-  loginBackgroundImage: "",
-  checkoutHideSocial: false,
-  supportEmail: "support@sesamy.com",
-  supportUrl: "https://support.sesamy.com",
-  siteUrl: "https://sesamy.com",
-  termsAndConditionsUrl: "https://store.sesamy.com/pages/terms-of-service",
-  manageSubscriptionsUrl: "https://account.sesamy.com/manage-subscriptions",
-};
-
-export async function fetchVendorSettings(
-  env: Bindings,
-  client_id?: string,
-  vendor_id?: string,
-) {
-  if (!vendor_id && !client_id) {
-    return SESAMY_VENDOR_SETTINGS;
-  }
-
-  const vendorId = vendor_id || client_id;
-
-  try {
-    const vendorSettingsRes = await fetch(
-      `${env.API_URL}/profile/vendors/${vendorId}/style`,
-    );
-
-    if (!vendorSettingsRes.ok) {
-      throw new Error("Failed to fetch vendor settings");
-    }
-
-    const vendorSettingsRaw = await vendorSettingsRes.json();
-
-    const vendorSettings = vendorSettingsSchema.parse(vendorSettingsRaw);
-
-    return vendorSettings;
-  } catch (e) {
-    console.error(e);
-    return SESAMY_VENDOR_SETTINGS;
-  }
-}
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -112,11 +57,8 @@ export async function initJSXRoute(
     throw new RedirectException(redirectUrl.toString(), 302);
   }
 
-  const vendorSettings = await fetchVendorSettings(
-    env,
-    client.id,
-    loginSession.authParams.vendor_id,
-  );
+  const theme = await env.data.themes.get(tenant.id, "default");
+  const branding = await env.data.branding.get(tenant.id);
 
   const loginSessionLanguage = loginSession.authParams.ui_locales
     ?.split(" ")
@@ -130,14 +72,8 @@ export async function initJSXRoute(
   await i18next.changeLanguage(loginSessionLanguage || tenant.language || "sv");
 
   return {
-    vendorSettings: {
-      ...vendorSettings,
-      // HACK: Change the terms and conditions for fokus app
-      termsAndConditionsUrl:
-        client.id === "fokus-app"
-          ? "https://www.fokus.se/kopvillkor-app/"
-          : vendorSettings.termsAndConditionsUrl,
-    },
+    theme,
+    branding,
     client,
     tenant,
     loginSession,
@@ -174,11 +110,8 @@ export async function initJSXRouteWithSession(
     throw new HTTPException(400, { message: "Session not found" });
   }
 
-  const vendorSettings = await fetchVendorSettings(
-    env,
-    client.id,
-    client.tenant.id,
-  );
+  const theme = await env.data.themes.get(client.tenant.id, "default");
+  const branding = await env.data.branding.get(client.tenant.id);
 
   const user = await env.data.users.get(client.tenant.id, session.user_id);
   if (!user) {
@@ -186,7 +119,8 @@ export async function initJSXRouteWithSession(
   }
 
   return {
-    vendorSettings,
+    theme,
+    branding,
     client,
     user,
   };

@@ -65,7 +65,7 @@ describe("initJSXRoute", () => {
 
       expect(result.tenant).toBeDefined();
       expect(result.loginSession).toBeDefined();
-      expect(result.vendorSettings).toBeDefined();
+      expect(result.theme).toBeDefined();
 
       // Verify client details
       expect(result.client.id).toBe("clientId");
@@ -80,10 +80,6 @@ describe("initJSXRoute", () => {
       expect(result.loginSession.id).toBe(state);
       expect(result.loginSession.authParams.client_id).toBe("clientId");
       expect(result.loginSession.authParams.username).toBe("test@example.com");
-
-      // Verify vendor settings (should fallback to SESAMY_VENDOR_SETTINGS)
-      expect(result.vendorSettings.name).toBe("sesamy");
-      expect(result.vendorSettings.style.primaryColor).toBe("#7D68F4");
     });
 
     it("should set context variables correctly", async () => {

@@ -38,7 +38,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id, email, change_id } = ctx.req.valid("query");
 
-      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         client_id,
       );
@@ -56,7 +56,8 @@ export const changeEmailRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <ChangeEmailPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           client={client}
           email={email}
         />,
@@ -104,7 +105,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
       const { client_id, email, change_id } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         client_id,
       );
@@ -166,7 +167,8 @@ export const changeEmailRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <ChangeEmailPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           client={client}
           email={email}
           error={error}

@@ -35,7 +35,7 @@ export const formNodeRoutes = new OpenAPIHono<{
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
-      const { client, vendorSettings } = await initJSXRoute(ctx, state, true);
+      const { client, theme, branding } = await initJSXRoute(ctx, state, true);
 
       const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -55,7 +55,8 @@ export const formNodeRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <FormNodePage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           client={client}
           state={state}
           formName={form.name}
@@ -97,7 +98,7 @@ export const formNodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
-      const { vendorSettings, client } = await initJSXRoute(ctx, state, true);
+      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
       let form: any = undefined;
       let node: any = undefined;
       let components: any[] = [];
@@ -130,7 +131,8 @@ export const formNodeRoutes = new OpenAPIHono<{
         if (missingFields.length > 0) {
           return ctx.html(
             <FormNodePage
-              vendorSettings={vendorSettings}
+              theme={theme}
+              branding={branding}
               client={client}
               state={state}
               formName={form.name}
@@ -180,7 +182,8 @@ export const formNodeRoutes = new OpenAPIHono<{
       } catch (err) {
         return ctx.html(
           <FormNodePage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             client={client}
             state={state}
             formName={form?.name || ""}

@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { fetchVendorSettings } from "./common";
+import { initJSXRoute } from "./common";
 import MessagePage from "../../components/MessagePage";
 
 export const infoRoutes = new OpenAPIHono<{
@@ -33,14 +33,15 @@ export const infoRoutes = new OpenAPIHono<{
     }),
 
     async (ctx) => {
-      const vendorSettings = await fetchVendorSettings(ctx.env);
       const { state } = ctx.req.valid("query");
+      const { theme, branding } = await initJSXRoute(ctx, state);
 
       return ctx.html(
         <MessagePage
           message="Not implemented"
           pageTitle="User info"
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           state={state}
         />,
       );

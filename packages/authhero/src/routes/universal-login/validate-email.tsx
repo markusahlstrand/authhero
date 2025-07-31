@@ -38,7 +38,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { client, loginSession, vendorSettings } = await initJSXRoute(
+      const { client, loginSession, theme, branding } = await initJSXRoute(
         ctx,
         state,
       );
@@ -108,7 +108,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
       }
 
       return ctx.html(
-        <EmailValidatedPage vendorSettings={vendorSettings} state={state} />,
+        <EmailValidatedPage theme={theme} branding={branding} state={state} />,
       );
     },
   );

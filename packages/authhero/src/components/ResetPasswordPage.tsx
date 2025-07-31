@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
@@ -9,17 +9,19 @@ import PasswordInput from "./PasswordInput";
 
 type ResetPasswordPageProps = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   email: string;
 };
 
 const ResetPasswordPage: FC<ResetPasswordPageProps> = (params) => {
-  const { error, vendorSettings, email } = params;
+  const { error, theme, branding, email } = params;
 
   return (
     <Layout
       title={i18next.t("reset_password_title")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("reset_password_title")}
