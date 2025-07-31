@@ -1,19 +1,19 @@
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Branding, Theme } from "@authhero/adapter-interfaces";
 import type { FC } from "hono/jsx";
 
 type AppLogoProps = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
 };
 
-const AppLogo: FC<AppLogoProps> = ({ vendorSettings }) => {
-  if (vendorSettings?.logoUrl) {
+const AppLogo: FC<AppLogoProps> = ({ theme, branding }) => {
+  // Use theme logo first, fallback to branding logo
+  const logoUrl = theme?.widget?.logo_url || branding?.logo_url;
+
+  if (logoUrl) {
     return (
       <div className="flex h-9 items-center">
-        <img
-          src={vendorSettings.logoUrl}
-          className="max-h-full"
-          alt="Vendor logo"
-        />
+        <img src={logoUrl} className="max-h-full" alt="Logo" />
       </div>
     );
   }

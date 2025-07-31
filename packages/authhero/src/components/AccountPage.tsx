@@ -1,12 +1,13 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings, User, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, User, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
 
 type Props = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   user: User;
   client: Client;
   error?: string;
@@ -16,7 +17,7 @@ type Props = {
 const showLinkedAccounts = false;
 
 const AccountPage: FC<Props> = (params) => {
-  const { vendorSettings, user, error, success } = params;
+  const { theme, branding, user, error, success } = params;
 
   const linkedIdentities =
     user.identities?.filter(
@@ -30,7 +31,8 @@ const AccountPage: FC<Props> = (params) => {
   return (
     <Layout
       title={i18next.t("account_title") || "Account Settings"}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
     >
       <div className="flex flex-1 flex-col justify-center">
         <div className="mx-auto w-full max-w-sm">

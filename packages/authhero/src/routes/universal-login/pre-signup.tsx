@@ -34,7 +34,7 @@ export const preSignupRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, loginSession } = await initJSXRoute(ctx, state);
 
       const { username } = loginSession.authParams;
 
@@ -45,7 +45,8 @@ export const preSignupRoutes = new OpenAPIHono<{
       return ctx.html(
         <PreSignupPage
           state={state}
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           email={username}
         />,
       );

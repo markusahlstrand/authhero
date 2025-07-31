@@ -40,14 +40,15 @@ export const accountRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id } = ctx.req.valid("query");
 
-      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         client_id,
       );
 
       return ctx.html(
         <AccountPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           user={user}
           client={client}
         />,
@@ -96,7 +97,7 @@ export const accountRoutes = new OpenAPIHono<{
       const { client_id } = ctx.req.valid("query");
       const body = ctx.req.valid("form");
 
-      const { vendorSettings, client, user } = await initJSXRouteWithSession(
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         client_id,
       );
@@ -172,7 +173,8 @@ export const accountRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <AccountPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           user={updatedUser || user}
           client={client}
           error={error}

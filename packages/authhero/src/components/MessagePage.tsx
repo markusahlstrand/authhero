@@ -1,20 +1,21 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
 import { GoBack } from "./GoBack";
 
 type Props = {
   message: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   pageTitle?: string;
   state?: string;
 };
 
 const MessagePage: FC<Props> = (params) => {
-  const { message, vendorSettings, pageTitle, state } = params;
+  const { message, theme, branding, pageTitle, state } = params;
 
   return (
-    <Layout title="Login" vendorSettings={vendorSettings}>
+    <Layout title="Login" theme={theme} branding={branding}>
       {pageTitle ? <div className="mb-6 text-gray-300">{pageTitle}</div> : ""}
       <div className="flex flex-1 flex-col justify-center">{message}</div>
       {state ? <GoBack state={state} /> : ""}

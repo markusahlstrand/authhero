@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
@@ -8,17 +8,19 @@ import Button from "./Button";
 
 type Props = {
   state: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   email?: string;
 };
 
 const PreSignupPage: FC<Props> = (params) => {
-  const { vendorSettings, email, state } = params;
+  const { theme, branding, email, state } = params;
 
   return (
     <Layout
       title={i18next.t("create_password_account_title")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("create_password_account_title")}

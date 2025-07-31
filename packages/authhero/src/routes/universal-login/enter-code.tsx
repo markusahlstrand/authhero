@@ -68,10 +68,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      let vendorSettings, loginSession, client;
+      let theme, branding, loginSession, client;
 
       try {
-        ({ vendorSettings, loginSession, client } = await initJSXRoute(
+        ({ theme, branding, loginSession, client } = await initJSXRoute(
           ctx,
           state,
         ));
@@ -80,7 +80,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
           // Render an error page if username is not found
           return ctx.html(
             <MessagePage
-              vendorSettings={vendorSettings} // vendorSettings might be partially initialized
+              theme={theme}
+              branding={branding} // branding might be partially initialized
               state={state}
               pageTitle={i18next.t("error_page_title") || "Error"}
               message={
@@ -101,7 +102,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
 
         return ctx.html(
           <EnterCodePage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             email={loginSession.authParams.username}
             state={state}
             client={client}
@@ -110,19 +112,17 @@ export const enterCodeRoutes = new OpenAPIHono<{
         );
       } catch (err: unknown) {
         console.error("Error in GET /u/enter-code:", err);
-        // Fallback for vendorSettings if initJSXRoute failed
-        if (!vendorSettings) {
-          vendorSettings = {
-            styles: "",
-            disable_signup: false,
-            disable_connection_signup: false,
-            domains: [],
-            client: { id: "", tenant: { id: "" } },
-          };
+        // Fallback for branding if initJSXRoute failed
+        if (!branding) {
+          branding = null; // Use null as fallback for branding
+        }
+        if (!theme) {
+          theme = null; // Use null as fallback for theme
         }
         return ctx.html(
           <MessagePage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={
@@ -180,7 +180,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -228,7 +228,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
 
         return ctx.html(
           <EnterCodePage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             email={loginSession.authParams?.username}
             state={state}
             client={client}

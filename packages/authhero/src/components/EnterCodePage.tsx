@@ -7,12 +7,13 @@ import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
-import { VendorSettings, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import Trans from "./Trans";
 
 type Props = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   email: string;
   state: string;
   client: Client;
@@ -23,7 +24,8 @@ const CODE_LENGTH = 6;
 
 const EnterCodePage: FC<Props> = ({
   error,
-  vendorSettings,
+  theme,
+  branding,
   email,
   state,
   client,
@@ -39,7 +41,8 @@ const EnterCodePage: FC<Props> = ({
   return (
     <Layout
       title={i18next.t("verify_your_email")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
     >
       <div className="mb-4 text-2xl font-medium">
         {i18next.t("verify_your_email")}

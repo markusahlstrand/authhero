@@ -28,7 +28,7 @@ export const invalidSessionRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, loginSession } = await initJSXRoute(ctx, state);
 
       let redirectUrl: URL | undefined;
 
@@ -48,7 +48,8 @@ export const invalidSessionRoutes = new OpenAPIHono<{
       return ctx.html(
         <InvalidSessionPage
           redirectUrl={redirectUrl?.href}
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
         />,
       );
     },

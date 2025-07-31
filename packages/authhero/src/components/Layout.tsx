@@ -1,6 +1,5 @@
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Branding, Theme } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
-import i18next from "i18next";
 import Footer from "./Footer";
 import Icon from "./Icon";
 import { html } from "hono/html";
@@ -8,17 +7,23 @@ import { PropsWithChildren } from "hono/jsx";
 
 type LayoutProps = {
   title: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
 };
 
-const globalDocStyle = (vendorSettings: VendorSettings) => {
-  const { style } = vendorSettings;
-  // cannot render CSS directly in JSX but we can return a template string
+const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {
+  // Use theme colors primarily, fallback to branding
+  const primaryColor =
+    theme?.colors?.primary_button || branding?.colors?.primary || "#000000";
+  const hoverColor =
+    theme?.colors?.base_hover_color || branding?.colors?.primary || "#000000";
+  const textOnPrimary = theme?.colors?.primary_button_label || "#ffffff";
+
   return `
     body {
-      --primary-color: ${style.primaryColor};
-      --primary-hover: ${style.primaryHoverColor};
-      --text-on-primary: ${style.buttonTextColor};
+      --primary-color: ${primaryColor};
+      --primary-hover: ${hoverColor};
+      --text-on-primary: ${textOnPrimary};
     }
   `;
 };
@@ -28,12 +33,11 @@ const DEFAULT_BG = "https://assets.sesamy.com/images/login-bg.jpg";
 const Layout = ({
   title,
   children,
-  vendorSettings,
+  theme,
+  branding,
 }: PropsWithChildren<LayoutProps>) => {
   const inlineStyles = {
-    backgroundImage: `url(${
-      vendorSettings?.loginBackgroundImage || DEFAULT_BG
-    })`,
+    backgroundImage: `url(${theme?.page_background?.background_image_url || DEFAULT_BG})`,
   };
 
   return (
@@ -68,7 +72,7 @@ const Layout = ({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"
         />
-        <style>{globalDocStyle(vendorSettings)}</style>
+        <style>{globalDocStyle(theme, branding)}</style>
         <meta name="theme-color" content="#000000" />
       </head>
 
@@ -81,11 +85,11 @@ const Layout = ({
             <div className="column-left w-full sm:w-auto">
               <div className="relative flex w-full flex-col rounded-2xl bg-white px-5 py-10 dark:bg-gray-800 dark:text-white sm:min-h-[700px] sm:max-w-md sm:px-14 sm:py-14 md:min-w-[448px] short:min-h-[558px] min-h-[calc(100vh-83px)]">
                 <div className="mb-16">
-                  <AppLogo vendorSettings={vendorSettings} />
+                  <AppLogo theme={theme} branding={branding} />
                 </div>
                 <div className="flex flex-1 flex-col">
                   {children}
-                  <Footer vendorSettings={vendorSettings} />
+                  <Footer theme={theme} branding={branding} />
                 </div>
               </div>
 
@@ -96,16 +100,8 @@ const Layout = ({
                   </a>
                 </div>
                 <div className="flex justify-center space-x-2 text-xs text-white sm:justify-normal md:text-xs">
-                  {vendorSettings.supportUrl && (
-                    <a
-                      className="text-xs text-white hover:underline md:text-xs"
-                      href={vendorSettings.supportUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {i18next.t("contact_support")}
-                    </a>
-                  )}
+                  {/* For now, we'll comment out the support URL since it's not in Theme or Branding schema yet */}
+                  {/* You might want to add supportUrl to the Theme or Branding schema */}
                 </div>
               </div>
             </div>

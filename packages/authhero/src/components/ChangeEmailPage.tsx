@@ -6,12 +6,13 @@ import cn from "classnames";
 import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
-import { VendorSettings, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import Trans from "./Trans";
 
 type Props = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   client: Client;
   email: string;
   success?: boolean;
@@ -21,7 +22,8 @@ const CODE_LENGTH = 6;
 
 const ChangeEmailPage: FC<Props> = ({
   error,
-  vendorSettings,
+  theme,
+  branding,
   client,
   email,
   success,
@@ -29,7 +31,7 @@ const ChangeEmailPage: FC<Props> = ({
   // If success, show success message with continue button
   if (success) {
     return (
-      <Layout title={i18next.t("success")} vendorSettings={vendorSettings}>
+      <Layout title={i18next.t("success")} theme={theme} branding={branding}>
         <div className="mb-4 text-2xl font-medium">{i18next.t("success")}</div>
         <div className="mb-8 text-gray-300">
           <Trans
@@ -60,7 +62,8 @@ const ChangeEmailPage: FC<Props> = ({
   return (
     <Layout
       title={i18next.t("verify_email_verify")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
     >
       <div className="mb-4 text-2xl font-medium">
         {i18next.t("verify_email_verify")}

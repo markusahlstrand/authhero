@@ -2,7 +2,8 @@ import type { FC } from "hono/jsx";
 import {
   Client,
   LoginSession,
-  VendorSettings,
+  Theme,
+  Branding,
 } from "@authhero/adapter-interfaces";
 import Layout from "./Layout";
 import i18next from "i18next";
@@ -17,7 +18,8 @@ import Button from "./Button";
 
 type Props = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
   loginSession: LoginSession;
   email?: string;
   client: Client;
@@ -25,7 +27,8 @@ type Props = {
 
 const IdentifierPage: FC<Props> = ({
   error,
-  vendorSettings,
+  theme,
+  branding,
   loginSession,
   email,
   client,
@@ -73,7 +76,7 @@ const IdentifierPage: FC<Props> = ({
   const authMethodTemplateKey = "login_description_template";
 
   return (
-    <Layout title={i18next.t("welcome")} vendorSettings={vendorSettings}>
+    <Layout title={i18next.t("welcome")} theme={theme} branding={branding}>
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("welcome")}
       </div>

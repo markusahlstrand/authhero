@@ -36,7 +36,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -47,7 +47,8 @@ export const enterPasswordRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <EnterPasswordPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           email={loginSession.authParams.username}
           state={state}
           client={client}
@@ -107,7 +108,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
       const { password } = body;
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -139,7 +140,8 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         ) {
           return ctx.html(
             <EnterPasswordPage
-              vendorSettings={vendorSettings}
+              theme={theme}
+              branding={branding}
               email={username}
               error={i18next.t("invalid_password")}
               state={state}
@@ -150,7 +152,8 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         } else if (customException.code === "EMAIL_NOT_VERIFIED") {
           return ctx.html(
             <UnverifiedEmailPage
-              vendorSettings={vendorSettings}
+              theme={theme}
+              branding={branding}
               state={state}
             />,
             400,
@@ -160,7 +163,8 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         // Fallback for other AuthErrors or unexpected errors
         return ctx.html(
           <EnterPasswordPage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             email={username}
             error={customException.message || "An unknown error occurred."}
             state={state}
