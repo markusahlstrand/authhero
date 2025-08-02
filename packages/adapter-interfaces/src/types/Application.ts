@@ -69,8 +69,9 @@ export const applicationInsertSchema = z.object({
     description:
       "Prevents users from signing up using the hosted login page. This is not available in auth0",
   }),
+  client_metadata: z.record(z.string().length(255)).optional(),
 });
-export type ApplicationInsert = z.infer<typeof applicationInsertSchema>;
+export type ApplicationInsert = z.input<typeof applicationInsertSchema>;
 
 export const applicationSchema = z.object({
   created_at: z.string().transform((val) => (val === null ? "" : val)),

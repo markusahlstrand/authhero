@@ -51,8 +51,8 @@ export const checkAccountRoutes = new OpenAPIHono<{
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
-      // Assuming initJSXRoute provides client through vendorSettings or directly if needed
-      const { vendorSettings, client } = await initJSXRoute(ctx, state);
+      // Get theme and branding from initJSXRoute
+      const { theme, branding, client } = await initJSXRoute(ctx, state);
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -60,7 +60,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
         );
         return ctx.html(
           <MessagePage
-            vendorSettings={vendorSettings} // Pass even if partial
+            theme={theme}
+            branding={branding}
+            client={client}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={
@@ -96,7 +98,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <CheckEmailPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
+          client={client}
           state={state}
           user={user}
         />,
@@ -140,7 +144,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -151,7 +155,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
         );
         return ctx.html(
           <MessagePage
-            vendorSettings={vendorSettings} // Pass even if partial
+            theme={theme}
+            branding={branding}
+            client={client}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={i18next.t("configuration_error_message")}

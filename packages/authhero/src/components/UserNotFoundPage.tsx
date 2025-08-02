@@ -2,16 +2,23 @@ import Button from "./Button";
 import Layout from "./Layout";
 import i18next from "i18next";
 import type { FC } from "hono/jsx";
-import { AuthParams, VendorSettings } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  Theme,
+  Branding,
+  Client,
+} from "@authhero/adapter-interfaces";
 
 type Props = {
   error?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client;
   authParams: AuthParams;
 };
 
 const UserNotFound: FC<Props> = (params) => {
-  const { vendorSettings, authParams } = params;
+  const { theme, branding, client, authParams } = params;
 
   const linkParams = new URLSearchParams({
     ...authParams,
@@ -19,7 +26,12 @@ const UserNotFound: FC<Props> = (params) => {
   const restartFlowLink = `/authorize?${linkParams}`;
 
   return (
-    <Layout vendorSettings={vendorSettings} title={i18next.t("user_not_found")}>
+    <Layout
+      theme={theme}
+      branding={branding}
+      client={client}
+      title={i18next.t("user_not_found")}
+    >
       <div className="flex flex-1 flex-col justify-center">
         <p className="mb-8 text-gray-300 text-lg">
           {i18next.t("user_not_found_body")}

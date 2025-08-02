@@ -13,7 +13,6 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { HTTPException } from "hono/http-exception";
 import { waitUntil } from "../../helpers/wait-until";
-import { CountryCode } from "libphonenumber-js";
 
 export type SendType = "link" | "code";
 
@@ -46,14 +45,15 @@ export const identifierRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, loginSession, client } = await initJSXRoute(
+      const { theme, branding, loginSession, client } = await initJSXRoute(
         ctx,
         state,
       );
 
       return ctx.html(
         <IdentifierPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
           loginSession={loginSession}
           client={client}
           email={loginSession.authParams.username}
@@ -102,16 +102,15 @@ export const identifierRoutes = new OpenAPIHono<{
       ctx.set("body", params);
       ctx.set("username", params.username);
 
-      const { client, loginSession, vendorSettings } = await initJSXRoute(
+      const { client, loginSession, theme, branding } = await initJSXRoute(
         ctx,
         state,
       );
       ctx.set("client_id", client.id);
 
       const countryCode = ctx.get("countryCode");
-      const vendorCountryCode = vendorSettings.country as
-        | CountryCode
-        | undefined;
+      // Note: country code not available in theme or branding schema yet
+      const vendorCountryCode = undefined; // Could add to theme.widget or branding later
 
       const { normalized: username, connectionType } =
         getConnectionFromIdentifier(
@@ -125,7 +124,8 @@ export const identifierRoutes = new OpenAPIHono<{
       ) {
         return ctx.html(
           <IdentifierPage
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
             loginSession={loginSession}
             error={i18next.t("invalid_identifier")}
             email={params.username}
@@ -158,7 +158,8 @@ export const identifierRoutes = new OpenAPIHono<{
 
           return ctx.html(
             <IdentifierPage
-              vendorSettings={vendorSettings}
+              theme={theme}
+              branding={branding}
               loginSession={loginSession}
               error={i18next.t("user_account_does_not_exist")}
               email={params.username}

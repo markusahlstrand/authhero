@@ -33,11 +33,16 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       return ctx.html(
         <ForgotPasswordPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
+          client={client}
           state={state}
           email={loginSession.authParams.username}
         />,
@@ -68,7 +73,7 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -82,7 +87,9 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <ForgotPasswordSentPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
+          client={client}
           state={state}
         />,
       );

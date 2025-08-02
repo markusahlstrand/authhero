@@ -1,19 +1,19 @@
+import { Branding, Client, Theme } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
-import { VendorSettings } from "@authhero/adapter-interfaces";
 
 type Props = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client | null;
 };
-const Footer = ({ vendorSettings }: Props) => {
-  const { termsAndConditionsUrl } = vendorSettings;
-
+const Footer = (_props: Props) => {
   return (
     <div className="mt-8">
-      {termsAndConditionsUrl && (
+      {_props.client?.client_metadata?.termsAndConditionsUrl && (
         <div className="text-xs text-gray-300">
           {i18next.t("agree_to")}{" "}
           <a
-            href={termsAndConditionsUrl}
+            href={_props.client.client_metadata.termsAndConditionsUrl}
             className="text-primary hover:underline"
             target="_blank"
             rel="noreferrer"

@@ -11,6 +11,7 @@ export function create(db: Kysely<Database>) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...params,
+      disable_sign_ups: params.disable_sign_ups ?? false,
     };
 
     const allowed_origins = JSON.stringify(params.allowed_origins);

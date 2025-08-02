@@ -41,7 +41,10 @@ export const resetPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { vendorSettings, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
@@ -49,7 +52,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
       return ctx.html(
         <ResetPasswordPage
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
+          client={client}
           email={loginSession.authParams.username}
         />,
       );
@@ -96,7 +101,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { vendorSettings, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
       );
@@ -109,7 +114,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         return ctx.html(
           <ResetPasswordPage
             error={i18next.t("create_account_passwords_didnt_match")}
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -120,7 +127,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         return ctx.html(
           <ResetPasswordPage
             error={i18next.t("create_account_weak_password")}
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -154,7 +163,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           return ctx.html(
             <ResetPasswordPage
               error="Code not found or expired"
-              vendorSettings={vendorSettings}
+              theme={theme}
+              branding={branding}
+              client={client}
               email={loginSession.authParams.username}
             />,
             400,
@@ -187,7 +198,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         return ctx.html(
           <ResetPasswordPage
             error="The password could not be reset"
-            vendorSettings={vendorSettings}
+            theme={theme}
+            branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -197,7 +210,9 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       return ctx.html(
         <MessagePage
           message={i18next.t("password_has_been_reset")}
-          vendorSettings={vendorSettings}
+          theme={theme}
+          branding={branding}
+          client={client}
           state={state}
         />,
       );

@@ -2,21 +2,25 @@ import Layout from "./Layout";
 import Icon from "./Icon";
 import i18next from "i18next";
 import type { FC } from "hono/jsx";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import { GoBack } from "./GoBack";
 
 type Props = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client;
   state: string;
 };
 
 const UnverifiedEmailPage: FC<Props> = (params) => {
-  const { vendorSettings, state } = params;
+  const { theme, branding, client, state } = params;
 
   return (
     <Layout
       title={i18next.t("unverified_email")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
+      client={client}
     >
       <div className="flex flex-1 flex-col justify-center">
         <p className="mb-8 text-gray-300 text-lg">

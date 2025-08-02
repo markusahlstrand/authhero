@@ -3,14 +3,16 @@ import Layout from "./Layout";
 import Button from "./Button";
 import i18next from "i18next";
 import Icon from "./Icon";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 
 type Props = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client;
   state: string;
 };
 
-const EmailValidatedPage: FC<Props> = ({ vendorSettings, state }) => {
+const EmailValidatedPage: FC<Props> = ({ theme, branding, client, state }) => {
   const loginLinkParams = new URLSearchParams({
     state,
   });
@@ -18,7 +20,9 @@ const EmailValidatedPage: FC<Props> = ({ vendorSettings, state }) => {
   return (
     <Layout
       title={i18next.t("email_validated")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
+      client={client}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("email_validated")}

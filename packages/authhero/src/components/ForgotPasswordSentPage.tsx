@@ -1,20 +1,22 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import { GoBack } from "./GoBack";
 import i18next from "i18next";
 import Icon from "./Icon";
 
 type Props = {
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client;
   state: string;
 };
 
 const ForgotPasswordSentPage: FC<Props> = (params) => {
-  const { vendorSettings, state } = params;
+  const { theme, branding, client, state } = params;
 
   return (
-    <Layout title="Login" vendorSettings={vendorSettings}>
+    <Layout title="Login" theme={theme} branding={branding} client={client}>
       <div className="flex flex-1 flex-col justify-center">
         <div>{i18next.t("forgot_password_email_sent")}</div>
         <div className="my-4 flex space-x-2 text-sm text-[#B2B2B2]">

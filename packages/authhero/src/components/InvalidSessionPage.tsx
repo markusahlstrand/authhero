@@ -1,20 +1,24 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { VendorSettings } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 
 type Props = {
   redirectUrl?: string;
-  vendorSettings: VendorSettings;
+  theme: Theme | null;
+  branding: Branding | null;
+  client: Client;
 };
 
 const InvalidSessionPage: FC<Props> = (params) => {
-  const { redirectUrl, vendorSettings } = params;
+  const { redirectUrl, theme, branding, client } = params;
 
   return (
     <Layout
       title={i18next.t("invalid_session_title")}
-      vendorSettings={vendorSettings}
+      theme={theme}
+      branding={branding}
+      client={client}
     >
       <div className="flex flex-1 flex-col justify-center">
         {i18next.t("invalid_session_body")}
