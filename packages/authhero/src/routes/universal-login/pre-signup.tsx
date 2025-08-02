@@ -34,7 +34,10 @@ export const preSignupRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      const { theme, branding, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       const { username } = loginSession.authParams;
 
@@ -47,6 +50,7 @@ export const preSignupRoutes = new OpenAPIHono<{
           state={state}
           theme={theme}
           branding={branding}
+          client={client}
           email={username}
         />,
       );

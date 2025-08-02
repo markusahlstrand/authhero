@@ -1,6 +1,6 @@
 import type { FC, JSXNode } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding, User } from "@authhero/adapter-interfaces";
+import { Theme, Branding, User, Client } from "@authhero/adapter-interfaces";
 import i18next, { t } from "i18next";
 import Trans from "./Trans";
 import FormComponent from "./Form";
@@ -9,13 +9,25 @@ import Button from "./Button";
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
+  client: Client;
   state: string;
   user: User;
 };
 
-const CheckEmailPage: FC<Props> = ({ theme, branding, state, user }) => {
+const CheckEmailPage: FC<Props> = ({
+  theme,
+  branding,
+  client,
+  state,
+  user,
+}) => {
   return (
-    <Layout title={t("check_email_title")} theme={theme} branding={branding}>
+    <Layout
+      title={t("check_email_title")}
+      theme={theme}
+      branding={branding}
+      client={client}
+    >
       <div className="flex flex-1 flex-col justify-center">
         <div className="mb-8 text-gray-700 dark:text-gray-300">
           <Trans

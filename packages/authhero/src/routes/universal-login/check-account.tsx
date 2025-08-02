@@ -62,6 +62,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
           <MessagePage
             theme={theme}
             branding={branding}
+            client={client}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={
@@ -99,6 +100,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
         <CheckEmailPage
           theme={theme}
           branding={branding}
+          client={client}
           state={state}
           user={user}
         />,
@@ -155,6 +157,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
           <MessagePage
             theme={theme}
             branding={branding}
+            client={client}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={i18next.t("configuration_error_message")}

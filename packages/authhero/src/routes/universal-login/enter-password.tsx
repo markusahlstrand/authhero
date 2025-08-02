@@ -154,6 +154,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
             <UnverifiedEmailPage
               theme={theme}
               branding={branding}
+              client={client}
               state={state}
             />,
             400,

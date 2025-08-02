@@ -108,7 +108,12 @@ export const validateEmailRoutes = new OpenAPIHono<{
       }
 
       return ctx.html(
-        <EmailValidatedPage theme={theme} branding={branding} state={state} />,
+        <EmailValidatedPage
+          theme={theme}
+          branding={branding}
+          client={client}
+          state={state}
+        />,
       );
     },
   );

@@ -20,7 +20,7 @@ type Props = {
 };
 
 const EnterPasswordPage: FC<Props> = (params) => {
-  const { error, theme, branding, email, state } = params;
+  const { error, theme, branding, email, state, client } = params;
 
   const loginLinkParams = new URLSearchParams({
     state,
@@ -31,6 +31,7 @@ const EnterPasswordPage: FC<Props> = (params) => {
       title={i18next.t("enter_password")}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("enter_password")}

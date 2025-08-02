@@ -44,7 +44,10 @@ export const signupRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, code } = ctx.req.valid("query");
-      const { theme, branding, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       const { username } = loginSession.authParams;
 
@@ -58,6 +61,7 @@ export const signupRoutes = new OpenAPIHono<{
             state={state}
             theme={theme}
             branding={branding}
+            client={client}
             email={username}
             code={code}
           />,
@@ -69,6 +73,7 @@ export const signupRoutes = new OpenAPIHono<{
           state={state}
           theme={theme}
           branding={branding}
+          client={client}
           email={username}
         />,
       );
@@ -148,6 +153,7 @@ export const signupRoutes = new OpenAPIHono<{
               code={loginParams.code}
               theme={theme}
               branding={branding}
+              client={client}
               error={i18next.t("create_account_passwords_didnt_match")}
               email={loginSession.authParams.username}
             />,
@@ -162,6 +168,7 @@ export const signupRoutes = new OpenAPIHono<{
               code={loginParams.code}
               theme={theme}
               branding={branding}
+              client={client}
               error={i18next.t("create_account_weak_password")}
               email={loginSession.authParams.username}
             />,
@@ -198,6 +205,7 @@ export const signupRoutes = new OpenAPIHono<{
               code={loginParams.code}
               theme={theme}
               branding={branding}
+              client={client}
               error={i18next.t("user_exists_error")}
               email={loginSession.authParams.username}
             />,
@@ -236,6 +244,7 @@ export const signupRoutes = new OpenAPIHono<{
               pageTitle={i18next.t("validate_email_title")}
               theme={theme}
               branding={branding}
+              client={client}
               state={state}
             />,
           );
@@ -272,6 +281,7 @@ export const signupRoutes = new OpenAPIHono<{
             state={state}
             theme={theme}
             branding={branding}
+            client={client}
             error={errorMessage}
             email={loginSession.authParams.username}
             code={loginParams.code}

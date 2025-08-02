@@ -34,7 +34,7 @@ export const infoRoutes = new OpenAPIHono<{
 
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      const { theme, branding } = await initJSXRoute(ctx, state);
+      const { theme, branding, client } = await initJSXRoute(ctx, state);
 
       return ctx.html(
         <MessagePage
@@ -42,6 +42,7 @@ export const infoRoutes = new OpenAPIHono<{
           pageTitle="User info"
           theme={theme}
           branding={branding}
+          client={client}
           state={state}
         />,
       );

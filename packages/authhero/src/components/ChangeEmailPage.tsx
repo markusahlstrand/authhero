@@ -31,7 +31,12 @@ const ChangeEmailPage: FC<Props> = ({
   // If success, show success message with continue button
   if (success) {
     return (
-      <Layout title={i18next.t("success")} theme={theme} branding={branding}>
+      <Layout
+        title={i18next.t("success")}
+        theme={theme}
+        branding={branding}
+        client={client}
+      >
         <div className="mb-4 text-2xl font-medium">{i18next.t("success")}</div>
         <div className="mb-8 text-gray-300">
           <Trans
@@ -64,6 +69,7 @@ const ChangeEmailPage: FC<Props> = ({
       title={i18next.t("verify_email_verify")}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="mb-4 text-2xl font-medium">
         {i18next.t("verify_email_verify")}

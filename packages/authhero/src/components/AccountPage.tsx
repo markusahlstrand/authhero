@@ -17,7 +17,7 @@ type Props = {
 const showLinkedAccounts = false;
 
 const AccountPage: FC<Props> = (params) => {
-  const { theme, branding, user, error, success } = params;
+  const { theme, branding, user, client, error, success } = params;
 
   const linkedIdentities =
     user.identities?.filter(
@@ -33,6 +33,7 @@ const AccountPage: FC<Props> = (params) => {
       title={i18next.t("account_title") || "Account Settings"}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="flex flex-1 flex-col justify-center">
         <div className="mx-auto w-full max-w-sm">

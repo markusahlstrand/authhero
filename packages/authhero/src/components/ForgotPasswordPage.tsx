@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
@@ -11,18 +11,20 @@ type Props = {
   error?: string;
   theme: Theme | null;
   branding: Branding | null;
+  client: Client;
   email?: string;
   state: string;
 };
 
 const ForgotPasswordPage: FC<Props> = (parms) => {
-  const { error, theme, branding, email, state } = parms;
+  const { error, theme, branding, client, email, state } = parms;
 
   return (
     <Layout
       title={i18next.t("forgot_password_title")}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("forgot_password_title")}

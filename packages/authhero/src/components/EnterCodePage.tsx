@@ -43,6 +43,7 @@ const EnterCodePage: FC<Props> = ({
       title={i18next.t("verify_your_email")}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="mb-4 text-2xl font-medium">
         {i18next.t("verify_your_email")}

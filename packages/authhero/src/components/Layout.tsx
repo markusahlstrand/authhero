@@ -1,4 +1,4 @@
-import { Branding, Theme } from "@authhero/adapter-interfaces";
+import { Branding, Theme, Client } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
 import Footer from "./Footer";
 import Icon from "./Icon";
@@ -9,6 +9,7 @@ type LayoutProps = {
   title: string;
   theme: Theme | null;
   branding: Branding | null;
+  client: Client | null;
 };
 
 const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {
@@ -35,6 +36,7 @@ const Layout = ({
   children,
   theme,
   branding,
+  client,
 }: PropsWithChildren<LayoutProps>) => {
   const inlineStyles = {
     backgroundImage: `url(${theme?.page_background?.background_image_url || DEFAULT_BG})`,
@@ -89,7 +91,7 @@ const Layout = ({
                 </div>
                 <div className="flex flex-1 flex-col">
                   {children}
-                  <Footer theme={theme} branding={branding} />
+                  <Footer theme={theme} branding={branding} client={client} />
                 </div>
               </div>
 

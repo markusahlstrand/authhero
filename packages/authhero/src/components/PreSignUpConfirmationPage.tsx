@@ -1,6 +1,6 @@
 import type { FC, JSXNode } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { GoBack } from "./GoBack";
 import Icon from "./Icon";
@@ -9,18 +9,20 @@ import Trans from "./Trans";
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
+  client: Client;
   email: string;
   state: string;
 };
 
 const PreSignupComfirmationPage: FC<Props> = (params) => {
-  const { theme, branding, email, state } = params;
+  const { theme, branding, client, email, state } = params;
 
   return (
     <Layout
-      title={i18next.t("email_verification_for_signup_sent_title")}
+      title={i18next.t("sign_up_success")}
       theme={theme}
       branding={branding}
+      client={client}
     >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("email_verification_for_signup_sent_title")}

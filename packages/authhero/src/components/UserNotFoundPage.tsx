@@ -2,17 +2,23 @@ import Button from "./Button";
 import Layout from "./Layout";
 import i18next from "i18next";
 import type { FC } from "hono/jsx";
-import { AuthParams, Theme, Branding } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  Theme,
+  Branding,
+  Client,
+} from "@authhero/adapter-interfaces";
 
 type Props = {
   error?: string;
   theme: Theme | null;
   branding: Branding | null;
+  client: Client;
   authParams: AuthParams;
 };
 
 const UserNotFound: FC<Props> = (params) => {
-  const { theme, branding, authParams } = params;
+  const { theme, branding, client, authParams } = params;
 
   const linkParams = new URLSearchParams({
     ...authParams,
@@ -23,6 +29,7 @@ const UserNotFound: FC<Props> = (params) => {
     <Layout
       theme={theme}
       branding={branding}
+      client={client}
       title={i18next.t("user_not_found")}
     >
       <div className="flex flex-1 flex-col justify-center">

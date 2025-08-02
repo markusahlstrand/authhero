@@ -82,6 +82,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
             <MessagePage
               theme={theme}
               branding={branding} // branding might be partially initialized
+              client={client}
               state={state}
               pageTitle={i18next.t("error_page_title") || "Error"}
               message={
@@ -119,10 +120,14 @@ export const enterCodeRoutes = new OpenAPIHono<{
         if (!theme) {
           theme = null; // Use null as fallback for theme
         }
+        if (!client) {
+          client = null; // Use null as fallback for client
+        }
         return ctx.html(
           <MessagePage
             theme={theme}
             branding={branding}
+            client={client}
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={

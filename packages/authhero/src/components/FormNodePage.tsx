@@ -77,6 +77,7 @@ function renderFormComponent(comp: FormNodeComponent) {
 const FormNodePage: FC<FormNodePageProps> = ({
   theme,
   branding,
+  client,
   formName,
   error,
   components,
@@ -89,7 +90,7 @@ const FormNodePage: FC<FormNodePageProps> = ({
   const nextButton = components?.find((c) => c.type === "NEXT_BUTTON");
 
   return (
-    <Layout title={formName} theme={theme} branding={branding}>
+    <Layout title={formName} theme={theme} branding={branding} client={client}>
       {error && <div className="mb-4 text-red-500">{error}</div>}
       <div className="flex flex-1 flex-col justify-center">
         <form className="pt-2" method="post">

@@ -1,5 +1,16 @@
 # authhero
 
+## 0.184.0
+
+### Minor Changes
+
+- Add client_metadata to client type
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.77.0
+
 ## 0.183.0
 
 ### Minor Changes

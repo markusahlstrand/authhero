@@ -76,7 +76,12 @@ const IdentifierPage: FC<Props> = ({
   const authMethodTemplateKey = "login_description_template";
 
   return (
-    <Layout title={i18next.t("welcome")} theme={theme} branding={branding}>
+    <Layout
+      title={i18next.t("welcome")}
+      theme={theme}
+      branding={branding}
+      client={client}
+    >
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("welcome")}
       </div>

@@ -41,7 +41,10 @@ export const resetPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { theme, branding, loginSession } = await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
@@ -51,6 +54,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         <ResetPasswordPage
           theme={theme}
           branding={branding}
+          client={client}
           email={loginSession.authParams.username}
         />,
       );
@@ -112,6 +116,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
             error={i18next.t("create_account_passwords_didnt_match")}
             theme={theme}
             branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -124,6 +129,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
             error={i18next.t("create_account_weak_password")}
             theme={theme}
             branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -159,6 +165,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
               error="Code not found or expired"
               theme={theme}
               branding={branding}
+              client={client}
               email={loginSession.authParams.username}
             />,
             400,
@@ -193,6 +200,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
             error="The password could not be reset"
             theme={theme}
             branding={branding}
+            client={client}
             email={loginSession.authParams.username}
           />,
           400,
@@ -204,6 +212,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           message={i18next.t("password_has_been_reset")}
           theme={theme}
           branding={branding}
+          client={client}
           state={state}
         />,
       );
