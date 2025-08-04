@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import PreSignupComfirmationPage from "../../components/PreSignUpConfirmationPage";
+import PreSignUpConfirmationPage from "../../components/PreSignUpConfirmationPage";
 
 export const preSignupSentRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -43,7 +43,7 @@ export const preSignupSentRoutes = new OpenAPIHono<{
       }
 
       return ctx.html(
-        <PreSignupComfirmationPage
+        <PreSignUpConfirmationPage
           theme={theme}
           branding={branding}
           client={client}
