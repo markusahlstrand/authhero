@@ -14,7 +14,7 @@ type Props = {
   state: string;
 };
 
-const PreSignupConfirmationPage: FC<Props> = (params) => {
+const PreSignUpConfirmationPage: FC<Props> = (params) => {
   const { theme, branding, client, email, state } = params;
 
   return (
@@ -52,4 +52,4 @@ const PreSignupConfirmationPage: FC<Props> = (params) => {
   );
 };
 
-export default PreSignupConfirmationPage;
+export default PreSignUpConfirmationPage;
