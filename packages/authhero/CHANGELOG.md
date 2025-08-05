@@ -1,5 +1,11 @@
 # authhero
 
+## 0.185.0
+
+### Minor Changes
+
+- Add a lighten color util
+
 ## 0.184.0
 
 ### Minor Changes
