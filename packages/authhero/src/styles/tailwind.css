@@ -146,7 +146,7 @@
 
 :root {
   --primary-color: #7d68f4;
-  --primary-hover: #7e69f4;
+  --primary-hover: #9786f6; /* Lightened version of #7d68f4 by 20% */
   --text-on-primary: #ffffff;
 }
 

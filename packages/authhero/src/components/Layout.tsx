@@ -4,6 +4,7 @@ import Footer from "./Footer";
 import Icon from "./Icon";
 import { html } from "hono/html";
 import { PropsWithChildren } from "hono/jsx";
+import { lighten } from "../utils/color";
 
 type LayoutProps = {
   title: string;
@@ -16,8 +17,12 @@ const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {
   // Use theme colors primarily, fallback to branding
   const primaryColor =
     theme?.colors?.primary_button || branding?.colors?.primary || "#000000";
+
+  // Calculate hover color by lightening the primary color by 20%
+  // But allow override from theme if explicitly set
   const hoverColor =
-    theme?.colors?.base_hover_color || branding?.colors?.primary || "#000000";
+    theme?.colors?.base_hover_color || lighten(primaryColor, 0.2);
+
   const textOnPrimary = theme?.colors?.primary_button_label || "#ffffff";
 
   return `
