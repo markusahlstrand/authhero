@@ -141,14 +141,12 @@ export async function getTestServer(
     JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
     AUTH_URL: "http://localhost:3000",
     ISSUER: "http://localhost:3000/",
-    API_URL: "http://localhost:3000",
     ENVIRONMENT: "test",
     JWKS_CACHE_TIMEOUT_IN_SECONDS: 3600,
     ORGANIZATION_NAME: "Test Organization",
     STRATEGIES: {
       "mock-strategy": mockStrategy,
     },
-    SAML_SIGN_URL: "http://localhost:3000/saml/sign",
     // Add these for backward compatibility fallback logic
     DEFAULT_TENANT_ID: "tenantId",
     DEFAULT_CLIENT_ID: "clientId",
