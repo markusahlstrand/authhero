@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.78.0
+
+### Minor Changes
+
+- Remove vendorsettings
+
 ## 0.77.0
 
 ### Minor Changes

@@ -18,7 +18,6 @@ export type Bindings = {
   ENVIRONMENT: string;
   AUTH_URL: string;
   JWKS_URL: string;
-  CSS_URL?: string;
   JWKS_SERVICE: Fetcher;
   ISSUER: string;
   UNIVERSAL_LOGIN_URL?: string;
@@ -50,7 +49,4 @@ export type Bindings = {
 
   // Url for the service to sign SAML requests
   SAML_SIGN_URL: string;
-
-  // TODO: Move once the vendorsettings are updated
-  API_URL: string;
 };

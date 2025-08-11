@@ -21,25 +21,3 @@ export const tenantSchema = z.object({
 });
 
 export type Tenant = z.infer<typeof tenantSchema>;
-
-export const vendorSettingsSchema = z.object({
-  logoUrl: z.string(),
-  loginBackgroundImage: z.string().nullish(),
-  style: z.object({
-    primaryColor: z.string(),
-    buttonTextColor: z.string(),
-    primaryHoverColor: z.string(),
-  }),
-  country: z.string().optional(),
-  supportEmail: z.string().nullable(),
-  supportUrl: z.string().nullable(),
-  name: z.string(),
-  showGreyishBackground: z.boolean().optional(),
-  termsAndConditionsUrl: z.string().nullable(),
-  companyName: z.string().optional(),
-  checkoutHideSocial: z.boolean().optional(),
-  siteUrl: z.string().nullable(),
-  manageSubscriptionsUrl: z.string().optional(),
-});
-
-export type VendorSettings = z.infer<typeof vendorSettingsSchema>;
