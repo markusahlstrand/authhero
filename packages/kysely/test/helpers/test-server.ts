@@ -2,6 +2,7 @@ import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
 import { Database } from "../../src/db";
 import createAdapters, { migrateToLatest } from "../../src";
+import { afterEach } from "vitest";
 
 type getEnvParams = {
   testTenantLanguage?: string;
@@ -22,4 +23,14 @@ export async function getTestServer(args: getEnvParams = {}) {
     data: createAdapters(db),
     db,
   };
+}
+
+export async function setupTestDb() {
+  const { data, db } = await getTestServer();
+
+  afterEach(async () => {
+    await data.cleanup();
+  });
+
+  return { db, adapters: data };
 }

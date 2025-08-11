@@ -18,7 +18,27 @@ export function list(db: Kysely<Database>) {
       .where("resource_servers.tenant_id", "=", tenantId);
 
     if (params.q) {
-      query = luceneFilter(db, query, params.q, ["name", "identifier"]);
+      const q = params.q.trim();
+      const parts = q.split(/\s+/);
+      const one = parts.length === 1 ? parts[0] : undefined;
+      const match = one ? one.match(/^(-)?(name|identifier):(.*)$/) : null;
+      const value = match ? match[3] : "";
+      const hasRangeOp = /^(>=|>|<=|<)/.test(value || "");
+      if (match && !hasRangeOp) {
+        const neg = !!match[1];
+        const field =
+          match[2] === "name"
+            ? "resource_servers.name"
+            : "resource_servers.identifier";
+        query = neg
+          ? query.where(field, "not like", `%${value}%`)
+          : query.where(field, "like", `%${value}%`);
+      } else {
+        query = luceneFilter(db, query, q, [
+          "resource_servers.name",
+          "resource_servers.identifier",
+        ]);
+      }
     }
 
     const filteredQuery = query
