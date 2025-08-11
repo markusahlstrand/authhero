@@ -25,3 +25,6 @@ export * from "./PromptSetting";
 export * from "./EmailProvider";
 export * from "./RefreshTokens";
 export * from "./SmsProvider";
+export * from "./ResourceServer";
+export * from "./Permission";
+export * from "./Rule";

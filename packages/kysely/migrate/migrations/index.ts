@@ -87,6 +87,7 @@ import * as n87_code_challenge from "./2025-06-04T14:00:00_code_challenge";
 import * as n88_add_redirect_uri_to_codes from "./2025-06-05T09:40:00_add_redirect_uri_to_codes";
 import * as n89_add_nonce_and_state_to_codes from "./2025-06-05T14:30:00_add_nonce_and_state_to_codes";
 import * as n90_themes from "./2025-07-23T14:30:00_themes";
+import * as n91_resource_servers_rules_permissions from "./2025-08-11T12:00:00_resource_servers_rules_permissions";
 
 // These need to be in alphabetic order
 export default {
@@ -179,4 +180,5 @@ export default {
   n88_add_redirect_uri_to_codes,
   n89_add_nonce_and_state_to_codes,
   n90_themes,
+  n91_resource_servers_rules_permissions,
 };

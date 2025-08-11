@@ -13,7 +13,10 @@ export function luceneFilter<TB extends keyof Database>(
     .map((q) => q.replace(/^([^:]+)=/g, "$1:"))
     .map((filter) => {
       let isNegation = filter.startsWith("-");
-      let key, value, isExistsQuery, operator;
+      let key: any = null,
+        value: any = "",
+        isExistsQuery: any = false,
+        operator: any = undefined;
 
       if (filter.startsWith("-_exists_:")) {
         key = filter.substring(10);
@@ -24,10 +27,10 @@ export function luceneFilter<TB extends keyof Database>(
         isExistsQuery = true;
         isNegation = false;
       } else if (filter.includes(":")) {
-        isNegation = filter.startsWith("-");
-        [key, value] = isNegation
-          ? filter.substring(1).split(":")
-          : filter.split(":");
+        const raw = isNegation ? filter.substring(1) : filter;
+        const idx = raw.indexOf(":");
+        key = raw.substring(0, idx);
+        value = raw.substring(idx + 1);
         isExistsQuery = false;
 
         if (value.startsWith(">=")) {
@@ -59,33 +62,33 @@ export function luceneFilter<TB extends keyof Database>(
     if (key) {
       if (isExistsQuery) {
         if (isNegation) {
-          qb = qb.where(key, "is", null);
+          qb = qb.where(key as any, "is", null);
         } else {
-          qb = qb.where(key, "is not", null);
+          qb = qb.where(key as any, "is not", null);
         }
       } else {
         if (isNegation) {
           switch (operator) {
             case ">":
-              qb = qb.where(key, "<=", value);
+              qb = qb.where(key as any, "<=", value);
               break;
             case ">=":
-              qb = qb.where(key, "<", value);
+              qb = qb.where(key as any, "<", value);
               break;
             case "<":
-              qb = qb.where(key, ">=", value);
+              qb = qb.where(key as any, ">=", value);
               break;
             case "<=":
-              qb = qb.where(key, ">", value);
+              qb = qb.where(key as any, ">", value);
               break;
             default:
-              qb = qb.where(key, "!=", value);
+              qb = qb.where(key as any, "!=", value);
           }
         } else {
-          qb = qb.where(key, operator, value);
+          qb = qb.where(key as any, operator as any, value);
         }
       }
-    } else {
+    } else if (value) {
       const { ref } = db.dynamic;
       // Generic single-word search across specified columns
       qb = qb.where((eb) =>
