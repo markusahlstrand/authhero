@@ -21,6 +21,9 @@ import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
 import { createCleanup } from "./cleanup";
 import { createFormsAdapter } from "./forms";
+import { createResourceServersAdapter } from "./resourceServers";
+import { createRulesAdapter } from "./rules";
+import { createPermissionsAdapter } from "./permissions/index";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -44,6 +47,9 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
+    resourceServers: createResourceServersAdapter(db),
+    rules: createRulesAdapter(db),
+    permissions: createPermissionsAdapter(db),
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),

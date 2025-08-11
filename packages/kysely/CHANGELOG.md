@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.31.0
+
+### Minor Changes
+
+- Add resource servers, rules and permissions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.79.0
+
 ## 10.30.0
 
 ### Patch Changes

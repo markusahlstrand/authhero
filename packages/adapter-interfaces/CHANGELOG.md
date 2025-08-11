@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.79.0
+
+### Minor Changes
+
+- Add resource servers, rules and permissions
+
 ## 0.78.0
 
 ### Minor Changes

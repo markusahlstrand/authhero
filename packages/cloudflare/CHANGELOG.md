@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 1.18.0
+
+### Minor Changes
+
+- Add resource servers, rules and permissions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.79.0
+
 ## 1.17.0
 
 ### Patch Changes

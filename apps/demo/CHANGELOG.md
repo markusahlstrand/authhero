@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.15.0
+
+### Minor Changes
+
+- Add resource servers, rules and permissions
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.187.0
+  - @authhero/kysely-adapter@11.0.0
+
 ## 0.14.27
 
 ### Patch Changes

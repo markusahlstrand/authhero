@@ -16,6 +16,10 @@ import {
   Tenant,
   themeSchema,
   userSchema,
+  // New entity schemas
+  resourceServerSchema,
+  ruleSchema,
+  permissionSchema,
 } from "@authhero/adapter-interfaces";
 import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./utils/flatten";
@@ -123,6 +127,33 @@ const sqlFormSchema = z.object({
   ending: z.string().optional().default("{}"),
 });
 
+// New SQL schemas
+const sqlResourceServerSchema = z.object({
+  ...resourceServerSchema.shape,
+  tenant_id: z.string(),
+  // Store complex structures as JSON
+  scopes: z.string().optional().default("[]"),
+  options: z.string().optional().default("{}"),
+  // Store booleans as integers in SQL
+  skip_consent_for_verifiable_first_party_clients: z.number().optional(),
+  allow_offline_access: z.number().optional(),
+});
+
+const sqlRuleSchema = z.object({
+  ...ruleSchema.shape,
+  tenant_id: z.string(),
+  // Store booleans as integers in SQL
+  enabled: z.number().optional(),
+});
+
+const sqlPermissionSchema = z.object({
+  id: z.string(),
+  ...permissionSchema.shape,
+  tenant_id: z.string(),
+  // Store sources as JSON array
+  sources: z.string().optional(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -142,4 +173,8 @@ export interface Database {
   sessions: z.infer<typeof sqlSessionSchema>;
   tenants: Tenant;
   themes: z.infer<typeof sqlThemeSchema>;
+  // New entities
+  resource_servers: z.infer<typeof sqlResourceServerSchema>;
+  rules: z.infer<typeof sqlRuleSchema>;
+  permissions: z.infer<typeof sqlPermissionSchema>;
 }
