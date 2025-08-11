@@ -16,7 +16,6 @@ import {
   Tenant,
   themeSchema,
   userSchema,
-  // New entity schemas
   resourceServerSchema,
   ruleSchema,
   permissionSchema,
@@ -44,7 +43,6 @@ const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
 const sqlApplicationSchema = z.object({
   ...applicationSchema.shape,
   tenant_id: z.string(),
-  // The addons will be stored as JSON in a text column
   addons: z.string(),
   disable_sign_ups: z.number(),
   callbacks: z.string(),
@@ -87,7 +85,6 @@ const sqlHookSchema = z.object({
 const sqlEmailProvidersSchema = z.object({
   ...emailProviderSchema.shape,
   tenant_id: z.string(),
-  // Store the credentials as JSON in a text column
   credentials: z.string(),
   settings: z.string(),
   enabled: z.number(),
@@ -127,11 +124,9 @@ const sqlFormSchema = z.object({
   ending: z.string().optional().default("{}"),
 });
 
-// New SQL schemas
 const sqlResourceServerSchema = z.object({
   ...resourceServerSchema.shape,
   tenant_id: z.string(),
-  // Store complex structures as JSON
   scopes: z.string().optional().default("[]"),
   options: z.string().optional().default("{}"),
   // Store booleans as integers in SQL
