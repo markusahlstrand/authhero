@@ -1,21 +1,22 @@
 import { Kysely } from "kysely";
-import { Database } from "../db";
+import { Rule } from "@authhero/adapter-interfaces";
+import { Database, sqlRuleSchema } from "../db";
+import { z } from "@hono/zod-openapi";
+
+type RuleDbUpdate = Partial<z.infer<typeof sqlRuleSchema>>;
 
 export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     rule_id: string,
-    rule: Partial<{
-      enabled: boolean;
-      name: string;
-      script: string;
-      order: number;
-      stage: string;
-    }>,
+    params: Partial<Rule>,
   ): Promise<boolean> => {
-    const updates: any = { ...rule };
-    if (typeof updates.enabled === "boolean") {
-      updates.enabled = updates.enabled ? 1 : 0;
+    const { enabled, ...rest } = params;
+
+    const updates: RuleDbUpdate = { ...rest };
+
+    if (enabled !== undefined) {
+      updates.enabled = enabled ? 1 : 0;
     }
 
     const result = await db

@@ -1,5 +1,5 @@
 import { Kysely } from "kysely";
-import { Database } from "../db";
+import { Database, sqlPermissionSchema } from "../db";
 import {
   ListParams,
   ListPermissionsResponse,
@@ -7,6 +7,9 @@ import {
 } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
+import { z } from "@hono/zod-openapi";
+
+type PermissionDbRow = z.infer<typeof sqlPermissionSchema>;
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -30,10 +33,15 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const permissions: Permission[] = rows.map((row: any) => ({
-      ...row,
-      sources: row.sources ? JSON.parse(row.sources) : [],
-    }));
+    const permissions: Permission[] = rows.map((row) => {
+      const dbRow = row as PermissionDbRow;
+      const { sources, ...rest } = dbRow;
+
+      return {
+        ...rest,
+        sources: sources ? JSON.parse(sources) : [],
+      };
+    });
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))
