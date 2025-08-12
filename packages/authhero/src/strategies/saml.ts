@@ -10,7 +10,7 @@ export interface SAMLMetadataParams {
   entityId: string;
   assertionConsumerServiceUrl: string;
   singleLogoutServiceUrl: string;
-  cert: string;
+  certificates: string[];
 }
 
 export interface SAMLResponseParams {

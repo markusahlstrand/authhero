@@ -12,7 +12,7 @@ export interface SAMLMetadataParams {
   entityId: string;
   assertionConsumerServiceUrl: string;
   singleLogoutServiceUrl: string;
-  cert: string;
+  certificates: string[];
 }
 
 export interface SAMLResponseParams {
@@ -79,6 +79,31 @@ export async function parseSamlRequestQuery(samlRequestQuery: string) {
 }
 
 export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
+  // Create KeyDescriptor entries for each certificate
+  const keyDescriptors = samlMetadataParams.certificates.map(cert => ({
+    ":@": {
+      "@_use": "signing",
+    },
+    KeyDescriptor: [
+      {
+        ":@": {
+          "@_xmlns": "http://www.w3.org/2000/09/xmldsig#",
+        },
+        KeyInfo: [
+          {
+            X509Data: [
+              {
+                X509Certificate: [
+                  { "#text": cert },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }));
+
   const samlMetadataJSON = [
     {
       ":@": {
@@ -92,29 +117,8 @@ export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
               "urn:oasis:names:tc:SAML:2.0:protocol",
           },
           IDPSSODescriptor: [
-            {
-              ":@": {
-                "@_use": "signing",
-              },
-              KeyDescriptor: [
-                {
-                  ":@": {
-                    "@_xmlns": "http://www.w3.org/2000/09/xmldsig#",
-                  },
-                  KeyInfo: [
-                    {
-                      X509Data: [
-                        {
-                          X509Certificate: [
-                            { "#text": samlMetadataParams.cert },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
+            // Add all key descriptors
+            ...keyDescriptors,
             {
               ":@": {
                 "@_Binding":
