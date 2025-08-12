@@ -1,5 +1,11 @@
 # authhero
 
+## 0.190.0
+
+### Minor Changes
+
+- Return multiple saml certificates
+
 ## 0.189.0
 
 ### Minor Changes

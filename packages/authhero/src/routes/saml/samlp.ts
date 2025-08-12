@@ -50,22 +50,23 @@ export const samlpRoutes = new OpenAPIHono<{
         });
       }
 
-      // TODO: Get the most recent signing key
-      const [signingKey] = await ctx.env.data.keys.list();
+      const signingKeys = await ctx.env.data.keys.list();
 
-      if (!signingKey) {
+      if (!signingKeys.length) {
         throw new HTTPException(500, {
           message: "No signing key found",
         });
       }
 
-      const cert = new X509Certificate(signingKey.cert);
+      const certificates = signingKeys.map((signingKey) =>
+        new X509Certificate(signingKey.cert).toString("base64"),
+      );
 
       const issuer = ctx.env.ISSUER;
 
       const metadata = createSamlMetadata({
         entityId: client.addons?.samlp?.audience || client.id,
-        cert: cert.toString("base64"),
+        certificates,
         assertionConsumerServiceUrl: `${issuer}samlp/${client_id}`,
         singleLogoutServiceUrl: `${issuer}samlp/${client_id}/logout`,
       });
