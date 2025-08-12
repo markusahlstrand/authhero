@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { Permission } from "@authhero/adapter-interfaces";
-import { Database } from "../db";
+import { Database, sqlPermissionSchema } from "../db";
+import { z } from "@hono/zod-openapi";
+
+type PermissionDbRow = z.infer<typeof sqlPermissionSchema>;
 
 export function get(db: Kysely<Database>) {
   return async (
@@ -16,9 +19,14 @@ export function get(db: Kysely<Database>) {
 
     if (!row) return null;
 
-    return {
-      ...row,
-      sources: row.sources ? JSON.parse(row.sources as any) : [],
-    } as Permission;
+    const dbRow = row as PermissionDbRow;
+    const { sources, ...rest } = dbRow;
+
+    const permission: Permission = {
+      ...rest,
+      sources: sources ? JSON.parse(sources) : [],
+    };
+
+    return permission;
   };
 }

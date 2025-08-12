@@ -1,24 +1,49 @@
 import { Kysely } from "kysely";
-import { Database } from "../db";
+import { ResourceServer } from "@authhero/adapter-interfaces";
+import { Database, sqlResourceServerSchema } from "../db";
+import { z } from "@hono/zod-openapi";
+
+// Get the database schema type from db.ts
+type ResourceServerDbUpdate = Partial<z.infer<typeof sqlResourceServerSchema>>;
 
 export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     id: string,
-    params: any,
+    params: Partial<ResourceServer>,
   ): Promise<boolean> => {
-    const updates: any = { ...params };
-    if (updates.scopes) updates.scopes = JSON.stringify(updates.scopes);
-    if (updates.options) updates.options = JSON.stringify(updates.options);
-    if (
-      typeof updates.skip_consent_for_verifiable_first_party_clients ===
-      "boolean"
-    ) {
-      updates.skip_consent_for_verifiable_first_party_clients =
-        updates.skip_consent_for_verifiable_first_party_clients ? 1 : 0;
+    const {
+      verificationKey,
+      scopes,
+      options,
+      skip_consent_for_verifiable_first_party_clients,
+      allow_offline_access,
+      ...rest
+    } = params;
+
+    // Build updates object with proper database types
+    const updates: ResourceServerDbUpdate = { ...rest };
+
+    // Handle snake_case conversion for database
+    if (verificationKey !== undefined) {
+      updates.verification_key = verificationKey;
     }
-    if (typeof updates.allow_offline_access === "boolean") {
-      updates.allow_offline_access = updates.allow_offline_access ? 1 : 0;
+
+    // Handle JSON serialization
+    if (scopes !== undefined) {
+      updates.scopes = JSON.stringify(scopes);
+    }
+    if (options !== undefined) {
+      updates.options = JSON.stringify(options);
+    }
+
+    // Handle boolean to integer conversion
+    if (skip_consent_for_verifiable_first_party_clients !== undefined) {
+      updates.skip_consent_for_verifiable_first_party_clients =
+        skip_consent_for_verifiable_first_party_clients ? 1 : 0;
+    }
+    if (allow_offline_access !== undefined) {
+      updates.allow_offline_access = allow_offline_access ? 1 : 0;
     }
 
     const result = await db

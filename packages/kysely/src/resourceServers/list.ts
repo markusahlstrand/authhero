@@ -4,9 +4,12 @@ import {
   ListResourceServersResponse,
   ResourceServer,
 } from "@authhero/adapter-interfaces";
-import { Database } from "../db";
+import { Database, sqlResourceServerSchema } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
+import { z } from "@hono/zod-openapi";
+
+type ResourceServerDbRow = z.infer<typeof sqlResourceServerSchema>;
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -46,14 +49,28 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const resource_servers: ResourceServer[] = rows.map((row: any) => ({
-      ...row,
-      scopes: row.scopes ? JSON.parse(row.scopes) : [],
-      options: row.options ? JSON.parse(row.options) : {},
-      skip_consent_for_verifiable_first_party_clients:
-        !!row.skip_consent_for_verifiable_first_party_clients,
-      allow_offline_access: !!row.allow_offline_access,
-    }));
+    const resource_servers: ResourceServer[] = rows.map((row) => {
+      const dbRow = row as ResourceServerDbRow;
+      const {
+        verification_key,
+        scopes,
+        options,
+        skip_consent_for_verifiable_first_party_clients,
+        allow_offline_access,
+        ...rest
+      } = dbRow;
+
+      return {
+        ...rest,
+        scopes: scopes ? JSON.parse(scopes) : [],
+        options: options ? JSON.parse(options) : {},
+        skip_consent_for_verifiable_first_party_clients:
+          !!skip_consent_for_verifiable_first_party_clients,
+        allow_offline_access: !!allow_offline_access,
+        // Convert verification_key back to verificationKey for API
+        verificationKey: verification_key,
+      };
+    });
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))

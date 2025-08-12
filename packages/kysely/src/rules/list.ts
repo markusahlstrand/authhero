@@ -4,9 +4,12 @@ import {
   ListRulesResponse,
   Rule,
 } from "@authhero/adapter-interfaces";
-import { Database } from "../db";
+import { Database, sqlRuleSchema } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
+import { z } from "@hono/zod-openapi";
+
+type RuleDbRow = z.infer<typeof sqlRuleSchema>;
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -24,10 +27,15 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const rules: Rule[] = rows.map((row: any) => ({
-      ...row,
-      enabled: !!row.enabled,
-    }));
+    const rules: Rule[] = rows.map((row) => {
+      const dbRow = row as RuleDbRow;
+      const { enabled, ...rest } = dbRow;
+
+      return {
+        ...rest,
+        enabled: !!enabled,
+      };
+    });
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))

@@ -5,7 +5,10 @@ import {
   PermissionInsert,
   permissionSchema,
 } from "@authhero/adapter-interfaces";
-import { Database } from "../db";
+import { Database, sqlPermissionSchema } from "../db";
+import { z } from "@hono/zod-openapi";
+
+type PermissionDbInsert = z.infer<typeof sqlPermissionSchema>;
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -13,21 +16,19 @@ export function create(db: Kysely<Database>) {
     params: PermissionInsert,
   ): Promise<Permission> => {
     const id = nanoid();
-    const withId = { id, ...params } as any;
+    const withId = { id, ...params };
     const permission = permissionSchema.parse(withId);
 
-    await db
-      .insertInto("permissions")
-      .values({
-        id,
-        tenant_id,
-        permission_name: permission.permission_name,
-        resource_server_identifier: permission.resource_server_identifier,
-        resource_server_name: permission.resource_server_name,
-        description: permission.description,
-        sources: permission.sources ? JSON.stringify(permission.sources) : "[]",
-      })
-      .execute();
+    const { sources, ...rest } = permission;
+
+    const dbPermission: PermissionDbInsert = {
+      id,
+      ...rest,
+      tenant_id,
+      sources: sources ? JSON.stringify(sources) : "[]",
+    };
+
+    await db.insertInto("permissions").values(dbPermission).execute();
 
     return permission;
   };

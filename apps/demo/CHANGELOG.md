@@ -1,5 +1,13 @@
 # @authhero/demo
 
+## 0.15.1
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.188.0
+  - @authhero/kysely-adapter@10.32.0
+
 ## 0.15.0
 
 ### Minor Changes
