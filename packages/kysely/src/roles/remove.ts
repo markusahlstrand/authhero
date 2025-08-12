@@ -2,11 +2,11 @@ import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function remove(db: Kysely<Database>) {
-  return async (tenant_id: string, rule_id: string): Promise<boolean> => {
+  return async (tenantId: string, roleId: string): Promise<boolean> => {
     const result = await db
-      .deleteFrom("rules")
-      .where("tenant_id", "=", tenant_id)
-      .where("id", "=", rule_id)
+      .deleteFrom("roles")
+      .where("tenant_id", "=", tenantId)
+      .where("id", "=", roleId)
       .executeTakeFirst();
 
     return Number(result.numDeletedRows) > 0;

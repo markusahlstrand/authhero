@@ -23,6 +23,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { formsRoutes } from "./forms";
+import { roleRoutes } from "./roles";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -92,7 +93,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/prompts", promptsRoutes)
     .route("/sessions", sessionsRoutes)
     .route("/refresh_tokens", refreshTokensRoutes)
-    .route("/forms", formsRoutes);
+    .route("/forms", formsRoutes)
+    .route("/roles", roleRoutes);
 
   managementApp.doc("/spec", {
     openapi: "3.0.0",

@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.33.0
+
+### Minor Changes
+
+- Add roles
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.80.0
+
 ## 10.32.0
 
 ### Minor Changes

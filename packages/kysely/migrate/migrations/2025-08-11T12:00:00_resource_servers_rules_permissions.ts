@@ -17,6 +17,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("allow_offline_access", "integer")
     .addColumn("verification_key", "varchar(4096)")
     .addColumn("options", "varchar(4096)") // JSON object string
+    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -24,26 +26,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .on("resource_servers")
     .columns(["tenant_id", "identifier"])
     .unique()
-    .execute();
-
-  // Rules table
-  await db.schema
-    .createTable("rules")
-    .addColumn("id", "varchar(21)", (col) => col.primaryKey())
-    .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
-    .addColumn("name", "varchar(255)", (col) => col.notNull())
-    .addColumn("script", "varchar(8192)", (col) => col.notNull())
-    .addColumn("order", "integer")
-    .addColumn("enabled", "integer")
-    .addColumn("stage", "varchar(64)")
-    .addColumn("created_at", "varchar(255)")
-    .addColumn("updated_at", "varchar(255)")
-    .execute();
-
-  await db.schema
-    .createIndex("rules_tenant_id_idx")
-    .on("rules")
-    .column("tenant_id")
     .execute();
 
   // Permissions table
@@ -58,6 +40,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn("resource_server_name", "varchar(255)", (col) => col.notNull())
     .addColumn("sources", "varchar(4096)") // JSON array string
+    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
     .execute();
 
   await db.schema
@@ -66,10 +50,28 @@ export async function up(db: Kysely<any>): Promise<void> {
     .columns(["tenant_id", "resource_server_identifier", "permission_name"])
     .unique()
     .execute();
+
+  // Roles table
+  await db.schema
+    .createTable("roles")
+    .addColumn("id", "varchar(21)", (col) => col.primaryKey())
+    .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
+    .addColumn("name", "varchar(50)", (col) => col.notNull())
+    .addColumn("description", "varchar(255)")
+    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
+    .execute();
+
+  await db.schema
+    .createIndex("roles_tenant_name_uq")
+    .on("roles")
+    .columns(["tenant_id", "name"])
+    .unique()
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  await db.schema.dropTable("roles").execute();
   await db.schema.dropTable("permissions").execute();
-  await db.schema.dropTable("rules").execute();
   await db.schema.dropTable("resource_servers").execute();
 }

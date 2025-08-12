@@ -1,25 +1,25 @@
 import { Kysely } from "kysely";
+import { Database, sqlRoleSchema } from "../db";
 import {
   ListParams,
-  ListRulesResponse,
-  Rule,
+  ListRolesResponse,
+  Role,
 } from "@authhero/adapter-interfaces";
-import { Database, sqlRuleSchema } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
 import { z } from "@hono/zod-openapi";
 
-type RuleDbRow = z.infer<typeof sqlRuleSchema>;
+type RoleDbRow = z.infer<typeof sqlRoleSchema>;
 
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
     params: ListParams = { page: 0, per_page: 50, include_totals: false },
-  ): Promise<ListRulesResponse> => {
-    let query = db.selectFrom("rules").where("rules.tenant_id", "=", tenantId);
+  ): Promise<ListRolesResponse> => {
+    let query = db.selectFrom("roles").where("roles.tenant_id", "=", tenantId);
 
     if (params.q) {
-      query = luceneFilter(db, query, params.q, ["name", "stage"]);
+      query = luceneFilter(db, query, params.q, ["name"]);
     }
 
     const filteredQuery = query
@@ -27,14 +27,8 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const rules: Rule[] = rows.map((row) => {
-      const dbRow = row as RuleDbRow;
-      const { enabled, ...rest } = dbRow;
-
-      return {
-        ...rest,
-        enabled: !!enabled,
-      };
+    const roles: Role[] = rows.map((row) => {
+      return row as RoleDbRow;
     });
 
     const { count } = await query
@@ -42,7 +36,7 @@ export function list(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     return {
-      rules,
+      roles,
       start: params.page * params.per_page,
       limit: params.per_page,
       length: getCountAsInt(count),
