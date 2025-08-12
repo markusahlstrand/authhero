@@ -1,18 +1,18 @@
 import { Kysely } from "kysely";
-import { RulesAdapter } from "@authhero/adapter-interfaces";
+import { RolesAdapter } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { create } from "./create";
 import { get } from "./get";
 import { list } from "./list";
-import { remove } from "./remove";
 import { update } from "./update";
+import { remove } from "./remove";
 
-export function createRulesAdapter(db: Kysely<Database>): RulesAdapter {
+export function createRolesAdapter(db: Kysely<Database>): RolesAdapter {
   return {
     create: create(db),
     get: get(db),
     list: list(db),
-    remove: remove(db),
     update: update(db),
+    remove: remove(db),
   };
 }

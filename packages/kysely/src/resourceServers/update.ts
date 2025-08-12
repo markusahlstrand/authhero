@@ -22,7 +22,10 @@ export function update(db: Kysely<Database>) {
     } = params;
 
     // Build updates object with proper database types
-    const updates: ResourceServerDbUpdate = { ...rest };
+    const updates: ResourceServerDbUpdate = {
+      ...rest,
+      updated_at: new Date().toISOString(),
+    };
 
     // Handle snake_case conversion for database
     if (verificationKey !== undefined) {

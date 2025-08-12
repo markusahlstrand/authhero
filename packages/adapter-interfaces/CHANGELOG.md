@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.80.0
+
+### Minor Changes
+
+- Add roles
+
 ## 0.79.0
 
 ### Minor Changes

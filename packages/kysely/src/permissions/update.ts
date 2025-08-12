@@ -13,7 +13,10 @@ export function update(db: Kysely<Database>) {
   ): Promise<boolean> => {
     const { sources, ...rest } = params;
 
-    const updates: PermissionDbUpdate = { ...rest };
+    const updates: PermissionDbUpdate = {
+      ...rest,
+      updated_at: new Date().toISOString(),
+    };
 
     if (sources !== undefined) {
       updates.sources = JSON.stringify(sources);

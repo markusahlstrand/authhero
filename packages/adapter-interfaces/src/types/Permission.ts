@@ -19,6 +19,8 @@ export const permissionSchema = z
     resource_server_identifier: z.string(),
     resource_server_name: z.string(),
     sources: z.array(permissionSourceSchema).optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
   })
   .passthrough();
 export type Permission = z.infer<typeof permissionSchema>;

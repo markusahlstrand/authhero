@@ -16,6 +16,7 @@ export function create(db: Kysely<Database>) {
     params: PermissionInsert,
   ): Promise<Permission> => {
     const id = nanoid();
+    const now = new Date().toISOString();
     const withId = { id, ...params };
     const permission = permissionSchema.parse(withId);
 
@@ -26,10 +27,16 @@ export function create(db: Kysely<Database>) {
       ...rest,
       tenant_id,
       sources: sources ? JSON.stringify(sources) : "[]",
+      created_at: now,
+      updated_at: now,
     };
 
     await db.insertInto("permissions").values(dbPermission).execute();
 
-    return permission;
+    return {
+      ...permission,
+      created_at: now,
+      updated_at: now,
+    };
   };
 }

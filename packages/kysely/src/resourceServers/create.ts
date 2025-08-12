@@ -15,9 +15,12 @@ export function create(db: Kysely<Database>) {
     tenant_id: string,
     params: ResourceServerInsert,
   ): Promise<ResourceServer> => {
+    const now = new Date().toISOString();
     const withDefaults = {
       id: nanoid(),
       ...params,
+      created_at: now,
+      updated_at: now,
     };
 
     const resourceServer = resourceServerSchema.parse(withDefaults);
@@ -40,6 +43,8 @@ export function create(db: Kysely<Database>) {
         skip_consent_for_verifiable_first_party_clients ? 1 : 0,
       allow_offline_access: allow_offline_access ? 1 : 0,
       verification_key: verificationKey,
+      created_at: now,
+      updated_at: now,
     };
 
     await db.insertInto("resource_servers").values(dbResourceServer).execute();
