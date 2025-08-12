@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.32.0
+
+### Minor Changes
+
+- Update the casing for the migratinos
+
 ## 10.31.0
 
 ### Minor Changes

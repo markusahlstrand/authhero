@@ -15,7 +15,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("token_lifetime_for_web", "integer")
     .addColumn("skip_consent_for_verifiable_first_party_clients", "integer")
     .addColumn("allow_offline_access", "integer")
-    .addColumn("verificationKey", "varchar(4096)")
+    .addColumn("verification_key", "varchar(4096)")
     .addColumn("options", "varchar(4096)") // JSON object string
     .execute();
 

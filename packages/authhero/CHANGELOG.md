@@ -1,5 +1,11 @@
 # authhero
 
+## 0.188.0
+
+### Minor Changes
+
+- Update the casing for the migratinos
+
 ## 0.187.0
 
 ### Minor Changes

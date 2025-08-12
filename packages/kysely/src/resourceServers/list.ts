@@ -46,14 +46,19 @@ export function list(db: Kysely<Database>) {
       .limit(params.per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const resource_servers: ResourceServer[] = rows.map((row: any) => ({
-      ...row,
-      scopes: row.scopes ? JSON.parse(row.scopes) : [],
-      options: row.options ? JSON.parse(row.options) : {},
-      skip_consent_for_verifiable_first_party_clients:
-        !!row.skip_consent_for_verifiable_first_party_clients,
-      allow_offline_access: !!row.allow_offline_access,
-    }));
+    const resource_servers: ResourceServer[] = rows.map((row: any) => {
+      const { verification_key, ...rest } = row;
+      return {
+        ...rest,
+        scopes: row.scopes ? JSON.parse(row.scopes) : [],
+        options: row.options ? JSON.parse(row.options) : {},
+        skip_consent_for_verifiable_first_party_clients:
+          !!row.skip_consent_for_verifiable_first_party_clients,
+        allow_offline_access: !!row.allow_offline_access,
+        // Convert verification_key back to verificationKey for API
+        verificationKey: verification_key,
+      };
+    });
 
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))

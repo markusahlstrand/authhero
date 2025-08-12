@@ -74,7 +74,8 @@ export const DEFAULT_THEME: Theme = {
     header_text_alignment: "center",
     logo_height: 36,
     logo_position: "center",
-    logo_url: "https://assets.sesamy.com/images/sesamy-logo.svg",
+    logo_url:
+      "https://assets.sesamy.com/static/images/sesamy/logos/sesamy_logo_black.svg",
     social_buttons_layout: "bottom",
   },
 };

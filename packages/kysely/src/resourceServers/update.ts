@@ -7,7 +7,13 @@ export function update(db: Kysely<Database>) {
     id: string,
     params: any,
   ): Promise<boolean> => {
-    const updates: any = { ...params };
+    const { verificationKey, ...updates } = params;
+    
+    // Handle snake_case conversion for database
+    if (verificationKey !== undefined) {
+      updates.verification_key = verificationKey;
+    }
+    
     if (updates.scopes) updates.scopes = JSON.stringify(updates.scopes);
     if (updates.options) updates.options = JSON.stringify(updates.options);
     if (

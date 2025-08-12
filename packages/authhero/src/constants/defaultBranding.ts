@@ -10,7 +10,8 @@ export const DEFAULT_BRANDING: Branding = {
       angle_deg: 0,
     },
   },
-  logo_url: "https://assets.sesamy.com/images/sesamy-logo.svg",
+  logo_url:
+    "https://assets.sesamy.com/static/images/sesamy/logos/sesamy_logo_black.svg",
   favicon_url: "https://assets.sesamy.com/images/favicon.ico",
   font: {
     url: "https://assets.sesamy.com/fonts/khteka/WOFF2/KHTeka-Regular.woff2",

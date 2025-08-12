@@ -132,7 +132,9 @@ const sqlResourceServerSchema = z.object({
   // Store booleans as integers in SQL
   skip_consent_for_verifiable_first_party_clients: z.number().optional(),
   allow_offline_access: z.number().optional(),
-});
+  // Handle verification_key as snake_case in database but verificationKey in interface
+  verification_key: z.string().optional(),
+}).omit({ verificationKey: true });
 
 const sqlRuleSchema = z.object({
   ...ruleSchema.shape,

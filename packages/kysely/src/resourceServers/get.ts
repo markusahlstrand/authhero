@@ -16,13 +16,16 @@ export function get(db: Kysely<Database>) {
 
     if (!row) return null;
 
+    const { verification_key, ...rest } = row;
     const parsed: any = {
-      ...row,
+      ...rest,
       scopes: row.scopes ? JSON.parse(row.scopes) : [],
       options: row.options ? JSON.parse(row.options) : {},
       skip_consent_for_verifiable_first_party_clients:
         !!row.skip_consent_for_verifiable_first_party_clients,
       allow_offline_access: !!row.allow_offline_access,
+      // Convert verification_key back to verificationKey for API
+      verificationKey: verification_key,
     };
     return parsed as ResourceServer;
   };

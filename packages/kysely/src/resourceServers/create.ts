@@ -19,10 +19,12 @@ export function create(db: Kysely<Database>) {
 
     const resourceServer = resourceServerSchema.parse(withDefaults);
 
+    const { verificationKey, ...dbResourceServer } = resourceServer;
+
     await db
       .insertInto("resource_servers")
       .values({
-        ...resourceServer,
+        ...dbResourceServer,
         tenant_id,
         scopes: resourceServer.scopes
           ? JSON.stringify(resourceServer.scopes)
@@ -35,6 +37,8 @@ export function create(db: Kysely<Database>) {
             ? 1
             : 0,
         allow_offline_access: resourceServer.allow_offline_access ? 1 : 0,
+        // Convert verificationKey to verification_key for database
+        verification_key: verificationKey,
       })
       .execute();
 
