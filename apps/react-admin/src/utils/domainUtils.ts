@@ -135,3 +135,23 @@ export const getClientIdFromStorage = (domain: string): string => {
 export const formatDomain = (domain: string): string => {
   return domain.trim().replace(/^https?:\/\//, "");
 };
+
+/**
+ * Constructs a full URL with appropriate protocol based on domain
+ * - Uses http:// for localhost domains
+ * - Uses https:// for all other domains
+ * - Preserves existing protocol if already present
+ */
+export const buildUrlWithProtocol = (domain: string): string => {
+  if (domain.startsWith("http")) {
+    // If it already has http/https, use it as is
+    return domain;
+  }
+
+  if (domain.startsWith("localhost")) {
+    return `http://${domain}`;
+  }
+
+  // For all other domains, assume https
+  return `https://${domain}`;
+};

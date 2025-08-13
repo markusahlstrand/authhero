@@ -4,6 +4,7 @@ import {
   getSelectedDomainFromStorage,
   getClientIdFromStorage,
   getDomainFromStorage,
+  buildUrlWithProtocol,
 } from "./utils/domainUtils";
 import getToken from "./utils/tokenUtils";
 
@@ -26,10 +27,7 @@ export const createAuth0Client = (domain: string) => {
   }
 
   // Check if domain includes protocol
-  let fullDomain = domain;
-  if (!fullDomain.startsWith("http")) {
-    fullDomain = `https://${fullDomain}`;
-  }
+  const fullDomain = buildUrlWithProtocol(domain);
 
   // For external domains, we need to use different redirect settings
   // This allows us to do a complete domain redirection rather than just path-based
@@ -37,7 +35,7 @@ export const createAuth0Client = (domain: string) => {
   const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
 
   const auth0Client = new Auth0Client({
-    domain, // Just the domain without protocol for Auth0 client config
+    domain: fullDomain,
     clientId: getClientIdFromStorage(domain),
     cacheLocation: "localstorage",
     authorizationParams: {

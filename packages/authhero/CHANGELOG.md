@@ -1,5 +1,11 @@
 # authhero
 
+## 0.191.0
+
+### Minor Changes
+
+- Fetch jwks from database
+
 ## 0.190.0
 
 ### Minor Changes

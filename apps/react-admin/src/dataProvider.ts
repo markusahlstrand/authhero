@@ -1,7 +1,10 @@
 import { UpdateParams, withLifecycleCallbacks } from "react-admin";
 import { authorizedHttpClient } from "./authProvider";
 import auth0DataProvider from "./auth0DataProvider";
-import { getDomainFromStorage } from "./utils/domainUtils";
+import {
+  getDomainFromStorage,
+  buildUrlWithProtocol,
+} from "./utils/domainUtils";
 
 async function removeExtraFields(params: UpdateParams) {
   delete params.data?.id;
@@ -33,14 +36,7 @@ export function getDataprovider(auth0Domain?: string) {
       baseUrl = domainConfig.restApiUrl;
     } else {
       // Otherwise use the auth domain with https
-      // Check if the domain includes the protocol (http/https)
-      if (!auth0Domain.startsWith("http")) {
-        // If not, assume https
-        baseUrl = `https://${auth0Domain}`;
-      } else {
-        // If it already has http/https, use it as is
-        baseUrl = auth0Domain;
-      }
+      baseUrl = buildUrlWithProtocol(auth0Domain);
     }
   }
 
@@ -74,16 +70,11 @@ export function getDataproviderForTenant(
       apiUrl = domainConfig.restApiUrl;
     } else {
       // Otherwise construct an API URL using the auth0Domain
-      // Make sure to use https:// protocol for API requests
-      if (!auth0Domain.startsWith("http")) {
-        apiUrl = `https://${auth0Domain}`;
-      } else {
-        apiUrl = auth0Domain;
-      }
+      apiUrl = buildUrlWithProtocol(auth0Domain);
     }
   } else {
-    // Fallback to the environment variable or a hard-coded default
-    apiUrl = import.meta.env.VITE_AUTH0_API_URL || "https://auth2.sesamy.dev";
+    // Fallback to the environment variable
+    apiUrl = import.meta.env.VITE_AUTH0_API_URL;
   }
 
   // Ensure apiUrl doesn't end with a slash

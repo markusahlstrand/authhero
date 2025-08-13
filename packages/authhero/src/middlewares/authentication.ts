@@ -3,6 +3,7 @@ import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { decode, verify } from "hono/jwt";
+import { getJwksFromDatabase } from "../utils/jwks";
 
 const JwksKeySchema = z.object({
   alg: z.literal("RS256"),
@@ -28,21 +29,23 @@ interface JwtPayload {
 }
 
 async function getJwks(bindings: Bindings) {
-  try {
+  if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
     const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
 
     if (!response.ok) {
-      throw new Error("Failed to fetch jwks");
+      // If remote JWKS fails, fall back to database
+      console.warn(
+        `JWKS fetch failed with status ${response.status}, falling back to database`,
+      );
+      return await getJwksFromDatabase(bindings.data);
     }
 
     const responseBody: { keys: JwksKey[] } = await response.json();
 
     return responseBody.keys;
-  } catch (error: any) {
-    throw new HTTPException(500, {
-      message: `Failed to fetch jwks: ${error.message}`,
-    });
   }
+
+  return await getJwksFromDatabase(bindings.data);
 }
 
 async function validateJwtToken(

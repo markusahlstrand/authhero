@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { BunSqliteDialect } from "kysely-bun-sqlite";
-import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
+import createAdapters, {
+  Database,
+  migrateToLatest,
+} from "@authhero/kysely-adapter";
 import bcryptjs from "bcryptjs";
 // @ts-ignore
 import * as bunSqlite from "bun:sqlite";
@@ -12,7 +15,7 @@ import { SendEmailParams } from "authhero";
 const dialect = new BunSqliteDialect({
   database: new bunSqlite.Database("db.sqlite"),
 });
-const db = new Kysely<any>({
+const db = new Kysely<Database>({
   dialect,
 });
 
@@ -25,7 +28,9 @@ const app = createApp({
   dataAdapter,
   allowedOrigins: ["http://localhost:5173", "https://local.authhe.ro"],
 });
+
 const keys = await dataAdapter.keys.list();
+
 if (keys.length === 0) {
   const signingKey = await createX509Certificate({
     name: `CN=demo`,
@@ -95,7 +100,7 @@ const server = {
   async fetch(request: Request): Promise<Response> {
     return app.fetch(request, {
       // @ts-ignore
-      ...process.env,
+      // ...process.env,
       ISSUER: "http://localhost:3000/",
       emailProviders: {
         "mock-email": async (params: SendEmailParams) => {
