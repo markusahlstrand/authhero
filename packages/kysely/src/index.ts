@@ -22,8 +22,9 @@ import { createRefreshTokensAdapter } from "./refreshTokens";
 import { createCleanup } from "./cleanup";
 import { createFormsAdapter } from "./forms";
 import { createResourceServersAdapter } from "./resourceServers";
-import { createPermissionsAdapter } from "./permissions/index";
 import { createRolesAdapter } from "./roles";
+import { rolePermissions } from "./role-permissions";
+import { userPermissions } from "./user-permissions";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -48,7 +49,8 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     promptSettings: createPromptSettingsAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
-    permissions: createPermissionsAdapter(db),
+    rolePermissions: rolePermissions(db),
+    userPermissions: userPermissions(db),
     roles: createRolesAdapter(db),
     sessions: createSessionsAdapter(db),
     tenants: createTenantsAdapter(db),

@@ -263,6 +263,32 @@ export default (
         };
       }
 
+      // Special case for permissions which are nested under users
+      if (resource === "permissions" && params.target === "user_id") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/users/${params.id}/permissions?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        return {
+          data: res.json.map((item: any) => ({
+            id: `${item.resource_server_identifier}:${item.permission_name}`,
+            ...item,
+          })),
+          total: res.json.length || 0,
+        };
+      }
+
       // Original implementation for other resources
       const query = {
         include_totals: true,

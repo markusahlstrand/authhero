@@ -24,6 +24,8 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
+import { resourceServerRoutes } from "./resource-servers";
+// import { permissionRoutes } from "./permissions"; // Commented out - using role/user permissions instead
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -94,7 +96,9 @@ export default function create(config: AuthHeroConfig) {
     .route("/sessions", sessionsRoutes)
     .route("/refresh_tokens", refreshTokensRoutes)
     .route("/forms", formsRoutes)
-    .route("/roles", roleRoutes);
+    .route("/roles", roleRoutes)
+    .route("/resource-servers", resourceServerRoutes);
+  // .route("/permissions", permissionRoutes); // Commented out - using role/user permissions instead
 
   managementApp.doc("/spec", {
     openapi: "3.0.0",

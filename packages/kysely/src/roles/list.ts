@@ -28,7 +28,11 @@ export function list(db: Kysely<Database>) {
 
     const rows = await filteredQuery.selectAll().execute();
     const roles: Role[] = rows.map((row) => {
-      return row as RoleDbRow;
+      const dbRow = row as RoleDbRow;
+      return {
+        ...dbRow,
+        id: `${tenantId}:${dbRow.name}`, // Generate composite ID for API compatibility
+      };
     });
 
     const { count } = await query

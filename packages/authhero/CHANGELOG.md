@@ -1,5 +1,11 @@
 # authhero
 
+## 0.192.0
+
+### Minor Changes
+
+- Add api endpoints for permissions
+
 ## 0.191.0
 
 ### Minor Changes

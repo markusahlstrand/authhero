@@ -26,5 +26,6 @@ export * from "./EmailProvider";
 export * from "./RefreshTokens";
 export * from "./SmsProvider";
 export * from "./ResourceServer";
-export * from "./Permission";
+export * from "./RolePermission";
+export * from "./UserPermission";
 export * from "./Role";

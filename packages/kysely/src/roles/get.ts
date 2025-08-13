@@ -16,7 +16,11 @@ export function get(db: Kysely<Database>) {
 
     if (!row) return null;
 
-    const role: Role = row as RoleDbRow;
+    const dbRow = row as RoleDbRow;
+    const role: Role = {
+      ...dbRow,
+    };
+
     return role;
   };
 }

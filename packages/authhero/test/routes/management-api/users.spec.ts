@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
@@ -1570,6 +1570,273 @@ describe("users management API endpoint", () => {
 
       // auth0 does not return linked accounts
       expect(secondaryUserResponse.status).toBe(404);
+    });
+  });
+
+  describe("User Permissions Management", () => {
+    let userId: string;
+    let token: string;
+    let managementClient: any;
+    let uniqueResourceServer: string;
+
+    beforeEach(async () => {
+      const { managementApp, env } = await getTestServer();
+      managementClient = testClient(managementApp, env);
+      token = await getAdminToken();
+      uniqueResourceServer = `https://api-${Date.now()}.example.com`;
+
+      // Create a test user
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: `test-permissions-${Date.now()}@example.com`,
+            connection: "email",
+            provider: "email",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+      const newUser = await createUserResponse.json();
+      userId = newUser.user_id;
+    });
+
+    it("should handle user permissions CRUD operations", async () => {
+      // --------------------------------------------
+      // GET user permissions (initially empty)
+      // --------------------------------------------
+      const getPermissionsResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$get(
+        {
+          param: {
+            user_id: userId,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getPermissionsResponse.status).toBe(200);
+      const initialPermissions = await getPermissionsResponse.json();
+      expect(Array.isArray(initialPermissions)).toBe(true);
+      expect(initialPermissions.length).toBe(0);
+
+      // --------------------------------------------
+      // ADD permissions to user
+      // --------------------------------------------
+      const addPermissionsResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$post(
+        {
+          param: {
+            user_id: userId,
+          },
+          json: {
+            permissions: [
+              {
+                permission_name: "read:profile",
+                resource_server_identifier: uniqueResourceServer,
+              },
+              {
+                permission_name: "write:profile",
+                resource_server_identifier: uniqueResourceServer,
+              },
+            ],
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(addPermissionsResponse.status).toBe(201);
+      const addResult = await addPermissionsResponse.json();
+      expect(addResult.message).toBe("Permissions assigned successfully");
+
+      // --------------------------------------------
+      // GET user permissions (should now have 2)
+      // --------------------------------------------
+      const getPermissionsAfterAddResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$get(
+        {
+          param: {
+            user_id: userId,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getPermissionsAfterAddResponse.status).toBe(200);
+      const permissionsAfterAdd = await getPermissionsAfterAddResponse.json();
+      expect(Array.isArray(permissionsAfterAdd)).toBe(true);
+      expect(permissionsAfterAdd.length).toBe(2);
+
+      // Verify the permissions have the correct structure
+      const readPermission = permissionsAfterAdd.find(
+        (p: any) =>
+          p.permission_name === "read:profile" &&
+          p.resource_server_identifier === uniqueResourceServer,
+      );
+      const writePermission = permissionsAfterAdd.find(
+        (p: any) =>
+          p.permission_name === "write:profile" &&
+          p.resource_server_identifier === uniqueResourceServer,
+      );
+
+      expect(readPermission).toBeDefined();
+      expect(writePermission).toBeDefined();
+      expect(readPermission.resource_server_identifier).toBe(
+        uniqueResourceServer,
+      );
+      expect(writePermission.resource_server_identifier).toBe(
+        uniqueResourceServer,
+      );
+
+      // --------------------------------------------
+      // REMOVE one permission from user
+      // --------------------------------------------
+      const removePermissionsResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$delete(
+        {
+          param: {
+            user_id: userId,
+          },
+          json: {
+            permissions: [
+              {
+                permission_name: "write:profile",
+                resource_server_identifier: uniqueResourceServer,
+              },
+            ],
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(removePermissionsResponse.status).toBe(200);
+      const removeResult = await removePermissionsResponse.json();
+      expect(removeResult.message).toBe("Permissions removed successfully");
+
+      // --------------------------------------------
+      // GET user permissions (should now have 1)
+      // --------------------------------------------
+      const getPermissionsAfterRemoveResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$get(
+        {
+          param: {
+            user_id: userId,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getPermissionsAfterRemoveResponse.status).toBe(200);
+      const permissionsAfterRemove =
+        await getPermissionsAfterRemoveResponse.json();
+      expect(Array.isArray(permissionsAfterRemove)).toBe(true);
+      expect(permissionsAfterRemove.length).toBe(1);
+      expect(permissionsAfterRemove[0].permission_name).toBe("read:profile");
+      expect(permissionsAfterRemove[0].resource_server_identifier).toBe(
+        uniqueResourceServer,
+      );
+    });
+
+    it("should return 404 for non-existent user", async () => {
+      const nonExistentUserId = "email|non-existent-user";
+
+      // Try to get permissions for non-existent user
+      const getPermissionsResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$get(
+        {
+          param: {
+            user_id: nonExistentUserId,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getPermissionsResponse.status).toBe(404);
+
+      // Try to assign permissions to non-existent user
+      const addPermissionsResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$post(
+        {
+          param: {
+            user_id: nonExistentUserId,
+          },
+          json: {
+            permissions: [
+              {
+                permission_name: "read:test",
+                resource_server_identifier: uniqueResourceServer,
+              },
+            ],
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(addPermissionsResponse.status).toBe(404);
     });
   });
 });

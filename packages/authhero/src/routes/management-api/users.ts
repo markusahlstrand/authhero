@@ -15,6 +15,7 @@ import {
   sessionSchema,
   totalsSchema,
   userInsertSchema,
+  userPermissionWithDetailsListSchema,
 } from "@authhero/adapter-interfaces";
 
 const usersWithTotalsSchema = totalsSchema.extend({
@@ -644,5 +645,215 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       return ctx.json(sessions);
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/users/:user_id/permissions
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}/permissions",
+      request: {
+        params: z.object({
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        query: querySchema,
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: userPermissionWithDetailsListSchema,
+            },
+          },
+          description: "User permissions",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      const { page, per_page, sort, q } = ctx.req.valid("query");
+
+      // Check if user exists first
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, {
+          message: "User not found",
+        });
+      }
+
+      // Get permissions assigned to this user using the new adapter
+      const permissions = await ctx.env.data.userPermissions.list(
+        tenant_id,
+        user_id,
+        {
+          page,
+          per_page,
+          include_totals: false,
+          sort: parseSort(sort),
+          q,
+        },
+      );
+
+      return ctx.json(permissions);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/users/:user_id/permissions
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "post",
+      path: "/{user_id}/permissions",
+      request: {
+        params: z.object({
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                permissions: z.array(
+                  z.object({
+                    permission_name: z.string(),
+                    resource_server_identifier: z.string(),
+                  }),
+                ),
+              }),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        201: {
+          description: "Permissions assigned to user",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { permissions } = ctx.req.valid("json");
+
+      // Check if user exists first
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, {
+          message: "User not found",
+        });
+      }
+
+      // Use the new user permissions adapter to assign permissions
+      const success = await ctx.env.data.userPermissions.assign(
+        tenant_id,
+        user_id,
+        permissions.map((p) => ({
+          user_id,
+          resource_server_identifier: p.resource_server_identifier,
+          permission_name: p.permission_name,
+        })),
+      );
+
+      if (!success) {
+        throw new HTTPException(500, {
+          message: "Failed to assign permissions to user",
+        });
+      }
+
+      return ctx.json(
+        { message: "Permissions assigned successfully" },
+        { status: 201 },
+      );
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/users/:user_id/permissions
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "delete",
+      path: "/{user_id}/permissions",
+      request: {
+        params: z.object({
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                permissions: z.array(
+                  z.object({
+                    permission_name: z.string(),
+                    resource_server_identifier: z.string(),
+                  }),
+                ),
+              }),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          description: "Permissions removed from user",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { permissions } = ctx.req.valid("json");
+
+      // Check if user exists first
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, {
+          message: "User not found",
+        });
+      }
+
+      // Use the new user permissions adapter to remove permissions
+      const success = await ctx.env.data.userPermissions.remove(
+        tenant_id,
+        user_id,
+        permissions,
+      );
+
+      if (!success) {
+        throw new HTTPException(500, {
+          message: "Failed to remove permissions from user",
+        });
+      }
+
+      return ctx.json({ message: "Permissions removed successfully" });
     },
   );

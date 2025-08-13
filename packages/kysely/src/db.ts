@@ -17,7 +17,6 @@ import {
   themeSchema,
   userSchema,
   resourceServerSchema,
-  permissionSchema,
   roleSchema,
 } from "@authhero/adapter-interfaces";
 import { SqlLog } from "./logs/Log";
@@ -141,23 +140,28 @@ export const sqlResourceServerSchema = z
   })
   .omit({ verificationKey: true });
 
-export const sqlPermissionSchema = z.object({
-  id: z.string(),
-  ...permissionSchema.shape,
-  tenant_id: z.string(),
-  // Store sources as JSON array
-  sources: z.string().optional(),
-  // Timestamp fields
-  created_at: z.string(),
-  updated_at: z.string(),
-});
-
 export const sqlRoleSchema = z.object({
   ...roleSchema.shape,
   tenant_id: z.string(),
   // Timestamp fields
   created_at: z.string(),
   updated_at: z.string(),
+});
+
+export const sqlRolePermissionSchema = z.object({
+  tenant_id: z.string(),
+  role_id: z.string(),
+  resource_server_identifier: z.string(),
+  permission_name: z.string(),
+  created_at: z.string(),
+});
+
+export const sqlUserPermissionSchema = z.object({
+  tenant_id: z.string(),
+  user_id: z.string(),
+  resource_server_identifier: z.string(),
+  permission_name: z.string(),
+  created_at: z.string(),
 });
 
 export interface Database {
@@ -180,6 +184,7 @@ export interface Database {
   tenants: Tenant;
   themes: z.infer<typeof sqlThemeSchema>;
   resource_servers: z.infer<typeof sqlResourceServerSchema>;
-  permissions: z.infer<typeof sqlPermissionSchema>;
+  role_permissions: z.infer<typeof sqlRolePermissionSchema>;
+  user_permissions: z.infer<typeof sqlUserPermissionSchema>;
   roles: z.infer<typeof sqlRoleSchema>;
 }
