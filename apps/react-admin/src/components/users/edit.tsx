@@ -416,13 +416,18 @@ export function UserEdit() {
               rowClick=""
               bulkActionButtons={false}
             >
-              <TextField source="resource_server_identifier" label="Resource Server" />
+              <TextField
+                source="resource_server_identifier"
+                label="Resource Server"
+              />
               <TextField source="resource_server_name" label="Resource Name" />
               <TextField source="permission_name" label="Permission" />
               <TextField source="description" label="Description" />
               <FunctionField
                 source="created_at"
-                render={(record: any) => record.created_at ? <DateAgo date={record.created_at} /> : "-"}
+                render={(record: any) =>
+                  record.created_at ? <DateAgo date={record.created_at} /> : "-"
+                }
                 label="Assigned"
               />
             </Datagrid>

@@ -196,7 +196,7 @@ describe("roles", () => {
     expect(get404Response.status).toBe(404);
   });
 
-  it.only("should handle role permissions management", async () => {
+  it("should handle role permissions management", async () => {
     // First create a role
     const createRoleResponse = await managementClient.roles.$post(
       {

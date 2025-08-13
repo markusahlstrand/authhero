@@ -190,7 +190,9 @@ export default (
         if (resource === "branding") {
           return Promise.all([
             httpClient(`${apiUrl}/api/v2/${resource}`, { headers }),
-            httpClient(`${apiUrl}/api/v2/branding/themes/default`, { headers }).catch(() => ({ json: {} }))
+            httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
+              headers,
+            }).catch(() => ({ json: {} })),
           ]).then(([brandingResponse, themeResponse]) => ({
             data: {
               id: resource,
@@ -199,7 +201,7 @@ export default (
             },
           }));
         }
-        
+
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
         }).then(({ json }) => ({
@@ -332,7 +334,7 @@ export default (
         if (resource === "branding" && cleanParams.data.themes) {
           const themeData = cleanParams.data.themes;
           delete cleanParams.data.themes;
-          
+
           // Update branding and theme data in parallel
           return Promise.all([
             httpClient(`${apiUrl}/api/v2/${resource}`, {
@@ -347,16 +349,16 @@ export default (
             }).catch((error) => {
               console.warn("Failed to update theme data:", error);
               return { json: {} };
-            })
+            }),
           ]).then(([brandingResponse, themeResponse]) => ({
-            data: { 
-              id: resource, 
+            data: {
+              id: resource,
               ...brandingResponse.json,
               themes: themeResponse.json,
             },
           }));
         }
-        
+
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
           method: "PATCH",
