@@ -18,7 +18,7 @@ describe("roles", () => {
     expect(created.id).toBeDefined();
 
     // Get the role
-    const fetched = await adapters.roles.get(tenant, (created as any).id);
+    const fetched = await adapters.roles.get(tenant, created.id);
     expect(fetched?.name).toBe("admin");
 
     // List roles
@@ -40,19 +40,19 @@ describe("roles", () => {
     expect(searchList.roles.length).toBe(1);
 
     // Update the role
-    const updated = await adapters.roles.update(tenant, (created as any).id, {
+    const updated = await adapters.roles.update(tenant, created.id, {
       description: "Updated administrator role",
     });
     expect(updated).toBe(true);
 
-    const fetched2 = await adapters.roles.get(tenant, (created as any).id);
+    const fetched2 = await adapters.roles.get(tenant, created.id);
     expect(fetched2?.description).toBe("Updated administrator role");
 
     // Remove the role
-    const removed = await adapters.roles.remove(tenant, (created as any).id);
+    const removed = await adapters.roles.remove(tenant, created.id);
     expect(removed).toBe(true);
 
-    const afterDelete = await adapters.roles.get(tenant, (created as any).id);
+    const afterDelete = await adapters.roles.get(tenant, created.id);
     expect(afterDelete).toBeNull();
 
     // List roles after deletion

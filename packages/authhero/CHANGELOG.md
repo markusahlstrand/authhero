@@ -1,5 +1,22 @@
 # authhero
 
+## 0.193.0
+
+### Minor Changes
+
+- fc8153d: Update structure and endpoints
+
+### Patch Changes
+
+- Updated dependencies [fc8153d]
+  - @authhero/adapter-interfaces@0.81.0
+
+## 0.192.0
+
+### Minor Changes
+
+- Add api endpoints for permissions
+
 ## 0.191.0
 
 ### Minor Changes

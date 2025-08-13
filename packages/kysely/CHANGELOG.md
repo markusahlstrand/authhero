@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.34.0
+
+### Minor Changes
+
+- fc8153d: Update structure and endpoints
+
+### Patch Changes
+
+- Updated dependencies [fc8153d]
+  - @authhero/adapter-interfaces@0.81.0
+
 ## 10.33.0
 
 ### Minor Changes

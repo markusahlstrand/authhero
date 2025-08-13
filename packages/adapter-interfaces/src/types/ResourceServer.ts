@@ -6,21 +6,19 @@ export const resourceServerScopeSchema = z.object({
 });
 export type ResourceServerScope = z.infer<typeof resourceServerScopeSchema>;
 
-export const resourceServerOptionsSchema = z
-  .object({
-    token_dialect: z.enum(["access_token", "access_token_authz"]).optional(),
-    enforce_policies: z.boolean().optional(),
-    allow_skipping_userinfo: z.boolean().optional(),
-    skip_userinfo: z.boolean().optional(),
-    persist_client_authorization: z.boolean().optional(),
-    enable_introspection_endpoint: z.boolean().optional(),
-    mtls: z
-      .object({
-        bound_access_tokens: z.boolean().optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+export const resourceServerOptionsSchema = z.object({
+  token_dialect: z.enum(["access_token", "access_token_authz"]).optional(),
+  enforce_policies: z.boolean().optional(),
+  allow_skipping_userinfo: z.boolean().optional(),
+  skip_userinfo: z.boolean().optional(),
+  persist_client_authorization: z.boolean().optional(),
+  enable_introspection_endpoint: z.boolean().optional(),
+  mtls: z
+    .object({
+      bound_access_tokens: z.boolean().optional(),
+    })
+    .optional(),
+});
 export type ResourceServerOptions = z.infer<typeof resourceServerOptionsSchema>;
 
 export const resourceServerInsertSchema = z.object({

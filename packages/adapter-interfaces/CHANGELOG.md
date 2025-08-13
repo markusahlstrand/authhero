@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.81.0
+
+### Minor Changes
+
+- fc8153d: Update structure and endpoints
+
 ## 0.80.0
 
 ### Minor Changes

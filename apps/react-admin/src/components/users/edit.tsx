@@ -396,6 +396,43 @@ export function UserEdit() {
             </Datagrid>
           </ReferenceManyField>
         </TabbedForm.Tab>
+        <TabbedForm.Tab label="permissions">
+          <ReferenceManyField
+            reference="permissions"
+            target="user_id"
+            pagination={<Pagination />}
+            sort={{ field: "permission_name", order: "ASC" }}
+          >
+            <Datagrid
+              sx={{
+                width: "100%",
+                "& .column-comment": {
+                  maxWidth: "20em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
+              rowClick=""
+              bulkActionButtons={false}
+            >
+              <TextField
+                source="resource_server_identifier"
+                label="Resource Server"
+              />
+              <TextField source="resource_server_name" label="Resource Name" />
+              <TextField source="permission_name" label="Permission" />
+              <TextField source="description" label="Description" />
+              <FunctionField
+                source="created_at"
+                render={(record: any) =>
+                  record.created_at ? <DateAgo date={record.created_at} /> : "-"
+                }
+                label="Assigned"
+              />
+            </Datagrid>
+          </ReferenceManyField>
+        </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField
             source="date"

@@ -131,6 +131,7 @@ export function App(props: AppProps) {
         edit={BrandingEdit}
         show={ShowGuesser}
       />
+      <Resource name="permissions" />
     </Admin>
   );
 }

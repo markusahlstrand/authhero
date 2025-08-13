@@ -18,7 +18,8 @@ import { EmailProvidersAdapter } from "./EmailProviders";
 import { RefreshTokensAdapter } from "./RefreshTokens";
 import { FormsAdapter } from "./Forms";
 import { ResourceServersAdapter } from "./ResourceServers";
-import { PermissionsAdapter } from "./Permissions";
+import { RolePermissionsAdapter } from "./RolePermissions";
+import { UserPermissionsAdapter } from "./UserPermissions";
 import { RolesAdapter } from "./Roles";
 
 export interface DataAdapters {
@@ -38,10 +39,14 @@ export interface DataAdapters {
   promptSettings: PromptSettingsAdapter;
   refreshTokens: RefreshTokensAdapter;
   resourceServers: ResourceServersAdapter;
-  permissions: PermissionsAdapter;
+  rolePermissions: RolePermissionsAdapter;
+  userPermissions: UserPermissionsAdapter;
   roles: RolesAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
   users: UserDataAdapter;
 }
+
+export * from "./RolePermissions";
+export * from "./UserPermissions";

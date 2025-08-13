@@ -1,15 +1,15 @@
-import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
 import { Role, RoleInsert } from "@authhero/adapter-interfaces";
 import { Database, sqlRoleSchema } from "../db";
 import { z } from "@hono/zod-openapi";
+import { nanoid } from "nanoid";
 
 type RoleDbInsert = z.infer<typeof sqlRoleSchema>;
 
 export function create(db: Kysely<Database>) {
   return async (tenantId: string, params: RoleInsert): Promise<Role> => {
-    const id = nanoid();
     const now = new Date().toISOString();
+    const id = nanoid();
 
     const dbRole: RoleDbInsert = {
       id,

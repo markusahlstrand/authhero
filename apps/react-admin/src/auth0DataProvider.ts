@@ -190,7 +190,9 @@ export default (
         if (resource === "branding") {
           return Promise.all([
             httpClient(`${apiUrl}/api/v2/${resource}`, { headers }),
-            httpClient(`${apiUrl}/api/v2/branding/themes/default`, { headers }).catch(() => ({ json: {} }))
+            httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
+              headers,
+            }).catch(() => ({ json: {} })),
           ]).then(([brandingResponse, themeResponse]) => ({
             data: {
               id: resource,
@@ -199,7 +201,7 @@ export default (
             },
           }));
         }
-        
+
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
         }).then(({ json }) => ({
@@ -263,6 +265,32 @@ export default (
         };
       }
 
+      // Special case for permissions which are nested under users
+      if (resource === "permissions" && params.target === "user_id") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/users/${params.id}/permissions?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        return {
+          data: res.json.map((item: any) => ({
+            id: `${item.resource_server_identifier}:${item.permission_name}`,
+            ...item,
+          })),
+          total: res.json.length || 0,
+        };
+      }
+
       // Original implementation for other resources
       const query = {
         include_totals: true,
@@ -306,7 +334,7 @@ export default (
         if (resource === "branding" && cleanParams.data.themes) {
           const themeData = cleanParams.data.themes;
           delete cleanParams.data.themes;
-          
+
           // Update branding and theme data in parallel
           return Promise.all([
             httpClient(`${apiUrl}/api/v2/${resource}`, {
@@ -321,16 +349,16 @@ export default (
             }).catch((error) => {
               console.warn("Failed to update theme data:", error);
               return { json: {} };
-            })
+            }),
           ]).then(([brandingResponse, themeResponse]) => ({
-            data: { 
-              id: resource, 
+            data: {
+              id: resource,
               ...brandingResponse.json,
               themes: themeResponse.json,
             },
           }));
         }
-        
+
         return httpClient(`${apiUrl}/api/v2/${resource}`, {
           headers,
           method: "PATCH",
