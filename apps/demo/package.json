@@ -1,24 +1,24 @@
 {
   "name": "@authhero/demo",
   "private": true,
-  "version": "0.15.3",
+  "version": "0.16.0",
   "scripts": {
     "dev": "bun --watch src/bun.ts"
   },
   "dependencies": {
     "@authhero/kysely-adapter": "^10.33.0",
-    "@hono/swagger-ui": "^0.5.0",
+    "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^0.19.2",
-    "@peculiar/x509": "^1.12.3",
-    "authhero": "^0.190.0",
-    "better-sqlite3": "^11.5.0",
-    "hono": "^4.6.15",
+    "@peculiar/x509": "^1.13.0",
+    "authhero": "^0.191.0",
+    "better-sqlite3": "^12.2.0",
+    "hono": "^4.9.1",
     "hono-openapi-middlewares": "^1.0.11",
-    "kysely": "^0.27.4",
-    "kysely-bun-sqlite": "^0.3.2",
+    "kysely": "^0.28.5",
+    "kysely-bun-sqlite": "^0.4.0",
     "oslo": "^1.2.1"
   },
   "devDependencies": {
-    "bcryptjs": "^2.4.3"
+    "bcryptjs": "^3.0.2"
   }
 }

@@ -17,8 +17,8 @@ declare type Fetcher = {
 export type Bindings = {
   ENVIRONMENT: string;
   AUTH_URL: string;
-  JWKS_URL: string;
-  JWKS_SERVICE: Fetcher;
+  JWKS_URL?: string;
+  JWKS_SERVICE?: Fetcher;
   ISSUER: string;
   UNIVERSAL_LOGIN_URL?: string;
   OAUTH_API_URL?: string;

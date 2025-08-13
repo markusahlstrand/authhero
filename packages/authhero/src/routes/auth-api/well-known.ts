@@ -1,13 +1,12 @@
 import {
   jwksKeySchema,
-  jwksSchema,
   openIDConfigurationSchema,
 } from "@authhero/adapter-interfaces";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { X509Certificate } from "@peculiar/x509";
 import { JWKS_CACHE_TIMEOUT_IN_SECONDS } from "../../constants";
 import { Bindings } from "../../types";
 import { getAuthUrl, getIssuer } from "../../variables";
+import { getJwksFromDatabase } from "../../utils/jwks";
 
 export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
@@ -31,19 +30,7 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const signingKeys = await ctx.env.data.keys.list();
-      const keys = await Promise.all(
-        signingKeys.map(async (signingKey) => {
-          const importedCert = new X509Certificate(signingKey.cert);
-          const publicKey = await importedCert.publicKey.export();
-          const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);
-
-          return jwksSchema.parse({
-            ...jwkKey,
-            kid: signingKey.kid,
-          });
-        }),
-      );
+      const keys = await getJwksFromDatabase(ctx.env.data);
 
       return ctx.json(
         { keys },

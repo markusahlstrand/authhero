@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.16.0
+
+### Minor Changes
+
+- Fetch jwks from database
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.191.0
+
 ## 0.15.3
 
 ### Patch Changes
