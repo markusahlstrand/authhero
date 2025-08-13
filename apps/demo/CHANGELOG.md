@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.17.0
+
+### Minor Changes
+
+- fc8153d: Update structure and endpoints
+
+### Patch Changes
+
+- Updated dependencies [fc8153d]
+  - authhero@0.193.0
+  - @authhero/kysely-adapter@11.0.0
+
 ## 0.16.1
 
 ### Patch Changes
