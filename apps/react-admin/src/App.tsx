@@ -25,9 +25,15 @@ import { BrandingList, BrandingEdit } from "./components/branding";
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionsList, SessionEdit } from "./components/sessions";
+import {
+  ResourceServerCreate,
+  ResourceServerEdit,
+  ResourceServerList,
+} from "./components/resource-servers";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
+import StorageIcon from "@mui/icons-material/Storage";
 import { useMemo } from "react";
 
 interface AppProps {
@@ -129,6 +135,14 @@ export function App(props: AppProps) {
         options={{ hasSingle: true }}
         list={BrandingList}
         edit={BrandingEdit}
+        show={ShowGuesser}
+      />
+      <Resource
+        icon={StorageIcon}
+        name="resource-servers"
+        list={ResourceServerList}
+        create={ResourceServerCreate}
+        edit={ResourceServerEdit}
         show={ShowGuesser}
       />
       <Resource name="permissions" />

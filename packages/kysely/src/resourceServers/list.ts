@@ -7,6 +7,7 @@ import {
 import { Database, sqlResourceServerSchema } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
+import { removeNullProperties } from "../helpers/remove-nulls";
 import { z } from "@hono/zod-openapi";
 
 type ResourceServerDbRow = z.infer<typeof sqlResourceServerSchema>;
@@ -60,7 +61,7 @@ export function list(db: Kysely<Database>) {
         ...rest
       } = dbRow;
 
-      return {
+      const resourceServer = {
         ...rest,
         scopes: scopes ? JSON.parse(scopes) : [],
         options: options ? JSON.parse(options) : {},
@@ -70,6 +71,8 @@ export function list(db: Kysely<Database>) {
         // Convert verification_key back to verificationKey for API
         verificationKey: verification_key,
       };
+
+      return removeNullProperties(resourceServer);
     });
 
     const { count } = await query

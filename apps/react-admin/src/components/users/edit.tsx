@@ -37,12 +37,15 @@ import {
   IconButton,
   Tooltip,
   DialogContentText,
+  Autocomplete,
 } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
 import { useState } from "react";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const LinkUserButton = () => {
   const [open, setOpen] = useState(false);
@@ -252,6 +255,346 @@ const UnlinkButton = () => {
   );
 };
 
+const AddPermissionButton = () => {
+  const [open, setOpen] = useState(false);
+  const [resourceServers, setResourceServers] = useState<any[]>([]);
+  const [selectedResourceServer, setSelectedResourceServer] =
+    useState<any>(null);
+  const [availablePermissions, setAvailablePermissions] = useState<any[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+
+  // Get the user ID from the URL path
+  const urlPath = window.location.pathname;
+  const matches = urlPath.match(/\/([^/]+)\/users\/([^/]+)/);
+  const userId = matches ? matches[2] : null;
+
+  const handleOpen = async () => {
+    setOpen(true);
+    await loadResourceServers();
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedResourceServer(null);
+    setAvailablePermissions([]);
+    setSelectedPermissions([]);
+  };
+
+  const loadResourceServers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await dataProvider.getList("resource-servers", {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+      setResourceServers(data);
+    } catch (error) {
+      console.error("Error loading resource servers:", error);
+      notify("Error loading resource servers", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPermissions = async (resourceServer: any) => {
+    setLoadingPermissions(true);
+    try {
+      // Build available scopes from the selected resource server's property
+      const allScopes = (resourceServer?.scopes || []).map((s: any) => ({
+        permission_name: s?.permission_name ?? s?.value ?? s,
+        description: s?.description ?? "",
+      }));
+
+      // Fetch the user's existing permissions from /users/:id/permissions
+      const existingRes = await dataProvider.getList(
+        `users/${userId}/permissions`,
+        {
+          pagination: { page: 1, perPage: 200 },
+          sort: { field: "permission_name", order: "ASC" },
+          filter: {},
+        },
+      );
+
+      const existingAll = existingRes.data ?? [];
+      // Narrow to the selected resource server
+      const existingForServer = existingAll.filter((p: any) => {
+        const identifier =
+          p.resource_server_identifier ?? p.resource_server_id ?? p.audience;
+        return identifier === resourceServer?.identifier;
+      });
+
+      const existingSet = new Set(
+        existingForServer.map((p: any) => p.permission_name),
+      );
+
+      // Filter out scopes the user already has
+      const filtered = allScopes.filter(
+        (p: any) => p.permission_name && !existingSet.has(p.permission_name),
+      );
+
+      setAvailablePermissions(filtered);
+    } catch (error) {
+      console.error("Error loading permissions:", error);
+      notify("Error loading permissions", { type: "error" });
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
+  const handleResourceServerChange = (resourceServer: any) => {
+    setSelectedResourceServer(resourceServer);
+    setSelectedPermissions([]);
+    if (resourceServer) {
+      loadPermissions(resourceServer);
+    } else {
+      setAvailablePermissions([]);
+    }
+  };
+
+  const handleAddPermissions = async () => {
+    if (!userId || selectedPermissions.length === 0) {
+      notify("Please select at least one permission", { type: "warning" });
+      return;
+    }
+
+    try {
+      // Send permissions in a single payload as an array
+      const payload = {
+        permissions: selectedPermissions.map((permission: any) => ({
+          permission_name: permission.permission_name,
+          resource_server_identifier: selectedResourceServer.identifier,
+        })),
+      };
+
+      await dataProvider.create(`users/${userId}/permissions`, {
+        data: payload,
+      });
+
+      notify(`${selectedPermissions.length} permission(s) added successfully`, {
+        type: "success",
+      });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error adding permissions:", error);
+      notify("Error adding permissions", { type: "error" });
+    }
+  };
+
+  if (!userId) {
+    return null;
+  }
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={handleOpen}
+        sx={{ mb: 2 }}
+      >
+        Add Permission
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle>Add Permissions</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 3 }}>
+            Select a resource server and permissions to assign to this user
+          </Typography>
+
+          <Box sx={{ mb: 3 }}>
+            <Autocomplete
+              options={resourceServers}
+              getOptionLabel={(option) => option.name || option.identifier}
+              value={selectedResourceServer}
+              onChange={(_, value) => handleResourceServerChange(value)}
+              loading={loading}
+              renderInput={(params) => (
+                <MuiTextField
+                  {...params}
+                  label="Resource Server"
+                  variant="outlined"
+                  fullWidth
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          {selectedResourceServer && (
+            <>
+              <Box sx={{ mb: 3 }}>
+                <Autocomplete
+                  multiple
+                  options={availablePermissions}
+                  getOptionLabel={(option) =>
+                    `${option.permission_name} - ${option.description || "No description"}`
+                  }
+                  value={selectedPermissions}
+                  onChange={(_, value) => setSelectedPermissions(value)}
+                  loading={loadingPermissions}
+                  renderInput={(params) => (
+                    <MuiTextField
+                      {...params}
+                      label="Permissions"
+                      variant="outlined"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingPermissions ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.permission_name}>
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">
+                          {option.permission_name}
+                        </Typography>
+                        {option.description && (
+                          <Typography variant="caption" color="text.secondary">
+                            {option.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    </li>
+                  )}
+                />
+              </Box>
+
+              {!loadingPermissions && availablePermissions.length === 0 && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  This user already has all available scopes for the selected
+                  resource server.
+                </Typography>
+              )}
+
+              {selectedPermissions.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Selected Permissions ({selectedPermissions.length}):
+                  </Typography>
+                  <Box sx={{ maxHeight: 200, overflow: "auto" }}>
+                    {selectedPermissions.map((permission, index) => (
+                      <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                        • {permission.permission_name}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={handleAddPermissions}
+            variant="contained"
+            disabled={selectedPermissions.length === 0}
+          >
+            Add {selectedPermissions.length} Permission(s)
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+const RemovePermissionButton = () => {
+  const [open, setOpen] = useState(false);
+  const permission = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+
+  // Get the user ID from the URL path
+  const urlPath = window.location.pathname;
+  const matches = urlPath.match(/\/([^/]+)\/users\/([^/]+)/);
+  const userId = matches ? matches[2] : null;
+
+  if (!permission || !userId) {
+    return null;
+  }
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const handleRemove = async () => {
+    try {
+      // Delete the permission using the user ID and permission details
+      await dataProvider.delete(`users/${userId}/permissions`, {
+        id: `${permission.resource_server_identifier}:${permission.permission_name}`,
+        previousData: permission,
+      });
+      notify("Permission removed successfully", { type: "success" });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error removing permission:", error);
+      notify("Error removing permission", { type: "error" });
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Remove permission">
+        <IconButton onClick={handleOpen} color="error" size="small">
+          <DeleteIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Remove Permission</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to remove the permission "
+            {permission.permission_name}" from resource server "
+            {permission.resource_server_name ||
+              permission.resource_server_identifier}
+            "? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleRemove} color="error" autoFocus>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 export function UserEdit() {
   return (
     <Edit>
@@ -397,6 +740,7 @@ export function UserEdit() {
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="permissions">
+          <AddPermissionButton />
           <ReferenceManyField
             reference="permissions"
             target="user_id"
@@ -430,6 +774,7 @@ export function UserEdit() {
                 }
                 label="Assigned"
               />
+              <RemovePermissionButton />
             </Datagrid>
           </ReferenceManyField>
         </TabbedForm.Tab>

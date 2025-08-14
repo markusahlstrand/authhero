@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.18.0
+
+### Minor Changes
+
+- Add user permissions
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/kysely-adapter@10.35.0
+
 ## 0.17.0
 
 ### Minor Changes
