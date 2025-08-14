@@ -128,8 +128,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
  
- # The default generated auth-server
- auth-server
+# The default generated auth-server
+auth-server
 
- .DS_Store
- db.sqlite
+.DS_Store
+db.sqlite
