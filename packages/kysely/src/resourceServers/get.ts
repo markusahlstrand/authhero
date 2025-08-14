@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { ResourceServer } from "@authhero/adapter-interfaces";
 import { Database, sqlResourceServerSchema } from "../db";
+import { removeNullProperties } from "../helpers/remove-nulls";
 import { z } from "@hono/zod-openapi";
 
 type ResourceServerDbRow = z.infer<typeof sqlResourceServerSchema>;
@@ -40,6 +41,6 @@ export function get(db: Kysely<Database>) {
       verificationKey: verification_key,
     };
 
-    return resourceServer;
+    return removeNullProperties(resourceServer);
   };
 }

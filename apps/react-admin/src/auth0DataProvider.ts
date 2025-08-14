@@ -89,6 +89,8 @@ function getIdKeyFromResource(resource: string) {
       return "template_id";
     case "forms":
       return "form_id";
+    case "resource_servers":
+      return "id";
     default:
       console.warn(
         `No specific ID key defined for resource "${resource}", falling back to "${resource}_id" or "id"`,
@@ -159,6 +161,18 @@ export default (
               ...item,
             })),
             total: forms.length,
+          };
+        }
+
+        // Handle special case for resource-servers (API uses resource_servers key)
+        if (resource === "resource-servers") {
+          const resourceServers = res.json.resource_servers || [];
+          return {
+            data: resourceServers.map((item: any) => ({
+              id: item[getIdKeyFromResource("resource_servers")],
+              ...item,
+            })),
+            total: res.json.length || resourceServers.length,
           };
         }
 

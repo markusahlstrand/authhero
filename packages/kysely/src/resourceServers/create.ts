@@ -6,6 +6,7 @@ import {
   resourceServerSchema,
 } from "@authhero/adapter-interfaces";
 import { Database, sqlResourceServerSchema } from "../db";
+import { removeNullProperties } from "../helpers/remove-nulls";
 import { z } from "@hono/zod-openapi";
 
 type ResourceServerDbInsert = z.infer<typeof sqlResourceServerSchema>;
@@ -49,6 +50,6 @@ export function create(db: Kysely<Database>) {
 
     await db.insertInto("resource_servers").values(dbResourceServer).execute();
 
-    return resourceServer;
+    return removeNullProperties(resourceServer);
   };
 }

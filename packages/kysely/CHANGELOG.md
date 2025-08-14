@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.35.0
+
+### Minor Changes
+
+- Add user permissions
+
 ## 10.34.0
 
 ### Minor Changes
