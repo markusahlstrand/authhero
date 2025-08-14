@@ -46,6 +46,7 @@ import LinkOffIcon from "@mui/icons-material/LinkOff";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useParams } from "react-router-dom";
 
 const LinkUserButton = () => {
   const [open, setOpen] = useState(false);
@@ -198,10 +199,8 @@ const UnlinkButton = () => {
   const refresh = useRefresh();
   const identity = useRecordContext();
 
-  // Get the user ID from the URL path - this approach works better with the multi-tenant structure
-  const urlPath = window.location.pathname;
-  const matches = urlPath.match(/\/([^/]+)\/users\/([^/]+)/);
-  const userId = matches ? matches[2] : null;
+  // Get the user ID from the route params
+  const { id: userId } = useParams();
 
   if (!identity || !userId || identity.provider === "auth0") {
     // Don't allow unlinking the primary identity
@@ -417,6 +416,13 @@ const AddPermissionButton = () => {
               value={selectedResourceServer}
               onChange={(_, value) => handleResourceServerChange(value)}
               loading={loading}
+              isOptionEqualToValue={(option, value) =>
+                !!option &&
+                !!value &&
+                (option.id === value.id ||
+                  option.identifier === value.identifier ||
+                  option.audience === value.audience)
+              }
               renderInput={(params) => (
                 <MuiTextField
                   {...params}
@@ -451,6 +457,9 @@ const AddPermissionButton = () => {
                   value={selectedPermissions}
                   onChange={(_, value) => setSelectedPermissions(value)}
                   loading={loadingPermissions}
+                  isOptionEqualToValue={(option, value) =>
+                    option?.permission_name === value?.permission_name
+                  }
                   renderInput={(params) => (
                     <MuiTextField
                       {...params}
@@ -537,10 +546,9 @@ const RemovePermissionButton = () => {
   const notify = useNotify();
   const refresh = useRefresh();
 
-  // Get the user ID from the URL path
-  const urlPath = window.location.pathname;
-  const matches = urlPath.match(/\/([^/]+)\/users\/([^/]+)/);
-  const userId = matches ? matches[2] : null;
+  // Read user id from the current record context
+  const userRecord = useRecordContext();
+  const userId = userRecord?.id ?? null;
 
   if (!permission || !userId) {
     return null;

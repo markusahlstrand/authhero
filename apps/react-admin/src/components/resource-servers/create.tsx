@@ -6,6 +6,7 @@ import {
   ArrayInput,
   SimpleFormIterator,
   required,
+  NumberInput,
 } from "react-admin";
 import { Stack } from "@mui/material";
 
@@ -49,15 +50,13 @@ export function ResourceServerCreate() {
         </Stack>
 
         <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
-          <TextInput
+          <NumberInput
             source="token_lifetime"
-            type="number"
             defaultValue={1209600}
             helperText="Token lifetime in seconds (default: 14 days)"
           />
-          <TextInput
+          <NumberInput
             source="token_lifetime_for_web"
-            type="number"
             defaultValue={7200}
             helperText="Web token lifetime in seconds (default: 2 hours)"
           />

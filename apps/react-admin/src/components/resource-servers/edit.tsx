@@ -5,12 +5,9 @@ import {
   ArrayInput,
   SimpleFormIterator,
   TextField,
-  DateField,
   TabbedForm,
   required,
-  Datagrid,
-  ReferenceManyField,
-  Pagination,
+  NumberInput,
 } from "react-admin";
 import { Stack } from "@mui/material";
 
@@ -59,15 +56,13 @@ export function ResourceServerEdit() {
           </Stack>
 
           <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
-            <TextInput
+            <NumberInput
               source="token_lifetime"
-              type="number"
               defaultValue={1209600}
               helperText="Token lifetime in seconds (default: 14 days)"
             />
-            <TextInput
+            <NumberInput
               source="token_lifetime_for_web"
-              type="number"
               defaultValue={7200}
               helperText="Web token lifetime in seconds (default: 2 hours)"
             />
@@ -103,21 +98,6 @@ export function ResourceServerEdit() {
               </Stack>
             </SimpleFormIterator>
           </ArrayInput>
-        </TabbedForm.Tab>
-
-        <TabbedForm.Tab label="Permissions">
-          <ReferenceManyField
-            reference="permissions"
-            target="resource_server_id"
-            pagination={<Pagination />}
-            sort={{ field: "permission_name", order: "ASC" }}
-          >
-            <Datagrid rowClick="" bulkActionButtons={false}>
-              <TextField source="permission_name" label="Permission" />
-              <TextField source="description" />
-              <DateField source="created_at" showTime />
-            </Datagrid>
-          </ReferenceManyField>
         </TabbedForm.Tab>
       </TabbedForm>
     </Edit>
