@@ -6,7 +6,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
     .addColumn("user_id", "varchar(191)", (col) => col.notNull())
     .addColumn("role_id", "varchar(21)", (col) => col.notNull())
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("user_roles_pk", [
       "tenant_id",
       "user_id",

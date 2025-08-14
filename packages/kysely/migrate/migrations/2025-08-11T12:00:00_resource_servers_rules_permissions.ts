@@ -17,8 +17,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("allow_offline_access", "integer")
     .addColumn("verification_key", "varchar(4096)")
     .addColumn("options", "varchar(4096)") // JSON object string
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("resource_servers_pk", ["tenant_id", "id"])
     .execute();
 
@@ -36,8 +36,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
     .addColumn("name", "varchar(50)", (col) => col.notNull())
     .addColumn("description", "varchar(255)")
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("roles_pk", ["tenant_id", "id"])
     .execute();
 

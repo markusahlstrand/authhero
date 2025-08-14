@@ -9,8 +9,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("resource_server_identifier", "varchar(191)", (col) =>
       col.notNull(),
     )
-    .addColumn("permission_name", "varchar(255)", (col) => col.notNull())
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("permission_name", "varchar(191)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("role_permissions_pk", [
       "tenant_id",
       "role_id",
@@ -40,8 +40,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("resource_server_identifier", "varchar(191)", (col) =>
       col.notNull(),
     )
-    .addColumn("permission_name", "varchar(255)", (col) => col.notNull())
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("permission_name", "varchar(191)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("user_permissions_pk", [
       "tenant_id",
       "user_id",
