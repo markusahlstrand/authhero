@@ -606,6 +606,220 @@ const RemovePermissionButton = () => {
   );
 };
 
+// Add roles management: add roles and remove roles for a user
+const AddRoleButton = () => {
+  const [open, setOpen] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<any[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+
+  const { id: userId } = useParams();
+
+  const handleOpen = async () => {
+    setOpen(true);
+    await loadRoles();
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedRoles([]);
+  };
+
+  const loadRoles = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      // Fetch all roles
+      const allRes = await dataProvider.getList("roles", {
+        pagination: { page: 1, perPage: 1000 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+      const allRoles = allRes?.data ?? [];
+
+      // Fetch roles already assigned to user
+      const assignedRes = await dataProvider.getList(`users/${userId}/roles`, {
+        pagination: { page: 1, perPage: 1000 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+      const assigned = assignedRes?.data ?? [];
+      const assignedSet = new Set(assigned.map((r: any) => r.id));
+
+      // Filter out roles the user already has
+      const available = allRoles.filter((r: any) => !assignedSet.has(r.id));
+      setAvailableRoles(available);
+    } catch (error) {
+      console.error("Error loading roles:", error);
+      notify("Error loading roles", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddRoles = async () => {
+    if (!userId || selectedRoles.length === 0) {
+      notify("Please select at least one role", { type: "warning" });
+      return;
+    }
+
+    try {
+      const payload = { roles: selectedRoles.map((r: any) => r.id) };
+      await dataProvider.create(`users/${userId}/roles`, { data: payload });
+      notify(`${selectedRoles.length} role(s) added successfully`, {
+        type: "success",
+      });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error adding roles:", error);
+      notify("Error adding roles", { type: "error" });
+    }
+  };
+
+  if (!userId) return null;
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={handleOpen}
+        sx={{ mb: 2 }}
+      >
+        Add Role
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Roles</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 3 }}>
+            Select one or more roles to assign to this user
+          </Typography>
+
+          <Autocomplete
+            multiple
+            options={availableRoles}
+            getOptionLabel={(option) => option.name || option.id}
+            value={selectedRoles}
+            onChange={(_, value) => setSelectedRoles(value)}
+            loading={loading}
+            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+            renderInput={(params) => (
+              <MuiTextField
+                {...params}
+                label="Roles"
+                variant="outlined"
+                fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loading ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                <Box>
+                  <Typography variant="body2" fontWeight="medium">
+                    {option.name || option.id}
+                  </Typography>
+                  {option.description && (
+                    <Typography variant="caption" color="text.secondary">
+                      {option.description}
+                    </Typography>
+                  )}
+                </Box>
+              </li>
+            )}
+          />
+
+          {!loading && availableRoles.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              This user already has all available roles.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={handleAddRoles}
+            variant="contained"
+            disabled={selectedRoles.length === 0}
+          >
+            Add {selectedRoles.length} Role(s)
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+const RemoveRoleButton = () => {
+  const [open, setOpen] = useState(false);
+  const role = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { id: userId } = useParams();
+
+  if (!role || !userId) return null;
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const handleRemove = async () => {
+    try {
+      await dataProvider.delete(`users/${userId}/roles`, {
+        id: role.id,
+        previousData: role,
+      });
+      notify("Role removed successfully", { type: "success" });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error removing role:", error);
+      notify("Error removing role", { type: "error" });
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Remove role">
+        <IconButton onClick={handleOpen} color="error" size="small">
+          <DeleteIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Remove Role</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to remove the role "{role.name || role.id}"?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleRemove} color="error" autoFocus>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 export function UserEdit() {
   return (
     <Edit>
@@ -786,6 +1000,34 @@ export function UserEdit() {
                 label="Assigned"
               />
               <RemovePermissionButton />
+            </Datagrid>
+          </ReferenceManyField>
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="roles">
+          <AddRoleButton />
+          <ReferenceManyField
+            reference="roles"
+            target="user_id"
+            pagination={<Pagination />}
+            sort={{ field: "name", order: "ASC" }}
+          >
+            <Datagrid
+              sx={{
+                width: "100%",
+                "& .column-comment": {
+                  maxWidth: "20em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
+              rowClick=""
+              bulkActionButtons={false}
+            >
+              <TextField source="name" label="Role" />
+              <TextField source="description" label="Description" />
+              <TextField source="id" label="ID" />
+              <RemoveRoleButton />
             </Datagrid>
           </ReferenceManyField>
         </TabbedForm.Tab>
