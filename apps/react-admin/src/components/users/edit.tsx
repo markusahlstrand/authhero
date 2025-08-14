@@ -546,9 +546,8 @@ const RemovePermissionButton = () => {
   const notify = useNotify();
   const refresh = useRefresh();
 
-  // Read user id from the current record context
-  const userRecord = useRecordContext();
-  const userId = userRecord?.id ?? null;
+  // Get the user id from the route params (e.g. /:tenantId/users/:id)
+  const { id: userId } = useParams();
 
   if (!permission || !userId) {
     return null;
@@ -559,9 +558,13 @@ const RemovePermissionButton = () => {
 
   const handleRemove = async () => {
     try {
-      // Delete the permission using the user ID and permission details
+      // Build the permission id and URL-encode it for safe path usage
+      const permissionId = encodeURIComponent(
+        `${permission.resource_server_identifier}:${permission.permission_name}`,
+      );
+
       await dataProvider.delete(`users/${userId}/permissions`, {
-        id: `${permission.resource_server_identifier}:${permission.permission_name}`,
+        id: permissionId,
         previousData: permission,
       });
       notify("Permission removed successfully", { type: "success" });

@@ -1,5 +1,16 @@
 # authhero
 
+## 0.194.0
+
+### Minor Changes
+
+- Add user roles
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.82.0
+
 ## 0.193.0
 
 ### Minor Changes

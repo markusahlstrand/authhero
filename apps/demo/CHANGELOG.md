@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.19.0
+
+### Minor Changes
+
+- Add user roles
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.194.0
+  - @authhero/kysely-adapter@10.36.0
+
 ## 0.18.0
 
 ### Minor Changes

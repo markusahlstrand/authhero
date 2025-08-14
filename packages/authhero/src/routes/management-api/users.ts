@@ -16,6 +16,7 @@ import {
   totalsSchema,
   userInsertSchema,
   userPermissionWithDetailsListSchema,
+  roleListSchema,
 } from "@authhero/adapter-interfaces";
 
 const usersWithTotalsSchema = totalsSchema.extend({
@@ -855,5 +856,117 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       return ctx.json({ message: "Permissions removed successfully" });
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/users/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}/roles",
+      request: {
+        params: z.object({ user_id: z.string() }),
+        headers: z.object({ "tenant-id": z.string() }),
+      },
+      security: [{ Bearer: ["auth:read"] }],
+      responses: {
+        200: {
+          content: { "application/json": { schema: roleListSchema } },
+          description: "User roles",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) throw new HTTPException(404, { message: "User not found" });
+
+      const roles = await ctx.env.data.userRoles.list(tenant_id, user_id);
+      return ctx.json(roles);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/users/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "post",
+      path: "/{user_id}/roles",
+      request: {
+        params: z.object({ user_id: z.string() }),
+        headers: z.object({ "tenant-id": z.string() }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({ roles: z.array(z.string()) }),
+            },
+          },
+        },
+      },
+      security: [{ Bearer: ["auth:write"] }],
+      responses: { 201: { description: "Roles assigned to user" } },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { roles } = ctx.req.valid("json");
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) throw new HTTPException(404, { message: "User not found" });
+
+      const ok = await ctx.env.data.userRoles.assign(tenant_id, user_id, roles);
+      if (!ok)
+        throw new HTTPException(500, {
+          message: "Failed to assign roles to user",
+        });
+
+      return ctx.json(
+        { message: "Roles assigned successfully" },
+        { status: 201 },
+      );
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/users/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "delete",
+      path: "/{user_id}/roles",
+      request: {
+        params: z.object({ user_id: z.string() }),
+        headers: z.object({ "tenant-id": z.string() }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({ roles: z.array(z.string()) }),
+            },
+          },
+        },
+      },
+      security: [{ Bearer: ["auth:write"] }],
+      responses: { 200: { description: "Roles removed from user" } },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { roles } = ctx.req.valid("json");
+
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) throw new HTTPException(404, { message: "User not found" });
+
+      const ok = await ctx.env.data.userRoles.remove(tenant_id, user_id, roles);
+      if (!ok)
+        throw new HTTPException(500, {
+          message: "Failed to remove roles from user",
+        });
+
+      return ctx.json({ message: "Roles removed successfully" });
     },
   );

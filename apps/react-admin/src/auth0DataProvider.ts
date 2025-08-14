@@ -70,7 +70,7 @@ function getIdKeyFromResource(resource: string) {
     case "sessions":
       return "id";
     case "roles":
-      return "role_id";
+      return "id";
     case "permissions":
       return "permission_id";
     case "organizations":
@@ -305,6 +305,53 @@ export default (
         };
       }
 
+      // Special case for permissions which are nested under roles
+      if (resource === "permissions" && params.target === "role_id") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: false,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        } as any;
+
+        const url = `${apiUrl}/api/v2/roles/${params.id}/permissions?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        // API returns an array of permissions with details
+        const arr = Array.isArray(res.json)
+          ? res.json
+          : res.json?.permissions || [];
+        return {
+          data: arr.map((item: any) => ({
+            id: `${item.resource_server_identifier}:${item.permission_name}`,
+            ...item,
+          })),
+          total: arr.length || 0,
+        };
+      }
+
+      // Special case for roles which are nested under users
+      if (resource === "roles" && params.target === "user_id") {
+        const headers = new Headers();
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const url = `${apiUrl}/api/v2/users/${params.id}/roles`;
+        const res = await httpClient(url, { headers });
+
+        return {
+          data: (Array.isArray(res.json) ? res.json : []).map((item: any) => ({
+            id: item.id,
+            ...item,
+          })),
+          total: Array.isArray(res.json) ? res.json.length : 0,
+        };
+      }
+
       // Original implementation for other resources
       const query = {
         include_totals: true,
@@ -398,6 +445,21 @@ export default (
     updateMany: () => Promise.reject("not supporting updateMany"),
 
     create: async (resource, params) => {
+      // Special case: assign roles to user via POST /users/:id/roles
+      const userRolesMatch = resource.match(/^users\/([^/]+)\/roles$/);
+      if (userRolesMatch) {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const res = await httpClient(`${apiUrl}/api/v2/${resource}`, {
+          method: "POST",
+          body: JSON.stringify(params.data),
+          headers,
+        });
+
+        return { data: res.json };
+      }
+
       const headers = new Headers({
         "content-type": "application/json",
       });
@@ -423,25 +485,87 @@ export default (
     },
 
     delete: async (resource, params) => {
-      const headers = new Headers({
-        "Content-Type": "text/plain",
-      });
+      // Detect special case: DELETE /users/:userId/permissions or /roles/:roleId/permissions with JSON body
+      const isNestedPermissionsDelete =
+        /(^|\/)users\/[^/]+\/permissions$/.test(resource) ||
+        /(^|\/)roles\/[^/]+\/permissions$/.test(resource);
 
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
+      // Also support nested roles deletion: DELETE /users/:userId/roles
+      const isNestedRolesDelete = /(^|\/)users\/[^/]+\/roles$/.test(resource);
+
+      const headers = new Headers({
+        "Content-Type":
+          isNestedPermissionsDelete || isNestedRolesDelete
+            ? "application/json"
+            : "text/plain",
+      });
+      if (tenantId) headers.set("tenant-id", tenantId);
+
+      const hasId =
+        params &&
+        params.id !== undefined &&
+        params.id !== null &&
+        String(params.id) !== "";
+      const shouldAppendId =
+        hasId && !(isNestedPermissionsDelete || isNestedRolesDelete);
+
+      const baseUrl = `${apiUrl}/api/v2/${resource}`;
+      const resourceUrl = shouldAppendId
+        ? `${baseUrl}/${encodeURIComponent(String(params.id))}`
+        : baseUrl;
+
+      let body: string | undefined = undefined;
+
+      if (isNestedPermissionsDelete) {
+        // Build payload from previousData or params.id when available
+        const prev: any = (params as any)?.previousData ?? {};
+        const parsedFromId = (() => {
+          if (!hasId)
+            return {
+              resource_server_identifier: undefined,
+              permission_name: undefined,
+            };
+          try {
+            const decoded = decodeURIComponent(String(params.id));
+            const [rsi, pname] = decoded.split(":");
+            return { resource_server_identifier: rsi, permission_name: pname };
+          } catch {
+            return {
+              resource_server_identifier: undefined,
+              permission_name: undefined,
+            };
+          }
+        })();
+
+        const permission_name =
+          prev.permission_name ?? parsedFromId.permission_name;
+        const resource_server_identifier =
+          prev.resource_server_identifier ??
+          parsedFromId.resource_server_identifier;
+
+        body = JSON.stringify({
+          permissions: [
+            {
+              permission_name,
+              resource_server_identifier,
+            },
+          ],
+        });
+      } else if (isNestedRolesDelete) {
+        const roles = Array.isArray((params as any)?.previousData?.roles)
+          ? (params as any).previousData.roles
+          : hasId
+            ? [String(params.id)]
+            : [];
+        body = JSON.stringify({ roles });
       }
 
-      const res = await httpClient(
-        `${apiUrl}/api/v2/${resource}/${params.id}`,
-        {
-          method: "DELETE",
-          headers,
-        },
-      );
-
-      return {
-        data: res.json,
-      };
+      const res = await httpClient(resourceUrl, {
+        method: "DELETE",
+        headers,
+        body,
+      });
+      return { data: res.json };
     },
     deleteMany: () => Promise.reject("not supporting updateMany"),
   };

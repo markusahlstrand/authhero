@@ -164,6 +164,13 @@ export const sqlUserPermissionSchema = z.object({
   created_at: z.string(),
 });
 
+export const sqlUserRoleSchema = z.object({
+  tenant_id: z.string(),
+  user_id: z.string(),
+  role_id: z.string(),
+  created_at: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -186,5 +193,6 @@ export interface Database {
   resource_servers: z.infer<typeof sqlResourceServerSchema>;
   role_permissions: z.infer<typeof sqlRolePermissionSchema>;
   user_permissions: z.infer<typeof sqlUserPermissionSchema>;
+  user_roles: z.infer<typeof sqlUserRoleSchema>;
   roles: z.infer<typeof sqlRoleSchema>;
 }

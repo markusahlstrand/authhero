@@ -89,6 +89,7 @@ import * as n89_add_nonce_and_state_to_codes from "./2025-06-05T14:30:00_add_non
 import * as n90_themes from "./2025-07-23T14:30:00_themes";
 import * as n91_resource_servers_rules_permissions from "./2025-08-11T12:00:00_resource_servers_rules_permissions";
 import * as n92_role_permissions from "./2025-08-13T15:00:00_role_user_permissions";
+import * as n93_add_permissions_to_roles from "./2025-08-14T09:30:00_user_roles";
 
 // These need to be in alphabetic order
 export default {
@@ -183,4 +184,5 @@ export default {
   n90_themes,
   n91_resource_servers_rules_permissions,
   n92_role_permissions,
+  n93_add_permissions_to_roles,
 };

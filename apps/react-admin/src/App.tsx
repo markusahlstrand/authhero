@@ -35,6 +35,8 @@ import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
 import StorageIcon from "@mui/icons-material/Storage";
 import { useMemo } from "react";
+import { RoleCreate, RoleEdit, RoleList } from "./components/roles";
+import SecurityIcon from "@mui/icons-material/Security";
 
 interface AppProps {
   tenantId: string;
@@ -146,6 +148,14 @@ export function App(props: AppProps) {
         show={ShowGuesser}
       />
       <Resource name="permissions" />
+      <Resource
+        icon={SecurityIcon}
+        name="roles"
+        list={RoleList}
+        create={RoleCreate}
+        edit={RoleEdit}
+        show={ShowGuesser}
+      />
     </Admin>
   );
 }

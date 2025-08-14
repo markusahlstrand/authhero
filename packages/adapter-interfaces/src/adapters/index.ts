@@ -21,6 +21,7 @@ import { ResourceServersAdapter } from "./ResourceServers";
 import { RolePermissionsAdapter } from "./RolePermissions";
 import { UserPermissionsAdapter } from "./UserPermissions";
 import { RolesAdapter } from "./Roles";
+import { UserRolesAdapter } from "./UserRoles";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -46,7 +47,9 @@ export interface DataAdapters {
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
   users: UserDataAdapter;
+  userRoles: UserRolesAdapter;
 }
 
 export * from "./RolePermissions";
 export * from "./UserPermissions";
+export * from "./UserRoles";

@@ -1,16 +1,16 @@
 {
   "name": "@authhero/demo",
   "private": true,
-  "version": "0.18.0",
+  "version": "0.19.0",
   "scripts": {
     "dev": "bun --watch src/bun.ts"
   },
   "dependencies": {
-    "@authhero/kysely-adapter": "^10.35.0",
+    "@authhero/kysely-adapter": "^10.36.0",
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^0.19.2",
     "@peculiar/x509": "^1.13.0",
-    "authhero": "^0.193.0",
+    "authhero": "^0.194.0",
     "better-sqlite3": "^12.2.0",
     "hono": "^4.9.1",
     "hono-openapi-middlewares": "^1.0.11",
