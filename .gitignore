@@ -133,3 +133,9 @@ auth-server
 
 .DS_Store
 db.sqlite
+
+# VitePress build artifacts
+.vitepress/cache
+.vitepress/dist
+apps/docs/.vitepress/cache
+apps/docs/.vitepress/dist

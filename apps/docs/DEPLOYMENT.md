@@ -5,9 +5,15 @@ This VitePress site can be deployed to Vercel easily.
 ## Deployment Steps
 
 1. Connect your repository to Vercel
-2. Set the build command to: `npm run build`
-3. Set the output directory to: `.vitepress/dist`
-4. Deploy!
+2. Set the Project Root (Root Directory) to: `apps/docs`
+3. Set the Install Command (optional):
+   - npm: `npm ci`
+   - pnpm: `pnpm install --frozen-lockfile`
+4. Set the Build Command:
+   - npm: `npm run build`
+   - pnpm: `pnpm run build`
+5. Set the Output Directory to: `.vitepress/dist`
+6. Deploy
 
 ## Environment Variables
 
