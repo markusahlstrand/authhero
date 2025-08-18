@@ -18,5 +18,5 @@ The dashboard is built using React Admin, providing a rich user interface for ma
 ## Getting Started
 
 - [Installation](installation.md) - Setup instructions
-- [Development](development.md) - Development guide  
+- [Development](development.md) - Development guide
 - [Usage](usage.md) - Usage details

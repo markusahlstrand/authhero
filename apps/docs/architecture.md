@@ -25,6 +25,7 @@ The system is designed to support multiple tenants (organizations/customers) whe
 The React Admin application has a unique dual-router setup:
 
 1. **Outer Router**: Handles top-level routing based on domain selection and tenant ID
+
    - Path `/tenants/*`: Shows tenant management interface (TenantsApp component)
    - Path `/:tenantId/*`: Shows admin interface for a specific tenant (App component)
    - Path `/auth-callback`: Handles authentication callbacks
