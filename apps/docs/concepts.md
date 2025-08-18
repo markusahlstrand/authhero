@@ -33,3 +33,12 @@ AuthHero generates various types of tokens during the authentication process:
 ## Logs
 
 AuthHero logs authentication events and other activities, providing an audit trail of what happened in your authentication system.
+
+## Universal Login Flow
+
+The authentication flow uses a universal login system:
+
+1. Users are directed to a login page
+2. Authentication can be via password, code, or social providers
+3. Upon successful authentication, users receive a session
+4. The session is tenant-specific

@@ -231,4 +231,4 @@ Form appearance can be customized via the global tenant settings or on a per-for
 }
 ```
 
-For more extensive customization, refer to the [Custom Styling Guide](../guides/custom-styling.md).
+For more extensive customization, refer to the Custom Styling Guide.

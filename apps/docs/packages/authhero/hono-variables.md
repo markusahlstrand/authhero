@@ -265,6 +265,6 @@ app.use(async (ctx, next) => {
 ## Related Documentation
 
 - [Hono Context API](https://hono.dev/api/context)
-- [AuthHero Middleware](../../middlewares/README.md)
+- AuthHero Middleware
 - [AuthHero Configuration](configuration.md)
 - [API Reference](api-reference.md)
