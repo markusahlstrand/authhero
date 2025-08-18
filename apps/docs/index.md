@@ -1,60 +1,120 @@
-# AuthHero
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
 
-Welcome to AuthHero! A comprehensive authentication solution that simplifies the management of authentication and user management for your applications.
+hero:
+  name: "AuthHero"
+  text: "Open Source User Management"
+  tagline: "Multi-tenant, scalable, built on modern standards. Support for any JavaScript runtime."
+  image:
+    src: /logo.svg
+    alt: AuthHero
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /getting-started
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/markusahlstrand/authhero
 
-## What is AuthHero?
+features:
+  - icon: 🚀
+    title: Multi-tenant & Scalable
+    details: Built-in multi-tenancy support with data isolation, custom branding, and domain management for each tenant.
 
-AuthHero is a collection of packages and applications that provide a complete authentication solution. It includes:
+  - icon: 🔒
+    title: Comprehensive Auth Flows
+    details: Login, signup, password reset, social auth, and enterprise connections. Everything you need for modern authentication.
 
-- **Core library** for handling authentication and API requests
-- **Admin dashboard** for managing authentication tenants
-- **CLI tool** for creating new AuthHero projects
-- **Database adapters** for various database systems
-- **Demo application** showcasing AuthHero functionality
+  - icon: ⚡
+    title: Fast & Lightweight
+    details: Optimized for edge computing with support for Cloudflare Workers, Vercel Edge, and traditional Node.js environments.
 
-## Key Features
+  - icon: 🛠️
+    title: Database Agnostic
+    details: Works with your database of choice through adapters for Drizzle, Kysely, and direct SQL connections.
 
-- Simplified authentication workflows
-- Management dashboard for tenant administration
-- Multiple database adapters
-- Custom domain support
-- API for integration with various frameworks
-- Multi-tenant architecture support
+  - icon: 🎨
+    title: Admin Dashboard
+    details: Beautiful Admin interface for managing tenants, users, applications, and authentication settings.
+
+  - icon: 🔌
+    title: Auth0 Compatible
+    details: Drop-in replacement for Auth0 with compatibility proxy. Migrate existing applications with minimal changes.
+---
 
 ## Quick Start
 
-Get started with AuthHero in just a few steps:
+Get up and running with AuthHero in minutes:
 
-1. **Install the CLI tool**
-   ```bash
-   npm install -g create-authhero
-   ```
+::: code-group
 
-2. **Create a new project**
-   ```bash
-   create-authhero my-auth-project
-   ```
+```bash [npm]
+npm create authhero@latest my-auth-app
+cd my-auth-app
+npm run dev
+```
 
-3. **Start developing**
-   ```bash
-   cd my-auth-project
-   npm run dev
-   ```
+```bash [yarn]
+yarn create authhero my-auth-app
+cd my-auth-app
+yarn dev
+```
 
-## Architecture Overview
+```bash [pnpm]
+pnpm create authhero my-auth-app
+cd my-auth-app
+pnpm dev
+```
 
-AuthHero follows a multi-tenant architecture where:
+:::
 
-- Each tenant has its own users, applications, and settings
-- Data is isolated between tenants
-- Custom branding and domains are supported
-- Universal login flow is implemented
+## Simple Example
+
+```typescript
+import { Hono } from "hono";
+import { createAuthHero } from "authhero";
+
+const app = new Hono();
+
+// Initialize AuthHero
+const auth = createAuthHero({
+  database: adapter,
+  tenant: "your-tenant",
+});
+
+// Add authentication middleware
+app.use("*", auth.middleware);
+
+// Protect routes
+app.get("/dashboard", auth.requireAuth(), (c) => {
+  const user = c.get("user");
+  return c.json({ message: `Hello ${user.email}!` });
+});
+
+export default app;
+```
+
+## Why AuthHero?
+
+AuthHero combines the best of modern authentication with enterprise-grade features:
+
+- **Multi-tenant by Design** - Perfect for SaaS applications
+- **Edge-First Architecture** - Optimized for global deployment
+- **Developer Experience** - Simple APIs with powerful features
+- **Migration Ready** - Auth0 compatibility for easy transitions
+- **Open Source** - Full control over your authentication system
+
+## Architecture
+
+AuthHero is built as a modular system:
+
+- **Core Library** - Authentication logic and middleware
+- **Database Adapters** - Support for multiple databases
+- **Admin Dashboard** - Management interface
+- **Auth0 Proxy** - Compatibility layer for migration
 
 [Learn more about the architecture →](./architecture.md)
 
-## Next Steps
-
-- [Getting Started Guide](./getting-started.md) - Detailed setup instructions
-- [Concepts](./concepts.md) - Core concepts and terminology
 - [API Reference](./api/overview.md) - Complete API documentation
 - [Applications](./apps/react-admin/) - Explore the included applications
