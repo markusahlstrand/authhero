@@ -52,7 +52,9 @@ export const clientInfoMiddleware: MiddlewareHandler<{
 }> = async (c, next) => {
   // Extract client information using the same logic as getClientInfo
   const auth0ClientString = c.req.query("auth0Client")?.slice(0, 255);
-  const ip = c.req.header("x-real-ip")?.slice(0, 45);
+  const ip = (
+    c.req.header("cf-connecting-ip") || c.req.header("x-real-ip")
+  )?.slice(0, 45);
   const useragent = c.req.header("user-agent")?.slice(0, 512);
   const countryCode = c.req.header("cf-ipcountry")?.slice(0, 2) as CountryCode;
 
