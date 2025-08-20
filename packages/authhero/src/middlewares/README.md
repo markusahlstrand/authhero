@@ -14,10 +14,11 @@ app.get("/some-route", async (c) => {
   const userAgent = c.get("useragent");
   const country = c.get("countryCode");
 
-  console.log(`Request from ${country}: ${auth0Client?.name} v${auth0Client?.version}`);
+  console.log(
+    `Request from ${country}: ${auth0Client?.name} v${auth0Client?.version}`,
+  );
 
   return c.json({ message: "Hello from " + country });
-});
 });
 ```
 
@@ -72,43 +73,3 @@ console.log(clientInfoString.auth0Client); // "auth0-spa-js/1.13.6"
 // Convert structured object to string
 const auth0ClientString = stringifyAuth0Client(c.get("auth0_client"));
 ```
-
-### Integration with Existing Code
-
-The `getClientInfo` utility function has been updated to work with both the middleware approach and direct header extraction:
-
-```typescript
-import { getClientInfo } from "../utils/client-info";
-
-// With middleware context
-const clientInfo = getClientInfo(c.req, c.var);
-
-// Without middleware (direct extraction)
-const clientInfo = getClientInfo(c.req);
-```
-
-### Variables Type
-
-The `Variables` type has been updated to include the client info fields:
-
-```typescript
-export type Variables = {
-  // ... existing fields ...
-  // Client info from middleware
-  auth0_client?:
-    | {
-        name: string;
-        version: string;
-        env?:
-          | {
-              node?: string | undefined;
-            }
-          | undefined;
-      }
-    | undefined;
-  useragent?: string;
-  countryCode?: CountryCode;
-};
-```
-
-Note: The `ip` field was already present in the Variables type.
