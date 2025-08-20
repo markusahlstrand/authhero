@@ -90,6 +90,7 @@ import * as n90_themes from "./2025-07-23T14:30:00_themes";
 import * as n91_resource_servers_rules_permissions from "./2025-08-11T12:00:00_resource_servers_rules_permissions";
 import * as n92_role_permissions from "./2025-08-13T15:00:00_role_user_permissions";
 import * as n93_add_permissions_to_roles from "./2025-08-14T09:30:00_user_roles";
+import * as n94_keys_connection_and_extend_columns from "./2025-08-20T12:00:00_keys_connection_and_extend_columns";
 
 // These need to be in alphabetic order
 export default {
@@ -185,4 +186,5 @@ export default {
   n91_resource_servers_rules_permissions,
   n92_role_permissions,
   n93_add_permissions_to_roles,
+  n94_keys_connection_and_extend_columns,
 };

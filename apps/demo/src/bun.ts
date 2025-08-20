@@ -29,9 +29,9 @@ const app = createApp({
   allowedOrigins: ["http://localhost:5173", "https://local.authhe.ro"],
 });
 
-const keys = await dataAdapter.keys.list();
+const { signingKeys } = await dataAdapter.keys.list({ q: "type:jwt_signing" });
 
-if (keys.length === 0) {
+if (signingKeys.length === 0) {
   const signingKey = await createX509Certificate({
     name: `CN=demo`,
   });

@@ -24,7 +24,9 @@ describe("connections", () => {
         },
       });
 
-      const connections = await data.connections.list("tenantId");
+      const connections = await data.connections.list("tenantId", {
+        include_totals: true,
+      });
 
       expect(connections).toMatchObject({
         connections: [

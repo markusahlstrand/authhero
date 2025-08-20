@@ -38,7 +38,7 @@ describe("dbconnections", () => {
       });
       expect(createdUser._id).toBeTypeOf("string");
 
-      const logs = await env.data.logs.list("tenantId");
+      const { logs } = await env.data.logs.list("tenantId");
       expect(logs.length).toBe(1);
 
       const emails = getSentEmails();

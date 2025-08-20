@@ -18,7 +18,9 @@ describe("forms", () => {
         name: "Basic Form",
       });
 
-      const result = await data.forms.list("tenantId");
+      const result = await data.forms.list("tenantId", {
+        include_totals: true,
+      });
 
       expect(result).toMatchObject({
         forms: [
@@ -51,7 +53,9 @@ describe("forms", () => {
         name: "Contact Form",
       });
 
-      const result = await data.forms.list("tenantId");
+      const result = await data.forms.list("tenantId", {
+        include_totals: true,
+      });
 
       expect(result.forms).toHaveLength(2);
       expect(result.length).toBe(2);

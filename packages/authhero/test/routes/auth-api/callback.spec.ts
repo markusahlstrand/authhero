@@ -109,7 +109,7 @@ describe("callback", () => {
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toEqual("/callback");
 
-    const logs = await env.data.logs.list("tenantId");
+    const { logs } = await env.data.logs.list("tenantId");
     expect(logs).toHaveLength(1);
 
     const user = await env.data.users.get("tenantId", "email|userId");

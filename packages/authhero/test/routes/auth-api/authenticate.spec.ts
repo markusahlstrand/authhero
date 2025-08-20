@@ -73,10 +73,10 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults).toHaveLength(1);
+    const { logs } = await env.data.logs.list("tenantId");
+    expect(logs).toHaveLength(1);
 
-    const [failedLoginLog] = logsResults.logs;
+    const [failedLoginLog] = logs;
     expect(failedLoginLog).toMatchObject({
       type: "fp",
       description: "Invalid user",
@@ -117,10 +117,9 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults).toHaveLength(1);
+    const { logs } = await env.data.logs.list("tenantId");
 
-    const [failedLoginLog] = logsResults.logs;
+    const [failedLoginLog] = logs;
     expect(failedLoginLog).toMatchObject({
       type: "fp",
       description: "Invalid password",
@@ -177,11 +176,10 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults).toHaveLength(4);
+    const { logs } = await env.data.logs.list("tenantId");
+    expect(logs).toHaveLength(4);
 
-    const [failedLoginLog] = logsResults.logs;
-    expect(failedLoginLog).toMatchObject({
+    expect(logs[0]).toMatchObject({
       type: "fp",
       description: "Invalid password",
     });

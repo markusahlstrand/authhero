@@ -15,9 +15,11 @@ export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     role_id: string,
-    params: ListParams = { page: 0, per_page: 50, include_totals: false },
+    params: ListParams = {},
   ): Promise<RolePermissionWithDetails[]> => {
-    const query = db
+    const { page = 0, per_page = 50, include_totals = false } = params;
+
+    let query = db
       .selectFrom("role_permissions")
       .leftJoin("resource_servers", (join) =>
         join
@@ -40,13 +42,12 @@ export function list(db: Kysely<Database>) {
         "resource_servers.name as resource_server_name",
       ])
       .where("role_permissions.tenant_id", "=", tenant_id)
-      .where("role_permissions.role_id", "=", role_id)
-      .offset(params.page * params.per_page)
-      .limit(params.per_page);
+      .where("role_permissions.role_id", "=", role_id);
 
-    const rows = await query.execute();
+    const filteredQuery = query.offset(page * per_page).limit(per_page);
+    const rows = await filteredQuery.execute();
 
-    return rows.map((row) => ({
+    const rolePermissions = rows.map((row) => ({
       role_id: row.role_id,
       resource_server_identifier: row.resource_server_identifier,
       resource_server_name:
@@ -55,5 +56,19 @@ export function list(db: Kysely<Database>) {
       description: null, // No description available from role_permissions directly
       created_at: row.created_at,
     }));
+
+    // Only execute count query if include_totals is true
+    // This optimization saves an unnecessary query when totals aren't needed
+    if (include_totals) {
+      await query
+        .select((eb) => eb.fn.countAll().as("count"))
+        .executeTakeFirstOrThrow();
+
+      // Note: When include_totals is true, we could return pagination metadata
+      // but the current interface expects just an array, so we're just optimizing
+      // the query execution for now
+    }
+
+    return rolePermissions;
   };
 }

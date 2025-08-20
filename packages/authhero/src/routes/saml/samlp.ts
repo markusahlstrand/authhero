@@ -50,9 +50,12 @@ export const samlpRoutes = new OpenAPIHono<{
         });
       }
 
-      const signingKeys = await ctx.env.data.keys.list();
+      // TODO: This should be a saml_encryption certificate soon
+      const { signingKeys } = await ctx.env.data.keys.list({
+        q: "type:jwt_signing",
+      });
 
-      if (!signingKeys.length) {
+      if (signingKeys.length === 0) {
         throw new HTTPException(500, {
           message: "No signing key found",
         });

@@ -13,26 +13,22 @@ import getCountAsInt from "../utils/getCountAsInt";
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ListParams = {
-      page: 0,
-      per_page: 50,
-      include_totals: false,
-    },
+    params: ListParams = {},
   ): Promise<ListUsersResponse> => {
+    const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
+
     let query = db.selectFrom("users").where("users.tenant_id", "=", tenantId);
-    if (params.q) {
+    if (q) {
       // NOTE - this isn't faithful to Auth0 as Auth0 does this in the dashboard - we can filter by any field on the Auth0 mgmt api
-      query = luceneFilter(db, query, params.q, ["email", "name"]);
+      query = luceneFilter(db, query, q, ["email", "name"]);
     }
 
-    if (params.sort && params.sort.sort_by) {
+    if (sort && sort.sort_by) {
       const { ref } = db.dynamic;
-      query = query.orderBy(ref(params.sort.sort_by), params.sort.sort_order);
+      query = query.orderBy(ref(sort.sort_by), sort.sort_order);
     }
 
-    const filteredQuery = query
-      .offset(params.page * params.per_page)
-      .limit(params.per_page);
+    const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const users = await filteredQuery.selectAll().execute();
 
@@ -71,14 +67,23 @@ export function list(db: Kysely<Database>) {
       });
     });
 
+    if (!include_totals) {
+      return {
+        users: usersWithProfiles,
+        start: 0,
+        limit: 0,
+        length: 0,
+      };
+    }
+
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))
       .executeTakeFirstOrThrow();
 
     return {
       users: usersWithProfiles,
-      start: params.page * params.per_page,
-      limit: params.per_page,
+      start: page * per_page,
+      limit: per_page,
       length: getCountAsInt(count),
     };
   };

@@ -145,11 +145,8 @@ describe("account", () => {
     // -----------------------------------
     // Verify that there is a log entry for the email change
     // -----------------------------------
-    const logs = await env.data.logs.list("tenantId", {
+    const { logs } = await env.data.logs.list("tenantId", {
       q: `user_id:email|userId type:${LogTypes.SUCCESS_CHANGE_EMAIL}`,
-      page: 0,
-      per_page: 10,
-      include_totals: false,
     });
     expect(logs).toHaveLength(1);
   });

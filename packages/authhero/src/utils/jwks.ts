@@ -6,9 +6,11 @@ import { X509Certificate } from "@peculiar/x509";
  * This can be used when JWKS_URL is not available or when running outside Cloudflare
  */
 export async function getJwksFromDatabase(data: DataAdapters) {
-  const signingKeys = await data.keys.list();
+  const { signingKeys } = await data.keys.list({
+    q: "type:jwt_signing",
+  });
   const keys = await Promise.all(
-    signingKeys.map(async (signingKey) => {
+    signingKeys.map(async (signingKey: any) => {
       const importedCert = new X509Certificate(signingKey.cert);
       const publicKey = await importedCert.publicKey.export();
       const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);

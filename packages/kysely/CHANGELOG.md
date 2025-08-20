@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.37.0
+
+### Minor Changes
+
+- Add type to keys
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.83.0
+
 ## 10.36.0
 
 ### Minor Changes
