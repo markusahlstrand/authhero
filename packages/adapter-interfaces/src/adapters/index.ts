@@ -50,6 +50,7 @@ export interface DataAdapters {
   userRoles: UserRolesAdapter;
 }
 
+export * from "./Keys";
 export * from "./RolePermissions";
 export * from "./UserPermissions";
 export * from "./UserRoles";

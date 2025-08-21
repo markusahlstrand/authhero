@@ -37,15 +37,17 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const keys = await ctx.env.data.keys.list();
+      const { signingKeys } = await ctx.env.data.keys.list({
+        q: "type:jwt_signing",
+      });
 
-      const signingKeys = keys
-        .filter((key) => "cert" in key)
-        .map((key) => {
+      const keys = signingKeys
+        .filter((key: any) => "cert" in key)
+        .map((key: any) => {
           return key;
         });
 
-      return ctx.json(signingKeys);
+      return ctx.json(keys);
     },
   )
   // --------------------------------
@@ -83,8 +85,10 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
     async (ctx) => {
       const { kid } = ctx.req.valid("param");
 
-      const keys = await ctx.env.data.keys.list();
-      const key = keys.find((k) => k.kid === kid);
+      const { signingKeys } = await ctx.env.data.keys.list({
+        q: "type:jwt_signing",
+      });
+      const key = signingKeys.find((k: any) => k.kid === kid);
       if (!key) {
         throw new HTTPException(404, { message: "Key not found" });
       }
@@ -117,8 +121,10 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const keys = await ctx.env.data.keys.list();
-      for await (const key of keys) {
+      const { signingKeys } = await ctx.env.data.keys.list({
+        q: "type:jwt_signing",
+      });
+      for await (const key of signingKeys) {
         await ctx.env.data.keys.update(key.kid, {
           revoked_at: new Date(Date.now() + DAY).toISOString(),
         });
@@ -128,7 +134,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         name: `CN=${ctx.env.ORGANIZATION_NAME}`,
       });
 
-      await ctx.env.data.keys.create(signingKey);
+      await ctx.env.data.keys.create({ ...signingKey, type: "jwt_signing" });
 
       return ctx.text("OK", { status: 201 });
     },
@@ -174,7 +180,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         name: `CN=${ctx.env.ORGANIZATION_NAME}`,
       });
 
-      await ctx.env.data.keys.create(signingKey);
+      await ctx.env.data.keys.create({ ...signingKey, type: "jwt_signing" });
 
       return ctx.text("OK");
     },

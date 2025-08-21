@@ -90,8 +90,12 @@ export async function samlCallback(
     });
   }
 
-  const [signingKey] = await ctx.env.data.keys.list();
+  // TODO: This should be a saml_encryption certificate soon
+  const { signingKeys } = await ctx.env.data.keys.list({
+    q: "type:jwt_signing",
+  });
 
+  const [signingKey] = signingKeys;
   if (!signingKey) {
     throw new HTTPException(500, {
       message: "No signing key found",

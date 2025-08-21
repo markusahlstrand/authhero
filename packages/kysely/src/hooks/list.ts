@@ -8,27 +8,19 @@ import getCountAsInt from "../utils/getCountAsInt";
 export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
-    params: ListParams = {
-      page: 0,
-      per_page: 50,
-      include_totals: false,
-    },
+    params: ListParams = {},
   ): Promise<ListHooksResponse> => {
+    const { page = 0, per_page = 50, include_totals = false, q } = params;
+
     let query = db.selectFrom("hooks").where("hooks.tenant_id", "=", tenant_id);
 
-    if (params.q) {
-      query = luceneFilter(db, query, params.q, ["url", "form_id"]);
+    if (q) {
+      query = luceneFilter(db, query, q, ["url", "form_id"]);
     }
 
-    const filteredQuery = query
-      .offset(params.page * params.per_page)
-      .limit(params.per_page);
+    const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const results = await filteredQuery.selectAll().execute();
-
-    const { count } = await query
-      .select((eb) => eb.fn.countAll().as("count"))
-      .executeTakeFirstOrThrow();
 
     const hooks = results.map((hook) => {
       const { tenant_id, enabled, synchronous, ...rest } = hook;
@@ -40,10 +32,23 @@ export function list(db: Kysely<Database>) {
       });
     });
 
+    if (!include_totals) {
+      return {
+        hooks,
+        start: 0,
+        limit: 0,
+        length: 0,
+      };
+    }
+
+    const { count } = await query
+      .select((eb) => eb.fn.countAll().as("count"))
+      .executeTakeFirstOrThrow();
+
     return {
       hooks,
-      start: params.page * params.per_page,
-      limit: params.per_page,
+      start: page * per_page,
+      limit: per_page,
       length: getCountAsInt(count),
     };
   };

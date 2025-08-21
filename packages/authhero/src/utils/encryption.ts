@@ -53,6 +53,7 @@ export async function createX509Certificate(
     thumbprint,
     fingerprint,
     pkcs7,
+    type: "jwt_signing" as const,
   };
 }
 

@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.3.11
+
+### Minor Changes
+
+- Add type to keys
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.83.0
+
 ## 0.3.10
 
 ### Patch Changes

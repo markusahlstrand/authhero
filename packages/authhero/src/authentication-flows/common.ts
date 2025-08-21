@@ -47,9 +47,11 @@ export async function createAuthTokens(
 ): Promise<TokenResponse> {
   const { authParams, user, client, session_id } = params;
 
-  const signingKeys = await ctx.env.data.keys.list();
+  const { signingKeys } = await ctx.env.data.keys.list({
+    q: "type:jwt_signing",
+  });
   const validKeys = signingKeys.filter(
-    (key) => !key.revoked_at || new Date(key.revoked_at) > new Date(),
+    (key: any) => !key.revoked_at || new Date(key.revoked_at) > new Date(),
   );
   const signingKey = validKeys[validKeys.length - 1];
 

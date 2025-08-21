@@ -2,12 +2,8 @@ import { Role, RoleInsert } from "../types";
 import { ListParams } from "../types/ListParams";
 import { Totals } from "../types";
 
-export interface ListRolesResponse {
+export interface ListRolesResponse extends Totals {
   roles: Role[];
-  totals?: Totals;
-  start: number;
-  limit: number;
-  length: number;
 }
 
 export interface RolesAdapter {

@@ -1,5 +1,18 @@
 # @authhero/demo
 
+## 0.20.0
+
+### Minor Changes
+
+- Add type to keys
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [e1c0b34]
+  - authhero@0.195.0
+  - @authhero/kysely-adapter@11.0.0
+
 ## 0.19.0
 
 ### Minor Changes

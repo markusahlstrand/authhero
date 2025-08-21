@@ -1,5 +1,17 @@
 # authhero
 
+## 0.195.0
+
+### Minor Changes
+
+- Add type to keys
+
+### Patch Changes
+
+- e1c0b34: pnpm changeset version
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.83.0
+
 ## 0.194.0
 
 ### Minor Changes

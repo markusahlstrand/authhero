@@ -9,23 +9,19 @@ import { removeNullProperties } from "../helpers/remove-nulls";
 export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
-    params: ListParams = {
-      page: 0,
-      per_page: 50,
-      include_totals: false,
-    },
+    params: ListParams = {},
   ): Promise<ListFormsResponse> => {
+    const { page = 0, per_page = 50, include_totals = false, q } = params;
+
     // Start building the query
     let query = db.selectFrom("forms").where("tenant_id", "=", tenant_id);
 
     // Apply any filters from the params
-    if (params?.q) {
-      query = luceneFilter(db, query, params.q, []);
+    if (q) {
+      query = luceneFilter(db, query, q, []);
     }
 
-    const filteredQuery = query
-      .offset(params.page * params.per_page)
-      .limit(params.per_page);
+    const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     // Execute the query
     const results = await filteredQuery.selectAll().execute();
@@ -51,14 +47,23 @@ export function list(db: Kysely<Database>) {
       return formSchema.parse(removeNullProperties(parsed));
     });
 
+    if (!include_totals) {
+      return {
+        forms,
+        start: 0,
+        limit: 0,
+        length: 0,
+      };
+    }
+
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))
       .executeTakeFirstOrThrow();
 
     return {
       forms,
-      start: params.page * params.per_page,
-      limit: params.per_page,
+      start: page * per_page,
+      limit: per_page,
       length: getCountAsInt(count),
     };
   };

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.83.0
+
+### Minor Changes
+
+- Add type to keys
+
 ## 0.82.0
 
 ### Minor Changes

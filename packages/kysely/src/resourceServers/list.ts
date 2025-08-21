@@ -15,15 +15,17 @@ type ResourceServerDbRow = z.infer<typeof sqlResourceServerSchema>;
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ListParams = { page: 0, per_page: 50, include_totals: false },
+    params: ListParams = {},
   ): Promise<ListResourceServersResponse> => {
+    const { page = 0, per_page = 50, include_totals = false, q } = params;
+
     let query = db
       .selectFrom("resource_servers")
       .where("resource_servers.tenant_id", "=", tenantId);
 
-    if (params.q) {
-      const q = params.q.trim();
-      const parts = q.split(/\s+/);
+    if (q) {
+      const trimmedQ = q.trim();
+      const parts = trimmedQ.split(/\s+/);
       const one = parts.length === 1 ? parts[0] : undefined;
       const match = one ? one.match(/^(-)?(name|identifier):(.*)$/) : null;
       const value = match ? match[3] : "";
@@ -38,16 +40,14 @@ export function list(db: Kysely<Database>) {
           ? query.where(field, "not like", `%${value}%`)
           : query.where(field, "like", `%${value}%`);
       } else {
-        query = luceneFilter(db, query, q, [
+        query = luceneFilter(db, query, trimmedQ, [
           "resource_servers.name",
           "resource_servers.identifier",
         ]);
       }
     }
 
-    const filteredQuery = query
-      .offset(params.page * params.per_page)
-      .limit(params.per_page);
+    const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const rows = await filteredQuery.selectAll().execute();
     const resource_servers: ResourceServer[] = rows.map((row) => {
@@ -75,14 +75,23 @@ export function list(db: Kysely<Database>) {
       return removeNullProperties(resourceServer);
     });
 
+    if (!include_totals) {
+      return {
+        resource_servers,
+        start: 0,
+        limit: 0,
+        length: 0,
+      };
+    }
+
     const { count } = await query
       .select((eb) => eb.fn.countAll().as("count"))
       .executeTakeFirstOrThrow();
 
     return {
       resource_servers,
-      start: params.page * params.per_page,
-      limit: params.per_page,
+      start: page * per_page,
+      limit: per_page,
       length: getCountAsInt(count),
     };
   };

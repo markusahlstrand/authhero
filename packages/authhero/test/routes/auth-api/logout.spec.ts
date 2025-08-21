@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { createSessions } from "../../helpers/create-session";
 
 describe("logout", () => {
   it("should clear a session cookie and redirect to the returnTo url", async () => {
@@ -61,40 +62,13 @@ describe("logout", () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
-    await env.data.sessions.create("tenantId", {
-      id: "sid",
-      clients: ["clientId"],
-      user_id: "email|userId",
-      device: {
-        last_ip: "",
-        initial_ip: "",
-        last_user_agent: "",
-        initial_user_agent: "",
-        initial_asn: "",
-        last_asn: "",
-      },
-      used_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
-    });
-
-    // Create the login session
-    await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
-      csrf_token: "csrfToken",
-      session_id: "sid",
-      authParams: {
-        client_id: "clientId",
-        username: "foo@exampl.com",
-        scope: "",
-        audience: "http://example.com",
-        redirect_uri: "http://example.com/callback",
-      },
-    });
+    // Use the helper to create sessions
+    const { session } = await createSessions(env.data);
 
     // Create a refresh token
     await env.data.refreshTokens.create("tenantId", {
       id: "refreshToken",
-      session_id: "sid",
+      session_id: session.id,
       user_id: "email|userId",
       client_id: "clientId",
       resource_servers: [
@@ -123,16 +97,16 @@ describe("logout", () => {
       },
       {
         headers: {
-          cookie: "tenantId-auth-token=sid",
+          cookie: `tenantId-auth-token=${session.id}`,
         },
       },
     );
 
-    const session = await env.data.sessions.get("tenantId", "sid");
-    expect(session?.revoked_at).toBeTypeOf("string");
+    const sessionAfter = await env.data.sessions.get("tenantId", session.id);
+    expect(sessionAfter?.revoked_at).toBeTypeOf("string");
 
     const refreshtokens = await env.data.refreshTokens.list("tenantId", {
-      q: "session_id:sid",
+      q: `session_id:${session.id}`,
       include_totals: false,
       per_page: 1,
       page: 0,
@@ -140,7 +114,7 @@ describe("logout", () => {
 
     expect(refreshtokens.length).toBe(0);
 
-    const logs = await env.data.logs.list("tenantId");
+    const { logs } = await env.data.logs.list("tenantId");
     expect(logs.length).toBe(1);
   });
 });

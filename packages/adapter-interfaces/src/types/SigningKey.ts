@@ -36,6 +36,12 @@ export const signingKeySchema = z.object({
     .string()
     .optional()
     .openapi({ description: "The date and time when the key was revoked" }),
+  connection: z.string().optional().openapi({
+    description: "The connection identifier associated with the key",
+  }),
+  type: z.enum(["jwt_signing", "saml_encryption"]).openapi({
+    description: "The type of the signing key",
+  }),
 });
 
 export type SigningKey = z.infer<typeof signingKeySchema>;

@@ -197,15 +197,22 @@ export const keys = mysqlTable(
   "keys",
   {
     kid: varchar({ length: 255 }).notNull(),
-    tenantId: varchar("tenant_id", { length: 255 }),
+    tenantId: varchar("tenant_id", { length: 255 }).references(
+      () => tenants.id,
+      { onDelete: "cascade" },
+    ),
     createdAt: varchar("created_at", { length: 255 }).notNull(),
     revokedAt: varchar("revoked_at", { length: 255 }),
-    cert: varchar({ length: 2048 }),
-    pkcs7: varchar({ length: 2048 }),
+    cert: varchar({ length: 4096 }),
+    pkcs7: varchar({ length: 4096 }),
     fingerprint: varchar({ length: 256 }),
     thumbprint: varchar({ length: 256 }),
     currentSince: varchar("current_since", { length: 256 }),
     currentUntil: varchar("current_until", { length: 256 }),
+    connection: varchar({ length: 255 }).references(() => connections.id, {
+      onDelete: "cascade",
+    }),
+    type: varchar({ length: 50 }).notNull().default("jwt_signing"),
   },
   (table) => [primaryKey({ columns: [table.kid], name: "keys_kid" })],
 );
