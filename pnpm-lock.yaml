@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.195.0
-        version: 0.195.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.196.0
+        version: 0.196.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -233,7 +233,7 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.4.11
-        version: 5.4.11(@types/node@22.15.17)
+        version: 5.4.19(@types/node@22.15.17)
 
   packages/authhero:
     dependencies:
@@ -321,10 +321,10 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.4.11
-        version: 5.4.11(@types/node@22.15.17)
+        version: 5.4.19(@types/node@22.15.17)
       vite-plugin-dts:
         specifier: ^4.3.0
-        version: 4.3.0(@types/node@22.15.17)(rollup@4.40.2)(typescript@5.8.3)(vite@5.4.11(@types/node@22.15.17))
+        version: 4.3.0(@types/node@22.15.17)(rollup@4.40.2)(typescript@5.8.3)(vite@5.4.19(@types/node@22.15.17))
       vitest:
         specifier: ^2.1.5
         version: 2.1.5(@types/node@22.15.17)(jsdom@26.1.0)(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))
@@ -373,7 +373,7 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.4.11
-        version: 5.4.11(@types/node@22.15.17)
+        version: 5.4.19(@types/node@22.15.17)
       vitest:
         specifier: ^2.1.5
         version: 2.1.5(@types/node@22.15.17)(jsdom@26.1.0)(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))
@@ -401,7 +401,7 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.3.2
-        version: 5.4.11(@types/node@20.14.9)
+        version: 5.4.19(@types/node@20.14.9)
 
   packages/drizzle:
     dependencies:
@@ -429,7 +429,7 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.3.2
-        version: 5.4.11(@types/node@20.14.9)
+        version: 5.4.19(@types/node@20.14.9)
 
   packages/kysely:
     dependencies:
@@ -475,7 +475,7 @@ importers:
         version: 5.8.3
       vite:
         specifier: ^5.4.11
-        version: 5.4.11(@types/node@22.15.17)
+        version: 5.4.19(@types/node@22.15.17)
       vitest:
         specifier: ^2.1.5
         version: 2.1.5(@types/node@22.15.17)(jsdom@26.1.0)(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))
@@ -3051,8 +3051,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.195.0:
-    resolution: {integrity: sha512-84txcaBMsjeI/J8Bnj0FoomLEL6LAwa155k0URhBbh+sKJA4/oT1Ji2g6yF7cgxNGII3KIdWFD1I0JxaxPiX5A==}
+  authhero@0.196.0:
+    resolution: {integrity: sha512-QISK6R/qdtIjMLCe0WXpgoXqbFJmLl0eFwt/XjrvNZHErEAa7NpFrYl7R4/l576VDN/BujpPoiMqRlhx/ZWBIA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -8822,14 +8822,14 @@ snapshots:
       chai: 5.2.0
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@2.1.5(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(vite@5.4.11(@types/node@22.15.17))':
+  '@vitest/mocker@2.1.5(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(vite@5.4.19(@types/node@22.15.17))':
     dependencies:
       '@vitest/spy': 2.1.5
       estree-walker: 3.0.3
       magic-string: 0.30.12
     optionalDependencies:
       msw: 2.7.3(@types/node@22.15.17)(typescript@5.8.3)
-      vite: 5.4.11(@types/node@22.15.17)
+      vite: 5.4.19(@types/node@22.15.17)
 
   '@vitest/mocker@3.1.3(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(vite@5.4.11(@types/node@22.15.17))':
     dependencies:
@@ -9264,7 +9264,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.195.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  authhero@0.196.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.83.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
@@ -12775,7 +12775,7 @@ snapshots:
       debug: 4.3.7
       es-module-lexer: 1.5.4
       pathe: 1.1.2
-      vite: 5.4.11(@types/node@22.15.17)
+      vite: 5.4.19(@types/node@22.15.17)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -12793,7 +12793,7 @@ snapshots:
       debug: 4.4.0
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 5.4.11(@types/node@22.15.17)
+      vite: 5.4.19(@types/node@22.15.17)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -12805,7 +12805,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@4.3.0(@types/node@22.15.17)(rollup@4.40.2)(typescript@5.8.3)(vite@5.4.11(@types/node@22.15.17)):
+  vite-plugin-dts@4.3.0(@types/node@22.15.17)(rollup@4.40.2)(typescript@5.8.3)(vite@5.4.19(@types/node@22.15.17)):
     dependencies:
       '@microsoft/api-extractor': 7.47.11(@types/node@22.15.17)
       '@rollup/pluginutils': 5.1.0(rollup@4.40.2)
@@ -12818,20 +12818,11 @@ snapshots:
       magic-string: 0.30.12
       typescript: 5.8.3
     optionalDependencies:
-      vite: 5.4.11(@types/node@22.15.17)
+      vite: 5.4.19(@types/node@22.15.17)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
-
-  vite@5.4.11(@types/node@20.14.9):
-    dependencies:
-      esbuild: 0.21.5
-      postcss: 8.5.3
-      rollup: 4.24.0
-    optionalDependencies:
-      '@types/node': 20.14.9
-      fsevents: 2.3.3
 
   vite@5.4.11(@types/node@22.15.17):
     dependencies:
@@ -12842,11 +12833,20 @@ snapshots:
       '@types/node': 22.15.17
       fsevents: 2.3.3
 
+  vite@5.4.19(@types/node@20.14.9):
+    dependencies:
+      esbuild: 0.21.5
+      postcss: 8.5.3
+      rollup: 4.24.0
+    optionalDependencies:
+      '@types/node': 20.14.9
+      fsevents: 2.3.3
+
   vite@5.4.19(@types/node@22.15.17):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.3
-      rollup: 4.40.2
+      rollup: 4.24.0
     optionalDependencies:
       '@types/node': 22.15.17
       fsevents: 2.3.3
@@ -12917,7 +12917,7 @@ snapshots:
   vitest@2.1.5(@types/node@22.15.17)(jsdom@26.1.0)(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3)):
     dependencies:
       '@vitest/expect': 2.1.5
-      '@vitest/mocker': 2.1.5(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(vite@5.4.11(@types/node@22.15.17))
+      '@vitest/mocker': 2.1.5(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(vite@5.4.19(@types/node@22.15.17))
       '@vitest/pretty-format': 2.1.5
       '@vitest/runner': 2.1.5
       '@vitest/snapshot': 2.1.5
@@ -12933,7 +12933,7 @@ snapshots:
       tinyexec: 0.3.1
       tinypool: 1.0.1
       tinyrainbow: 1.2.0
-      vite: 5.4.11(@types/node@22.15.17)
+      vite: 5.4.19(@types/node@22.15.17)
       vite-node: 2.1.5(@types/node@22.15.17)
       why-is-node-running: 2.3.0
     optionalDependencies:

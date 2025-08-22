@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.84.0
+
+### Minor Changes
+
+- Add cache adapter
+
 ## 0.83.0
 
 ### Minor Changes

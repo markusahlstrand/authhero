@@ -1,5 +1,16 @@
 # authhero
 
+## 0.197.0
+
+### Minor Changes
+
+- Add cache adapter
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.84.0
+
 ## 0.196.0
 
 ### Minor Changes
