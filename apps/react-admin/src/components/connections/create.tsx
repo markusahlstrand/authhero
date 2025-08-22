@@ -23,6 +23,7 @@ export function ConnectionCreate() {
             { id: "oauth2", name: "OAuth2" },
             { id: "Username-Password-Authentication", name: "Password" },
             { id: "sms", name: "SMS" },
+            { id: "samlp", name: "SAML" },
           ]}
         />
       </SimpleForm>

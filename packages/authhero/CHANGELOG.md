@@ -1,5 +1,11 @@
 # authhero
 
+## 0.196.0
+
+### Minor Changes
+
+- Use separate saml key for encryption
+
 ## 0.195.0
 
 ### Minor Changes
