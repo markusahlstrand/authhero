@@ -90,9 +90,8 @@ export async function samlCallback(
     });
   }
 
-  // TODO: This should be a saml_encryption certificate soon
   const { signingKeys } = await ctx.env.data.keys.list({
-    q: "type:jwt_signing",
+    q: "type:saml_encryption",
   });
 
   const [signingKey] = signingKeys;
