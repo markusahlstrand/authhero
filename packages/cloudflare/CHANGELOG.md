@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.24.0
+
+### Minor Changes
+
+- Add a cache adapter
+
 ## 1.23.0
 
 ### Minor Changes
