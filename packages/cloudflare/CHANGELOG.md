@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.27.0
+
+### Minor Changes
+
+- Export the cache
+
 ## 1.26.0
 
 ### Minor Changes

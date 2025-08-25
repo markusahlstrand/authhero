@@ -1,15 +1,30 @@
-import { CustomDomainsAdapter } from "@authhero/adapter-interfaces";
+import {
+  CustomDomainsAdapter,
+  CacheAdapter,
+} from "@authhero/adapter-interfaces";
 import { createCustomDomainsAdapter } from "./customDomains";
+import { createCloudflareCache } from "./cache";
 import { CloudflareConfig } from "./types/CloudflareConfig";
 
 export default function createAdapters(config: CloudflareConfig): {
   customDomains: CustomDomainsAdapter;
+  cache?: CacheAdapter;
 } {
-  return {
+  const adapters: {
+    customDomains: CustomDomainsAdapter;
+    cache?: CacheAdapter;
+  } = {
     customDomains: createCustomDomainsAdapter(config),
   };
-}
 
-// Export cache adapter creators separately since they have different config requirements
-export { createCloudflareCache, createGlobalCloudflareCache } from "./cache";
-export type { CloudflareCacheConfig } from "./cache";
+  // Create cache adapter if any cache config is provided
+  if (config.cacheName || config.defaultTtlSeconds || config.keyPrefix) {
+    adapters.cache = createCloudflareCache({
+      cacheName: config.cacheName,
+      defaultTtlSeconds: config.defaultTtlSeconds,
+      keyPrefix: config.keyPrefix,
+    });
+  }
+
+  return adapters;
+}
