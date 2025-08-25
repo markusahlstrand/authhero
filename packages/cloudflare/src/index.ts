@@ -9,3 +9,7 @@ export default function createAdapters(config: CloudflareConfig): {
     customDomains: createCustomDomainsAdapter(config),
   };
 }
+
+// Export cache adapter creators separately since they have different config requirements
+export { createCloudflareCache, createGlobalCloudflareCache } from "./cache";
+export type { CloudflareCacheConfig } from "./cache";

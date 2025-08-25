@@ -22,6 +22,7 @@ import { addTimingLogs } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
+import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
@@ -65,11 +66,29 @@ export default function create(config: AuthHeroConfig) {
   app.use(async (ctx, next) => {
     // First add data hooks
     const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-    // Then wrap with caching (specifically for tenants, connections, and clients)
-    const cachedData = addCaching(dataWithHooks, {
-      defaultTtl: 0, // 0 minutes default TTL
-      cacheEntities: ["tenants", "connections", "clients"],
+
+    // Management API always uses request-scoped caching for data freshness
+    const cacheAdapter = createInMemoryCache({
+      defaultTtlSeconds: 0, // No TTL for request-scoped cache
+      maxEntries: 100, // Smaller limit since it's per-request
+      cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
     });
+
+    // Then wrap with caching for commonly accessed read-only entities
+    const cachedData = addCaching(dataWithHooks, {
+      defaultTtl: 0, // Always use request-scoped caching for management API
+      cacheEntities: [
+        "tenants",
+        "connections",
+        "clients",
+        "branding",
+        "themes",
+        "promptSettings",
+        "forms",
+      ],
+      cache: cacheAdapter,
+    });
+
     // Finally wrap with timing logs
     ctx.env.data = addTimingLogs(ctx, cachedData);
     return next();

@@ -35,3 +35,6 @@ export function withMainTenantFallback(
 ): DataAdapters {
   return createMainTenantAdapter(baseAdapters, config);
 }
+
+// Export cache adapters
+export * from "./cache";

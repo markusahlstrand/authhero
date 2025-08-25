@@ -14,6 +14,7 @@ import { changeEmailConfirmationRoutes } from "./change-email-confirmation";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
+import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
@@ -50,11 +51,34 @@ export default function create(config: AuthHeroConfig) {
     .use(async (ctx, next) => {
       // First add data hooks
       const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-      // Then wrap with caching
+
+      // Use provided cache adapter or create request-scoped cache as fallback
+      const cacheAdapter =
+        config.dataAdapter.cache ||
+        createInMemoryCache({
+          defaultTtlSeconds: 0, // No TTL for request-scoped cache
+          maxEntries: 100, // Smaller limit since it's per-request
+          cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
+        });
+
+      // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
+      const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
+
+      // Then wrap with caching for commonly accessed read-only entities
       const cachedData = addCaching(dataWithHooks, {
-        defaultTtl: 300000, // 5 minutes default TTL
-        cacheEntities: ["tenants", "connections", "clients"],
+        defaultTtl,
+        cacheEntities: [
+          "tenants",
+          "connections",
+          "clients",
+          "branding",
+          "themes",
+          "promptSettings",
+          "forms",
+        ],
+        cache: cacheAdapter,
       });
+
       // Finally wrap with timing logs
       ctx.env.data = addTimingLogs(ctx, cachedData);
       return next();
