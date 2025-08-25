@@ -113,7 +113,12 @@ export function addCaching(
           }
 
           // For read operations, try to get from cache first
-          const cacheKey = createCacheKey(adapterName, methodName, args, keyPrefix);
+          const cacheKey = createCacheKey(
+            adapterName,
+            methodName,
+            args,
+            keyPrefix,
+          );
           const cachedResult = await cache.get(cacheKey);
 
           if (cachedResult !== null) {

@@ -58,9 +58,12 @@ export class InMemoryCache implements CacheAdapter {
   ): Promise<void> {
     // Calculate expiration time
     let expiresAt: Date | undefined;
-    const ttl = ttlSeconds ?? this.config.defaultTtlSeconds;
-    if (ttl) {
-      expiresAt = new Date(Date.now() + ttl * 1000);
+    const rawTtl = ttlSeconds ?? this.config.defaultTtlSeconds;
+    const hasTtl = rawTtl !== undefined;
+    const ttl = hasTtl ? Math.max(0, rawTtl as number) : 0;
+    if (hasTtl) {
+      // For ttl=0 mark as already expired so get() never serves it
+      expiresAt = new Date(Date.now() + (ttl > 0 ? ttl * 1000 : -1));
     }
 
     // Check if we need to evict entries (simple LRU)
