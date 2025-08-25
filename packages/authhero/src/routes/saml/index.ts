@@ -4,7 +4,7 @@ import { registerComponent } from "../../middlewares/register-component";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper-v2";
+import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";

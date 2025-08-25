@@ -13,7 +13,7 @@ import { changeEmailRoutes } from "./change-email";
 import { changeEmailConfirmationRoutes } from "./change-email-confirmation";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper-v2";
+import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
