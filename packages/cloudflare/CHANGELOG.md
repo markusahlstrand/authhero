@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.26.0
+
+### Minor Changes
+
+- Bump version for cloudfalre
+
 ## 1.24.0
 
 ### Minor Changes
