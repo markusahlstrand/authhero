@@ -1,9 +1,17 @@
 import { CacheAdapter } from "@authhero/adapter-interfaces";
 
+// Extend CacheStorage to include Cloudflare's default cache
+declare global {
+  interface CacheStorage {
+    default: Cache;
+  }
+}
+
 export interface CloudflareCacheConfig {
   /**
-   * The cache name to use (optional, defaults to "default")
-   * If not provided, uses caches.default
+   * The cache name to use (optional, defaults to edge cache)
+   * If not provided, uses caches.default (Cloudflare edge cache)
+   * If provided, uses caches.open() (Worker-local cache storage)
    */
   cacheName?: string;
   /**
@@ -40,7 +48,8 @@ export class CloudflareCache implements CacheAdapter {
     if (this.config.cacheName) {
       this.cache = await caches.open(this.config.cacheName);
     } else {
-      this.cache = await caches.open("default");
+      // Use Cloudflare's default edge cache
+      this.cache = caches.default;
     }
 
     return this.cache;
@@ -150,19 +159,4 @@ export function createCloudflareCache(
   config: CloudflareCacheConfig,
 ): CacheAdapter {
   return new CloudflareCache(config);
-}
-
-/**
- * Create a Cloudflare cache adapter using the global caches API
- * This is a convenience function for the most common use case
- * @deprecated Use createCloudflareCache instead
- */
-export async function createGlobalCloudflareCache(
-  cacheName: string = "default",
-  options: Omit<CloudflareCacheConfig, "cacheName"> = {},
-): Promise<CacheAdapter> {
-  return createCloudflareCache({
-    cacheName,
-    ...options,
-  });
 }
