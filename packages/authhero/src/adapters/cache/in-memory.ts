@@ -19,7 +19,7 @@ export class InMemoryCache implements CacheAdapter {
   private cache = new Map<string, CacheItem>();
   private accessOrder = new Map<string, number>(); // For LRU tracking
   private accessCounter = 0;
-  private cleanupTimer?: NodeJS.Timeout;
+  private cleanupTimer?: ReturnType<typeof setInterval>;
 
   constructor(private config: InMemoryCacheConfig = {}) {
     // Start periodic cleanup of expired entries (skip if cleanupIntervalMs is 0)

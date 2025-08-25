@@ -14,6 +14,8 @@ export interface CacheOptions {
   cacheEntities?: string[];
   /** Cache adapter implementation */
   cache: CacheAdapter;
+  /** Key prefix to ensure cache isolation (e.g., tenant ID) */
+  keyPrefix?: string;
 }
 
 // Create a hash key from parameters for cache lookup
@@ -21,13 +23,16 @@ function createCacheKey(
   adapterName: string,
   methodName: string,
   args: any[],
+  keyPrefix?: string,
 ): string {
   try {
-    return `${adapterName}:${methodName}:${JSON.stringify(args)}`;
+    const baseKey = `${adapterName}:${methodName}:${JSON.stringify(args)}`;
+    return keyPrefix ? `${keyPrefix}:${baseKey}` : baseKey;
   } catch (error) {
     // If arguments can't be stringified (e.g., contain circular references),
     // use a timestamp to ensure uniqueness but effectively disable caching
-    return `${adapterName}:${methodName}:${Date.now()}-${Math.random()}`;
+    const baseKey = `${adapterName}:${methodName}:${Date.now()}-${Math.random()}`;
+    return keyPrefix ? `${keyPrefix}:${baseKey}` : baseKey;
   }
 }
 
@@ -45,6 +50,7 @@ export function addCaching(
     customTtls = {},
     excludeMethods = [],
     cacheEntities = [],
+    keyPrefix,
   } = options;
 
   const excludeMethodsSet = new Set(excludeMethods);
@@ -107,7 +113,7 @@ export function addCaching(
           }
 
           // For read operations, try to get from cache first
-          const cacheKey = createCacheKey(adapterName, methodName, args);
+          const cacheKey = createCacheKey(adapterName, methodName, args, keyPrefix);
           const cachedResult = await cache.get(cacheKey);
 
           if (cachedResult !== null) {
@@ -119,7 +125,7 @@ export function addCaching(
 
           // Cache the result - if TTL is 0, cache without expiration (useful for request-scoped caching)
           if (ttl >= 0) {
-            await cache.set(cacheKey, result, ttl || undefined);
+            await cache.set(cacheKey, result, ttl);
           }
 
           return result;
