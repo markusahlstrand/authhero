@@ -2,9 +2,10 @@ import { CacheAdapter } from "@authhero/adapter-interfaces";
 
 export interface CloudflareCacheConfig {
   /**
-   * The Cloudflare cache instance to use
+   * The cache name to use (optional, defaults to "default")
+   * If not provided, uses caches.default
    */
-  cache: Cache;
+  cacheName?: string;
   /**
    * Default TTL in seconds for cache entries (optional)
    * Note: Cloudflare cache has its own TTL limits
@@ -21,7 +22,29 @@ export interface CloudflareCacheConfig {
  * Uses Cloudflare's Cache API for distributed caching
  */
 export class CloudflareCache implements CacheAdapter {
+  private cache: Cache | null = null;
+
   constructor(private config: CloudflareCacheConfig) {}
+
+  private async getCache(): Promise<Cache> {
+    if (this.cache) {
+      return this.cache;
+    }
+
+    if (typeof caches === "undefined") {
+      throw new Error(
+        "caches API is not available - CloudflareCache should only be used in Cloudflare Workers",
+      );
+    }
+
+    if (this.config.cacheName) {
+      this.cache = await caches.open(this.config.cacheName);
+    } else {
+      this.cache = await caches.open("default");
+    }
+
+    return this.cache;
+  }
 
   private getKey(key: string): string {
     return this.config.keyPrefix ? `${this.config.keyPrefix}:${key}` : key;
@@ -35,8 +58,9 @@ export class CloudflareCache implements CacheAdapter {
 
   async get<T = any>(key: string): Promise<T | null> {
     try {
+      const cache = await this.getCache();
       const request = this.createRequest(key);
-      const response = await this.config.cache.match(request);
+      const response = await cache.match(request);
 
       if (!response) {
         return null;
@@ -68,13 +92,16 @@ export class CloudflareCache implements CacheAdapter {
     ttlSeconds?: number,
   ): Promise<void> {
     try {
-      const ttl = ttlSeconds ?? this.config.defaultTtlSeconds;
+      const cache = await this.getCache();
+      const rawTtl = ttlSeconds ?? this.config.defaultTtlSeconds;
+      const hasTtl = rawTtl !== undefined;
+      const ttl = hasTtl ? Math.max(0, rawTtl as number) : 0;
 
       // Prepare cache data
       const cacheData = {
         value,
-        expiresAt: ttl
-          ? new Date(Date.now() + ttl * 1000).toISOString()
+        expiresAt: hasTtl
+          ? new Date(Date.now() + (ttl > 0 ? ttl * 1000 : -1)).toISOString()
           : undefined,
         cachedAt: new Date().toISOString(),
       };
@@ -83,11 +110,11 @@ export class CloudflareCache implements CacheAdapter {
       const response = new Response(JSON.stringify(cacheData), {
         headers: {
           "Content-Type": "application/json",
-          ...(ttl && { "Cache-Control": `max-age=${ttl}` }),
+          ...(hasTtl && ttl > 0 && { "Cache-Control": `max-age=${ttl}` }),
         },
       });
 
-      await this.config.cache.put(request, response);
+      await cache.put(request, response);
     } catch (error) {
       // Log error but don't throw - cache failures should not break the application
       console.warn(`Cache set error for key ${key}:`, error);
@@ -96,9 +123,10 @@ export class CloudflareCache implements CacheAdapter {
 
   async delete(key: string): Promise<boolean> {
     try {
+      const cache = await this.getCache();
       const request = this.createRequest(key);
       // Cloudflare cache.delete returns true if the resource was deleted, false if not found
-      return await this.config.cache.delete(request);
+      return await cache.delete(request);
     } catch (error) {
       console.warn(`Cache delete error for key ${key}:`, error);
       return false;
@@ -127,21 +155,14 @@ export function createCloudflareCache(
 /**
  * Create a Cloudflare cache adapter using the global caches API
  * This is a convenience function for the most common use case
+ * @deprecated Use createCloudflareCache instead
  */
 export async function createGlobalCloudflareCache(
   cacheName: string = "default",
-  options: Omit<CloudflareCacheConfig, "cache"> = {},
+  options: Omit<CloudflareCacheConfig, "cacheName"> = {},
 ): Promise<CacheAdapter> {
-  if (typeof caches === "undefined") {
-    throw new Error(
-      "caches API is not available - this function should only be used in Cloudflare Workers",
-    );
-  }
-
-  const cache = await caches.open(cacheName);
-
-  return new CloudflareCache({
-    cache,
+  return createCloudflareCache({
+    cacheName,
     ...options,
   });
 }

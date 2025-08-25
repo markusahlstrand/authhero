@@ -6,4 +6,16 @@ export interface CloudflareConfig {
   authEmail: string;
   enterprise?: boolean;
   customDomainAdapter: CustomDomainsAdapter;
+  /**
+   * Cache name to use (optional, defaults to "default")
+   */
+  cacheName?: string;
+  /**
+   * Default TTL in seconds for cache entries (optional)
+   */
+  defaultTtlSeconds?: number;
+  /**
+   * Key prefix to namespace cache entries (optional)
+   */
+  keyPrefix?: string;
 }
