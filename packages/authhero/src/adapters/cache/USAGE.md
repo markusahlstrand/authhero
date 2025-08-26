@@ -37,22 +37,29 @@ const app = init({
 
 ```typescript
 import { init } from "@authhero/authhero";
-import { createGlobalCloudflareCache } from "@authhero/cloudflare";
+import createCloudflareAdapters from "@authhero/cloudflare";
 import createKyselyAdapters from "@authhero/kysely";
 
 // Create your database adapters
 const baseAdapters = createKyselyAdapters(db);
 
-// Create a Cloudflare cache adapter
-const cacheAdapter = await createGlobalCloudflareCache("authhero-cache", {
-  keyPrefix: "auth",
-  defaultTtlSeconds: 600, // 10 minutes default
+// Create Cloudflare adapters (includes cache with defaults)
+const cloudflareAdapters = createCloudflareAdapters({
+  zoneId: env.CLOUDFLARE_ZONE_ID,
+  authKey: env.CLOUDFLARE_AUTH_KEY,
+  authEmail: env.CLOUDFLARE_AUTH_EMAIL,
+  customDomainAdapter: baseAdapters.customDomains,
+  // Optional cache configuration
+  defaultTtlSeconds: 600, // 10 minutes (default: 300)
+  keyPrefix: "auth", // (default: "authhero")
+  // cacheName: "my-cache", // (default: uses Cloudflare edge cache)
 });
 
-// Combine database adapters with cache
+// Combine database adapters with Cloudflare adapters
 const adapters = {
   ...baseAdapters,
-  cache: cacheAdapter,
+  customDomains: cloudflareAdapters.customDomains,
+  cache: cloudflareAdapters.cache, // Always available
 };
 
 const app = init({
@@ -60,6 +67,13 @@ const app = init({
   // ... other config
 });
 ```
+
+### Cloudflare Cache Options
+
+- **No cacheName** (default): Uses Cloudflare's edge cache (`caches.default`) - globally distributed
+- **With cacheName**: Uses Worker-local cache storage (`caches.open(name)`) - per-Worker instance
+- **defaultTtlSeconds**: Cache TTL in seconds (default: 300 = 5 minutes)
+- **keyPrefix**: Namespace for cache keys (default: "authhero")
 
 ## Custom Cache Configuration
 

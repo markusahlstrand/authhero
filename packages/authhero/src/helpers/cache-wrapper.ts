@@ -1,5 +1,11 @@
 import { DataAdapters, CacheAdapter } from "@authhero/adapter-interfaces";
 
+// Wrapper type to handle null values in cache
+type CacheValue<T> = {
+  value: T;
+  isCachedNull: boolean;
+};
+
 /**
  * Configuration options for the cache wrapper
  */
@@ -119,18 +125,40 @@ export function addCaching(
             args,
             keyPrefix,
           );
+
           const cachedResult = await cache.get(cacheKey);
 
           if (cachedResult !== null) {
-            return cachedResult;
+            // Check if this is a wrapped cached value or a direct cached value
+            if (
+              cachedResult &&
+              typeof cachedResult === "object" &&
+              "isCachedNull" in cachedResult
+            ) {
+              const wrappedValue = cachedResult as CacheValue<any>;
+              return wrappedValue.isCachedNull ? null : wrappedValue.value;
+            } else {
+              // Direct cached value (backward compatibility)
+              return cachedResult;
+            }
           }
 
           // Cache miss, execute the original method
           const result = await (method as any).apply(adapter, args);
 
-          // Cache the result - if TTL is 0, cache without expiration (useful for request-scoped caching)
+          // Cache the result
           if (ttl >= 0) {
-            await cache.set(cacheKey, result, ttl);
+            if (result !== null) {
+              // Cache successful results
+              await cache.set(cacheKey, result, ttl);
+            } else {
+              // Cache null results (misses) using wrapper to distinguish from cache miss
+              const wrappedValue: CacheValue<null> = {
+                value: null,
+                isCachedNull: true,
+              };
+              await cache.set(cacheKey, wrappedValue, ttl);
+            }
           }
 
           return result;

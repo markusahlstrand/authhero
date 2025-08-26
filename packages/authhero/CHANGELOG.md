@@ -1,5 +1,11 @@
 # authhero
 
+## 0.198.0
+
+### Minor Changes
+
+- Fix the caching
+
 ## 0.197.0
 
 ### Minor Changes

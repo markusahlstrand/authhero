@@ -90,7 +90,7 @@ export class CloudflareCache implements CacheAdapter {
       return data.value as T;
     } catch (error) {
       // Log error but don't throw - cache misses should not break the application
-      console.warn(`Cache get error for key ${key}:`, error);
+      console.error(`CloudflareCache: get error for key ${key}:`, error);
       return null;
     }
   }
@@ -116,17 +116,22 @@ export class CloudflareCache implements CacheAdapter {
       };
 
       const request = this.createRequest(key);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (hasTtl && ttl > 0) {
+        headers["Cache-Control"] = `max-age=${ttl}`;
+      }
+
       const response = new Response(JSON.stringify(cacheData), {
-        headers: {
-          "Content-Type": "application/json",
-          ...(hasTtl && ttl > 0 && { "Cache-Control": `max-age=${ttl}` }),
-        },
+        headers,
       });
 
       await cache.put(request, response);
     } catch (error) {
       // Log error but don't throw - cache failures should not break the application
-      console.warn(`Cache set error for key ${key}:`, error);
+      console.error(`CloudflareCache: set error for key ${key}:`, error);
     }
   }
 
@@ -137,7 +142,7 @@ export class CloudflareCache implements CacheAdapter {
       // Cloudflare cache.delete returns true if the resource was deleted, false if not found
       return await cache.delete(request);
     } catch (error) {
-      console.warn(`Cache delete error for key ${key}:`, error);
+      console.error(`CloudflareCache: delete error for key ${key}:`, error);
       return false;
     }
   }
@@ -156,7 +161,14 @@ export class CloudflareCache implements CacheAdapter {
  * Create a Cloudflare cache adapter
  */
 export function createCloudflareCache(
-  config: CloudflareCacheConfig,
+  config: CloudflareCacheConfig = {},
 ): CacheAdapter {
-  return new CloudflareCache(config);
+  // Apply defaults
+  const configWithDefaults: CloudflareCacheConfig = {
+    defaultTtlSeconds: 300, // 5 minutes default
+    keyPrefix: "authhero", // default prefix
+    ...config, // user config overrides defaults
+  };
+
+  return new CloudflareCache(configWithDefaults);
 }

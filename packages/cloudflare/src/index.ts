@@ -8,23 +8,22 @@ import { CloudflareConfig } from "./types/CloudflareConfig";
 
 export default function createAdapters(config: CloudflareConfig): {
   customDomains: CustomDomainsAdapter;
-  cache?: CacheAdapter;
+  cache: CacheAdapter;
 } {
   const adapters: {
     customDomains: CustomDomainsAdapter;
-    cache?: CacheAdapter;
+    cache: CacheAdapter;
   } = {
     customDomains: createCustomDomainsAdapter(config),
+    // Always create a cache adapter (let createCloudflareCache apply defaults)
+    cache: createCloudflareCache({
+      ...(config.cacheName && { cacheName: config.cacheName }),
+      ...(config.defaultTtlSeconds !== undefined && {
+        defaultTtlSeconds: config.defaultTtlSeconds,
+      }),
+      ...(config.keyPrefix && { keyPrefix: config.keyPrefix }),
+    }),
   };
-
-  // Create cache adapter if any cache config is provided
-  if (config.cacheName || config.defaultTtlSeconds || config.keyPrefix) {
-    adapters.cache = createCloudflareCache({
-      cacheName: config.cacheName,
-      defaultTtlSeconds: config.defaultTtlSeconds,
-      keyPrefix: config.keyPrefix,
-    });
-  }
 
   return adapters;
 }

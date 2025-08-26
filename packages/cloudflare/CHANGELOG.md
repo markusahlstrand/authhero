@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 1.28.0
+
+### Minor Changes
+
+- Fix the caching
+
 ## 1.27.0
 
 ### Minor Changes
