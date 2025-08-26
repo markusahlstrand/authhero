@@ -33,6 +33,18 @@ export default function create(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
+  // Set up cache once at app creation time
+  const cacheAdapter =
+    config.dataAdapter.cache ||
+    createInMemoryCache({
+      defaultTtlSeconds: 0, // No TTL for request-scoped cache
+      maxEntries: 100, // Smaller limit since it's per-request
+      cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
+    });
+
+  // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
+  const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
+
   // As we want to be able to redirect on errors, we need to handle all errors explicitly
   app.onError((err, c) => {
     if (err instanceof RedirectException) {
@@ -47,24 +59,21 @@ export default function create(config: AuthHeroConfig) {
     return c.text("Unexpected error", 500);
   });
 
+  // Handle CSS route separately to avoid unnecessary middleware
+  app.get("/css/tailwind.css", async (ctx: Context) => {
+    const css = tailwindCss;
+
+    return ctx.text(css, 200, {
+      "content-type": "text/css; charset=utf-8",
+    });
+  });
+
   app
     .use(async (ctx, next) => {
       // First add data hooks
       const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
 
-      // Use provided cache adapter or create request-scoped cache as fallback
-      const cacheAdapter =
-        config.dataAdapter.cache ||
-        createInMemoryCache({
-          defaultTtlSeconds: 0, // No TTL for request-scoped cache
-          maxEntries: 100, // Smaller limit since it's per-request
-          cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
-        });
-
-      // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
-      const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
-
-      // Then wrap with caching for commonly accessed read-only entities
+      // Use the app-level cache adapter
       const cachedData = addCaching(dataWithHooks, {
         defaultTtl,
         cacheEntities: [
@@ -85,14 +94,6 @@ export default function create(config: AuthHeroConfig) {
     })
     .use(clientInfoMiddleware)
     .use(tenantMiddleware);
-
-  app.get("/css/tailwind.css", async (ctx: Context) => {
-    const css = tailwindCss;
-
-    return ctx.text(css, 200, {
-      "content-type": "text/css; charset=utf-8",
-    });
-  });
 
   const universalApp = app
     .route("/info", infoRoutes)

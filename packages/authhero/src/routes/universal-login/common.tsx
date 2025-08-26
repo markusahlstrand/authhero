@@ -110,10 +110,12 @@ export async function initJSXRouteWithSession(
     throw new HTTPException(400, { message: "Session not found" });
   }
 
-  const theme = await env.data.themes.get(client.tenant.id, "default");
-  const branding = await env.data.branding.get(client.tenant.id);
+  const [theme, branding, user] = await Promise.all([
+    env.data.themes.get(client.tenant.id, "default"),
+    env.data.branding.get(client.tenant.id),
+    env.data.users.get(client.tenant.id, session.user_id),
+  ]);
 
-  const user = await env.data.users.get(client.tenant.id, session.user_id);
   if (!user) {
     throw new HTTPException(400, { message: "User not found" });
   }

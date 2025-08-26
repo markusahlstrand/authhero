@@ -182,27 +182,10 @@ export function createMainTenantAdapter(
     },
 
     // For other tenant-scoped adapters, we could add similar fallback logic
-    // but for now we'll just pass them through
-    applications: baseAdapters.applications,
-    branding: baseAdapters.branding,
-    codes: baseAdapters.codes,
-    customDomains: baseAdapters.customDomains,
-    emailProviders: baseAdapters.emailProviders,
-    forms: baseAdapters.forms,
-    hooks: baseAdapters.hooks,
-    keys: baseAdapters.keys,
-    loginSessions: baseAdapters.loginSessions,
-    logs: baseAdapters.logs,
-    passwords: baseAdapters.passwords,
-    promptSettings: baseAdapters.promptSettings,
-    refreshTokens: baseAdapters.refreshTokens,
-    resourceServers: baseAdapters.resourceServers,
-    rolePermissions: baseAdapters.rolePermissions,
-    userPermissions: baseAdapters.userPermissions,
-    roles: baseAdapters.roles,
-    sessions: baseAdapters.sessions,
-    tenants: baseAdapters.tenants,
-    themes: baseAdapters.themes,
-    users: baseAdapters.users,
+    // but for now we'll just pass them through by not overriding them
+    // This ensures they get properly wrapped by any outer wrappers (like caching)
+
+    // Note: We intentionally do NOT override these adapters so they remain
+    // part of the spread ...baseAdapters and can be properly wrapped by caching
   };
 }
