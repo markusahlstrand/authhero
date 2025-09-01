@@ -23,6 +23,7 @@ export const accountRoutes = new OpenAPIHono<{
       request: {
         query: z.object({
           client_id: z.string(),
+          user_id: z.string().optional(),
         }),
       },
       responses: {
@@ -38,11 +39,12 @@ export const accountRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { client_id } = ctx.req.valid("query");
+      const { client_id, user_id } = ctx.req.valid("query");
 
       const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         client_id,
+        user_id,
       );
 
       return ctx.html(

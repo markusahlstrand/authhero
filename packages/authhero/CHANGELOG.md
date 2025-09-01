@@ -1,5 +1,11 @@
 # authhero
 
+## 0.199.0
+
+### Minor Changes
+
+- Add a user_id param to the account page
+
 ## 0.198.0
 
 ### Minor Changes

@@ -10,6 +10,18 @@ import { getAuthCookie } from "../../utils/cookies";
 import { getAuthUrl } from "../../variables";
 import { nanoid } from "nanoid";
 
+function createAuthorizeRedirect(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client: Client
+): string {
+  const authorizeRedirectUrl = new URL(getAuthUrl(ctx.env));
+  authorizeRedirectUrl.pathname = "/authorize";
+  authorizeRedirectUrl.searchParams.set("client_id", client.id);
+  authorizeRedirectUrl.searchParams.set("redirect_uri", ctx.req.url);
+  authorizeRedirectUrl.searchParams.set("state", nanoid());
+  return authorizeRedirectUrl.toString();
+}
+
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
@@ -83,6 +95,7 @@ export async function initJSXRoute(
 export async function initJSXRouteWithSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client_id: string,
+  user_id?: string,
 ) {
   const { env } = ctx;
 
@@ -93,12 +106,7 @@ export async function initJSXRouteWithSession(
   // Fetch the cookie
   const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
   if (!authCookie) {
-    const authorizeRedirectUrl = new URL(getAuthUrl(ctx.env));
-    authorizeRedirectUrl.pathname = "/authorize";
-    authorizeRedirectUrl.searchParams.set("client_id", client.id);
-    authorizeRedirectUrl.searchParams.set("redirect_uri", ctx.req.url);
-    authorizeRedirectUrl.searchParams.set("state", nanoid());
-    throw new RedirectException(authorizeRedirectUrl.toString());
+    throw new RedirectException(createAuthorizeRedirect(ctx, client));
   }
 
   const session = await env.data.sessions.get(
@@ -108,6 +116,12 @@ export async function initJSXRouteWithSession(
 
   if (!session) {
     throw new HTTPException(400, { message: "Session not found" });
+  }
+
+  // If user_id is provided, validate that it matches the current session's user
+  if (user_id && session.user_id !== user_id) {
+    // Trigger a new login by redirecting to authorize endpoint
+    throw new RedirectException(createAuthorizeRedirect(ctx, client));
   }
 
   const [theme, branding, user] = await Promise.all([
