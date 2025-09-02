@@ -12,7 +12,7 @@ import { nanoid } from "nanoid";
 
 function createAuthorizeRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client
+  client: Client,
 ): string {
   const authorizeRedirectUrl = new URL(getAuthUrl(ctx.env));
   authorizeRedirectUrl.pathname = "/authorize";

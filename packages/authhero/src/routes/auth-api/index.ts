@@ -47,6 +47,7 @@ export default function create(config: AuthHeroConfig) {
       cacheEntities: [
         "tenants",
         "connections",
+        "customDomains",
         "clients",
         "branding",
         "themes",
