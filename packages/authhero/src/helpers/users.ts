@@ -91,15 +91,9 @@ export async function getPrimaryUserByEmail({
     return primaryUsers[0];
   }
 
-  // so now we have only linked users for this email address
-
-  // I am going to assume that all the linked users with the same email address
-  // are linked to the same primary account
-
   const primaryAccount = await userAdapter.get(tenant_id, users[0]?.linked_to!);
 
   if (!primaryAccount) {
-    // this is a real error where we should interrupt the flow
     throw new Error("Primary account not found");
   }
 
