@@ -68,6 +68,29 @@ export const impersonateRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "User not found" });
       }
 
+      // Check if current user has impersonation permission
+      const userPermissions = await ctx.env.data.userPermissions.list(
+        client.tenant.id,
+        user.user_id,
+      );
+      const hasImpersonationPermission = userPermissions.some(
+        (perm) => perm.permission_name === "users:impersonate",
+      );
+
+      if (!hasImpersonationPermission) {
+        return ctx.html(
+          <MessagePage
+            theme={theme}
+            branding={branding}
+            client={client}
+            state={state}
+            pageTitle="Access Denied"
+            message="You do not have permission to impersonate other users."
+          />,
+          403,
+        );
+      }
+
       return ctx.html(
         <ImpersonationPage
           theme={theme}
@@ -129,6 +152,21 @@ export const impersonateRoutes = new OpenAPIHono<{
 
       if (!user) {
         throw new HTTPException(400, { message: "User not found" });
+      }
+
+      // Check if current user has impersonation permission
+      const userPermissions = await ctx.env.data.userPermissions.list(
+        client.tenant.id,
+        user.user_id,
+      );
+      const hasImpersonationPermission = userPermissions.some(
+        (perm) => perm.permission_name === "users:impersonate",
+      );
+
+      if (!hasImpersonationPermission) {
+        throw new HTTPException(403, {
+          message: "Access denied: insufficient permissions",
+        });
       }
 
       // Continue with the normal authentication flow
