@@ -1,7 +1,9 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRouteWithSession } from "./common";
+import { initJSXRoute } from "./common";
 import AccountPage from "../../components/AccountPage";
+import { getAuthCookie } from "../../utils/cookies";
+import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { sendCode } from "../../emails";
 import generateOTP from "../../utils/otp";
@@ -22,30 +24,83 @@ export const accountRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          client_id: z.string(),
-          user_id: z.string().optional(),
+          state: z.string().openapi({
+            description: "The state parameter from the authorization request",
+          }),
         }),
       },
       responses: {
         200: {
-          description: "Response",
+          description: "HTML page showing account management interface.",
+          content: { "text/html": { schema: z.string() } },
         },
         302: {
           description: "Redirect to login if no session",
+          headers: z.object({ Location: z.string().url() }),
+        },
+        400: {
+          description:
+            "Bad Request - HTML error page if state is missing or other input error.",
+          content: { "text/html": { schema: z.string() } },
         },
         500: {
-          description: "Server error",
+          description: "Internal Server Error - HTML error page.",
+          content: { "text/html": { schema: z.string() } },
         },
       },
     }),
     async (ctx) => {
-      const { client_id, user_id } = ctx.req.valid("query");
+      const { env } = ctx;
+      const { state } = ctx.req.valid("query");
 
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        client_id,
-        user_id,
+      // Get theme and branding from initJSXRoute
+      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
+
+      if (!client || !client.tenant?.id) {
+        console.error(
+          "Client or tenant ID missing in GET /u/account after initJSXRoute",
+        );
+        return ctx.html(
+          <MessagePage
+            theme={theme}
+            branding={branding}
+            client={client}
+            state={state}
+            pageTitle={i18next.t("error_page_title") || "Error"}
+            message={
+              i18next.t("configuration_error_message") ||
+              "A configuration error occurred."
+            }
+          />,
+          500,
+        );
+      }
+
+      const authCookie = getAuthCookie(
+        client.tenant.id,
+        ctx.req.header("cookie"),
       );
+
+      const authSession = authCookie
+        ? await env.data.sessions.get(client.tenant.id, authCookie)
+        : null;
+
+      if (!authSession) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
+      }
+
+      const user = await env.data.users.get(
+        client.tenant.id,
+        authSession.user_id,
+      );
+
+      if (!user) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
+      }
 
       return ctx.html(
         <AccountPage
@@ -67,13 +122,15 @@ export const accountRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          client_id: z.string(),
+          state: z.string().openapi({
+            description: "The state parameter from the authorization request",
+          }),
         }),
         body: {
           content: {
             "application/x-www-form-urlencoded": {
               schema: z.object({
-                email: z.string().email().optional(),
+                email: z.string().toLowerCase().optional(),
                 action: z.enum(["update_email", "unlink_account"]),
                 provider: z.string().optional(),
                 user_id: z.string().optional(),
@@ -84,25 +141,77 @@ export const accountRoutes = new OpenAPIHono<{
       },
       responses: {
         200: {
-          description: "Response",
+          description: "HTML response with form results",
+          content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to login if no session",
+          description: "Redirect to change-email page or login if no session",
+          headers: z.object({ Location: z.string().url() }),
         },
         400: {
-          description: "Bad request",
+          description:
+            "Bad Request - HTML error page if state is missing or other input error.",
+          content: { "text/html": { schema: z.string() } },
+        },
+        500: {
+          description: "Internal Server Error - HTML error page.",
+          content: { "text/html": { schema: z.string() } },
         },
       },
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { client_id } = ctx.req.valid("query");
+      const { state } = ctx.req.valid("query");
       const body = ctx.req.valid("form");
 
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        client_id,
+      // Get theme and branding from initJSXRoute
+      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
+
+      if (!client || !client.tenant?.id) {
+        console.error(
+          "Client or tenant ID missing in POST /u/account after initJSXRoute",
+        );
+        return ctx.html(
+          <MessagePage
+            theme={theme}
+            branding={branding}
+            client={client}
+            state={state}
+            pageTitle={i18next.t("error_page_title") || "Error"}
+            message={
+              i18next.t("configuration_error_message") ||
+              "A configuration error occurred."
+            }
+          />,
+          500,
+        );
+      }
+
+      const authCookie = getAuthCookie(
+        client.tenant.id,
+        ctx.req.header("cookie"),
       );
+
+      const authSession = authCookie
+        ? await env.data.sessions.get(client.tenant.id, authCookie)
+        : null;
+
+      if (!authSession) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
+      }
+
+      const user = await env.data.users.get(
+        client.tenant.id,
+        authSession.user_id,
+      );
+
+      if (!user) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
+      }
 
       let error: string | undefined;
       let success: string | undefined;
@@ -145,7 +254,7 @@ export const accountRoutes = new OpenAPIHono<{
 
           // Redirect to change email page
           return ctx.redirect(
-            `/u/change-email?client_id=${client.id}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
+            `/u/change-email?state=${encodeURIComponent(state)}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
           );
         } else if (
           body.action === "unlink_account" &&

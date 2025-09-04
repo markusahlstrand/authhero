@@ -1,5 +1,13 @@
 # authhero
 
+## 0.200.0
+
+### Minor Changes
+
+- 3635f08: pnpm changeset version
+- Add account path
+- Add route for account
+
 ## 0.199.0
 
 ### Minor Changes

@@ -16,6 +16,7 @@ type Props = {
   client: Client;
   email: string;
   success?: boolean;
+  state?: string;
 };
 
 const CODE_LENGTH = 6;
@@ -27,6 +28,7 @@ const ChangeEmailPage: FC<Props> = ({
   client,
   email,
   success,
+  state,
 }) => {
   // If success, show success message with continue button
   if (success) {
@@ -54,7 +56,11 @@ const ChangeEmailPage: FC<Props> = ({
         <div className="flex flex-1 flex-col justify-center">
           <Button
             Component="a"
-            href={`/u/account?client_id=${client.id}`}
+            href={
+              state
+                ? `/u/account?state=${encodeURIComponent(state)}`
+                : `/u/account?client_id=${encodeURIComponent(client.id)}`
+            }
             className="sm:mt-4 !text-base"
           >
             <span>{i18next.t("continue")}</span>
@@ -122,7 +128,11 @@ const ChangeEmailPage: FC<Props> = ({
         </FormComponent>
         <a
           className="block text-primary hover:text-primaryHover text-center"
-          href={`/u/account?client_id=${client.id}`}
+          href={
+            state
+              ? `/u/account?state=${encodeURIComponent(state)}`
+              : `/u/account?client_id=${encodeURIComponent(client.id)}`
+          }
         >
           {i18next.t("go_back")}
         </a>

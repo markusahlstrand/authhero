@@ -2,7 +2,11 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { loginWithCode } from "../../helpers/login";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  AuthorizationResponseType,
+  AuthorizationResponseMode,
+} from "@authhero/adapter-interfaces";
 
 describe("account", () => {
   it("should send verification code and redirect to change-email page, then update email after code verification", async () => {
@@ -13,7 +17,7 @@ describe("account", () => {
     const { universalApp, env, getSentEmails } = testServer;
     const universalClient = testClient(universalApp, env);
 
-    const { cookieName, cookieValue } = await loginWithCode(testServer, {
+    const { cookieName, cookieValue, state } = await loginWithCode(testServer, {
       redirect_uri: "http://localhost:3000/u/account",
     });
 
@@ -22,7 +26,7 @@ describe("account", () => {
     // ---------------------------------
     const changeEmailResponse = await universalClient["account"].$post(
       {
-        query: { client_id: "clientId" },
+        query: { state },
         form: {
           action: "update_email",
           email: "new@example.com",
@@ -40,7 +44,7 @@ describe("account", () => {
     const location = changeEmailResponse.headers.get("location");
     expect(location).toContain("/u/change-email");
     expect(location).toContain("email=new%40example.com");
-    expect(location).toContain("client_id=clientId");
+    expect(location).toContain("state=");
     expect(location).toContain("change_id=");
 
     // Extract change_id from location
@@ -63,7 +67,7 @@ describe("account", () => {
     const changeEmailPageResponse = await universalClient["change-email"].$get(
       {
         query: {
-          client_id: "clientId",
+          state,
           email: "new@example.com",
           change_id: changeId!,
         },
@@ -86,7 +90,7 @@ describe("account", () => {
     const verifyCodeResponse = await universalClient["change-email"].$post(
       {
         query: {
-          client_id: "clientId",
+          state,
           email: "new@example.com",
           change_id: changeId!,
         },
@@ -105,7 +109,7 @@ describe("account", () => {
     expect(verifyCodeResponse.status).toBe(302);
     const confirmationLocation = verifyCodeResponse.headers.get("location");
     expect(confirmationLocation).toContain("/u/change-email-confirmation");
-    expect(confirmationLocation).toContain("client_id=clientId");
+    expect(confirmationLocation).toContain("state=");
     expect(confirmationLocation).toContain("email=new%40example.com");
 
     // ---------------------------------
@@ -116,7 +120,7 @@ describe("account", () => {
     ].$get(
       {
         query: {
-          client_id: "clientId",
+          state,
           email: "new@example.com",
         },
       },
@@ -151,24 +155,47 @@ describe("account", () => {
     expect(logs).toHaveLength(1);
   });
 
-  it("should redirect to authorize endpoint when accessing /u/account without valid session", async () => {
+  it("should redirect to login identifier when accessing /u/account without valid session", async () => {
     const testServer = await getTestServer({
       mockEmail: true,
     });
 
-    const { universalApp, env } = testServer;
+    const { universalApp, oauthApp, env } = testServer;
     const universalClient = testClient(universalApp, env);
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create an authorization request to get a state
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "http://localhost:3000/u/account",
+        state: "testState",
+        nonce: "nonce",
+        scope: "openid email profile",
+        auth0Client: "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=",
+        response_type: AuthorizationResponseType.CODE,
+        response_mode: AuthorizationResponseMode.QUERY,
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`http://localhost:3000${location}`);
+    const state = universalUrl.searchParams.get("state");
+
+    if (!state) {
+      throw new Error("No state found");
+    }
 
     // Try to access account page without any session cookie
     const accountResponse = await universalClient["account"].$get({
-      query: { client_id: "clientId" },
+      query: { state },
     });
 
     expect(accountResponse.status).toBe(302);
 
-    const location = accountResponse.headers.get("location");
-    expect(location).toContain(
-      "http://localhost:3000/authorize?client_id=clientId&redirect_uri=http%3A%2F%2Flocalhost%2Faccount%3Fclient_id%3DclientId&state=",
-    );
+    const redirectLocation = accountResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u/login/identifier");
+    expect(redirectLocation).toContain(`state=${state}`);
   });
 });
