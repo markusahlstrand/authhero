@@ -24,7 +24,7 @@
     "build:tailwind": "node build-tailwind.js",
     "start": "pnpm build && node dist/index.js",
     "test": "vitest run",
-    "pull-translations": "i18nexus pull -k U5P1_tq3Teu7FZx4OrfI9w --path ./src/locales && prettier --write ./src/locales/**/*.json && sort-json src/locales/*/*.json"
+    "pull-translations": "i18nexus pull -k $I18NEXUS_API_KEY --path ./src/locales && prettier --write ./src/locales/**/*.json && sort-json src/locales/*/*.json"
   },
   "devDependencies": {
     "@ape-egg/tailwind-rows-columns": "^1.0.2",
