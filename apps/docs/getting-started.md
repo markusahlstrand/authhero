@@ -36,4 +36,5 @@ pnpm dev
 
 - Explore the [architecture](architecture.md) to understand how AuthHero works
 - Learn about the [key concepts](concepts.md) of authentication with AuthHero
+- Understand [session management](session-management.md) and how login sessions work
 - Check out the guides for specific use cases

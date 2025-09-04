@@ -1,5 +1,11 @@
 # authhero
 
+## 0.201.0
+
+### Minor Changes
+
+- Reuse existing sessions
+
 ## 0.200.0
 
 ### Minor Changes

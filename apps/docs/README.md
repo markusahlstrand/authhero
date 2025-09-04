@@ -28,6 +28,7 @@ npm run preview
 - `/getting-started.md` - Getting started guide
 - `/architecture.md` - Architecture overview
 - `/concepts.md` - Core concepts
+- `/session-management.md` - Session and login session architecture
 - `/api/` - API documentation
 - `/apps/` - Application documentation
 - `/packages/` - Package documentation
