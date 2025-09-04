@@ -9,7 +9,13 @@ export default defineConfig({
     ["meta", { name: "theme-color", content: "#3B82F6" }],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:locale", content: "en" }],
-    ["meta", { property: "og:title", content: "AuthHero | Multi-tenant Authentication System" }],
+    [
+      "meta",
+      {
+        property: "og:title",
+        content: "AuthHero | Multi-tenant Authentication System",
+      },
+    ],
     ["meta", { property: "og:site_name", content: "AuthHero" }],
     ["meta", { property: "og:url", content: "https://authhero.dev/" }],
   ],
@@ -67,6 +73,7 @@ export default defineConfig({
             text: "Database Integration",
             link: "/guides/database-integration",
           },
+          { text: "Impersonation", link: "/guides/impersonation" },
           { text: "Troubleshooting", link: "/guides/troubleshooting" },
         ],
       },

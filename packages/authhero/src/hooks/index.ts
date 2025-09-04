@@ -14,6 +14,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
 import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
+import { isPageHook, handlePageHook } from "./pagehooks";
 
 // Type guard for webhook hooks
 function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
@@ -268,6 +269,18 @@ export async function postUserLoginHook(
     const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
     if (formHook && isFormHook(formHook)) {
       return handleFormHook(ctx, formHook.form_id, loginSession);
+    }
+
+    // Handle page hook (redirect) if we have a login session
+    const pageHook = hooks.find((h: any) => h.enabled && isPageHook(h));
+    if (pageHook && isPageHook(pageHook)) {
+      return handlePageHook(
+        ctx,
+        pageHook.page_id,
+        loginSession,
+        user,
+        pageHook.permission_required,
+      );
     }
   }
 

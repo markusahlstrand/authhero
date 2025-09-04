@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { LoginSession } from "@authhero/adapter-interfaces";
+import { LoginSession, Node } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 
 // Type guard for form hooks
@@ -32,7 +32,7 @@ export async function handleFormHook(
   }
   let firstNodeId = form.start?.next_node;
   if (!firstNodeId && form.nodes && form.nodes.length > 0) {
-    const stepNode = form.nodes.find((n: any) => n.type === "STEP");
+    const stepNode = form.nodes.find((n: Node) => n.type === "STEP");
     firstNodeId = stepNode?.id;
   }
   if (!firstNodeId) {
