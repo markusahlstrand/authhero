@@ -82,8 +82,10 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
-      if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      if (!authSession || authSession.revoked_at) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       return ctx.html(

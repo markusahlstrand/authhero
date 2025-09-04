@@ -86,7 +86,9 @@ export const accountRoutes = new OpenAPIHono<{
         : null;
 
       if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       const user = await env.data.users.get(
@@ -95,7 +97,9 @@ export const accountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       return ctx.html(
@@ -126,7 +130,7 @@ export const accountRoutes = new OpenAPIHono<{
           content: {
             "application/x-www-form-urlencoded": {
               schema: z.object({
-                email: z.string().email().optional(),
+                email: z.string().toLowerCase().optional(),
                 action: z.enum(["update_email", "unlink_account"]),
                 provider: z.string().optional(),
                 user_id: z.string().optional(),
@@ -193,7 +197,9 @@ export const accountRoutes = new OpenAPIHono<{
         : null;
 
       if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       const user = await env.data.users.get(
@@ -202,7 +208,9 @@ export const accountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       let error: string | undefined;
@@ -246,7 +254,7 @@ export const accountRoutes = new OpenAPIHono<{
 
           // Redirect to change email page
           return ctx.redirect(
-            `/u/change-email?state=${state}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
+            `/u/change-email?state=${encodeURIComponent(state)}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
           );
         } else if (
           body.action === "unlink_account" &&

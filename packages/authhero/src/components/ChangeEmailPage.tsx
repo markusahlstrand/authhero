@@ -58,8 +58,8 @@ const ChangeEmailPage: FC<Props> = ({
             Component="a"
             href={
               state
-                ? `/u/account?state=${state}`
-                : `/u/account?client_id=${client.id}`
+                ? `/u/account?state=${encodeURIComponent(state)}`
+                : `/u/account?client_id=${encodeURIComponent(client.id)}`
             }
             className="sm:mt-4 !text-base"
           >
@@ -130,8 +130,8 @@ const ChangeEmailPage: FC<Props> = ({
           className="block text-primary hover:text-primaryHover text-center"
           href={
             state
-              ? `/u/account?state=${state}`
-              : `/u/account?client_id=${client.id}`
+              ? `/u/account?state=${encodeURIComponent(state)}`
+              : `/u/account?client_id=${encodeURIComponent(client.id)}`
           }
         >
           {i18next.t("go_back")}

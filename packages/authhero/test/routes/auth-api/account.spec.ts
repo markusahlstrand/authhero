@@ -10,7 +10,7 @@ describe("account", () => {
     const response = await oauthClient.account.$get({
       query: {
         client_id: "clientId",
-        redirect_url: "https://example.com/account",
+        redirect_url: "https://example.com/callback",
       },
     });
 
@@ -27,7 +27,7 @@ describe("account", () => {
     expect(loginSession).toBeDefined();
     expect(loginSession?.authParams.client_id).toBe("clientId");
     expect(loginSession?.authParams.redirect_uri).toBe(
-      "https://example.com/account",
+      "https://example.com/callback",
     );
   });
 
@@ -57,7 +57,7 @@ describe("account", () => {
     const response = await oauthClient.account.$get({
       query: {
         client_id: "clientId",
-        redirect_url: "https://example.com/account",
+        redirect_url: "https://example.com/callback",
         login_hint: "test@example.com",
       },
     });
@@ -130,7 +130,7 @@ describe("account", () => {
       {
         query: {
           client_id: "clientId",
-          redirect_url: "https://example.com/account",
+          redirect_url: "https://example.com/callback",
         },
       },
       {
@@ -189,7 +189,7 @@ describe("account", () => {
       {
         query: {
           client_id: "clientId",
-          redirect_url: "https://example.com/account",
+          redirect_url: "https://example.com/callback",
         },
       },
       {

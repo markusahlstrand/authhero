@@ -6,7 +6,10 @@ import { getClientWithDefaults } from "../../helpers/client";
 import { nanoid } from "nanoid";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { stringifyAuth0Client } from "../../utils/client-info";
-import { getUniversalLoginUrl } from "../../variables";
+import { getIssuer, getUniversalLoginUrl } from "../../variables";
+import { verifyRequestOrigin } from "oslo/request";
+import { HTTPException } from "hono/http-exception";
+import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 
 export const accountRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -24,7 +27,7 @@ export const accountRoutes = new OpenAPIHono<{
         query: z.object({
           client_id: z.string(),
           redirect_url: z.string().optional(),
-          login_hint: z.string().optional(),
+          login_hint: z.string().toLowerCase().optional(),
         }),
       },
       responses: {
@@ -63,6 +66,32 @@ export const accountRoutes = new OpenAPIHono<{
         client_id,
         username: login_hint,
       };
+
+      const origin = ctx.req.header("origin");
+      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
+        throw new HTTPException(403, {
+          message: `Origin ${origin} not allowed`,
+        });
+      }
+
+      if (authParams.redirect_uri) {
+        const validCallbacks = client.callbacks || [];
+        if (ctx.var.host) {
+          // Allow wildcard for the auth server
+          validCallbacks.push(`${getIssuer(ctx.env)}/*`);
+          validCallbacks.push(`${getUniversalLoginUrl(ctx.env)}/*`);
+        }
+
+        if (
+          !isValidRedirectUrl(authParams.redirect_uri, validCallbacks, {
+            allowPathWildcards: true,
+          })
+        ) {
+          throw new HTTPException(400, {
+            message: `Invalid redirect URI - ${authParams.redirect_uri}`,
+          });
+        }
+      }
 
       // Fetch the cookie to check for existing session
       const authCookie = getAuthCookie(
@@ -114,7 +143,7 @@ export const accountRoutes = new OpenAPIHono<{
           if (user?.email !== login_hint) {
             // Session user doesn't match login_hint, redirect to login
             return ctx.redirect(
-              `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${loginSession.id}`,
+              `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
             );
           }
         }
@@ -125,12 +154,14 @@ export const accountRoutes = new OpenAPIHono<{
         });
 
         // Redirect to the account page with the login session state
-        return ctx.redirect(`/u/account?state=${loginSession.id}`);
+        return ctx.redirect(
+          `/u/account?state=${encodeURIComponent(loginSession.id)}`,
+        );
       }
 
       // No valid session, redirect to login
       return ctx.redirect(
-        `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${loginSession.id}`,
+        `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
       );
     },
   );

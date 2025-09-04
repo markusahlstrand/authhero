@@ -131,7 +131,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
           state: z.string().openapi({
             description: "The state parameter from the authorization request",
           }),
-          email: z.string().email(),
+          email: z.string().toLowerCase(),
           change_id: z.string(),
         }),
         body: {
@@ -201,8 +201,10 @@ export const changeEmailRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
-      if (!authSession) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      if (!authSession || authSession.revoked_at) {
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       const user = await env.data.users.get(
@@ -211,7 +213,9 @@ export const changeEmailRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(
+          `/u/login/identifier?state=${encodeURIComponent(state)}`,
+        );
       }
 
       let error: string | undefined;
@@ -255,13 +259,13 @@ export const changeEmailRoutes = new OpenAPIHono<{
 
             // Update user's email and set it as verified
             await env.data.users.update(client.tenant.id, user.user_id, {
-              email: email.toLowerCase(),
+              email,
               email_verified: true,
             });
 
             // Redirect to confirmation page
             return ctx.redirect(
-              `/u/change-email-confirmation?state=${state}&email=${encodeURIComponent(email.toLowerCase())}`,
+              `/u/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
             );
           }
         }
