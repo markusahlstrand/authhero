@@ -24,6 +24,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { tailwindCss } from "../../styles";
 import { formNodeRoutes } from "./form-node";
+import { impersonateRoutes } from "./impersonate";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
 
@@ -111,6 +112,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/forgot-password", forgotPasswordRoutes)
     .route("/validate-email", validateEmailRoutes)
     .route("/signup", signupRoutes)
+    .route("/impersonate", impersonateRoutes)
     .route("/forms", formNodeRoutes);
 
   universalApp.doc("/u/spec", {

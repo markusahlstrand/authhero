@@ -67,6 +67,7 @@ export default defineConfig({
             text: "Database Integration",
             link: "/guides/database-integration",
           },
+          { text: "Impersonation", link: "/guides/impersonation" },
           { text: "Troubleshooting", link: "/guides/troubleshooting" },
         ],
       },

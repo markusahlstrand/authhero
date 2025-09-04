@@ -1,5 +1,11 @@
 # authhero
 
+## 0.202.0
+
+### Minor Changes
+
+- Add impersonation page
+
 ## 0.201.0
 
 ### Minor Changes

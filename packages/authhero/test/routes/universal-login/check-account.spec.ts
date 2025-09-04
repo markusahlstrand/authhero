@@ -166,15 +166,18 @@ describe("check account", () => {
     const universalClient = testClient(universalApp, env);
 
     // Create an initial login session and session (properly linked)
-    const initialLoginSession = await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 1000).toISOString(),
-      csrf_token: "initialCsrfToken",
-      authParams: {
-        client_id: "clientId",
+    const initialLoginSession = await env.data.loginSessions.create(
+      "tenantId",
+      {
+        expires_at: new Date(Date.now() + 1000).toISOString(),
+        csrf_token: "initialCsrfToken",
+        authParams: {
+          client_id: "clientId",
+        },
       },
-    });
+    );
 
-    const existingSession = await env.data.sessions.create("tenantId", {
+    await env.data.sessions.create("tenantId", {
       id: "existingSessionId",
       user_id: "email|userId",
       login_session_id: initialLoginSession.id,
