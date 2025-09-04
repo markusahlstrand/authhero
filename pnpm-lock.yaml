@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.198.0
-        version: 0.198.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.199.0
+        version: 0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -3051,8 +3051,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.198.0:
-    resolution: {integrity: sha512-wghc3HAPx2ANcNV2EjAw930fYBEmV3Y8RNpgx+FUhug1noKxaln77Rt5JPH0nLAJ7dbc0gDssNrys1wmuOCeNw==}
+  authhero@0.199.0:
+    resolution: {integrity: sha512-NFr5bgrPiSPSX8c/LoOuOc9rs1aixznTONFOlnnwB/p2ik1v+WcxwkwPgRjeSS7VE2xxpZrvU4HR6RrnfjjvQw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -9264,7 +9264,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.198.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  authhero@0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.84.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)

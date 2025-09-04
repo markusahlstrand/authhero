@@ -111,5 +111,6 @@ export async function loginWithCode(
     redirectUri: enterCodeLocation,
     cookieName,
     cookieValue,
+    state,
   };
 }

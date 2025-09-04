@@ -1,6 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRouteWithSession } from "./common";
+import { initJSXRoute } from "./common";
+import { getAuthCookie } from "../../utils/cookies";
+import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
 
@@ -18,30 +20,81 @@ export const changeEmailRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          client_id: z.string(),
+          state: z.string().openapi({
+            description: "The state parameter from the authorization request",
+          }),
           email: z.string().email(),
           change_id: z.string(),
         }),
       },
       responses: {
         200: {
-          description: "Response",
+          description: "HTML page for email change verification",
+          content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to login if no session",
+          description: "Redirect to account or login if no session",
+          headers: z.object({ Location: z.string().url() }),
+        },
+        400: {
+          description:
+            "Bad Request - HTML error page if state is missing or other input error.",
+          content: { "text/html": { schema: z.string() } },
         },
         500: {
-          description: "Server error",
+          description: "Internal Server Error - HTML error page.",
+          content: { "text/html": { schema: z.string() } },
         },
       },
     }),
     async (ctx) => {
-      const { client_id, email, change_id } = ctx.req.valid("query");
+      const { env } = ctx;
+      const { state, email, change_id } = ctx.req.valid("query");
 
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        client_id,
+      // Get theme and branding from initJSXRoute
+      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
+
+      if (!client || !client.tenant?.id) {
+        console.error(
+          "Client or tenant ID missing in GET /u/change-email after initJSXRoute",
+        );
+        return ctx.html(
+          <MessagePage
+            theme={theme}
+            branding={branding}
+            client={client}
+            state={state}
+            pageTitle={i18next.t("error_page_title") || "Error"}
+            message={
+              i18next.t("configuration_error_message") ||
+              "A configuration error occurred."
+            }
+          />,
+          500,
+        );
+      }
+
+      const authCookie = getAuthCookie(
+        client.tenant.id,
+        ctx.req.header("cookie"),
       );
+
+      const authSession = authCookie
+        ? await env.data.sessions.get(client.tenant.id, authCookie)
+        : null;
+
+      if (!authSession) {
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      }
+
+      const user = await env.data.users.get(
+        client.tenant.id,
+        authSession.user_id,
+      );
+
+      if (!user) {
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      }
 
       // Verify the change_id belongs to this user
       const changeRequest = await ctx.env.data.codes.get(
@@ -51,7 +104,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
       );
 
       if (!changeRequest || changeRequest.user_id !== user.user_id) {
-        return ctx.redirect(`/u/account?client_id=${client_id}`);
+        return ctx.redirect(`/u/account?state=${state}`);
       }
 
       return ctx.html(
@@ -60,6 +113,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
           branding={branding}
           client={client}
           email={email}
+          state={state}
         />,
       );
     },
@@ -74,7 +128,9 @@ export const changeEmailRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         query: z.object({
-          client_id: z.string(),
+          state: z.string().openapi({
+            description: "The state parameter from the authorization request",
+          }),
           email: z.string().email(),
           change_id: z.string(),
         }),
@@ -90,25 +146,73 @@ export const changeEmailRoutes = new OpenAPIHono<{
       },
       responses: {
         200: {
-          description: "Response",
+          description: "HTML response with verification result",
+          content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to account on success",
+          description: "Redirect to confirmation page on success",
+          headers: z.object({ Location: z.string().url() }),
         },
         400: {
-          description: "Bad request",
+          description:
+            "Bad Request - HTML error page if state is missing or other input error.",
+          content: { "text/html": { schema: z.string() } },
+        },
+        500: {
+          description: "Internal Server Error - HTML error page.",
+          content: { "text/html": { schema: z.string() } },
         },
       },
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { client_id, email, change_id } = ctx.req.valid("query");
+      const { state, email, change_id } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        client_id,
+      // Get theme and branding from initJSXRoute
+      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
+
+      if (!client || !client.tenant?.id) {
+        console.error(
+          "Client or tenant ID missing in POST /u/change-email after initJSXRoute",
+        );
+        return ctx.html(
+          <MessagePage
+            theme={theme}
+            branding={branding}
+            client={client}
+            state={state}
+            pageTitle={i18next.t("error_page_title") || "Error"}
+            message={
+              i18next.t("configuration_error_message") ||
+              "A configuration error occurred."
+            }
+          />,
+          500,
+        );
+      }
+
+      const authCookie = getAuthCookie(
+        client.tenant.id,
+        ctx.req.header("cookie"),
       );
+
+      const authSession = authCookie
+        ? await env.data.sessions.get(client.tenant.id, authCookie)
+        : null;
+
+      if (!authSession) {
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      }
+
+      const user = await env.data.users.get(
+        client.tenant.id,
+        authSession.user_id,
+      );
+
+      if (!user) {
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      }
 
       let error: string | undefined;
 
@@ -157,7 +261,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
 
             // Redirect to confirmation page
             return ctx.redirect(
-              `/u/change-email-confirmation?client_id=${client_id}&email=${encodeURIComponent(email.toLowerCase())}`,
+              `/u/change-email-confirmation?state=${state}&email=${encodeURIComponent(email.toLowerCase())}`,
             );
           }
         }
@@ -172,6 +276,7 @@ export const changeEmailRoutes = new OpenAPIHono<{
           client={client}
           email={email}
           error={error}
+          state={state}
         />,
       );
     },
