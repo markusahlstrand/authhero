@@ -201,4 +201,121 @@ describe("account", () => {
     const location = response.headers.get("location");
     expect(location).toContain("/u/login/identifier?state=");
   });
+
+  it("should redirect to /u/account/change-email with screen_hint when provided", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create test user
+    await env.data.users.create("tenantId", {
+      user_id: "email|screenHintTest",
+      email: "screenhint@example.com",
+      email_verified: true,
+      name: "Screen Hint Test User",
+      nickname: "Screen Hint Test User",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+    });
+
+    // Create login session (required for session)
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrf",
+      authParams: { client_id: "clientId" },
+    });
+
+    // Create a session first
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|screenHintTest",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+
+    const response = await oauthClient.account.$get(
+      {
+        query: {
+          client_id: "clientId",
+          screen_hint: "change-email",
+        },
+      },
+      {
+        headers: { cookie: "tenantId-auth-token=sessionId" },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toContain("/u/account/change-email?state=");
+  });
+
+  it("should default to 'account' screen_hint when not provided", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create test user
+    await env.data.users.create("tenantId", {
+      user_id: "email|defaultScreenHintTest",
+      email: "defaulthint@example.com",
+      email_verified: true,
+      name: "Default Screen Hint Test User",
+      nickname: "Default Screen Hint Test User",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+    });
+
+    // Create login session (required for session)
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrf",
+      authParams: { client_id: "clientId" },
+    });
+
+    // Create a session first
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId2",
+      user_id: "email|defaultScreenHintTest",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+
+    const response = await oauthClient.account.$get(
+      {
+        query: {
+          client_id: "clientId",
+        },
+      },
+      {
+        headers: { cookie: "tenantId-auth-token=sessionId2" },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toContain("/u/account?state=");
+    // Should not contain screen_hint since default "account" redirects to regular account page
+    expect(location).not.toContain("screen_hint=");
+  });
 });

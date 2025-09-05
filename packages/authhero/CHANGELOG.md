@@ -1,5 +1,11 @@
 # authhero
 
+## 0.203.0
+
+### Minor Changes
+
+- Handle screen_hint and redirect_uri for accoutn
+
 ## 0.202.0
 
 ### Minor Changes

@@ -28,6 +28,15 @@ export const accountRoutes = new OpenAPIHono<{
           client_id: z.string(),
           redirect_url: z.string().optional(),
           login_hint: z.string().toLowerCase().optional(),
+          screen_hint: z
+            .enum([
+              "account",
+              "change-email",
+              "change-phone",
+              "change-password",
+            ])
+            .optional()
+            .default("account"),
         }),
       },
       responses: {
@@ -53,7 +62,8 @@ export const accountRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { client_id, redirect_url, login_hint } = ctx.req.valid("query");
+      const { client_id, redirect_url, login_hint, screen_hint } =
+        ctx.req.valid("query");
 
       ctx.set("log", "account");
 
@@ -153,10 +163,21 @@ export const accountRoutes = new OpenAPIHono<{
           session_id: validSession.id,
         });
 
+        // Redirect based on screen_hint
+        if (screen_hint === "change-email") {
+          const changeEmailUrl = new URL(
+            "/u/account/change-email",
+            ctx.req.url,
+          );
+          changeEmailUrl.searchParams.set("state", loginSession.id);
+          return ctx.redirect(changeEmailUrl.toString());
+        }
+
         // Redirect to the account page with the login session state
-        return ctx.redirect(
-          `/u/account?state=${encodeURIComponent(loginSession.id)}`,
-        );
+        const accountUrl = new URL("/u/account", ctx.req.url);
+        accountUrl.searchParams.set("state", loginSession.id);
+
+        return ctx.redirect(accountUrl.toString());
       }
 
       // No valid session, redirect to login
