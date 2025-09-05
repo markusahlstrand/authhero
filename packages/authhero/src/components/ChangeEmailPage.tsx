@@ -17,6 +17,7 @@ type Props = {
   email: string;
   success?: boolean;
   state?: string;
+  redirectUrl?: string;
 };
 
 const CODE_LENGTH = 6;
@@ -29,6 +30,7 @@ const ChangeEmailPage: FC<Props> = ({
   email,
   success,
   state,
+  redirectUrl,
 }) => {
   // If success, show success message with continue button
   if (success) {
@@ -57,9 +59,10 @@ const ChangeEmailPage: FC<Props> = ({
           <Button
             Component="a"
             href={
-              state
+              redirectUrl ||
+              (state
                 ? `/u/account?state=${encodeURIComponent(state)}`
-                : `/u/account?client_id=${encodeURIComponent(client.id)}`
+                : `/u/account?client_id=${encodeURIComponent(client.id)}`)
             }
             className="sm:mt-4 !text-base"
           >

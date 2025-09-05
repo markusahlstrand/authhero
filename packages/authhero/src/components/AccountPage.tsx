@@ -4,6 +4,7 @@ import { Theme, Branding, User, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 
 type Props = {
   theme: Theme | null;
@@ -12,12 +13,13 @@ type Props = {
   client: Client;
   error?: string;
   success?: string;
+  state?: string;
 };
 
 const showLinkedAccounts = false;
 
 const AccountPage: FC<Props> = (params) => {
-  const { theme, branding, user, client, error, success } = params;
+  const { theme, branding, user, client, error, success, state } = params;
 
   const linkedIdentities =
     user.identities?.filter(
@@ -67,31 +69,21 @@ const AccountPage: FC<Props> = (params) => {
                       : i18next.t("unverified") || "Unverified"}
                   </p>
                 </div>
+                <Button
+                  Component="a"
+                  href={
+                    state
+                      ? `/u/account/change-email?state=${encodeURIComponent(state)}`
+                      : `/u/account/change-email?client_id=${encodeURIComponent(client.id)}`
+                  }
+                  variant="secondary"
+                  className="text-xs px-3 py-1 flex items-center gap-1"
+                >
+                  <Icon name="edit" className="text-xs" />
+                  {i18next.t("edit") || "Edit"}
+                </Button>
               </div>
             </div>
-          </div>
-
-          {/* Update Email Section */}
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-medium text-gray-900">
-              {i18next.t("update_email")}
-            </h2>
-            <form method="post">
-              <input type="hidden" name="action" value="update_email" />
-              <div className="mb-4">
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  required
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder={i18next.t("enter_new_email")}
-                />
-              </div>
-              <Button variant="primary" className="w-full">
-                {i18next.t("update_email")}
-              </Button>
-            </form>
           </div>
 
           {/* Linked Accounts Section */}

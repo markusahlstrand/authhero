@@ -88,6 +88,25 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         );
       }
 
+      // Get the login session to check for screen_hint
+      const loginSession = await env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      // Check if the authorization_url contains screen_hint=change-email
+      let redirectUrl = state
+        ? `/u/account?state=${encodeURIComponent(state)}`
+        : `/u/account?client_id=${encodeURIComponent(client.id)}`;
+
+      if (loginSession?.authorization_url) {
+        const authUrl = new URL(loginSession.authorization_url);
+        if (authUrl.searchParams.get("screen_hint") === "change-email") {
+          // User came directly to change-email, redirect to original redirect_uri
+          redirectUrl = loginSession.authParams?.redirect_uri || redirectUrl;
+        }
+      }
+
       return ctx.html(
         <ChangeEmailPage
           theme={theme}
@@ -96,6 +115,7 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
           email={email}
           success={true}
           state={state}
+          redirectUrl={redirectUrl}
         />,
       );
     },

@@ -1,21 +1,17 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import AccountPage from "../../components/AccountPage";
 import { getAuthCookie } from "../../utils/cookies";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
-import { sendCode } from "../../emails";
-import generateOTP from "../../utils/otp";
-import { nanoid } from "nanoid";
-import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
+import ChangeEmailPage from "../../components/ChangeEmailPage";
 
-export const accountRoutes = new OpenAPIHono<{
+export const changeEmailVerifyRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>()
   // --------------------------------
-  // GET /u/account
+  // GET /u/change-email-verify
   // --------------------------------
   .openapi(
     createRoute({
@@ -27,15 +23,17 @@ export const accountRoutes = new OpenAPIHono<{
           state: z.string().openapi({
             description: "The state parameter from the authorization request",
           }),
+          email: z.string().email(),
+          change_id: z.string(),
         }),
       },
       responses: {
         200: {
-          description: "HTML page showing account management interface.",
+          description: "HTML page for email change verification",
           content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to login if no session",
+          description: "Redirect to account or login if no session",
           headers: z.object({ Location: z.string().url() }),
         },
         400: {
@@ -51,14 +49,14 @@ export const accountRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { state } = ctx.req.valid("query");
+      const { state, email, change_id } = ctx.req.valid("query");
 
       // Get theme and branding from initJSXRoute
       const { theme, branding, client } = await initJSXRoute(ctx, state, true);
 
       if (!client || !client.tenant?.id) {
         console.error(
-          "Client or tenant ID missing in GET /u/account after initJSXRoute",
+          "Client or tenant ID missing in GET /u/change-email-verify after initJSXRoute",
         );
         return ctx.html(
           <MessagePage
@@ -86,9 +84,7 @@ export const accountRoutes = new OpenAPIHono<{
         : null;
 
       if (!authSession) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
       const user = await env.data.users.get(
@@ -97,24 +93,33 @@ export const accountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
+        return ctx.redirect(`/u/login/identifier?state=${state}`);
+      }
+
+      // Verify the change_id belongs to this user
+      const changeRequest = await ctx.env.data.codes.get(
+        client.tenant.id,
+        change_id,
+        "email_verification",
+      );
+
+      if (!changeRequest || changeRequest.user_id !== user.user_id) {
+        return ctx.redirect(`/u/account?state=${state}`);
       }
 
       return ctx.html(
-        <AccountPage
+        <ChangeEmailPage
           theme={theme}
           branding={branding}
-          user={user}
           client={client}
+          email={email}
           state={state}
         />,
       );
     },
   )
   // --------------------------------
-  // POST /u/account
+  // POST /u/change-email-verify
   // --------------------------------
   .openapi(
     createRoute({
@@ -126,15 +131,14 @@ export const accountRoutes = new OpenAPIHono<{
           state: z.string().openapi({
             description: "The state parameter from the authorization request",
           }),
+          email: z.string().toLowerCase(),
+          change_id: z.string(),
         }),
         body: {
           content: {
             "application/x-www-form-urlencoded": {
               schema: z.object({
-                email: z.string().toLowerCase().optional(),
-                action: z.enum(["update_email", "unlink_account"]),
-                provider: z.string().optional(),
-                user_id: z.string().optional(),
+                code: z.string(),
               }),
             },
           },
@@ -142,11 +146,11 @@ export const accountRoutes = new OpenAPIHono<{
       },
       responses: {
         200: {
-          description: "HTML response with form results",
+          description: "HTML response with verification result",
           content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to change-email page or login if no session",
+          description: "Redirect to confirmation page on success",
           headers: z.object({ Location: z.string().url() }),
         },
         400: {
@@ -162,15 +166,15 @@ export const accountRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { state } = ctx.req.valid("query");
-      const body = ctx.req.valid("form");
+      const { state, email, change_id } = ctx.req.valid("query");
+      const { code } = ctx.req.valid("form");
 
       // Get theme and branding from initJSXRoute
       const { theme, branding, client } = await initJSXRoute(ctx, state, true);
 
       if (!client || !client.tenant?.id) {
         console.error(
-          "Client or tenant ID missing in POST /u/account after initJSXRoute",
+          "Client or tenant ID missing in POST /u/change-email-verify after initJSXRoute",
         );
         return ctx.html(
           <MessagePage
@@ -197,7 +201,7 @@ export const accountRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
-      if (!authSession) {
+      if (!authSession || authSession.revoked_at) {
         return ctx.redirect(
           `/u/login/identifier?state=${encodeURIComponent(state)}`,
         );
@@ -215,82 +219,67 @@ export const accountRoutes = new OpenAPIHono<{
       }
 
       let error: string | undefined;
-      let success: string | undefined;
 
       try {
-        if (body.action === "update_email" && body.email) {
-          // Create a change request ID
-          const changeRequestId = nanoid();
+        // Find the change request
+        const changeRequest = await env.data.codes.get(
+          client.tenant.id,
+          change_id,
+          "email_verification",
+        );
 
-          // Create the change request entry
-          await env.data.codes.create(client.tenant.id, {
-            code_id: changeRequestId,
-            login_id: "", // Not using login session for this flow
-            code_type: "email_verification",
-            expires_at: new Date(
-              Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
-            ).toISOString(),
-            user_id: user.user_id,
-          });
-
-          // Generate verification code
-          const verificationCode = generateOTP();
-
-          // Create the verification code entry
-          await env.data.codes.create(client.tenant.id, {
-            code_id: verificationCode,
-            login_id: "", // Not using login session for this flow
-            code_type: "email_verification",
-            expires_at: new Date(
-              Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
-            ).toISOString(),
-            user_id: user.user_id,
-          });
-
-          // Send verification code email
-          await sendCode(ctx, {
-            to: body.email.toLowerCase(),
-            code: verificationCode,
-          });
-
-          // Redirect to change email page
-          return ctx.redirect(
-            `/u/change-email-verify?state=${encodeURIComponent(state)}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
-          );
-        } else if (
-          body.action === "unlink_account" &&
-          body.provider &&
-          body.user_id
-        ) {
-          // Unlink the social account
-          await env.data.users.unlink(
+        if (!changeRequest) {
+          error = i18next.t("invalid_request");
+        } else if (changeRequest.user_id !== user.user_id) {
+          error = i18next.t("invalid_request");
+        } else if (changeRequest.used_at) {
+          error = i18next.t("code_already_used");
+        } else if (new Date(changeRequest.expires_at) < new Date()) {
+          error = i18next.t("code_expired");
+        } else {
+          // Find the actual verification code
+          const verificationCode = await env.data.codes.get(
             client.tenant.id,
-            user.user_id,
-            body.provider,
-            body.user_id,
+            code,
+            "email_verification",
           );
-          success =
-            i18next.t("account_unlinked_successfully") ||
-            "Account unlinked successfully";
+
+          if (!verificationCode) {
+            error = i18next.t("invalid_code");
+          } else if (verificationCode.used_at) {
+            error = i18next.t("code_already_used");
+          } else if (new Date(verificationCode.expires_at) < new Date()) {
+            error = i18next.t("code_expired");
+          } else if (verificationCode.user_id !== user.user_id) {
+            error = i18next.t("invalid_code");
+          } else {
+            // Mark both codes as used
+            await env.data.codes.used(client.tenant.id, change_id);
+            await env.data.codes.used(client.tenant.id, code);
+
+            // Update user's email and set it as verified
+            await env.data.users.update(client.tenant.id, user.user_id, {
+              email,
+              email_verified: true,
+            });
+
+            // Redirect to confirmation page
+            return ctx.redirect(
+              `/u/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
+            );
+          }
         }
       } catch (err) {
-        error = i18next.t("operation_failed") || "Operation failed";
+        error = i18next.t("operation_failed");
       }
 
-      // Get updated user data
-      const updatedUser = await env.data.users.get(
-        client.tenant.id,
-        user.user_id,
-      );
-
       return ctx.html(
-        <AccountPage
+        <ChangeEmailPage
           theme={theme}
           branding={branding}
-          user={updatedUser || user}
           client={client}
+          email={email}
           error={error}
-          success={success}
           state={state}
         />,
       );
