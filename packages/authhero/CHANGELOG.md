@@ -1,5 +1,11 @@
 # authhero
 
+## 0.204.0
+
+### Minor Changes
+
+- Fix x-forwarded-for
+
 ## 0.203.0
 
 ### Minor Changes
