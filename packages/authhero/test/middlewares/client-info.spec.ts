@@ -119,7 +119,9 @@ describe("clientInfoMiddleware", () => {
       });
 
       const body = await response.json();
-      expect(body.useragent).toBe("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+      expect(body.useragent).toBe(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      );
     });
 
     it("should extract country code from cf-ipcountry header", async () => {
@@ -145,16 +147,18 @@ describe("clientInfoMiddleware", () => {
       const auth0ClientData = JSON.stringify({
         name: "auth0-react",
         version: "1.12.1",
-        env: { node: "16.14.0" }
+        env: { node: "16.14.0" },
       });
 
-      const response = await app.request(`/test?auth0Client=${encodeURIComponent(auth0ClientData)}`);
+      const response = await app.request(
+        `/test?auth0Client=${encodeURIComponent(auth0ClientData)}`,
+      );
 
       const body = await response.json();
       expect(body.auth0Client).toEqual({
         name: "auth0-react",
         version: "1.12.1",
-        env: { node: "16.14.0" }
+        env: { node: "16.14.0" },
       });
     });
   });

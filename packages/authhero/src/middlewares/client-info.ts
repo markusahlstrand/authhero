@@ -62,7 +62,7 @@ export const clientInfoMiddleware: MiddlewareHandler<{
       // We want the first one (the original client IP)
       return forwardedFor?.split(",")[0]?.trim();
     }
-    
+
     // Otherwise use cf-connecting-ip or x-real-ip
     return c.req.header("cf-connecting-ip") || c.req.header("x-real-ip");
   };
