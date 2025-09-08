@@ -32,7 +32,7 @@ describe("change-email-confirmation", () => {
     });
 
     // Create active session
-    const session = await env.data.sessions.create("tenantId", {
+    await env.data.sessions.create("tenantId", {
       id: "test-session",
       user_id: "email|testuser",
       clients: ["clientId"],
@@ -92,7 +92,7 @@ describe("change-email-confirmation", () => {
     });
 
     // Create login session WITH screen_hint=change-email
-    const loginSession = await env.data.loginSessions.create("tenantId", {
+    const loginSession2 = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       csrf_token: "csrf",
       authParams: {
@@ -104,13 +104,13 @@ describe("change-email-confirmation", () => {
     });
 
     // Create active session
-    const session = await env.data.sessions.create("tenantId", {
+    await env.data.sessions.create("tenantId", {
       id: "test-session2",
       user_id: "email|testuser2",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       used_at: new Date().toISOString(),
-      login_session_id: loginSession.id,
+      login_session_id: loginSession2.id,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -125,7 +125,7 @@ describe("change-email-confirmation", () => {
     const response = await universalClient["change-email-confirmation"].$get(
       {
         query: {
-          state: loginSession.id,
+          state: loginSession2.id,
           email: "newemail2@example.com",
         },
       },
@@ -161,13 +161,26 @@ describe("change-email-confirmation", () => {
       is_social: false,
     });
 
-    // Create active session without login session
-    const session = await env.data.sessions.create("tenantId", {
+    // Create a login session
+    const loginSession3 = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrf",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+      authorization_url:
+        "https://test.example.com/account?client_id=clientId&redirect_url=https://example.com/callback",
+    });
+
+    // Create active session
+    await env.data.sessions.create("tenantId", {
       id: "test-session3",
       user_id: "email|testuser3",
       clients: ["clientId"],
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       used_at: new Date().toISOString(),
+      login_session_id: loginSession3.id,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -182,7 +195,7 @@ describe("change-email-confirmation", () => {
     const response = await universalClient["change-email-confirmation"].$get(
       {
         query: {
-          state: "non-existent-state",
+          state: "non-existent-state", // This state doesn't exist
           email: "newemail3@example.com",
         },
       },

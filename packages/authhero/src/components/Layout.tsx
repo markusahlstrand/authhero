@@ -11,6 +11,7 @@ type LayoutProps = {
   theme: Theme | null;
   branding: Branding | null;
   client: Client | null;
+  hideFooter?: boolean;
 };
 
 const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {
@@ -42,6 +43,7 @@ const Layout = ({
   theme,
   branding,
   client,
+  hideFooter = false,
 }: PropsWithChildren<LayoutProps>) => {
   const inlineStyles = {
     backgroundImage: `url(${theme?.page_background?.background_image_url || DEFAULT_BG})`,
@@ -96,7 +98,9 @@ const Layout = ({
                 </div>
                 <div className="flex flex-1 flex-col">
                   {children}
-                  <Footer theme={theme} branding={branding} client={client} />
+                  {!hideFooter && (
+                    <Footer theme={theme} branding={branding} client={client} />
+                  )}
                 </div>
               </div>
 
