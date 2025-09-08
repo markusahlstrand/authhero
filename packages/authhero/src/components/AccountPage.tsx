@@ -36,6 +36,7 @@ const AccountPage: FC<Props> = (params) => {
       theme={theme}
       branding={branding}
       client={client}
+      hideFooter={true}
     >
       <div className="flex flex-1 flex-col justify-center">
         <div className="mx-auto w-full max-w-sm">

@@ -40,6 +40,7 @@ const ChangeEmailPage: FC<Props> = ({
         theme={theme}
         branding={branding}
         client={client}
+        hideFooter={true}
       >
         <div className="mb-4 text-2xl font-medium">{i18next.t("success")}</div>
         <div className="mb-8 text-gray-300">
@@ -79,6 +80,7 @@ const ChangeEmailPage: FC<Props> = ({
       theme={theme}
       branding={branding}
       client={client}
+      hideFooter={true}
     >
       <div className="mb-4 text-2xl font-medium">
         {i18next.t("verify_email_verify")}
