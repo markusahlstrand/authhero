@@ -24,7 +24,7 @@
     "build:tailwind": "node build-tailwind.js",
     "start": "pnpm build && node dist/index.js",
     "test": "vitest run",
-    "pull-translations": "npx dotenv-cli -e .env -- sh -c 'i18nexus pull -k $I18NEXUS_API_KEY --path ./src/locales && prettier --write ./src/locales/**/*.json && sort-json src/locales/*/*.json'",
+    "pull-translations": "i18nexus pull --path ./src/locales",
     "watch-translations": "i18nexus listen --path ./src/locales"
   },
   "devDependencies": {
