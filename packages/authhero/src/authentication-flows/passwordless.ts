@@ -95,7 +95,7 @@ export async function passwordlessGrantUser(
     provider: connectionType,
     connection: connectionType,
     isSocial: false,
-    ip: ctx.req.header("x-real-ip"),
+    ip: ctx.var.ip,
   });
 
   await env.data.codes.used(client.tenant.id, otp);

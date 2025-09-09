@@ -102,8 +102,8 @@ export async function createAuthTokens(
         client,
         user,
         request: {
-          ip: ctx.req.header("x-real-ip") || "",
-          user_agent: ctx.req.header("user-agent") || "",
+          ip: ctx.var.ip || "",
+          user_agent: ctx.var.useragent || "",
           method: ctx.req.method,
           url: ctx.req.url,
         },
@@ -272,10 +272,10 @@ export async function createSession(
       Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
     ).toISOString(),
     device: {
-      last_ip: ctx.req.header("x-real-ip") || "",
-      initial_ip: ctx.req.header("x-real-ip") || "",
-      last_user_agent: ctx.req.header("user-agent") || "",
-      initial_user_agent: ctx.req.header("user-agent") || "",
+      last_ip: ctx.var.ip || "",
+      initial_ip: ctx.var.ip || "",
+      last_user_agent: ctx.var.useragent || "",
+      initial_user_agent: ctx.var.useragent || "",
       // TODO: add Authentication Strength Name
       initial_asn: "",
       last_asn: "",
@@ -328,7 +328,7 @@ export async function createFrontChannelAuthResponse(
     ctx,
     ctx.env.data.users.update(client.tenant.id, user.user_id, {
       last_login: new Date().toISOString(),
-      last_ip: ctx.req.header("x-real-ip") || "",
+      last_ip: ctx.var.ip || "",
       login_count: user.login_count + 1,
     }),
   );
@@ -570,16 +570,16 @@ export async function completeLogin(
 
   // Return either code data or tokens based on response type
   if (responseType === AuthorizationResponseType.CODE) {
-    if (!user) {
+    if (!user || !params.loginSession) {
       throw new HTTPException(500, {
-        message: "User is required for code flow",
+        message: "User and loginSession is required for code flow",
       });
     }
     return await createCodeData(ctx, {
       user,
       client: params.client,
       authParams: params.authParams,
-      login_id: params.loginSession?.id || "",
+      login_id: params.loginSession.id,
     });
   } else {
     return createAuthTokens(ctx, { ...params, user });

@@ -195,7 +195,7 @@ export async function connectionCallback(
     userId: sub,
     profileData,
     isSocial: true,
-    ip: ctx.req.header("x-real-ip"),
+    ip: ctx.var.ip,
   });
 
   return createFrontChannelAuthResponse(ctx, {

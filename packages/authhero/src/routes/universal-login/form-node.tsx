@@ -142,6 +142,7 @@ export const formNodeRoutes = new OpenAPIHono<{
             />,
           );
         }
+
         // All required fields present, continue with session and user lookup
         const loginSession = await ctx.env.data.loginSessions.get(
           client.tenant.id,
@@ -176,11 +177,7 @@ export const formNodeRoutes = new OpenAPIHono<{
           loginSession,
           skipHooks: true,
         });
-        if (result instanceof Response) {
-          return result;
-        } else {
-          return ctx.json(result);
-        }
+        return result;
       } catch (err) {
         return ctx.html(
           <FormNodePage
