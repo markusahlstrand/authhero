@@ -94,11 +94,7 @@ const AccountPage: FC<Props> = (params) => {
                       </span>
                     </div>
 
-                    <form
-                      method="post"
-                      className="inline"
-                      onsubmit="return confirm('{i18next.t('confirm_unlink')}')"
-                    >
+                    <form method="post" className="inline">
                       <input
                         type="hidden"
                         name="action"
