@@ -173,6 +173,7 @@ export const formNodeRoutes = new OpenAPIHono<{
           client,
           user,
           loginSession,
+          hookCalled: true,
         });
         if (result instanceof Response) {
           return result;

@@ -241,8 +241,8 @@ export async function postUserLoginHook(
         client: params.client,
         user,
         request: {
-          ip: ctx.req.header("x-real-ip") || "",
-          user_agent: ctx.req.header("user-agent") || "",
+          ip: ctx.var.ip,
+          user_agent: ctx.var.useragent,
           method: ctx.req.method,
           url: ctx.req.url,
         },

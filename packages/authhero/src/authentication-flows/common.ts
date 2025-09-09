@@ -298,6 +298,7 @@ export interface CreateAuthResponseParams {
   sessionId?: string;
   refreshToken?: string;
   ticketAuth?: boolean;
+  hookCalled?: boolean;
 }
 
 export async function createFrontChannelAuthResponse(
@@ -361,6 +362,7 @@ export async function createFrontChannelAuthResponse(
   let session_id = params.sessionId;
 
   let postHookUser = user;
+  let hookCalled = params.hookCalled || false;
 
   if (!session_id && params.loginSession?.session_id) {
     // Scenario 1: Reusing an existing session indicated by loginSession.session_id
@@ -392,6 +394,29 @@ export async function createFrontChannelAuthResponse(
     session_id = newSession.id;
 
     // Use the unified postUserLoginHook for all post-login logic
+    if (!hookCalled) {
+      const postLoginResult = await postUserLoginHook(
+        ctx,
+        ctx.env.data,
+        client.tenant.id,
+        user,
+        params.loginSession,
+        { client, authParams },
+      );
+
+      // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
+      if (postLoginResult instanceof Response) {
+        return postLoginResult;
+      }
+
+      postHookUser = postLoginResult;
+      hookCalled = true;
+    }
+  }
+
+  // For authentication flows (when loginSession is present), call postUserLoginHook
+  // if it hasn't been called yet (Scenario 1 and Scenario 3: sessionId provided directly)
+  if (params.loginSession && !hookCalled) {
     const postLoginResult = await postUserLoginHook(
       ctx,
       ctx.env.data,
@@ -401,7 +426,7 @@ export async function createFrontChannelAuthResponse(
       { client, authParams },
     );
 
-    // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
+    // If the hook returns a Response (redirect), return it directly
     if (postLoginResult instanceof Response) {
       return postLoginResult;
     }
