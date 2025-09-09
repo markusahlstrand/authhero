@@ -168,12 +168,13 @@ export const formNodeRoutes = new OpenAPIHono<{
         if (!user) {
           throw new Error("Session expired");
         }
+
         const result = await createFrontChannelAuthResponse(ctx, {
           authParams: loginSession.authParams,
           client,
           user,
           loginSession,
-          hookCalled: true,
+          skipHooks: true,
         });
         if (result instanceof Response) {
           return result;

@@ -136,5 +136,6 @@ export async function passwordlessGrant(
     client: result.client,
     user: result.user,
     loginSession: result.loginSession,
+    strategy: "email",
   });
 }

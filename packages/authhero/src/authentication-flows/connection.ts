@@ -203,5 +203,6 @@ export async function connectionCallback(
     authParams: loginSession.authParams,
     loginSession,
     user,
+    strategy: connection.strategy,
   });
 }

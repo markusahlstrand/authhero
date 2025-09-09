@@ -177,6 +177,7 @@ export async function loginWithPassword(
   return createFrontChannelAuthResponse(ctx, {
     ...result,
     ticketAuth,
+    strategy: "Username-Password-Authentication",
   });
 }
 
