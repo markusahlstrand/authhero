@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.199.0
-        version: 0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.204.0
+        version: 0.204.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -302,8 +302,8 @@ importers:
         specifier: ^4.8.7
         version: 4.9.1
       i18nexus-cli:
-        specifier: ^3.5.0
-        version: 3.5.0
+        specifier: ^3.8.2
+        version: 3.8.2
       kysely:
         specifier: ^0.27.4
         version: 0.27.4
@@ -3051,8 +3051,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.199.0:
-    resolution: {integrity: sha512-NFr5bgrPiSPSX8c/LoOuOc9rs1aixznTONFOlnnwB/p2ik1v+WcxwkwPgRjeSS7VE2xxpZrvU4HR6RrnfjjvQw==}
+  authhero@0.204.0:
+    resolution: {integrity: sha512-7xKL7wCcxONWfJBMYIEg7JF63sH7QuFUTDw2ZSjg+bzOv2n7hDK9d8xJuWRd5arWVak5vPuJcJUEopxxlnOu1g==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -4295,8 +4295,8 @@ packages:
       typescript:
         optional: true
 
-  i18nexus-cli@3.5.0:
-    resolution: {integrity: sha512-ZXqj+FcHS0+ASy9CDDAMEmm+Fl2mXbpCZXuT48S3Uzi5u80ajiwRCZOhouF1cvu4+sf+nxyrsYUdvF6dbbrTPg==}
+  i18nexus-cli@3.8.2:
+    resolution: {integrity: sha512-RcBfwnelEE6Qw39647URqzXk2rPNXgWbLu6H8g6onAU+fEm+AaF+dq9yokYYo8Iouwu7SCG9P8j8QdKXIbZjyA==}
     hasBin: true
 
   iconv-lite@0.4.24:
@@ -6593,6 +6593,18 @@ packages:
 
   ws@8.18.2:
     resolution: {integrity: sha512-DMricUmwGZUVr++AEAe2uiVM7UoO9MAVZMDu05UQOaUII0lp+zOzLLU4Xqh/JvTqklB1T4uELaaPBKyjE1r4fQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.18.3:
+    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -9078,7 +9090,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.7
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -9264,7 +9276,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  authhero@0.204.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.84.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
@@ -10627,7 +10639,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -10648,16 +10660,19 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  i18nexus-cli@3.5.0:
+  i18nexus-cli@3.8.2:
     dependencies:
       '@next/env': 11.1.4
       colors: 1.4.0
       commander: 7.2.0
       https-proxy-agent: 5.0.1
       node-fetch: 2.7.0
+      ws: 8.18.3
     transitivePeerDependencies:
+      - bufferutil
       - encoding
       - supports-color
+      - utf-8-validate
 
   iconv-lite@0.4.24:
     dependencies:
@@ -13136,6 +13151,8 @@ snapshots:
   ws@8.18.0: {}
 
   ws@8.18.2: {}
+
+  ws@8.18.3: {}
 
   xml-crypto@6.1.2:
     dependencies:

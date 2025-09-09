@@ -2,9 +2,8 @@ import type { FC } from "hono/jsx";
 import Layout from "./Layout";
 import { Theme, Branding, User, Client } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
-import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
-import Icon from "./Icon";
+import PenIcon from "./IconPen";
 
 type Props = {
   theme: Theme | null;
@@ -37,117 +36,97 @@ const AccountPage: FC<Props> = (params) => {
       branding={branding}
       client={client}
     >
-      <div className="flex flex-1 flex-col justify-center">
-        <div className="mx-auto w-full max-w-sm">
-          <div className="text-center">
-            <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-              {i18next.t("account_title") || "Account Settings"}
-            </h1>
-          </div>
+      <div className="mb-4 text-2xl font-medium">
+        {i18next.t("account_title")}
+      </div>
+      <div className="mb-8 text-gray-300">
+        {i18next.t("account_page_description")}
+      </div>
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          {success && (
-            <div className="mb-4 rounded-md bg-green-50 p-4">
-              <div className="text-sm text-green-700">{success}</div>
+      {error && <ErrorMessage className="mb-8">{error}</ErrorMessage>}
+      {success && <div className="mb-8 text-green">{success}</div>}
+
+      <div className="column-left gap-6 border-y border-gray-200/50 py-6 mb-8">
+        <div className="row-left w-full !justify-between !flex-nowrap gap-4">
+          <div className="column-left gap-1.5">
+            <div className="text-gray-300">
+              {i18next.t("email_placeholder")}
             </div>
-          )}
-
-          {/* Current Email Section */}
-          <div className="mb-6">
-            <h2 className="mb-3 text-lg font-medium text-gray-900">
-              {i18next.t("email")}
-            </h2>
-            <div className="rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {user.email || "No email set"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {user.email_verified
-                      ? i18next.t("verified") || "Verified"
-                      : i18next.t("unverified") || "Unverified"}
-                  </p>
-                </div>
-                <Button
-                  Component="a"
-                  href={
-                    state
-                      ? `/u/account/change-email?state=${encodeURIComponent(state)}`
-                      : `/u/account/change-email?client_id=${encodeURIComponent(client.id)}`
-                  }
-                  variant="secondary"
-                  className="text-xs px-3 py-1 flex items-center gap-1"
-                >
-                  <Icon name="edit" className="text-xs" />
-                  {i18next.t("edit") || "Edit"}
-                </Button>
-              </div>
+            <div className="font-medium text-base text-gray-800 line-clamp-1 break-all">
+              {user.email || i18next.t("no_email_address")}
             </div>
           </div>
+          <a
+            className="bg-gray-200/40 p-2 rounded-md hover:bg-gray-200/75"
+            title={i18next.t("edit")}
+            aria-label={i18next.t("edit")}
+            href={
+              state
+                ? `/u/account/change-email?state=${encodeURIComponent(state)}`
+                : `/u/account/change-email?client_id=${encodeURIComponent(client.id)}`
+            }
+          >
+            <PenIcon />
+          </a>
+        </div>
 
-          {/* Linked Accounts Section */}
-          {showLinkedAccounts && linkedIdentities.length > 0 && (
-            <div className="mb-6">
-              <h2 className="mb-3 text-lg font-medium text-gray-900">
+        {showLinkedAccounts && linkedIdentities.length > 0 && (
+          <>
+            <hr className="border-t border-gray-200/50 w-full" />
+            <div className="column-left w-full gap-1.5">
+              <div className="text-gray-300">
                 {i18next.t("linked_accounts")}
-              </h2>
-              <div className="space-y-3">
+              </div>
+              <div className="space-y-2 w-full">
                 {linkedIdentities.map((identity, index) => (
                   <div
-                    key={index}
-                    className="rounded-lg border border-gray-200 p-4"
+                    key={`linked-identity-${index}`}
+                    className="row w-full !justify-between !flex-nowrap gap-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 capitalize">
-                          {identity.provider === "google-oauth2"
-                            ? "Google"
-                            : identity.provider}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {identity.profileData?.email || identity.user_id}
-                        </p>
-                        {identity.isSocial && (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 mt-1">
-                            {i18next.t("social_account") || "Social Account"}
-                          </span>
-                        )}
-                      </div>
-                      <form
-                        method="post"
-                        className="inline"
-                        onsubmit="return confirm('{i18next.t('confirm_unlink') || 'Are you sure you want to unlink this account?'}')"
-                      >
-                        <input
-                          type="hidden"
-                          name="action"
-                          value="unlink_account"
-                        />
-                        <input
-                          type="hidden"
-                          name="provider"
-                          value={identity.provider}
-                        />
-                        <input
-                          type="hidden"
-                          name="user_id"
-                          value={identity.user_id}
-                        />
-                        <Button
-                          variant="secondary"
-                          className="text-xs px-3 py-1"
-                        >
-                          {i18next.t("unlink") || "Unlink"}
-                        </Button>
-                      </form>
+                    <div className="text-gray-800 line-clamp-1 break-all">
+                      <span className="text-gray-400">
+                        {identity.provider === "google-oauth2"
+                          ? "Google"
+                          : identity.provider}
+                      </span>{" "}
+                      <span className="font-medium">
+                        {identity.profileData?.email || identity.user_id}
+                      </span>
                     </div>
+
+                    <form
+                      method="post"
+                      className="inline"
+                      onsubmit="return confirm('{i18next.t('confirm_unlink')}')"
+                    >
+                      <input
+                        type="hidden"
+                        name="action"
+                        value="unlink_account"
+                      />
+                      <input
+                        type="hidden"
+                        name="provider"
+                        value={identity.provider}
+                      />
+                      <input
+                        type="hidden"
+                        name="user_id"
+                        value={identity.user_id}
+                      />
+                      <button
+                        type="submit"
+                        className="bg-red/80 hover:bg-red/90 px-2 py-1.5 text-white font-bold rounded-md !text-xs"
+                      >
+                        {i18next.t("unlink")}
+                      </button>
+                    </form>
                   </div>
                 ))}
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </Layout>
   );
