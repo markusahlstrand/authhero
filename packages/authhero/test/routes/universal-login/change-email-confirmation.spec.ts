@@ -10,7 +10,7 @@ describe("change-email-confirmation", () => {
 
     // Create sessions using helper
     const { loginSession, session } = await createSessions(env.data);
-    
+
     // Update login session with specific auth params
     await env.data.loginSessions.update("tenantId", loginSession.id, {
       authParams: {
@@ -53,7 +53,7 @@ describe("change-email-confirmation", () => {
 
     // Create sessions using helper
     const { loginSession, session } = await createSessions(env.data);
-    
+
     // Update login session with specific auth params including screen_hint
     await env.data.loginSessions.update("tenantId", loginSession.id, {
       authParams: {

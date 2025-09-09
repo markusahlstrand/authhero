@@ -37,6 +37,7 @@ export interface CreateAuthTokensParams {
   refresh_token?: string;
   strategy?: string;
   ticketAuth?: boolean;
+  skipHooks?: boolean;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -101,8 +102,8 @@ export async function createAuthTokens(
         client,
         user,
         request: {
-          ip: ctx.req.header("x-real-ip") || "",
-          user_agent: ctx.req.header("user-agent") || "",
+          ip: ctx.var.ip || "",
+          user_agent: ctx.var.useragent || "",
           method: ctx.req.method,
           url: ctx.req.url,
         },
@@ -271,10 +272,10 @@ export async function createSession(
       Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
     ).toISOString(),
     device: {
-      last_ip: ctx.req.header("x-real-ip") || "",
-      initial_ip: ctx.req.header("x-real-ip") || "",
-      last_user_agent: ctx.req.header("user-agent") || "",
-      initial_user_agent: ctx.req.header("user-agent") || "",
+      last_ip: ctx.var.ip || "",
+      initial_ip: ctx.var.ip || "",
+      last_user_agent: ctx.var.useragent || "",
+      initial_user_agent: ctx.var.useragent || "",
       // TODO: add Authentication Strength Name
       initial_asn: "",
       last_asn: "",
@@ -298,13 +299,16 @@ export interface CreateAuthResponseParams {
   sessionId?: string;
   refreshToken?: string;
   ticketAuth?: boolean;
+  strategy?: string;
+  skipHooks?: boolean;
 }
 
 export async function createFrontChannelAuthResponse(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthResponseParams,
 ): Promise<Response> {
-  const { authParams, user, client, ticketAuth } = params;
+  const { authParams, client, ticketAuth } = params;
+  let { user } = params;
 
   const responseType =
     authParams.response_type || AuthorizationResponseType.CODE;
@@ -324,7 +328,7 @@ export async function createFrontChannelAuthResponse(
     ctx,
     ctx.env.data.users.update(client.tenant.id, user.user_id, {
       last_login: new Date().toISOString(),
-      last_ip: ctx.req.header("x-real-ip") || "",
+      last_ip: ctx.var.ip || "",
       login_count: user.login_count + 1,
     }),
   );
@@ -360,8 +364,6 @@ export async function createFrontChannelAuthResponse(
   let refresh_token = params.refreshToken;
   let session_id = params.sessionId;
 
-  let postHookUser = user;
-
   if (!session_id && params.loginSession?.session_id) {
     // Scenario 1: Reusing an existing session indicated by loginSession.session_id
     session_id = params.loginSession.session_id;
@@ -385,28 +387,11 @@ export async function createFrontChannelAuthResponse(
     }
 
     const newSession = await createSession(ctx, {
-      user: postHookUser,
+      user,
       client,
       loginSession: params.loginSession,
     });
     session_id = newSession.id;
-
-    // Use the unified postUserLoginHook for all post-login logic
-    const postLoginResult = await postUserLoginHook(
-      ctx,
-      ctx.env.data,
-      client.tenant.id,
-      user,
-      params.loginSession,
-      { client, authParams },
-    );
-
-    // If the hook returns a user, use it; if it returns a Response (redirect), throw or handle as needed
-    if (postLoginResult instanceof Response) {
-      return postLoginResult;
-    }
-
-    postHookUser = postLoginResult;
   }
 
   // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
@@ -418,7 +403,7 @@ export async function createFrontChannelAuthResponse(
     )
   ) {
     const newRefreshToken = await createRefreshToken(ctx, {
-      user: postHookUser,
+      user,
       client,
       session_id,
       scope: authParams.scope,
@@ -437,26 +422,27 @@ export async function createFrontChannelAuthResponse(
       ctx,
       params.client,
       params.authParams,
-      postHookUser,
+      user,
       session_id,
     );
   }
 
-  const tokens =
-    responseType === AuthorizationResponseType.CODE
-      ? await createCodeData(ctx, {
-          user: postHookUser,
-          client,
-          authParams,
-          login_id: params.loginSession?.id || "",
-        })
-      : await createAuthTokens(ctx, {
-          authParams,
-          user: postHookUser,
-          client,
-          session_id,
-          refresh_token,
-        });
+  const tokens = await completeLogin(ctx, {
+    authParams,
+    user,
+    client,
+    session_id,
+    refresh_token,
+    strategy: params.strategy,
+    loginSession: params.loginSession,
+    responseType,
+    skipHooks: params.skipHooks,
+  });
+
+  // If completeLogin returned a Response (from a hook redirect), return it directly
+  if (tokens instanceof Response) {
+    return tokens;
+  }
 
   if (responseMode === AuthorizationResponseMode.WEB_MESSAGE) {
     if (!authParams.redirect_uri) {
@@ -543,36 +529,59 @@ export async function createFrontChannelAuthResponse(
   });
 }
 
-// Wrapper to trigger OnExecutePostLogin before issuing tokens
+// Wrapper to trigger OnExecutePostLogin before issuing tokens or codes
 export async function completeLogin(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: CreateAuthTokensParams,
-): Promise<TokenResponse> {
-  const { user, strategy } = params;
+  params: CreateAuthTokensParams & { responseType?: AuthorizationResponseType },
+): Promise<TokenResponse | { code: string; state?: string } | Response> {
+  let { user } = params;
+  const responseType = params.responseType || AuthorizationResponseType.TOKEN;
 
-  if (user && user?.app_metadata.strategy !== strategy) {
+  // Run hooks if we have a loginSession (authentication flow) and skipHooks is not set
+  if (params.loginSession && user && !params.skipHooks) {
     // Update the user's app_metadata with the strategy used for login
-    user.app_metadata.strategy = strategy;
-    await ctx.env.data.users.update(ctx.var.tenant_id, user.user_id, {
-      app_metadata: {
-        ...(user.app_metadata || {}),
-        strategy: user.app_metadata.strategy,
-      },
-    });
-  }
+    if (user.app_metadata?.strategy !== params.strategy) {
+      user.app_metadata = { ...user.app_metadata, strategy: params.strategy };
+      await ctx.env.data.users.update(params.client.tenant.id, user.user_id, {
+        app_metadata: {
+          ...(user.app_metadata || {}),
+          strategy: user.app_metadata.strategy,
+        },
+      });
+    }
 
-  // Use the unified postUserLoginHook for all post-login logic
-  if (user) {
-    await postUserLoginHook(
+    const hookResult = await postUserLoginHook(
       ctx,
       ctx.env.data,
       params.client.tenant.id,
       user,
-      ctx.var.loginSession,
+      params.loginSession,
       { client: params.client, authParams: params.authParams },
     );
+
+    // If the hook returns a Response (redirect), return it directly
+    if (hookResult instanceof Response) {
+      return hookResult;
+    }
+
+    // Use the updated user
+    user = hookResult;
   }
 
-  // Call createAuthTokens with possibly updated user
-  return createAuthTokens(ctx, { ...params, user });
+  // Return either code data or tokens based on response type
+  if (responseType === AuthorizationResponseType.CODE) {
+    if (!user || !params.loginSession) {
+      throw new HTTPException(500, {
+        message: "User and loginSession is required for code flow",
+      });
+    }
+    return await createCodeData(ctx, {
+      user,
+      client: params.client,
+      authParams: params.authParams,
+      login_id: params.loginSession.id,
+    });
+  } else {
+    return createAuthTokens(ctx, { ...params, user });
+  }
 }

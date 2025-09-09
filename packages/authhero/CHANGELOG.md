@@ -1,5 +1,11 @@
 # authhero
 
+## 0.205.0
+
+### Minor Changes
+
+- Add post user login hook
+
 ## 0.204.0
 
 ### Minor Changes

@@ -177,6 +177,7 @@ export async function loginWithPassword(
   return createFrontChannelAuthResponse(ctx, {
     ...result,
     ticketAuth,
+    strategy: "Username-Password-Authentication",
   });
 }
 
@@ -196,7 +197,7 @@ export async function requestPasswordReset(
     provider: "auth2",
     connection: "Username-Password-Authentication",
     isSocial: false,
-    ip: ctx.req.header("x-real-ip"),
+    ip: ctx.var.ip,
   });
 
   let code_id = generateOTP();

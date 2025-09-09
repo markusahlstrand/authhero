@@ -121,8 +121,8 @@ export async function silentAuth({
     last_interaction_at: new Date().toISOString(),
     device: {
       ...session.device,
-      last_ip: ctx.req.header("x-real-ip") || "",
-      last_user_agent: ctx.req.header("user-agent") || "",
+      last_ip: ctx.var.ip || "",
+      last_user_agent: ctx.var.useragent || "",
     },
     idle_expires_at: session.idle_expires_at
       ? new Date(

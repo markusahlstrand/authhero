@@ -58,7 +58,7 @@ export async function ticketAuth(
     connection:
       provider === "auth2" ? "Username-Password-Authentication" : "email",
     isSocial: false,
-    ip: ctx.req.header("x-real-ip"),
+    ip: ctx.var.ip,
   });
 
   ctx.set("username", user.email || user.phone_number);
