@@ -1,5 +1,11 @@
 # authhero
 
+## 0.206.0
+
+### Minor Changes
+
+- Update the UI for change email
+
 ## 0.205.0
 
 ### Minor Changes
