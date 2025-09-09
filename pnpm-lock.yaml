@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.199.0
-        version: 0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.205.0
+        version: 0.205.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -302,17 +302,14 @@ importers:
         specifier: ^4.8.7
         version: 4.9.1
       i18nexus-cli:
-        specifier: ^3.5.0
-        version: 3.5.0
+        specifier: ^3.8.2
+        version: 3.8.2
       kysely:
         specifier: ^0.27.4
         version: 0.27.4
       postcss:
         specifier: 8.4.36
         version: 8.4.36
-      sort-json:
-        specifier: ^2.0.1
-        version: 2.0.1
       tailwindcss:
         specifier: 3.4.1
         version: 3.4.1
@@ -3051,8 +3048,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.199.0:
-    resolution: {integrity: sha512-NFr5bgrPiSPSX8c/LoOuOc9rs1aixznTONFOlnnwB/p2ik1v+WcxwkwPgRjeSS7VE2xxpZrvU4HR6RrnfjjvQw==}
+  authhero@0.205.0:
+    resolution: {integrity: sha512-3A5gRTaYw8GvbEbdVR0aDSHBb+yiMtzLPdHDeKW5Wt/JJ/BLJrx8MoM635NOLTdvnV3Nm6omJxArHeo9iO1gUg==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -3566,10 +3563,6 @@ packages:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
 
-  detect-indent@5.0.0:
-    resolution: {integrity: sha512-rlpvsxUtM0PQvy9iZe640/IWwWYyBsTApREbA1pHOpmOUIl9MkP/U4z7vTtg4Oaojvqhxt7sdufnT0EzGaR31g==}
-    engines: {node: '>=4'}
-
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
     engines: {node: '>=8'}
@@ -3577,10 +3570,6 @@ packages:
   detect-libc@2.0.3:
     resolution: {integrity: sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==}
     engines: {node: '>=8'}
-
-  detect-newline@2.1.0:
-    resolution: {integrity: sha512-CwffZFvlJffUg9zZA0uqrjQayUTC8ob94pnr5sFwaVv3IOmkfUHcWH+jXaQK3askE51Cqe8/9Ql/0uXNwqZ8Zg==}
-    engines: {node: '>=0.10.0'}
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
@@ -4295,8 +4284,8 @@ packages:
       typescript:
         optional: true
 
-  i18nexus-cli@3.5.0:
-    resolution: {integrity: sha512-ZXqj+FcHS0+ASy9CDDAMEmm+Fl2mXbpCZXuT48S3Uzi5u80ajiwRCZOhouF1cvu4+sf+nxyrsYUdvF6dbbrTPg==}
+  i18nexus-cli@3.8.2:
+    resolution: {integrity: sha512-RcBfwnelEE6Qw39647URqzXk2rPNXgWbLu6H8g6onAU+fEm+AaF+dq9yokYYo8Iouwu7SCG9P8j8QdKXIbZjyA==}
     hasBin: true
 
   iconv-lite@0.4.24:
@@ -5845,10 +5834,6 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
 
-  sort-json@2.0.1:
-    resolution: {integrity: sha512-s8cs2bcsQCzo/P2T/uoU6Js4dS/jnX8+4xunziNoq9qmSpZNCrRIAIvp4avsz0ST18HycV4z/7myJ7jsHWB2XQ==}
-    hasBin: true
-
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -6593,6 +6578,18 @@ packages:
 
   ws@8.18.2:
     resolution: {integrity: sha512-DMricUmwGZUVr++AEAe2uiVM7UoO9MAVZMDu05UQOaUII0lp+zOzLLU4Xqh/JvTqklB1T4uELaaPBKyjE1r4fQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.18.3:
+    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -9078,7 +9075,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.7
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -9264,7 +9261,7 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.199.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  authhero@0.205.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
     dependencies:
       '@authhero/adapter-interfaces': 0.84.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
@@ -9807,13 +9804,9 @@ snapshots:
 
   dequal@2.0.3: {}
 
-  detect-indent@5.0.0: {}
-
   detect-indent@6.1.0: {}
 
   detect-libc@2.0.3: {}
-
-  detect-newline@2.1.0: {}
 
   devlop@1.1.0:
     dependencies:
@@ -10627,7 +10620,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -10648,16 +10641,19 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  i18nexus-cli@3.5.0:
+  i18nexus-cli@3.8.2:
     dependencies:
       '@next/env': 11.1.4
       colors: 1.4.0
       commander: 7.2.0
       https-proxy-agent: 5.0.1
       node-fetch: 2.7.0
+      ws: 8.18.3
     transitivePeerDependencies:
+      - bufferutil
       - encoding
       - supports-color
+      - utf-8-validate
 
   iconv-lite@0.4.24:
     dependencies:
@@ -12288,12 +12284,6 @@ snapshots:
 
   slash@3.0.0: {}
 
-  sort-json@2.0.1:
-    dependencies:
-      detect-indent: 5.0.0
-      detect-newline: 2.1.0
-      minimist: 1.2.8
-
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.21:
@@ -13136,6 +13126,8 @@ snapshots:
   ws@8.18.0: {}
 
   ws@8.18.2: {}
+
+  ws@8.18.3: {}
 
   xml-crypto@6.1.2:
     dependencies:

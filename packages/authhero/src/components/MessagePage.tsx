@@ -17,8 +17,12 @@ const MessagePage: FC<Props> = (params) => {
 
   return (
     <Layout title="Login" theme={theme} branding={branding} client={client}>
-      {pageTitle ? <div className="mb-6 text-gray-300">{pageTitle}</div> : ""}
-      <div className="flex flex-1 flex-col justify-center">{message}</div>
+      {pageTitle ? (
+        <div className="mb-4 text-2xl font-medium">{pageTitle}</div>
+      ) : (
+        ""
+      )}
+      <div className="text-gray-300 mb-12">{message}</div>
       {state ? <GoBack state={state} /> : ""}
     </Layout>
   );
