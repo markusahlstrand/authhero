@@ -87,9 +87,11 @@ The Management API provides endpoints for managing all aspects of your AuthHero 
 
 Manage organizations within your tenant.
 
-#### GET /api/v2/organizations
+#### List Organizations
 
 List all organizations.
+
+**Endpoint:** `GET /api/v2/organizations`
 
 **Query Parameters:**
 
@@ -123,9 +125,11 @@ List all organizations.
 ]
 ```
 
-#### POST /api/v2/organizations
+#### Create Organization
 
 Create a new organization.
+
+**Endpoint:** `POST /api/v2/organizations`
 
 **Request Body:**
 
@@ -145,25 +149,33 @@ Create a new organization.
 }
 ```
 
-#### GET /api/v2/organizations/{id}
+#### Get Organization by ID
 
 Get a specific organization.
 
-#### PATCH /api/v2/organizations/{id}
+**Endpoint:** `GET /api/v2/organizations/{id}`
+
+#### Update Organization
 
 Update an organization.
 
-#### DELETE /api/v2/organizations/{id}
+**Endpoint:** `PATCH /api/v2/organizations/{id}`
+
+#### Delete Organization
 
 Delete an organization.
+
+**Endpoint:** `DELETE /api/v2/organizations/{id}`
 
 ### Users
 
 Manage users in your tenant.
 
-#### GET /api/v2/users
+#### List Users
 
 List all users.
+
+**Endpoint:** `GET /api/v2/users`
 
 **Query Parameters:**
 
@@ -171,143 +183,203 @@ List all users.
 - `sort` - Sort order
 - `q` - Search query (supports `email:user@example.com`, `user_id:123`, etc.)
 
-#### POST /api/v2/users
+#### Create User
 
 Create a new user.
 
-#### GET /api/v2/users/{id}
+**Endpoint:** `POST /api/v2/users`
+
+#### Get User by ID
 
 Get a specific user.
 
-#### PATCH /api/v2/users/{id}
+**Endpoint:** `GET /api/v2/users/{id}`
+
+#### Update User
 
 Update a user.
 
-#### DELETE /api/v2/users/{id}
+**Endpoint:** `PATCH /api/v2/users/{id}`
+
+#### Delete User
 
 Delete a user.
+
+**Endpoint:** `DELETE /api/v2/users/{id}`
 
 ### Clients (Applications)
 
 Manage OAuth clients/applications.
 
-#### GET /api/v2/clients
+#### List Clients
 
 List all clients.
 
-#### POST /api/v2/clients
+**Endpoint:** `GET /api/v2/clients`
+
+#### Create Client
 
 Create a new client.
 
-#### GET /api/v2/clients/{id}
+**Endpoint:** `POST /api/v2/clients`
+
+#### Get Client by ID
 
 Get a specific client.
 
-#### PATCH /api/v2/clients/{id}
+**Endpoint:** `GET /api/v2/clients/{id}`
+
+#### Update Client
 
 Update a client.
 
-#### DELETE /api/v2/clients/{id}
+**Endpoint:** `PATCH /api/v2/clients/{id}`
+
+#### Delete Client
 
 Delete a client.
+
+**Endpoint:** `DELETE /api/v2/clients/{id}`
 
 ### Connections
 
 Manage authentication connections.
 
-#### GET /api/v2/connections
+#### List Connections
 
 List all connections.
 
-#### POST /api/v2/connections
+**Endpoint:** `GET /api/v2/connections`
+
+#### Create Connection
 
 Create a new connection.
 
-#### GET /api/v2/connections/{id}
+**Endpoint:** `POST /api/v2/connections`
+
+#### Get Connection by ID
 
 Get a specific connection.
 
-#### PATCH /api/v2/connections/{id}
+**Endpoint:** `GET /api/v2/connections/{id}`
+
+#### Update Connection
 
 Update a connection.
 
-#### DELETE /api/v2/connections/{id}
+**Endpoint:** `PATCH /api/v2/connections/{id}`
+
+#### Delete Connection
 
 Delete a connection.
+
+**Endpoint:** `DELETE /api/v2/connections/{id}`
 
 ### Roles
 
 Manage user roles.
 
-#### GET /api/v2/roles
+#### List Roles
 
 List all roles.
 
-#### POST /api/v2/roles
+**Endpoint:** `GET /api/v2/roles`
+
+#### Create Role
 
 Create a new role.
 
-#### GET /api/v2/roles/{id}
+**Endpoint:** `POST /api/v2/roles`
+
+#### Get Role by ID
 
 Get a specific role.
 
-#### PATCH /api/v2/roles/{id}
+**Endpoint:** `GET /api/v2/roles/{id}`
+
+#### Update Role
 
 Update a role.
 
-#### DELETE /api/v2/roles/{id}
+**Endpoint:** `PATCH /api/v2/roles/{id}`
+
+#### Delete Role
 
 Delete a role.
+
+**Endpoint:** `DELETE /api/v2/roles/{id}`
 
 ### Resource Servers
 
 Manage API resource servers.
 
-#### GET /api/v2/resource-servers
+#### List Resource Servers
 
 List all resource servers.
 
-#### POST /api/v2/resource-servers
+**Endpoint:** `GET /api/v2/resource-servers`
+
+#### Create Resource Server
 
 Create a new resource server.
 
-#### GET /api/v2/resource-servers/{id}
+**Endpoint:** `POST /api/v2/resource-servers`
+
+#### Get Resource Server by ID
 
 Get a specific resource server.
 
-#### PATCH /api/v2/resource-servers/{id}
+**Endpoint:** `GET /api/v2/resource-servers/{id}`
+
+#### Update Resource Server
 
 Update a resource server.
 
-#### DELETE /api/v2/resource-servers/{id}
+**Endpoint:** `PATCH /api/v2/resource-servers/{id}`
+
+#### Delete Resource Server
 
 Delete a resource server.
 
+**Endpoint:** `DELETE /api/v2/resource-servers/{id}`
+
 ### Other Endpoints
 
-#### GET /api/v2/tenants
+#### Tenant Settings
 
 Manage tenant settings.
 
-#### GET /api/v2/logs
+**Endpoint:** `GET /api/v2/tenants`
+
+#### Audit Logs
 
 Access audit logs.
 
-#### GET /api/v2/sessions
+**Endpoint:** `GET /api/v2/logs`
+
+#### User Sessions
 
 Manage user sessions.
 
-#### GET /api/v2/keys
+**Endpoint:** `GET /api/v2/sessions`
+
+#### Signing Keys
 
 Manage signing keys.
 
-#### GET /api/v2/branding
+**Endpoint:** `GET /api/v2/keys`
+
+#### Tenant Branding
 
 Manage tenant branding.
 
-#### GET /api/v2/custom-domains
+**Endpoint:** `GET /api/v2/branding`
+
+#### Custom Domains
 
 Manage custom domains.
+
+**Endpoint:** `GET /api/v2/custom-domains`
 
 ## Common Query Parameters
 
