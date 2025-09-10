@@ -616,75 +616,74 @@ erDiagram
 </div>
 
 <script>
-// Global variables
-window.currentZoom = 1;
-window.isFullscreen = false;
-window.mermaidSvg = null;
-
-// Make functions globally available
-window.zoomIn = function() {
-  window.currentZoom = Math.min(window.currentZoom * 1.2, 3);
-  applyZoom();
-}
-
-window.zoomOut = function() {
-  window.currentZoom = Math.max(window.currentZoom / 1.2, 0.3);
-  applyZoom();
-}
-
-window.resetZoom = function() {
-  window.currentZoom = 1;
-  applyZoom();
-  
-  // Reset scroll position
-  const wrapper = window.isFullscreen ? 
-    document.getElementById('fullscreen-mermaid-wrapper') : 
-    document.getElementById('mermaid-wrapper');
-  if (wrapper) {
-    wrapper.scrollLeft = 0;
-    wrapper.scrollTop = 0;
-  }
-}
-
-window.toggleFullscreen = function() {
-  const overlay = document.getElementById('fullscreen-overlay');
-  const normalWrapper = document.getElementById('mermaid-wrapper');
-  const fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
-  
-  if (!overlay || !normalWrapper || !fullscreenWrapper) {
-    console.log('Missing elements:', { overlay: !!overlay, normalWrapper: !!normalWrapper, fullscreenWrapper: !!fullscreenWrapper });
-    return;
-  }
-  
-  window.isFullscreen = !window.isFullscreen;
-  
-  if (window.isFullscreen) {
-    overlay.classList.add('active');
-    // Move mermaid to fullscreen container
-    const mermaidElement = normalWrapper.querySelector('.mermaid');
-    if (mermaidElement) {
-      fullscreenWrapper.appendChild(mermaidElement);
-      addPanFunctionality(); // Re-add pan functionality for fullscreen
-      fixMermaidTextColors(); // Fix text colors after moving
-    }
-    document.body.style.overflow = 'hidden';
-  } else {
-    overlay.classList.remove('active');
-    // Move mermaid back to normal container
-    const mermaidElement = fullscreenWrapper.querySelector('.mermaid');
-    if (mermaidElement) {
-      normalWrapper.appendChild(mermaidElement);
-      addPanFunctionality(); // Re-add pan functionality for normal view
-      fixMermaidTextColors(); // Fix text colors after moving
-    }
-    document.body.style.overflow = '';
-  }
-  
-  applyZoom();
-}
-
 // Initialize when page loads
 if (typeof window !== 'undefined') {
+  // Global variables
+  window.currentZoom = 1;
+  window.isFullscreen = false;
+  window.mermaidSvg = null;
+
+  // Make functions globally available
+  window.zoomIn = function() {
+    window.currentZoom = Math.min(window.currentZoom * 1.2, 3);
+    applyZoom();
+  }
+
+  window.zoomOut = function() {
+    window.currentZoom = Math.max(window.currentZoom / 1.2, 0.3);
+    applyZoom();
+  }
+
+  window.resetZoom = function() {
+    window.currentZoom = 1;
+    applyZoom();
+    
+    // Reset scroll position
+    const wrapper = window.isFullscreen ? 
+      document.getElementById('fullscreen-mermaid-wrapper') : 
+      document.getElementById('mermaid-wrapper');
+    if (wrapper) {
+      wrapper.scrollLeft = 0;
+      wrapper.scrollTop = 0;
+    }
+  }
+
+  window.toggleFullscreen = function() {
+    const overlay = document.getElementById('fullscreen-overlay');
+    const normalWrapper = document.getElementById('mermaid-wrapper');
+    const fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
+    
+    if (!overlay || !normalWrapper || !fullscreenWrapper) {
+      console.log('Missing elements:', { overlay: !!overlay, normalWrapper: !!normalWrapper, fullscreenWrapper: !!fullscreenWrapper });
+      return;
+    }
+    
+    window.isFullscreen = !window.isFullscreen;
+    
+    if (window.isFullscreen) {
+      overlay.classList.add('active');
+      // Move mermaid to fullscreen container
+      const mermaidElement = normalWrapper.querySelector('.mermaid');
+      if (mermaidElement) {
+        fullscreenWrapper.appendChild(mermaidElement);
+        addPanFunctionality(); // Re-add pan functionality for fullscreen
+        fixMermaidTextColors(); // Fix text colors after moving
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      overlay.classList.remove('active');
+      // Move mermaid back to normal container
+      const mermaidElement = fullscreenWrapper.querySelector('.mermaid');
+      if (mermaidElement) {
+        normalWrapper.appendChild(mermaidElement);
+        addPanFunctionality(); // Re-add pan functionality for normal view
+        fixMermaidTextColors(); // Fix text colors after moving
+      }
+      document.body.style.overflow = '';
+    }
+    
+    applyZoom();
+  }
   // Try multiple initialization methods
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeMermaidControls);
