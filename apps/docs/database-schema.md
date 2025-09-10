@@ -390,6 +390,15 @@ erDiagram
         varchar updated_at
     }
 
+    user_organizations {
+        varchar id PK
+        varchar tenant_id FK
+        varchar user_id FK
+        varchar organization_id FK
+        varchar created_at
+        varchar updated_at
+    }
+
     %% Customization & Branding
     branding {
         varchar tenant_id PK,FK
@@ -564,6 +573,7 @@ erDiagram
     users ||--o{ codes : "has many"
     users ||--o{ user_permissions : "has many"
     users ||--o{ user_roles : "has many"
+    users ||--o{ user_organizations : "has many"
     users ||--o{ users : "linked to"
 
     %% Application Relationships
@@ -581,9 +591,15 @@ erDiagram
     resource_servers ||--o{ role_permissions : "has many"
     resource_servers ||--o{ user_permissions : "has many"
 
+    %% Organization Relationships
+    organizations ||--o{ user_organizations : "has many"
+    user_organizations }o--|| users : "belongs to"
+    user_organizations }o--|| organizations : "belongs to"
+
     %% Form Relationships
     forms ||--o{ hooks : "used by"
 ```
+
   </div>
 </div>
 
@@ -600,75 +616,74 @@ erDiagram
 </div>
 
 <script>
-// Global variables
-window.currentZoom = 1;
-window.isFullscreen = false;
-window.mermaidSvg = null;
-
-// Make functions globally available
-window.zoomIn = function() {
-  window.currentZoom = Math.min(window.currentZoom * 1.2, 3);
-  applyZoom();
-}
-
-window.zoomOut = function() {
-  window.currentZoom = Math.max(window.currentZoom / 1.2, 0.3);
-  applyZoom();
-}
-
-window.resetZoom = function() {
-  window.currentZoom = 1;
-  applyZoom();
-  
-  // Reset scroll position
-  const wrapper = window.isFullscreen ? 
-    document.getElementById('fullscreen-mermaid-wrapper') : 
-    document.getElementById('mermaid-wrapper');
-  if (wrapper) {
-    wrapper.scrollLeft = 0;
-    wrapper.scrollTop = 0;
-  }
-}
-
-window.toggleFullscreen = function() {
-  const overlay = document.getElementById('fullscreen-overlay');
-  const normalWrapper = document.getElementById('mermaid-wrapper');
-  const fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
-  
-  if (!overlay || !normalWrapper || !fullscreenWrapper) {
-    console.log('Missing elements:', { overlay: !!overlay, normalWrapper: !!normalWrapper, fullscreenWrapper: !!fullscreenWrapper });
-    return;
-  }
-  
-  window.isFullscreen = !window.isFullscreen;
-  
-  if (window.isFullscreen) {
-    overlay.classList.add('active');
-    // Move mermaid to fullscreen container
-    const mermaidElement = normalWrapper.querySelector('.mermaid');
-    if (mermaidElement) {
-      fullscreenWrapper.appendChild(mermaidElement);
-      addPanFunctionality(); // Re-add pan functionality for fullscreen
-      fixMermaidTextColors(); // Fix text colors after moving
-    }
-    document.body.style.overflow = 'hidden';
-  } else {
-    overlay.classList.remove('active');
-    // Move mermaid back to normal container
-    const mermaidElement = fullscreenWrapper.querySelector('.mermaid');
-    if (mermaidElement) {
-      normalWrapper.appendChild(mermaidElement);
-      addPanFunctionality(); // Re-add pan functionality for normal view
-      fixMermaidTextColors(); // Fix text colors after moving
-    }
-    document.body.style.overflow = '';
-  }
-  
-  applyZoom();
-}
-
 // Initialize when page loads
 if (typeof window !== 'undefined') {
+  // Global variables
+  window.currentZoom = 1;
+  window.isFullscreen = false;
+  window.mermaidSvg = null;
+
+  // Make functions globally available
+  window.zoomIn = function() {
+    window.currentZoom = Math.min(window.currentZoom * 1.2, 3);
+    applyZoom();
+  }
+
+  window.zoomOut = function() {
+    window.currentZoom = Math.max(window.currentZoom / 1.2, 0.3);
+    applyZoom();
+  }
+
+  window.resetZoom = function() {
+    window.currentZoom = 1;
+    applyZoom();
+    
+    // Reset scroll position
+    const wrapper = window.isFullscreen ? 
+      document.getElementById('fullscreen-mermaid-wrapper') : 
+      document.getElementById('mermaid-wrapper');
+    if (wrapper) {
+      wrapper.scrollLeft = 0;
+      wrapper.scrollTop = 0;
+    }
+  }
+
+  window.toggleFullscreen = function() {
+    const overlay = document.getElementById('fullscreen-overlay');
+    const normalWrapper = document.getElementById('mermaid-wrapper');
+    const fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
+    
+    if (!overlay || !normalWrapper || !fullscreenWrapper) {
+      console.log('Missing elements:', { overlay: !!overlay, normalWrapper: !!normalWrapper, fullscreenWrapper: !!fullscreenWrapper });
+      return;
+    }
+    
+    window.isFullscreen = !window.isFullscreen;
+    
+    if (window.isFullscreen) {
+      overlay.classList.add('active');
+      // Move mermaid to fullscreen container
+      const mermaidElement = normalWrapper.querySelector('.mermaid');
+      if (mermaidElement) {
+        fullscreenWrapper.appendChild(mermaidElement);
+        addPanFunctionality(); // Re-add pan functionality for fullscreen
+        fixMermaidTextColors(); // Fix text colors after moving
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      overlay.classList.remove('active');
+      // Move mermaid back to normal container
+      const mermaidElement = fullscreenWrapper.querySelector('.mermaid');
+      if (mermaidElement) {
+        normalWrapper.appendChild(mermaidElement);
+        addPanFunctionality(); // Re-add pan functionality for normal view
+        fixMermaidTextColors(); // Fix text colors after moving
+      }
+      document.body.style.overflow = '';
+    }
+    
+    applyZoom();
+  }
   // Try multiple initialization methods
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeMermaidControls);
@@ -865,24 +880,31 @@ if (typeof window !== 'undefined') {
 ### Core Multi-Tenant Tables
 
 #### `tenants`
+
 The root table for multi-tenancy. Every other table references this through `tenant_id` to ensure complete data isolation between tenants.
 
 #### `users`
+
 Stores user accounts with comprehensive profile information. Supports:
+
 - Social and password-based authentication
 - Account linking (users can link multiple social accounts)
 - Detailed profile data and metadata
 - Email and phone verification status
 
 #### `applications`
+
 OAuth/OIDC client applications that can authenticate users. Each application has:
+
 - Client secrets for confidential clients
 - Allowed redirect URIs and origins
 - OAuth flow configuration
 - Custom addons and settings
 
 #### `connections`
+
 Identity providers (social logins, enterprise connections, etc.) that users can authenticate through:
+
 - Strategy-based configuration (Google, Facebook, SAML, etc.)
 - Custom options for each provider
 - Response type and mode settings
@@ -890,68 +912,90 @@ Identity providers (social logins, enterprise connections, etc.) that users can 
 ### Authentication Flow Tables
 
 #### `login_sessions`
+
 Tracks the authentication flow from start to completion:
+
 - CSRF protection tokens
 - OAuth parameters (client_id, scope, redirect_uri, etc.)
 - Authorization URL construction
 - Login completion status
 
 #### `sessions`
+
 Active user sessions after successful authentication:
+
 - Session expiration and idle timeout
 - Device and client information
 - Session lifecycle tracking
 
 #### `refresh_tokens`
+
 Enables token renewal without re-authentication:
+
 - Rotating refresh token support
 - Resource server scoping
 - Device binding
 
 #### `codes`
+
 Temporary authorization codes for OAuth flows:
+
 - Multiple code types (authorization, password reset, etc.)
 - PKCE support (code challenge/verifier)
 - Expiration and usage tracking
 
 #### `passwords`
+
 Secure password storage:
+
 - Algorithm specification for password hashing
 - Linked to users via composite foreign key
 
 ### Role-Based Access Control (RBAC)
 
 #### `roles`
+
 User roles within a tenant:
+
 - Role names and descriptions
 - Tenant-scoped roles
 
 #### `resource_servers`
+
 APIs that can be accessed through AuthHero:
+
 - JWT signing configuration
 - Token lifetime settings
 - Scope definitions
 - Verification keys
 
 #### `role_permissions`
+
 Links roles to specific permissions on resource servers:
+
 - Composite primary key (tenant_id, role_id, resource_server_identifier, permission_name)
 - Enables fine-grained access control
 
 #### `user_permissions`
+
 Direct user permissions (bypass roles):
+
 - Same structure as role permissions
 - Allows for user-specific access grants
 
 #### `user_roles`
+
 Assigns roles to users:
+
 - Many-to-many relationship between users and roles
 - Tenant-scoped assignments
 
 ### Organizations (Sub-Tenancy)
 
 #### `organizations`
+
 Enables hierarchical multi-tenancy within a tenant:
+
 - Organization branding and metadata
 - Enabled connections per organization
 - Token quotas and limits
@@ -959,20 +1003,26 @@ Enables hierarchical multi-tenancy within a tenant:
 ### Customization and Branding
 
 #### `branding`
+
 Simple branding configuration per tenant:
+
 - Logo and favicon URLs
 - Primary colors and page backgrounds
 - Font customization
 
 #### `themes`
+
 Comprehensive UI theming (more detailed than branding):
+
 - Complete color palette customization
 - Typography settings
 - Border and layout configurations
 - Widget positioning and styling
 
 #### `custom_domains`
+
 White-label domain support:
+
 - Domain verification and status
 - TLS policy configuration
 - Custom client IP headers
@@ -980,13 +1030,17 @@ White-label domain support:
 ### Configuration and Settings
 
 #### `prompt_settings`
+
 Controls the login flow behavior:
+
 - Universal login experience settings
 - Username-first vs password-first flows
 - WebAuthn configuration
 
 #### `email_providers`
+
 Custom email delivery configuration:
+
 - Provider credentials (SendGrid, Mailgun, etc.)
 - Email templates and settings
 - Per-tenant email customization
@@ -994,13 +1048,17 @@ Custom email delivery configuration:
 ### Forms and Extensibility
 
 #### `forms`
+
 Custom forms for various workflows:
+
 - Multi-language support
 - Node-based form definition
 - Custom styling and branding
 
 #### `hooks`
+
 Webhooks for extending AuthHero functionality:
+
 - Trigger-based execution
 - Synchronous and asynchronous hooks
 - Form integration
@@ -1009,7 +1067,9 @@ Webhooks for extending AuthHero functionality:
 ### Security and Cryptography
 
 #### `keys`
+
 Cryptographic keys for JWT signing and other security operations:
+
 - Key rotation support
 - Connection-specific keys
 - Certificate and fingerprint storage
@@ -1018,7 +1078,9 @@ Cryptographic keys for JWT signing and other security operations:
 ### Audit and Logging
 
 #### `logs`
+
 Comprehensive audit trail:
+
 - All authentication events
 - User actions and administrative changes
 - Detailed context including IP, user agent, etc.
@@ -1027,13 +1089,17 @@ Comprehensive audit trail:
 ### Administrative Tables
 
 #### `members`
+
 Administrative users who can manage tenants:
+
 - Separate from regular users
 - Role-based access to admin functions
 - Multi-tenant administration support
 
 #### `migrations`
+
 Tracks data migrations and imports:
+
 - Migration from other auth providers
 - Audit trail for data movement
 - Client and domain mapping
@@ -1041,18 +1107,23 @@ Tracks data migrations and imports:
 ## Database Design Principles
 
 ### Multi-Tenancy
+
 Every table (except `tenants` and system tables) includes a `tenant_id` foreign key, ensuring complete data isolation between tenants.
 
 ### Audit Trail
+
 Most tables include `created_at` and `updated_at` timestamps for audit purposes and change tracking.
 
 ### Soft Relationships
+
 Many relationships use varchar IDs rather than integer foreign keys, providing flexibility for distributed systems and easier data migration.
 
 ### JSON Storage
+
 Complex configuration data is often stored as JSON strings in varchar/text fields, allowing for flexible schema evolution without database migrations.
 
 ### Composite Keys
+
 Several tables use composite primary keys (typically including `tenant_id`) to enforce tenant isolation at the database level.
 
 This schema supports AuthHero's core mission of providing a flexible, secure, and scalable multi-tenant authentication system while maintaining compatibility with Auth0 APIs.

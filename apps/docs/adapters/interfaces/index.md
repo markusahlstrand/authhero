@@ -21,30 +21,30 @@ The main database adapter interface defines methods for all data operations:
 export interface DatabaseAdapter {
   // User management
   users: UserAdapter;
-  
+
   // Application management
   applications: ApplicationAdapter;
-  
+
   // Session management
   sessions: SessionAdapter;
   login_sessions: LoginSessionAdapter;
-  
+
   // Authentication
   passwords: PasswordAdapter;
   codes: CodeAdapter;
   refresh_tokens: RefreshTokenAdapter;
-  
+
   // Authorization (RBAC)
   roles: RoleAdapter;
   resource_servers: ResourceServerAdapter;
   role_permissions: RolePermissionAdapter;
   user_permissions: UserPermissionAdapter;
   user_roles: UserRoleAdapter;
-  
+
   // Multi-tenancy
   tenants: TenantAdapter;
   organizations: OrganizationAdapter;
-  
+
   // Configuration
   connections: ConnectionAdapter;
   themes: ThemeAdapter;
@@ -52,14 +52,14 @@ export interface DatabaseAdapter {
   custom_domains: CustomDomainAdapter;
   email_providers: EmailProviderAdapter;
   prompt_settings: PromptSettingAdapter;
-  
+
   // Extensibility
   forms: FormAdapter;
   hooks: HookAdapter;
-  
+
   // Security
   keys: KeyAdapter;
-  
+
   // Audit
   logs: LogAdapter;
 }
@@ -77,13 +77,21 @@ export interface UserAdapter {
   remove(userId: string, tenantId: string): Promise<void>;
   list(params: ListUsersParams): Promise<ListUsersResult>;
   findByEmail(email: string, tenantId: string): Promise<User | null>;
-  findByEmailWithProvider(email: string, provider: string, tenantId: string): Promise<User | null>;
+  findByEmailWithProvider(
+    email: string,
+    provider: string,
+    tenantId: string,
+  ): Promise<User | null>;
 }
 
 export interface ApplicationAdapter {
   create(application: CreateApplication): Promise<Application>;
   get(applicationId: string, tenantId: string): Promise<Application | null>;
-  update(applicationId: string, tenantId: string, application: Partial<Application>): Promise<Application>;
+  update(
+    applicationId: string,
+    tenantId: string,
+    application: Partial<Application>,
+  ): Promise<Application>;
   remove(applicationId: string, tenantId: string): Promise<void>;
   list(params: ListApplicationsParams): Promise<ListApplicationsResult>;
 }
@@ -402,7 +410,7 @@ export interface Hook {
 The interfaces include Zod schemas for runtime validation:
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 export const userSchema = z.object({
   user_id: z.string(),
@@ -438,19 +446,25 @@ export const applicationSchema = z.object({
 ### Creating a Custom Adapter
 
 1. **Install the interfaces package**:
+
 ```bash
 npm install @authhero/adapter-interfaces
 ```
 
 2. **Implement the DatabaseAdapter interface**:
+
 ```typescript
-import { DatabaseAdapter, UserAdapter, ApplicationAdapter } from '@authhero/adapter-interfaces';
+import {
+  DatabaseAdapter,
+  UserAdapter,
+  ApplicationAdapter,
+} from "@authhero/adapter-interfaces";
 
 export class MyCustomAdapter implements DatabaseAdapter {
   users: UserAdapter;
   applications: ApplicationAdapter;
   // ... implement all required adapters
-  
+
   constructor(config: MyAdapterConfig) {
     this.users = new MyUserAdapter(config);
     this.applications = new MyApplicationAdapter(config);
@@ -460,31 +474,33 @@ export class MyCustomAdapter implements DatabaseAdapter {
 ```
 
 3. **Implement entity adapters**:
+
 ```typescript
 class MyUserAdapter implements UserAdapter {
   async create(user: CreateUser): Promise<User> {
     // Implement user creation logic
   }
-  
+
   async get(userId: string, tenantId: string): Promise<User | null> {
     // Implement user retrieval logic
   }
-  
+
   // ... implement all required methods
 }
 ```
 
 4. **Use validation schemas**:
+
 ```typescript
 import { userSchema } from '@authhero/adapter-interfaces';
 
 async create(userData: CreateUser): Promise<User> {
   // Validate input
   const validatedUser = userSchema.parse(userData);
-  
+
   // Store in your backend
   const storedUser = await this.storage.save(validatedUser);
-  
+
   // Validate output
   return userSchema.parse(storedUser);
 }
@@ -497,19 +513,18 @@ export class AdapterError extends Error {
   constructor(
     message: string,
     public code: string,
-    public details?: any
+    public details?: any,
   ) {
     super(message);
-    this.name = 'AdapterError';
+    this.name = "AdapterError";
   }
 }
 
 // Usage
-throw new AdapterError(
-  'User not found',
-  'USER_NOT_FOUND',
-  { userId, tenantId }
-);
+throw new AdapterError("User not found", "USER_NOT_FOUND", {
+  userId,
+  tenantId,
+});
 ```
 
 ### Testing
@@ -517,10 +532,10 @@ throw new AdapterError(
 The interfaces package includes test utilities:
 
 ```typescript
-import { testDatabaseAdapter } from '@authhero/adapter-interfaces/testing';
+import { testDatabaseAdapter } from "@authhero/adapter-interfaces/testing";
 
-describe('MyCustomAdapter', () => {
-  it('should pass all interface tests', async () => {
+describe("MyCustomAdapter", () => {
+  it("should pass all interface tests", async () => {
     const adapter = new MyCustomAdapter(config);
     await testDatabaseAdapter(adapter);
   });

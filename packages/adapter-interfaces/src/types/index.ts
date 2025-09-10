@@ -30,3 +30,4 @@ export * from "./RolePermission";
 export * from "./UserPermission";
 export * from "./Role";
 export * from "./Organization";
+export * from "./UserOrganization";

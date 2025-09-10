@@ -17,6 +17,7 @@ import {
   userInsertSchema,
   userPermissionWithDetailsListSchema,
   roleListSchema,
+  userOrganizationSchema,
 } from "@authhero/adapter-interfaces";
 
 const usersWithTotalsSchema = totalsSchema.extend({
@@ -25,6 +26,10 @@ const usersWithTotalsSchema = totalsSchema.extend({
 
 const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
+});
+
+const userOrganizationsWithTotalsSchema = totalsSchema.extend({
+  userOrganizations: z.array(userOrganizationSchema),
 });
 
 export const userRoutes = new OpenAPIHono<{
@@ -968,5 +973,123 @@ export const userRoutes = new OpenAPIHono<{
         });
 
       return ctx.json({ message: "Roles removed successfully" });
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/users/:user_id/organizations
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}/organizations",
+      request: {
+        params: z.object({
+          user_id: z.string(),
+        }),
+        query: querySchema,
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [{ Bearer: ["auth:read"] }],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.union([
+                userOrganizationsWithTotalsSchema,
+                z.array(userOrganizationSchema),
+              ]),
+            },
+          },
+          description: "List of user organizations",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { page, per_page, include_totals, sort } = ctx.req.valid("query");
+
+      // First verify user exists
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      const result = await ctx.env.data.userOrganizations.list(tenant_id, {
+        page,
+        per_page,
+        include_totals,
+        sort: parseSort(sort),
+        q: `user_id:${user_id}`,
+      });
+
+      if (include_totals) {
+        return ctx.json(result);
+      }
+
+      return ctx.json(result.userOrganizations);
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/users/:user_id/organizations/:organization_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "delete",
+      path: "/{user_id}/organizations/{organization_id}",
+      request: {
+        params: z.object({
+          user_id: z.string(),
+          organization_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [{ Bearer: ["auth:write"] }],
+      responses: {
+        200: {
+          description: "User removed from organization successfully",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id, organization_id } = ctx.req.valid("param");
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+
+      // First verify user exists
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      // Find the membership to remove
+      const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
+        q: `user_id:${user_id}`,
+        per_page: 100, // Should be enough for most cases
+      });
+
+      const membershipToRemove = userOrgs.userOrganizations.find(
+        (uo) => uo.organization_id === organization_id,
+      );
+
+      if (!membershipToRemove) {
+        throw new HTTPException(404, {
+          message: "User is not a member of this organization",
+        });
+      }
+
+      await ctx.env.data.userOrganizations.remove(
+        tenant_id,
+        membershipToRemove.id,
+      );
+
+      return ctx.json({
+        message: "User removed from organization successfully",
+      });
     },
   );

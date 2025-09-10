@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.4.0
+
+### Minor Changes
+
+- Add users to organizations
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.86.0
+
 ## 0.3.13
 
 ### Patch Changes
