@@ -526,3 +526,60 @@ export const users = mysqlTable(
     }),
   ],
 );
+
+export const organizations = mysqlTable(
+  "organizations",
+  {
+    id: varchar({ length: 256 }).notNull(),
+    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    name: varchar({ length: 256 }).notNull(),
+    displayName: varchar("display_name", { length: 256 }),
+    branding: text(),
+    metadata: text(),
+    enabledConnections: text("enabled_connections"),
+    tokenQuota: text("token_quota"),
+    createdAt: varchar("created_at", { length: 256 }).notNull(),
+    updatedAt: varchar("updated_at", { length: 256 }).notNull(),
+  },
+  (table) => [
+    index("idx_organizations_tenant_id").on(table.tenantId),
+    index("idx_organizations_tenant_name_unique").on(
+      table.tenantId,
+      table.name,
+    ),
+    primaryKey({ columns: [table.id], name: "organizations_id" }),
+  ],
+);
+
+export const userOrganizations = mysqlTable(
+  "user_organizations",
+  {
+    id: varchar({ length: 256 }).notNull(),
+    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+    userId: varchar("user_id", { length: 256 }).notNull(),
+    organizationId: varchar("organization_id", { length: 256 }).notNull(),
+    createdAt: varchar("created_at", { length: 256 }).notNull(),
+    updatedAt: varchar("updated_at", { length: 256 }).notNull(),
+  },
+  (table) => [
+    index("idx_user_organizations_tenant_id").on(table.tenantId),
+    index("idx_user_organizations_user_id").on(table.userId),
+    index("idx_user_organizations_organization_id").on(table.organizationId),
+    index("idx_user_organizations_unique").on(
+      table.tenantId,
+      table.userId,
+      table.organizationId,
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [users.tenantId, users.userId],
+      name: "fk_user_organizations_user",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organizations.id],
+      name: "fk_user_organizations_organization",
+    }).onDelete("cascade"),
+    primaryKey({ columns: [table.id], name: "user_organizations_id" }),
+  ],
+);

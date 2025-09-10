@@ -7,11 +7,7 @@ export function OrganizationList() {
   ];
 
   return (
-    <List
-      actions={<PostListActions />}
-      filters={filters}
-      sort={{ field: "name", order: "ASC" }}
-    >
+    <List actions={<PostListActions />} filters={filters}>
       <Datagrid rowClick="edit" bulkActionButtons={false}>
         <TextField source="id" />
         <TextField source="name" />

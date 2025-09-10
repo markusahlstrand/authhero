@@ -22,27 +22,31 @@ npm install @authhero/cloudflare
 ### Basic Setup
 
 ```typescript
-import { Database } from '@authhero/cloudflare';
+import { Database } from "@authhero/cloudflare";
 
 export interface Env {
-  DB: D1Database;          // D1 binding
-  KV: KVNamespace;         // KV binding
-  AUTH_SECRET: string;     // Environment variable
+  DB: D1Database; // D1 binding
+  KV: KVNamespace; // KV binding
+  AUTH_SECRET: string; // Environment variable
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const database = new Database({
       d1: env.DB,
       kv: env.KV,
-      secret: env.AUTH_SECRET
+      secret: env.AUTH_SECRET,
     });
 
     // Use database for authentication operations
     const user = await database.users.get(userId, tenantId);
-    
+
     return new Response(JSON.stringify(user));
-  }
+  },
 };
 ```
 
@@ -98,24 +102,26 @@ CREATE TABLE users (
 ```typescript
 // Create a user
 const user = await database.users.create({
-  userId: 'user_123',
-  tenantId: 'tenant_456',
-  email: 'user@example.com',
+  userId: "user_123",
+  tenantId: "tenant_456",
+  email: "user@example.com",
   emailVerified: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
 
 // Query with D1's SQL interface
-const result = await env.DB.prepare(`
+const result = await env.DB.prepare(
+  `
   SELECT u.*, COUNT(s.id) as session_count
   FROM users u
   LEFT JOIN sessions s ON u.user_id = s.user_id AND u.tenant_id = s.tenant_id
   WHERE u.tenant_id = ?
   GROUP BY u.user_id
-`)
-.bind(tenantId)
-.all();
+`,
+)
+  .bind(tenantId)
+  .all();
 ```
 
 ## KV Storage Integration
@@ -127,17 +133,17 @@ const result = await env.DB.prepare(`
 await env.KV.put(
   `session:${sessionId}`,
   JSON.stringify({
-    userId: 'user_123',
-    tenantId: 'tenant_456',
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    userId: "user_123",
+    tenantId: "tenant_456",
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   }),
   {
-    expirationTtl: 24 * 60 * 60 // 24 hours
-  }
+    expirationTtl: 24 * 60 * 60, // 24 hours
+  },
 );
 
 // Retrieve session
-const sessionData = await env.KV.get(`session:${sessionId}`, 'json');
+const sessionData = await env.KV.get(`session:${sessionId}`, "json");
 ```
 
 ### Caching
@@ -145,14 +151,14 @@ const sessionData = await env.KV.get(`session:${sessionId}`, 'json');
 ```typescript
 // Cache frequently accessed data
 const cacheKey = `user:${userId}:${tenantId}`;
-let user = await env.KV.get(cacheKey, 'json');
+let user = await env.KV.get(cacheKey, "json");
 
 if (!user) {
   user = await database.users.get(userId, tenantId);
-  
+
   // Cache for 5 minutes
   await env.KV.put(cacheKey, JSON.stringify(user), {
-    expirationTtl: 300
+    expirationTtl: 300,
   });
 }
 ```
@@ -166,16 +172,16 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const country = request.cf?.country;
     const region = request.cf?.region;
-    
+
     // Log geolocation info
     await database.logs.create({
-      type: 'login',
+      type: "login",
       country,
       region,
-      ip: request.headers.get('CF-Connecting-IP'),
+      ip: request.headers.get("CF-Connecting-IP"),
       // ... other log data
     });
-  }
+  },
 };
 ```
 
@@ -185,16 +191,16 @@ export default {
 async function rateLimit(ip: string, env: Env): Promise<boolean> {
   const key = `rate_limit:${ip}`;
   const count = await env.KV.get(key);
-  
+
   if (count && parseInt(count) > 10) {
     return false; // Rate limited
   }
-  
+
   const newCount = count ? parseInt(count) + 1 : 1;
   await env.KV.put(key, newCount.toString(), {
-    expirationTtl: 60 // 1 minute window
+    expirationTtl: 60, // 1 minute window
   });
-  
+
   return true;
 }
 ```
@@ -258,15 +264,15 @@ export default {
       database = new Database({
         d1: env.DB,
         kv: env.KV,
-        secret: env.AUTH_SECRET
+        secret: env.AUTH_SECRET,
       });
     }
-    
+
     // Use cached database instance
     const user = await database.users.get(userId, tenantId);
-    
+
     return new Response(JSON.stringify(user));
-  }
+  },
 };
 ```
 
@@ -275,10 +281,12 @@ export default {
 ```typescript
 // Batch D1 operations for better performance
 const batch = [
-  env.DB.prepare('INSERT INTO users (user_id, tenant_id, email) VALUES (?, ?, ?)')
-    .bind('user_1', 'tenant_1', 'user1@example.com'),
-  env.DB.prepare('INSERT INTO users (user_id, tenant_id, email) VALUES (?, ?, ?)')
-    .bind('user_2', 'tenant_1', 'user2@example.com')
+  env.DB.prepare(
+    "INSERT INTO users (user_id, tenant_id, email) VALUES (?, ?, ?)",
+  ).bind("user_1", "tenant_1", "user1@example.com"),
+  env.DB.prepare(
+    "INSERT INTO users (user_id, tenant_id, email) VALUES (?, ?, ?)",
+  ).bind("user_2", "tenant_1", "user2@example.com"),
 ];
 
 await env.DB.batch(batch);
@@ -289,24 +297,21 @@ await env.DB.batch(batch);
 ### Access Integration
 
 ```typescript
-import { AccessJWT } from '@cloudflare/workers-types';
+import { AccessJWT } from "@cloudflare/workers-types";
 
 // Integrate with Cloudflare Access
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const accessJWT = request.headers.get('CF-Access-Jwt-Assertion');
-    
+    const accessJWT = request.headers.get("CF-Access-Jwt-Assertion");
+
     if (accessJWT) {
       // Verify Access JWT and extract user info
       const accessUser = await verifyAccessJWT(accessJWT);
-      
+
       // Map to AuthHero user
-      const user = await database.users.findByEmail(
-        accessUser.email,
-        tenantId
-      );
+      const user = await database.users.findByEmail(accessUser.email, tenantId);
     }
-  }
+  },
 };
 ```
 
@@ -321,12 +326,12 @@ async function processAvatar(imageUrl: string): Promise<string> {
       image: {
         width: 128,
         height: 128,
-        fit: 'cover',
-        quality: 85
-      }
-    }
+        fit: "cover",
+        quality: 85,
+      },
+    },
   });
-  
+
   return imageRequest.url;
 }
 ```
@@ -338,25 +343,29 @@ async function processAvatar(imageUrl: string): Promise<string> {
 ```typescript
 // Track custom metrics
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const start = Date.now();
-    
+
     try {
       const response = await handleRequest(request, env);
-      
+
       // Track successful requests
       ctx.waitUntil(
         env.KV.put(
           `metrics:${Date.now()}`,
           JSON.stringify({
             duration: Date.now() - start,
-            status: 'success',
-            endpoint: new URL(request.url).pathname
+            status: "success",
+            endpoint: new URL(request.url).pathname,
           }),
-          { expirationTtl: 60 * 60 * 24 } // 24 hours
-        )
+          { expirationTtl: 60 * 60 * 24 }, // 24 hours
+        ),
       );
-      
+
       return response;
     } catch (error) {
       // Track errors
@@ -366,15 +375,15 @@ export default {
           JSON.stringify({
             error: error.message,
             stack: error.stack,
-            endpoint: new URL(request.url).pathname
+            endpoint: new URL(request.url).pathname,
           }),
-          { expirationTtl: 60 * 60 * 24 * 7 } // 7 days
-        )
+          { expirationTtl: 60 * 60 * 24 * 7 }, // 7 days
+        ),
       );
-      
+
       throw error;
     }
-  }
+  },
 };
 ```
 
@@ -383,17 +392,19 @@ export default {
 ```typescript
 // Structured logging for Cloudflare
 function log(level: string, message: string, data?: any) {
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    data
-  }));
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      data,
+    }),
+  );
 }
 
 // Usage
-log('info', 'User login', { userId, tenantId, country });
-log('error', 'Database connection failed', { error: error.message });
+log("info", "User login", { userId, tenantId, country });
+log("error", "Database connection failed", { error: error.message });
 ```
 
 ## Security Considerations
@@ -401,10 +412,10 @@ log('error', 'Database connection failed', { error: error.message });
 ### IP Allowlisting
 
 ```typescript
-const ALLOWED_IPS = ['192.168.1.1', '10.0.0.1'];
+const ALLOWED_IPS = ["192.168.1.1", "10.0.0.1"];
 
 function isIPAllowed(request: Request): boolean {
-  const clientIP = request.headers.get('CF-Connecting-IP');
+  const clientIP = request.headers.get("CF-Connecting-IP");
   return ALLOWED_IPS.includes(clientIP);
 }
 ```
@@ -413,9 +424,15 @@ function isIPAllowed(request: Request): boolean {
 
 ```typescript
 function setCORSHeaders(response: Response, origin?: string): Response {
-  response.headers.set('Access-Control-Allow-Origin', origin || '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set("Access-Control-Allow-Origin", origin || "*");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE",
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization",
+  );
   return response;
 }
 ```
@@ -432,11 +449,11 @@ function setCORSHeaders(response: Response, origin?: string): Response {
 ### Debug Mode
 
 ```typescript
-const DEBUG = env.ENVIRONMENT === 'development';
+const DEBUG = env.ENVIRONMENT === "development";
 
 if (DEBUG) {
-  console.log('Database query:', query);
-  console.log('KV operation:', operation);
+  console.log("Database query:", query);
+  console.log("KV operation:", operation);
 }
 ```
 
@@ -446,18 +463,21 @@ if (DEBUG) {
 // Monitor D1 query performance
 async function monitoredQuery(query: string, params: any[]) {
   const start = performance.now();
-  
+
   try {
-    const result = await env.DB.prepare(query).bind(...params).all();
+    const result = await env.DB.prepare(query)
+      .bind(...params)
+      .all();
     const duration = performance.now() - start;
-    
-    if (duration > 1000) { // Log slow queries
-      console.warn('Slow query detected:', { query, duration });
+
+    if (duration > 1000) {
+      // Log slow queries
+      console.warn("Slow query detected:", { query, duration });
     }
-    
+
     return result;
   } catch (error) {
-    console.error('Query failed:', { query, error: error.message });
+    console.error("Query failed:", { query, error: error.message });
     throw error;
   }
 }

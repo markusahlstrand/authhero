@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.39.0
+
+### Minor Changes
+
+- Add users to organizations
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.86.0
+
 ## 10.38.0
 
 ### Minor Changes

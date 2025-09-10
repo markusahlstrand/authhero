@@ -7,9 +7,11 @@ AuthHero uses a modular adapter system to support different databases, storage b
 ### Database Adapters
 
 #### [Kysely (SQL)](/adapters/kysely/)
+
 A type-safe SQL query builder adapter that supports PostgreSQL, MySQL, SQLite, and other SQL databases. Perfect for traditional relational database deployments.
 
 **Features:**
+
 - Type-safe database operations
 - Migration support
 - Multiple SQL database support
@@ -17,9 +19,11 @@ A type-safe SQL query builder adapter that supports PostgreSQL, MySQL, SQLite, a
 - Full database schema management
 
 #### [Drizzle (SQL)](/adapters/drizzle/)
+
 A modern TypeScript ORM adapter with excellent type safety and developer experience.
 
 **Features:**
+
 - Excellent TypeScript integration
 - Schema migrations
 - Relational queries
@@ -28,9 +32,11 @@ A modern TypeScript ORM adapter with excellent type safety and developer experie
 ### Platform Adapters
 
 #### [Cloudflare](/adapters/cloudflare/)
+
 Optimized for Cloudflare Workers and edge computing environments.
 
 **Features:**
+
 - D1 database integration
 - Workers KV storage
 - Edge runtime compatibility
@@ -49,14 +55,17 @@ All adapters implement standardized interfaces defined in the [Adapter Interface
 ## Choosing an Adapter
 
 ### For Traditional Deployments
+
 - **Kysely**: Best for existing SQL infrastructure
 - **Drizzle**: Great for new projects with modern TypeScript requirements
 
 ### For Edge/Serverless Deployments
+
 - **Cloudflare**: Optimal for global edge deployment
 - **Consider latency**: Choose adapters that minimize database round trips
 
 ### For Development
+
 - **SQLite with Kysely**: Easy local development setup
 - **In-memory options**: Fast testing and development
 

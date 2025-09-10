@@ -183,6 +183,15 @@ export const sqlOrganizationSchema = z.object({
   updated_at: z.string(),
 });
 
+export const sqlUserOrganizationSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  user_id: z.string(),
+  organization_id: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -208,4 +217,5 @@ export interface Database {
   user_roles: z.infer<typeof sqlUserRoleSchema>;
   roles: z.infer<typeof sqlRoleSchema>;
   organizations: z.infer<typeof sqlOrganizationSchema>;
+  user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
 }

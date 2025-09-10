@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.86.0
+
+### Minor Changes
+
+- Add users to organizations
+
 ## 0.85.0
 
 ### Minor Changes

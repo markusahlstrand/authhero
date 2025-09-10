@@ -127,7 +127,7 @@ export default (
           page: page - 1,
           per_page: perPage,
           sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-          q: params.filter?.q || "", // Make q optional with default empty string
+          q: params.filter?.q,
         };
         url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
       }
