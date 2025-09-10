@@ -14,5 +14,9 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "mermaid": "^11.11.0",
+    "vitepress-plugin-mermaid": "^2.0.17"
   }
 }

@@ -5,6 +5,7 @@ import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import BusinessIcon from "@mui/icons-material/Business";
 import { getDataproviderForTenant } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
@@ -30,6 +31,11 @@ import {
   ResourceServerEdit,
   ResourceServerList,
 } from "./components/resource-servers";
+import {
+  OrganizationCreate,
+  OrganizationEdit,
+  OrganizationList,
+} from "./components/organizations";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
@@ -154,6 +160,14 @@ export function App(props: AppProps) {
         list={RoleList}
         create={RoleCreate}
         edit={RoleEdit}
+        show={ShowGuesser}
+      />
+      <Resource
+        icon={BusinessIcon}
+        name="organizations"
+        list={OrganizationList}
+        create={OrganizationCreate}
+        edit={OrganizationEdit}
         show={ShowGuesser}
       />
     </Admin>

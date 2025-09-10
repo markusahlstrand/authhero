@@ -1,11 +1,30 @@
 import { defineConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
-  title: "AuthHero",
-  description: "Multi-tenant authentication system built on modern standards",
-  head: [
-    ["link", { rel: "icon", href: "/favicon.ico" }],
+export default withMermaid(
+  defineConfig({
+    title: "AuthHero",
+    description: "Multi-tenant authentication system built on modern standards",
+    mermaid: {
+      theme: 'neutral',
+      themeVariables: {
+        primaryColor: '#f9f9f9',
+        primaryTextColor: '#213547',
+        primaryBorderColor: '#cccccc',
+        lineColor: '#333333',
+        secondaryColor: '#ffffff',
+        tertiaryColor: '#f9f9f9',
+        background: '#ffffff',
+        mainBkg: '#ffffff',
+        secondBkg: '#f8fafc',
+        tertiaryBkg: '#f1f5f9',
+        entityFillColor: '#ffffff',
+        entityBorderColor: '#cccccc'
+      }
+    },
+    head: [
+      ["link", { rel: "icon", href: "/favicon.ico" }],
     ["meta", { name: "theme-color", content: "#3B82F6" }],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:locale", content: "en" }],
@@ -36,6 +55,7 @@ export default defineConfig({
           { text: "What is AuthHero?", link: "/" },
           { text: "Getting Started", link: "/getting-started" },
           { text: "Architecture", link: "/architecture" },
+          { text: "Database Schema", link: "/database-schema" },
           { text: "Concepts", link: "/concepts" },
         ],
       },
@@ -51,8 +71,17 @@ export default defineConfig({
         text: "Packages",
         items: [
           { text: "Core Library", link: "/packages/authhero/" },
-          { text: "Adapters", link: "/packages/adapters/" },
           { text: "Create AuthHero", link: "/packages/create-authhero/" },
+        ],
+      },
+      {
+        text: "Adapters",
+        items: [
+          { text: "Overview", link: "/adapters/" },
+          { text: "Interfaces", link: "/adapters/interfaces/" },
+          { text: "Kysely (SQL)", link: "/adapters/kysely/" },
+          { text: "Drizzle (SQL)", link: "/adapters/drizzle/" },
+          { text: "Cloudflare", link: "/adapters/cloudflare/" },
         ],
       },
       {
@@ -111,4 +140,5 @@ export default defineConfig({
       copyright: "Copyright © 2025 AuthHero",
     },
   },
-});
+  })
+);
