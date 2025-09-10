@@ -8,6 +8,7 @@ import {
   emailProviderSchema,
   formSchema,
   loginSessionSchema,
+  organizationSchema,
   Password,
   promptSettingSchema,
   refreshTokenSchema,
@@ -171,6 +172,17 @@ export const sqlUserRoleSchema = z.object({
   created_at: z.string(),
 });
 
+export const sqlOrganizationSchema = z.object({
+  ...organizationSchema.shape,
+  tenant_id: z.string(),
+  branding: z.string().optional().default("{}"),
+  metadata: z.string().optional().default("{}"),
+  enabled_connections: z.string().optional().default("[]"),
+  token_quota: z.string().optional().default("{}"),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
@@ -195,4 +207,5 @@ export interface Database {
   user_permissions: z.infer<typeof sqlUserPermissionSchema>;
   user_roles: z.infer<typeof sqlUserRoleSchema>;
   roles: z.infer<typeof sqlRoleSchema>;
+  organizations: z.infer<typeof sqlOrganizationSchema>;
 }

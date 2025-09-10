@@ -29,3 +29,4 @@ export * from "./ResourceServer";
 export * from "./RolePermission";
 export * from "./UserPermission";
 export * from "./Role";
+export * from "./Organization";

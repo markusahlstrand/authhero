@@ -26,6 +26,7 @@ import { createRolesAdapter } from "./roles";
 import { rolePermissions } from "./role-permissions";
 import { userPermissions } from "./user-permissions";
 import { userRoles } from "./user-roles";
+import { createOrganizationsAdapter } from "./organizations";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -58,5 +59,6 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
     users: createUsersAdapter(db),
+    organizations: createOrganizationsAdapter(db),
   };
 }
