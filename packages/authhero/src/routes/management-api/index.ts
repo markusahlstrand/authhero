@@ -26,6 +26,7 @@ import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
+import { organizationRoutes } from "./organizations";
 // import { permissionRoutes } from "./permissions"; // Commented out - using role/user permissions instead
 
 export default function create(config: AuthHeroConfig) {
@@ -116,7 +117,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/refresh_tokens", refreshTokensRoutes)
     .route("/forms", formsRoutes)
     .route("/roles", roleRoutes)
-    .route("/resource-servers", resourceServerRoutes);
+    .route("/resource-servers", resourceServerRoutes)
+    .route("/organizations", organizationRoutes);
   // .route("/permissions", permissionRoutes); // Commented out - using role/user permissions instead
 
   managementApp.doc("/spec", {

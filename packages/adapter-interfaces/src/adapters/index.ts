@@ -23,6 +23,7 @@ import { RolePermissionsAdapter } from "./RolePermissions";
 import { UserPermissionsAdapter } from "./UserPermissions";
 import { RolesAdapter } from "./Roles";
 import { UserRolesAdapter } from "./UserRoles";
+import { OrganizationsAdapter } from "./Organizations";
 
 export interface DataAdapters {
   applications: ApplicationsAdapter;
@@ -50,6 +51,7 @@ export interface DataAdapters {
   themes: ThemesAdapter;
   users: UserDataAdapter;
   userRoles: UserRolesAdapter;
+  organizations: OrganizationsAdapter;
 }
 
 export * from "./Cache";
@@ -57,3 +59,4 @@ export * from "./Keys";
 export * from "./RolePermissions";
 export * from "./UserPermissions";
 export * from "./UserRoles";
+export * from "./Organizations";

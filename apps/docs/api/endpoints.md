@@ -2,19 +2,42 @@
 
 This document provides details on the available API endpoints in AuthHero.
 
+## Base URLs
+
+- **Auth API**: `/` (Authentication and user-facing endpoints)
+- **Management API**: `/api/v2` (Administrative endpoints)
+
 ## Authentication
 
-### POST /api/v1/login
+All Management API endpoints require authentication with a Bearer token that has appropriate scopes.
 
-Initiates the login process.
+**Headers:**
+
+```
+Authorization: Bearer <your-token>
+tenant-id: <your-tenant-id>
+```
+
+**Scopes:**
+
+- `auth:read` - Read access to resources
+- `auth:write` - Write access to resources
+
+## Auth API Endpoints
+
+### POST /oauth/token
+
+Exchanges credentials for access tokens.
 
 **Request Body:**
 
 ```json
 {
-  "email": "user@example.com",
+  "grant_type": "password",
+  "username": "user@example.com",
   "password": "password",
-  "connection": "database"
+  "client_id": "your-client-id",
+  "scope": "openid profile email"
 }
 ```
 
@@ -22,17 +45,15 @@ Initiates the login process.
 
 ```json
 {
-  "data": {
-    "access_token": "...",
-    "id_token": "...",
-    "refresh_token": "...",
-    "expires_in": 3600,
-    "token_type": "Bearer"
-  }
+  "access_token": "...",
+  "id_token": "...",
+  "refresh_token": "...",
+  "expires_in": 3600,
+  "token_type": "Bearer"
 }
 ```
 
-### POST /api/v1/signup
+### POST /dbconnections/signup
 
 Registers a new user.
 
@@ -43,7 +64,7 @@ Registers a new user.
   "email": "newuser@example.com",
   "password": "password",
   "connection": "database",
-  "user_metadata": { ... }
+  "user_metadata": {}
 }
 ```
 
@@ -51,13 +72,385 @@ Registers a new user.
 
 ```json
 {
-  "data": {
-    "id": "user-123",
-    "email": "newuser@example.com",
-    "created_at": "2023-01-01T00:00:00.000Z",
-    "updated_at": "2023-01-01T00:00:00.000Z"
+  "id": "user-123",
+  "email": "newuser@example.com",
+  "created_at": "2023-01-01T00:00:00.000Z",
+  "updated_at": "2023-01-01T00:00:00.000Z"
+}
+```
+
+## Management API Endpoints
+
+The Management API provides endpoints for managing all aspects of your AuthHero tenant.
+
+### Organizations
+
+Manage organizations within your tenant.
+
+#### List Organizations
+
+List all organizations.
+
+**Endpoint:** `GET /api/v2/organizations`
+
+**Query Parameters:**
+
+- `page` (optional): Page number
+- `per_page` (optional): Results per page (default: 10)
+- `include_totals` (optional): Include pagination totals
+- `sort` (optional): Sort order (e.g., "name:asc")
+- `q` (optional): Search query
+
+**Response:**
+
+```json
+[
+  {
+    "id": "org_123",
+    "name": "Acme Corporation",
+    "display_name": "Acme Corp",
+    "branding": {
+      "logo_url": "https://example.com/logo.png",
+      "colors": {
+        "primary": "#1E40AF",
+        "page_background": "#F8FAFC"
+      }
+    },
+    "metadata": {},
+    "enabled_connections": [],
+    "token_quota": {},
+    "created_at": "2025-09-10T10:00:00.000Z",
+    "updated_at": "2025-09-10T10:00:00.000Z"
+  }
+]
+```
+
+#### Create Organization
+
+Create a new organization.
+
+**Endpoint:** `POST /api/v2/organizations`
+
+**Request Body:**
+
+```json
+{
+  "name": "New Organization",
+  "display_name": "New Org",
+  "branding": {
+    "logo_url": "https://example.com/logo.png",
+    "colors": {
+      "primary": "#1E40AF"
+    }
+  },
+  "metadata": {
+    "department": "Engineering"
   }
 }
 ```
 
-[Additional endpoints will be documented here]
+#### Get Organization by ID
+
+Get a specific organization.
+
+**Endpoint:** `GET /api/v2/organizations/{id}`
+
+#### Update Organization
+
+Update an organization.
+
+**Endpoint:** `PATCH /api/v2/organizations/{id}`
+
+#### Delete Organization
+
+Delete an organization.
+
+**Endpoint:** `DELETE /api/v2/organizations/{id}`
+
+### Users
+
+Manage users in your tenant.
+
+#### List Users
+
+List all users.
+
+**Endpoint:** `GET /api/v2/users`
+
+**Query Parameters:**
+
+- `page`, `per_page`, `include_totals` - Pagination
+- `sort` - Sort order
+- `q` - Search query (supports `email:user@example.com`, `user_id:123`, etc.)
+
+#### Create User
+
+Create a new user.
+
+**Endpoint:** `POST /api/v2/users`
+
+#### Get User by ID
+
+Get a specific user.
+
+**Endpoint:** `GET /api/v2/users/{id}`
+
+#### Update User
+
+Update a user.
+
+**Endpoint:** `PATCH /api/v2/users/{id}`
+
+#### Delete User
+
+Delete a user.
+
+**Endpoint:** `DELETE /api/v2/users/{id}`
+
+### Clients (Applications)
+
+Manage OAuth clients/applications.
+
+#### List Clients
+
+List all clients.
+
+**Endpoint:** `GET /api/v2/clients`
+
+#### Create Client
+
+Create a new client.
+
+**Endpoint:** `POST /api/v2/clients`
+
+#### Get Client by ID
+
+Get a specific client.
+
+**Endpoint:** `GET /api/v2/clients/{id}`
+
+#### Update Client
+
+Update a client.
+
+**Endpoint:** `PATCH /api/v2/clients/{id}`
+
+#### Delete Client
+
+Delete a client.
+
+**Endpoint:** `DELETE /api/v2/clients/{id}`
+
+### Connections
+
+Manage authentication connections.
+
+#### List Connections
+
+List all connections.
+
+**Endpoint:** `GET /api/v2/connections`
+
+#### Create Connection
+
+Create a new connection.
+
+**Endpoint:** `POST /api/v2/connections`
+
+#### Get Connection by ID
+
+Get a specific connection.
+
+**Endpoint:** `GET /api/v2/connections/{id}`
+
+#### Update Connection
+
+Update a connection.
+
+**Endpoint:** `PATCH /api/v2/connections/{id}`
+
+#### Delete Connection
+
+Delete a connection.
+
+**Endpoint:** `DELETE /api/v2/connections/{id}`
+
+### Roles
+
+Manage user roles.
+
+#### List Roles
+
+List all roles.
+
+**Endpoint:** `GET /api/v2/roles`
+
+#### Create Role
+
+Create a new role.
+
+**Endpoint:** `POST /api/v2/roles`
+
+#### Get Role by ID
+
+Get a specific role.
+
+**Endpoint:** `GET /api/v2/roles/{id}`
+
+#### Update Role
+
+Update a role.
+
+**Endpoint:** `PATCH /api/v2/roles/{id}`
+
+#### Delete Role
+
+Delete a role.
+
+**Endpoint:** `DELETE /api/v2/roles/{id}`
+
+### Resource Servers
+
+Manage API resource servers.
+
+#### List Resource Servers
+
+List all resource servers.
+
+**Endpoint:** `GET /api/v2/resource-servers`
+
+#### Create Resource Server
+
+Create a new resource server.
+
+**Endpoint:** `POST /api/v2/resource-servers`
+
+#### Get Resource Server by ID
+
+Get a specific resource server.
+
+**Endpoint:** `GET /api/v2/resource-servers/{id}`
+
+#### Update Resource Server
+
+Update a resource server.
+
+**Endpoint:** `PATCH /api/v2/resource-servers/{id}`
+
+#### Delete Resource Server
+
+Delete a resource server.
+
+**Endpoint:** `DELETE /api/v2/resource-servers/{id}`
+
+### Other Endpoints
+
+#### Tenant Settings
+
+Manage tenant settings.
+
+**Endpoint:** `GET /api/v2/tenants`
+
+#### Audit Logs
+
+Access audit logs.
+
+**Endpoint:** `GET /api/v2/logs`
+
+#### User Sessions
+
+Manage user sessions.
+
+**Endpoint:** `GET /api/v2/sessions`
+
+#### Signing Keys
+
+Manage signing keys.
+
+**Endpoint:** `GET /api/v2/keys`
+
+#### Tenant Branding
+
+Manage tenant branding.
+
+**Endpoint:** `GET /api/v2/branding`
+
+#### Custom Domains
+
+Manage custom domains.
+
+**Endpoint:** `GET /api/v2/custom-domains`
+
+## Common Query Parameters
+
+Most list endpoints support these query parameters:
+
+- `page`: Page number (1-based)
+- `per_page`: Number of results per page (default: 10, max: 100)
+- `include_totals`: Include total count in response (default: false)
+- `sort`: Sort field and order (e.g., "created_at:desc", "name:asc")
+- `q`: Search query with field-specific syntax
+
+## Error Responses
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "The requested resource was not found"
+}
+```
+
+Common HTTP status codes:
+
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `500` - Internal Server Error
+
+## OpenAPI Documentation
+
+Interactive API documentation is available at:
+
+- Auth API: `GET /.well-known/openapi.json`
+- Management API: `GET /api/v2/spec`
+
+## Examples
+
+### Create an Organization
+
+```bash
+curl -X POST https://your-domain.com/api/v2/organizations \
+  -H "Authorization: Bearer your-token" \
+  -H "tenant-id: your-tenant-id" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Organization",
+    "display_name": "My Org"
+  }'
+```
+
+### List Users with Search
+
+```bash
+curl "https://your-domain.com/api/v2/users?q=email:user@example.com" \
+  -H "Authorization: Bearer your-token" \
+  -H "tenant-id: your-tenant-id"
+```
+
+### Update a Client
+
+```bash
+curl -X PATCH https://your-domain.com/api/v2/clients/client-id \
+  -H "Authorization: Bearer your-token" \
+  -H "tenant-id: your-tenant-id" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Client Name"
+  }'
+```
