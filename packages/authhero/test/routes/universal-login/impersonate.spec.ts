@@ -21,13 +21,11 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to the user
-      await env.data.userPermissions.assign("tenantId", "auth2|user123", [
-        {
-          user_id: "auth2|user123",
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "users:impersonate",
-        },
-      ]);
+      await env.data.userPermissions.create("tenantId", "auth2|user123", {
+        user_id: "auth2|user123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
 
       // Mock the hooks.list method to return a page hook for impersonation
       // Page hooks are not stored in the database but recognized by the postUserLoginHook function
@@ -132,13 +130,11 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.assign("tenantId", "auth2|user123", [
-        {
-          user_id: "auth2|user123",
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "users:impersonate",
-        },
-      ]);
+      await env.data.userPermissions.create("tenantId", "auth2|user123", {
+        user_id: "auth2|user123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
 
       // Create login session and session using helper
       const { loginSession, session } = await createSessions(env.data);
@@ -254,13 +250,11 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.assign("tenantId", "auth2|user123", [
-        {
-          user_id: "auth2|user123",
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "users:impersonate",
-        },
-      ]);
+      await env.data.userPermissions.create("tenantId", "auth2|user123", {
+        user_id: "auth2|user123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -332,13 +326,11 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.assign("tenantId", "auth2|admin123", [
-        {
-          user_id: "auth2|admin123",
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "users:impersonate",
-        },
-      ]);
+      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
+        user_id: "auth2|admin123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -467,13 +459,11 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.assign("tenantId", "auth2|admin123", [
-        {
-          user_id: "auth2|admin123",
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "users:impersonate",
-        },
-      ]);
+      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
+        user_id: "auth2|admin123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {

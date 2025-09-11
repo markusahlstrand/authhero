@@ -92,6 +92,8 @@ import * as n92_role_permissions from "./2025-08-13T15:00:00_role_user_permissio
 import * as n93_add_permissions_to_roles from "./2025-08-14T09:30:00_user_roles";
 import * as n94_keys_connection_and_extend_columns from "./2025-08-20T12:00:00_keys_connection_and_extend_columns";
 import * as n95_create_organizations_table from "./2025-09-10T10:00:00_create_organizations_table";
+import * as n96_create_user_organizations_table from "./2025-09-10T11:00:00_create_user_organizations_table";
+import * as n97_add_organization_to_user_permissions_and_roles from "./2025-09-11T12:00:00_add_organization_to_user_permissions_and_roles";
 
 // These need to be in alphabetic order
 export default {
@@ -189,4 +191,6 @@ export default {
   n93_add_permissions_to_roles,
   n94_keys_connection_and_extend_columns,
   n95_create_organizations_table,
+  n96_create_user_organizations_table,
+  n97_add_organization_to_user_permissions_and_roles,
 };

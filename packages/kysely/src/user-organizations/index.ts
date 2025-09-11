@@ -2,6 +2,7 @@ import { Kysely } from "kysely";
 import { create } from "./create";
 import { get } from "./get";
 import { list } from "./list";
+import { listUserOrganizations } from "./listUserOrganizations";
 import { remove } from "./remove";
 import { update } from "./update";
 import { Database } from "../db";
@@ -15,6 +16,7 @@ export function createUserOrganizationsAdapter(
     create: create(db),
     get: get(db),
     list: list(db),
+    listUserOrganizations: listUserOrganizations(db),
     remove: remove(db),
     update: update(db),
   };

@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.40.0
+
+### Minor Changes
+
+- Get organizations crud working like auth0
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.87.0
+
 ## 10.39.0
 
 ### Minor Changes

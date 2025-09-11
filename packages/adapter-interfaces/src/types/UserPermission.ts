@@ -5,6 +5,7 @@ export const userPermissionInsertSchema = z.object({
   user_id: z.string(),
   resource_server_identifier: z.string(),
   permission_name: z.string(),
+  organization_id: z.string().optional(),
 });
 export type UserPermissionInsert = z.infer<typeof userPermissionInsertSchema>;
 
@@ -26,6 +27,7 @@ export const userPermissionWithDetailsSchema = z.object({
   permission_name: z.string(),
   description: z.string().nullable().optional(),
   created_at: z.string().optional(),
+  organization_id: z.string().optional(),
 });
 export type UserPermissionWithDetails = z.infer<
   typeof userPermissionWithDetailsSchema

@@ -5,17 +5,25 @@ export function remove(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     user_id: string,
-    roles: string[],
+    role_id: string,
+    organization_id?: string,
   ): Promise<boolean> => {
     try {
-      if (!roles.length) return true;
-
-      await db
+      let query = db
         .deleteFrom("user_roles")
         .where("tenant_id", "=", tenant_id)
         .where("user_id", "=", user_id)
-        .where((eb) => eb("role_id", "in", roles))
-        .execute();
+        .where("role_id", "=", role_id);
+
+      // Add organization filter if provided
+      if (organization_id !== undefined) {
+        query = query.where("organization_id", "=", organization_id);
+      } else {
+        // If no organization_id provided, only remove roles without organization context
+        query = query.where("organization_id", "=", "");
+      }
+
+      await query.execute();
 
       return true;
     } catch (error) {

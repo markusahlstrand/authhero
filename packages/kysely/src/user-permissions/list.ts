@@ -1,23 +1,18 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { ListParams } from "@authhero/adapter-interfaces";
-
-type UserPermissionWithDetails = {
-  resource_server_identifier: string;
-  permission_name: string;
-  description?: string | null;
-  resource_server_name: string;
-  user_id: string;
-  created_at?: string;
-};
+import {
+  ListParams,
+  UserPermissionWithDetails,
+} from "@authhero/adapter-interfaces";
 
 export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     user_id: string,
     _params?: ListParams, // TODO: Implement pagination when needed
+    organization_id?: string,
   ): Promise<UserPermissionWithDetails[]> => {
-    const results = await db
+    let query = db
       .selectFrom("user_permissions")
       .leftJoin("resource_servers", (join) =>
         join
@@ -38,10 +33,21 @@ export function list(db: Kysely<Database>) {
         "resource_servers.name as resource_server_name",
         "user_permissions.user_id",
         "user_permissions.created_at",
+        "user_permissions.organization_id",
       ])
       .where("user_permissions.tenant_id", "=", tenant_id)
-      .where("user_permissions.user_id", "=", user_id)
-      .execute();
+      .where("user_permissions.user_id", "=", user_id);
+
+    // Add organization filter if provided
+    if (organization_id !== undefined) {
+      query = query.where(
+        "user_permissions.organization_id",
+        "=",
+        organization_id,
+      );
+    }
+
+    const results = await query.execute();
 
     return results.map((result) => ({
       resource_server_identifier: result.resource_server_identifier,
@@ -51,6 +57,8 @@ export function list(db: Kysely<Database>) {
         result.resource_server_name || result.resource_server_identifier, // Fallback to identifier if name is null
       user_id: result.user_id,
       created_at: result.created_at,
+      organization_id:
+        result.organization_id === "" ? undefined : result.organization_id,
     }));
   };
 }
