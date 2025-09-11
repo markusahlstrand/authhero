@@ -456,4 +456,252 @@ describe("common", () => {
       initialRefreshTokenCount,
     );
   });
+
+  describe("strategy persistence to app_metadata", () => {
+    it("should persist the authentication strategy to user app_metadata when logging in with password", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+        req: {
+          header: () => {},
+          queries: () => {},
+        },
+      } as unknown as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Get the user before authentication to verify initial state
+      const userBefore = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!userBefore) {
+        throw new Error("User not found");
+      }
+
+      // Verify user doesn't have the strategy set initially
+      expect(userBefore.app_metadata?.strategy).not.toBe(
+        "Username-Password-Authentication",
+      );
+
+      const client = await env.data.clients.get("clientId");
+      if (!client) {
+        throw new Error("Client not found");
+      }
+
+      // Create a login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          scope: "openid",
+          audience: "http://example.com",
+          redirect_uri: "http://example.com/callback",
+        },
+      });
+
+      // Authenticate using the password strategy
+      const authResponse = await createFrontChannelAuthResponse(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.CODE,
+          scope: "openid",
+          redirect_uri: "http://example.com/callback",
+        },
+        client,
+        user: userBefore,
+        loginSession,
+        strategy: "Username-Password-Authentication",
+      });
+
+      expect(authResponse.status).toEqual(302);
+
+      // Verify the user's app_metadata has been updated with the strategy
+      const userAfter = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!userAfter) {
+        throw new Error("User not found after authentication");
+      }
+
+      expect(userAfter.app_metadata?.strategy).toBe(
+        "Username-Password-Authentication",
+      );
+    });
+
+    it("should persist the email strategy to user app_metadata when logging in with passwordless", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+        req: {
+          header: () => {},
+          queries: () => {},
+        },
+      } as unknown as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      const client = await env.data.clients.get("clientId");
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Create a login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          scope: "openid",
+          audience: "http://example.com",
+          redirect_uri: "http://example.com/callback",
+        },
+      });
+
+      // Authenticate using the email strategy (passwordless)
+      const authResponse = await createFrontChannelAuthResponse(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.CODE,
+          scope: "openid",
+          redirect_uri: "http://example.com/callback",
+        },
+        client,
+        user,
+        loginSession,
+        strategy: "email",
+      });
+
+      expect(authResponse.status).toEqual(302);
+
+      // Verify the user's app_metadata has been updated with the email strategy
+      const userAfter = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!userAfter) {
+        throw new Error("User not found after authentication");
+      }
+
+      expect(userAfter.app_metadata?.strategy).toBe("email");
+    });
+
+    it("should overwrite app_metadata strategy when user logs in with a different strategy", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+        req: {
+          header: () => {},
+          queries: () => {},
+        },
+      } as unknown as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      const client = await env.data.clients.get("clientId");
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Pre-set the user's strategy to email (passwordless)
+      await env.data.users.update("tenantId", user.user_id, {
+        app_metadata: {
+          ...(user.app_metadata || {}),
+          strategy: "email",
+        },
+      });
+
+      // Create a login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          scope: "openid",
+          audience: "http://example.com",
+          redirect_uri: "http://example.com/callback",
+        },
+      });
+
+      // Update our user object to reflect the change
+      const updatedUser = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!updatedUser) {
+        throw new Error("User not found after update");
+      }
+
+      // Verify the user initially has email strategy
+      expect(updatedUser.app_metadata?.strategy).toBe("email");
+
+      // Authenticate with password strategy (different from the stored strategy)
+      const authResponse = await createFrontChannelAuthResponse(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.CODE,
+          scope: "openid",
+          redirect_uri: "http://example.com/callback",
+        },
+        client,
+        user: updatedUser,
+        loginSession,
+        strategy: "Username-Password-Authentication",
+      });
+
+      expect(authResponse.status).toEqual(302);
+
+      // Verify the user's app_metadata strategy has been overwritten
+      const userAfter = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!userAfter) {
+        throw new Error("User not found after authentication");
+      }
+
+      expect(userAfter.app_metadata?.strategy).toBe(
+        "Username-Password-Authentication",
+      );
+    });
+  });
 });
