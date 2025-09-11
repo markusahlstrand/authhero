@@ -318,5 +318,6 @@ describe("check account", () => {
     // If bug exists, these will be undefined
     expect(updatedUser!.app_metadata.strategies).toBeDefined();
     expect(updatedUser!.app_metadata.custom).toBeDefined();
+    expect(updatedUser!.app_metadata.strategy).toBe("test-strategy");
   });
 });

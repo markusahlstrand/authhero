@@ -100,7 +100,7 @@
 
 ### Minor Changes
 
-- pnpm changeset version
+- Preserve app_metadata fields during /u/check-account; guard updating app_metadata.strategy; add test.
 
 ## 0.70.0
 
@@ -123,8 +123,6 @@
 ## 0.67.0
 
 ### Minor Changes
-
-- pnpm changeset version
 
 ## 0.66.0
 
@@ -220,8 +218,6 @@
 
 ### Minor Changes
 
-- pnpm changeset version
-
 ## 0.50.0
 
 ### Minor Changes
@@ -231,8 +227,6 @@
 ## 0.49.0
 
 ### Minor Changes
-
-- a9959ad: pnpm changeset version
 
 ## 0.48.0
 
@@ -359,8 +353,6 @@
 ## 0.29.1
 
 ### Patch Changes
-
-- fbc0e55: pnpm changeset version
 
 ## 0.29.0
 
