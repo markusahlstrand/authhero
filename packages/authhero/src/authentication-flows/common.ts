@@ -540,7 +540,7 @@ export async function completeLogin(
   // Run hooks if we have a loginSession (authentication flow) and skipHooks is not set
   if (params.loginSession && user && !params.skipHooks) {
     // Update the user's app_metadata with the strategy used for login
-    if (user.app_metadata?.strategy !== params.strategy) {
+    if (params.strategy && user.app_metadata?.strategy !== params.strategy) {
       user.app_metadata = { ...user.app_metadata, strategy: params.strategy };
       await ctx.env.data.users.update(params.client.tenant.id, user.user_id, {
         app_metadata: {

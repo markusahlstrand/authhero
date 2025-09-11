@@ -99,8 +99,6 @@ export async function passwordlessGrantUser(
 
   await env.data.codes.used(client.tenant.id, otp);
 
-
-
   return {
     user,
     client,
