@@ -17,7 +17,7 @@ import {
   userInsertSchema,
   userPermissionWithDetailsListSchema,
   roleListSchema,
-  userOrganizationSchema,
+  organizationSchema,
 } from "@authhero/adapter-interfaces";
 
 const usersWithTotalsSchema = totalsSchema.extend({
@@ -29,7 +29,7 @@ const sessionsWithTotalsSchema = totalsSchema.extend({
 });
 
 const userOrganizationsWithTotalsSchema = totalsSchema.extend({
-  userOrganizations: z.array(userOrganizationSchema),
+  organizations: z.array(organizationSchema),
 });
 
 export const userRoutes = new OpenAPIHono<{
@@ -770,21 +770,23 @@ export const userRoutes = new OpenAPIHono<{
         });
       }
 
-      // Use the new user permissions adapter to assign permissions
-      const success = await ctx.env.data.userPermissions.assign(
-        tenant_id,
-        user_id,
-        permissions.map((p) => ({
+      // Use the new user permissions adapter to create permissions
+      for (const permission of permissions) {
+        const success = await ctx.env.data.userPermissions.create(
+          tenant_id,
           user_id,
-          resource_server_identifier: p.resource_server_identifier,
-          permission_name: p.permission_name,
-        })),
-      );
+          {
+            user_id,
+            resource_server_identifier: permission.resource_server_identifier,
+            permission_name: permission.permission_name,
+          },
+        );
 
-      if (!success) {
-        throw new HTTPException(500, {
-          message: "Failed to assign permissions to user",
-        });
+        if (!success) {
+          throw new HTTPException(500, {
+            message: "Failed to assign permissions to user",
+          });
+        }
       }
 
       return ctx.json(
@@ -848,16 +850,18 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       // Use the new user permissions adapter to remove permissions
-      const success = await ctx.env.data.userPermissions.remove(
-        tenant_id,
-        user_id,
-        permissions,
-      );
+      for (const permission of permissions) {
+        const success = await ctx.env.data.userPermissions.remove(
+          tenant_id,
+          user_id,
+          permission,
+        );
 
-      if (!success) {
-        throw new HTTPException(500, {
-          message: "Failed to remove permissions from user",
-        });
+        if (!success) {
+          throw new HTTPException(500, {
+            message: "Failed to remove permissions from user",
+          });
+        }
       }
 
       return ctx.json({ message: "Permissions removed successfully" });
@@ -890,7 +894,12 @@ export const userRoutes = new OpenAPIHono<{
       const user = await ctx.env.data.users.get(tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
-      const roles = await ctx.env.data.userRoles.list(tenant_id, user_id);
+      const roles = await ctx.env.data.userRoles.list(
+        tenant_id,
+        user_id,
+        undefined,
+        "", // Global roles should have empty string organization_id
+      );
       return ctx.json(roles);
     },
   )
@@ -924,11 +933,20 @@ export const userRoutes = new OpenAPIHono<{
       const user = await ctx.env.data.users.get(tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
-      const ok = await ctx.env.data.userRoles.assign(tenant_id, user_id, roles);
-      if (!ok)
-        throw new HTTPException(500, {
-          message: "Failed to assign roles to user",
-        });
+      // Create roles one by one using the new API
+      for (const roleId of roles) {
+        const ok = await ctx.env.data.userRoles.create(
+          tenant_id,
+          user_id,
+          roleId,
+          "", // Global roles should have empty string organization_id
+        );
+        if (!ok) {
+          throw new HTTPException(500, {
+            message: "Failed to assign roles to user",
+          });
+        }
+      }
 
       return ctx.json(
         { message: "Roles assigned successfully" },
@@ -966,11 +984,20 @@ export const userRoutes = new OpenAPIHono<{
       const user = await ctx.env.data.users.get(tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
-      const ok = await ctx.env.data.userRoles.remove(tenant_id, user_id, roles);
-      if (!ok)
-        throw new HTTPException(500, {
-          message: "Failed to remove roles from user",
-        });
+      // Remove roles one by one using the new API
+      for (const roleId of roles) {
+        const ok = await ctx.env.data.userRoles.remove(
+          tenant_id,
+          user_id,
+          roleId,
+          "", // Global roles should have empty string organization_id
+        );
+        if (!ok) {
+          throw new HTTPException(500, {
+            message: "Failed to remove roles from user",
+          });
+        }
+      }
 
       return ctx.json({ message: "Roles removed successfully" });
     },
@@ -999,7 +1026,7 @@ export const userRoutes = new OpenAPIHono<{
             "application/json": {
               schema: z.union([
                 userOrganizationsWithTotalsSchema,
-                z.array(userOrganizationSchema),
+                z.array(organizationSchema),
               ]),
             },
           },
@@ -1018,19 +1045,27 @@ export const userRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "User not found" });
       }
 
-      const result = await ctx.env.data.userOrganizations.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q: `user_id:${user_id}`,
-      });
+      // Get organizations for the user using the new method
+      const result = await ctx.env.data.userOrganizations.listUserOrganizations(
+        tenant_id,
+        user_id,
+        {
+          page,
+          per_page,
+          sort: parseSort(sort),
+        },
+      );
 
       if (include_totals) {
-        return ctx.json(result);
+        return ctx.json({
+          organizations: result.organizations,
+          start: result.start,
+          limit: result.limit,
+          length: result.length,
+        });
       }
 
-      return ctx.json(result.userOrganizations);
+      return ctx.json(result.organizations);
     },
   )
   // --------------------------------

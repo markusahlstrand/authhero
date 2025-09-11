@@ -7,16 +7,16 @@ import { Database } from "../../src/db";
 export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("organizations")
-    .addColumn("id", "varchar(256)", (col) => col.primaryKey())
-    .addColumn("tenant_id", "varchar(256)", (col) => col.notNull())
+    .addColumn("id", "varchar(21)", (col) => col.primaryKey())
+    .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
     .addColumn("name", "varchar(256)", (col) => col.notNull())
     .addColumn("display_name", "varchar(256)")
     .addColumn("branding", "text") // JSON string for branding object
     .addColumn("metadata", "text") // JSON string for metadata object
     .addColumn("enabled_connections", "text") // JSON string for enabled_connections array
     .addColumn("token_quota", "text") // JSON string for token_quota object
-    .addColumn("created_at", "varchar(256)", (col) => col.notNull())
-    .addColumn("updated_at", "varchar(256)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .execute();
 
   // Add index on tenant_id for better query performance

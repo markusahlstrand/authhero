@@ -9,7 +9,22 @@ export interface ListUserRolesResponse {
 }
 
 export interface UserRolesAdapter {
-  list(tenantId: string, userId: string, params?: ListParams): Promise<Role[]>; // return a flat list of roles
-  assign(tenantId: string, userId: string, roles: string[]): Promise<boolean>;
-  remove(tenantId: string, userId: string, roles: string[]): Promise<boolean>;
+  list(
+    tenantId: string,
+    userId: string,
+    params?: ListParams,
+    organizationId?: string,
+  ): Promise<Role[]>; // return a flat list of roles
+  create(
+    tenantId: string,
+    userId: string,
+    roleId: string,
+    organizationId?: string,
+  ): Promise<boolean>;
+  remove(
+    tenantId: string,
+    userId: string,
+    roleId: string,
+    organizationId?: string,
+  ): Promise<boolean>;
 }

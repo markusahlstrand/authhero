@@ -47,6 +47,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useParams } from "react-router-dom";
+import { useEffect } from "react";
 
 const LinkUserButton = () => {
   const [open, setOpen] = useState(false);
@@ -606,11 +607,253 @@ const RemovePermissionButton = () => {
   );
 };
 
+// Custom component to display user roles with organization context
+const UserRolesTable = ({
+  onRolesChanged,
+}: {
+  onRolesChanged?: () => void;
+}) => {
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { id: userId } = useParams();
+
+  const loadRolesAndOrganizations = async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    try {
+      // Load user organizations first
+      const orgsRes = await dataProvider.getList(
+        `users/${userId}/organizations`,
+        {
+          pagination: { page: 1, perPage: 1000 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        },
+      );
+      const userOrganizations = orgsRes?.data ?? [];
+
+      // Load global roles
+      const globalRolesRes = await dataProvider.getList(
+        `users/${userId}/roles`,
+        {
+          pagination: { page: 1, perPage: 1000 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        },
+      );
+      const globalRoles = (globalRolesRes?.data ?? []).map((role: any) => ({
+        ...role,
+        organization_id: null,
+        organization_name: "Global",
+        role_context: "global",
+      }));
+
+      // Load organization-specific roles
+      const orgRoles: any[] = [];
+      for (const org of userOrganizations) {
+        try {
+          const orgRolesRes = await dataProvider.getList(
+            `organizations/${org.id}/members/${userId}/roles`,
+            {
+              pagination: { page: 1, perPage: 1000 },
+              sort: { field: "name", order: "ASC" },
+              filter: {},
+            },
+          );
+          const rolesWithOrg = (orgRolesRes?.data ?? []).map((role: any) => ({
+            ...role,
+            organization_id: org.id,
+            organization_name: org.display_name || org.name || org.id,
+            role_context: "organization",
+          }));
+          orgRoles.push(...rolesWithOrg);
+        } catch (error) {
+          console.error(
+            `Error loading roles for organization ${org.id}:`,
+            error,
+          );
+        }
+      }
+
+      // Combine global and organization roles and deduplicate
+      const allRoles = [...globalRoles, ...orgRoles];
+
+      // Deduplicate roles by creating a unique key combining role ID and organization context
+      const roleMap = new Map();
+      allRoles.forEach((role) => {
+        const key = `${role.id}-${role.organization_id || "global"}`;
+        roleMap.set(key, role);
+      });
+      const deduplicatedRoles = Array.from(roleMap.values());
+
+      setRoles(deduplicatedRoles);
+    } catch (error) {
+      console.error("Error loading roles and organizations:", error);
+      notify("Error loading roles", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveRole = async (role: any) => {
+    try {
+      if (role.role_context === "global") {
+        // Remove global role
+        await dataProvider.delete(`users/${userId}/roles`, {
+          id: role.id,
+          previousData: role,
+        });
+      } else {
+        // Remove organization-specific role using the dataProvider
+        await dataProvider.delete(
+          `organizations/${role.organization_id}/members/${userId}/roles`,
+          {
+            id: role.id,
+            previousData: { id: role.id, roles: [role.id] },
+          },
+        );
+      }
+      notify("Role removed successfully", { type: "success" });
+      loadRolesAndOrganizations(); // Refresh the table
+      refresh();
+      onRolesChanged?.();
+    } catch (error) {
+      console.error("Error removing role:", error);
+      notify("Error removing role", { type: "error" });
+    }
+  };
+
+  useEffect(() => {
+    loadRolesAndOrganizations();
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" p={2}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ backgroundColor: "#f5f5f5" }}>
+            <th
+              style={{
+                padding: "12px",
+                textAlign: "left",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              Role
+            </th>
+            <th
+              style={{
+                padding: "12px",
+                textAlign: "left",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              Description
+            </th>
+            <th
+              style={{
+                padding: "12px",
+                textAlign: "left",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              Organization
+            </th>
+            <th
+              style={{
+                padding: "12px",
+                textAlign: "left",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              ID
+            </th>
+            <th
+              style={{
+                padding: "12px",
+                textAlign: "left",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {roles.map((role) => (
+            <tr
+              key={`${role.id}-${role.organization_id || "global"}`}
+              style={{ borderBottom: "1px solid #eee" }}
+            >
+              <td style={{ padding: "12px" }}>{role.name}</td>
+              <td style={{ padding: "12px" }}>{role.description || "-"}</td>
+              <td style={{ padding: "12px" }}>
+                <span
+                  style={{
+                    color: role.role_context === "global" ? "#666" : "#1976d2",
+                    fontStyle:
+                      role.role_context === "global" ? "italic" : "normal",
+                  }}
+                >
+                  {role.organization_name}
+                </span>
+              </td>
+              <td
+                style={{
+                  padding: "12px",
+                  fontFamily: "monospace",
+                  fontSize: "0.9em",
+                }}
+              >
+                {role.id}
+              </td>
+              <td style={{ padding: "12px" }}>
+                <IconButton
+                  onClick={() => handleRemoveRole(role)}
+                  color="error"
+                  size="small"
+                  title="Remove Role"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </td>
+            </tr>
+          ))}
+          {roles.length === 0 && (
+            <tr>
+              <td
+                colSpan={5}
+                style={{ padding: "24px", textAlign: "center", color: "#666" }}
+              >
+                No roles assigned
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </Box>
+  );
+};
+
 // Add roles management: add roles and remove roles for a user
-const AddRoleButton = () => {
+const AddRoleButton = ({ onRolesChanged }: { onRolesChanged?: () => void }) => {
   const [open, setOpen] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<any[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<any[]>([]);
+  const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const dataProvider = useDataProvider();
   const notify = useNotify();
@@ -618,38 +861,93 @@ const AddRoleButton = () => {
 
   const { id: userId } = useParams();
 
+  // Global option for the organization dropdown
+  const globalOption = {
+    id: "global",
+    name: "Global (No Organization)",
+    display_name: "Global Roles",
+  };
+
   const handleOpen = async () => {
     setOpen(true);
-    await loadRoles();
+    await loadUserOrganizations();
+    setSelectedOrganization(globalOption); // Default to global
+    await loadRoles(null); // Load global roles by default
   };
 
   const handleClose = () => {
     setOpen(false);
     setSelectedRoles([]);
+    setSelectedOrganization(null);
+    setUserOrganizations([]);
   };
 
-  const loadRoles = async () => {
+  const loadUserOrganizations = async () => {
+    if (!userId) return;
+    try {
+      const res = await dataProvider.getList(`users/${userId}/organizations`, {
+        pagination: { page: 1, perPage: 1000 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+      setUserOrganizations(res?.data ?? []);
+    } catch (error) {
+      console.error("Error loading user organizations:", error);
+      // Don't show error notification as this is not critical
+    }
+  };
+
+  const loadRoles = async (organizationId: string | null = null) => {
     if (!userId) return;
     setLoading(true);
     try {
-      // Fetch all roles
-      const allRes = await dataProvider.getList("roles", {
-        pagination: { page: 1, perPage: 1000 },
-        sort: { field: "name", order: "ASC" },
-        filter: {},
-      });
-      const allRoles = allRes?.data ?? [];
+      let allRoles: any[] = [];
+      let assignedRoles: any[] = [];
 
-      // Fetch roles already assigned to user
-      const assignedRes = await dataProvider.getList(`users/${userId}/roles`, {
-        pagination: { page: 1, perPage: 1000 },
-        sort: { field: "name", order: "ASC" },
-        filter: {},
-      });
-      const assigned = assignedRes?.data ?? [];
-      const assignedSet = new Set(assigned.map((r: any) => r.id));
+      if (organizationId && organizationId !== "global") {
+        // Load organization roles
+        const allRes = await dataProvider.getList(
+          `organizations/${organizationId}/roles`,
+          {
+            pagination: { page: 1, perPage: 1000 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        allRoles = allRes?.data ?? [];
 
-      // Filter out roles the user already has
+        // Load roles already assigned to user in this organization
+        const assignedRes = await dataProvider.getList(
+          `organizations/${organizationId}/members/${userId}/roles`,
+          {
+            pagination: { page: 1, perPage: 1000 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        assignedRoles = assignedRes?.data ?? [];
+      } else {
+        // Load global roles
+        const allRes = await dataProvider.getList("roles", {
+          pagination: { page: 1, perPage: 1000 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        });
+        allRoles = allRes?.data ?? [];
+
+        // Load roles already assigned to user globally
+        const assignedRes = await dataProvider.getList(
+          `users/${userId}/roles`,
+          {
+            pagination: { page: 1, perPage: 1000 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        assignedRoles = assignedRes?.data ?? [];
+      }
+
+      const assignedSet = new Set(assignedRoles.map((r: any) => r.id));
       const available = allRoles.filter((r: any) => !assignedSet.has(r.id));
       setAvailableRoles(available);
     } catch (error) {
@@ -660,6 +958,13 @@ const AddRoleButton = () => {
     }
   };
 
+  const handleOrganizationChange = (organization: any) => {
+    setSelectedOrganization(organization);
+    setSelectedRoles([]);
+    const orgId = organization?.id === "global" ? null : organization?.id;
+    loadRoles(orgId);
+  };
+
   const handleAddRoles = async () => {
     if (!userId || selectedRoles.length === 0) {
       notify("Please select at least one role", { type: "warning" });
@@ -668,12 +973,30 @@ const AddRoleButton = () => {
 
     try {
       const payload = { roles: selectedRoles.map((r: any) => r.id) };
-      await dataProvider.create(`users/${userId}/roles`, { data: payload });
-      notify(`${selectedRoles.length} role(s) added successfully`, {
+
+      if (selectedOrganization?.id === "global") {
+        // Add global roles
+        await dataProvider.create(`users/${userId}/roles`, { data: payload });
+      } else {
+        // Add organization-specific roles
+        await dataProvider.create(
+          `organizations/${selectedOrganization.id}/members/${userId}/roles`,
+          {
+            data: payload,
+          },
+        );
+      }
+
+      const context =
+        selectedOrganization?.id === "global"
+          ? "globally"
+          : `to organization "${selectedOrganization?.name}"`;
+      notify(`${selectedRoles.length} role(s) added ${context} successfully`, {
         type: "success",
       });
       handleClose();
       refresh();
+      onRolesChanged?.();
     } catch (error) {
       console.error("Error adding roles:", error);
       notify("Error adding roles", { type: "error" });
@@ -681,6 +1004,10 @@ const AddRoleButton = () => {
   };
 
   if (!userId) return null;
+
+  // Create organization options: global + user's organizations
+  const organizationOptions = [globalOption, ...userOrganizations];
+  const showOrganizationDropdown = userOrganizations.length > 0;
 
   return (
     <>
@@ -700,6 +1027,48 @@ const AddRoleButton = () => {
           <Typography variant="body2" sx={{ mb: 3 }}>
             Select one or more roles to assign to this user
           </Typography>
+
+          {showOrganizationDropdown && (
+            <Box sx={{ mb: 3 }}>
+              <Autocomplete
+                options={organizationOptions}
+                getOptionLabel={(option) =>
+                  option.display_name || option.name || option.id
+                }
+                value={selectedOrganization}
+                onChange={(_, value) => handleOrganizationChange(value)}
+                isOptionEqualToValue={(option, value) =>
+                  option?.id === value?.id
+                }
+                renderInput={(params) => (
+                  <MuiTextField
+                    {...params}
+                    label="Organization"
+                    variant="outlined"
+                    fullWidth
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {option.display_name || option.name || option.id}
+                      </Typography>
+                      {option.id === "global" ? (
+                        <Typography variant="caption" color="text.secondary">
+                          Roles that apply across all organizations
+                        </Typography>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Organization ID: {option.id}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
+            </Box>
+          )}
 
           <Autocomplete
             multiple
@@ -744,9 +1113,25 @@ const AddRoleButton = () => {
             )}
           />
 
-          {!loading && availableRoles.length === 0 && (
+          {!loading && availableRoles.length === 0 && selectedOrganization && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              This user already has all available roles.
+              This user already has all available roles{" "}
+              {selectedOrganization.id === "global"
+                ? "globally"
+                : `in "${selectedOrganization.name}"`}
+              .
+            </Typography>
+          )}
+
+          {selectedOrganization && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: "block" }}
+            >
+              {selectedOrganization.id === "global"
+                ? "These roles will be assigned globally (not tied to any specific organization)"
+                : `These roles will be assigned within the "${selectedOrganization.name}" organization`}
             </Typography>
           )}
         </DialogContent>
@@ -755,7 +1140,7 @@ const AddRoleButton = () => {
           <Button
             onClick={handleAddRoles}
             variant="contained"
-            disabled={selectedRoles.length === 0}
+            disabled={selectedRoles.length === 0 || !selectedOrganization}
           >
             Add {selectedRoles.length} Role(s)
           </Button>
@@ -765,57 +1150,18 @@ const AddRoleButton = () => {
   );
 };
 
-const RemoveRoleButton = () => {
-  const [open, setOpen] = useState(false);
-  const role = useRecordContext();
-  const dataProvider = useDataProvider();
-  const notify = useNotify();
-  const refresh = useRefresh();
-  const { id: userId } = useParams();
+// Combined component for roles management
+const RolesManagement = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  if (!role || !userId) return null;
-
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
-
-  const handleRemove = async () => {
-    try {
-      await dataProvider.delete(`users/${userId}/roles`, {
-        id: role.id,
-        previousData: role,
-      });
-      notify("Role removed successfully", { type: "success" });
-      handleClose();
-      refresh();
-    } catch (error) {
-      console.error("Error removing role:", error);
-      notify("Error removing role", { type: "error" });
-    }
+  const handleRolesChanged = () => {
+    setRefreshKey((prev) => prev + 1);
   };
 
   return (
     <>
-      <Tooltip title="Remove role">
-        <IconButton onClick={handleOpen} color="error" size="small">
-          <DeleteIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Remove Role</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to remove the role "{role.name || role.id}"?
-            This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleRemove} color="error" autoFocus>
-            Remove
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddRoleButton onRolesChanged={handleRolesChanged} />
+      <UserRolesTable key={refreshKey} onRolesChanged={handleRolesChanged} />
     </>
   );
 };
@@ -1004,9 +1350,11 @@ export function UserEdit() {
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="roles">
-          <AddRoleButton />
+          <RolesManagement />
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="organizations">
           <ReferenceManyField
-            reference="roles"
+            reference="user-organizations"
             target="user_id"
             pagination={<Pagination />}
             sort={{ field: "name", order: "ASC" }}
@@ -1021,13 +1369,29 @@ export function UserEdit() {
                   whiteSpace: "nowrap",
                 },
               }}
-              rowClick=""
+              rowClick={(_, __, record) => `/organizations/${record.id}`}
               bulkActionButtons={false}
             >
-              <TextField source="name" label="Role" />
-              <TextField source="description" label="Description" />
-              <TextField source="id" label="ID" />
-              <RemoveRoleButton />
+              <TextField source="name" label="Organization Name" />
+              <TextField source="display_name" label="Display Name" />
+              <TextField source="id" label="Organization ID" />
+              <FunctionField
+                source="metadata"
+                render={(record: any) => {
+                  const metadata = record.metadata || {};
+                  const metadataCount = Object.keys(metadata).length;
+                  return metadataCount > 0
+                    ? `${metadataCount} properties`
+                    : "-";
+                }}
+                label="Metadata"
+              />
+              <FunctionField
+                label="Joined"
+                render={(record: any) =>
+                  record.created_at ? <DateAgo date={record.created_at} /> : "-"
+                }
+              />
             </Datagrid>
           </ReferenceManyField>
         </TabbedForm.Tab>

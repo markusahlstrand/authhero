@@ -3,6 +3,7 @@ import {
   organizationSchema,
   organizationInsertSchema,
   totalsSchema,
+  roleListSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -552,5 +553,291 @@ export const organizationRoutes = new OpenAPIHono<{
       }
 
       return ctx.json({ message: "Members removed successfully" });
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/organizations/:id/members/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "get",
+      path: "/{id}/members/{user_id}/roles",
+      request: {
+        params: z.object({
+          id: z.string(),
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        query: querySchema,
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: roleListSchema,
+            },
+          },
+          description: "User roles in organization",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organizationId, user_id } = ctx.req.valid("param");
+
+      // First verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organizationId,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      // Verify user exists
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      // Get user roles in this organization
+      const roles = await ctx.env.data.userRoles.list(
+        tenant_id,
+        user_id,
+        undefined,
+        organizationId,
+      );
+
+      return ctx.json(roles);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/organizations/:id/members/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "post",
+      path: "/{id}/members/{user_id}/roles",
+      request: {
+        params: z.object({
+          id: z.string(),
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                roles: z.array(z.string()).openapi({
+                  description: "List of role IDs to associate with the user",
+                }),
+              }),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        201: {
+          description: "Roles assigned successfully",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organizationId, user_id } = ctx.req.valid("param");
+      const { roles } = ctx.req.valid("json");
+
+      // First verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organizationId,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      // Verify user exists
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      // Assign roles to user in this organization
+      for (const roleId of roles) {
+        // Verify role exists
+        const role = await ctx.env.data.roles.get(tenant_id, roleId);
+        if (!role) {
+          throw new HTTPException(400, { message: `Role ${roleId} not found` });
+        }
+
+        const success = await ctx.env.data.userRoles.create(
+          tenant_id,
+          user_id,
+          roleId,
+          organizationId,
+        );
+        if (!success) {
+          throw new HTTPException(500, {
+            message: `Failed to assign role ${roleId} to user`,
+          });
+        }
+      }
+
+      return ctx.json(
+        { message: "Roles assigned successfully" },
+        { status: 201 },
+      );
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/organizations/:id/members/:user_id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "delete",
+      path: "/{id}/members/{user_id}/roles",
+      request: {
+        params: z.object({
+          id: z.string(),
+          user_id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                roles: z.array(z.string()).openapi({
+                  description: "List of role IDs to remove from the user",
+                }),
+              }),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          description: "Roles removed successfully",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organizationId, user_id } = ctx.req.valid("param");
+      const { roles } = ctx.req.valid("json");
+
+      // First verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organizationId,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      // Verify user exists
+      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      // Remove roles from user in this organization
+      for (const roleId of roles) {
+        const success = await ctx.env.data.userRoles.remove(
+          tenant_id,
+          user_id,
+          roleId,
+          organizationId,
+        );
+        if (!success) {
+          throw new HTTPException(500, {
+            message: `Failed to remove role ${roleId} from user`,
+          });
+        }
+      }
+
+      return ctx.json({ message: "Roles removed successfully" });
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/organizations/:id/roles
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "get",
+      path: "/{id}/roles",
+      request: {
+        params: z.object({
+          id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+        query: querySchema,
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: roleListSchema,
+            },
+          },
+          description: "List of roles available in organization",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organizationId } = ctx.req.valid("param");
+      const { page, per_page, sort, q } = ctx.req.valid("query");
+
+      // First verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organizationId,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      // For now, return all roles in the tenant
+      // TODO: In the future, organizations might have their own roles
+      const result = await ctx.env.data.roles.list(tenant_id, {
+        page,
+        per_page,
+        sort: parseSort(sort),
+        q,
+      });
+
+      return ctx.json(result.roles);
     },
   );

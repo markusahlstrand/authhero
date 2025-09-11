@@ -52,23 +52,27 @@ describe("user permissions adapter", () => {
     );
     expect(initialPermissions.length).toBe(0);
 
-    // Assign permissions to the user
-    const assigned = await adapters.userPermissions.assign(
+    // Create permissions for the user
+    const created1 = await adapters.userPermissions.create(
       tenant,
       "test-user",
-      [
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "read:bar",
-        },
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "write:bar",
-        },
-      ],
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "read:bar",
+      },
     );
 
-    expect(assigned).toBe(true);
+    const created2 = await adapters.userPermissions.create(
+      tenant,
+      "test-user",
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "write:bar",
+      },
+    );
+
+    expect(created1).toBe(true);
+    expect(created2).toBe(true);
 
     // List permissions for the user
     const permissions = await adapters.userPermissions.list(
@@ -94,39 +98,36 @@ describe("user permissions adapter", () => {
     expect(writePermission).toBeDefined();
     expect(writePermission!.resource_server_name).toBe("My API");
 
-    // Test assigning duplicate permissions (should handle gracefully)
-    const duplicateAssign = await adapters.userPermissions.assign(
+    // Test creating duplicate permissions (should handle gracefully)
+    const duplicateCreate = await adapters.userPermissions.create(
       tenant,
       "test-user",
-      [
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "read:bar", // This already exists
-        },
-      ],
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "read:bar", // This already exists
+      },
     );
     // Should still succeed (idempotent operation)
-    expect(duplicateAssign).toBe(true);
+    expect(duplicateCreate).toBe(true);
 
     // Should still have only 2 permissions
     const permissionsAfterDuplicate = await adapters.userPermissions.list(
       tenant,
       "test-user",
     );
+
     expect(permissionsAfterDuplicate.length).toBe(2);
 
     // Add a third permission
-    const assignThird = await adapters.userPermissions.assign(
+    const createThird = await adapters.userPermissions.create(
       tenant,
       "test-user",
-      [
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "delete:bar",
-        },
-      ],
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "delete:bar",
+      },
     );
-    expect(assignThird).toBe(true);
+    expect(createThird).toBe(true);
 
     const permissionsWithThird = await adapters.userPermissions.list(
       tenant,
@@ -135,12 +136,10 @@ describe("user permissions adapter", () => {
     expect(permissionsWithThird.length).toBe(3);
 
     // Remove one permission
-    const removed = await adapters.userPermissions.remove(tenant, "test-user", [
-      {
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "write:bar",
-      },
-    ]);
+    const removed = await adapters.userPermissions.remove(tenant, "test-user", {
+      resource_server_identifier: "https://api.example.com/",
+      permission_name: "write:bar",
+    });
 
     expect(removed).toBe(true);
 
@@ -160,23 +159,27 @@ describe("user permissions adapter", () => {
       remainingPermissions.some((p) => p.permission_name === "write:bar"),
     ).toBe(false);
 
-    // Remove multiple permissions at once
-    const removedMultiple = await adapters.userPermissions.remove(
+    // Remove multiple permissions
+    const removedRead = await adapters.userPermissions.remove(
       tenant,
       "test-user",
-      [
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "read:bar",
-        },
-        {
-          resource_server_identifier: "https://api.example.com/",
-          permission_name: "delete:bar",
-        },
-      ],
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "read:bar",
+      },
     );
 
-    expect(removedMultiple).toBe(true);
+    const removedDelete = await adapters.userPermissions.remove(
+      tenant,
+      "test-user",
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "delete:bar",
+      },
+    );
+
+    expect(removedRead).toBe(true);
+    expect(removedDelete).toBe(true);
 
     // Should have no permissions left
     const finalPermissions = await adapters.userPermissions.list(
@@ -186,7 +189,7 @@ describe("user permissions adapter", () => {
     expect(finalPermissions.length).toBe(0);
   });
 
-  it("should handle empty assignment and removal arrays", async () => {
+  it("should handle removing non-existent permissions gracefully", async () => {
     // Create a user
     await adapters.users.create(tenant, {
       user_id: "empty-test-user",
@@ -195,21 +198,16 @@ describe("user permissions adapter", () => {
       provider: "auth0",
     });
 
-    // Test assigning empty array
-    const emptyAssign = await adapters.userPermissions.assign(
+    // Test removing non-existent permission (should not throw error)
+    const removeNonExistent = await adapters.userPermissions.remove(
       tenant,
       "empty-test-user",
-      [],
+      {
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "non-existent",
+      },
     );
-    expect(emptyAssign).toBe(true);
-
-    // Test removing empty array
-    const emptyRemove = await adapters.userPermissions.remove(
-      tenant,
-      "empty-test-user",
-      [],
-    );
-    expect(emptyRemove).toBe(true);
+    expect(removeNonExistent).toBe(true);
 
     // Should still have no permissions
     const permissions = await adapters.userPermissions.list(
@@ -243,23 +241,27 @@ describe("user permissions adapter", () => {
       provider: "auth0",
     });
 
-    // Assign permissions from different resource servers
-    const assigned = await adapters.userPermissions.assign(
+    // Create permissions from different resource servers
+    const created1 = await adapters.userPermissions.create(
       tenant,
       "multi-api-user",
-      [
-        {
-          resource_server_identifier: "https://api1.example.com/",
-          permission_name: "read:api1",
-        },
-        {
-          resource_server_identifier: "https://api2.example.com/",
-          permission_name: "read:api2",
-        },
-      ],
+      {
+        resource_server_identifier: "https://api1.example.com/",
+        permission_name: "read:api1",
+      },
     );
 
-    expect(assigned).toBe(true);
+    const created2 = await adapters.userPermissions.create(
+      tenant,
+      "multi-api-user",
+      {
+        resource_server_identifier: "https://api2.example.com/",
+        permission_name: "read:api2",
+      },
+    );
+
+    expect(created1).toBe(true);
+    expect(created2).toBe(true);
 
     const permissions = await adapters.userPermissions.list(
       tenant,
@@ -305,20 +307,16 @@ describe("user permissions adapter", () => {
       provider: "auth0",
     });
 
-    // Assign different permissions to each user
-    await adapters.userPermissions.assign(tenant, "user1", [
-      {
-        resource_server_identifier: "https://shared-api.example.com/",
-        permission_name: "read:shared",
-      },
-    ]);
+    // Create different permissions for each user
+    await adapters.userPermissions.create(tenant, "user1", {
+      resource_server_identifier: "https://shared-api.example.com/",
+      permission_name: "read:shared",
+    });
 
-    await adapters.userPermissions.assign(tenant, "user2", [
-      {
-        resource_server_identifier: "https://shared-api.example.com/",
-        permission_name: "write:shared",
-      },
-    ]);
+    await adapters.userPermissions.create(tenant, "user2", {
+      resource_server_identifier: "https://shared-api.example.com/",
+      permission_name: "write:shared",
+    });
 
     // Verify each user has only their assigned permissions
     const user1Permissions = await adapters.userPermissions.list(
@@ -336,12 +334,10 @@ describe("user permissions adapter", () => {
     expect(user2Permissions[0].permission_name).toBe("write:shared");
 
     // Remove permission from user1, should not affect user2
-    await adapters.userPermissions.remove(tenant, "user1", [
-      {
-        resource_server_identifier: "https://shared-api.example.com/",
-        permission_name: "read:shared",
-      },
-    ]);
+    await adapters.userPermissions.remove(tenant, "user1", {
+      resource_server_identifier: "https://shared-api.example.com/",
+      permission_name: "read:shared",
+    });
 
     const user1FinalPermissions = await adapters.userPermissions.list(
       tenant,

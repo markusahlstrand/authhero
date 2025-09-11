@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.208.0",
+  "version": "0.209.0",
   "files": [
     "dist"
   ],
@@ -22,6 +22,7 @@
     "dev": "bun --watch src/bun.ts",
     "build": "pnpm build:tailwind && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "build:tailwind": "node build-tailwind.js",
+    "build:vite": "vite build",
     "start": "pnpm build && node dist/index.js",
     "test": "vitest run",
     "pull-translations": "i18nexus pull --path ./src/locales",

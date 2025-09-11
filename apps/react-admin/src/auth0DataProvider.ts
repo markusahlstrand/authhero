@@ -388,6 +388,61 @@ export default (
         };
       }
 
+      // Special case for user-organizations which are nested under users
+      if (resource === "user-organizations" && params.target === "user_id") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/users/${params.id}/organizations?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        // Handle Auth0 API response format: either array of organizations or object with organizations array
+        let organizationsData: any[];
+        let total: number;
+
+        if (Array.isArray(res.json)) {
+          // Direct array response
+          organizationsData = res.json;
+          total = res.json.length;
+        } else if (res.json.organizations) {
+          // Paginated response with organizations array
+          organizationsData = res.json.organizations;
+          total = res.json.total || organizationsData.length;
+        } else {
+          // Fallback - try legacy format
+          organizationsData = res.json.organizations || [];
+          total = res.json.total || organizationsData.length;
+        }
+
+        return {
+          data: organizationsData.map((org: any) => ({
+            // Use organization ID as the primary ID since we're displaying organization data
+            id: org.id || org.organization_id,
+            user_id: params.id,
+            // Include all organization fields according to Auth0 API schema
+            name: org.name,
+            display_name: org.display_name,
+            branding: org.branding,
+            metadata: org.metadata || {},
+            token_quota: org.token_quota,
+            // Membership details (when user joined)
+            created_at: org.created_at,
+            updated_at: org.updated_at,
+            ...org,
+          })),
+          total,
+        };
+      }
+
       // Original implementation for other resources
       const query = {
         include_totals: true,
@@ -505,6 +560,30 @@ export default (
         };
       }
 
+      // Special case for user-organizations: POST /organizations/:id/members (same endpoint, different usage)
+      if (resource === "user-organizations") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const { organization_id, user_id } = params.data;
+        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
+
+        const res = await httpClient(url, {
+          method: "POST",
+          body: JSON.stringify({ users: [user_id] }),
+          headers,
+        });
+
+        return {
+          data: {
+            id: organization_id, // Use organization ID as primary ID
+            user_id,
+            organization_id,
+            ...res.json,
+          },
+        };
+      }
+
       // Special case: assign roles to user via POST /users/:id/roles
       const userRolesMatch = resource.match(/^users\/([^/]+)\/roles$/);
       if (userRolesMatch) {
@@ -517,7 +596,18 @@ export default (
           headers,
         });
 
-        return { data: res.json };
+        // React Admin expects an id field for the created resource
+        // For role assignments, we can use a composite ID or generate one
+        const userId = userRolesMatch[1];
+        const roleIds = params.data?.roles || [];
+        return {
+          data: {
+            id: `${userId}_${roleIds.join("_")}`, // Composite ID for the assignment
+            user_id: userId,
+            roles: roleIds,
+            ...res.json,
+          },
+        };
       }
 
       const headers = new Headers({
@@ -581,6 +671,44 @@ export default (
         return { data: res.json };
       }
 
+      // Special case for user-organizations: DELETE /users/:user_id/organizations/:organization_id
+      if (resource === "user-organizations") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        // Extract organization_id and user_id
+        let organization_id, user_id;
+
+        if (params.previousData) {
+          user_id = params.previousData.user_id;
+          organization_id = params.id; // ID is now the organization ID directly
+        } else {
+          // Fallback: try to extract from composite ID format if still used
+          if (
+            params.id &&
+            typeof params.id === "string" &&
+            params.id.includes("_")
+          ) {
+            [user_id, organization_id] = params.id.split("_");
+          }
+        }
+
+        if (!organization_id || !user_id) {
+          throw new Error(
+            "Missing organization_id or user_id for user organization deletion",
+          );
+        }
+
+        const url = `${apiUrl}/api/v2/users/${user_id}/organizations/${organization_id}`;
+
+        const res = await httpClient(url, {
+          method: "DELETE",
+          headers,
+        });
+
+        return { data: res.json };
+      }
+
       // Detect special case: DELETE /users/:userId/permissions or /roles/:roleId/permissions with JSON body
       const isNestedPermissionsDelete =
         /(^|\/)users\/[^/]+\/permissions$/.test(resource) ||
@@ -589,9 +717,15 @@ export default (
       // Also support nested roles deletion: DELETE /users/:userId/roles
       const isNestedRolesDelete = /(^|\/)users\/[^/]+\/roles$/.test(resource);
 
+      // Special case for organization member roles: DELETE /organizations/:id/members/:user_id/roles
+      const isOrgMemberRolesDelete =
+        /(^|\/)organizations\/[^/]+\/members\/[^/]+\/roles$/.test(resource);
+
       const headers = new Headers({
         "Content-Type":
-          isNestedPermissionsDelete || isNestedRolesDelete
+          isNestedPermissionsDelete ||
+          isNestedRolesDelete ||
+          isOrgMemberRolesDelete
             ? "application/json"
             : "text/plain",
       });
@@ -603,7 +737,12 @@ export default (
         params.id !== null &&
         String(params.id) !== "";
       const shouldAppendId =
-        hasId && !(isNestedPermissionsDelete || isNestedRolesDelete);
+        hasId &&
+        !(
+          isNestedPermissionsDelete ||
+          isNestedRolesDelete ||
+          isOrgMemberRolesDelete
+        );
 
       const baseUrl = `${apiUrl}/api/v2/${resource}`;
       const resourceUrl = shouldAppendId
@@ -648,6 +787,14 @@ export default (
           ],
         });
       } else if (isNestedRolesDelete) {
+        const roles = Array.isArray((params as any)?.previousData?.roles)
+          ? (params as any).previousData.roles
+          : hasId
+            ? [String(params.id)]
+            : [];
+        body = JSON.stringify({ roles });
+      } else if (isOrgMemberRolesDelete) {
+        // For organization member roles, expect role IDs in previousData or as the ID
         const roles = Array.isArray((params as any)?.previousData?.roles)
           ? (params as any).previousData.roles
           : hasId

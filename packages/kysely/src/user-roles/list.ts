@@ -1,10 +1,15 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { Role } from "@authhero/adapter-interfaces";
+import { Role, ListParams } from "@authhero/adapter-interfaces";
 
 export function list(db: Kysely<Database>) {
-  return async (tenant_id: string, user_id: string): Promise<Role[]> => {
-    const rows = await db
+  return async (
+    tenant_id: string,
+    user_id: string,
+    _params?: ListParams,
+    organization_id?: string,
+  ): Promise<Role[]> => {
+    let query = db
       .selectFrom("user_roles as ur")
       .innerJoin("roles as r", (join) =>
         join
@@ -19,8 +24,14 @@ export function list(db: Kysely<Database>) {
         "r.updated_at",
       ])
       .where("ur.tenant_id", "=", tenant_id)
-      .where("ur.user_id", "=", user_id)
-      .execute();
+      .where("ur.user_id", "=", user_id);
+
+    // Add organization filter if provided
+    if (organization_id !== undefined) {
+      query = query.where("ur.organization_id", "=", organization_id);
+    }
+
+    const rows = await query.execute();
 
     return rows as unknown as Role[];
   };

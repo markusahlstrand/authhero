@@ -162,6 +162,7 @@ export const sqlUserPermissionSchema = z.object({
   user_id: z.string(),
   resource_server_identifier: z.string(),
   permission_name: z.string(),
+  organization_id: z.string(),
   created_at: z.string(),
 });
 
@@ -169,6 +170,7 @@ export const sqlUserRoleSchema = z.object({
   tenant_id: z.string(),
   user_id: z.string(),
   role_id: z.string(),
+  organization_id: z.string(),
   created_at: z.string(),
 });
 

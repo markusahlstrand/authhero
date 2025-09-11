@@ -3,6 +3,7 @@ import {
   UserOrganization,
   UserOrganizationInsert,
 } from "../types/UserOrganization";
+import { Organization } from "../types/Organization";
 import { ListParams } from "../types/ListParams";
 
 export interface UserOrganizationsAdapter {
@@ -27,6 +28,16 @@ export interface UserOrganizationsAdapter {
     tenantId: string,
     params?: ListParams,
   ): Promise<{ userOrganizations: UserOrganization[] } & Totals>;
+
+  /**
+   * List organizations for a specific user (Auth0 compatible API)
+   * Returns full organization objects instead of user-organization relationships
+   */
+  listUserOrganizations(
+    tenantId: string,
+    userId: string,
+    params?: ListParams,
+  ): Promise<{ organizations: Organization[] } & Totals>;
 
   update(
     tenantId: string,
