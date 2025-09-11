@@ -352,6 +352,42 @@ export default (
         };
       }
 
+      // Special case for organization-members which are nested under organizations
+      if (
+        resource === "organization-members" &&
+        params.target === "organization_id"
+      ) {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/organizations/${params.id}/members?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        // The API returns either an array directly or an object with array and total
+        const membersData = Array.isArray(res.json)
+          ? res.json
+          : res.json.members || res.json;
+        const total = res.json.total || membersData.length;
+
+        return {
+          data: membersData.map((item: any) => ({
+            id: `${params.id}_${item.user_id}`, // Composite ID for organization-member relationship
+            organization_id: params.id,
+            ...item,
+          })),
+          total,
+        };
+      }
+
       // Original implementation for other resources
       const query = {
         include_totals: true,
@@ -445,6 +481,30 @@ export default (
     updateMany: () => Promise.reject("not supporting updateMany"),
 
     create: async (resource, params) => {
+      // Special case for organization-members: POST /organizations/:id/members
+      if (resource === "organization-members") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const { organization_id, user_id } = params.data;
+        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
+
+        const res = await httpClient(url, {
+          method: "POST",
+          body: JSON.stringify({ users: [user_id] }),
+          headers,
+        });
+
+        return {
+          data: {
+            id: `${organization_id}_${user_id}`,
+            organization_id,
+            user_id,
+            ...res.json,
+          },
+        };
+      }
+
       // Special case: assign roles to user via POST /users/:id/roles
       const userRolesMatch = resource.match(/^users\/([^/]+)\/roles$/);
       if (userRolesMatch) {
@@ -485,6 +545,42 @@ export default (
     },
 
     delete: async (resource, params) => {
+      // Special case for organization-members: DELETE /organizations/:id/members
+      if (resource === "organization-members") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        // Extract organization_id and user_id from the composite ID or params
+        let organization_id, user_id;
+
+        if (
+          params.id &&
+          typeof params.id === "string" &&
+          params.id.includes("_")
+        ) {
+          [organization_id, user_id] = params.id.split("_");
+        } else if (params.previousData) {
+          organization_id = params.previousData.organization_id;
+          user_id = params.previousData.user_id;
+        }
+
+        if (!organization_id || !user_id) {
+          throw new Error(
+            "Missing organization_id or user_id for organization member deletion",
+          );
+        }
+
+        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
+
+        const res = await httpClient(url, {
+          method: "DELETE",
+          body: JSON.stringify({ users: [user_id] }),
+          headers,
+        });
+
+        return { data: res.json };
+      }
+
       // Detect special case: DELETE /users/:userId/permissions or /roles/:roleId/permissions with JSON body
       const isNestedPermissionsDelete =
         /(^|\/)users\/[^/]+\/permissions$/.test(resource) ||

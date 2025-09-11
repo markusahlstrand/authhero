@@ -3,7 +3,6 @@ import {
   organizationSchema,
   organizationInsertSchema,
   totalsSchema,
-  userOrganizationSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -15,8 +14,44 @@ const organizationsWithTotalsSchema = totalsSchema.extend({
   organizations: z.array(organizationSchema),
 });
 
-const userOrganizationsWithTotalsSchema = totalsSchema.extend({
-  userOrganizations: z.array(userOrganizationSchema),
+// Schema for organization member as per Auth0 API spec
+const organizationMemberSchema = z.object({
+  user_id: z.string().openapi({
+    description: "ID of this user",
+  }),
+  email: z.string().email().optional().openapi({
+    description: "Email address of this user",
+    format: "email",
+  }),
+  roles: z.array(z.object({})).default([]).openapi({
+    description: "Array of roles assigned to this user in the organization",
+  }),
+});
+
+// Schema for paginated members response
+const organizationMembersWithPaginationSchema = z.object({
+  start: z.number().openapi({
+    description: "Start index of the current page",
+  }),
+  limit: z.number().openapi({
+    description: "Number of items per page",
+  }),
+  total: z.number().openapi({
+    description: "Total number of members",
+  }),
+  members: z.array(organizationMemberSchema).openapi({
+    description: "Array of organization members",
+  }),
+});
+
+// Schema for members response with next token
+const organizationMembersWithNextSchema = z.object({
+  next: z.string().optional().openapi({
+    description: "Checkpoint ID to be used to retrieve the next set of results",
+  }),
+  members: z.array(organizationMemberSchema).openapi({
+    description: "Array of organization members",
+  }),
 });
 
 const addMembersRequestSchema = z.object({
@@ -315,8 +350,9 @@ export const organizationRoutes = new OpenAPIHono<{
           content: {
             "application/json": {
               schema: z.union([
-                userOrganizationsWithTotalsSchema,
-                z.array(userOrganizationSchema),
+                z.array(organizationMemberSchema),
+                organizationMembersWithPaginationSchema,
+                organizationMembersWithNextSchema,
               ]),
             },
           },
@@ -338,19 +374,49 @@ export const organizationRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "Organization not found" });
       }
 
-      const result = await ctx.env.data.userOrganizations.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q: `organization_id:${organizationId}`,
-      });
+      // Get user-organization relationships
+      const userOrgsResult = await ctx.env.data.userOrganizations.list(
+        tenant_id,
+        {
+          page,
+          per_page,
+          include_totals,
+          sort: parseSort(sort),
+          q: `organization_id:${organizationId}`,
+        },
+      );
 
-      if (include_totals) {
-        return ctx.json(result);
+      // Get user details for each member
+      const members: Array<{
+        user_id: string;
+        email?: string;
+        roles: Array<any>;
+      }> = [];
+
+      for (const userOrg of userOrgsResult.userOrganizations) {
+        const user = await ctx.env.data.users.get(tenant_id, userOrg.user_id);
+        if (user) {
+          members.push({
+            user_id: user.user_id,
+            email: user.email || undefined,
+            roles: [], // TODO: Implement roles when organization roles are available
+          });
+        }
       }
 
-      return ctx.json(result.userOrganizations);
+      // Return different formats based on query parameters
+      if (include_totals) {
+        // Return with pagination info
+        return ctx.json({
+          start: userOrgsResult.start,
+          limit: userOrgsResult.limit,
+          total: userOrgsResult.length,
+          members,
+        });
+      }
+
+      // Return simple array
+      return ctx.json(members);
     },
   )
   // --------------------------------
