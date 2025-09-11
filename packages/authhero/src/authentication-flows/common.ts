@@ -545,7 +545,7 @@ export async function completeLogin(
       await ctx.env.data.users.update(params.client.tenant.id, user.user_id, {
         app_metadata: {
           ...(user.app_metadata || {}),
-          strategy: user.app_metadata.strategy,
+          strategy: params.strategy,
         },
       });
     }
