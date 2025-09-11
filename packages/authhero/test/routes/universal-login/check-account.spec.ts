@@ -262,4 +262,62 @@ describe("check account", () => {
     expect(sessionAfter).not.toBeNull();
     expect(sessionAfter?.id).toBe("existingSessionId");
   });
+
+  it("should not clear unrelated app_metadata fields on POST /u/check-account", async () => {
+    const { universalApp, env } = await getTestServer({ mockEmail: true });
+    const universalClient = testClient(universalApp, env);
+
+    // Create user with extra app_metadata fields
+    // Get the default user
+    const user = await env.data.users.get("tenantId", "email|userId");
+    expect(user).not.toBeNull();
+    // Patch the user to ensure it has both a strategy and another key
+    await env.data.users.update("tenantId", "email|userId", {
+      app_metadata: {
+        strategy: "test-strategy",
+        custom: "bar",
+        strategies: ["foo"],
+      },
+    });
+
+    // Create login session and session
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: { client_id: "clientId", state: "state" },
+    });
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      login_session_id: loginSession.id,
+      user_id: "email|userId",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 1000).toISOString(),
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      session_id: session.id,
+    });
+
+    // POST to /u/check-account
+    await universalClient["check-account"].$post(
+      { query: { state: "state" } },
+      { headers: { cookie: "tenantId-auth-token=sessionId" } },
+    );
+
+    // Fetch user after POST
+    const updatedUser = await env.data.users.get("tenantId", "email|userId");
+    expect(updatedUser).not.toBeNull();
+    // If bug exists, these will be undefined
+    expect(updatedUser!.app_metadata.strategies).toBeDefined();
+    expect(updatedUser!.app_metadata.custom).toBeDefined();
+    expect(updatedUser!.app_metadata.strategy).toBe("test-strategy");
+  });
 });

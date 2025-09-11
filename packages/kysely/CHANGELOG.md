@@ -230,8 +230,6 @@
 
 ### Minor Changes
 
-- pnpm changeset version
-
 ### Patch Changes
 
 - Updated dependencies
@@ -404,8 +402,6 @@
 
 ### Minor Changes
 
-- pnpm changeset version
-
 ### Patch Changes
 
 - Updated dependencies
@@ -443,8 +439,6 @@
 ## 9.3.0
 
 ### Minor Changes
-
-- a9959ad: pnpm changeset version
 
 ### Patch Changes
 

@@ -1,5 +1,9 @@
 # authhero
 
+## 0.210.0
+
+### Minor Changes
+
 ## 0.209.0
 
 ### Minor Changes
@@ -74,7 +78,6 @@
 
 ### Minor Changes
 
-- 3635f08: pnpm changeset version
 - Add account path
 - Add route for account
 
@@ -115,7 +118,6 @@
 
 ### Patch Changes
 
-- e1c0b34: pnpm changeset version
 - Updated dependencies
   - @authhero/adapter-interfaces@0.83.0
 
@@ -242,13 +244,9 @@
 
 ### Patch Changes
 
-- a016d97: pnpm changeset version
-
 ## 0.180.0
 
 ### Minor Changes
-
-- 8a9be02: pnpm changeset version
 
 ## 0.179.0
 
@@ -425,7 +423,6 @@
 
 ### Minor Changes
 
-- pnpm changeset version
 - Add config to connection to enable magic links
 
 ### Patch Changes
@@ -475,8 +472,6 @@
 ## 0.149.0
 
 ### Minor Changes
-
-- pnpm changeset version
 
 ### Patch Changes
 
@@ -630,13 +625,9 @@
 
 ### Minor Changes
 
-- 370eb2f: pnpm changeset version
-
 ## 0.129.0
 
 ### Minor Changes
-
-- d64c18d: pnpm changeset version
 
 ## 0.128.0
 
@@ -690,8 +681,6 @@
 
 ### Minor Changes
 
-- 6f2dca6: pnpm changeset version
-
 ## 0.119.0
 
 ### Minor Changes
@@ -726,7 +715,6 @@
 ### Minor Changes
 
 - Use idle expires at for refresh tokens
-- 51c5158: pnpm changeset version
 
 ## 0.114.0
 
@@ -920,8 +908,6 @@
 
 ### Minor Changes
 
-- pnpm changeset version
-
 ### Patch Changes
 
 - Updated dependencies
@@ -965,8 +951,6 @@
 ## 0.84.0
 
 ### Minor Changes
-
-- a9959ad: pnpm changeset version
 
 ### Patch Changes
 
@@ -1049,8 +1033,6 @@
 ## 0.74.0
 
 ### Minor Changes
-
-- 8c316c4: pnpm changeset version
 
 ## 0.73.0
 

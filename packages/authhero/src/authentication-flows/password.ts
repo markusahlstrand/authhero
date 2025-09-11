@@ -135,8 +135,6 @@ export async function passwordGrant(
     });
   }
 
-
-
   const log = createLogMessage(ctx, {
     type: LogTypes.SUCCESS_LOGIN,
     description: "Successful login",
