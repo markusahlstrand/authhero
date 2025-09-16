@@ -112,7 +112,9 @@ describe("account", () => {
     // Should redirect to confirmation page
     expect(verifyCodeResponse.status).toBe(302);
     const confirmationLocation = verifyCodeResponse.headers.get("location");
-    expect(confirmationLocation).toContain("/u/change-email-confirmation");
+    expect(confirmationLocation).toContain(
+      "/u/account/change-email-confirmation",
+    );
     expect(confirmationLocation).toContain("state=");
     expect(confirmationLocation).toContain("email=new%40example.com");
 
