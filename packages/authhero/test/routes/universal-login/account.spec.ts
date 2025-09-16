@@ -24,7 +24,7 @@ describe("account", () => {
     // ---------------------------------
     // Request email change
     // ---------------------------------
-    const changeEmailResponse = await universalClient["account"].$post(
+    const changeEmailResponse = await universalClient.account.$post(
       {
         query: { state },
         form: {
@@ -42,7 +42,7 @@ describe("account", () => {
     // Should redirect to change-email page
     expect(changeEmailResponse.status).toBe(302);
     const location = changeEmailResponse.headers.get("location");
-    expect(location).toContain("/u/change-email-verify");
+    expect(location).toContain("/u/account/change-email-verify");
     expect(location).toContain("email=new%40example.com");
     expect(location).toContain("state=");
     expect(location).toContain("change_id=");
@@ -64,7 +64,7 @@ describe("account", () => {
     // ---------------------------------
     // Access change-email-verify page
     // ---------------------------------
-    const changeEmailPageResponse = await universalClient[
+    const changeEmailPageResponse = await universalClient.account[
       "change-email-verify"
     ].$get(
       {
@@ -89,7 +89,7 @@ describe("account", () => {
     // ---------------------------------
     // Submit verification code
     // ---------------------------------
-    const verifyCodeResponse = await universalClient[
+    const verifyCodeResponse = await universalClient.account[
       "change-email-verify"
     ].$post(
       {
@@ -119,7 +119,7 @@ describe("account", () => {
     // ---------------------------------
     // Access confirmation page
     // ---------------------------------
-    const confirmationPageResponse = await universalClient[
+    const confirmationPageResponse = await universalClient.account[
       "change-email-confirmation"
     ].$get(
       {
