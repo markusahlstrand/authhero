@@ -67,7 +67,7 @@ export const samlpRoutes = new OpenAPIHono<{
       const issuer = ctx.env.ISSUER;
 
       const metadata = createSamlMetadata({
-        entityId: client.addons?.samlp?.audience || client.id,
+        entityId: client.addons?.samlp?.audience || client.client_id,
         certificates,
         assertionConsumerServiceUrl: `${issuer}samlp/${client_id}`,
         singleLogoutServiceUrl: `${issuer}samlp/${client_id}/logout`,
@@ -123,7 +123,7 @@ export const samlpRoutes = new OpenAPIHono<{
           message: "Client not found",
         });
       }
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
       // TODO: Validate the Signature and SigAlg if provided

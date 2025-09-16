@@ -142,7 +142,7 @@ export async function authorizationCodeGrantUser(
       response_mode: AuthorizationResponseMode.WEB_MESSAGE,
       // Pass through other relevant authParams from the loginSession or original request if necessary
       // For authorization_code grant, these are usually fixed or derived, not directly from params
-      client_id: client.id, // ensure client_id is from the validated client
+      client_id: client.client_id, // ensure client_id is from the validated client
       scope: loginSession.authParams.scope, // scope from original authorization request
       audience: loginSession.authParams.audience, // audience from original authorization request
     },

@@ -90,7 +90,7 @@ export async function silentAuth({
   const tokenResponseOptions = {
     client,
     authParams: {
-      client_id: client.id,
+      client_id: client.client_id,
       audience,
       code_challenge_method,
       code_challenge,

@@ -14,6 +14,17 @@ describe("loginSessions", () => {
       sender_name: "SenderName",
     });
 
+    // Create a client that the login session will reference
+    await data.clients.create("tenantId", {
+      client_id: "client123",
+      client_secret: "secret123",
+      name: "Test Client",
+      callbacks: ["https://example.com/callback"],
+      allowed_logout_urls: ["https://example.com/callback"],
+      web_origins: ["https://example.com"],
+      client_metadata: {},
+    });
+
     // ----------------------------------------
     // Create
     // --------------------------------

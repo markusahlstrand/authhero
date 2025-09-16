@@ -1,5 +1,9 @@
 import { Context } from "hono";
-import { AuthParams, LegacyClient, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LegacyClient,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { stringifyAuth0Client } from "../utils/client-info";
@@ -27,7 +31,7 @@ export async function connectionAuth(
   const connection = client.connections.find((p) => p.name === connectionName);
 
   if (!connection) {
-    ctx.set("client_id", client.id);
+    ctx.set("client_id", client.client_id);
     const log = createLogMessage(ctx, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
@@ -142,7 +146,7 @@ export async function connectionCallback(
     loginSession.authParams.client_id,
   );
 
-  ctx.set("client_id", client.id);
+  ctx.set("client_id", client.client_id);
   ctx.set("tenant_id", client.tenant.id);
 
   const connection = client.connections.find(

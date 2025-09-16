@@ -79,14 +79,17 @@ export async function getTestServer(
   }
 
   // Add a client
-  await data.applications.create("tenantId", {
-    id: "clientId",
+  await data.clients.create("tenantId", {
+    client_id: "clientId",
     client_secret: "clientSecret",
     name: "Test Client",
     callbacks: ["https://example.com/callback", "http://localhost:3000/*"],
     allowed_logout_urls: ["https://example.com/callback"],
     web_origins: ["https://example.com"],
-    disable_sign_ups: false,
+    client_metadata: {
+      disable_sign_ups: "false",
+      email_validation: "disabled",
+    },
   });
 
   // Add the email connection

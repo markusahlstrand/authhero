@@ -67,7 +67,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
           message: "Client not found",
         });
       }
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
       const username = connection === "email" ? body.email : body.phone_number;
@@ -186,7 +186,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
 
       const client = await getClientWithDefaults(env, client_id);
 
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
       ctx.set("connection", "email");
 

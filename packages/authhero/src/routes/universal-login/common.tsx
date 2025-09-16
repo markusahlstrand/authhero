@@ -29,7 +29,7 @@ export async function initJSXRoute(
     env,
     loginSession.authParams.client_id,
   );
-  ctx.set("client_id", client.id);
+  ctx.set("client_id", client.client_id);
   ctx.set("tenant_id", client.tenant.id);
 
   const tenant = await env.data.tenants.get(client.tenant.id);
