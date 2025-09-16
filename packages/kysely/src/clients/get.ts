@@ -19,8 +19,10 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
+    const { tenant_id: _, ...clientWithoutTenantId } = client;
+
     return removeNullProperties({
-      ...client,
+      ...clientWithoutTenantId,
       // Convert integer fields back to booleans
       global: !!client.global,
       is_first_party: !!client.is_first_party,

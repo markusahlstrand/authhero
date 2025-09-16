@@ -232,8 +232,8 @@ export const clientInsertSchema = z.object({
 export type ClientInsert = z.input<typeof clientInsertSchema>;
 
 export const clientSchema = z.object({
-  created_at: z.string().transform((val) => (val === null ? "" : val)),
-  updated_at: z.string().transform((val) => (val === null ? "" : val)),
+  created_at: z.string(),
+  updated_at: z.string(),
   ...clientInsertSchema.shape,
 });
 
