@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.42.0
+
+### Minor Changes
+
+- Create new clients table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.89.0
+
 ## 10.41.0
 
 ### Minor Changes

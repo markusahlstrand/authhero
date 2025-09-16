@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import {
   applicationSchema,
   brandingSchema,
+  clientSchema,
   Code,
   connectionSchema,
   customDomainSchema,
@@ -194,9 +195,47 @@ export const sqlUserOrganizationSchema = z.object({
   updated_at: z.string(),
 });
 
+const sqlClientSchema = z.object({
+  ...clientSchema.shape,
+  tenant_id: z.string(),
+  // Convert boolean fields to integers for SQL storage
+  global: z.number(),
+  is_first_party: z.number(),
+  oidc_conformant: z.number(),
+  sso: z.number(),
+  sso_disabled: z.number(),
+  cross_origin_authentication: z.number(),
+  custom_login_page_on: z.number(),
+  require_pushed_authorization_requests: z.number(),
+  require_proof_of_possession: z.number(),
+  // Convert array/object fields to JSON strings for SQL storage
+  callbacks: z.string(),
+  allowed_origins: z.string(),
+  web_origins: z.string(),
+  client_aliases: z.string(),
+  allowed_clients: z.string(),
+  allowed_logout_urls: z.string(),
+  session_transfer: z.string(),
+  oidc_logout: z.string(),
+  grant_types: z.string(),
+  jwt_configuration: z.string(),
+  signing_keys: z.string(),
+  encryption_key: z.string(),
+  addons: z.string(),
+  client_metadata: z.string(),
+  mobile: z.string(),
+  native_social_login: z.string(),
+  refresh_token: z.string(),
+  default_organization: z.string(),
+  client_authentication_methods: z.string(),
+  signed_request_object: z.string(),
+  token_quota: z.string(),
+});
+
 export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
+  clients: z.infer<typeof sqlClientSchema>;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;

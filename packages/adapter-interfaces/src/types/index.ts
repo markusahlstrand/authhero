@@ -1,5 +1,6 @@
 export * from "./auth0";
 export * from "./Application";
+export * from "./Client";
 export * from "./Flows";
 export * from "./AuthParams";
 export * from "./Branding";
