@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
-import { AuthParams, Client, Session } from "@authhero/adapter-interfaces";
+import { AuthParams, LegacyClient, Session } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { createFrontChannelAuthResponse } from "./common";
 import { sendLink } from "../emails";
@@ -10,7 +10,7 @@ import { stringifyAuth0Client } from "../utils/client-info";
 
 interface UniversalAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
-  client: Client;
+  client: LegacyClient;
   session?: Session;
   authParams: AuthParams;
   auth0Client?: string;

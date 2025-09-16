@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.41.0
+
+### Minor Changes
+
+- Changed to LegacyClient as a first step in the refactor
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.88.0
+
 ## 10.40.0
 
 ### Minor Changes

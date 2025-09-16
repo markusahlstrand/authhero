@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { Client, Theme, Branding } from "@authhero/adapter-interfaces";
+import { LegacyClient, Theme, Branding } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
@@ -12,7 +12,7 @@ type Props = {
   error?: string;
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   email?: string;
   code?: string;
 };

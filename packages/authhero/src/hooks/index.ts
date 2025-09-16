@@ -1,5 +1,5 @@
 import {
-  Client,
+  LegacyClient,
   DataAdapters,
   LogTypes,
   User,
@@ -162,7 +162,7 @@ function createUserUpdateHooks(
 
 export async function preUserSignupHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client,
+  client: LegacyClient,
   data: DataAdapters,
   email: string,
 ) {
@@ -227,7 +227,7 @@ export async function postUserLoginHook(
   tenant_id: string,
   user: User,
   loginSession?: LoginSession,
-  params?: { client?: Client; authParams?: any },
+  params?: { client?: LegacyClient; authParams?: any },
 ): Promise<User | Response> {
   // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
   if (

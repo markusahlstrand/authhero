@@ -38,7 +38,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     applications: createApplicationsAdapter(db),
     branding: createBrandingAdapter(db),
     cleanup: createCleanup(db),
-    clients: createClientsAdapter(db),
+    legacyClients: createClientsAdapter(db),
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),
     emailProviders: createEmailProvidersAdapter(db),

@@ -3,10 +3,10 @@ import { connectionSchema } from "./Connection";
 import { applicationSchema } from "./Application";
 import { tenantSchema } from "./Tenant";
 
-const ClientSchema = z.object({
+const LegacyClientSchema = z.object({
   ...applicationSchema.shape,
   tenant: tenantSchema,
   connections: z.array(connectionSchema),
 });
 
-export type Client = z.infer<typeof ClientSchema>;
+export type LegacyClient = z.infer<typeof LegacyClientSchema>;

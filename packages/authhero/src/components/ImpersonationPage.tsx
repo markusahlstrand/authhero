@@ -4,7 +4,7 @@ import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import { GoBack } from "./GoBack";
-import { Client, Theme, Branding, User } from "@authhero/adapter-interfaces";
+import { LegacyClient, Theme, Branding, User } from "@authhero/adapter-interfaces";
 import { html } from "hono/html";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
   branding: Branding | null;
   user: User;
   state: string;
-  client: Client;
+  client: LegacyClient;
 };
 
 const ImpersonationPage: FC<Props> = (params) => {

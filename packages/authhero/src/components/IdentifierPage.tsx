@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import {
-  Client,
+  LegacyClient,
   LoginSession,
   Theme,
   Branding,
@@ -22,7 +22,7 @@ type Props = {
   branding: Branding | null;
   loginSession: LoginSession;
   email?: string;
-  client: Client;
+  client: LegacyClient;
 };
 
 const IdentifierPage: FC<Props> = ({

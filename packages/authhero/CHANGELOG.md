@@ -1,5 +1,17 @@
 # authhero
 
+## 0.211.0
+
+### Minor Changes
+
+- Changed to LegacyClient as a first step in the refactor
+- 11c4914: Refactor account pages
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.88.0
+
 ## 0.210.0
 
 ### Minor Changes

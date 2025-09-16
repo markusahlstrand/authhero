@@ -41,7 +41,9 @@ export async function ticketAuth(
     throw new HTTPException(403, { message: "Session not found" });
   }
 
-  const client = await env.data.clients.get(loginSession.authParams.client_id);
+  const client = await env.data.legacyClients.get(
+    loginSession.authParams.client_id,
+  );
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
   }

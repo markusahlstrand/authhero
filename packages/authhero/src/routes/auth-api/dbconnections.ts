@@ -61,7 +61,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { email, password, client_id } = ctx.req.valid("json");
 
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
       if (!client) {
         throw new HTTPException(400, {
           message: "Client not found",
@@ -156,7 +156,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { email, client_id } = ctx.req.valid("json");
 
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
       if (!client) {
         throw new HTTPException(400, {
           message: "Client not found",

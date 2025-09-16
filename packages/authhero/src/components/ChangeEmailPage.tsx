@@ -6,14 +6,14 @@ import cn from "classnames";
 import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
-import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 import Trans from "./Trans";
 
 type Props = {
   error?: string;
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   email: string;
   success?: boolean;
   state?: string;

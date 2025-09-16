@@ -2,7 +2,7 @@ import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
   AuthParams,
-  Client,
+  LegacyClient,
   LoginSession,
   User,
   LogTypes,
@@ -30,7 +30,7 @@ import renderAuthIframe from "../utils/authIframe";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
-  client: Client;
+  client: LegacyClient;
   loginSession?: LoginSession;
   user?: User;
   session_id?: string;
@@ -171,7 +171,7 @@ export async function createAuthTokens(
 
 export interface CreateCodeParams {
   user: User;
-  client: Client;
+  client: LegacyClient;
   authParams: AuthParams;
   login_id: string;
 }
@@ -203,7 +203,7 @@ export async function createCodeData(
 
 export interface CreateRefreshTokenParams {
   user: User;
-  client: Client;
+  client: LegacyClient;
   session_id: string;
   scope: string;
   audience?: string;
@@ -255,7 +255,7 @@ export async function createRefreshToken(
 
 export interface CreateSessionParams {
   user: User;
-  client: Client;
+  client: LegacyClient;
   loginSession: LoginSession;
 }
 
@@ -293,7 +293,7 @@ export async function createSession(
 
 export interface CreateAuthResponseParams {
   authParams: AuthParams;
-  client: Client;
+  client: LegacyClient;
   user: User;
   loginSession?: LoginSession;
   sessionId?: string;

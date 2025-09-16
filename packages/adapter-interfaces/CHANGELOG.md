@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.88.0
+
+### Minor Changes
+
+- Changed to LegacyClient as a first step in the refactor
+
 ## 0.87.0
 
 ### Minor Changes

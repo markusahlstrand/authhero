@@ -1,4 +1,4 @@
-import { Branding, Theme, Client } from "@authhero/adapter-interfaces";
+import { Branding, Theme, LegacyClient } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
 import Footer from "./Footer";
 import Icon from "./Icon";
@@ -10,7 +10,7 @@ type LayoutProps = {
   title: string;
   theme: Theme | null;
   branding: Branding | null;
-  client: Client | null;
+  client: LegacyClient | null;
 };
 
 const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {

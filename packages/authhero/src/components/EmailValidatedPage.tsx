@@ -3,12 +3,12 @@ import Layout from "./Layout";
 import Button from "./Button";
 import i18next from "i18next";
 import Icon from "./Icon";
-import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   state: string;
 };
 

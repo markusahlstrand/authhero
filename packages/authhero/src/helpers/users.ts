@@ -1,4 +1,4 @@
-import { Client, User, UserDataAdapter } from "@authhero/adapter-interfaces";
+import { LegacyClient, User, UserDataAdapter } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getDataAdapter } from "./data";
@@ -132,7 +132,7 @@ export async function getPrimaryUserByProvider({
 }
 
 interface GetOrCreateUserByProviderParams {
-  client: Client;
+  client: LegacyClient;
   username: string;
   provider: string;
   connection: string;

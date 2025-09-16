@@ -4,7 +4,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
 import {
   AuthParams,
-  Client,
+  LegacyClient,
   LoginSession,
   LogTypes,
 } from "@authhero/adapter-interfaces";
@@ -24,7 +24,7 @@ import { nanoid } from "nanoid";
 
 export async function passwordGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client,
+  client: LegacyClient,
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
 ): Promise<GrantFlowUserResult> {
@@ -153,7 +153,7 @@ export async function passwordGrant(
 
 export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client,
+  client: LegacyClient,
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
   ticketAuth?: boolean,
@@ -172,7 +172,7 @@ export async function requestPasswordReset(
     Bindings: Bindings;
     Variables: Variables;
   }>,
-  client: Client,
+  client: LegacyClient,
   email: string,
   state: string,
 ) {

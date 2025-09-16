@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import {
-  Client,
+  LegacyClient,
   connectionOptionsSchema,
   connectionSchema,
 } from "@authhero/adapter-interfaces";
@@ -10,8 +10,8 @@ import { getUniversalLoginUrl } from "../variables";
 export async function getClientWithDefaults(
   env: Bindings,
   clientId: string,
-): Promise<Client> {
-  const client = await env.data.clients.get(clientId);
+): Promise<LegacyClient> {
+  const client = await env.data.legacyClients.get(clientId);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
   }
@@ -22,7 +22,7 @@ export async function getClientWithDefaults(
 
   if (env.DEFAULT_CLIENT_ID || env.DEFAULT_TENANT_ID) {
     const defaultClient = env.DEFAULT_CLIENT_ID
-      ? await env.data.clients.get(env.DEFAULT_CLIENT_ID)
+      ? await env.data.legacyClients.get(env.DEFAULT_CLIENT_ID)
       : undefined;
 
     // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version

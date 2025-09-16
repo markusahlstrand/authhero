@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 import { GoBack } from "./GoBack";
 import i18next from "i18next";
 import Icon from "./Icon";
@@ -8,7 +8,7 @@ import Icon from "./Icon";
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   state: string;
 };
 

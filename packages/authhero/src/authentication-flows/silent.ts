@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import {
   AuthorizationResponseType,
-  Client,
+  LegacyClient,
   CodeChallengeMethod,
   LogTypes,
   Session,
@@ -15,7 +15,7 @@ import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
-  client: Client;
+  client: LegacyClient;
   session?: Session;
   redirect_uri: string;
   state: string;

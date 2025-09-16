@@ -1,7 +1,7 @@
 import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
-  Client,
+  LegacyClient,
   User,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
@@ -45,7 +45,7 @@ export type HookRequest = {
 
 export type HookEvent = {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
-  client?: Client;
+  client?: LegacyClient;
   request: HookRequest;
   transaction?: Transaction;
   user?: User;
