@@ -7,20 +7,6 @@ import { getPrimaryUserByEmail } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
-import { getAuthUrl } from "../../variables";
-import { nanoid } from "nanoid";
-
-function createAuthorizeRedirect(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client,
-): string {
-  const authorizeRedirectUrl = new URL(getAuthUrl(ctx.env));
-  authorizeRedirectUrl.pathname = "/authorize";
-  authorizeRedirectUrl.searchParams.set("client_id", client.id);
-  authorizeRedirectUrl.searchParams.set("redirect_uri", ctx.req.url);
-  authorizeRedirectUrl.searchParams.set("state", nanoid());
-  return authorizeRedirectUrl.toString();
-}
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -94,44 +80,41 @@ export async function initJSXRoute(
 
 export async function initJSXRouteWithSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client_id: string,
-  user_id?: string,
+  state: string,
 ) {
-  const { env } = ctx;
-
-  const client = await getClientWithDefaults(env, client_id);
-  ctx.set("client_id", client.id);
-  ctx.set("tenant_id", client.tenant.id);
-
-  // Fetch the cookie
-  const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
-  if (!authCookie) {
-    throw new RedirectException(createAuthorizeRedirect(ctx, client));
-  }
-
-  const session = await env.data.sessions.get(
-    ctx.var.tenant_id || "",
-    authCookie,
+  const { theme, branding, client, tenant, loginSession } = await initJSXRoute(
+    ctx,
+    state,
+    true,
   );
 
-  if (!session) {
-    throw new HTTPException(400, { message: "Session not found" });
+  const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
+
+  const authSession = authCookie
+    ? await ctx.env.data.sessions.get(client.tenant.id, authCookie)
+    : null;
+
+  if (!authSession || !loginSession.session_id) {
+    throw new RedirectException(
+      `/u/login/identifier?state=${encodeURIComponent(state)}`,
+    );
   }
 
-  // If user_id is provided, validate that it matches the current session's user
-  if (user_id && session.user_id !== user_id) {
-    // Trigger a new login by redirecting to authorize endpoint
-    throw new RedirectException(createAuthorizeRedirect(ctx, client));
-  }
+  // Check that the user in the session matches the cookie session user
+  const session = await ctx.env.data.sessions.get(
+    client.tenant.id,
+    loginSession.session_id,
+  );
 
-  const [theme, branding, user] = await Promise.all([
-    env.data.themes.get(client.tenant.id, "default"),
-    env.data.branding.get(client.tenant.id),
-    env.data.users.get(client.tenant.id, session.user_id),
-  ]);
+  const user = await ctx.env.data.users.get(
+    client.tenant.id,
+    authSession.user_id,
+  );
 
-  if (!user) {
-    throw new HTTPException(400, { message: "User not found" });
+  if (!user || session?.user_id !== authSession.user_id) {
+    throw new RedirectException(
+      `/u/login/identifier?state=${encodeURIComponent(state)}`,
+    );
   }
 
   return {
@@ -139,6 +122,9 @@ export async function initJSXRouteWithSession(
     branding,
     client,
     user,
+    tenant,
+    loginSession,
+    session,
   };
 }
 

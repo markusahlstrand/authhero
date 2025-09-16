@@ -1,9 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRoute } from "./common";
+import { initJSXRouteWithSession } from "./common";
 import AccountChangeEmailPage from "../../components/AccountChangeEmailPage";
-import { getAuthCookie } from "../../utils/cookies";
-import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { sendCode } from "../../emails";
 import generateOTP from "../../utils/otp";
@@ -50,57 +48,13 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
-      // Get theme and branding from initJSXRoute
-      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
-
-      if (!client || !client.tenant?.id) {
-        console.error(
-          "Client or tenant ID missing in GET /u/account/change-email after initJSXRoute",
-        );
-        return ctx.html(
-          <MessagePage
-            theme={theme}
-            branding={branding}
-            client={client}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") ||
-              "A configuration error occurred."
-            }
-          />,
-          500,
-        );
-      }
-
-      const authCookie = getAuthCookie(
-        client.tenant.id,
-        ctx.req.header("cookie"),
+      // Get theme, branding and user from initJSXRoute
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
+        ctx,
+        state,
       );
-
-      const authSession = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : null;
-
-      if (!authSession) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
-      }
-
-      const user = await env.data.users.get(
-        client.tenant.id,
-        authSession.user_id,
-      );
-
-      if (!user) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
-      }
 
       return ctx.html(
         <AccountChangeEmailPage
@@ -162,54 +116,11 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { email } = ctx.req.valid("form");
 
-      // Get theme and branding from initJSXRoute
-      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
-
-      if (!client || !client.tenant?.id) {
-        console.error(
-          "Client or tenant ID missing in POST /u/account/change-email after initJSXRoute",
-        );
-        return ctx.html(
-          <MessagePage
-            theme={theme}
-            branding={branding}
-            client={client}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") ||
-              "A configuration error occurred."
-            }
-          />,
-          500,
-        );
-      }
-
-      const authCookie = getAuthCookie(
-        client.tenant.id,
-        ctx.req.header("cookie"),
+      // Get theme, branding and user from initJSXRoute
+      const { theme, branding, client, user } = await initJSXRouteWithSession(
+        ctx,
+        state,
       );
-
-      const authSession = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : null;
-
-      if (!authSession) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
-      }
-
-      const user = await env.data.users.get(
-        client.tenant.id,
-        authSession.user_id,
-      );
-
-      if (!user) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
-      }
 
       // Check if email is already taken by checking existing users
       const existingUsers = await env.data.users.list(client.tenant.id, {
@@ -285,7 +196,7 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
 
       // Redirect to verification page
       return ctx.redirect(
-        `/u/change-email-verify?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}&change_id=${changeId}`,
+        `/u/account/change-email-verify?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}&change_id=${changeId}`,
       );
     },
   );

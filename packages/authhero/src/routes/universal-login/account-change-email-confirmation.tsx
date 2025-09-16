@@ -1,7 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRoute } from "./common";
-import { getAuthCookie } from "../../utils/cookies";
+import { initJSXRouteWithSession } from "./common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
@@ -11,7 +10,7 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
   Variables: Variables;
 }>()
   // --------------------------------
-  // GET /u/change-email-confirmation
+  // GET /u/account/change-email-confirmation
   // --------------------------------
   .openapi(
     createRoute({
@@ -47,11 +46,11 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { env } = ctx;
       const { state, email } = ctx.req.valid("query");
 
-      // Get theme and branding from initJSXRoute
-      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
+      // Get theme, branding and user from initJSXRoute
+      const { theme, branding, client, loginSession } =
+        await initJSXRouteWithSession(ctx, state);
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -73,31 +72,8 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         );
       }
 
-      const authCookie = getAuthCookie(
-        client.tenant.id,
-        ctx.req.header("cookie"),
-      );
-
-      const authSession = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : null;
-
-      if (!authSession || authSession.revoked_at) {
-        return ctx.redirect(
-          `/u/login/identifier?state=${encodeURIComponent(state)}`,
-        );
-      }
-
-      // Get the login session to check for screen_hint
-      const loginSession = await env.data.loginSessions.get(
-        client.tenant.id,
-        state,
-      );
-
       // Check if the authorization_url contains screen_hint=change-email
-      let redirectUrl = state
-        ? `/u/account?state=${encodeURIComponent(state)}`
-        : `/u/account?client_id=${encodeURIComponent(client.id)}`;
+      let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
 
       if (loginSession?.authorization_url) {
         const authUrl = new URL(loginSession.authorization_url);

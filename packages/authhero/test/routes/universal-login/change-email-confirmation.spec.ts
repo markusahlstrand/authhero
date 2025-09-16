@@ -22,7 +22,9 @@ describe("change-email-confirmation", () => {
     });
 
     // Access change-email-confirmation page
-    const response = await universalClient["change-email-confirmation"].$get(
+    const response = await universalClient.account[
+      "change-email-confirmation"
+    ].$get(
       {
         query: {
           state: loginSession.id,
@@ -65,7 +67,9 @@ describe("change-email-confirmation", () => {
     });
 
     // Access change-email-confirmation page
-    const response = await universalClient["change-email-confirmation"].$get(
+    const response = await universalClient.account[
+      "change-email-confirmation"
+    ].$get(
       {
         query: {
           state: loginSession.id,
@@ -96,7 +100,9 @@ describe("change-email-confirmation", () => {
     const { session } = await createSessions(env.data);
 
     // Access change-email-confirmation page with non-existent state
-    const response = await universalClient["change-email-confirmation"].$get(
+    const response = await universalClient.account[
+      "change-email-confirmation"
+    ].$get(
       {
         query: {
           state: "non-existent-state",
