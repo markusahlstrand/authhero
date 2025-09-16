@@ -117,7 +117,6 @@ describe("themes", () => {
     // ----------------------------------------
     const retrievedTheme = await data.themes.get("tenantId", themeId);
 
-    console.log(retrievedTheme);
     expect(retrievedTheme).toMatchObject({
       themeId,
       displayName: "Test Theme",
