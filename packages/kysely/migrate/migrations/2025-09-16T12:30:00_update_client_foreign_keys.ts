@@ -38,7 +38,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("tenant_id", "varchar(255)", (col) =>
       col.references("tenants.id").onDelete("cascade").notNull(),
     )
-    .addColumn("client_id", "varchar(21)", (col) => col.notNull())
+    .addColumn("client_id", "varchar(191)", (col) => col.notNull())
     .addColumn("session_id", "varchar(21)", (col) => col.notNull())
     .addColumn("user_id", "varchar(255)")
     .addColumn("resource_servers", "text", (col) => col.notNull())
@@ -62,7 +62,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("sessions")
     .addColumn("id", "varchar(21)", (col) => col.notNull())
-    .addColumn("tenant_id", "varchar(255)")
+    .addColumn("tenant_id", "varchar(191)")
     .addColumn("user_id", "varchar(255)")
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
@@ -73,7 +73,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("used_at", "varchar(35)")
     .addColumn("revoked_at", "varchar(35)")
     .addColumn("device", "text", (col) => col.notNull())
-    .addColumn("clients", "varchar(1024)", (col) => col.notNull())
+    .addColumn("clients", "text", (col) => col.notNull())
     .addColumn("login_session_id", "varchar(21)")
     .addPrimaryKeyConstraint("sessions_pk", ["tenant_id", "id"])
     .addForeignKeyConstraint(
@@ -94,7 +94,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     )
     .addColumn("session_id", "varchar(21)")
     .addColumn("csrf_token", "varchar(21)", (col) => col.notNull())
-    .addColumn("authParams_client_id", "varchar(255)", (col) => col.notNull())
+    .addColumn("authParams_client_id", "varchar(191)", (col) => col.notNull())
     .addColumn("authParams_vendor_id", "varchar(255)")
     .addColumn("authParams_username", "varchar(255)")
     .addColumn("authParams_response_type", "varchar(255)")
@@ -191,6 +191,6 @@ export async function down(db: Kysely<Database>): Promise<void> {
   // Remove the foreign key constraint from login_sessions
   await db.schema
     .alterTable("login_sessions")
-    .dropConstraint("login_sessions_client_id_fk")
+    .dropConstraint("login_sessions_client_fk")
     .execute();
 }
