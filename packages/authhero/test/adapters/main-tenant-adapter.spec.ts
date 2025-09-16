@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { createMainTenantAdapter } from "../../src/adapters/main-tenant-adapter";
-import { DataAdapters, Client, Connection } from "@authhero/adapter-interfaces";
+import { DataAdapters, LegacyClient, Connection } from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
 const createMockAdapters = (): DataAdapters => ({
-  clients: {
-    get: async (id: string): Promise<Client | null> => {
-      const clients: Record<string, Client> = {
+  legacyClients: {
+    get: async (id: string): Promise<LegacyClient | null> => {
+      const clients: Record<string, LegacyClient> = {
         "main-client": {
           id: "main-client",
           name: "Main Client",
@@ -146,7 +146,8 @@ const createMockAdapters = (): DataAdapters => ({
   loginSessions: {} as any,
   logs: {} as any,
   passwords: {} as any,
-  permissions: {} as any,
+  rolePermissions: {} as any,
+  userPermissions: {} as any,
   promptSettings: {} as any,
   refreshTokens: {} as any,
   resourceServers: {} as any,
@@ -155,6 +156,9 @@ const createMockAdapters = (): DataAdapters => ({
   tenants: {} as any,
   themes: {} as any,
   users: {} as any,
+  userRoles: {} as any,
+  organizations: {} as any,
+  userOrganizations: {} as any,
 });
 
 describe("Main Tenant Adapter", () => {
@@ -171,7 +175,7 @@ describe("Main Tenant Adapter", () => {
 
   describe("clients", () => {
     it("should merge client properties with main client fallbacks", async () => {
-      const client = await mainTenantAdapter.clients.get("tenant-client");
+      const client = await mainTenantAdapter.legacyClients.get("tenant-client");
 
       expect(client).toBeDefined();
       expect(client!.web_origins).toEqual([
@@ -189,7 +193,7 @@ describe("Main Tenant Adapter", () => {
     });
 
     it("should return null for non-existent client", async () => {
-      const client = await mainTenantAdapter.clients.get("non-existent");
+      const client = await mainTenantAdapter.legacyClients.get("non-existent");
       expect(client).toBeNull();
     });
   });

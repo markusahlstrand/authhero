@@ -18,7 +18,7 @@ export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof clientCredentialGrantParamsSchema>,
 ): Promise<GrantFlowResult> {
-  const client = await ctx.env.data.clients.get(params.client_id);
+  const client = await ctx.env.data.legacyClients.get(params.client_id);
 
   if (!client) {
     throw new HTTPException(403, { message: "Invalid client credentials" });

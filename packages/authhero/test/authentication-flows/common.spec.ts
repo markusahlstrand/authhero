@@ -26,7 +26,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.clients.get("clientId");
+      const client = await env.data.legacyClients.get("clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -67,7 +67,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.clients.get("clientId");
+      const client = await env.data.legacyClients.get("clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -127,7 +127,7 @@ describe("common", () => {
       },
     });
 
-    const client = await env.data.clients.get("clientId");
+    const client = await env.data.legacyClients.get("clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -223,7 +223,7 @@ describe("common", () => {
       session_id: session.id,
     });
 
-    const client = await env.data.clients.get("clientId");
+    const client = await env.data.legacyClients.get("clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -333,7 +333,7 @@ describe("common", () => {
       session_id: session.id,
     });
 
-    const client = await env.data.clients.get("clientId");
+    const client = await env.data.legacyClients.get("clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -381,7 +381,7 @@ describe("common", () => {
       Variables: Variables;
     }>;
 
-    const client = await env.data.clients.get("clientId");
+    const client = await env.data.legacyClients.get("clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -490,7 +490,7 @@ describe("common", () => {
         "Username-Password-Authentication",
       );
 
-      const client = await env.data.clients.get("clientId");
+      const client = await env.data.legacyClients.get("clientId");
       if (!client) {
         throw new Error("Client not found");
       }
@@ -562,7 +562,7 @@ describe("common", () => {
         email: "foo@example.com",
       });
 
-      const client = await env.data.clients.get("clientId");
+      const client = await env.data.legacyClients.get("clientId");
       if (!client || !user) {
         throw new Error("Client or user not found");
       }
@@ -632,7 +632,7 @@ describe("common", () => {
         email: "foo@example.com",
       });
 
-      const client = await env.data.clients.get("clientId");
+      const client = await env.data.legacyClients.get("clientId");
       if (!client || !user) {
         throw new Error("Client or user not found");
       }

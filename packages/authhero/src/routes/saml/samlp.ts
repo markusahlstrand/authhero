@@ -42,7 +42,7 @@ export const samlpRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id } = ctx.req.valid("param");
 
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
 
       if (!client) {
         throw new HTTPException(404, {
@@ -117,7 +117,7 @@ export const samlpRoutes = new OpenAPIHono<{
       const { client_id } = ctx.req.valid("param");
       const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
       if (!client) {
         throw new HTTPException(404, {
           message: "Client not found",

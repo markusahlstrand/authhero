@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { AuthParams, Client, User } from "@authhero/adapter-interfaces";
+import { AuthParams, LegacyClient, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { SAMLResponseJSON } from "../types/saml";
 import { XMLBuilder } from "fast-xml-parser";
@@ -73,7 +73,7 @@ export function samlResponseForm(
 
 export async function samlCallback(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: Client,
+  client: LegacyClient,
   authParams: AuthParams,
   user: User,
   sid: string,

@@ -1,10 +1,10 @@
-import { Branding, Client, Theme } from "@authhero/adapter-interfaces";
+import { Branding, LegacyClient, Theme } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
-  client: Client | null;
+  client: LegacyClient | null;
 };
 const Footer = (_props: Props) => {
   return (

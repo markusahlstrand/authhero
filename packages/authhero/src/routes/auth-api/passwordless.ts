@@ -61,7 +61,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const { env } = ctx;
       const { client_id, send, authParams, connection } = body;
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
       if (!client) {
         throw new HTTPException(400, {
           message: "Client not found",

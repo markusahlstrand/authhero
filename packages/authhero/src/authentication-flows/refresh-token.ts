@@ -15,7 +15,7 @@ export async function refreshTokenGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof refreshTokenParamsSchema>,
 ): Promise<GrantFlowUserResult> {
-  const client = await ctx.env.data.clients.get(params.client_id);
+  const client = await ctx.env.data.legacyClients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
   }

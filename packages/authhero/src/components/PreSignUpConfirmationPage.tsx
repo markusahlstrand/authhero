@@ -1,6 +1,6 @@
 import type { FC, JSXNode } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { GoBack } from "./GoBack";
 import Icon from "./Icon";
@@ -9,7 +9,7 @@ import Trans from "./Trans";
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   email: string;
   state: string;
 };

@@ -2,13 +2,13 @@ import Layout from "./Layout";
 import Icon from "./Icon";
 import i18next from "i18next";
 import type { FC } from "hono/jsx";
-import { Theme, Branding, Client } from "@authhero/adapter-interfaces";
+import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 import { GoBack } from "./GoBack";
 
 type Props = {
   theme: Theme | null;
   branding: Branding | null;
-  client: Client;
+  client: LegacyClient;
   state: string;
 };
 

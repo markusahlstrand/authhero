@@ -44,7 +44,7 @@ export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
 ): Promise<GrantFlowUserResult> {
-  const client = await ctx.env.data.clients.get(params.client_id);
+  const client = await ctx.env.data.legacyClients.get(params.client_id);
   if (!client) {
     throw new HTTPException(403, { message: "Client not found" });
   }
@@ -75,7 +75,8 @@ export async function authorizationCodeGrantUser(
   // Validate the secret or PKCE
   if ("client_secret" in params) {
     // A temporary solution to handle cross tenant clients
-    const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
+    const defaultClient =
+      await ctx.env.data.legacyClients.get("DEFAULT_CLIENT");
 
     // Code flow
     if (

@@ -1,6 +1,6 @@
 import {
   DataAdapters,
-  Client,
+  LegacyClient,
   Connection,
   connectionSchema,
   connectionOptionsSchema,
@@ -24,16 +24,16 @@ export function createMainTenantAdapter(
   return {
     ...baseAdapters,
 
-    clients: {
-      get: async (clientId: string): Promise<Client | null> => {
-        const client = await baseAdapters.clients.get(clientId);
+    legacyClients: {
+      get: async (clientId: string): Promise<LegacyClient | null> => {
+        const client = await baseAdapters.legacyClients.get(clientId);
         if (!client) {
           return null;
         }
 
         // Get the main client for fallback values
         const mainClient = mainClientId
-          ? await baseAdapters.clients.get(mainClientId)
+          ? await baseAdapters.legacyClients.get(mainClientId)
           : undefined;
 
         // Get connections for this tenant

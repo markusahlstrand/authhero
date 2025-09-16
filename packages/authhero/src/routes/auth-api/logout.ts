@@ -36,13 +36,14 @@ export const logoutRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id, returnTo } = ctx.req.valid("query");
 
-      const client = await ctx.env.data.clients.get(client_id);
+      const client = await ctx.env.data.legacyClients.get(client_id);
       if (!client) {
         return ctx.text("OK");
       }
 
       // A temporary solution to handle cross tenant clients
-      const defaultClient = await ctx.env.data.clients.get("DEFAULT_CLIENT");
+      const defaultClient =
+        await ctx.env.data.legacyClients.get("DEFAULT_CLIENT");
 
       ctx.set("client_id", client_id);
       ctx.set("tenant_id", client.tenant.id);

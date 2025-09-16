@@ -3,7 +3,7 @@ export * from "./Application";
 export * from "./Flows";
 export * from "./AuthParams";
 export * from "./Branding";
-export * from "./Client";
+export * from "./LegacyClient";
 export * from "./Code";
 export * from "./Connection";
 export * from "./CustomDomain";

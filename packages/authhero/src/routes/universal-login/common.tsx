@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
-import { Client } from "@authhero/adapter-interfaces";
+import { LegacyClient } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
@@ -130,7 +130,7 @@ export async function initJSXRouteWithSession(
 
 export async function usePasswordLogin(
   ctx: Context,
-  client: Client,
+  client: LegacyClient,
   username: string,
   login_selection?: "password" | "code",
 ) {

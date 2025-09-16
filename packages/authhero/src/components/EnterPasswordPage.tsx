@@ -6,7 +6,7 @@ import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
-import { Client, Theme, Branding } from "@authhero/adapter-interfaces";
+import { LegacyClient, Theme, Branding } from "@authhero/adapter-interfaces";
 import PasswordInput from "./PasswordInput";
 import { html } from "hono/html";
 
@@ -16,7 +16,7 @@ type Props = {
   branding: Branding | null;
   email: string;
   state: string;
-  client: Client;
+  client: LegacyClient;
 };
 
 const EnterPasswordPage: FC<Props> = (params) => {
