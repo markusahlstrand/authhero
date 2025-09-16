@@ -103,7 +103,7 @@ export async function samlCallback(
 
   if (!client.addons?.samlp) {
     throw new HTTPException(400, {
-      message: `SAML Addon is not enabled for client ${client.id}`,
+      message: `SAML Addon is not enabled for client ${client.client_id}`,
     });
   }
 

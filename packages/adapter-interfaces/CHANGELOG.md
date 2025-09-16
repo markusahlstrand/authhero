@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.90.0
+
+### Minor Changes
+
+- Update to use new clients
+
 ## 0.89.0
 
 ### Minor Changes

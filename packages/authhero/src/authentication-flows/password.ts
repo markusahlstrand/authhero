@@ -217,7 +217,7 @@ export async function requestPasswordReset(
         Date.now() + LOGIN_SESSION_EXPIRATION_TIME,
       ).toISOString(),
       authParams: {
-        client_id: client.id,
+        client_id: client.client_id,
         username: email,
       },
       csrf_token: nanoid(),

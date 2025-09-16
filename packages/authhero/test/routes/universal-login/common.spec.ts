@@ -68,7 +68,7 @@ describe("initJSXRoute", () => {
       expect(result.theme).toBeDefined();
 
       // Verify client details
-      expect(result.client.id).toBe("clientId");
+      expect(result.client.client_id).toBe("clientId");
       expect(result.client.name).toBe("Test Client");
       expect(result.client.tenant.id).toBe("tenantId");
 
@@ -186,8 +186,10 @@ describe("initJSXRoute", () => {
       }
     });
 
-    it("should throw HTTPException when tenant not found", async () => {
-      // Create login session with non-existent tenant
+    it("should throw HTTPException when creating login session with non-existent client", async () => {
+      // With the new foreign key constraints, we can't create a login session
+      // with a non-existent client, so this test should verify that the
+      // database constraint is properly enforced
       const invalidTenantState = nanoid();
       const invalidTenantLoginSession = {
         ...mockLoginSession,
@@ -198,13 +200,13 @@ describe("initJSXRoute", () => {
         },
       };
 
-      // This will fail because the client doesn't exist, which means tenant lookup will fail
-      await testServer.env.data.loginSessions.create(
-        "tenantId",
-        invalidTenantLoginSession,
-      );
-
-      await expect(initJSXRoute(ctx, invalidTenantState)).rejects.toThrow();
+      // This should fail due to foreign key constraint
+      await expect(
+        testServer.env.data.loginSessions.create(
+          "tenantId",
+          invalidTenantLoginSession,
+        ),
+      ).rejects.toThrow();
     });
 
     it("should throw RedirectException when login session is closed and allowSession is false", async () => {

@@ -1,6 +1,11 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding, User, LegacyClient } from "@authhero/adapter-interfaces";
+import {
+  Theme,
+  Branding,
+  User,
+  LegacyClient,
+} from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import PenIcon from "./IconPen";
@@ -63,7 +68,7 @@ const AccountPage: FC<Props> = (params) => {
             href={
               state
                 ? `/u/account/change-email?state=${encodeURIComponent(state)}`
-                : `/u/account/change-email?client_id=${encodeURIComponent(client.id)}`
+                : `/u/account/change-email?client_id=${encodeURIComponent(client.client_id)}`
             }
           >
             <PenIcon />

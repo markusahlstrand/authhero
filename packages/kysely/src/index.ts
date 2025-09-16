@@ -8,7 +8,7 @@ import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
 import { createApplicationsAdapter } from "./applications";
 import { createConnectionsAdapter } from "./connections";
-// import { createClientsAdapter } from "./clients";
+import { createClientsAdapter } from "./clients";
 import { createLegacyClientsAdapter } from "./legacy-clients";
 import { createKeysAdapter } from "./keys";
 import { createCustomDomainsAdapter } from "./customDomains";
@@ -39,23 +39,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     applications: createApplicationsAdapter(db),
     branding: createBrandingAdapter(db),
     cleanup: createCleanup(db),
-    clients: {
-      create: async () => {
-        throw new Error("Not implemented");
-      },
-      get: async () => {
-        throw new Error("Not implemented");
-      },
-      list: async () => {
-        throw new Error("Not implemented");
-      },
-      remove: async () => {
-        throw new Error("Not implemented");
-      },
-      update: async () => {
-        throw new Error("Not implemented");
-      },
-    },
+    clients: createClientsAdapter(db),
     legacyClients: createLegacyClientsAdapter(db),
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),

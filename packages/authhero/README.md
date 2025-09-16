@@ -51,7 +51,7 @@ hooks: {
     event: OnExecuteCredentialsExchangeEvent,
     api: OnExecuteCredentialsExchangeAPI,
   ) => {
-    if (event.client.id === "sampleClient") {
+    if (event.client.client_id === "sampleClient") {
       api.accessToken.setCustomClaim("roles", "admin");
     }
   }

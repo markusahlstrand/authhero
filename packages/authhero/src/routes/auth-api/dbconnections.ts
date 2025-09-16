@@ -67,7 +67,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
           message: "Client not found",
         });
       }
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
       // auth0 returns a detailed JSON response with the way the password does match the strength rules
@@ -162,7 +162,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
           message: "Client not found",
         });
       }
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
       const existingUser = await getUserByProvider({

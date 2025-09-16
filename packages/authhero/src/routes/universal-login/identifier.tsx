@@ -106,7 +106,7 @@ export const identifierRoutes = new OpenAPIHono<{
         ctx,
         state,
       );
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
 
       const countryCode = ctx.get("countryCode");
       // Note: country code not available in theme or branding schema yet

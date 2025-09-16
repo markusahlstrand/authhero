@@ -17,7 +17,7 @@ describe("client-credentials-hooks", () => {
         event: HookEvent,
         api: OnExecuteCredentialsExchangeAPI,
       ) => {
-        if (event.client?.id === "clientId") {
+        if (event.client?.client_id === "clientId") {
           api.accessToken.setCustomClaim("foo", "bar");
         }
       },

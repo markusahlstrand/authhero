@@ -18,14 +18,16 @@ describe("cleanup", () => {
     });
 
     // Add a client
-    await data.applications.create("tenantId", {
-      id: "clientId",
+    await data.clients.create("tenantId", {
+      client_id: "clientId",
       client_secret: "clientSecret",
       name: "Test Client",
       callbacks: ["https://example.com/callback"],
       allowed_logout_urls: ["https://example.com/callback"],
       web_origins: ["https://example.com"],
-      disable_sign_ups: false,
+      client_metadata: {
+        disable_sign_ups: "false",
+      },
     });
 
     // Add a test user
@@ -131,14 +133,16 @@ describe("cleanup", () => {
     });
 
     // Add a client
-    await data.applications.create("tenantId", {
-      id: "clientId",
+    await data.clients.create("tenantId", {
+      client_id: "clientId",
       client_secret: "clientSecret",
       name: "Test Client",
       callbacks: ["https://example.com/callback"],
       allowed_logout_urls: ["https://example.com/callback"],
       web_origins: ["https://example.com"],
-      disable_sign_ups: false,
+      client_metadata: {
+        disable_sign_ups: "false",
+      },
     });
 
     // Add a test user
@@ -214,14 +218,16 @@ describe("cleanup", () => {
     });
 
     // Add a client
-    await data.applications.create("tenantId", {
-      id: "clientId",
+    await data.clients.create("tenantId", {
+      client_id: "clientId",
       client_secret: "clientSecret",
       name: "Test Client",
       callbacks: ["https://example.com/callback"],
       allowed_logout_urls: ["https://example.com/callback"],
       web_origins: ["https://example.com"],
-      disable_sign_ups: false,
+      client_metadata: {
+        disable_sign_ups: "false",
+      },
     });
 
     // Add a test user

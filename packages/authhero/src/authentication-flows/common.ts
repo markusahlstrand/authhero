@@ -226,7 +226,7 @@ export async function createRefreshToken(
     {
       id: nanoid(),
       session_id,
-      client_id: client.id,
+      client_id: client.client_id,
       idle_expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
       ).toISOString(),
@@ -280,7 +280,7 @@ export async function createSession(
       initial_asn: "",
       last_asn: "",
     },
-    clients: [client.id],
+    clients: [client.client_id],
   });
 
   // Store the session id in the login session
@@ -373,9 +373,12 @@ export async function createFrontChannelAuthResponse(
     );
 
     // Ensure the client is associated with the existing session
-    if (existingSession && !existingSession.clients.includes(client.id)) {
+    if (
+      existingSession &&
+      !existingSession.clients.includes(client.client_id)
+    ) {
       await ctx.env.data.sessions.update(client.tenant.id, session_id, {
-        clients: [...existingSession.clients, client.id],
+        clients: [...existingSession.clients, client.client_id],
       });
     }
   } else if (!session_id) {

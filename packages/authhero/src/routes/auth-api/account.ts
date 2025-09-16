@@ -68,7 +68,7 @@ export const accountRoutes = new OpenAPIHono<{
       ctx.set("log", "account");
 
       const client = await getClientWithDefaults(env, client_id);
-      ctx.set("client_id", client.id);
+      ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
       const authParams: AuthParams = {

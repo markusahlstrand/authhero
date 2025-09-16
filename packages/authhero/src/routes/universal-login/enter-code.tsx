@@ -200,10 +200,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
       }
 
       try {
-        ctx.set("client_id", client.id);
+        ctx.set("client_id", client.client_id);
 
         const result = await passwordlessGrant(ctx, {
-          client_id: client.id,
+          client_id: client.client_id,
           authParams: loginSession.authParams,
           username: loginSession.authParams.username,
           otp: code,

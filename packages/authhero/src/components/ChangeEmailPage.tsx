@@ -62,7 +62,7 @@ const ChangeEmailPage: FC<Props> = ({
               redirectUrl ||
               (state
                 ? `/u/account?state=${encodeURIComponent(state)}`
-                : `/u/account?client_id=${encodeURIComponent(client.id)}`)
+                : `/u/account?client_id=${encodeURIComponent(client.client_id)}`)
             }
             className="sm:mt-4 !text-base"
           >
@@ -134,7 +134,7 @@ const ChangeEmailPage: FC<Props> = ({
           href={
             state
               ? `/u/account?state=${encodeURIComponent(state)}`
-              : `/u/account?client_id=${encodeURIComponent(client.id)}`
+              : `/u/account?client_id=${encodeURIComponent(client.client_id)}`
           }
         >
           {i18next.t("go_back")}

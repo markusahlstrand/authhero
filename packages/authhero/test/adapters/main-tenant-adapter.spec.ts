@@ -1,6 +1,10 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { createMainTenantAdapter } from "../../src/adapters/main-tenant-adapter";
-import { DataAdapters, LegacyClient, Connection } from "@authhero/adapter-interfaces";
+import {
+  DataAdapters,
+  LegacyClient,
+  Connection,
+} from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
 const createMockAdapters = (): DataAdapters => ({
@@ -8,7 +12,7 @@ const createMockAdapters = (): DataAdapters => ({
     get: async (id: string): Promise<LegacyClient | null> => {
       const clients: Record<string, LegacyClient> = {
         "main-client": {
-          id: "main-client",
+          client_id: "main-client",
           name: "Main Client",
           client_secret: "secret",
           web_origins: ["https://main.example.com"],
@@ -25,11 +29,21 @@ const createMockAdapters = (): DataAdapters => ({
             updated_at: "2023-01-01T00:00:00Z",
           },
           disable_sign_ups: false,
+          email_validation: "disabled",
           created_at: "2023-01-01T00:00:00Z",
           updated_at: "2023-01-01T00:00:00Z",
+          global: false,
+          is_first_party: false,
+          oidc_conformant: true,
+          sso: false,
+          sso_disabled: true,
+          cross_origin_authentication: false,
+          custom_login_page_on: false,
+          require_pushed_authorization_requests: false,
+          require_proof_of_possession: false,
         },
         "tenant-client": {
-          id: "tenant-client",
+          client_id: "tenant-client",
           name: "Tenant Client",
           client_secret: "tenant-secret",
           web_origins: ["https://tenant.example.com"],
@@ -46,8 +60,18 @@ const createMockAdapters = (): DataAdapters => ({
             updated_at: "2023-01-01T00:00:00Z",
           },
           disable_sign_ups: false,
+          email_validation: "disabled",
           created_at: "2023-01-01T00:00:00Z",
           updated_at: "2023-01-01T00:00:00Z",
+          global: false,
+          is_first_party: false,
+          oidc_conformant: true,
+          sso: false,
+          sso_disabled: true,
+          cross_origin_authentication: false,
+          custom_login_page_on: false,
+          require_pushed_authorization_requests: false,
+          require_proof_of_possession: false,
         },
       };
       return clients[id] || null;
@@ -134,6 +158,7 @@ const createMockAdapters = (): DataAdapters => ({
       throw new Error("Not implemented");
     },
   },
+  clients: {} as any,
   // Mock other adapters
   applications: {} as any,
   branding: {} as any,

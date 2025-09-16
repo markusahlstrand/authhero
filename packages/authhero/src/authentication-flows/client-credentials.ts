@@ -32,7 +32,7 @@ export async function clientCredentialsGrant(
   }
 
   const authParams: AuthParams = {
-    client_id: client.id,
+    client_id: client.client_id,
     scope: params.scope,
     audience: params.audience,
   };
