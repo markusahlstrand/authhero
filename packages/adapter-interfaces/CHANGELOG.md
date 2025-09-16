@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.89.0
+
+### Minor Changes
+
+- Create new clients table
+
 ## 0.88.0
 
 ### Minor Changes

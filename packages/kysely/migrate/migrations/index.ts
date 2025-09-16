@@ -94,6 +94,7 @@ import * as n94_keys_connection_and_extend_columns from "./2025-08-20T12:00:00_k
 import * as n95_create_organizations_table from "./2025-09-10T10:00:00_create_organizations_table";
 import * as n96_create_user_organizations_table from "./2025-09-10T11:00:00_create_user_organizations_table";
 import * as n97_add_organization_to_user_permissions_and_roles from "./2025-09-11T12:00:00_add_organization_to_user_permissions_and_roles";
+import * as n98_clients from "./2025-09-16T12:00:00_clients";
 
 // These need to be in alphabetic order
 export default {
@@ -193,4 +194,5 @@ export default {
   n95_create_organizations_table,
   n96_create_user_organizations_table,
   n97_add_organization_to_user_permissions_and_roles,
+  n98_clients,
 };

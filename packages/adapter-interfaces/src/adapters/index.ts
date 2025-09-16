@@ -1,4 +1,5 @@
 import { CacheAdapter } from "./Cache";
+import { ClientsAdapter } from "./Clients";
 import { CodesAdapter } from "./Codes";
 import { PasswordsAdapter } from "./Passwords";
 import { SessionsAdapter } from "./Sessions";
@@ -30,6 +31,7 @@ export interface DataAdapters {
   applications: ApplicationsAdapter;
   branding: BrandingAdapter;
   cache?: CacheAdapter;
+  clients: ClientsAdapter;
   legacyClients: LegacyClientsAdapter;
   codes: CodesAdapter;
   connections: ConnectionsAdapter;
@@ -57,6 +59,7 @@ export interface DataAdapters {
 }
 
 export * from "./Cache";
+export * from "./Clients";
 export * from "./Keys";
 export * from "./RolePermissions";
 export * from "./UserPermissions";
