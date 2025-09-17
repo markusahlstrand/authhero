@@ -8,6 +8,7 @@ import {
   TabbedForm,
   required,
   NumberInput,
+  FormDataConsumer,
 } from "react-admin";
 import { Stack } from "@mui/material";
 
@@ -42,16 +43,10 @@ export function ResourceServerEdit() {
           </Stack>
 
           <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
-            <BooleanInput source="enforce_policies" defaultValue={true} />
             <TextInput
               source="signing_alg"
               defaultValue="RS256"
               helperText="Signing algorithm for tokens"
-            />
-            <TextInput
-              source="token_dialect"
-              defaultValue="access_token_authz"
-              helperText="Token dialect format"
             />
           </Stack>
 
@@ -71,6 +66,31 @@ export function ResourceServerEdit() {
           <Stack spacing={2} direction="row" sx={{ mt: 4 }}>
             <TextField source="created_at" />
             <TextField source="updated_at" />
+          </Stack>
+        </TabbedForm.Tab>
+
+        <TabbedForm.Tab label="RBAC">
+          <Stack spacing={3}>
+            <BooleanInput
+              source="enforce_policies"
+              label="Enable RBAC"
+              helperText="Enable Role-Based Access Control for this resource server"
+            />
+
+            <FormDataConsumer>
+              {({ formData }) => (
+                <BooleanInput
+                  source="token_dialect"
+                  label="Add permissions in token"
+                  helperText="Include permissions directly in the access token"
+                  disabled={!formData?.enforce_policies}
+                  format={(value) => value === "access_token_authz"}
+                  parse={(checked) =>
+                    checked ? "access_token_authz" : "access_token"
+                  }
+                />
+              )}
+            </FormDataConsumer>
           </Stack>
         </TabbedForm.Tab>
 
