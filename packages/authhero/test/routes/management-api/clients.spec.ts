@@ -85,7 +85,7 @@ describe("clients", () => {
     expect(patchResult.status).toBe(200);
     const patchedClient = await patchResult.json();
     expect(patchedClient.name).toBe("new name");
-    expect(patchedClient.client_metadata.email_validation).toBe("disabled");
+    expect(patchedClient.client_metadata?.email_validation).toBe("disabled");
 
     // --------------------------------------------
     // GET

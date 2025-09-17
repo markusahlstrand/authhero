@@ -28,14 +28,18 @@ export function ClientEdit() {
           <TextInput source="name" />
           <TextInput source="client_secret" />
           <SelectInput
-            source="email_validation"
+            source="client_metadata.email_validation"
             choices={[
               { id: "disabled", name: "Disabled" },
               { id: "enabled", name: "Enabled" },
               { id: "enforced", name: "Enforced" },
             ]}
           />
-          <BooleanInput source="disable_sign_ups" />
+          <BooleanInput
+            source="client_metadata.disable_sign_ups"
+            format={(value) => value === "true" || value === true}
+            parse={(value) => (value ? "true" : "false")}
+          />
           <ArrayInput source="callbacks">
             <SimpleFormIterator inline>
               <TextInput source="" defaultValue="" />
