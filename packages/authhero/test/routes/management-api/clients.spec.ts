@@ -12,7 +12,7 @@ describe("clients", () => {
     const createClientResponse = await managementClient.clients.$post(
       {
         json: {
-          id: "app",
+          client_id: "app",
           name: "app",
           callbacks: [],
           allowed_logout_urls: [],
@@ -33,22 +33,29 @@ describe("clients", () => {
     expect(createClientResponse.status).toBe(201);
     const createdClient = await createClientResponse.json();
 
-    const { created_at, updated_at, id, client_secret, ...rest } =
+    const { created_at, updated_at, client_id, client_secret, ...rest } =
       createdClient;
 
     expect(rest).toEqual({
+      cross_origin_authentication: false,
+      custom_login_page_on: false,
+      global: false,
+      is_first_party: false,
       name: "app",
+      oidc_conformant: true,
+      require_proof_of_possession: false,
+      require_pushed_authorization_requests: false,
+      sso: false,
+      sso_disabled: true,
       callbacks: [],
       allowed_logout_urls: [],
       allowed_origins: [],
       web_origins: [],
-      // email_validation: "enforced",
-      disable_sign_ups: false,
     });
     expect(created_at).toBeTypeOf("string");
     expect(updated_at).toBeTypeOf("string");
     expect(client_secret).toBeTypeOf("string");
-    expect(id).toBeTypeOf("string");
+    expect(client_id).toBeTypeOf("string");
 
     // --------------------------------------------
     // PATCH
@@ -56,11 +63,13 @@ describe("clients", () => {
     const patchResult = await managementClient.clients[":id"].$patch(
       {
         param: {
-          id,
+          id: client_id,
         },
         json: {
           name: "new name",
-          email_validation: "disabled",
+          client_metadata: {
+            email_validation: "disabled",
+          },
         },
         header: {
           "tenant-id": "tenantId",
@@ -76,7 +85,7 @@ describe("clients", () => {
     expect(patchResult.status).toBe(200);
     const patchedClient = await patchResult.json();
     expect(patchedClient.name).toBe("new name");
-    expect(patchedClient.email_validation).toBe("disabled");
+    expect(patchedClient.client_metadata.email_validation).toBe("disabled");
 
     // --------------------------------------------
     // GET
@@ -84,7 +93,7 @@ describe("clients", () => {
     const getResponse = await managementClient.clients[":id"].$get(
       {
         param: {
-          id,
+          id: client_id,
         },
         header: {
           "tenant-id": "tenantId",
@@ -105,7 +114,7 @@ describe("clients", () => {
     const deleteResponse = await managementClient.clients[":id"].$delete(
       {
         param: {
-          id,
+          id: client_id,
         },
         header: {
           "tenant-id": "tenantId",
@@ -125,7 +134,7 @@ describe("clients", () => {
     const get404Response = await managementClient.clients[":id"].$get(
       {
         param: {
-          id,
+          id: client_id,
         },
         header: {
           "tenant-id": "tenantId",

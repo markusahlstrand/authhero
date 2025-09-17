@@ -40,7 +40,7 @@ describe("client-credentials-hooks", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = (await response.json()) as { access_token: string };
 
     const accessToken = parseJWT(body.access_token);
     expect(accessToken?.payload).toMatchObject({

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.213.0
+
+### Minor Changes
+
+- Switch from appications to clients entity in managment api
+
 ## 0.212.0
 
 ### Minor Changes

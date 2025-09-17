@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
-  applicationSchema,
-  applicationInsertSchema,
+  clientSchema,
+  clientInsertSchema,
   totalsSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings } from "../../types";
@@ -10,8 +10,8 @@ import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 
-const applicationWithTotalsSchema = totalsSchema.extend({
-  clients: z.array(applicationSchema),
+const clientWithTotalsSchema = totalsSchema.extend({
+  clients: z.array(clientSchema),
 });
 
 export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
@@ -38,10 +38,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         200: {
           content: {
             "application/json": {
-              schema: z.union([
-                applicationWithTotalsSchema,
-                z.array(applicationSchema),
-              ]),
+              schema: z.union([clientWithTotalsSchema, z.array(clientSchema)]),
             },
           },
           description: "List of clients",
@@ -53,7 +50,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
-      const result = await ctx.env.data.applications.list(tenant_id, {
+      const result = await ctx.env.data.clients.list(tenant_id, {
         page,
         per_page,
         include_totals,
@@ -61,7 +58,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         q,
       });
 
-      const clients = result.applications;
+      const clients = result.clients;
 
       if (include_totals) {
         // TODO: this should be supported by the adapter
@@ -101,10 +98,10 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         200: {
           content: {
             "application/json": {
-              schema: applicationSchema,
+              schema: clientSchema,
             },
           },
-          description: "An application",
+          description: "A client",
         },
       },
     }),
@@ -112,20 +109,13 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      // Workaround until the adapter is fixed
-      // const application = await ctx.env.data.clients.get(tenant_id, id);
-      const clients = await ctx.env.data.applications.list(tenant_id, {
-        page: 1,
-        per_page: 0,
-        include_totals: false,
-      });
-      const application = clients.applications.find((a) => a.id === id);
+      const client = await ctx.env.data.clients.get(tenant_id, id);
 
-      if (!application) {
+      if (!client) {
         throw new HTTPException(404);
       }
 
-      return ctx.json(application);
+      return ctx.json(client);
     },
   )
   // --------------------------------
@@ -159,9 +149,9 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.applications.remove(tenant_id, id);
+      const result = await ctx.env.data.clients.remove(tenant_id, id);
       if (!result) {
-        throw new HTTPException(404, { message: "Application not found" });
+        throw new HTTPException(404, { message: "Client not found" });
       }
 
       return ctx.text("OK");
@@ -179,7 +169,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         body: {
           content: {
             "application/json": {
-              schema: z.object(applicationInsertSchema.shape).partial(),
+              schema: z.object(clientInsertSchema.shape).partial(),
             },
           },
         },
@@ -199,10 +189,10 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         200: {
           content: {
             "application/json": {
-              schema: applicationSchema,
+              schema: clientSchema,
             },
           },
-          description: "The update application",
+          description: "The updated client",
         },
       },
     }),
@@ -211,16 +201,16 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      const applicationUpdate = body;
+      const clientUpdate = body;
 
-      await ctx.env.data.applications.update(tenant_id, id, applicationUpdate);
-      const application = await ctx.env.data.applications.get(tenant_id, id);
+      await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
+      const client = await ctx.env.data.clients.get(tenant_id, id);
 
-      if (!application) {
-        throw new HTTPException(404, { message: "Application not found" });
+      if (!client) {
+        throw new HTTPException(404, { message: "Client not found" });
       }
 
-      return ctx.json(application);
+      return ctx.json(client);
     },
   )
   // --------------------------------
@@ -235,7 +225,7 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         body: {
           content: {
             "application/json": {
-              schema: z.object(applicationInsertSchema.shape),
+              schema: z.object(clientInsertSchema.shape),
             },
           },
         },
@@ -252,10 +242,10 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         201: {
           content: {
             "application/json": {
-              schema: z.object(applicationSchema.shape),
+              schema: z.object(clientSchema.shape),
             },
           },
-          description: "An application",
+          description: "A client",
         },
       },
     }),
@@ -263,17 +253,13 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
-      const applicationUpdate = {
+      const clientCreate = {
         ...body,
-        id: body.id || nanoid(),
         client_secret: body.client_secret || nanoid(),
       };
 
-      const application = await ctx.env.data.applications.create(
-        tenant_id,
-        applicationUpdate,
-      );
+      const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
 
-      return ctx.json(application, { status: 201 });
+      return ctx.json(client, { status: 201 });
     },
   );
