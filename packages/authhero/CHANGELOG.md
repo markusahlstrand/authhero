@@ -1,5 +1,11 @@
 # authhero
 
+## 0.217.0
+
+### Minor Changes
+
+- Added language string
+
 ## 0.216.0
 
 ### Minor Changes

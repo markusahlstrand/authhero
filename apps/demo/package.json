@@ -1,7 +1,7 @@
 {
   "name": "@authhero/demo",
   "private": true,
-  "version": "0.20.22",
+  "version": "0.20.23",
   "scripts": {
     "dev": "bun --watch src/bun.ts"
   },
@@ -10,7 +10,7 @@
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^0.19.2",
     "@peculiar/x509": "^1.13.0",
-    "authhero": "^0.216.0",
+    "authhero": "^0.217.0",
     "better-sqlite3": "^12.2.0",
     "hono": "^4.9.1",
     "hono-openapi-middlewares": "^1.0.11",

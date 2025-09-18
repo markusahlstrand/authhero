@@ -146,22 +146,6 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         );
       }
 
-      // If email is the same as current, show error
-      if (email === user.email) {
-        return ctx.html(
-          <AccountChangeEmailPage
-            theme={theme}
-            branding={branding}
-            user={user}
-            client={client}
-            state={state}
-            error={
-              i18next.t("email_same_as_current") || "This is your current email"
-            }
-          />,
-        );
-      }
-
       // Generate verification code and create change request (reusing existing pattern)
       const code = generateOTP();
       const changeId = nanoid();
