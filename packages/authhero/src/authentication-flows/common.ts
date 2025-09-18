@@ -41,6 +41,7 @@ export interface CreateAuthTokensParams {
   ticketAuth?: boolean;
   skipHooks?: boolean;
   organization?: string;
+  permissions?: string[];
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -77,6 +78,8 @@ export async function createAuthTokens(
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
     ...(params.organization && { org_id: params.organization }),
+    ...(params.permissions &&
+      params.permissions.length > 0 && { permissions: params.permissions }),
   };
 
   const idTokenPayload =

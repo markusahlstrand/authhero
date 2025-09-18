@@ -40,10 +40,7 @@ describe("organization membership bypass vulnerability", () => {
       display_name: "Test Organization",
     });
 
-    // CRITICAL VULNERABILITY TEST:
     // Request token WITHOUT audience but WITH organization parameter
-    // Before fix: This would succeed and include org_id in token (security vulnerability)
-    // After fix: This should fail with 403 error because user is not a member
     await expect(
       completeLogin(ctx, {
         authParams: {
@@ -58,8 +55,5 @@ describe("organization membership bypass vulnerability", () => {
         responseType: AuthorizationResponseType.TOKEN,
       }),
     ).rejects.toThrow("User is not a member of the specified organization");
-
-    // Clean up
-    await env.data.organizations.remove("tenantId", organization.id);
   });
 });
