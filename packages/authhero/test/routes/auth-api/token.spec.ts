@@ -3,7 +3,10 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
-import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
+import {
+  CodeChallengeMethod,
+  AuthorizationResponseType,
+} from "@authhero/adapter-interfaces";
 import { createSessions } from "../../helpers/create-session";
 
 interface TokenResponse {
@@ -835,6 +838,201 @@ describe("token", () => {
         error: "invalid_grant",
         error_description: "Refresh token has expired",
       });
+    });
+  });
+
+  describe("organization-aware authorization_code flow", () => {
+    it("should throw 403 error when user is not a member of the required organization", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Organization Token",
+        identifier: "https://org-token-api.example.com",
+        scopes: [{ value: "read:users", description: "Read users" }],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-test-user",
+        email: "token-test@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Create a login session with organization in authParams
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://org-token-api.example.com",
+          scope: "read:users",
+          organization: "nonexistent-org-id", // User is not a member of this org
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token",
+      });
+
+      // Create an authorization code with organization in authParams
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-org-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(), // 10 minutes from now
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Try to exchange the code for tokens
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-org-code",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "access_denied",
+        error_description: "User is not a member of the specified organization",
+      });
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.users.remove("tenantId", user.user_id);
+    });
+
+    it("should return tokens with calculated scopes for organization members", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Organization Scopes",
+        identifier: "https://org-scopes-api.example.com",
+        scopes: [
+          { value: "read:users", description: "Read users" },
+          { value: "write:users", description: "Write users" },
+        ],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "Token Test Organization",
+        display_name: "Token Test Org",
+      });
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-org-member",
+        email: "token-org-member@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Add user to organization
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: organization.id,
+      });
+
+      // Create a role and assign permissions
+      const role = await env.data.roles.create("tenantId", {
+        name: "Token Org Reader",
+        description: "Can read in token org",
+      });
+
+      await env.data.rolePermissions.assign("tenantId", role.id, [
+        {
+          role_id: role.id,
+          resource_server_identifier: "https://org-scopes-api.example.com",
+          permission_name: "read:users",
+        },
+      ]);
+
+      // Assign role to user within organization
+      await env.data.userRoles.create(
+        "tenantId",
+        user.user_id,
+        role.id,
+        organization.id,
+      );
+
+      // Create a login session with organization
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://org-scopes-api.example.com",
+          scope: "read:users write:users", // Request both scopes
+          organization: organization.id,
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token-2",
+      });
+
+      // Create an authorization code
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-org-scopes-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Exchange code for tokens
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-org-scopes-code",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      expect(body).toHaveProperty("access_token");
+      expect(body).toHaveProperty("token_type", "Bearer");
+
+      // Parse the access token to check org_id and scopes
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+
+      expect(accessToken).not.toBeNull();
+      expect(payload.org_id).toBe(organization.id);
+      // Should only include the scope the user has permission for
+      expect(payload.scope).toBe("read:users");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.organizations.remove("tenantId", organization.id);
+      await env.data.roles.remove("tenantId", role.id);
+      await env.data.users.remove("tenantId", user.user_id);
     });
   });
 });

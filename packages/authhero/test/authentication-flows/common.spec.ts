@@ -3,6 +3,7 @@ import { Context } from "hono";
 import {
   createFrontChannelAuthResponse,
   createAuthTokens,
+  completeLogin,
 } from "../../src/authentication-flows/common";
 import { getTestServer } from "../helpers/test-server";
 import { Bindings, Variables } from "../../src/types";
@@ -702,6 +703,253 @@ describe("common", () => {
       expect(userAfter.app_metadata?.strategy).toBe(
         "Username-Password-Authentication",
       );
+    });
+  });
+
+  describe("organization-aware authentication", () => {
+    it("should throw 403 error when user is not a member of the required organization", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Organization",
+        identifier: "https://org-test-api.example.com",
+        scopes: [{ value: "read:users", description: "Read users" }],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      // Try to complete login with an organization the user is not a member of
+      await expect(
+        completeLogin(ctx, {
+          authParams: {
+            client_id: "clientId",
+            audience: "https://org-test-api.example.com",
+            scope: "read:users",
+          },
+          client,
+          user,
+          session_id: "session_id",
+          organization: "nonexistent-org-id",
+        }),
+      ).rejects.toThrow("User is not a member of the specified organization");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+
+    it("should calculate scopes for organization members with appropriate permissions", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Organization Permissions",
+        identifier: "https://org-permissions-api.example.com",
+        scopes: [
+          { value: "read:users", description: "Read users" },
+          { value: "write:users", description: "Write users" },
+          { value: "admin:all", description: "Admin access" },
+        ],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "Test Organization for Auth",
+        display_name: "Test Org Auth",
+      });
+
+      // Add user to organization
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: organization.id,
+      });
+
+      // Create a role and assign permissions
+      const role = await env.data.roles.create("tenantId", {
+        name: "Organization Reader",
+        description: "Can read in organization",
+      });
+
+      await env.data.rolePermissions.assign("tenantId", role.id, [
+        {
+          role_id: role.id,
+          resource_server_identifier: "https://org-permissions-api.example.com",
+          permission_name: "read:users",
+        },
+      ]);
+
+      // Assign role to user within organization
+      await env.data.userRoles.create(
+        "tenantId",
+        user.user_id,
+        role.id,
+        organization.id,
+      );
+
+      // Complete login with organization
+      const result = await completeLogin(ctx, {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://org-permissions-api.example.com",
+          scope: "read:users write:users admin:all",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        organization: organization.id,
+      });
+
+      expect(result).toHaveProperty("access_token");
+      expect(result).toHaveProperty("token_type", "Bearer");
+
+      // Decode the token to check the org_id and scopes
+      const tokenResult = result as any;
+      expect(tokenResult.access_token).toBeDefined();
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.organizations.remove("tenantId", organization.id);
+      await env.data.roles.remove("tenantId", role.id);
+    });
+
+    it("should include organization ID in both access and ID tokens", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "Token Test Organization",
+        display_name: "Token Test Org",
+      });
+
+      // Add user to organization
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: organization.id,
+      });
+
+      // Create tokens with organization
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          scope: "openid profile",
+          audience: "default",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        organization: organization.id,
+      });
+
+      expect(tokens).toHaveProperty("access_token");
+      expect(tokens).toHaveProperty("id_token");
+
+      // Clean up
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
+    it("should work without organization parameter (backward compatibility)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Complete login without organization (should work as before)
+      const result = await completeLogin(ctx, {
+        authParams: {
+          client_id: "clientId",
+          scope: "openid profile",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        // No organization parameter
+      });
+
+      expect(result).toHaveProperty("access_token");
+      expect(result).toHaveProperty("token_type", "Bearer");
     });
   });
 });

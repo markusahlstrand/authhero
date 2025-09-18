@@ -20,6 +20,7 @@ import {
 } from "../../authentication-flows/passwordless";
 import { createAuthTokens } from "../../authentication-flows/common";
 import { serializeAuthCookie } from "../../utils/cookies";
+import { calculateScopesAndPermissions } from "../../helpers/scopes-permissions";
 import { GrantFlowResult } from "src/types/GrantFlowResult";
 
 const optionalClientCredentials = z.object({
@@ -133,6 +134,18 @@ export const tokenRoutes = new OpenAPIHono<{
             },
           },
         },
+        403: {
+          description:
+            "Forbidden - User is not a member of the required organization.",
+          content: {
+            "application/json": {
+              schema: z.object({
+                error: z.string(),
+                error_description: z.string().optional(),
+              }),
+            },
+          },
+        },
       },
     }),
     async (ctx) => {
@@ -193,6 +206,33 @@ export const tokenRoutes = new OpenAPIHono<{
         );
 
         passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);
+      }
+
+      // Calculate scopes and permissions before creating tokens
+      // This will throw a 403 error if user is not a member of the required organization
+      if (grantResult.user && grantResult.authParams.audience) {
+        try {
+          const scopesAndPermissions = await calculateScopesAndPermissions(
+            ctx,
+            {
+              tenantId: grantResult.client.tenant.id,
+              userId: grantResult.user.user_id,
+              audience: grantResult.authParams.audience,
+              requestedScopes: grantResult.authParams.scope?.split(" ") || [],
+              organizationId: grantResult.organization,
+            },
+          );
+
+          // Update the authParams with calculated scopes
+          grantResult.authParams.scope = scopesAndPermissions.scopes.join(" ");
+        } catch (error) {
+          // Re-throw HTTPExceptions (like 403 for organization membership)
+          if (error instanceof HTTPException) {
+            throw error;
+          }
+          // For other errors, log and continue with original scopes
+          console.error("Error calculating scopes and permissions:", error);
+        }
       }
 
       const tokens = await createAuthTokens(ctx, grantResult);

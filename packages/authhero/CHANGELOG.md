@@ -1,5 +1,11 @@
 # authhero
 
+## 0.214.0
+
+### Minor Changes
+
+- Add scopes and permissions
+
 ## 0.213.0
 
 ### Minor Changes

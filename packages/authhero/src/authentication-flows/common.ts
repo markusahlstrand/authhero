@@ -27,6 +27,7 @@ import { waitUntil } from "../helpers/wait-until";
 import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginHook } from "../hooks/index";
 import renderAuthIframe from "../utils/authIframe";
+import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -38,6 +39,7 @@ export interface CreateAuthTokensParams {
   strategy?: string;
   ticketAuth?: boolean;
   skipHooks?: boolean;
+  organization?: string;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -73,6 +75,7 @@ export async function createAuthTokens(
     iss,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
+    ...(params.organization && { org_id: params.organization }),
   };
 
   const idTokenPayload =
@@ -92,6 +95,7 @@ export async function createAuthTokens(
           name: user.name,
           email: user.email,
           email_verified: user.email_verified,
+          ...(params.organization && { org_id: params.organization }),
         }
       : undefined;
 
@@ -301,6 +305,7 @@ export interface CreateAuthResponseParams {
   ticketAuth?: boolean;
   strategy?: string;
   skipHooks?: boolean;
+  organization?: string;
 }
 
 export async function createFrontChannelAuthResponse(
@@ -440,6 +445,7 @@ export async function createFrontChannelAuthResponse(
     loginSession: params.loginSession,
     responseType,
     skipHooks: params.skipHooks,
+    organization: params.organization,
   });
 
   // If completeLogin returned a Response (from a hook redirect), return it directly
@@ -540,6 +546,37 @@ export async function completeLogin(
   let { user } = params;
   const responseType = params.responseType || AuthorizationResponseType.TOKEN;
 
+  // Calculate scopes and permissions early, before any hooks
+  // This will throw a 403 error if user is not a member of the required organization
+  let calculatedScopes = params.authParams.scope || "";
+
+  if (user && params.authParams.audience) {
+    try {
+      const scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+        tenantId: params.client.tenant.id,
+        userId: user.user_id,
+        audience: params.authParams.audience,
+        requestedScopes: params.authParams.scope?.split(" ") || [],
+        organizationId: params.organization,
+      });
+
+      calculatedScopes = scopesAndPermissions.scopes.join(" ");
+    } catch (error) {
+      // Re-throw HTTPExceptions (like 403 for organization membership)
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      // For other errors, log and continue with original scopes
+      console.error("Error calculating scopes and permissions:", error);
+    }
+  }
+
+  // Update authParams with calculated scopes for downstream usage
+  const updatedAuthParams = {
+    ...params.authParams,
+    scope: calculatedScopes,
+  };
+
   // Run hooks if we have a loginSession (authentication flow) and skipHooks is not set
   if (params.loginSession && user && !params.skipHooks) {
     // Update the user's app_metadata with the strategy used for login
@@ -559,7 +596,7 @@ export async function completeLogin(
       params.client.tenant.id,
       user,
       params.loginSession,
-      { client: params.client, authParams: params.authParams },
+      { client: params.client, authParams: updatedAuthParams },
     );
 
     // If the hook returns a Response (redirect), return it directly
@@ -581,10 +618,14 @@ export async function completeLogin(
     return await createCodeData(ctx, {
       user,
       client: params.client,
-      authParams: params.authParams,
+      authParams: updatedAuthParams,
       login_id: params.loginSession.id,
     });
   } else {
-    return createAuthTokens(ctx, { ...params, user });
+    return createAuthTokens(ctx, {
+      ...params,
+      user,
+      authParams: updatedAuthParams,
+    });
   }
 }
