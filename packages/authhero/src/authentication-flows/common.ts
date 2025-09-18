@@ -28,6 +28,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginHook } from "../hooks/index";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
+import { JSONHTTPException } from "../errors/json-http-exception";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -545,6 +546,30 @@ export async function completeLogin(
 ): Promise<TokenResponse | { code: string; state?: string } | Response> {
   let { user } = params;
   const responseType = params.responseType || AuthorizationResponseType.TOKEN;
+
+  // CRITICAL: Enforce organization membership validation even without audience
+  // This prevents users from forging org_id claims in tokens
+  if (user && params.organization) {
+    const userOrgs = await ctx.env.data.userOrganizations.list(
+      params.client.tenant.id,
+      {
+        q: `user_id:${user.user_id}`,
+        per_page: 1000, // Should be enough for most cases
+      },
+    );
+
+    const isMember = userOrgs.userOrganizations.some(
+      (uo) => uo.organization_id === params.organization,
+    );
+
+    if (!isMember) {
+      // User is not a member of the organization - throw 403 error
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: "User is not a member of the specified organization",
+      });
+    }
+  }
 
   // Calculate scopes and permissions early, before any hooks
   // This will throw a 403 error if user is not a member of the required organization

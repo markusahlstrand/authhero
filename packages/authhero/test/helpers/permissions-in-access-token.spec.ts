@@ -19,7 +19,7 @@ describe("permissions in access token", () => {
     }>;
 
     // Create a resource server with access_token_authz dialect
-    const resourceServer = await env.data.resourceServers.create("tenantId", {
+    await env.data.resourceServers.create("tenantId", {
       name: "Test API with Permissions",
       identifier: "https://permissions-api.example.com",
       scopes: [
