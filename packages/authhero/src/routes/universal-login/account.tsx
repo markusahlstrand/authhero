@@ -4,10 +4,6 @@ import { initJSXRouteWithSession } from "./common";
 import AccountPage from "../../components/AccountPage";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
-import { sendCode } from "../../emails";
-import generateOTP from "../../utils/otp";
-import { nanoid } from "nanoid";
-import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 
 export const accountRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -106,8 +102,7 @@ export const accountRoutes = new OpenAPIHono<{
           content: {
             "application/x-www-form-urlencoded": {
               schema: z.object({
-                email: z.string().toLowerCase().optional(),
-                action: z.enum(["update_email", "unlink_account"]),
+                action: z.enum(["unlink_account"]),
                 provider: z.string().optional(),
                 user_id: z.string().optional(),
               }),
@@ -121,7 +116,7 @@ export const accountRoutes = new OpenAPIHono<{
           content: { "text/html": { schema: z.string() } },
         },
         302: {
-          description: "Redirect to change-email page or login if no session",
+          description: "Redirect to login if no session",
           headers: z.object({ Location: z.string().url() }),
         },
         400: {
@@ -150,50 +145,7 @@ export const accountRoutes = new OpenAPIHono<{
       let success: string | undefined;
 
       try {
-        if (body.action === "update_email" && body.email) {
-          // Create a change request ID
-          const changeRequestId = nanoid();
-
-          // Create the change request entry
-          await env.data.codes.create(client.tenant.id, {
-            code_id: changeRequestId,
-            login_id: "", // Not using login session for this flow
-            code_type: "email_verification",
-            expires_at: new Date(
-              Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
-            ).toISOString(),
-            user_id: user.user_id,
-          });
-
-          // Generate verification code
-          const verificationCode = generateOTP();
-
-          // Create the verification code entry
-          await env.data.codes.create(client.tenant.id, {
-            code_id: verificationCode,
-            login_id: "", // Not using login session for this flow
-            code_type: "email_verification",
-            expires_at: new Date(
-              Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
-            ).toISOString(),
-            user_id: user.user_id,
-          });
-
-          // Send verification code email
-          await sendCode(ctx, {
-            to: body.email.toLowerCase(),
-            code: verificationCode,
-          });
-
-          // Redirect to change email page
-          return ctx.redirect(
-            `/u/account/change-email-verify?state=${encodeURIComponent(state)}&email=${encodeURIComponent(body.email.toLowerCase())}&change_id=${changeRequestId}`,
-          );
-        } else if (
-          body.action === "unlink_account" &&
-          body.provider &&
-          body.user_id
-        ) {
+        if (body.action === "unlink_account" && body.provider && body.user_id) {
           // Unlink the social account
           await env.data.users.unlink(
             client.tenant.id,

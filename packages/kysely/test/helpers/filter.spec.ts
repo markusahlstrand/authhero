@@ -116,4 +116,92 @@ describe("luceneFilter", () => {
     luceneFilter(mockDb, mockQb as any, "field=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "value");
   });
+
+  // Quote handling tests
+  it("handles quoted values", () => {
+    luceneFilter(mockDb, mockQb as any, 'email:"test@example.com"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
+  });
+
+  it("handles quoted values with spaces", () => {
+    luceneFilter(mockDb, mockQb as any, 'name:"John Doe"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("name", "=", "John Doe");
+  });
+
+  it("handles quoted values with special characters", () => {
+    luceneFilter(mockDb, mockQb as any, 'description:"Value with @#$% special chars"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("description", "=", "Value with @#$% special chars");
+  });
+
+  it("handles empty quoted values", () => {
+    luceneFilter(mockDb, mockQb as any, 'field:""', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", "");
+  });
+
+  it("handles single character quoted values", () => {
+    luceneFilter(mockDb, mockQb as any, 'field:"a"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", "a");
+  });
+
+  it("handles quoted values with operators", () => {
+    luceneFilter(mockDb, mockQb as any, 'date:>"2023-01-01"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("date", ">", "2023-01-01");
+  });
+
+  it("handles negated quoted values", () => {
+    luceneFilter(mockDb, mockQb as any, '-email:"blocked@example.com"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("email", "!=", "blocked@example.com");
+  });
+
+  it("handles mixed quoted and unquoted values", () => {
+    luceneFilter(mockDb, mockQb as any, 'email:"test@example.com" status:active', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledTimes(2);
+    expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
+    expect(mockQb.where).toHaveBeenCalledWith("status", "=", "active");
+  });
+
+  // Edge cases
+  it("handles values with only opening quote", () => {
+    luceneFilter(mockDb, mockQb as any, 'field:"value', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", '"value');
+  });
+
+  it("handles values with only closing quote", () => {
+    luceneFilter(mockDb, mockQb as any, 'field:value"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", 'value"');
+  });
+
+  it("handles values with quotes in the middle", () => {
+    luceneFilter(mockDb, mockQb as any, 'field:val"ue', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", 'val"ue');
+  });
+
+  // Common use cases
+  it("handles email searches properly", () => {
+    luceneFilter(mockDb, mockQb as any, 'email:"user@domain.com"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("email", "=", "user@domain.com");
+  });
+
+  it("handles phone number searches", () => {
+    luceneFilter(mockDb, mockQb as any, 'phone_number:"+1-555-123-4567"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("phone_number", "=", "+1-555-123-4567");
+  });
+
+  it("handles user ID searches with pipes", () => {
+    luceneFilter(mockDb, mockQb as any, 'user_id:"auth0|123456789"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("user_id", "=", "auth0|123456789");
+  });
+
+  it("handles complex queries with quotes and operators", () => {
+    luceneFilter(
+      mockDb, 
+      mockQb as any, 
+      'email:"test@example.com" created_at:>"2023-01-01" -status:"banned"', 
+      searchableColumns
+    );
+    expect(mockQb.where).toHaveBeenCalledTimes(3);
+    expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
+    expect(mockQb.where).toHaveBeenCalledWith("created_at", ">", "2023-01-01");
+    expect(mockQb.where).toHaveBeenCalledWith("status", "!=", "banned");
+  });
 });

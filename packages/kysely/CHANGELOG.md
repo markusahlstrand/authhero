@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.44.0
+
+### Minor Changes
+
+- Fix issues with lucene filter
+
 ## 10.43.0
 
 ### Minor Changes

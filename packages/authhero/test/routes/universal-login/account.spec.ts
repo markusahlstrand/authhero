@@ -24,11 +24,10 @@ describe("account", () => {
     // ---------------------------------
     // Request email change
     // ---------------------------------
-    const changeEmailResponse = await universalClient.account.$post(
+    const changeEmailResponse = await universalClient["account"]["change-email"].$post(
       {
         query: { state },
         form: {
-          action: "update_email",
           email: "new@example.com",
         },
       },

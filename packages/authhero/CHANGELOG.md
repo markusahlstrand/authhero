@@ -1,5 +1,11 @@
 # authhero
 
+## 0.216.0
+
+### Minor Changes
+
+- Fix issues with lucene filter
+
 ## 0.215.0
 
 ### Minor Changes
