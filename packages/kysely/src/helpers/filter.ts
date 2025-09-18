@@ -7,8 +7,32 @@ export function luceneFilter<TB extends keyof Database>(
   query: string,
   searchableColumns: string[],
 ) {
-  const filters = query
-    .split(/\s+/)
+  // Tokenize the query while respecting quoted strings
+  const tokens: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < query.length; i++) {
+    const char = query[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      current += char;
+    } else if (char === ' ' && !inQuotes) {
+      if (current.trim()) {
+        tokens.push(current.trim());
+        current = '';
+      }
+    } else {
+      current += char;
+    }
+  }
+  
+  if (current.trim()) {
+    tokens.push(current.trim());
+  }
+
+  const filters = tokens
     // This handles queries that incorrectly are using a = instead of :
     .map((q) => q.replace(/^([^:]+)=/g, "$1:"))
     .map((filter) => {
@@ -47,6 +71,12 @@ export function luceneFilter<TB extends keyof Database>(
           value = value.substring(1);
         } else {
           operator = "=";
+        }
+
+        // Strip surrounding quotes from the value (proper Lucene syntax support)
+        // This must happen AFTER operator parsing
+        if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
+          value = value.slice(1, -1);
         }
       } else {
         key = null;
