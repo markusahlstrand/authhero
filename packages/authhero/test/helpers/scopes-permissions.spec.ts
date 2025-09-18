@@ -481,5 +481,69 @@ describe("scopes-permissions helper", () => {
       await env.data.roles.remove("tenantId", globalRole.id);
       await env.data.roles.remove("tenantId", orgRole.id);
     });
+
+    it("should enforce organization membership even without a valid audience", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Test the vulnerability: organizationId is provided but audience doesn't match any resource server
+      // This should still validate organization membership and throw 403 for non-members
+      await expect(
+        calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          userId: "nonMemberUserId",
+          audience: "https://nonexistent-api.example.com", // No matching resource server
+          requestedScopes: ["openid", "profile"],
+          organizationId: "org123", // User trying to forge org_id
+        }),
+      ).rejects.toThrow("User is not a member of the specified organization");
+    });
+
+    it("should enforce organization membership even when RBAC is disabled", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Create a resource server with RBAC disabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Non-RBAC API",
+        identifier: "https://non-rbac-api.example.com",
+        scopes: [{ value: "read:data", description: "Read data" }],
+        options: {
+          enforce_policies: false, // RBAC disabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // Test the vulnerability: organizationId is provided but RBAC is disabled
+      // This should still validate organization membership and throw 403 for non-members
+      await expect(
+        calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          userId: "nonMemberUserId",
+          audience: "https://non-rbac-api.example.com",
+          requestedScopes: ["read:data"],
+          organizationId: "org456", // User trying to forge org_id on non-RBAC resource
+        }),
+      ).rejects.toThrow("User is not a member of the specified organization");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
   });
 });

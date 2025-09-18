@@ -40,6 +40,25 @@ export async function calculateScopesAndPermissions(
   const { tenantId, userId, audience, requestedScopes, organizationId } =
     params;
 
+  if (organizationId) {
+    const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
+      q: `user_id:${userId}`,
+      per_page: 1000, // Should be enough for most cases
+    });
+
+    const isMember = userOrgs.userOrganizations.some(
+      (uo) => uo.organization_id === organizationId,
+    );
+
+    if (!isMember) {
+      // User is not a member of the organization - throw 403 error
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: "User is not a member of the specified organization",
+      });
+    }
+  }
+
   // Handle default OIDC scopes first - these are always available
   const defaultOidcScopes = requestedScopes.filter((scope) =>
     DEFAULT_OIDC_SCOPES.includes(scope),
@@ -80,26 +99,6 @@ export async function calculateScopesAndPermissions(
       ...new Set([...defaultOidcScopes, ...resourceServerScopes]),
     ];
     return { scopes: allAllowedScopes, permissions: [] };
-  }
-
-  // If organizationId is provided, validate that the user is a member
-  if (organizationId) {
-    const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
-      q: `user_id:${userId}`,
-      per_page: 1000, // Should be enough for most cases
-    });
-
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organizationId,
-    );
-
-    if (!isMember) {
-      // User is not a member of the organization - throw 403 error
-      throw new JSONHTTPException(403, {
-        error: "access_denied",
-        error_description: "User is not a member of the specified organization",
-      });
-    }
   }
 
   // RBAC is enabled - get user's permissions
