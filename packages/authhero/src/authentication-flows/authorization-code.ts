@@ -133,6 +133,7 @@ export async function authorizationCodeGrantUser(
     loginSession,
     session_id: loginSession.session_id,
     refresh_token: refreshToken?.id,
+    organization: loginSession.authParams.organization,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login
