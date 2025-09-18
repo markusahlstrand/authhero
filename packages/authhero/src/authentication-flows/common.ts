@@ -577,6 +577,7 @@ export async function completeLogin(
   // Calculate scopes and permissions early, before any hooks
   // This will throw a 403 error if user is not a member of the required organization
   let calculatedScopes = params.authParams.scope || "";
+  let calculatedPermissions: string[] = [];
 
   if (user && params.authParams.audience) {
     try {
@@ -589,6 +590,7 @@ export async function completeLogin(
       });
 
       calculatedScopes = scopesAndPermissions.scopes.join(" ");
+      calculatedPermissions = scopesAndPermissions.permissions;
     } catch (error) {
       // Re-throw HTTPExceptions (like 403 for organization membership)
       if (error instanceof HTTPException) {
@@ -654,6 +656,7 @@ export async function completeLogin(
       ...params,
       user,
       authParams: updatedAuthParams,
+      permissions: calculatedPermissions,
     });
   }
 }
