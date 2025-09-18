@@ -1,5 +1,11 @@
 # authhero
 
+## 0.215.0
+
+### Minor Changes
+
+- Add legacy clients to caching
+
 ## 0.214.0
 
 ### Minor Changes
