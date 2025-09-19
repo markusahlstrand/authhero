@@ -4,10 +4,7 @@ import { Database } from "../db";
 import { removeNullProperties } from "../helpers/remove-nulls";
 
 export function get(db: Kysely<Database>) {
-  return async (
-    tenant_id: string,
-    id: string,
-  ): Promise<ClientGrant | null> => {
+  return async (tenant_id: string, id: string): Promise<ClientGrant | null> => {
     const result = await db
       .selectFrom("client_grants")
       .selectAll()
@@ -24,14 +21,18 @@ export function get(db: Kysely<Database>) {
       client_id: result.client_id,
       audience: result.audience,
       scope: result.scope ? JSON.parse(result.scope) : [],
-      organization_usage: result.organization_usage as "deny" | "allow" | "require" | undefined,
+      organization_usage: result.organization_usage as
+        | "deny"
+        | "allow"
+        | "require"
+        | undefined,
       // Convert integers back to booleans for API response (with defaults)
-      allow_any_organization: result.allow_any_organization !== undefined 
-        ? Boolean(result.allow_any_organization) 
-        : false,
-      is_system: result.is_system !== undefined 
-        ? Boolean(result.is_system) 
-        : false,
+      allow_any_organization:
+        result.allow_any_organization !== undefined
+          ? Boolean(result.allow_any_organization)
+          : false,
+      is_system:
+        result.is_system !== undefined ? Boolean(result.is_system) : false,
       subject_type: result.subject_type as "client" | "user" | undefined,
       authorization_details_types: result.authorization_details_types
         ? JSON.parse(result.authorization_details_types)

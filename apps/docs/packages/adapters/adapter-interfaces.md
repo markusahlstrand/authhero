@@ -11,7 +11,6 @@ The main adapter interface that combines all specialized adapters:
 ```typescript
 interface Adapter extends 
   UserAdapter, 
-  ApplicationAdapter, 
   ConnectionAdapter, 
   DomainAdapter, 
   TokenAdapter {
@@ -31,20 +30,6 @@ interface UserAdapter {
   updateUser(id: string, data: UserUpdate): Promise<User>;
   deleteUser(id: string): Promise<void>;
   // Other user methods
-}
-```
-
-### `ApplicationAdapter`
-
-Interface for application management operations:
-
-```typescript
-interface ApplicationAdapter {
-  createApplication(data: ApplicationCreate): Promise<Application>;
-  getApplication(id: string): Promise<Application | null>;
-  updateApplication(id: string, data: ApplicationUpdate): Promise<Application>;
-  deleteApplication(id: string): Promise<void>;
-  // Other application methods
 }
 ```
 

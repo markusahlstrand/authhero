@@ -22,9 +22,6 @@ export interface DatabaseAdapter {
   // User management
   users: UserAdapter;
 
-  // Application management
-  applications: ApplicationAdapter;
-
   // Session management
   sessions: SessionAdapter;
   login_sessions: LoginSessionAdapter;
@@ -84,19 +81,7 @@ export interface UserAdapter {
   ): Promise<User | null>;
 }
 
-export interface ApplicationAdapter {
-  create(application: CreateApplication): Promise<Application>;
-  get(applicationId: string, tenantId: string): Promise<Application | null>;
-  update(
-    applicationId: string,
-    tenantId: string,
-    application: Partial<Application>,
-  ): Promise<Application>;
-  remove(applicationId: string, tenantId: string): Promise<void>;
-  list(params: ListApplicationsParams): Promise<ListApplicationsResult>;
-}
-
-export interface SessionAdapter {
+export interface SessionAdapter:
   create(session: CreateSession): Promise<Session>;
   get(sessionId: string): Promise<Session | null>;
   update(sessionId: string, session: Partial<Session>): Promise<Session>;
@@ -139,24 +124,6 @@ export interface User {
   locale?: string;
 }
 
-export interface Application {
-  id: string;
-  tenant_id: string;
-  name: string;
-  client_secret?: string;
-  allowed_logout_urls?: string[];
-  authentication_settings?: Record<string, any>;
-  addons?: Record<string, any>;
-  callbacks?: string[];
-  allowed_origins?: string[];
-  web_origins?: string[];
-  allowed_clients?: string[];
-  email_validation?: string;
-  disable_sign_ups: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Session {
   id: string;
   tenant_id?: string;
@@ -191,18 +158,6 @@ export interface CreateUser {
   is_social: boolean;
   app_metadata?: Record<string, any>;
   user_metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateApplication {
-  id: string;
-  tenant_id: string;
-  name: string;
-  client_secret?: string;
-  callbacks?: string[];
-  allowed_origins?: string[];
-  disable_sign_ups: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -457,17 +412,14 @@ npm install @authhero/adapter-interfaces
 import {
   DatabaseAdapter,
   UserAdapter,
-  ApplicationAdapter,
 } from "@authhero/adapter-interfaces";
 
 export class MyCustomAdapter implements DatabaseAdapter {
   users: UserAdapter;
-  applications: ApplicationAdapter;
   // ... implement all required adapters
 
   constructor(config: MyAdapterConfig) {
     this.users = new MyUserAdapter(config);
-    this.applications = new MyApplicationAdapter(config);
     // ... initialize all adapters
   }
 }

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.4.0
+
+### Minor Changes
+
+- 149ab91: Drop the old application table
+
 ## 1.3.0
 
 ### Minor Changes
