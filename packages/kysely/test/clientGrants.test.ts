@@ -83,7 +83,10 @@ describe("ClientGrantsAdapter", () => {
       allow_any_organization: false,
       is_system: false,
       subject_type: "client",
-      authorization_details_types: ["payment_initiation", "account_information"],
+      authorization_details_types: [
+        "payment_initiation",
+        "account_information",
+      ],
     };
 
     const clientGrant = await adapter.clientGrants.create(
@@ -191,7 +194,7 @@ describe("ClientGrantsAdapter", () => {
     expect(result.client_grants).toHaveLength(2);
     expect(result.client_grants[0].client_id).toBe("test-client-id");
     expect(result.client_grants[1].client_id).toBe("test-client-id");
-    
+
     const scopes = result.client_grants.map((g: any) => g.scope);
     expect(scopes).toContainEqual(["read:users"]);
     expect(scopes).toContainEqual(["write:users"]);
@@ -343,10 +346,10 @@ describe("ClientGrantsAdapter", () => {
       tenantId,
       clientGrantData,
     );
-    
+
     // Add a delay to ensure different timestamps
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     const updated = await adapter.clientGrants.update(tenantId, created.id, {
       scope: ["read:users", "write:users", "delete:users"],
       organization_usage: "allow",
@@ -365,7 +368,9 @@ describe("ClientGrantsAdapter", () => {
     expect(retrieved!.organization_usage).toBe("allow");
     expect(retrieved!.allow_any_organization).toBe(true);
     expect(retrieved!.subject_type).toBe("user");
-    expect(new Date(retrieved!.updated_at!).getTime()).toBeGreaterThanOrEqual(new Date(created.updated_at!).getTime());
+    expect(new Date(retrieved!.updated_at!).getTime()).toBeGreaterThanOrEqual(
+      new Date(created.updated_at!).getTime(),
+    );
   });
 
   it("should not update non-existent client grant", async () => {
@@ -562,10 +567,7 @@ describe("ClientGrantsAdapter", () => {
     expect(tenant2Grants.client_grants[0].id).toBe(created2.id);
 
     // Cross-tenant access should return null
-    const crossAccess1 = await adapter.clientGrants.get(
-      tenantId,
-      created2.id,
-    );
+    const crossAccess1 = await adapter.clientGrants.get(tenantId, created2.id);
     const crossAccess2 = await adapter.clientGrants.get(
       anotherTenantId,
       created1.id,

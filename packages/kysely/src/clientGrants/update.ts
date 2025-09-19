@@ -10,11 +10,7 @@ export function update(db: Kysely<Database>) {
   ): Promise<boolean> => {
     const now = new Date().toISOString();
 
-    const {
-      scope,
-      authorization_details_types,
-      ...rest
-    } = clientGrant;
+    const { scope, authorization_details_types, ...rest } = clientGrant;
 
     const dbUpdate: any = {
       ...rest,
@@ -25,7 +21,9 @@ export function update(db: Kysely<Database>) {
       dbUpdate.scope = JSON.stringify(scope);
     }
     if (authorization_details_types !== undefined) {
-      dbUpdate.authorization_details_types = JSON.stringify(authorization_details_types);
+      dbUpdate.authorization_details_types = JSON.stringify(
+        authorization_details_types,
+      );
     }
 
     // Convert booleans to integers for database storage

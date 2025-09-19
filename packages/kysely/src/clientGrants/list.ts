@@ -19,7 +19,14 @@ export function list(db: Kysely<Database>) {
     tenantId: string,
     params: ClientGrantListParams = {},
   ): Promise<ListClientGrantsResponse> => {
-    const { page = 0, per_page = 50, include_totals = false, q, audience, client_id } = params;
+    const {
+      page = 0,
+      per_page = 50,
+      include_totals = false,
+      q,
+      audience,
+      client_id,
+    } = params;
 
     let query = db
       .selectFrom("client_grants")
@@ -72,14 +79,18 @@ export function list(db: Kysely<Database>) {
         client_id: result.client_id,
         audience: result.audience,
         scope: result.scope ? JSON.parse(result.scope) : [],
-        organization_usage: result.organization_usage as "deny" | "allow" | "require" | undefined,
+        organization_usage: result.organization_usage as
+          | "deny"
+          | "allow"
+          | "require"
+          | undefined,
         // Convert integers back to booleans for API response (with defaults)
-        allow_any_organization: result.allow_any_organization !== undefined 
-          ? Boolean(result.allow_any_organization) 
-          : false,
-        is_system: result.is_system !== undefined 
-          ? Boolean(result.is_system) 
-          : false,
+        allow_any_organization:
+          result.allow_any_organization !== undefined
+            ? Boolean(result.allow_any_organization)
+            : false,
+        is_system:
+          result.is_system !== undefined ? Boolean(result.is_system) : false,
         subject_type: result.subject_type as "client" | "user" | undefined,
         authorization_details_types: result.authorization_details_types
           ? JSON.parse(result.authorization_details_types)

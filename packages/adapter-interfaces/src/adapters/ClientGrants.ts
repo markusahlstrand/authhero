@@ -6,10 +6,7 @@ export interface ListClientGrantsResponse extends Totals {
 }
 
 export interface ClientGrantsAdapter {
-  create(
-    tenant_id: string,
-    params: ClientGrantInsert,
-  ): Promise<ClientGrant>;
+  create(tenant_id: string, params: ClientGrantInsert): Promise<ClientGrant>;
   get(tenant_id: string, id: string): Promise<ClientGrant | null>;
   list(
     tenant_id: string,

@@ -6,7 +6,6 @@ import { Database } from "./db";
 import { createSessionsAdapter } from "./sessions";
 import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
-import { createApplicationsAdapter } from "./applications";
 import { createConnectionsAdapter } from "./connections";
 import { createClientsAdapter } from "./clients";
 import { createClientGrantsAdapter } from "./clientGrants";
@@ -37,7 +36,6 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
   cleanup: () => Promise<void>;
 } {
   return {
-    applications: createApplicationsAdapter(db),
     branding: createBrandingAdapter(db),
     cleanup: createCleanup(db),
     clients: createClientsAdapter(db),
