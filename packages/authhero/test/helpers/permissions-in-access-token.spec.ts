@@ -61,6 +61,7 @@ describe("permissions in access token", () => {
     const scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
       tenantId: "tenantId",
       userId: user.user_id,
+      clientId: "test-client-id",
       audience: "https://permissions-api.example.com",
       requestedScopes: ["read:users", "write:users", "delete:users"],
     });

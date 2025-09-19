@@ -29,6 +29,7 @@ import { postUserLoginHook } from "../hooks/index";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { GrantType } from "@authhero/adapter-interfaces";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -42,6 +43,7 @@ export interface CreateAuthTokensParams {
   skipHooks?: boolean;
   organization?: string;
   permissions?: string[];
+  grantType?: GrantType;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -579,15 +581,49 @@ export async function completeLogin(
   let calculatedScopes = params.authParams.scope || "";
   let calculatedPermissions: string[] = [];
 
-  if (user && params.authParams.audience) {
+  if (params.authParams.audience) {
     try {
-      const scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
-        tenantId: params.client.tenant.id,
-        userId: user.user_id,
-        audience: params.authParams.audience,
-        requestedScopes: params.authParams.scope?.split(" ") || [],
-        organizationId: params.organization,
-      });
+      let scopesAndPermissions;
+
+      if (
+        params.grantType === GrantType.ClientCredential ||
+        (!user && !params.user)
+      ) {
+        // Client credentials grant - no user context
+        scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+          grantType: GrantType.ClientCredential,
+          tenantId: params.client.tenant.id,
+          clientId: params.client.client_id,
+          audience: params.authParams.audience,
+          requestedScopes: params.authParams.scope?.split(" ") || [],
+          organizationId: params.organization,
+        });
+      } else {
+        // User-based grant - user ID is required
+        const userId = user?.user_id || params.user?.user_id;
+        if (!userId) {
+          throw new JSONHTTPException(400, {
+            error: "invalid_request",
+            error_description: "User ID is required for user-based grants",
+          });
+        }
+
+        scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+          grantType: params.grantType as
+            | GrantType.AuthorizationCode
+            | GrantType.RefreshToken
+            | GrantType.Password
+            | GrantType.Passwordless
+            | GrantType.OTP
+            | undefined,
+          tenantId: params.client.tenant.id,
+          userId: userId,
+          clientId: params.client.client_id,
+          audience: params.authParams.audience,
+          requestedScopes: params.authParams.scope?.split(" ") || [],
+          organizationId: params.organization,
+        });
+      }
 
       calculatedScopes = scopesAndPermissions.scopes.join(" ");
       calculatedPermissions = scopesAndPermissions.permissions;

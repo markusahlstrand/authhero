@@ -22,6 +22,7 @@ import { createAuthTokens } from "../../authentication-flows/common";
 import { serializeAuthCookie } from "../../utils/cookies";
 import { calculateScopesAndPermissions } from "../../helpers/scopes-permissions";
 import { GrantFlowResult } from "src/types/GrantFlowResult";
+import { JSONHTTPException } from "../../errors/json-http-exception";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -210,18 +211,43 @@ export const tokenRoutes = new OpenAPIHono<{
 
       // Calculate scopes and permissions before creating tokens
       // This will throw a 403 error if user is not a member of the required organization
-      if (grantResult.user && grantResult.authParams.audience) {
+      if (grantResult.authParams.audience) {
         try {
-          const scopesAndPermissions = await calculateScopesAndPermissions(
-            ctx,
-            {
+          let scopesAndPermissions;
+
+          if (body.grant_type === GrantType.ClientCredential) {
+            scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+              grantType: GrantType.ClientCredential,
               tenantId: grantResult.client.tenant.id,
-              userId: grantResult.user.user_id,
+              clientId: grantResult.client.client_id,
               audience: grantResult.authParams.audience,
               requestedScopes: grantResult.authParams.scope?.split(" ") || [],
               organizationId: grantResult.organization,
-            },
-          );
+            });
+          } else {
+            // For user-based grants, userId is required
+            if (!grantResult.user?.user_id) {
+              throw new JSONHTTPException(400, {
+                error: "invalid_request",
+                error_description: "User ID is required for user-based grants",
+              });
+            }
+
+            scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+              grantType: body.grant_type as
+                | GrantType.AuthorizationCode
+                | GrantType.RefreshToken
+                | GrantType.Password
+                | GrantType.Passwordless
+                | GrantType.OTP,
+              tenantId: grantResult.client.tenant.id,
+              userId: grantResult.user.user_id,
+              clientId: grantResult.client.client_id,
+              audience: grantResult.authParams.audience,
+              requestedScopes: grantResult.authParams.scope?.split(" ") || [],
+              organizationId: grantResult.organization,
+            });
+          }
 
           // Update the authParams with calculated scopes
           grantResult.authParams.scope = scopesAndPermissions.scopes.join(" ");
@@ -235,7 +261,10 @@ export const tokenRoutes = new OpenAPIHono<{
         }
       }
 
-      const tokens = await createAuthTokens(ctx, grantResult);
+      const tokens = await createAuthTokens(ctx, {
+        ...grantResult,
+        grantType: body.grant_type as GrantType,
+      });
       return ctx.json(tokens, {
         headers: passwordlessHeaders,
       });

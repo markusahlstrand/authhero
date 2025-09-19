@@ -4,7 +4,10 @@
 
 ### Minor Changes
 
+<<<<<<< HEAD
+=======
 - 149ab91: Drop the old application table
+>>>>>>> main
 - b0e9595: Add client grants
 
 ## 0.90.0

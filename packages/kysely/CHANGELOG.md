@@ -4,12 +4,18 @@
 
 ### Minor Changes
 
+<<<<<<< HEAD
+=======
 - 149ab91: Drop the old application table
+>>>>>>> main
 - b0e9595: Add client grants
 
 ### Patch Changes
 
+<<<<<<< HEAD
+=======
 - Updated dependencies [149ab91]
+>>>>>>> main
 - Updated dependencies [b0e9595]
   - @authhero/adapter-interfaces@0.91.0
 
