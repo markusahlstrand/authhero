@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { ResourceServer } from "@authhero/adapter-interfaces";
+import { ResourceServer, GrantType } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 
@@ -15,7 +15,7 @@ interface BaseScopesAndPermissionsParams {
 // Client credentials grant - no userId required
 interface ClientCredentialsScopesAndPermissionsParams
   extends BaseScopesAndPermissionsParams {
-  grantType: "client_credentials";
+  grantType: GrantType.ClientCredential;
   userId?: never; // Explicitly disallow userId for client_credentials
 }
 
@@ -23,11 +23,11 @@ interface ClientCredentialsScopesAndPermissionsParams
 interface UserBasedScopesAndPermissionsParams
   extends BaseScopesAndPermissionsParams {
   grantType?:
-    | "authorization_code"
-    | "refresh_token"
-    | "password"
-    | "passwordless"
-    | "http://auth0.com/oauth/grant-type/passwordless/otp"
+    | GrantType.AuthorizationCode
+    | GrantType.RefreshToken
+    | GrantType.Password
+    | GrantType.Passwordless
+    | GrantType.OTP
     | undefined;
   userId: string; // Required for user-based grants
 }
@@ -164,7 +164,7 @@ export async function calculateScopesAndPermissions(
   params: CalculateScopesAndPermissionsParams,
 ): Promise<ScopesAndPermissionsResult> {
   // For client_credentials grant, validate using client grants table
-  if (params.grantType === "client_credentials") {
+  if (params.grantType === GrantType.ClientCredential) {
     return await calculateClientCredentialsScopes(ctx, {
       tenantId: params.tenantId,
       clientId: params.clientId,

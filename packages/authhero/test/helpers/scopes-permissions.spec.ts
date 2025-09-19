@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { calculateScopesAndPermissions } from "../../src/helpers/scopes-permissions";
 import { getTestServer } from "../helpers/test-server";
 import { Bindings, Variables } from "../../src/types";
+import { GrantType } from "@authhero/adapter-interfaces";
 
 describe("scopes-permissions helper", () => {
   describe("calculateScopesAndPermissions", () => {
@@ -579,7 +580,7 @@ describe("scopes-permissions helper", () => {
         });
 
         const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
+          grantType: GrantType.ClientCredential,
           tenantId: "tenantId",
           clientId: "test-client-id",
           audience: "https://client-credentials-api.example.com",
@@ -636,7 +637,7 @@ describe("scopes-permissions helper", () => {
         });
 
         const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
+          grantType: GrantType.ClientCredential,
           tenantId: "tenantId",
           clientId: "test-client-id",
           audience: "https://authz-api.example.com",
@@ -685,7 +686,7 @@ describe("scopes-permissions helper", () => {
         // No client grant created for this client and audience
 
         const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
+          grantType: GrantType.ClientCredential,
           tenantId: "tenantId",
           clientId: "test-client-id",
           audience: "https://no-grant-api.example.com",

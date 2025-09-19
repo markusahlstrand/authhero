@@ -217,7 +217,7 @@ export const tokenRoutes = new OpenAPIHono<{
 
           if (body.grant_type === GrantType.ClientCredential) {
             scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
-              grantType: "client_credentials",
+              grantType: GrantType.ClientCredential,
               tenantId: grantResult.client.tenant.id,
               clientId: grantResult.client.client_id,
               audience: grantResult.authParams.audience,
@@ -235,11 +235,11 @@ export const tokenRoutes = new OpenAPIHono<{
 
             scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
               grantType: body.grant_type as
-                | "authorization_code"
-                | "refresh_token"
-                | "password"
-                | "passwordless"
-                | "http://auth0.com/oauth/grant-type/passwordless/otp",
+                | GrantType.AuthorizationCode
+                | GrantType.RefreshToken
+                | GrantType.Password
+                | GrantType.Passwordless
+                | GrantType.OTP,
               tenantId: grantResult.client.tenant.id,
               userId: grantResult.user.user_id,
               clientId: grantResult.client.client_id,
@@ -263,7 +263,7 @@ export const tokenRoutes = new OpenAPIHono<{
 
       const tokens = await createAuthTokens(ctx, {
         ...grantResult,
-        grantType: body.grant_type,
+        grantType: body.grant_type as GrantType,
       });
       return ctx.json(tokens, {
         headers: passwordlessHeaders,

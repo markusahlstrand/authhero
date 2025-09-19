@@ -29,6 +29,7 @@ import { postUserLoginHook } from "../hooks/index";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { GrantType } from "@authhero/adapter-interfaces";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -42,7 +43,7 @@ export interface CreateAuthTokensParams {
   skipHooks?: boolean;
   organization?: string;
   permissions?: string[];
-  grantType?: string;
+  grantType?: GrantType;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -585,12 +586,12 @@ export async function completeLogin(
       let scopesAndPermissions;
 
       if (
-        params.grantType === "client_credentials" ||
+        params.grantType === GrantType.ClientCredential ||
         (!user && !params.user)
       ) {
         // Client credentials grant - no user context
         scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
+          grantType: GrantType.ClientCredential,
           tenantId: params.client.tenant.id,
           clientId: params.client.client_id,
           audience: params.authParams.audience,
@@ -609,11 +610,11 @@ export async function completeLogin(
 
         scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
           grantType: params.grantType as
-            | "authorization_code"
-            | "refresh_token"
-            | "password"
-            | "passwordless"
-            | "http://auth0.com/oauth/grant-type/passwordless/otp"
+            | GrantType.AuthorizationCode
+            | GrantType.RefreshToken
+            | GrantType.Password
+            | GrantType.Passwordless
+            | GrantType.OTP
             | undefined,
           tenantId: params.client.tenant.id,
           userId: userId,
