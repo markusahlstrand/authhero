@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.45.0
+
+### Minor Changes
+
+- b0e9595: Add client grants
+
+### Patch Changes
+
+- Updated dependencies [b0e9595]
+  - @authhero/adapter-interfaces@0.91.0
+
 ## 10.44.0
 
 ### Minor Changes

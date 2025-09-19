@@ -1,5 +1,17 @@
 # authhero
 
+## 0.218.0
+
+### Minor Changes
+
+- 6858af2: Add client credentials scopes and permissions
+- b0e9595: Add client grants
+
+### Patch Changes
+
+- Updated dependencies [b0e9595]
+  - @authhero/adapter-interfaces@0.91.0
+
 ## 0.217.0
 
 ### Minor Changes
