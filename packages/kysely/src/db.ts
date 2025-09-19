@@ -150,6 +150,21 @@ export const sqlRoleSchema = z.object({
   updated_at: z.string(),
 });
 
+export const sqlClientGrantSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  client_id: z.string(),
+  audience: z.string(),
+  scope: z.string().optional().default("[]"), // JSON array string (stored as text)
+  organization_usage: z.string().optional(),
+  allow_any_organization: z.number().optional(), // Convert boolean to integer for SQL storage
+  is_system: z.number().optional(), // Convert boolean to integer for SQL storage
+  subject_type: z.string().optional(),
+  authorization_details_types: z.string().optional().default("[]"), // JSON array string (stored as text)
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const sqlRolePermissionSchema = z.object({
   tenant_id: z.string(),
   role_id: z.string(),
@@ -236,6 +251,7 @@ export interface Database {
   applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
   clients: z.infer<typeof sqlClientSchema>;
+  client_grants: z.infer<typeof sqlClientGrantSchema>;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;
