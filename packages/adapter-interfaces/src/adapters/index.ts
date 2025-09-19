@@ -7,7 +7,6 @@ import { SessionsAdapter } from "./Sessions";
 import { TenantsDataAdapter } from "./Tenants";
 import { UserDataAdapter } from "./Users";
 import { LogsDataAdapter } from "./Logs";
-import { ApplicationsAdapter } from "./Applications";
 import { ConnectionsAdapter } from "./Connections";
 import { CustomDomainsAdapter } from "./CustomDomains";
 import { KeysAdapter } from "./Keys";
@@ -29,7 +28,6 @@ import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
 
 export interface DataAdapters {
-  applications: ApplicationsAdapter;
   branding: BrandingAdapter;
   cache?: CacheAdapter;
   clients: ClientsAdapter;

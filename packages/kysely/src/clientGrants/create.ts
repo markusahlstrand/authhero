@@ -28,12 +28,14 @@ export function create(db: Kysely<Database>) {
         ? JSON.stringify(authorization_details_types)
         : "[]",
       // Convert booleans to integers for database storage
-      allow_any_organization: rest.allow_any_organization !== undefined 
-        ? (rest.allow_any_organization ? 1 : 0) 
-        : undefined,
-      is_system: rest.is_system !== undefined 
-        ? (rest.is_system ? 1 : 0) 
-        : undefined,
+      allow_any_organization:
+        rest.allow_any_organization !== undefined
+          ? rest.allow_any_organization
+            ? 1
+            : 0
+          : undefined,
+      is_system:
+        rest.is_system !== undefined ? (rest.is_system ? 1 : 0) : undefined,
       created_at: now,
       updated_at: now,
     };

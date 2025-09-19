@@ -4,6 +4,10 @@
 
 ### Patch Changes
 
+<<<<<<< HEAD
+=======
+- Updated dependencies [149ab91]
+>>>>>>> main
 - Updated dependencies [b0e9595]
   - @authhero/adapter-interfaces@0.91.0
 

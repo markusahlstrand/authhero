@@ -25,7 +25,9 @@ export function list(db: Kysely<Database>) {
       const parts = trimmedQ.split(/\s+/);
       const one = parts.length === 1 ? parts[0] : undefined;
       // Handle both quoted and unquoted values: field:"value" or field:value
-      const match = one ? one.match(/^(-)?([a-zA-Z_][a-zA-Z0-9_]*):"?([^"]*)"?$/) : null;
+      const match = one
+        ? one.match(/^(-)?([a-zA-Z_][a-zA-Z0-9_]*):"?([^"]*)"?$/)
+        : null;
       const value = match ? match[3] : "";
       const hasRangeOp = /^(>=|>|<=|<)/.test(value || "");
       if (match && !hasRangeOp && value) {
@@ -33,7 +35,7 @@ export function list(db: Kysely<Database>) {
         const fieldName = match[2];
         const { ref } = db.dynamic;
         const columnRef = ref(`client_grants.${fieldName}`);
-        
+
         // Special handling for boolean fields that are stored as integers
         if (fieldName === "allow_any_organization") {
           const boolValue = value === "true" ? 1 : 0;

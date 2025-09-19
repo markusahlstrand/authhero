@@ -10,13 +10,10 @@ export const clientGrantInsertSchema = z.object({
   scope: z.array(z.string()).optional().openapi({
     description: "Scopes allowed for this client grant.",
   }),
-  organization_usage: z
-    .enum(["deny", "allow", "require"])
-    .optional()
-    .openapi({
-      description:
-        "Defines whether organizations can be used with client credentials exchanges for this grant.",
-    }),
+  organization_usage: z.enum(["deny", "allow", "require"]).optional().openapi({
+    description:
+      "Defines whether organizations can be used with client credentials exchanges for this grant.",
+  }),
   allow_any_organization: z.boolean().optional().openapi({
     description:
       "If enabled, any organization can be used with this grant. If disabled (default), the grant must be explicitly assigned to the desired organizations.",

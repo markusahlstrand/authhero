@@ -1,6 +1,5 @@
 import { z } from "@hono/zod-openapi";
 import {
-  applicationSchema,
   brandingSchema,
   clientSchema,
   Code,
@@ -39,18 +38,6 @@ const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
 
 const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
   tenant_id: z.string(),
-});
-
-const sqlApplicationSchema = z.object({
-  ...applicationSchema.shape,
-  tenant_id: z.string(),
-  addons: z.string(),
-  disable_sign_ups: z.number(),
-  callbacks: z.string(),
-  allowed_origins: z.string(),
-  web_origins: z.string(),
-  allowed_logout_urls: z.string(),
-  allowed_clients: z.string(),
 });
 
 const sqlPromptSettingSchema = z.object({
@@ -248,7 +235,6 @@ const sqlClientSchema = z.object({
 });
 
 export interface Database {
-  applications: z.infer<typeof sqlApplicationSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
   clients: z.infer<typeof sqlClientSchema>;
   client_grants: z.infer<typeof sqlClientGrantSchema>;

@@ -97,6 +97,7 @@ import * as n97_add_organization_to_user_permissions_and_roles from "./2025-09-1
 import * as n98_clients from "./2025-09-16T12:00:00_clients";
 import * as n99_update_client_foreign_keys from "./2025-09-16T12:30:00_update_client_foreign_keys";
 import * as o001_client_grants from "./2025-09-18T12:00:00_client_grants";
+import * as o002_drop_applications from "./2025-09-19T10:56:35_drop_applications";
 
 // These need to be in alphabetic order
 export default {
@@ -199,4 +200,5 @@ export default {
   n98_clients,
   n99_update_client_foreign_keys,
   o001_client_grants,
+  o002_drop_applications,
 };
