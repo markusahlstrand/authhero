@@ -26,6 +26,7 @@ import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
+import { clientGrantRoutes } from "./client-grants";
 import { organizationRoutes } from "./organizations";
 // import { permissionRoutes } from "./permissions"; // Commented out - using role/user permissions instead
 
@@ -109,6 +110,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/keys", keyRoutes)
     .route("/users-by-email", usersByEmailRoutes)
     .route("/clients", clientRoutes)
+    .route("/client-grants", clientGrantRoutes)
     .route("/tenants", tenantRoutes)
     .route("/logs", logRoutes)
     .route("/hooks", hooksRoutes)
