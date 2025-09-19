@@ -267,7 +267,7 @@ describe("ClientGrantsAdapter", () => {
     await adapter.clientGrants.create(tenantId, grant2);
 
     const result = await adapter.clientGrants.list(tenantId, {
-      audience: "https://test.api.com",
+      q: 'audience:"https://test.api.com"',
     });
 
     expect(result.client_grants).toHaveLength(1);
@@ -325,7 +325,7 @@ describe("ClientGrantsAdapter", () => {
     await adapter.clientGrants.create(tenantId, grant2);
 
     const result = await adapter.clientGrants.list(tenantId, {
-      client_id: "test-client-id",
+      q: 'client_id:"test-client-id"',
     });
 
     expect(result.client_grants).toHaveLength(1);

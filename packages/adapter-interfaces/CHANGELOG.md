@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.91.0
+
+### Minor Changes
+
+- 149ab91: Drop the old application table
+- b0e9595: Add client grants
+
 ## 0.90.0
 
 ### Minor Changes

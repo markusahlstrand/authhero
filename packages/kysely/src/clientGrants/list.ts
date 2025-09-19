@@ -9,67 +9,65 @@ import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 
-interface ClientGrantListParams extends ListParams {
-  audience?: string;
-  client_id?: string;
-}
-
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ClientGrantListParams = {},
+    params: ListParams = {},
   ): Promise<ListClientGrantsResponse> => {
-    const {
-      page = 0,
-      per_page = 50,
-      include_totals = false,
-      q,
-      audience,
-      client_id,
-    } = params;
+    const { page = 0, per_page = 50, include_totals = false, q, sort } = params;
 
     let query = db
       .selectFrom("client_grants")
       .where("client_grants.tenant_id", "=", tenantId);
 
-    // Handle direct parameter filtering
-    if (audience) {
-      query = query.where("client_grants.audience", "=", audience);
-    }
-    if (client_id) {
-      query = query.where("client_grants.client_id", "=", client_id);
-    }
-
     if (q) {
       const trimmedQ = q.trim();
       const parts = trimmedQ.split(/\s+/);
       const one = parts.length === 1 ? parts[0] : undefined;
-      const match = one ? one.match(/^(-)?(client_id|audience):(.*)$/) : null;
+      // Handle both quoted and unquoted values: field:"value" or field:value
+      const match = one
+        ? one.match(/^(-)?([a-zA-Z_][a-zA-Z0-9_]*):"?([^"]*)"?$/)
+        : null;
       const value = match ? match[3] : "";
       const hasRangeOp = /^(>=|>|<=|<)/.test(value || "");
       if (match && !hasRangeOp && value) {
         const neg = !!match[1];
-        const field =
-          match[2] === "client_id"
-            ? "client_grants.client_id"
-            : "client_grants.audience";
-        if (neg) {
-          query = query.where(field, "!=", value);
+        const fieldName = match[2];
+        const { ref } = db.dynamic;
+        const columnRef = ref(`client_grants.${fieldName}`);
+
+        // Special handling for boolean fields that are stored as integers
+        if (fieldName === "allow_any_organization") {
+          const boolValue = value === "true" ? 1 : 0;
+          if (neg) {
+            query = query.where(columnRef, "!=", boolValue);
+          } else {
+            query = query.where(columnRef, "=", boolValue);
+          }
         } else {
-          query = query.where(field, "=", value);
+          // Generic handling for string fields
+          if (neg) {
+            query = query.where(columnRef, "!=", value);
+          } else {
+            query = query.where(columnRef, "=", value);
+          }
         }
       } else {
-        query = luceneFilter(db, query, trimmedQ, [
-          "client_grants.client_id",
-          "client_grants.audience",
-        ]);
+        query = luceneFilter(db, query, trimmedQ, []);
       }
     }
 
-    const filteredQuery = query
-      .orderBy("client_grants.created_at", "desc")
-      .limit(per_page)
-      .offset(page * per_page);
+    let filteredQuery = query;
+
+    // Add sorting if specified
+    if (sort) {
+      const { ref } = db.dynamic;
+      filteredQuery = filteredQuery.orderBy(ref(sort.sort_by), sort.sort_order);
+    } else {
+      filteredQuery = filteredQuery.orderBy("client_grants.created_at", "desc");
+    }
+
+    filteredQuery = filteredQuery.limit(per_page).offset(page * per_page);
 
     const results = await filteredQuery.selectAll().execute();
 
