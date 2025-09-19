@@ -3,13 +3,39 @@ import { ResourceServer } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 
-export interface CalculateScopesAndPermissionsParams {
+// Base interface with common properties
+interface BaseScopesAndPermissionsParams {
   tenantId: string;
-  userId: string;
+  clientId: string;
   audience: string;
   requestedScopes: string[];
   organizationId?: string;
 }
+
+// Client credentials grant - no userId required
+interface ClientCredentialsScopesAndPermissionsParams
+  extends BaseScopesAndPermissionsParams {
+  grantType: "client_credentials";
+  userId?: never; // Explicitly disallow userId for client_credentials
+}
+
+// User-based grants - userId is required
+interface UserBasedScopesAndPermissionsParams
+  extends BaseScopesAndPermissionsParams {
+  grantType?:
+    | "authorization_code"
+    | "refresh_token"
+    | "password"
+    | "passwordless"
+    | "http://auth0.com/oauth/grant-type/passwordless/otp"
+    | undefined;
+  userId: string; // Required for user-based grants
+}
+
+// Discriminated union
+export type CalculateScopesAndPermissionsParams =
+  | ClientCredentialsScopesAndPermissionsParams
+  | UserBasedScopesAndPermissionsParams;
 
 export interface ScopesAndPermissionsResult {
   scopes: string[];
@@ -25,6 +51,106 @@ const DEFAULT_OIDC_SCOPES = [
   "phone", // Returns phone_number and phone_number_verified
 ];
 
+interface ClientCredentialsScopesParams {
+  tenantId: string;
+  clientId: string;
+  audience: string;
+  requestedScopes: string[];
+}
+
+/**
+ * Calculates scopes and permissions for client_credentials grant type based on client grants.
+ * This implementation only considers client grants, the audience, and the resource server configuration.
+ */
+async function calculateClientCredentialsScopes(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: ClientCredentialsScopesParams,
+): Promise<ScopesAndPermissionsResult> {
+  const { tenantId, clientId, audience, requestedScopes } = params;
+
+  // Handle default OIDC scopes first - these are always available
+  const defaultOidcScopes = requestedScopes.filter((scope) =>
+    DEFAULT_OIDC_SCOPES.includes(scope),
+  );
+
+  // Get all resource servers for the tenant
+  const resourceServersResponse =
+    await ctx.env.data.resourceServers.list(tenantId);
+
+  // Find resource servers that match the audience
+  const matchingResourceServers =
+    resourceServersResponse.resource_servers.filter(
+      (rs: ResourceServer) => rs.identifier === audience,
+    );
+
+  if (matchingResourceServers.length === 0) {
+    // No matching resource servers found - return only default OIDC scopes
+    return { scopes: defaultOidcScopes, permissions: [] };
+  }
+
+  const resourceServer = matchingResourceServers[0];
+  if (!resourceServer) {
+    return { scopes: defaultOidcScopes, permissions: [] };
+  }
+
+  const rbacEnabled = resourceServer.options?.enforce_policies === true;
+  const tokenDialect = resourceServer.options?.token_dialect || "access_token";
+
+  // Get client grants for this client
+  const clientGrantsResponse = await ctx.env.data.clientGrants.list(tenantId, {
+    q: `client_id:"${clientId}"`,
+  });
+
+  // Filter by audience
+  const clientGrant = clientGrantsResponse.client_grants.find(
+    (grant) => grant.audience === audience,
+  );
+
+  if (!clientGrant) {
+    // No client grant found for this client and audience
+    return { scopes: defaultOidcScopes, permissions: [] };
+  }
+
+  const grantedScopes = clientGrant.scope || [];
+  const definedScopes = (resourceServer.scopes || []).map(
+    (scope) => scope.value,
+  );
+
+  // If RBAC is not enabled, return requested scopes that are both:
+  // 1. Defined on the resource server
+  // 2. Granted to the client via client grants
+  if (!rbacEnabled) {
+    const allowedScopes = requestedScopes.filter(
+      (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
+    );
+    const allAllowedScopes = [
+      ...new Set([...defaultOidcScopes, ...allowedScopes]),
+    ];
+    return { scopes: allAllowedScopes, permissions: [] };
+  }
+
+  // RBAC is enabled - permissions are based on the granted scopes in the client grant
+  // For client_credentials, we consider the granted scopes as permissions since there's no user context
+
+  if (tokenDialect === "access_token_authz") {
+    // Return permissions that are defined as scopes on the resource server and granted to the client
+    const allowedPermissions = grantedScopes.filter((scope) =>
+      definedScopes.includes(scope),
+    );
+    return { scopes: defaultOidcScopes, permissions: allowedPermissions };
+  }
+
+  // For access_token dialect, return scopes that are requested, defined, and granted
+  const allowedScopes = requestedScopes.filter(
+    (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
+  );
+  const allAllowedScopes = [
+    ...new Set([...defaultOidcScopes, ...allowedScopes]),
+  ];
+
+  return { scopes: allAllowedScopes, permissions: [] };
+}
+
 /**
  * Calculates the scopes and permissions for a user based on the audience and resource server configuration.
  * This function implements Auth0-like behavior for RBAC and token dialects.
@@ -37,6 +163,17 @@ export async function calculateScopesAndPermissions(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CalculateScopesAndPermissionsParams,
 ): Promise<ScopesAndPermissionsResult> {
+  // For client_credentials grant, validate using client grants table
+  if (params.grantType === "client_credentials") {
+    return await calculateClientCredentialsScopes(ctx, {
+      tenantId: params.tenantId,
+      clientId: params.clientId,
+      audience: params.audience,
+      requestedScopes: params.requestedScopes,
+    });
+  }
+
+  // For user-based grants, userId is guaranteed to be present due to discriminated union
   const { tenantId, userId, audience, requestedScopes, organizationId } =
     params;
 

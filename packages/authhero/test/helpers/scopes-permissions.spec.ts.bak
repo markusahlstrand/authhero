@@ -10,7 +10,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -18,8 +20,8 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "userId",
+        clientId: "test-client-id",
         audience: "https://nonexistent-api.example.com",
         requestedScopes: ["read:users", "write:users"],
       });
@@ -34,7 +36,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -57,8 +61,8 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "userId",
+        clientId: "test-client-id",
         audience: "https://test-api.example.com",
         requestedScopes: ["read:users", "write:users", "invalid:scope"],
       });
@@ -76,7 +80,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -112,8 +118,8 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "testUserId",
+        clientId: "test-client-id",
         audience: "https://rbac-api.example.com",
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
@@ -131,7 +137,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -161,7 +169,6 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "testUserId2",
         audience: "https://rbac-scopes-api.example.com",
         requestedScopes: ["read:users", "write:users", "admin:all"],
@@ -180,7 +187,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -228,7 +237,6 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "testUserId3",
         audience: "https://roles-api.example.com",
         requestedScopes: ["read:users", "write:users", "admin:all"],
@@ -248,7 +256,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -269,7 +279,6 @@ describe("scopes-permissions helper", () => {
       await expect(
         calculateScopesAndPermissions(ctx, {
           tenantId: "tenantId",
-          clientId: "test-client-id",
           userId: "nonMemberUserId",
           audience: "https://org-api.example.com",
           requestedScopes: ["read:users"],
@@ -285,7 +294,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -354,7 +365,6 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "orgUserId",
         audience: "https://org-roles-api.example.com",
         requestedScopes: ["read:users", "write:users"],
@@ -376,7 +386,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -455,7 +467,6 @@ describe("scopes-permissions helper", () => {
 
       const result = await calculateScopesAndPermissions(ctx, {
         tenantId: "tenantId",
-        clientId: "test-client-id",
         userId: "mixedUserId",
         audience: "https://mixed-roles-api.example.com",
         requestedScopes: ["read:users", "write:users", "admin:all"],
@@ -478,7 +489,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -489,7 +502,6 @@ describe("scopes-permissions helper", () => {
       await expect(
         calculateScopesAndPermissions(ctx, {
           tenantId: "tenantId",
-          clientId: "test-client-id",
           userId: "nonMemberUserId",
           audience: "https://nonexistent-api.example.com", // No matching resource server
           requestedScopes: ["openid", "profile"],
@@ -502,7 +514,9 @@ describe("scopes-permissions helper", () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
-        var: {},
+        var: {
+          tenant_id: "tenantId",
+        },
       } as Context<{
         Bindings: Bindings;
         Variables: Variables;
@@ -524,7 +538,6 @@ describe("scopes-permissions helper", () => {
       await expect(
         calculateScopesAndPermissions(ctx, {
           tenantId: "tenantId",
-          clientId: "test-client-id",
           userId: "nonMemberUserId",
           audience: "https://non-rbac-api.example.com",
           requestedScopes: ["read:data"],
@@ -534,172 +547,6 @@ describe("scopes-permissions helper", () => {
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
-    });
-
-    describe("client_credentials grant", () => {
-      it("should return only scopes granted via client grants table", async () => {
-        const { env } = await getTestServer();
-        const ctx = {
-          env,
-          var: {},
-        } as Context<{
-          Bindings: Bindings;
-          Variables: Variables;
-        }>;
-
-        // Create a resource server
-        const resourceServer = await env.data.resourceServers.create(
-          "tenantId",
-          {
-            identifier: "https://client-credentials-api.example.com",
-            name: "Client Credentials API",
-            scopes: [
-              { value: "read:users", description: "Read users" },
-              { value: "write:users", description: "Write users" },
-              { value: "delete:users", description: "Delete users" },
-            ],
-            options: {
-              enforce_policies: true, // RBAC enabled
-              token_dialect: "access_token",
-            },
-          },
-        );
-
-        // Create a test client
-        await env.data.clients.create("tenantId", {
-          client_id: "test-client-id",
-          name: "Test Client",
-        });
-
-        // Create a client grant that only allows read:users and write:users
-        await env.data.clientGrants.create("tenantId", {
-          client_id: "test-client-id",
-          audience: "https://client-credentials-api.example.com",
-          scope: ["read:users", "write:users"], // delete:users is NOT granted
-        });
-
-        const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
-          tenantId: "tenantId",
-          clientId: "test-client-id",
-          audience: "https://client-credentials-api.example.com",
-          requestedScopes: ["read:users", "write:users", "delete:users"], // Requesting all scopes
-        });
-
-        expect(result).toEqual({
-          scopes: ["read:users", "write:users"], // Only granted scopes returned, delete:users excluded
-          permissions: [],
-        });
-
-        // Clean up
-        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
-      });
-
-      it("should return permissions when token_dialect is access_token_authz for client_credentials", async () => {
-        const { env } = await getTestServer();
-        const ctx = {
-          env,
-          var: {},
-        } as Context<{
-          Bindings: Bindings;
-          Variables: Variables;
-        }>;
-
-        // Create a resource server with access_token_authz dialect
-        const resourceServer = await env.data.resourceServers.create(
-          "tenantId",
-          {
-            identifier: "https://authz-api.example.com",
-            name: "Authorization API",
-            scopes: [
-              { value: "read:data", description: "Read data" },
-              { value: "write:data", description: "Write data" },
-            ],
-            options: {
-              enforce_policies: true, // RBAC enabled
-              token_dialect: "access_token_authz",
-            },
-          },
-        );
-
-        // Create a test client
-        await env.data.clients.create("tenantId", {
-          client_id: "test-client-id",
-          name: "Test Client",
-        });
-
-        // Create a client grant
-        await env.data.clientGrants.create("tenantId", {
-          client_id: "test-client-id",
-          audience: "https://authz-api.example.com",
-          scope: ["read:data"],
-        });
-
-        const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
-          tenantId: "tenantId",
-          clientId: "test-client-id",
-          audience: "https://authz-api.example.com",
-          requestedScopes: ["read:data", "write:data"],
-        });
-
-        expect(result).toEqual({
-          scopes: [], // No scopes for access_token_authz
-          permissions: ["read:data"], // Only granted permissions returned
-        });
-
-        // Clean up
-        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
-      });
-
-      it("should return empty arrays when no client grant exists", async () => {
-        const { env } = await getTestServer();
-        const ctx = {
-          env,
-          var: {},
-        } as Context<{
-          Bindings: Bindings;
-          Variables: Variables;
-        }>;
-
-        // Create a resource server
-        const resourceServer = await env.data.resourceServers.create(
-          "tenantId",
-          {
-            identifier: "https://no-grant-api.example.com",
-            name: "No Grant API",
-            scopes: [{ value: "read:data", description: "Read data" }],
-            options: {
-              enforce_policies: true,
-              token_dialect: "access_token",
-            },
-          },
-        );
-
-        // Create a test client
-        await env.data.clients.create("tenantId", {
-          client_id: "test-client-id",
-          name: "Test Client",
-        });
-
-        // No client grant created for this client and audience
-
-        const result = await calculateScopesAndPermissions(ctx, {
-          grantType: "client_credentials",
-          tenantId: "tenantId",
-          clientId: "test-client-id",
-          audience: "https://no-grant-api.example.com",
-          requestedScopes: ["read:data"],
-        });
-
-        expect(result).toEqual({
-          scopes: [],
-          permissions: [],
-        });
-
-        // Clean up
-        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
-      });
     });
   });
 });
