@@ -1,22 +1,28 @@
 # authhero
 
+## 0.219.0
+
+### Minor Changes
+
+- Return all scopes as default for client credentials
+
 ## 0.218.0
 
 ### Minor Changes
 
 <<<<<<< HEAD
-- 6858af2: Add client credentials scopes and permissions
-=======
+
+- # 6858af2: Add client credentials scopes and permissions
 - 149ab91: Drop the old application table
->>>>>>> main
+  > > > > > > > main
 - b0e9595: Add client grants
 
 ### Patch Changes
 
-<<<<<<< HEAD
-=======
+# <<<<<<< HEAD
+
 - Updated dependencies [149ab91]
->>>>>>> main
+  > > > > > > > main
 - Updated dependencies [b0e9595]
   - @authhero/adapter-interfaces@0.91.0
 

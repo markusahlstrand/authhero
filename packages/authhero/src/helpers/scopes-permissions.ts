@@ -119,10 +119,23 @@ async function calculateClientCredentialsScopes(
   // If RBAC is not enabled, return requested scopes that are both:
   // 1. Defined on the resource server
   // 2. Granted to the client via client grants
+  // Special case: if no scopes are requested, return all granted scopes
   if (!rbacEnabled) {
-    const allowedScopes = requestedScopes.filter(
-      (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
-    );
+    let allowedScopes: string[];
+
+    if (requestedScopes.length === 0) {
+      // No specific scopes requested - return all granted scopes that are defined on the resource server
+      allowedScopes = grantedScopes.filter((scope) =>
+        definedScopes.includes(scope),
+      );
+    } else {
+      // Specific scopes requested - return intersection of requested, defined, and granted
+      allowedScopes = requestedScopes.filter(
+        (scope) =>
+          definedScopes.includes(scope) && grantedScopes.includes(scope),
+      );
+    }
+
     const allAllowedScopes = [
       ...new Set([...defaultOidcScopes, ...allowedScopes]),
     ];
@@ -141,9 +154,21 @@ async function calculateClientCredentialsScopes(
   }
 
   // For access_token dialect, return scopes that are requested, defined, and granted
-  const allowedScopes = requestedScopes.filter(
-    (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
-  );
+  // Special case: if no scopes are requested, return all granted scopes
+  let allowedScopes: string[];
+
+  if (requestedScopes.length === 0) {
+    // No specific scopes requested - return all granted scopes that are defined on the resource server
+    allowedScopes = grantedScopes.filter((scope) =>
+      definedScopes.includes(scope),
+    );
+  } else {
+    // Specific scopes requested - return intersection of requested, defined, and granted
+    allowedScopes = requestedScopes.filter(
+      (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
+    );
+  }
+
   const allAllowedScopes = [
     ...new Set([...defaultOidcScopes, ...allowedScopes]),
   ];
