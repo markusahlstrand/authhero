@@ -111,6 +111,120 @@ describe("token", () => {
 
       expect(body).toBe("Invalid client credentials");
     });
+
+    it("should return all granted scopes when no scope is specified in client_credentials", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server
+      await env.data.resourceServers.create("tenantId", {
+        name: "Test API",
+        identifier: "https://test-api.example.com",
+        scopes: [
+          { value: "read:users", description: "Read users" },
+          { value: "write:users", description: "Write users" },
+          { value: "read:posts", description: "Read posts" },
+        ],
+      });
+
+      // Create a client grant with specific scopes
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://test-api.example.com",
+        scope: ["read:users", "write:users"], // Grant only these scopes
+      });
+
+      // Test client credentials request WITHOUT specifying scope parameter
+      const response = await client.oauth.token.$post(
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            audience: "https://test-api.example.com",
+            // Note: No 'scope' parameter specified
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const accessToken = parseJWT(body.access_token);
+      expect(accessToken?.payload).toMatchObject({
+        sub: "clientId",
+        iss: "http://localhost:3000/",
+        aud: "https://test-api.example.com",
+      });
+
+      // The token should include both granted scopes since no specific scopes were requested
+      const payload = accessToken?.payload as any;
+      expect(payload.scope).toContain("read:users");
+      expect(payload.scope).toContain("write:users");
+      expect(payload.scope).not.toContain("read:posts"); // This wasn't granted
+    });
+
+    it("should return only requested scopes when scope is specified in client_credentials", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server (same as in the previous test)
+      await env.data.resourceServers.create("tenantId", {
+        id: "test-api",
+        name: "Test API",
+        identifier: "https://test-api.example.com",
+        scopes: [
+          { value: "read:users", description: "Read users" },
+          { value: "write:users", description: "Write users" },
+          { value: "read:posts", description: "Read posts" },
+        ],
+      });
+
+      // Create a client grant with specific scopes
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://test-api.example.com",
+        scope: ["read:users", "write:users"], // Grant both scopes
+      });
+
+      // Test client credentials request WITH specific scope parameter
+      const response = await client.oauth.token.$post(
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            audience: "https://test-api.example.com",
+            scope: "read:users", // Only request one scope
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const accessToken = parseJWT(body.access_token);
+      expect(accessToken?.payload).toMatchObject({
+        sub: "clientId",
+        iss: "http://localhost:3000/",
+        aud: "https://test-api.example.com",
+      });
+
+      // Should only include the requested scope
+      const payload2 = accessToken?.payload as any;
+      expect(payload2.scope).toContain("read:users");
+      expect(payload2.scope).not.toContain("write:users"); // This was granted but not requested
+    });
   });
 
   describe("authorization_code", () => {
