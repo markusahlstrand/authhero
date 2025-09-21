@@ -20,7 +20,6 @@ export function ResourceServerList() {
       <Datagrid rowClick="edit">
         <TextField source="name" />
         <TextField source="identifier" />
-        <TextField source="audience" emptyText="-" />
         <FunctionField
           source="scopes"
           label="Scopes"

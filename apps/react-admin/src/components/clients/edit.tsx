@@ -45,7 +45,8 @@ import EditIcon from "@mui/icons-material/Edit";
 const AddClientGrantButton = () => {
   const [open, setOpen] = useState(false);
   const [resourceServers, setResourceServers] = useState<any[]>([]);
-  const [selectedResourceServer, setSelectedResourceServer] = useState<any>(null);
+  const [selectedResourceServer, setSelectedResourceServer] =
+    useState<any>(null);
   const [availableScopes, setAvailableScopes] = useState<any[]>([]);
   const [selectedScopes, setSelectedScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -106,8 +107,8 @@ const AddClientGrantButton = () => {
 
       const existingAll = existingRes.data ?? [];
       // Find existing grant for this resource server
-      const existingGrant = existingAll.find((g: any) => 
-        g.audience === resourceServer?.identifier
+      const existingGrant = existingAll.find(
+        (g: any) => g.audience === resourceServer?.identifier,
       );
 
       const existingScopes = existingGrant?.scope || [];
@@ -139,7 +140,9 @@ const AddClientGrantButton = () => {
 
   const handleAddClientGrant = async () => {
     if (!clientId || !selectedResourceServer || selectedScopes.length === 0) {
-      notify("Please select a resource server and at least one scope", { type: "warning" });
+      notify("Please select a resource server and at least one scope", {
+        type: "warning",
+      });
       return;
     }
 
@@ -151,8 +154,8 @@ const AddClientGrantButton = () => {
         filter: { client_id: clientId },
       });
 
-      const existingGrant = existingRes.data?.find((g: any) => 
-        g.audience === selectedResourceServer.identifier
+      const existingGrant = existingRes.data?.find(
+        (g: any) => g.audience === selectedResourceServer.identifier,
       );
 
       const newScopes = selectedScopes.map((scope: any) => scope.value);
@@ -161,7 +164,7 @@ const AddClientGrantButton = () => {
         // Update existing grant by merging scopes
         const existingScopes = existingGrant.scope || [];
         const mergedScopes = [...new Set([...existingScopes, ...newScopes])];
-        
+
         await dataProvider.update("client-grants", {
           id: existingGrant.id,
           data: {
@@ -170,9 +173,12 @@ const AddClientGrantButton = () => {
           previousData: existingGrant,
         });
 
-        notify(`Client grant updated with ${newScopes.length} additional scope(s)`, {
-          type: "success",
-        });
+        notify(
+          `Client grant updated with ${newScopes.length} additional scope(s)`,
+          {
+            type: "success",
+          },
+        );
       } else {
         // Create new grant
         const payload = {
@@ -313,8 +319,8 @@ const AddClientGrantButton = () => {
                   color="text.secondary"
                   sx={{ mb: 2 }}
                 >
-                  This client already has access to all available scopes for the selected
-                  resource server.
+                  This client already has access to all available scopes for the
+                  selected resource server.
                 </Typography>
               )}
 
@@ -355,7 +361,7 @@ const EditClientGrantButton = () => {
   const [loading, setLoading] = useState(false);
   const [availableScopes, setAvailableScopes] = useState<any[]>([]);
   const [selectedScopes, setSelectedScopes] = useState<any[]>([]);
-  
+
   const clientGrant = useRecordContext();
   const dataProvider = useDataProvider();
   const notify = useNotify();
@@ -380,13 +386,18 @@ const EditClientGrantButton = () => {
     setLoading(true);
     try {
       // Find the resource server by audience
-      const { data: resourceServers } = await dataProvider.getList("resource-servers", {
-        pagination: { page: 1, perPage: 100 },
-        sort: { field: "name", order: "ASC" },
-        filter: {},
-      });
+      const { data: resourceServers } = await dataProvider.getList(
+        "resource-servers",
+        {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        },
+      );
 
-      const rs = resourceServers.find((rs: any) => rs.identifier === clientGrant.audience);
+      const rs = resourceServers.find(
+        (rs: any) => rs.identifier === clientGrant.audience,
+      );
       if (!rs) {
         notify("Resource server not found", { type: "error" });
         handleClose();
@@ -401,10 +412,10 @@ const EditClientGrantButton = () => {
 
       // Get currently assigned scopes
       const currentScopeValues = clientGrant.scope || [];
-      
+
       // Filter out already assigned scopes from available scopes
-      const unassignedScopes = allScopes.filter((scope: any) => 
-        !currentScopeValues.includes(scope.value)
+      const unassignedScopes = allScopes.filter(
+        (scope: any) => !currentScopeValues.includes(scope.value),
       );
 
       setAvailableScopes(unassignedScopes);
@@ -428,7 +439,7 @@ const EditClientGrantButton = () => {
     try {
       // Get the newly selected scope values
       const newScopeValues = selectedScopes.map((scope: any) => scope.value);
-      
+
       // Get existing scopes and merge with new ones
       const existingScopes = clientGrant.scope || [];
       const mergedScopes = [...existingScopes, ...newScopeValues];
@@ -441,7 +452,9 @@ const EditClientGrantButton = () => {
         previousData: clientGrant,
       });
 
-      notify(`Added ${newScopeValues.length} scope(s) to client grant`, { type: "success" });
+      notify(`Added ${newScopeValues.length} scope(s) to client grant`, {
+        type: "success",
+      });
       handleClose();
       refresh();
     } catch (error) {
@@ -464,7 +477,7 @@ const EditClientGrantButton = () => {
           <Typography variant="body2" sx={{ mb: 2 }}>
             Add additional scopes to <strong>{clientGrant.audience}</strong>
           </Typography>
-          
+
           {/* Show currently assigned scopes */}
           {clientGrant.scope && clientGrant.scope.length > 0 && (
             <Box sx={{ mb: 3 }}>
@@ -496,7 +509,9 @@ const EditClientGrantButton = () => {
               getOptionLabel={(option) => option.value}
               value={selectedScopes}
               onChange={(_, value) => setSelectedScopes(value)}
-              isOptionEqualToValue={(option, value) => option.value === value.value}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip
@@ -535,9 +550,9 @@ const EditClientGrantButton = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
+          <Button
+            onClick={handleSave}
+            variant="contained"
             disabled={loading || selectedScopes.length === 0}
           >
             Add Scopes

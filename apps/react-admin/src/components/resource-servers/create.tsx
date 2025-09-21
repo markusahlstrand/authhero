@@ -21,10 +21,6 @@ export function ResourceServerCreate() {
             validate={[required()]}
             helperText="Unique identifier for this resource server"
           />
-          <TextInput
-            source="audience"
-            helperText="Optional audience parameter"
-          />
         </Stack>
 
         <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
