@@ -175,7 +175,6 @@ describe("token", () => {
 
       // Create a resource server (same as in the previous test)
       await env.data.resourceServers.create("tenantId", {
-        id: "test-api",
         name: "Test API",
         identifier: "https://test-api.example.com",
         scopes: [
