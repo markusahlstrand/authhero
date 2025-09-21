@@ -122,13 +122,19 @@ export default (
       if (resource === "forms") {
         url = `${apiUrl}/api/v2/${resourcePath}`;
       } else {
-        const query = {
+        const query: any = {
           include_totals: true,
           page: page - 1,
           per_page: perPage,
           sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
           q: params.filter?.q,
         };
+
+        // Special case for client-grants to support client_id filtering
+        if (resource === "client-grants" && params.filter?.client_id) {
+          query.client_id = params.filter.client_id;
+        }
+
         url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
       }
 
@@ -173,6 +179,18 @@ export default (
               ...item,
             })),
             total: res.json.length || resourceServers.length,
+          };
+        }
+
+        // Handle special case for client-grants (API uses client_grants key)
+        if (resource === "client-grants") {
+          const clientGrants = res.json.client_grants || [];
+          return {
+            data: clientGrants.map((item: any) => ({
+              id: item[getIdKeyFromResource("client_grants")],
+              ...item,
+            })),
+            total: res.json.total || clientGrants.length,
           };
         }
 
@@ -440,6 +458,33 @@ export default (
             ...org,
           })),
           total,
+        };
+      }
+
+      // Special case for client-grants which are queried by client_id
+      if (resource === "client-grants" && params.target === "client_id") {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          client_id: params.id,
+        };
+
+        const url = `${apiUrl}/api/v2/client-grants?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        return {
+          data: (res.json.client_grants || []).map((item: any) => ({
+            id: item.id,
+            ...item,
+          })),
+          total: res.json.total || res.json.length || 0,
         };
       }
 
