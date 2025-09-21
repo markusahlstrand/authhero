@@ -66,6 +66,15 @@ export async function createAuthTokens(
     throw new HTTPException(500, { message: "No signing key available" });
   }
 
+  // Fetch organization data if organization ID is provided
+  let organizationData: { name: string } | null = null;
+  if (params.organization) {
+    organizationData = await ctx.env.data.organizations.get(
+      ctx.var.tenant_id,
+      params.organization,
+    );
+  }
+
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
   const iss = ctx.var.custom_domain
     ? `https://${ctx.var.custom_domain}/`
@@ -101,7 +110,10 @@ export async function createAuthTokens(
           name: user.name,
           email: user.email,
           email_verified: user.email_verified,
-          ...(params.organization && { org_id: params.organization }),
+          ...(params.organization && organizationData ? { 
+            org_id: params.organization,
+            org_name: organizationData.name,
+          } : {}),
         }
       : undefined;
 
