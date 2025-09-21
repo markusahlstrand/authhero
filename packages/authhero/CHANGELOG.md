@@ -10,8 +10,6 @@
 
 ### Minor Changes
 
-<<<<<<< HEAD
-
 - # 6858af2: Add client credentials scopes and permissions
 - 149ab91: Drop the old application table
   > > > > > > > main
@@ -19,10 +17,7 @@
 
 ### Patch Changes
 
-# <<<<<<< HEAD
-
 - Updated dependencies [149ab91]
-  > > > > > > > main
 - Updated dependencies [b0e9595]
   - @authhero/adapter-interfaces@0.91.0
 

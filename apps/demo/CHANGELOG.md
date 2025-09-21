@@ -11,11 +11,8 @@
 
 ### Patch Changes
 
-<<<<<<< HEAD
-
 - # Updated dependencies [6858af2]
 - Updated dependencies [149ab91]
-  > > > > > > > main
 - Updated dependencies [b0e9595]
   - authhero@0.218.0
   - @authhero/kysely-adapter@10.45.0
