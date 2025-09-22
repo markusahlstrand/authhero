@@ -37,7 +37,20 @@ export function update(db: Kysely<Database>) {
       updates.scopes = JSON.stringify(scopes);
     }
     if (options !== undefined) {
-      updates.options = JSON.stringify(options);
+      // For options, we need to merge with existing options to avoid overwriting
+      const existingResourceServer = await db
+        .selectFrom("resource_servers")
+        .select("options")
+        .where("tenant_id", "=", tenant_id)
+        .where("id", "=", id)
+        .executeTakeFirst();
+
+      const existingOptions = existingResourceServer?.options
+        ? JSON.parse(existingResourceServer.options)
+        : {};
+
+      const mergedOptions = { ...existingOptions, ...options };
+      updates.options = JSON.stringify(mergedOptions);
     }
 
     // Handle boolean to integer conversion
