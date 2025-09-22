@@ -1,5 +1,11 @@
 # authhero
 
+## 0.220.0
+
+### Minor Changes
+
+- Add org name to id-token
+
 ## 0.219.0
 
 ### Minor Changes
