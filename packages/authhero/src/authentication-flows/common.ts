@@ -52,7 +52,8 @@ export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ): Promise<TokenResponse> {
-  const { authParams, user, client, session_id, organization, permissions } = params;
+  const { authParams, user, client, session_id, organization, permissions } =
+    params;
 
   const { signingKeys } = await ctx.env.data.keys.list({
     q: "type:jwt_signing",
@@ -80,8 +81,7 @@ export async function createAuthTokens(
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
     ...(organization && { org_id: organization.id }),
-    ...(permissions &&
-      permissions.length > 0 && { permissions }),
+    ...(permissions && permissions.length > 0 && { permissions }),
   };
 
   const idTokenPayload =

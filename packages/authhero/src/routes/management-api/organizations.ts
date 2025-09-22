@@ -7,7 +7,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
-import { nanoid } from "nanoid";
+import { generateOrganizationId } from "../../utils/entity-id";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 
@@ -313,7 +313,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const organizationData = {
         ...body,
-        id: body.id || nanoid(),
+        id: body.id || generateOrganizationId(),
       };
 
       const organization = await ctx.env.data.organizations.create(

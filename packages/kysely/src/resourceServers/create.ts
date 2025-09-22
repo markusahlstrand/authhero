@@ -1,4 +1,3 @@
-import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
 import {
   ResourceServer,
@@ -8,6 +7,7 @@ import {
 import { Database, sqlResourceServerSchema } from "../db";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { z } from "@hono/zod-openapi";
+import { generateResourceServerId } from "../utils/entity-id";
 
 type ResourceServerDbInsert = z.infer<typeof sqlResourceServerSchema>;
 
@@ -18,7 +18,7 @@ export function create(db: Kysely<Database>) {
   ): Promise<ResourceServer> => {
     const now = new Date().toISOString();
     const withDefaults = {
-      id: nanoid(),
+      id: generateResourceServerId(),
       ...params,
       created_at: now,
       updated_at: now,
