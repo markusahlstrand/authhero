@@ -623,6 +623,67 @@ describe("token", () => {
           `tenantId-auth-token=${accessToken?.payload.sid}; HttpOnly; Max-Age=2592000; Path=/; SameSite=None; Secure`,
         );
       });
+
+      it("should return invalid_grant error when reusing the same authorization code", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session and code
+        const { loginSession } = await createSessions(env.data);
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        // First request should succeed
+        const firstResponse = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://example.com/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+        expect(firstResponse.status).toBe(200);
+        const firstBody = (await firstResponse.json()) as TokenResponse;
+        expect(firstBody.access_token).toBeDefined();
+
+        // Second request with the same code should fail
+        const secondResponse = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://example.com/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+        expect(secondResponse.status).toBe(403);
+        const secondBody = (await secondResponse.json()) as ErrorResponse;
+        expect(secondBody).toEqual({
+          error: "invalid_grant",
+          error_description: "Invalid authorization code",
+        });
+      });
     });
 
     describe("authorization_code with PKCE", () => {

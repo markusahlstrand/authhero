@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { createFrontChannelAuthResponse, createRefreshToken } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
@@ -60,7 +61,10 @@ export async function authorizationCodeGrantUser(
   } else if (new Date(code.expires_at) < new Date()) {
     throw new HTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
-    throw new HTTPException(403, { message: "Code already used" });
+    throw new JSONHTTPException(403, {
+      error: "invalid_grant",
+      error_description: "Invalid authorization code",
+    });
   }
 
   const loginSession = await ctx.env.data.loginSessions.get(
