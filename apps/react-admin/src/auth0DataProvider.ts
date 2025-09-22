@@ -586,20 +586,24 @@ export default (
         const headers = new Headers({ "content-type": "application/json" });
         if (tenantId) headers.set("tenant-id", tenantId);
 
-        const { organization_id, user_id } = params.data;
+        const { organization_id, user_id, user_ids } = params.data;
         const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
+
+        // Support both single user and multiple users
+        const usersToAdd = user_ids || [user_id];
 
         const res = await httpClient(url, {
           method: "POST",
-          body: JSON.stringify({ users: [user_id] }),
+          body: JSON.stringify({ members: usersToAdd }),
           headers,
         });
 
         return {
           data: {
-            id: `${organization_id}_${user_id}`,
+            id: `${organization_id}_${usersToAdd.join("_")}`,
             organization_id,
-            user_id,
+            user_id: user_id || usersToAdd[0], // For backward compatibility
+            members: usersToAdd, // Use 'members' to match the API terminology
             ...res.json,
           },
         };
@@ -610,19 +614,23 @@ export default (
         const headers = new Headers({ "content-type": "application/json" });
         if (tenantId) headers.set("tenant-id", tenantId);
 
-        const { organization_id, user_id } = params.data;
+        const { organization_id, user_id, user_ids } = params.data;
         const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
+
+        // Support both single user and multiple users
+        const usersToAdd = user_ids || [user_id];
 
         const res = await httpClient(url, {
           method: "POST",
-          body: JSON.stringify({ users: [user_id] }),
+          body: JSON.stringify({ members: usersToAdd }),
           headers,
         });
 
         return {
           data: {
             id: organization_id, // Use organization ID as primary ID
-            user_id,
+            user_id: user_id || usersToAdd[0], // For backward compatibility
+            members: usersToAdd, // Use 'members' to match the API terminology
             organization_id,
             ...res.json,
           },
@@ -685,23 +693,24 @@ export default (
         const headers = new Headers({ "content-type": "application/json" });
         if (tenantId) headers.set("tenant-id", tenantId);
 
-        // Extract organization_id and user_id from the composite ID or params
-        let organization_id, user_id;
+        // Extract organization_id and user_id(s) from the composite ID or params
+        let organization_id, user_ids;
 
         if (
           params.id &&
           typeof params.id === "string" &&
           params.id.includes("_")
         ) {
-          [organization_id, user_id] = params.id.split("_");
+          [organization_id, ...user_ids] = params.id.split("_");
         } else if (params.previousData) {
           organization_id = params.previousData.organization_id;
-          user_id = params.previousData.user_id;
+          user_ids = params.previousData.members ||
+            params.previousData.user_ids || [params.previousData.user_id];
         }
 
-        if (!organization_id || !user_id) {
+        if (!organization_id || !user_ids || user_ids.length === 0) {
           throw new Error(
-            "Missing organization_id or user_id for organization member deletion",
+            "Missing organization_id or user_id(s) for organization member deletion",
           );
         }
 
@@ -709,7 +718,7 @@ export default (
 
         const res = await httpClient(url, {
           method: "DELETE",
-          body: JSON.stringify({ users: [user_id] }),
+          body: JSON.stringify({ members: user_ids }),
           headers,
         });
 

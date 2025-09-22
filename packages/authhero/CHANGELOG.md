@@ -1,5 +1,11 @@
 # authhero
 
+## 0.223.0
+
+### Minor Changes
+
+- Organization members
+
 ## 0.222.0
 
 ### Minor Changes

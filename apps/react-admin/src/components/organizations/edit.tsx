@@ -176,15 +176,13 @@ const AddOrganizationMemberButton = () => {
     if (!organizationId || selectedUsers.length === 0) return;
 
     try {
-      // Add each selected user to the organization
-      for (const user of selectedUsers) {
-        await dataProvider.create("organization-members", {
-          data: {
-            organization_id: organizationId,
-            user_id: user.user_id,
-          },
-        });
-      }
+      // Use the bulk add members endpoint with all selected users
+      await dataProvider.create("organization-members", {
+        data: {
+          organization_id: organizationId,
+          user_ids: selectedUsers.map((user) => user.user_id), // Send all user IDs at once
+        },
+      });
 
       notify(`Added ${selectedUsers.length} member(s) to organization`, {
         type: "success",
