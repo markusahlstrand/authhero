@@ -603,7 +603,7 @@ export default (
             id: `${organization_id}_${usersToAdd.join("_")}`,
             organization_id,
             user_id: user_id || usersToAdd[0], // For backward compatibility
-            user_ids: usersToAdd,
+            members: usersToAdd, // Use 'members' to match the API terminology
             ...res.json,
           },
         };
@@ -630,7 +630,7 @@ export default (
           data: {
             id: organization_id, // Use organization ID as primary ID
             user_id: user_id || usersToAdd[0], // For backward compatibility
-            user_ids: usersToAdd,
+            members: usersToAdd, // Use 'members' to match the API terminology
             organization_id,
             ...res.json,
           },
@@ -704,9 +704,8 @@ export default (
           [organization_id, ...user_ids] = params.id.split("_");
         } else if (params.previousData) {
           organization_id = params.previousData.organization_id;
-          user_ids = params.previousData.user_ids || [
-            params.previousData.user_id,
-          ];
+          user_ids = params.previousData.members ||
+            params.previousData.user_ids || [params.previousData.user_id];
         }
 
         if (!organization_id || !user_ids || user_ids.length === 0) {
