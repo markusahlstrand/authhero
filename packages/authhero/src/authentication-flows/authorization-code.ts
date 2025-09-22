@@ -131,13 +131,35 @@ export async function authorizationCodeGrantUser(
     });
   }
 
+  // Fetch organization data if organization ID is provided in the login session
+  let organization: { id: string; name: string } | undefined;
+  if (loginSession.authParams.organization) {
+    const orgData = await ctx.env.data.organizations.get(
+      client.tenant.id,
+      loginSession.authParams.organization,
+    );
+    if (orgData) {
+      organization = {
+        id: orgData.id,
+        name: orgData.name,
+      };
+    } else {
+      // Organization doesn't exist, but we still pass the requested ID
+      // so that membership validation can fail appropriately
+      organization = {
+        id: loginSession.authParams.organization,
+        name: "Unknown", // This will fail membership check anyway
+      };
+    }
+  }
+
   return {
     user,
     client,
     loginSession,
     session_id: loginSession.session_id,
     refresh_token: refreshToken?.id,
-    organization: loginSession.authParams.organization,
+    organization,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login

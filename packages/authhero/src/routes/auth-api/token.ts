@@ -222,7 +222,7 @@ export const tokenRoutes = new OpenAPIHono<{
               clientId: grantResult.client.client_id,
               audience: grantResult.authParams.audience,
               requestedScopes: grantResult.authParams.scope?.split(" ") || [],
-              organizationId: grantResult.organization,
+              organizationId: grantResult.organization?.id,
             });
           } else {
             // For user-based grants, userId is required
@@ -245,7 +245,7 @@ export const tokenRoutes = new OpenAPIHono<{
               clientId: grantResult.client.client_id,
               audience: grantResult.authParams.audience,
               requestedScopes: grantResult.authParams.scope?.split(" ") || [],
-              organizationId: grantResult.organization,
+              organizationId: grantResult.organization?.id,
             });
           }
 

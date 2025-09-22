@@ -51,7 +51,10 @@ describe("organization membership bypass vulnerability", () => {
         },
         client,
         user,
-        organization: organization.id, // User trying to forge org membership
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        }, // User trying to forge org membership
         responseType: AuthorizationResponseType.TOKEN,
       }),
     ).rejects.toThrow("User is not a member of the specified organization");

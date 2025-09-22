@@ -41,7 +41,7 @@ export interface CreateAuthTokensParams {
   strategy?: string;
   ticketAuth?: boolean;
   skipHooks?: boolean;
-  organization?: string;
+  organization?: { id: string; name: string };
   permissions?: string[];
   grantType?: GrantType;
 }
@@ -52,7 +52,7 @@ export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ): Promise<TokenResponse> {
-  const { authParams, user, client, session_id } = params;
+  const { authParams, user, client, session_id, organization, permissions } = params;
 
   const { signingKeys } = await ctx.env.data.keys.list({
     q: "type:jwt_signing",
@@ -64,15 +64,6 @@ export async function createAuthTokens(
 
   if (!signingKey?.pkcs7) {
     throw new HTTPException(500, { message: "No signing key available" });
-  }
-
-  // Fetch organization data if organization ID is provided
-  let organizationData: { name: string } | null = null;
-  if (params.organization) {
-    organizationData = await ctx.env.data.organizations.get(
-      ctx.var.tenant_id,
-      params.organization,
-    );
   }
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
@@ -88,9 +79,9 @@ export async function createAuthTokens(
     iss,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
-    ...(params.organization && { org_id: params.organization }),
-    ...(params.permissions &&
-      params.permissions.length > 0 && { permissions: params.permissions }),
+    ...(organization && { org_id: organization.id }),
+    ...(permissions &&
+      permissions.length > 0 && { permissions }),
   };
 
   const idTokenPayload =
@@ -110,10 +101,10 @@ export async function createAuthTokens(
           name: user.name,
           email: user.email,
           email_verified: user.email_verified,
-          ...(params.organization && organizationData
+          ...(organization
             ? {
-                org_id: params.organization,
-                org_name: organizationData.name,
+                org_id: organization.id,
+                org_name: organization.name,
               }
             : {}),
         }
@@ -325,7 +316,7 @@ export interface CreateAuthResponseParams {
   ticketAuth?: boolean;
   strategy?: string;
   skipHooks?: boolean;
-  organization?: string;
+  organization?: { id: string; name: string };
 }
 
 export async function createFrontChannelAuthResponse(
@@ -578,7 +569,7 @@ export async function completeLogin(
     );
 
     const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === params.organization,
+      (uo) => uo.organization_id === params.organization!.id,
     );
 
     if (!isMember) {
@@ -589,6 +580,8 @@ export async function completeLogin(
       });
     }
   }
+
+  // Organization data is already provided in params.organization
 
   // Calculate scopes and permissions early, before any hooks
   // This will throw a 403 error if user is not a member of the required organization
@@ -610,7 +603,7 @@ export async function completeLogin(
           clientId: params.client.client_id,
           audience: params.authParams.audience,
           requestedScopes: params.authParams.scope?.split(" ") || [],
-          organizationId: params.organization,
+          organizationId: params.organization?.id,
         });
       } else {
         // User-based grant - user ID is required
@@ -635,7 +628,7 @@ export async function completeLogin(
           clientId: params.client.client_id,
           audience: params.authParams.audience,
           requestedScopes: params.authParams.scope?.split(" ") || [],
-          organizationId: params.organization,
+          organizationId: params.organization?.id,
         });
       }
 

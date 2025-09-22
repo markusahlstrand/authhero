@@ -752,7 +752,10 @@ describe("common", () => {
           client,
           user,
           session_id: "session_id",
-          organization: "nonexistent-org-id",
+          organization: {
+            id: "nonexistent-org-id",
+            name: "Non-existent Organization",
+          },
         }),
       ).rejects.toThrow("User is not a member of the specified organization");
 
@@ -842,7 +845,10 @@ describe("common", () => {
         client,
         user,
         session_id: "session_id",
-        organization: organization.id,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        },
       });
 
       expect(result).toHaveProperty("access_token");
@@ -903,7 +909,10 @@ describe("common", () => {
         client,
         user,
         session_id: "session_id",
-        organization: organization.id,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        },
       });
 
       expect(tokens).toHaveProperty("access_token");
