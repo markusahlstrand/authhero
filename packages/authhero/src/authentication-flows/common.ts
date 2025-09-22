@@ -110,10 +110,12 @@ export async function createAuthTokens(
           name: user.name,
           email: user.email,
           email_verified: user.email_verified,
-          ...(params.organization && organizationData ? { 
-            org_id: params.organization,
-            org_name: organizationData.name,
-          } : {}),
+          ...(params.organization && organizationData
+            ? {
+                org_id: params.organization,
+                org_name: organizationData.name,
+              }
+            : {}),
         }
       : undefined;
 
