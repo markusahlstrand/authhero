@@ -12,7 +12,7 @@ export interface GrantFlowResult {
   loginSession?: LoginSession;
   session_id?: string;
   authParams: AuthParams;
-  organization?: string;
+  organization?: { id: string; name: string };
 }
 
 export interface GrantFlowUserResult extends GrantFlowResult {

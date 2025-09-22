@@ -8,6 +8,7 @@ import {
   totalsSchema,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
+import { generateConnectionId } from "../../utils/entity-id";
 
 const connectionsWithTotalsSchema = totalsSchema.extend({
   connections: z.array(connectionSchema),
@@ -263,7 +264,15 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
-      const connection = await ctx.env.data.connections.create(tenant_id, body);
+      const connectionData = {
+        ...body,
+        id: body.id || generateConnectionId(),
+      };
+
+      const connection = await ctx.env.data.connections.create(
+        tenant_id,
+        connectionData,
+      );
 
       return ctx.json(connection, { status: 201 });
     },

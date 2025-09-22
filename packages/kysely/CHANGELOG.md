@@ -1,21 +1,25 @@
 # @authhero/kysely-adapter
 
+## 10.46.0
+
+### Minor Changes
+
+- Update ids to match auth0 entity ids
+
 ## 10.45.0
 
 ### Minor Changes
 
-<<<<<<< HEAD
-=======
+# <<<<<<< HEAD
+
 - 149ab91: Drop the old application table
->>>>>>> main
 - b0e9595: Add client grants
 
 ### Patch Changes
 
-<<<<<<< HEAD
-=======
+# <<<<<<< HEAD
+
 - Updated dependencies [149ab91]
->>>>>>> main
 - Updated dependencies [b0e9595]
   - @authhero/adapter-interfaces@0.91.0
 

@@ -1,5 +1,12 @@
 # authhero
 
+## 0.221.0
+
+### Minor Changes
+
+- e917a6a: Fix content-type for reuse of code
+- Update ids to match auth0 entity ids
+
 ## 0.220.0
 
 ### Minor Changes

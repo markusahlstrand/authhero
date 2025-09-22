@@ -8,6 +8,7 @@ import {
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
+import { generateHookId } from "../../utils/entity-id";
 
 const hopoksWithTotalsSchema = totalsSchema.extend({
   hooks: z.array(hookSchema),
@@ -106,7 +107,12 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const hook = ctx.req.valid("json");
 
-      const hooks = await ctx.env.data.hooks.create(tenant_id, hook);
+      const hookData = {
+        ...hook,
+        hook_id: hook.hook_id || generateHookId(),
+      };
+
+      const hooks = await ctx.env.data.hooks.create(tenant_id, hookData);
 
       return ctx.json(hooks, { status: 201 });
     },

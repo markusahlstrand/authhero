@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { createFrontChannelAuthResponse, createRefreshToken } from "./common";
 import { Bindings, Variables } from "../types";
 import { computeCodeChallenge } from "../utils/crypto";
@@ -60,7 +61,10 @@ export async function authorizationCodeGrantUser(
   } else if (new Date(code.expires_at) < new Date()) {
     throw new HTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
-    throw new HTTPException(403, { message: "Code already used" });
+    throw new JSONHTTPException(403, {
+      error: "invalid_grant",
+      error_description: "Invalid authorization code",
+    });
   }
 
   const loginSession = await ctx.env.data.loginSessions.get(
@@ -127,13 +131,35 @@ export async function authorizationCodeGrantUser(
     });
   }
 
+  // Fetch organization data if organization ID is provided in the login session
+  let organization: { id: string; name: string } | undefined;
+  if (loginSession.authParams.organization) {
+    const orgData = await ctx.env.data.organizations.get(
+      client.tenant.id,
+      loginSession.authParams.organization,
+    );
+    if (orgData) {
+      organization = {
+        id: orgData.id,
+        name: orgData.name,
+      };
+    } else {
+      // Organization doesn't exist, but we still pass the requested ID
+      // so that membership validation can fail appropriately
+      organization = {
+        id: loginSession.authParams.organization,
+        name: "Unknown", // This will fail membership check anyway
+      };
+    }
+  }
+
   return {
     user,
     client,
     loginSession,
     session_id: loginSession.session_id,
     refresh_token: refreshToken?.id,
-    organization: loginSession.authParams.organization,
+    organization,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login

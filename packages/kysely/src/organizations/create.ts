@@ -2,7 +2,7 @@ import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { Database } from "../db";
 import { Organization, OrganizationInsert } from "@authhero/adapter-interfaces";
-import { nanoid } from "nanoid";
+import { generateOrganizationId } from "../utils/entity-id";
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -11,7 +11,7 @@ export function create(db: Kysely<Database>) {
   ): Promise<Organization> => {
     const sqlOrganization = {
       ...organization,
-      id: organization.id || nanoid(),
+      id: organization.id || generateOrganizationId(),
       tenant_id: tenantId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
