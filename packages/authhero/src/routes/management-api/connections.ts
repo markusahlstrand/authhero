@@ -269,7 +269,10 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         id: body.id || generateConnectionId(),
       };
 
-      const connection = await ctx.env.data.connections.create(tenant_id, connectionData);
+      const connection = await ctx.env.data.connections.create(
+        tenant_id,
+        connectionData,
+      );
 
       return ctx.json(connection, { status: 201 });
     },

@@ -581,8 +581,6 @@ export async function completeLogin(
     }
   }
 
-  // Organization data is already provided in params.organization
-
   // Calculate scopes and permissions early, before any hooks
   // This will throw a 403 error if user is not a member of the required organization
   let calculatedScopes = params.authParams.scope || "";

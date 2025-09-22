@@ -2,13 +2,13 @@ import { customAlphabet } from "nanoid";
 
 const ID_LENGTH = 17; // Max length to fit in 21 char DB field with 4-char prefixes
 
-export type EntityType = 
-  | "organization" 
-  | "connection" 
-  | "action" 
-  | "hook" 
-  | "rule" 
-  | "resource_server" 
+export type EntityType =
+  | "organization"
+  | "connection"
+  | "action"
+  | "hook"
+  | "rule"
+  | "resource_server"
   | "guardian_factor";
 
 const ENTITY_PREFIXES: Record<EntityType, string> = {
@@ -24,18 +24,23 @@ const ENTITY_PREFIXES: Record<EntityType, string> = {
 export function generateEntityId(entityType: EntityType): string {
   const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
   const generateId = customAlphabet(alphabet, ID_LENGTH);
-  
+
   const id = generateId();
   const prefix = ENTITY_PREFIXES[entityType];
-  
+
   return `${prefix}${id}`;
 }
 
-export function parseEntityId(entityId: string, entityType: EntityType): string {
+export function parseEntityId(
+  entityId: string,
+  entityType: EntityType,
+): string {
   const prefix = ENTITY_PREFIXES[entityType];
-  
+
   if (!entityId.startsWith(prefix)) {
-    console.error(`Invalid ${entityType} ID format: expected prefix '${prefix}'`);
+    console.error(
+      `Invalid ${entityType} ID format: expected prefix '${prefix}'`,
+    );
     return entityId;
   }
 
