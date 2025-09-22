@@ -29,7 +29,7 @@ export function ResourceServerCreate() {
             source="skip_consent_for_verifiable_first_party_clients"
             defaultValue={true}
           />
-          <BooleanInput source="enforce_policies" defaultValue={true} />
+          <BooleanInput source="options.enforce_policies" defaultValue={true} />
         </Stack>
 
         <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
@@ -39,7 +39,7 @@ export function ResourceServerCreate() {
             helperText="Signing algorithm for tokens"
           />
           <TextInput
-            source="token_dialect"
+            source="options.token_dialect"
             defaultValue="access_token_authz"
             helperText="Token dialect format"
           />

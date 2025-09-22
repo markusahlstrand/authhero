@@ -211,6 +211,8 @@ export const tokenRoutes = new OpenAPIHono<{
 
       // Calculate scopes and permissions before creating tokens
       // This will throw a 403 error if user is not a member of the required organization
+      let calculatedPermissions: string[] = [];
+      
       if (grantResult.authParams.audience) {
         try {
           let scopesAndPermissions;
@@ -249,8 +251,9 @@ export const tokenRoutes = new OpenAPIHono<{
             });
           }
 
-          // Update the authParams with calculated scopes
+          // Update the authParams with calculated scopes and store permissions
           grantResult.authParams.scope = scopesAndPermissions.scopes.join(" ");
+          calculatedPermissions = scopesAndPermissions.permissions;
         } catch (error) {
           // Re-throw HTTPExceptions (like 403 for organization membership)
           if (error instanceof HTTPException) {
@@ -264,6 +267,7 @@ export const tokenRoutes = new OpenAPIHono<{
       const tokens = await createAuthTokens(ctx, {
         ...grantResult,
         grantType: body.grant_type as GrantType,
+        permissions: calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
       });
       return ctx.json(tokens, {
         headers: passwordlessHeaders,
