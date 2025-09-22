@@ -306,7 +306,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user1.user_id, user2.user_id],
+            members: [user1.user_id, user2.user_id],
           },
           header: {
             "tenant-id": "tenantId",
@@ -583,7 +583,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user1.user_id, user2.user_id],
+            members: [user1.user_id, user2.user_id],
           },
           header: {
             "tenant-id": "tenantId",
@@ -628,7 +628,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user1.user_id],
+            members: [user1.user_id],
           },
           header: {
             "tenant-id": "tenantId",
@@ -704,7 +704,7 @@ describe("organizations", () => {
             id: "non-existent-org",
           },
           json: {
-            users: ["user123"],
+            members: ["user123"],
           },
           header: {
             "tenant-id": "tenantId",
@@ -728,7 +728,7 @@ describe("organizations", () => {
             id: "non-existent-org",
           },
           json: {
-            users: ["user123"],
+            members: ["user123"],
           },
           header: {
             "tenant-id": "tenantId",
@@ -802,7 +802,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user.user_id],
+            members: [user.user_id],
           },
           header: {
             "tenant-id": "tenantId",
@@ -826,7 +826,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user.user_id],
+            members: [user.user_id],
           },
           header: {
             "tenant-id": "tenantId",
@@ -902,7 +902,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: ["non-existent-user-id"],
+            members: ["non-existent-user-id"],
           },
           header: {
             "tenant-id": "tenantId",
@@ -976,7 +976,7 @@ describe("organizations", () => {
             id: organization.id,
           },
           json: {
-            users: [user.user_id],
+            members: [user.user_id],
           },
           header: {
             "tenant-id": "tenantId",

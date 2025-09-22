@@ -56,13 +56,13 @@ const organizationMembersWithNextSchema = z.object({
 });
 
 const addMembersRequestSchema = z.object({
-  users: z.array(z.string()).openapi({
+  members: z.array(z.string()).openapi({
     description: "Array of user IDs to add to the organization",
   }),
 });
 
 const removeMembersRequestSchema = z.object({
-  users: z.array(z.string()).openapi({
+  members: z.array(z.string()).openapi({
     description: "Array of user IDs to remove from the organization",
   }),
 });
@@ -457,7 +457,7 @@ export const organizationRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id: organizationId } = ctx.req.valid("param");
-      const { users } = ctx.req.valid("json");
+      const { members } = ctx.req.valid("json");
 
       // First verify organization exists
       const organization = await ctx.env.data.organizations.get(
@@ -469,7 +469,7 @@ export const organizationRoutes = new OpenAPIHono<{
       }
 
       // Add each user to the organization
-      for (const userId of users) {
+      for (const userId of members) {
         // Check if relationship already exists
         const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
           q: `user_id:${userId}`,
@@ -531,10 +531,10 @@ export const organizationRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id: organizationId } = ctx.req.valid("param");
-      const { users } = ctx.req.valid("json");
+      const { members } = ctx.req.valid("json");
 
       // Remove each user from the organization
-      for (const userId of users) {
+      for (const userId of members) {
         const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
           q: `user_id:${userId}`,
           per_page: 100, // Should be enough for most cases

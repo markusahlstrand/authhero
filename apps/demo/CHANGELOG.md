@@ -1,5 +1,12 @@
 # @authhero/demo
 
+## 0.20.29
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.223.0
+
 ## 0.20.28
 
 ### Patch Changes
