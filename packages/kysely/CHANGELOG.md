@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.47.0
+
+### Minor Changes
+
+- Fix options for resource servers
+
 ## 10.46.0
 
 ### Minor Changes

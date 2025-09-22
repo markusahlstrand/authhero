@@ -1,5 +1,11 @@
 # authhero
 
+## 0.222.0
+
+### Minor Changes
+
+- Fix options for resource servers
+
 ## 0.221.0
 
 ### Minor Changes

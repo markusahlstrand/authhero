@@ -68,7 +68,7 @@ export function ResourceServerEdit() {
         <TabbedForm.Tab label="RBAC">
           <Stack spacing={3}>
             <BooleanInput
-              source="enforce_policies"
+              source="options.enforce_policies"
               label="Enable RBAC"
               helperText="Enable Role-Based Access Control for this resource server"
             />
@@ -76,10 +76,10 @@ export function ResourceServerEdit() {
             <FormDataConsumer>
               {({ formData }) => (
                 <BooleanInput
-                  source="token_dialect"
+                  source="options.token_dialect"
                   label="Add permissions in token"
                   helperText="Include permissions directly in the access token"
-                  disabled={!formData?.enforce_policies}
+                  disabled={!formData?.options?.enforce_policies}
                   format={(value) => value === "access_token_authz"}
                   parse={(checked) =>
                     checked ? "access_token_authz" : "access_token"

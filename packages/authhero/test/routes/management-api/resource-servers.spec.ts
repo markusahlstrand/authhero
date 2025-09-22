@@ -511,4 +511,224 @@ describe("resource-servers", () => {
       },
     );
   });
+
+  it("should persist allow_offline_access and enforce_policies properties correctly through API", async () => {
+    // --------------------------------------------
+    // CREATE with initial property values
+    // --------------------------------------------
+    const createResponse = await managementClient["resource-servers"].$post(
+      {
+        json: {
+          identifier: "https://properties-test.example.com",
+          name: "Properties Test API",
+          scopes: [
+            {
+              value: "read:data",
+              description: "Read data",
+            },
+          ],
+          signing_alg: "RS256",
+          allow_offline_access: false,
+          options: {
+            enforce_policies: false,
+            allow_skipping_userinfo: true,
+            persist_client_authorization: true,
+          },
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(createResponse.status).toBe(201);
+    const created = await createResponse.json();
+    expect(created.allow_offline_access).toBe(false);
+    expect(created.options?.enforce_policies).toBe(false);
+    expect(created.options?.allow_skipping_userinfo).toBe(true);
+    expect(created.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // UPDATE both properties to true
+    // --------------------------------------------
+    const updateResponse1 = await managementClient["resource-servers"][
+      ":id"
+    ].$patch(
+      {
+        param: {
+          id: created.id,
+        },
+        json: {
+          allow_offline_access: true,
+          options: {
+            enforce_policies: true,
+          },
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(updateResponse1.status).toBe(200);
+    const updated1 = await updateResponse1.json();
+    expect(updated1.allow_offline_access).toBe(true);
+    expect(updated1.options?.enforce_policies).toBe(true);
+    // Should preserve other options
+    expect(updated1.options?.allow_skipping_userinfo).toBe(true);
+    expect(updated1.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // GET to verify persistence
+    // --------------------------------------------
+    const getResponse = await managementClient["resource-servers"][":id"].$get(
+      {
+        param: {
+          id: created.id,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(getResponse.status).toBe(200);
+    const fetched = await getResponse.json();
+    expect(fetched.allow_offline_access).toBe(true);
+    expect(fetched.options?.enforce_policies).toBe(true);
+    expect(fetched.options?.allow_skipping_userinfo).toBe(true);
+    expect(fetched.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // UPDATE only allow_offline_access, should preserve options
+    // --------------------------------------------
+    const updateResponse2 = await managementClient["resource-servers"][
+      ":id"
+    ].$patch(
+      {
+        param: {
+          id: created.id,
+        },
+        json: {
+          allow_offline_access: false,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(updateResponse2.status).toBe(200);
+    const updated2 = await updateResponse2.json();
+    expect(updated2.allow_offline_access).toBe(false);
+    // Should preserve all options
+    expect(updated2.options?.enforce_policies).toBe(true);
+    expect(updated2.options?.allow_skipping_userinfo).toBe(true);
+    expect(updated2.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // UPDATE only enforce_policies, should preserve other properties
+    // --------------------------------------------
+    const updateResponse3 = await managementClient["resource-servers"][
+      ":id"
+    ].$patch(
+      {
+        param: {
+          id: created.id,
+        },
+        json: {
+          options: {
+            enforce_policies: false,
+          },
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(updateResponse3.status).toBe(200);
+    const updated3 = await updateResponse3.json();
+    expect(updated3.allow_offline_access).toBe(false); // Should still be false
+    expect(updated3.options?.enforce_policies).toBe(false);
+    // Should preserve other options
+    expect(updated3.options?.allow_skipping_userinfo).toBe(true);
+    expect(updated3.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // Final GET to double-check persistence
+    // --------------------------------------------
+    const finalGetResponse = await managementClient["resource-servers"][
+      ":id"
+    ].$get(
+      {
+        param: {
+          id: created.id,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(finalGetResponse.status).toBe(200);
+    const finalFetched = await finalGetResponse.json();
+    expect(finalFetched.allow_offline_access).toBe(false);
+    expect(finalFetched.options?.enforce_policies).toBe(false);
+    expect(finalFetched.options?.allow_skipping_userinfo).toBe(true);
+    expect(finalFetched.options?.persist_client_authorization).toBe(true);
+
+    // --------------------------------------------
+    // Clean up
+    // --------------------------------------------
+    const deleteResponse = await managementClient["resource-servers"][
+      ":id"
+    ].$delete(
+      {
+        param: {
+          id: created.id,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(deleteResponse.status).toBe(200);
+  });
 });
