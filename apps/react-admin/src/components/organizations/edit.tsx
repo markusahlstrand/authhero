@@ -457,18 +457,6 @@ const OrganizationMembersTab = () => {
           />
           <TextField source="email" label="Email" />
           <FunctionField
-            label="Roles"
-            render={(record) => (
-              <Typography variant="body2">
-                {record.roles?.length > 0
-                  ? record.roles
-                      .map((role: any) => role.name || role.id)
-                      .join(", ")
-                  : "No roles assigned"}
-              </Typography>
-            )}
-          />
-          <FunctionField
             label="Actions"
             render={(record) => <RemoveMemberButton record={record} />}
           />
