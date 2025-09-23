@@ -1,5 +1,12 @@
 # authhero
 
+## 0.224.0
+
+### Minor Changes
+
+- Fix routes for org members
+- Change status code for adding member to organization
+
 ## 0.223.0
 
 ### Minor Changes

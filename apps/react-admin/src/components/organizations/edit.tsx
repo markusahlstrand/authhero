@@ -373,9 +373,13 @@ const RemoveMemberButton = ({ record }: { record: any }) => {
     if (!organizationId || !record?.user_id) return;
 
     try {
+      // Use the bulk remove members endpoint
       await dataProvider.delete("organization-members", {
-        id: `${organizationId}_${record.user_id}`,
-        previousData: record,
+        id: organizationId,
+        previousData: {
+          id: organizationId,
+          members: [record.user_id],
+        },
       });
 
       notify("Member removed from organization", { type: "success" });
@@ -452,18 +456,6 @@ const OrganizationMembersTab = () => {
             )}
           />
           <TextField source="email" label="Email" />
-          <FunctionField
-            label="Roles"
-            render={(record) => (
-              <Typography variant="body2">
-                {record.roles?.length > 0
-                  ? record.roles
-                      .map((role: any) => role.name || role.id)
-                      .join(", ")
-                  : "No roles assigned"}
-              </Typography>
-            )}
-          />
           <FunctionField
             label="Actions"
             render={(record) => <RemoveMemberButton record={record} />}
