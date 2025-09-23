@@ -319,7 +319,7 @@ describe("organizations", () => {
         },
       );
 
-      expect(addMembersResponse.status).toBe(201);
+      expect(addMembersResponse.status).toBe(204);
 
       // Get organization members (simple array)
       const getMembersResponse = await managementClient.organizations[
@@ -438,7 +438,7 @@ describe("organizations", () => {
         },
       );
 
-      expect(addMembersResponse.status).toBe(201);
+      expect(addMembersResponse.status).toBe(204);
 
       // Get organization members with pagination and totals
       const getMembersResponse = await managementClient.organizations[
@@ -815,7 +815,7 @@ describe("organizations", () => {
         },
       );
 
-      expect(addMembersResponse1.status).toBe(201);
+      expect(addMembersResponse1.status).toBe(204);
 
       // Add same user to organization again (should not create duplicate)
       const addMembersResponse2 = await managementClient.organizations[
@@ -839,7 +839,7 @@ describe("organizations", () => {
         },
       );
 
-      expect(addMembersResponse2.status).toBe(201);
+      expect(addMembersResponse2.status).toBe(204);
 
       // Verify only one member exists
       const getMembersResponse = await managementClient.organizations[
@@ -989,7 +989,7 @@ describe("organizations", () => {
         },
       );
 
-      expect(addMembersResponse.status).toBe(201);
+      expect(addMembersResponse.status).toBe(204);
 
       // Test simple array response (without include_totals)
       const getMembersResponse = await managementClient.organizations[

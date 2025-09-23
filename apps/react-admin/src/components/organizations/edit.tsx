@@ -373,9 +373,13 @@ const RemoveMemberButton = ({ record }: { record: any }) => {
     if (!organizationId || !record?.user_id) return;
 
     try {
+      // Use the bulk remove members endpoint
       await dataProvider.delete("organization-members", {
-        id: `${organizationId}_${record.user_id}`,
-        previousData: record,
+        id: organizationId,
+        previousData: {
+          id: organizationId,
+          members: [record.user_id],
+        },
       });
 
       notify("Member removed from organization", { type: "success" });

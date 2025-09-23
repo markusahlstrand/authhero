@@ -696,16 +696,23 @@ export default (
         // Extract organization_id and user_id(s) from the composite ID or params
         let organization_id, user_ids;
 
-        if (
+        if (params.previousData && params.previousData.members) {
+          // New approach: organization ID is in params.id, user IDs are in previousData.members
+          organization_id = params.id;
+          user_ids = params.previousData.members;
+        } else if (
           params.id &&
           typeof params.id === "string" &&
           params.id.includes("_")
         ) {
+          // Legacy approach: composite ID format
           [organization_id, ...user_ids] = params.id.split("_");
         } else if (params.previousData) {
-          organization_id = params.previousData.organization_id;
-          user_ids = params.previousData.members ||
-            params.previousData.user_ids || [params.previousData.user_id];
+          // Fallback approach
+          organization_id = params.previousData.organization_id || params.id;
+          user_ids = params.previousData.user_ids || [
+            params.previousData.user_id,
+          ];
         }
 
         if (!organization_id || !user_ids || user_ids.length === 0) {

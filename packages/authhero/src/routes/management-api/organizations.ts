@@ -449,7 +449,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        201: {
+        204: {
           description: "Members added successfully",
         },
       },
@@ -488,10 +488,7 @@ export const organizationRoutes = new OpenAPIHono<{
         }
       }
 
-      return ctx.json(
-        { message: "Members added successfully" },
-        { status: 201 },
-      );
+      return new Response(null, { status: 204 });
     },
   )
   // --------------------------------
