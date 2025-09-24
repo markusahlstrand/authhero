@@ -259,7 +259,6 @@ describe("authorize", () => {
       expect(code).toMatchObject({
         code_type: "authorization_code",
         user_id: "email|userId",
-        login_id: loginSession.id,
         expires_at: expect.any(String),
         code_challenge: "codeChallenge",
         code_challenge_method: CodeChallengeMethod.S256,
@@ -267,6 +266,17 @@ describe("authorize", () => {
         nonce: "nonce",
         redirect_uri: "https://example.com/callback",
       });
+
+      // Silent auth now creates a NEW login session, so the login_id should NOT match the original
+      expect(code.login_id).not.toEqual(loginSession.id);
+
+      // Verify that a new login session was created and linked to the existing session
+      const newLoginSession = await env.data.loginSessions.get(
+        "tenantId",
+        code.login_id,
+      );
+      expect(newLoginSession).toBeDefined();
+      expect(newLoginSession?.session_id).toEqual("sessionId");
     });
 
     it("should return a web_message response with a access_token for a valid session", async () => {
@@ -398,13 +408,16 @@ describe("authorize", () => {
     const oauthClient = testClient(oauthApp, env);
 
     // Create an initial login session and session (properly linked)
-    const initialLoginSession = await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-      csrf_token: "initialCsrfToken",
-      authParams: {
-        client_id: "clientId",
+    const initialLoginSession = await env.data.loginSessions.create(
+      "tenantId",
+      {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "initialCsrfToken",
+        authParams: {
+          client_id: "clientId",
+        },
       },
-    });
+    );
 
     const existingSession = await env.data.sessions.create("tenantId", {
       id: "existingSessionId",
@@ -453,14 +466,18 @@ describe("authorize", () => {
 
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toBe("/callback");
-    
+
     const code = redirectUri.searchParams.get("code");
     if (!code) {
       throw new Error("No code found in redirect uri");
     }
 
     // Verify the code was created
-    const dbCode = await env.data.codes.get("tenantId", code, "authorization_code");
+    const dbCode = await env.data.codes.get(
+      "tenantId",
+      code,
+      "authorization_code",
+    );
     expect(dbCode).not.toBeNull();
 
     // Get the NEW login session that was created for this authorization flow
@@ -468,14 +485,20 @@ describe("authorize", () => {
     expect(newLoginSessionId).toBeDefined();
     expect(newLoginSessionId).not.toBe(initialLoginSession.id); // Should be different from the initial one
 
-    const newLoginSession = await env.data.loginSessions.get("tenantId", newLoginSessionId!);
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      newLoginSessionId!,
+    );
     expect(newLoginSession).not.toBeNull();
 
     // Verify that the existing session is linked to the NEW login session
     expect(newLoginSession?.session_id).toBe("existingSessionId");
 
     // Verify that the existing session still exists and hasn't been duplicated
-    const sessionAfter = await env.data.sessions.get("tenantId", "existingSessionId");
+    const sessionAfter = await env.data.sessions.get(
+      "tenantId",
+      "existingSessionId",
+    );
     expect(sessionAfter).not.toBeNull();
     expect(sessionAfter?.id).toBe("existingSessionId");
   });
