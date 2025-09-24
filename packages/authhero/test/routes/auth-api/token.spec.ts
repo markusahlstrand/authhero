@@ -1357,14 +1357,14 @@ describe("token", () => {
       await env.data.users.remove("tenantId", user.user_id);
     });
 
-    it("should reject token request when organization parameter is provided but login session has no organization", async () => {
+    it("should accept organization parameter when login session has no organization (Auth0 compatibility)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
       // Create an organization
       const organization = await env.data.organizations.create("tenantId", {
-        name: "Unwanted Organization",
-        display_name: "Unwanted Org",
+        name: "Requested Organization",
+        display_name: "Requested Org",
       });
 
       // Create a user
@@ -1402,7 +1402,8 @@ describe("token", () => {
       });
       void code; // Used for test setup
 
-      // Try to exchange code with organization parameter when login session has no organization
+      // Exchange code with organization parameter when login session has no organization
+      // This should now be allowed (Auth0 compatibility)
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "authorization_code",
@@ -1410,15 +1411,17 @@ describe("token", () => {
           client_secret: "clientSecret",
           code: "test-no-org-code",
           redirect_uri: "https://example.com/callback",
-          organization: organization.id, // This should be rejected since login session has no org
+          organization: organization.id, // This should now be accepted
         },
       });
 
-      expect(response.status).toBe(400);
-      const body = (await response.json()) as ErrorResponse;
-      expect(body).toEqual({
-        error: "invalid_request",
-        error_description: "Organization parameter provided but login session has no organization",
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toMatchObject({
+        access_token: expect.any(String),
+        id_token: expect.any(String),
+        token_type: "Bearer",
+        expires_in: expect.any(Number),
       });
 
       // Clean up

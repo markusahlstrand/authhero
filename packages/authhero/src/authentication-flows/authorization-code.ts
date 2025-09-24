@@ -78,13 +78,8 @@ export async function authorizationCodeGrantUser(
   }
 
   // Validate organization parameter matches login session organization
-  if (params.organization) {
-    if (!loginSession.authParams.organization) {
-      throw new JSONHTTPException(400, {
-        error: "invalid_request",
-        error_description: "Organization parameter provided but login session has no organization",
-      });
-    }
+  // Allow organization to be specified in token request even if login session has no org (Auth0 compatibility)
+  if (params.organization && loginSession.authParams.organization) {
     if (params.organization !== loginSession.authParams.organization) {
       throw new JSONHTTPException(400, {
         error: "invalid_request", 
