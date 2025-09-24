@@ -5,7 +5,7 @@ export function ClientCreate() {
     <Create>
       <SimpleForm>
         <TextInput source="name" validate={[required()]} />
-        <TextInput source="id" validate={[required()]} />
+        <TextInput source="client_id" validate={[required()]} />
       </SimpleForm>
     </Create>
   );
