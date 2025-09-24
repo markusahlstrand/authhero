@@ -94,7 +94,18 @@ describe("silent", () => {
       "authorization_code",
     );
     expect(code).toBeDefined();
-    expect(code?.login_id).toEqual(loginSession.id);
+
+    // Silent auth now creates a NEW login session, so the login_id should NOT match the original
+    expect(code?.login_id).not.toEqual(loginSession.id);
+
+    // Verify that a new login session was created and linked to the existing session
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      code?.login_id || "",
+    );
+    expect(newLoginSession).toBeDefined();
+    expect(newLoginSession?.session_id).toEqual(session.id);
+
     expect(code?.code_challenge).toEqual(
       "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
     );

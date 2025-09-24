@@ -213,6 +213,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           code_challenge,
           audience,
           scope,
+          organization,
         });
       }
 

@@ -11,7 +11,11 @@ import { Bindings, Variables } from "../types";
 import { serializeAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens, createCodeData } from "./common";
-import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
+import {
+  SILENT_AUTH_MAX_AGE_IN_SECONDS,
+  UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
+} from "../constants";
+import { nanoid } from "nanoid";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -25,6 +29,7 @@ interface SilentAuthParams {
   code_challenge?: string;
   audience?: string;
   scope?: string;
+  organization?: string;
 }
 
 export async function silentAuth({
@@ -39,6 +44,7 @@ export async function silentAuth({
   audience,
   scope,
   response_type,
+  organization,
 }: SilentAuthParams) {
   const { env } = ctx;
   const redirectURL = new URL(redirect_uri);
@@ -87,6 +93,28 @@ export async function silentAuth({
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);
 
+  // Create a new login session to capture the organization and other auth parameters
+  // This login session will be linked to the existing session
+  const loginSession = await env.data.loginSessions.create(client.tenant.id, {
+    expires_at: new Date(
+      Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+    ).toISOString(),
+    csrf_token: nanoid(),
+    authParams: {
+      client_id: client.client_id,
+      audience,
+      scope,
+      state,
+      nonce,
+      response_type,
+      redirect_uri,
+      organization,
+    },
+    session_id: session.id, // Link to the existing session
+    ip: ctx.var.ip,
+    useragent: ctx.var.useragent,
+  });
+
   const tokenResponseOptions = {
     client,
     authParams: {
@@ -111,7 +139,7 @@ export async function silentAuth({
           user,
           client,
           authParams: tokenResponseOptions.authParams,
-          login_id: session.login_session_id,
+          login_id: loginSession.id,
         })
       : await createAuthTokens(ctx, tokenResponseOptions);
 
