@@ -1,5 +1,11 @@
 # authhero
 
+## 0.226.0
+
+### Minor Changes
+
+- Allow change or organization with silent auth
+
 ## 0.225.0
 
 ### Minor Changes
