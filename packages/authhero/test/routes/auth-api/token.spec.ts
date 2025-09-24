@@ -1208,6 +1208,282 @@ describe("token", () => {
       await env.data.roles.remove("tenantId", role.id);
       await env.data.users.remove("tenantId", user.user_id);
     });
+
+    it("should accept organization parameter when it matches login session organization", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "Test Organization for Token Grant",
+        display_name: "Test Org Token Grant",
+      });
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-org-param-user",
+        email: "token-org-param@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Add user to organization
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: organization.id,
+      });
+
+      // Create a login session with organization in authParams
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://example.com/api",
+          scope: "openid profile",
+          organization: organization.id,
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token-org-param",
+      });
+
+      // Create an authorization code
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-org-param-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Exchange code for tokens with matching organization parameter
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-org-param-code",
+          redirect_uri: "https://example.com/callback",
+          organization: organization.id, // This should match the login session
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toHaveProperty("access_token");
+      expect(body).toHaveProperty("token_type", "Bearer");
+
+      // Clean up
+      await env.data.organizations.remove("tenantId", organization.id);
+      await env.data.users.remove("tenantId", user.user_id);
+    });
+
+    it("should reject token request when organization parameter does not match login session", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create two organizations
+      const organization1 = await env.data.organizations.create("tenantId", {
+        name: "Organization 1",
+        display_name: "Org 1",
+      });
+
+      const organization2 = await env.data.organizations.create("tenantId", {
+        name: "Organization 2",
+        display_name: "Org 2",
+      });
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-org-mismatch-user",
+        email: "token-org-mismatch@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Create a login session with organization1 in authParams
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://example.com/api",
+          scope: "openid profile",
+          organization: organization1.id,
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token-org-mismatch",
+      });
+
+      // Create an authorization code
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-org-mismatch-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Try to exchange code with different organization parameter
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-org-mismatch-code",
+          redirect_uri: "https://example.com/callback",
+          organization: organization2.id, // This does NOT match the login session
+        },
+      });
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "invalid_request",
+        error_description: "Organization parameter does not match login session organization",
+      });
+
+      // Clean up
+      await env.data.organizations.remove("tenantId", organization1.id);
+      await env.data.organizations.remove("tenantId", organization2.id);
+      await env.data.users.remove("tenantId", user.user_id);
+    });
+
+    it("should reject token request when organization parameter is provided but login session has no organization", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "Unwanted Organization",
+        display_name: "Unwanted Org",
+      });
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-no-org-user",
+        email: "token-no-org@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Create a login session WITHOUT organization in authParams
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://example.com/api",
+          scope: "openid profile",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+          // NO organization parameter
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token-no-org",
+      });
+
+      // Create an authorization code
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-no-org-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Try to exchange code with organization parameter when login session has no organization
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-no-org-code",
+          redirect_uri: "https://example.com/callback",
+          organization: organization.id, // This should be rejected since login session has no org
+        },
+      });
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "invalid_request",
+        error_description: "Organization parameter provided but login session has no organization",
+      });
+
+      // Clean up
+      await env.data.organizations.remove("tenantId", organization.id);
+      await env.data.users.remove("tenantId", user.user_id);
+    });
+
+    it("should work normally when no organization parameter is provided (backward compatibility)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a user
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|token-backward-compat-user",
+        email: "token-backward-compat@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Create a login session without organization
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        authParams: {
+          client_id: "clientId",
+          audience: "https://example.com/api",
+          scope: "openid profile",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        csrf_token: "test-csrf-token-backward-compat",
+      });
+
+      // Create an authorization code
+      const code = await env.data.codes.create("tenantId", {
+        code_id: "test-backward-compat-code",
+        user_id: user.user_id,
+        code_type: "authorization_code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        redirect_uri: "https://example.com/callback",
+      });
+      void code; // Used for test setup
+
+      // Exchange code for tokens without organization parameter - should work normally
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "authorization_code",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          code: "test-backward-compat-code",
+          redirect_uri: "https://example.com/callback",
+          // NO organization parameter
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toHaveProperty("access_token");
+      expect(body).toHaveProperty("token_type", "Bearer");
+
+      // Clean up
+      await env.data.users.remove("tenantId", user.user_id);
+    });
   });
 
   describe("permissions in JWT tokens", () => {

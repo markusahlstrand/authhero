@@ -40,12 +40,14 @@ const CreateRequestSchema = z.union([
     code: z.string(),
     redirect_uri: z.string(),
     code_verifier: z.string().min(43).max(128),
+    organization: z.string().optional(),
   }),
   // Code grant
   z.object({
     grant_type: z.literal("authorization_code"),
     code: z.string(),
     redirect_uri: z.string().optional(),
+    organization: z.string().optional(),
     ...optionalClientCredentials.shape,
   }),
   // Refresh token
@@ -212,7 +214,7 @@ export const tokenRoutes = new OpenAPIHono<{
       // Calculate scopes and permissions before creating tokens
       // This will throw a 403 error if user is not a member of the required organization
       let calculatedPermissions: string[] = [];
-      
+
       if (grantResult.authParams.audience) {
         try {
           let scopesAndPermissions;
@@ -267,7 +269,8 @@ export const tokenRoutes = new OpenAPIHono<{
       const tokens = await createAuthTokens(ctx, {
         ...grantResult,
         grantType: body.grant_type as GrantType,
-        permissions: calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
+        permissions:
+          calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
       });
       return ctx.json(tokens, {
         headers: passwordlessHeaders,

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.225.0
+
+### Minor Changes
+
+- Organization support in token endpoint
+
 ## 0.224.0
 
 ### Minor Changes
