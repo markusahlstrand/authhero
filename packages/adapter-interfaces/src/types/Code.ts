@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { CodeChallengeMethod } from "./AuthParams";
 
 export const codeTypeSchema = z.enum([
   "password_reset",
@@ -28,7 +29,7 @@ export const codeInsertSchema = z.object({
   code_challenge: z.string().optional().openapi({
     description: "The code challenge used in PKCE in outbound flows",
   }),
-  code_challenge_method: z.enum(["plain", "S256"]).optional().openapi({
+  code_challenge_method: z.nativeEnum(CodeChallengeMethod).optional().openapi({
     description: "The code challenge method used in PKCE in outbound flows",
   }),
   redirect_uri: z.string().optional().openapi({

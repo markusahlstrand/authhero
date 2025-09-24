@@ -15,7 +15,7 @@ export const customDomainInsertSchema = z.object({
       "null",
     ])
     .optional(),
-  domain_metadata: z.record(z.string().max(255)).optional(),
+  domain_metadata: z.record(z.string(), z.string().max(255)).optional(),
 });
 
 export type CustomDomainInsert = z.infer<typeof customDomainInsertSchema>;

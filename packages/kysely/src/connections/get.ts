@@ -21,7 +21,7 @@ export function get(db: Kysely<Database>) {
 
     return removeNullProperties({
       ...connection,
-      options: JSON.parse(connection.options),
+      options: JSON.parse(connection.options as string),
     });
   };
 }

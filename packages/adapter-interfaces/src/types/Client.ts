@@ -93,25 +93,41 @@ export const clientInsertSchema = z.object({
     description:
       "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
   }),
-  session_transfer: z.record(z.any()).default({}).optional().openapi({
-    description: "Native to Web SSO Configuration",
-  }),
-  oidc_logout: z.record(z.any()).default({}).optional().openapi({
+  session_transfer: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Native to Web SSO Configuration",
+    }),
+  oidc_logout: z.record(z.string(), z.string()).default({}).optional().openapi({
     description: "Configuration for OIDC backchannel logout",
   }),
   grant_types: z.array(z.string()).default([]).optional().openapi({
     description:
       "List of grant types supported for this application. Can include authorization_code, implicit, refresh_token, client_credentials, password, http://auth0.com/oauth/grant-type/password-realm, http://auth0.com/oauth/grant-type/mfa-oob, http://auth0.com/oauth/grant-type/mfa-otp, http://auth0.com/oauth/grant-type/mfa-recovery-code, urn:openid:params:grant-type:ciba, and urn:ietf:params:oauth:grant-type:device_code.",
   }),
-  jwt_configuration: z.record(z.any()).default({}).optional().openapi({
-    description: "Configuration related to JWTs for the client.",
-  }),
-  signing_keys: z.array(z.record(z.any())).default([]).optional().openapi({
-    description: "Signing certificates associated with this client.",
-  }),
-  encryption_key: z.record(z.any()).default({}).optional().openapi({
-    description: "Encryption used for WsFed responses with this client.",
-  }),
+  jwt_configuration: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Configuration related to JWTs for the client.",
+    }),
+  signing_keys: z
+    .array(z.record(z.string(), z.string()))
+    .default([])
+    .optional()
+    .openapi({
+      description: "Signing certificates associated with this client.",
+    }),
+  encryption_key: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Encryption used for WsFed responses with this client.",
+    }),
   sso: z.boolean().default(false).openapi({
     description:
       "Applies only to SSO clients and determines whether Auth0 will handle Single Sign On (true) or whether the Identity Provider will (false).",
@@ -142,7 +158,7 @@ export const clientInsertSchema = z.object({
   form_template: z.string().optional().openapi({
     description: "HTML form template to be used for WS-Federation.",
   }),
-  addons: z.record(z.any()).default({}).optional().openapi({
+  addons: z.record(z.string(), z.string()).default({}).optional().openapi({
     description:
       "Addons enabled for this client and their associated configurations.",
   }),
@@ -155,26 +171,34 @@ export const clientInsertSchema = z.object({
         "Defines the requested authentication method for the token endpoint. Can be none (public client without a client secret), client_secret_post (client uses HTTP POST parameters), or client_secret_basic (client uses HTTP Basic).",
     }),
   client_metadata: z
-    .record(z.string().max(255))
+    .record(z.string(), z.string().max(255))
     .default({})
     .optional()
     .openapi({
       description:
         'Metadata associated with the client, in the form of an object with string values (max 255 chars). Maximum of 10 metadata properties allowed. Field names (max 255 chars) are alphanumeric and may only include the following special characters: :,-+=_*?"/()\u003c\u003e@ [Tab][Space]',
     }),
-  mobile: z.record(z.any()).default({}).optional().openapi({
+  mobile: z.record(z.string(), z.string()).default({}).optional().openapi({
     description: "Additional configuration for native mobile apps.",
   }),
   initiate_login_uri: z.string().url().optional().openapi({
     description: "Initiate login uri, must be https",
   }),
-  native_social_login: z.record(z.any()).default({}).optional(),
-  refresh_token: z.record(z.any()).default({}).optional().openapi({
-    description: "Refresh token configuration",
-  }),
-  default_organization: z.record(z.any()).default({}).optional().openapi({
-    description: "Defines the default Organization ID and flows",
-  }),
+  native_social_login: z.record(z.string(), z.string()).default({}).optional(),
+  refresh_token: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Refresh token configuration",
+    }),
+  default_organization: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Defines the default Organization ID and flows",
+    }),
   organization_usage: z
     .enum(["deny", "allow", "require"])
     .default("deny")
@@ -192,7 +216,7 @@ export const clientInsertSchema = z.object({
         "Defines how to proceed during an authentication transaction when client.organization_usage: 'require'. Can be no_prompt (default), pre_login_prompt or post_login_prompt. post_login_prompt requires oidc_conformant: true.",
     }),
   client_authentication_methods: z
-    .record(z.any())
+    .record(z.string(), z.string())
     .default({})
     .optional()
     .openapi({
@@ -206,9 +230,13 @@ export const clientInsertSchema = z.object({
     description:
       "Makes the use of Proof-of-Possession mandatory for this client",
   }),
-  signed_request_object: z.record(z.any()).default({}).optional().openapi({
-    description: "JWT-secured Authorization Requests (JAR) settings.",
-  }),
+  signed_request_object: z
+    .record(z.string(), z.string())
+    .default({})
+    .optional()
+    .openapi({
+      description: "JWT-secured Authorization Requests (JAR) settings.",
+    }),
   compliance_level: z
     .enum([
       "none",
@@ -226,7 +254,7 @@ export const clientInsertSchema = z.object({
     description:
       "Specifies how long, in seconds, a Pushed Authorization Request URI remains valid",
   }),
-  token_quota: z.record(z.any()).default({}).optional(),
+  token_quota: z.record(z.string(), z.string()).default({}).optional(),
 });
 
 export type ClientInsert = z.input<typeof clientInsertSchema>;

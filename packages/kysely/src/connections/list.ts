@@ -30,7 +30,7 @@ export function list(db: Kysely<Database>) {
     const connections: Connection[] = dbConnections.map((connection) =>
       removeNullProperties({
         ...connection,
-        options: JSON.parse(connection.options),
+        options: JSON.parse(connection.options as string),
       }),
     );
 

@@ -59,7 +59,7 @@ export const themesRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: themeSchema.deepPartial(),
+              schema: z.record(z.string(), z.any()),
             },
           },
         },

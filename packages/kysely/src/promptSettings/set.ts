@@ -4,22 +4,29 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { removeNullProperties } from "../helpers/remove-nulls";
 
 function convertToBooleans(promptSetting: Partial<PromptSetting>) {
-  return removeNullProperties({
-    ...promptSetting,
-    webauthn_platform_first_factor: promptSetting.webauthn_platform_first_factor
-      ? !!promptSetting.webauthn_platform_first_factor
-      : undefined,
-    identifier_first: promptSetting.identifier_first
-      ? !!promptSetting.identifier_first
-      : undefined,
-    password_first: promptSetting.password_first
-      ? !!promptSetting.password_first
-      : undefined,
-    universal_login_experience: promptSetting.universal_login_experience,
-  });
+  const result: any = {};
+
+  if (promptSetting.webauthn_platform_first_factor !== undefined) {
+    result.webauthn_platform_first_factor =
+      promptSetting.webauthn_platform_first_factor ? 1 : 0;
+  }
+
+  if (promptSetting.identifier_first !== undefined) {
+    result.identifier_first = promptSetting.identifier_first ? 1 : 0;
+  }
+
+  if (promptSetting.password_first !== undefined) {
+    result.password_first = promptSetting.password_first ? 1 : 0;
+  }
+
+  if (promptSetting.universal_login_experience !== undefined) {
+    result.universal_login_experience =
+      promptSetting.universal_login_experience;
+  }
+
+  return result;
 }
 
 export function set(db: Kysely<Database>) {

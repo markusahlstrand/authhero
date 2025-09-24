@@ -107,7 +107,11 @@ export async function samlCallback(
     });
   }
 
-  const { recipient, audience } = client.addons.samlp;
+  const samlpConfig =
+    typeof client.addons.samlp === "string"
+      ? JSON.parse(client.addons.samlp)
+      : client.addons.samlp;
+  const { recipient, audience } = samlpConfig;
   const inResponseTo = authParams.state || "";
 
   if (!recipient || !inResponseTo || !user || !authParams.state) {

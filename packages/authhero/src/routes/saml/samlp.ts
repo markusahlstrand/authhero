@@ -66,8 +66,14 @@ export const samlpRoutes = new OpenAPIHono<{
 
       const issuer = ctx.env.ISSUER;
 
+      const samlpConfig = client.addons?.samlp
+        ? typeof client.addons.samlp === "string"
+          ? JSON.parse(client.addons.samlp)
+          : client.addons.samlp
+        : {};
+
       const metadata = createSamlMetadata({
-        entityId: client.addons?.samlp?.audience || client.client_id,
+        entityId: samlpConfig.audience || client.client_id,
         certificates,
         assertionConsumerServiceUrl: `${issuer}samlp/${client_id}`,
         singleLogoutServiceUrl: `${issuer}samlp/${client_id}/logout`,

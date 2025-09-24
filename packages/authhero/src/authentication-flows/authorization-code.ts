@@ -82,13 +82,15 @@ export async function authorizationCodeGrantUser(
     if (!loginSession.authParams.organization) {
       throw new JSONHTTPException(400, {
         error: "invalid_request",
-        error_description: "Organization parameter provided but login session has no organization",
+        error_description:
+          "Organization parameter provided but login session has no organization",
       });
     }
     if (params.organization !== loginSession.authParams.organization) {
       throw new JSONHTTPException(400, {
-        error: "invalid_request", 
-        error_description: "Organization parameter does not match login session organization",
+        error: "invalid_request",
+        error_description:
+          "Organization parameter does not match login session organization",
       });
     }
   }
@@ -111,7 +113,7 @@ export async function authorizationCodeGrantUser(
     code.code_challenge_method &&
     params.code_verifier
   ) {
-    // PKCE flow
+    // PKCE flow - TypeScript now knows code_challenge_method is not undefined
     const challenge = await computeCodeChallenge(
       params.code_verifier,
       code.code_challenge_method,

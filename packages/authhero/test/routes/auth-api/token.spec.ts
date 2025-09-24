@@ -762,7 +762,10 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: await computeCodeChallenge(codeChallenge, "S256"),
+            code_challenge: await computeCodeChallenge(
+              codeChallenge,
+              CodeChallengeMethod.S256,
+            ),
             code_challenge_method: CodeChallengeMethod.S256,
           },
         });
@@ -1348,7 +1351,8 @@ describe("token", () => {
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_request",
-        error_description: "Organization parameter does not match login session organization",
+        error_description:
+          "Organization parameter does not match login session organization",
       });
 
       // Clean up
@@ -1418,7 +1422,8 @@ describe("token", () => {
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_request",
-        error_description: "Organization parameter provided but login session has no organization",
+        error_description:
+          "Organization parameter provided but login session has no organization",
       });
 
       // Clean up
@@ -1493,19 +1498,22 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with RBAC enabled and access_token_authz dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          name: "Test API with Permissions",
-          identifier: "https://permissions-test-api.example.com",
-          scopes: [
-            { value: "read:users", description: "Read users" },
-            { value: "write:users", description: "Write users" },
-            { value: "delete:users", description: "Delete users" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token_authz", // Should include permissions in token
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API with Permissions",
+            identifier: "https://permissions-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "delete:users", description: "Delete users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token_authz", // Should include permissions in token
+            },
           },
-        });
+        );
 
         // Create a user
         const user = await env.data.users.create("tenantId", {
@@ -1521,13 +1529,15 @@ describe("token", () => {
         // Give user direct permissions
         await env.data.userPermissions.create("tenantId", user.user_id, {
           user_id: user.user_id,
-          resource_server_identifier: "https://permissions-test-api.example.com",
+          resource_server_identifier:
+            "https://permissions-test-api.example.com",
           permission_name: "read:users",
         });
 
         await env.data.userPermissions.create("tenantId", user.user_id, {
           user_id: user.user_id,
-          resource_server_identifier: "https://permissions-test-api.example.com",
+          resource_server_identifier:
+            "https://permissions-test-api.example.com",
           permission_name: "write:users",
         });
 
@@ -1582,7 +1592,7 @@ describe("token", () => {
         // Verify permissions are included in the token
         expect(payload.permissions).toBeDefined();
         expect(payload.permissions).toEqual(
-          expect.arrayContaining(["read:users", "write:users"])
+          expect.arrayContaining(["read:users", "write:users"]),
         );
         // User should not have delete:users permission since it wasn't granted
         expect(payload.permissions).not.toContain("delete:users");
@@ -1600,18 +1610,21 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with RBAC enabled but default token_dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          name: "Test API with Scopes",
-          identifier: "https://scopes-test-api.example.com",
-          scopes: [
-            { value: "read:users", description: "Read users" },
-            { value: "write:users", description: "Write users" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token", // Should use scopes, not permissions
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API with Scopes",
+            identifier: "https://scopes-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token", // Should use scopes, not permissions
+            },
           },
-        });
+        );
 
         // Create a user
         const user = await env.data.users.create("tenantId", {
@@ -1690,18 +1703,21 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with access_token_authz dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          identifier: "https://client-permissions-api.example.com",
-          name: "Client Permissions API",
-          scopes: [
-            { value: "read:data", description: "Read data" },
-            { value: "write:data", description: "Write data" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token_authz", // Should include permissions
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://client-permissions-api.example.com",
+            name: "Client Permissions API",
+            scopes: [
+              { value: "read:data", description: "Read data" },
+              { value: "write:data", description: "Write data" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token_authz", // Should include permissions
+            },
           },
-        });
+        );
 
         // Create a client grant
         await env.data.clientGrants.create("tenantId", {
@@ -1735,7 +1751,7 @@ describe("token", () => {
         // Verify permissions are included for client_credentials
         expect(payload.permissions).toBeDefined();
         expect(payload.permissions).toEqual(
-          expect.arrayContaining(["read:data", "write:data"])
+          expect.arrayContaining(["read:data", "write:data"]),
         );
 
         // For access_token_authz dialect, scopes should be empty

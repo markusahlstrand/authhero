@@ -82,12 +82,12 @@ export const promptsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       const promptSettings = ctx.req.valid("json");
 
+      // Set the new settings (the kysely adapter handles partial updates)
+      await ctx.env.data.promptSettings.set(tenant_id, promptSettings);
+
+      // Get the updated settings to return
       const updatedPromptSettings =
         await ctx.env.data.promptSettings.get(tenant_id);
-
-      Object.assign(updatedPromptSettings, promptSettings);
-
-      await ctx.env.data.promptSettings.set(tenant_id, updatedPromptSettings);
 
       return ctx.json(updatedPromptSettings);
     },

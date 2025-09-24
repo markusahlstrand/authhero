@@ -62,7 +62,7 @@ export const organizationInsertSchema = z.object({
     description: "The display name of the organization",
   }),
   branding: organizationBrandingSchema,
-  metadata: z.record(z.any()).default({}).optional().openapi({
+  metadata: z.record(z.string(), z.string()).default({}).optional().openapi({
     description: "Custom metadata for the organization",
   }),
   enabled_connections: z

@@ -1,6 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import i18next from "i18next";
+import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
+import { z as baseZod } from "zod";
 import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
 import createOauthApi from "./routes/auth-api";
@@ -8,6 +10,12 @@ import createUniversalLogin from "./routes/universal-login";
 import createSamlpApi from "./routes/saml";
 import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
+
+// Initialize zod openapi extension
+extendZodWithOpenApi(baseZod);
+
+// Re-export the extended zod instance
+export { z } from "@hono/zod-openapi";
 
 export * from "@authhero/adapter-interfaces";
 export * from "./types/Hooks";

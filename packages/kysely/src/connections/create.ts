@@ -18,7 +18,13 @@ export function create(db: Kysely<Database>) {
     await db
       .insertInto("connections")
       .values({
-        ...connection,
+        id: connection.id,
+        name: connection.name,
+        strategy: connection.strategy,
+        response_type: connection.response_type,
+        response_mode: connection.response_mode,
+        created_at: connection.created_at,
+        updated_at: connection.updated_at,
         // The connection options will have many different properties depending on the strategy
         options: JSON.stringify(connection.options || {}),
         tenant_id,

@@ -40,6 +40,7 @@ describe("connections", () => {
     const { created_at, updated_at, id, ...rest } = createdConnection;
 
     expect(rest).toEqual({
+      enabled_clients: [],
       name: "apple",
       strategy: "apple",
       options: {

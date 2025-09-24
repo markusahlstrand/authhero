@@ -1,5 +1,6 @@
 import { sha256 } from "oslo/crypto";
 import { base64url } from "oslo/encoding";
+import { CodeChallengeMethod } from "@authhero/adapter-interfaces";
 
 export function pemToBuffer(pem: string): ArrayBuffer {
   try {
@@ -22,9 +23,9 @@ export function pemToBuffer(pem: string): ArrayBuffer {
 
 export async function computeCodeChallenge(
   codeVerifier: string,
-  method: "plain" | "S256",
+  method: CodeChallengeMethod,
 ): Promise<string> {
-  if (method === "plain") {
+  if (method === CodeChallengeMethod.Plain) {
     return codeVerifier;
   }
 

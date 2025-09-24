@@ -42,7 +42,7 @@ export async function inflateRaw(
 ): Promise<Uint8Array> {
   // TODO: this is not supported in Node.js, so we need to use a polyfill
   const ds = new DecompressionStream("deflate-raw");
-  const decompressedStream = new Blob([compressedData])
+  const decompressedStream = new Blob([new Uint8Array(compressedData)])
     .stream()
     .pipeThrough(ds);
   return new Uint8Array(await new Response(decompressedStream).arrayBuffer());
@@ -80,7 +80,7 @@ export async function parseSamlRequestQuery(samlRequestQuery: string) {
 
 export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
   // Create KeyDescriptor entries for each certificate
-  const keyDescriptors = samlMetadataParams.certificates.map(cert => ({
+  const keyDescriptors = samlMetadataParams.certificates.map((cert) => ({
     ":@": {
       "@_use": "signing",
     },
@@ -93,9 +93,7 @@ export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
           {
             X509Data: [
               {
-                X509Certificate: [
-                  { "#text": cert },
-                ],
+                X509Certificate: [{ "#text": cert }],
               },
             ],
           },

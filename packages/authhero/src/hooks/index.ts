@@ -3,6 +3,7 @@ import {
   DataAdapters,
   LogTypes,
   User,
+  UserInsert,
   LoginSession,
 } from "@authhero/adapter-interfaces";
 import { linkUsersHook } from "./link-users";
@@ -25,7 +26,7 @@ function createUserHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
 ) {
-  return async (tenant_id: string, user: User) => {
+  return async (tenant_id: string, user: UserInsert) => {
     const request: HookRequest = {
       method: ctx.req.method,
       ip: ctx.req.query("x-real-ip") || "",
@@ -38,7 +39,7 @@ function createUserHooks(
         await ctx.env.hooks.onExecutePreUserRegistration(
           {
             ctx,
-            user,
+            user: user as User,
             request,
           },
           {
@@ -66,7 +67,7 @@ function createUserHooks(
         await ctx.env.hooks.onExecutePostUserRegistration(
           {
             ctx,
-            user,
+            user: result,
             request,
           },
           {

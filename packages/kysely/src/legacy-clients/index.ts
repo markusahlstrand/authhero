@@ -55,7 +55,9 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
           connectionSchema.parse(
             removeNullProperties({
               ...connection,
-              options: connection.options ? JSON.parse(connection.options) : {},
+              options: connection.options
+                ? JSON.parse(connection.options as string)
+                : {},
             }),
           ),
         ),
