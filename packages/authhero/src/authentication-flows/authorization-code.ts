@@ -21,6 +21,7 @@ export const authorizationCodeGrantParamsSchema = z
     redirect_uri: z.string().optional(),
     client_secret: z.string().optional(),
     code_verifier: z.string().optional(),
+    organization: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -74,6 +75,22 @@ export async function authorizationCodeGrantUser(
 
   if (!loginSession) {
     throw new HTTPException(403, { message: "Invalid login" });
+  }
+
+  // Validate organization parameter matches login session organization
+  if (params.organization) {
+    if (!loginSession.authParams.organization) {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request",
+        error_description: "Organization parameter provided but login session has no organization",
+      });
+    }
+    if (params.organization !== loginSession.authParams.organization) {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request", 
+        error_description: "Organization parameter does not match login session organization",
+      });
+    }
   }
 
   // Validate the secret or PKCE
