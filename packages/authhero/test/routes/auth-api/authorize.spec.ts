@@ -259,7 +259,8 @@ describe("authorize", () => {
       expect(code).toMatchObject({
         code_type: "authorization_code",
         user_id: "email|userId",
-        login_id: loginSession.id,
+        // The code should now be linked to a NEW login session created during silent auth
+        login_id: expect.any(String),
         expires_at: expect.any(String),
         code_challenge: "codeChallenge",
         code_challenge_method: CodeChallengeMethod.S256,
@@ -267,6 +268,12 @@ describe("authorize", () => {
         nonce: "nonce",
         redirect_uri: "https://example.com/callback",
       });
+
+      // Verify the new login session was created and linked to the current session
+      const newLoginSession = await env.data.loginSessions.get("tenantId", code?.login_id || "");
+      expect(newLoginSession).toBeDefined();
+      expect(newLoginSession?.session_id).toEqual(session?.id);
+      expect(newLoginSession?.authParams.client_id).toEqual("clientId");
     });
 
     it("should return a web_message response with a access_token for a valid session", async () => {

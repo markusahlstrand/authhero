@@ -1,5 +1,11 @@
 # authhero
 
+## 0.228.0
+
+### Minor Changes
+
+- Create a new login session for silent auth
+
 ## 0.227.0
 
 ### Minor Changes

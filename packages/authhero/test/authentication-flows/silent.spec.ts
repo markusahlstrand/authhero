@@ -94,10 +94,17 @@ describe("silent", () => {
       "authorization_code",
     );
     expect(code).toBeDefined();
-    expect(code?.login_id).toEqual(loginSession.id);
+    // The code should now be linked to a NEW login session created during silent auth
+    expect(code?.login_id).not.toEqual(loginSession.id);
     expect(code?.code_challenge).toEqual(
       "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
     );
+
+    // Verify the new login session was created and linked to the current session
+    const newLoginSession = await env.data.loginSessions.get("tenantId", code?.login_id || "");
+    expect(newLoginSession).toBeDefined();
+    expect(newLoginSession?.session_id).toEqual(session.id);
+    expect(newLoginSession?.authParams.client_id).toEqual("clientId");
 
     // Check that the session was updated
     const updatedSession = await env.data.sessions.get("tenantId", "sessionId");
@@ -106,5 +113,7 @@ describe("silent", () => {
     }
 
     expect(updatedSession.used_at).not.toEqual(session.used_at);
+    // The session should now be linked to the new login session
+    expect(updatedSession.login_session_id).toEqual(code?.login_id);
   });
 });

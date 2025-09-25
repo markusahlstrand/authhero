@@ -12,6 +12,7 @@ import { serializeAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens, createCodeData } from "./common";
 import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
+import { nanoid } from "nanoid";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -25,6 +26,7 @@ interface SilentAuthParams {
   code_challenge?: string;
   audience?: string;
   scope?: string;
+  organization?: string;
 }
 
 export async function silentAuth({
@@ -39,6 +41,7 @@ export async function silentAuth({
   audience,
   scope,
   response_type,
+  organization,
 }: SilentAuthParams) {
   const { env } = ctx;
   const redirectURL = new URL(redirect_uri);
@@ -87,6 +90,25 @@ export async function silentAuth({
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);
 
+  // Create a new login session for this silent auth flow
+  const loginSession = await env.data.loginSessions.create(client.tenant.id, {
+    csrf_token: nanoid(),
+    authParams: {
+      client_id: client.client_id,
+      audience,
+      scope,
+      state,
+      nonce,
+      response_type,
+      redirect_uri,
+      organization,
+    },
+    expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
+    session_id: session.id,
+    ip: ctx.var.ip,
+    useragent: ctx.var.useragent,
+  });
+
   const tokenResponseOptions = {
     client,
     authParams: {
@@ -111,7 +133,7 @@ export async function silentAuth({
           user,
           client,
           authParams: tokenResponseOptions.authParams,
-          login_id: session.login_session_id,
+          login_id: loginSession.id,
         })
       : await createAuthTokens(ctx, tokenResponseOptions);
 
@@ -119,6 +141,7 @@ export async function silentAuth({
   await env.data.sessions.update(client.tenant.id, session.id, {
     used_at: new Date().toISOString(),
     last_interaction_at: new Date().toISOString(),
+    login_session_id: loginSession.id,
     device: {
       ...session.device,
       last_ip: ctx.var.ip || "",
