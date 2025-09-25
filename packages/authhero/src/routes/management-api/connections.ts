@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
 import {
@@ -14,7 +14,10 @@ const connectionsWithTotalsSchema = totalsSchema.extend({
   connections: z.array(connectionSchema),
 });
 
-export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const connectionRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/connections
   // --------------------------------
@@ -50,8 +53,6 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
       const {
         page,
         per_page,
@@ -60,7 +61,7 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         q,
       } = ctx.req.valid("query");
 
-      const result = await ctx.env.data.connections.list(tenant_id, {
+      const result = await ctx.env.data.connections.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -109,10 +110,12 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const connection = await ctx.env.data.connections.get(tenant_id, id);
+      const connection = await ctx.env.data.connections.get(
+        ctx.var.tenant_id,
+        id,
+      );
 
       if (!connection) {
         throw new HTTPException(404);
@@ -149,10 +152,12 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.connections.remove(tenant_id, id);
+      const result = await ctx.env.data.connections.remove(
+        ctx.var.tenant_id,
+        id,
+      );
       if (!result) {
         throw new HTTPException(404, {
           message: "Connection not found",
@@ -202,18 +207,24 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      const result = await ctx.env.data.connections.update(tenant_id, id, body);
+      const result = await ctx.env.data.connections.update(
+        ctx.var.tenant_id,
+        id,
+        body,
+      );
       if (!result) {
         throw new HTTPException(404, {
           message: "Connection not found",
         });
       }
 
-      const connection = await ctx.env.data.connections.get(tenant_id, id);
+      const connection = await ctx.env.data.connections.get(
+        ctx.var.tenant_id,
+        id,
+      );
 
       if (!connection) {
         throw new HTTPException(404, {
@@ -261,7 +272,6 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
       const connectionData = {
@@ -270,7 +280,7 @@ export const connectionRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       };
 
       const connection = await ctx.env.data.connections.create(
-        tenant_id,
+        ctx.var.tenant_id,
         connectionData,
       );
 

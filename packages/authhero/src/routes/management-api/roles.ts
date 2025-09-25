@@ -51,9 +51,8 @@ export const roleRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const result = await ctx.env.data.roles.list(tenant_id, {
+      const result = await ctx.env.data.roles.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -102,9 +101,8 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const role = await ctx.env.data.roles.get(tenant_id, id);
+      const role = await ctx.env.data.roles.get(ctx.var.tenant_id, id);
 
       if (!role) {
         throw new HTTPException(404);
@@ -150,10 +148,9 @@ export const roleRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
-      const role = await ctx.env.data.roles.create(tenant_id, body);
+      const role = await ctx.env.data.roles.create(ctx.var.tenant_id, body);
 
       return ctx.json(role, { status: 201 });
     },
@@ -199,16 +196,19 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
-      const updated = await ctx.env.data.roles.update(tenant_id, id, body);
+      const updated = await ctx.env.data.roles.update(
+        ctx.var.tenant_id,
+        id,
+        body,
+      );
 
       if (!updated) {
         throw new HTTPException(404);
       }
 
-      const role = await ctx.env.data.roles.get(tenant_id, id);
+      const role = await ctx.env.data.roles.get(ctx.var.tenant_id, id);
       return ctx.json(role!);
     },
   )
@@ -241,9 +241,8 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const deleted = await ctx.env.data.roles.remove(tenant_id, id);
+      const deleted = await ctx.env.data.roles.remove(ctx.var.tenant_id, id);
 
       if (!deleted) {
         throw new HTTPException(404);
@@ -287,12 +286,11 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       const { page, per_page, sort, q } = ctx.req.valid("query");
 
       // Check if role exists first
-      const role = await ctx.env.data.roles.get(tenant_id, id);
+      const role = await ctx.env.data.roles.get(ctx.var.tenant_id, id);
 
       if (!role) {
         throw new HTTPException(404, {
@@ -302,7 +300,7 @@ export const roleRoutes = new OpenAPIHono<{
 
       // Get permissions assigned to this role using the new adapter
       const permissions = await ctx.env.data.rolePermissions.list(
-        tenant_id,
+        ctx.var.tenant_id,
         id,
         {
           page,
@@ -359,11 +357,10 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { permissions } = ctx.req.valid("json");
 
       // Check if role exists first
-      const role = await ctx.env.data.roles.get(tenant_id, id);
+      const role = await ctx.env.data.roles.get(ctx.var.tenant_id, id);
       if (!role) {
         throw new HTTPException(404, {
           message: "Role not found",
@@ -372,7 +369,7 @@ export const roleRoutes = new OpenAPIHono<{
 
       // Use the new role permissions adapter to assign permissions
       const success = await ctx.env.data.rolePermissions.assign(
-        tenant_id,
+        ctx.var.tenant_id,
         id,
         permissions.map((p) => ({
           role_id: id,
@@ -436,11 +433,10 @@ export const roleRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { permissions } = ctx.req.valid("json");
 
       // Check if role exists first
-      const role = await ctx.env.data.roles.get(tenant_id, id);
+      const role = await ctx.env.data.roles.get(ctx.var.tenant_id, id);
       if (!role) {
         throw new HTTPException(404, {
           message: "Role not found",
@@ -449,7 +445,7 @@ export const roleRoutes = new OpenAPIHono<{
 
       // Use the new role permissions adapter to remove permissions
       const success = await ctx.env.data.rolePermissions.remove(
-        tenant_id,
+        ctx.var.tenant_id,
         id,
         permissions,
       );

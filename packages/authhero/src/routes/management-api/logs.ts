@@ -1,4 +1,4 @@
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
@@ -9,7 +9,10 @@ const logsWithTotalsSchema = totalsSchema.extend({
   logs: z.array(logSchema),
 });
 
-export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const logRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /logs
   // --------------------------------
@@ -43,9 +46,8 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
     async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const result = await ctx.env.data.logs.list(tenant_id, {
+      const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -94,10 +96,9 @@ export const logRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const log = await ctx.env.data.logs.get(tenant_id, id);
+      const log = await ctx.env.data.logs.get(ctx.var.tenant_id, id);
 
       if (!log) {
         throw new HTTPException(404);

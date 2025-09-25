@@ -1,10 +1,13 @@
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { brandingSchema } from "@authhero/adapter-interfaces";
 import { themesRoutes } from "./themes";
 import { DEFAULT_BRANDING } from "../../constants/defaultBranding";
 
-export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const brandingRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/branding
   // --------------------------------
@@ -35,9 +38,7 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
-      const branding = await ctx.env.data.branding.get(tenant_id);
+      const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
 
       if (!branding) {
         return ctx.json(DEFAULT_BRANDING);
@@ -78,11 +79,9 @@ export const brandingRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
       const branding = ctx.req.valid("json");
 
-      await ctx.env.data.branding.set(tenant_id, branding);
+      await ctx.env.data.branding.set(ctx.var.tenant_id, branding);
 
       return ctx.text("OK");
     },

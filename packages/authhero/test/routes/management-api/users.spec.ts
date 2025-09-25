@@ -1273,8 +1273,11 @@ describe("users management API endpoint", () => {
         throw new Error("Expected an array of users");
       }
       expect(usersList.length).toBe(2);
-      expect(usersList[1]?.user_id).toBe("auth2|userId2");
-      expect(usersList[1]?.identities).toEqual([
+      const newUser = usersList.find(
+        (u: User) => u.user_id === "auth2|userId2",
+      );
+      expect(newUser).toBeDefined();
+      expect(newUser.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
@@ -1313,7 +1316,7 @@ describe("users management API endpoint", () => {
       );
 
       expect(unlinkUserResponse.status).toBe(200);
-      const unlinkUserBody = await unlinkUserResponse.json();
+      const unlinkUserBody = (await unlinkUserResponse.json()) as User[];
       if (!Array.isArray(unlinkUserBody)) {
         throw new Error("Expected an array of users");
       }

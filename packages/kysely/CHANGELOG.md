@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.48.0
+
+### Minor Changes
+
+- Update tenant-id header handling
+
 ## 10.47.0
 
 ### Minor Changes

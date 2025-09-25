@@ -73,13 +73,12 @@ export const userRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       // ugly hardcoded switch for now!
       if (q?.includes("identities.profileData.email")) {
         // assuming no other query params here... could be stricter
         const linkedAccountEmail = q.split("=")[1];
-        const results = await ctx.env.data.users.list(tenant_id, {
+        const results = await ctx.env.data.users.list(ctx.var.tenant_id, {
           page,
           per_page,
           include_totals,
@@ -97,7 +96,7 @@ export const userRoutes = new OpenAPIHono<{
 
         // get primary account
         const primaryAccount = await ctx.env.data.users.get(
-          tenant_id,
+          ctx.var.tenant_id,
           // we know linked_to is truthy here but typescript cannot read .filter() logic above
           // possible to fix!
           linkedAccount.linked_to!,
@@ -118,7 +117,7 @@ export const userRoutes = new OpenAPIHono<{
         query.push(q);
       }
 
-      const result = await ctx.env.data.users.list(tenant_id, {
+      const result = await ctx.env.data.users.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -177,9 +176,8 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
 
       if (!user) {
         throw new HTTPException(404);
@@ -223,9 +221,11 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const result = await ctx.env.data.users.remove(tenant_id, user_id);
+      const result = await ctx.env.data.users.remove(
+        ctx.var.tenant_id,
+        user_id,
+      );
 
       if (!result) {
         throw new HTTPException(404);
@@ -271,7 +271,6 @@ export const userRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
       ctx.set("body", body);
 
@@ -290,7 +289,7 @@ export const userRoutes = new OpenAPIHono<{
 
       try {
         // This bypasses the hooks right now. Should we pass some flag so that the hooks may be bypassed?
-        const data = await ctx.env.data.users.create(tenant_id, {
+        const data = await ctx.env.data.users.create(ctx.var.tenant_id, {
           email,
           user_id,
           name: name || email || phone_number,
@@ -310,7 +309,7 @@ export const userRoutes = new OpenAPIHono<{
           type: LogTypes.SUCCESS_API_OPERATION,
           description: "User created",
         });
-        waitUntil(ctx, ctx.env.data.logs.create(tenant_id, log));
+        waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
 
         const userResponse = {
           ...data,
@@ -379,13 +378,12 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { data } = ctx.env;
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
 
       // verify_email is not persisted
       const { verify_email, password, ...userFields } = body;
-      const userToPatch = await data.users.get(tenant_id, user_id);
+      const userToPatch = await data.users.get(ctx.var.tenant_id, user_id);
 
       if (!userToPatch) {
         throw new HTTPException(404);
@@ -395,7 +393,7 @@ export const userRoutes = new OpenAPIHono<{
       if (userFields.email && userFields.email !== userToPatch.email) {
         const existingUser = await getUsersByEmail(
           ctx.env.data.users,
-          tenant_id,
+          ctx.var.tenant_id,
           userFields.email,
         );
 
@@ -417,7 +415,7 @@ export const userRoutes = new OpenAPIHono<{
         });
       }
 
-      await ctx.env.data.users.update(tenant_id, user_id, userFields);
+      await ctx.env.data.users.update(ctx.var.tenant_id, user_id, userFields);
 
       if (password) {
         const passwordUser = userToPatch.identities?.find(
@@ -437,17 +435,20 @@ export const userRoutes = new OpenAPIHono<{
         };
 
         const existingPassword = await data.passwords.get(
-          tenant_id,
+          ctx.var.tenant_id,
           passwordUser.user_id,
         );
         if (existingPassword) {
-          await data.passwords.update(tenant_id, passwordOptions);
+          await data.passwords.update(ctx.var.tenant_id, passwordOptions);
         } else {
-          await data.passwords.create(tenant_id, passwordOptions);
+          await data.passwords.create(ctx.var.tenant_id, passwordOptions);
         }
       }
 
-      const patchedUser = await ctx.env.data.users.get(tenant_id, user_id);
+      const patchedUser = await ctx.env.data.users.get(
+        ctx.var.tenant_id,
+        user_id,
+      );
 
       if (!patchedUser) {
         // we should never reach here UNLESS there's some race condition where another service deletes the users after the update...
@@ -511,24 +512,23 @@ export const userRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
 
       const link_with = "link_with" in body ? body.link_with : body.user_id;
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(400, {
           message: "Linking an inexistent identity is not allowed.",
         });
       }
 
-      await ctx.env.data.users.update(tenant_id, link_with, {
+      await ctx.env.data.users.update(ctx.var.tenant_id, link_with, {
         linked_to: user_id,
       });
 
-      const linkedusers = await ctx.env.data.users.list(tenant_id, {
+      const linkedusers = await ctx.env.data.users.list(ctx.var.tenant_id, {
         page: 0,
         per_page: 10,
         include_totals: false,
@@ -580,17 +580,16 @@ export const userRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { user_id, provider, linked_user_id } = ctx.req.valid("param");
 
       await ctx.env.data.users.unlink(
-        tenant_id,
+        ctx.var.tenant_id,
         user_id,
         provider,
         linked_user_id,
       );
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404);
       }
@@ -637,9 +636,8 @@ export const userRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { include_totals, page, per_page } = ctx.req.valid("query");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const sessions = await ctx.env.data.sessions.list(tenant_id, {
+      const sessions = await ctx.env.data.sessions.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -688,12 +686,11 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       const { page, per_page, sort, q } = ctx.req.valid("query");
 
       // Check if user exists first
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404, {
           message: "User not found",
@@ -702,7 +699,7 @@ export const userRoutes = new OpenAPIHono<{
 
       // Get permissions assigned to this user using the new adapter
       const permissions = await ctx.env.data.userPermissions.list(
-        tenant_id,
+        ctx.var.tenant_id,
         user_id,
         {
           page,
@@ -759,11 +756,10 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { permissions } = ctx.req.valid("json");
 
       // Check if user exists first
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404, {
           message: "User not found",
@@ -773,7 +769,7 @@ export const userRoutes = new OpenAPIHono<{
       // Use the new user permissions adapter to create permissions
       for (const permission of permissions) {
         const success = await ctx.env.data.userPermissions.create(
-          tenant_id,
+          ctx.var.tenant_id,
           user_id,
           {
             user_id,
@@ -838,11 +834,10 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { permissions } = ctx.req.valid("json");
 
       // Check if user exists first
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404, {
           message: "User not found",
@@ -852,7 +847,7 @@ export const userRoutes = new OpenAPIHono<{
       // Use the new user permissions adapter to remove permissions
       for (const permission of permissions) {
         const success = await ctx.env.data.userPermissions.remove(
-          tenant_id,
+          ctx.var.tenant_id,
           user_id,
           permission,
         );
@@ -889,13 +884,12 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
       const roles = await ctx.env.data.userRoles.list(
-        tenant_id,
+        ctx.var.tenant_id,
         user_id,
         undefined,
         "", // Global roles should have empty string organization_id
@@ -927,16 +921,15 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { roles } = ctx.req.valid("json");
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
       // Create roles one by one using the new API
       for (const roleId of roles) {
         const ok = await ctx.env.data.userRoles.create(
-          tenant_id,
+          ctx.var.tenant_id,
           user_id,
           roleId,
           "", // Global roles should have empty string organization_id
@@ -978,16 +971,15 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { roles } = ctx.req.valid("json");
 
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) throw new HTTPException(404, { message: "User not found" });
 
       // Remove roles one by one using the new API
       for (const roleId of roles) {
         const ok = await ctx.env.data.userRoles.remove(
-          tenant_id,
+          ctx.var.tenant_id,
           user_id,
           roleId,
           "", // Global roles should have empty string organization_id
@@ -1036,18 +1028,17 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { page, per_page, include_totals, sort } = ctx.req.valid("query");
 
       // First verify user exists
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404, { message: "User not found" });
       }
 
       // Get organizations for the user using the new method
       const result = await ctx.env.data.userOrganizations.listUserOrganizations(
-        tenant_id,
+        ctx.var.tenant_id,
         user_id,
         {
           page,
@@ -1094,19 +1085,21 @@ export const userRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { user_id, organization_id } = ctx.req.valid("param");
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
 
       // First verify user exists
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
       if (!user) {
         throw new HTTPException(404, { message: "User not found" });
       }
 
       // Find the membership to remove
-      const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
-        q: `user_id:${user_id}`,
-        per_page: 100, // Should be enough for most cases
-      });
+      const userOrgs = await ctx.env.data.userOrganizations.list(
+        ctx.var.tenant_id,
+        {
+          q: `user_id:${user_id}`,
+          per_page: 100, // Should be enough for most cases
+        },
+      );
 
       const membershipToRemove = userOrgs.userOrganizations.find(
         (uo) => uo.organization_id === organization_id,
@@ -1119,7 +1112,7 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       await ctx.env.data.userOrganizations.remove(
-        tenant_id,
+        ctx.var.tenant_id,
         membershipToRemove.id,
       );
 
