@@ -1,7 +1,7 @@
 export function isValidRedirectUrl(
   url: string,
   allowedUrls: string[] = [],
-  options: { allowPathWildcards?: boolean } = {},
+  options: { allowPathWildcards?: boolean; enableSubDomainWildcards?: boolean } = {},
 ): boolean {
   try {
     const parsedUrl = new URL(url);
@@ -10,7 +10,7 @@ export function isValidRedirectUrl(
         return matchUrl(
           parsedUrl,
           new URL(allowedUrl),
-          options.allowPathWildcards,
+          options,
         );
       } catch {
         return false;
@@ -24,7 +24,7 @@ export function isValidRedirectUrl(
 function matchUrl(
   url: URL,
   allowedUrl: URL,
-  allowPathWildcards?: boolean,
+  options: { allowPathWildcards?: boolean; enableSubDomainWildcards?: boolean } = {},
 ): boolean {
   // First validate protocol
   if (url.protocol !== allowedUrl.protocol) {
@@ -32,7 +32,7 @@ function matchUrl(
   }
 
   // Handle path matching based on wildcard option
-  if (allowPathWildcards && allowedUrl.pathname.includes("*")) {
+  if (options.allowPathWildcards && allowedUrl.pathname.includes("*")) {
     const pathPattern = allowedUrl.pathname
       .replace(/\*/g, ".*") // Convert * to .*
       .replace(/\//g, "\\/"); // Escape forward slashes
@@ -44,8 +44,9 @@ function matchUrl(
     return false;
   }
 
-  // Wildcard domain matching
+  // Wildcard domain matching (only if enabled)
   if (
+    options.enableSubDomainWildcards &&
     allowedUrl.hostname.startsWith("*.") &&
     allowedUrl.hostname.split(".").length > 2 &&
     ["http:", "https:"].includes(allowedUrl.protocol)
