@@ -45,32 +45,134 @@ describe("isValidRedirectUrl", () => {
     });
   });
 
-  describe("wildcard domain matching", () => {
-    it("should match wildcard domains when configured", () => {
-      expect(
-        isValidRedirectUrl("https://app.example.com", [
-          "https://*.example.com",
-        ]),
-      ).toBe(true);
-      expect(
-        isValidRedirectUrl("https://app.example.com", [
-          "https://*.example.com",
-        ]),
-      ).toBe(true);
+  describe("subdomain wildcard matching", () => {
+    describe("when enableSubDomainWildcards is true", () => {
+      it("should match wildcard domains", () => {
+        expect(
+          isValidRedirectUrl(
+            "https://app.example.com/callback",
+            ["https://*.example.com/callback"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+
+        expect(
+          isValidRedirectUrl(
+            "https://api.sesamy.com/callback",
+            ["https://*.sesamy.com/callback"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+
+        expect(
+          isValidRedirectUrl(
+            "https://sub.domain.example.com",
+            ["https://*.example.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+      });
+
+      it("should match exact domains when wildcard is used", () => {
+        expect(
+          isValidRedirectUrl(
+            "https://example.com/callback",
+            ["https://*.example.com/callback"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+      });
+
+      it("should work with both path and subdomain wildcards", () => {
+        expect(
+          isValidRedirectUrl(
+            "https://app.example.com/some/path",
+            ["https://*.example.com/*"],
+            { allowPathWildcards: true, enableSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+      });
     });
 
-    it("should not match invalid wildcard patterns", () => {
-      expect(
-        isValidRedirectUrl("https://evil.com", ["https://*.example.com"]),
-      ).toBe(false);
-      expect(
-        isValidRedirectUrl("https://example.com.evil.com", [
-          "https://*.example.com",
-        ]),
-      ).toBe(false);
-      expect(
-        isValidRedirectUrl("file://test.example.com", ["file://*.example.com"]),
-      ).toBe(false);
+    describe("when enableSubDomainWildcards is false or not set", () => {
+      it("should not match wildcard domains by default", () => {
+        expect(
+          isValidRedirectUrl("https://app.example.com/callback", [
+            "https://*.example.com/callback",
+          ]),
+        ).toBe(false);
+
+        expect(
+          isValidRedirectUrl(
+            "https://api.sesamy.com/callback",
+            ["https://*.sesamy.com/callback"],
+            { enableSubDomainWildcards: false },
+          ),
+        ).toBe(false);
+      });
+
+      it("should only match exact hostnames", () => {
+        expect(
+          isValidRedirectUrl("https://example.com/callback", [
+            "https://example.com/callback",
+          ]),
+        ).toBe(true);
+
+        expect(
+          isValidRedirectUrl("https://app.example.com/callback", [
+            "https://app.example.com/callback",
+          ]),
+        ).toBe(true);
+      });
+    });
+
+    describe("security validations", () => {
+      it("should not match invalid wildcard patterns even when enabled", () => {
+        expect(
+          isValidRedirectUrl(
+            "https://evil.com",
+            ["https://*.example.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(false);
+
+        expect(
+          isValidRedirectUrl(
+            "https://example.com.evil.com",
+            ["https://*.example.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(false);
+      });
+
+      it("should not allow wildcard matching for non-HTTP(S) protocols", () => {
+        expect(
+          isValidRedirectUrl(
+            "file://test.example.com",
+            ["file://*.example.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(false);
+
+        expect(
+          isValidRedirectUrl(
+            "ftp://test.example.com",
+            ["ftp://*.example.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(false);
+      });
+
+      it("should require proper domain structure for wildcards", () => {
+        // Wildcard domain must have at least one dot after the *
+        expect(
+          isValidRedirectUrl(
+            "https://test.com",
+            ["https://*.com"],
+            { enableSubDomainWildcards: true },
+          ),
+        ).toBe(false);
+      });
     });
   });
 });

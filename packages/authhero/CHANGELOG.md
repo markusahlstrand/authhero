@@ -1,5 +1,11 @@
 # authhero
 
+## 0.230.0
+
+### Minor Changes
+
+- Add support for subdomain wildcards
+
 ## 0.229.0
 
 ### Minor Changes
