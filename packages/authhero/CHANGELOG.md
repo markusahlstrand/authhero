@@ -1,5 +1,11 @@
 # authhero
 
+## 0.229.0
+
+### Minor Changes
+
+- Add json support for token endpoint
+
 ## 0.228.0
 
 ### Minor Changes

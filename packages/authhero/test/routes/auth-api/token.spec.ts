@@ -1348,7 +1348,8 @@ describe("token", () => {
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_request",
-        error_description: "Organization parameter does not match login session organization",
+        error_description:
+          "Organization parameter does not match login session organization",
       });
 
       // Clean up
@@ -1496,19 +1497,22 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with RBAC enabled and access_token_authz dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          name: "Test API with Permissions",
-          identifier: "https://permissions-test-api.example.com",
-          scopes: [
-            { value: "read:users", description: "Read users" },
-            { value: "write:users", description: "Write users" },
-            { value: "delete:users", description: "Delete users" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token_authz", // Should include permissions in token
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API with Permissions",
+            identifier: "https://permissions-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "delete:users", description: "Delete users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token_authz", // Should include permissions in token
+            },
           },
-        });
+        );
 
         // Create a user
         const user = await env.data.users.create("tenantId", {
@@ -1524,13 +1528,15 @@ describe("token", () => {
         // Give user direct permissions
         await env.data.userPermissions.create("tenantId", user.user_id, {
           user_id: user.user_id,
-          resource_server_identifier: "https://permissions-test-api.example.com",
+          resource_server_identifier:
+            "https://permissions-test-api.example.com",
           permission_name: "read:users",
         });
 
         await env.data.userPermissions.create("tenantId", user.user_id, {
           user_id: user.user_id,
-          resource_server_identifier: "https://permissions-test-api.example.com",
+          resource_server_identifier:
+            "https://permissions-test-api.example.com",
           permission_name: "write:users",
         });
 
@@ -1585,7 +1591,7 @@ describe("token", () => {
         // Verify permissions are included in the token
         expect(payload.permissions).toBeDefined();
         expect(payload.permissions).toEqual(
-          expect.arrayContaining(["read:users", "write:users"])
+          expect.arrayContaining(["read:users", "write:users"]),
         );
         // User should not have delete:users permission since it wasn't granted
         expect(payload.permissions).not.toContain("delete:users");
@@ -1603,18 +1609,21 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with RBAC enabled but default token_dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          name: "Test API with Scopes",
-          identifier: "https://scopes-test-api.example.com",
-          scopes: [
-            { value: "read:users", description: "Read users" },
-            { value: "write:users", description: "Write users" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token", // Should use scopes, not permissions
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API with Scopes",
+            identifier: "https://scopes-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token", // Should use scopes, not permissions
+            },
           },
-        });
+        );
 
         // Create a user
         const user = await env.data.users.create("tenantId", {
@@ -1693,18 +1702,21 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         // Create a resource server with access_token_authz dialect
-        const resourceServer = await env.data.resourceServers.create("tenantId", {
-          identifier: "https://client-permissions-api.example.com",
-          name: "Client Permissions API",
-          scopes: [
-            { value: "read:data", description: "Read data" },
-            { value: "write:data", description: "Write data" },
-          ],
-          options: {
-            enforce_policies: true, // RBAC enabled
-            token_dialect: "access_token_authz", // Should include permissions
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://client-permissions-api.example.com",
+            name: "Client Permissions API",
+            scopes: [
+              { value: "read:data", description: "Read data" },
+              { value: "write:data", description: "Write data" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token_authz", // Should include permissions
+            },
           },
-        });
+        );
 
         // Create a client grant
         await env.data.clientGrants.create("tenantId", {
@@ -1738,7 +1750,7 @@ describe("token", () => {
         // Verify permissions are included for client_credentials
         expect(payload.permissions).toBeDefined();
         expect(payload.permissions).toEqual(
-          expect.arrayContaining(["read:data", "write:data"])
+          expect.arrayContaining(["read:data", "write:data"]),
         );
 
         // For access_token_authz dialect, scopes should be empty
@@ -1746,6 +1758,255 @@ describe("token", () => {
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+    });
+  });
+
+  describe("Content Type Support", () => {
+    describe("application/json", () => {
+      it("should accept client_credentials grant with JSON payload", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const response = await client.oauth.token.$post(
+          {
+            json: {
+              grant_type: "client_credentials",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              audience: "https://example.com",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        expect(body.access_token).toBeDefined();
+        expect(body.token_type).toBe("Bearer");
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "clientId",
+          iss: "http://localhost:3000/",
+          aud: "https://example.com",
+        });
+      });
+
+      it("should accept client_credentials grant with basic auth and JSON payload", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const response = await client.oauth.token.$post(
+          {
+            json: {
+              grant_type: "client_credentials",
+              audience: "https://example.com",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+              "Content-Type": "application/json",
+              authorization: "Basic " + btoa("clientId:clientSecret"),
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        expect(body.access_token).toBeDefined();
+        expect(body.token_type).toBe("Bearer");
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "clientId",
+          iss: "http://localhost:3000/",
+          aud: "https://example.com",
+        });
+      });
+
+      it("should accept authorization_code grant with JSON payload", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create session and login session with proper foreign key relationships
+        const { loginSession } = await createSessions(env.data);
+
+        // Update the login session with the required auth params
+        await env.data.loginSessions.update("tenantId", loginSession.id, {
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "openid offline_access", // Include offline_access to get refresh token
+            audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "test-code-123",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          {
+            json: {
+              grant_type: "authorization_code",
+              client_id: "clientId",
+              code: "test-code-123",
+              redirect_uri: "http://example.com/callback",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        expect(body.access_token).toBeDefined();
+        expect(body.id_token).toBeDefined();
+        expect(body.refresh_token).toBeDefined();
+        expect(body.token_type).toBe("Bearer");
+      });
+
+      it("should accept refresh_token grant with JSON payload", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create refresh token directly (following existing refresh token test pattern)
+        const idle_expires_at = new Date(
+          Date.now() + 1000 * 60 * 60,
+        ).toISOString();
+
+        await env.data.refreshTokens.create("tenantId", {
+          id: "testRefreshToken",
+          session_id: "sessionId",
+          user_id: "email|userId",
+          client_id: "clientId",
+          resource_servers: [
+            {
+              audience: "http://example.com",
+              scopes: "openid",
+            },
+          ],
+          device: {
+            last_ip: "",
+            initial_ip: "",
+            last_user_agent: "",
+            initial_user_agent: "",
+            initial_asn: "",
+            last_asn: "",
+          },
+          rotating: false,
+          idle_expires_at,
+          expires_at: idle_expires_at,
+        });
+
+        // Test refresh token with JSON
+        const response = await client.oauth.token.$post(
+          {
+            json: {
+              grant_type: "refresh_token",
+              client_id: "clientId",
+              refresh_token: "testRefreshToken",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        expect(body.access_token).toBeDefined();
+        expect(body.id_token).toBeDefined();
+        expect(body.refresh_token).toBeDefined();
+        expect(body.token_type).toBe("Bearer");
+      });
+    });
+
+    describe("application/x-www-form-urlencoded", () => {
+      it("should continue to work with form data (regression test)", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const response = await client.oauth.token.$post(
+          {
+            form: {
+              grant_type: "client_credentials",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              audience: "https://example.com",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        expect(body.access_token).toBeDefined();
+        expect(body.token_type).toBe("Bearer");
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "clientId",
+          iss: "http://localhost:3000/",
+          aud: "https://example.com",
+        });
+      });
+    });
+
+    describe("Error cases", () => {
+      it("should require client_id in JSON requests", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const response = await client.oauth.token.$post(
+          {
+            json: {
+              grant_type: "client_credentials",
+              client_secret: "clientSecret",
+              audience: "https://example.com",
+              // Missing client_id
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        expect(response.status).toBe(400);
+        const body = await response.text();
+        expect(body).toContain("client_id is required");
       });
     });
   });
