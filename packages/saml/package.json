@@ -1,0 +1,42 @@
+{
+  "name": "@authhero/saml",
+  "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/saml.cjs",
+  "module": "dist/saml.mjs",
+  "types": "dist/saml.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/saml.d.ts",
+      "require": "./dist/saml.cjs",
+      "import": "./dist/saml.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build:vite": "vite build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@hono/zod-openapi": "^1.1.3",
+    "dts-bundle-generator": "^9.5.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:^",
+    "@peculiar/x509": "^1.14.0",
+    "fast-xml-parser": "^5.2.5",
+    "nanoid": "^5.1.6",
+    "oslo": "^1.2.1",
+    "xml-crypto": "^6.1.2",
+    "zod": "^4.0.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.3"
+  }
+}

@@ -29,7 +29,7 @@
     "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.19.2",
+    "@hono/zod-openapi": "0.19.2",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
