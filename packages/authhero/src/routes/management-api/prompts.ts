@@ -1,8 +1,11 @@
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { promptSettingSchema } from "@authhero/adapter-interfaces";
 
-export const promptsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const promptsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/propmpts
   // --------------------------------
@@ -34,9 +37,9 @@ export const promptsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
-      const promptSetting = await ctx.env.data.promptSettings.get(tenant_id);
+      const promptSetting = await ctx.env.data.promptSettings.get(
+        ctx.var.tenant_id,
+      );
 
       if (!promptSetting) {
         // Returns the default values
@@ -78,16 +81,18 @@ export const promptsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
       const promptSettings = ctx.req.valid("json");
 
-      const updatedPromptSettings =
-        await ctx.env.data.promptSettings.get(tenant_id);
+      const updatedPromptSettings = await ctx.env.data.promptSettings.get(
+        ctx.var.tenant_id,
+      );
 
       Object.assign(updatedPromptSettings, promptSettings);
 
-      await ctx.env.data.promptSettings.set(tenant_id, updatedPromptSettings);
+      await ctx.env.data.promptSettings.set(
+        ctx.var.tenant_id,
+        updatedPromptSettings,
+      );
 
       return ctx.json(updatedPromptSettings);
     },

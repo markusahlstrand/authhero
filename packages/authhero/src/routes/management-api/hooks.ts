@@ -1,4 +1,4 @@
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   hookInsertSchema,
@@ -14,7 +14,10 @@ const hopoksWithTotalsSchema = totalsSchema.extend({
   hooks: z.array(hookSchema),
 });
 
-export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const hooksRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/hooks
   // --------------------------------
@@ -47,12 +50,10 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
-      const hooks = await ctx.env.data.hooks.list(tenant_id, {
+      const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
         page,
         per_page,
         include_totals,
@@ -104,7 +105,6 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const hook = ctx.req.valid("json");
 
       const hookData = {
@@ -112,7 +112,10 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         hook_id: hook.hook_id || generateHookId(),
       };
 
-      const hooks = await ctx.env.data.hooks.create(tenant_id, hookData);
+      const hooks = await ctx.env.data.hooks.create(
+        ctx.var.tenant_id,
+        hookData,
+      );
 
       return ctx.json(hooks, { status: 201 });
     },
@@ -164,12 +167,11 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { hook_id } = ctx.req.valid("param");
       const hook = ctx.req.valid("json");
 
-      await ctx.env.data.hooks.update(tenant_id, hook_id, hook);
-      const result = await ctx.env.data.hooks.get(tenant_id, hook_id);
+      await ctx.env.data.hooks.update(ctx.var.tenant_id, hook_id, hook);
+      const result = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
 
       if (!result) {
         throw new HTTPException(404, { message: "Hook not found" });
@@ -215,10 +217,9 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { hook_id } = ctx.req.valid("param");
 
-      const hook = await ctx.env.data.hooks.get(tenant_id, hook_id);
+      const hook = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
 
       if (!hook) {
         throw new HTTPException(404, { message: "Hook not found" });
@@ -256,10 +257,12 @@ export const hooksRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { hook_id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.hooks.remove(tenant_id, hook_id);
+      const result = await ctx.env.data.hooks.remove(
+        ctx.var.tenant_id,
+        hook_id,
+      );
 
       if (!result) {
         throw new HTTPException(404, { message: "Hook not found" });

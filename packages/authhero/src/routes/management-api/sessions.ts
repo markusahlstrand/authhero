@@ -1,9 +1,12 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { sessionSchema } from "@authhero/adapter-interfaces";
 
-export const sessionsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const sessionsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/sessions/:id
   // --------------------------------
@@ -38,10 +41,9 @@ export const sessionsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const session = await ctx.env.data.sessions.get(tenant_id, id);
+      const session = await ctx.env.data.sessions.get(ctx.var.tenant_id, id);
 
       if (!session) {
         throw new HTTPException(404);
@@ -78,10 +80,9 @@ export const sessionsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.sessions.remove(tenant_id, id);
+      const result = await ctx.env.data.sessions.remove(ctx.var.tenant_id, id);
       if (!result) {
         throw new HTTPException(404, {
           message: "Session not found",
@@ -119,10 +120,9 @@ export const sessionsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.sessions.update(tenant_id, id, {
+      const result = await ctx.env.data.sessions.update(ctx.var.tenant_id, id, {
         revoked_at: new Date().toDateString(),
       });
       if (!result) {

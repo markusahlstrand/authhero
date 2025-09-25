@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
 import {
@@ -7,7 +7,10 @@ import {
   customDomainSchema,
 } from "@authhero/adapter-interfaces";
 
-export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const customDomainRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/custom-domains
   // --------------------------------
@@ -40,9 +43,7 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
-
-      const result = await ctx.env.data.customDomains.list(tenant_id);
+      const result = await ctx.env.data.customDomains.list(ctx.var.tenant_id);
 
       return ctx.json(result);
     },
@@ -81,10 +82,12 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const customDomain = await ctx.env.data.customDomains.get(tenant_id, id);
+      const customDomain = await ctx.env.data.customDomains.get(
+        ctx.var.tenant_id,
+        id,
+      );
 
       if (!customDomain) {
         throw new HTTPException(404);
@@ -121,10 +124,12 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.customDomains.remove(tenant_id, id);
+      const result = await ctx.env.data.customDomains.remove(
+        ctx.var.tenant_id,
+        id,
+      );
       if (!result) {
         throw new HTTPException(404, {
           message: "Custom domain not found",
@@ -174,12 +179,11 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
       const result = await ctx.env.data.customDomains.update(
-        tenant_id,
+        ctx.var.tenant_id,
         id,
         body,
       );
@@ -187,7 +191,10 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         throw new HTTPException(404);
       }
 
-      const connection = await ctx.env.data.customDomains.get(tenant_id, id);
+      const connection = await ctx.env.data.customDomains.get(
+        ctx.var.tenant_id,
+        id,
+      );
 
       if (!connection) {
         throw new HTTPException(404);
@@ -233,11 +240,10 @@ export const customDomainRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
       const connection = await ctx.env.data.customDomains.create(
-        tenant_id,
+        ctx.var.tenant_id,
         body,
       );
 

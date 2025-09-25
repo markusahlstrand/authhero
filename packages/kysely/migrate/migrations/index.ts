@@ -98,6 +98,10 @@ import * as n98_clients from "./2025-09-16T12:00:00_clients";
 import * as n99_update_client_foreign_keys from "./2025-09-16T12:30:00_update_client_foreign_keys";
 import * as o001_client_grants from "./2025-09-18T12:00:00_client_grants";
 import * as o002_drop_applications from "./2025-09-19T10:56:35_drop_applications";
+import * as o003_phone_number_index from "./2025-09-24T12:00:00_phone_number_index";
+import * as o004_login_sessions_id_index from "./2025-09-24T12:30:00_login_sessions_id_index";
+import * as o005_connections_tenant_index from "./2025-09-24T13:00:00_connections_tenant_index";
+import * as o006_remove_redundant_user_organizations_tenant_index from "./2025-09-24T13:30:00_remove_redundant_user_organizations_tenant_index";
 
 // These need to be in alphabetic order
 export default {
@@ -201,4 +205,8 @@ export default {
   n99_update_client_foreign_keys,
   o001_client_grants,
   o002_drop_applications,
+  o003_phone_number_index,
+  o004_login_sessions_id_index,
+  o005_connections_tenant_index,
+  o006_remove_redundant_user_organizations_tenant_index,
 };

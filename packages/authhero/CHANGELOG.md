@@ -1,5 +1,11 @@
 # authhero
 
+## 0.227.0
+
+### Minor Changes
+
+- Update tenant-id header handling
+
 ## 0.226.0
 
 ### Minor Changes
