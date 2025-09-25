@@ -77,7 +77,7 @@ export const customDomainRoutes = new OpenAPIHono<{
               schema: customDomainSchema,
             },
           },
-          description: "A connection",
+          description: "A customDomain",
         },
       },
     }),
@@ -191,16 +191,16 @@ export const customDomainRoutes = new OpenAPIHono<{
         throw new HTTPException(404);
       }
 
-      const connection = await ctx.env.data.customDomains.get(
+      const customDomain = await ctx.env.data.customDomains.get(
         ctx.var.tenant_id,
         id,
       );
 
-      if (!connection) {
+      if (!customDomain) {
         throw new HTTPException(404);
       }
 
-      return ctx.json(connection);
+      return ctx.json(customDomain);
     },
   )
   // --------------------------------
@@ -242,12 +242,12 @@ export const customDomainRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("json");
 
-      const connection = await ctx.env.data.customDomains.create(
+      const customDomain = await ctx.env.data.customDomains.create(
         ctx.var.tenant_id,
         body,
       );
 
-      return ctx.json(connection, { status: 201 });
+      return ctx.json(customDomain, { status: 201 });
     },
   )
   // --------------------------------
