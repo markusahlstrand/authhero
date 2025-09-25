@@ -98,6 +98,9 @@ export const tokenRoutes = new OpenAPIHono<{
             "application/x-www-form-urlencoded": {
               schema: CreateRequestSchema,
             },
+            "application/json": {
+              schema: CreateRequestSchema,
+            },
           },
         },
       },
@@ -152,7 +155,10 @@ export const tokenRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const body = ctx.req.valid("form");
+      const contentType = ctx.req.header("Content-Type") || "";
+      const body = contentType.includes("application/json")
+        ? ctx.req.valid("json")
+        : ctx.req.valid("form");
 
       const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
       const params = { ...body, ...basicAuth };
