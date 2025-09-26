@@ -174,7 +174,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         if (
           !isValidRedirectUrl(authParams.redirect_uri, validCallbacks, {
             allowPathWildcards: true,
-            enableSubDomainWildcards: true,
+            allowSubDomainWildcards: true,
           })
         ) {
           throw new HTTPException(400, {

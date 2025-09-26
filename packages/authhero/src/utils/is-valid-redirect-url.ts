@@ -1,17 +1,16 @@
 export function isValidRedirectUrl(
   url: string,
   allowedUrls: string[] = [],
-  options: { allowPathWildcards?: boolean; enableSubDomainWildcards?: boolean } = {},
+  options: {
+    allowPathWildcards?: boolean;
+    allowSubDomainWildcards?: boolean;
+  } = {},
 ): boolean {
   try {
     const parsedUrl = new URL(url);
     return allowedUrls.some((allowedUrl) => {
       try {
-        return matchUrl(
-          parsedUrl,
-          new URL(allowedUrl),
-          options,
-        );
+        return matchUrl(parsedUrl, new URL(allowedUrl), options);
       } catch {
         return false;
       }
@@ -24,7 +23,10 @@ export function isValidRedirectUrl(
 function matchUrl(
   url: URL,
   allowedUrl: URL,
-  options: { allowPathWildcards?: boolean; enableSubDomainWildcards?: boolean } = {},
+  options: {
+    allowPathWildcards?: boolean;
+    allowSubDomainWildcards?: boolean;
+  } = {},
 ): boolean {
   // First validate protocol
   if (url.protocol !== allowedUrl.protocol) {
@@ -46,13 +48,18 @@ function matchUrl(
 
   // Wildcard domain matching (only if enabled)
   if (
-    options.enableSubDomainWildcards &&
+    options.allowSubDomainWildcards &&
     allowedUrl.hostname.startsWith("*.") &&
     allowedUrl.hostname.split(".").length > 2 &&
     ["http:", "https:"].includes(allowedUrl.protocol)
   ) {
     const allowedDomain = allowedUrl.hostname.split(".").slice(1).join(".");
-    return url.hostname.endsWith(allowedDomain);
+    // Check if it ends with the domain AND has a dot before it (proper subdomain)
+    // OR if it's an exact match to the domain
+    return (
+      url.hostname === allowedDomain ||
+      url.hostname.endsWith("." + allowedDomain)
+    );
   }
 
   return url.hostname === allowedUrl.hostname;

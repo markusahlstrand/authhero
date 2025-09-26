@@ -60,7 +60,7 @@ export const logoutRoutes = new OpenAPIHono<{
             ...(client.allowed_logout_urls || []),
             ...(defaultClient?.allowed_logout_urls || []),
           ],
-          { allowPathWildcards: true, enableSubDomainWildcards: true },
+          { allowPathWildcards: true, allowSubDomainWildcards: true },
         )
       ) {
         throw new HTTPException(400, {
