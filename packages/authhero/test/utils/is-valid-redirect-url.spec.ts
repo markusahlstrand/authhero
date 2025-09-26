@@ -46,13 +46,13 @@ describe("isValidRedirectUrl", () => {
   });
 
   describe("subdomain wildcard matching", () => {
-    describe("when enableSubDomainWildcards is true", () => {
+    describe("when allowSubDomainWildcards is true", () => {
       it("should match wildcard domains", () => {
         expect(
           isValidRedirectUrl(
             "https://app.example.com/callback",
             ["https://*.example.com/callback"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(true);
 
@@ -60,7 +60,7 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "https://api.sesamy.com/callback",
             ["https://*.sesamy.com/callback"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(true);
 
@@ -68,7 +68,27 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "https://sub.domain.example.com",
             ["https://*.example.com"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+      });
+
+      it("should match Vercel-style subdomain URLs", () => {
+        // Test basic subdomain wildcard first
+        expect(
+          isValidRedirectUrl(
+            "https://test.example.com",
+            ["https://*.example.com"],
+            { allowSubDomainWildcards: true },
+          ),
+        ).toBe(true);
+
+        // Test the specific Vercel case with exact path
+        expect(
+          isValidRedirectUrl(
+            "https://account-drr49y1tn.vercel.sesamy.dev/subscriptions/kvartal",
+            ["https://*.vercel.sesamy.dev/subscriptions/kvartal"],
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(true);
       });
@@ -78,7 +98,7 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "https://example.com/callback",
             ["https://*.example.com/callback"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(true);
       });
@@ -88,13 +108,13 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "https://app.example.com/some/path",
             ["https://*.example.com/*"],
-            { allowPathWildcards: true, enableSubDomainWildcards: true },
+            { allowPathWildcards: true, allowSubDomainWildcards: true },
           ),
         ).toBe(true);
       });
     });
 
-    describe("when enableSubDomainWildcards is false or not set", () => {
+    describe("when allowSubDomainWildcards is false or not set", () => {
       it("should not match wildcard domains by default", () => {
         expect(
           isValidRedirectUrl("https://app.example.com/callback", [
@@ -106,7 +126,14 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "https://api.sesamy.com/callback",
             ["https://*.sesamy.com/callback"],
-            { enableSubDomainWildcards: false },
+            { allowSubDomainWildcards: false },
+          ),
+        ).toBe(false);
+
+        expect(
+          isValidRedirectUrl(
+            "https://account-drr49y1tn.vercel.sesamy.dev/subscriptions/kvartal",
+            ["https://*.vercel.sesamy.dev/subscriptions/kvartal"],
           ),
         ).toBe(false);
       });
@@ -129,18 +156,16 @@ describe("isValidRedirectUrl", () => {
     describe("security validations", () => {
       it("should not match invalid wildcard patterns even when enabled", () => {
         expect(
-          isValidRedirectUrl(
-            "https://evil.com",
-            ["https://*.example.com"],
-            { enableSubDomainWildcards: true },
-          ),
+          isValidRedirectUrl("https://evil.com", ["https://*.example.com"], {
+            allowSubDomainWildcards: true,
+          }),
         ).toBe(false);
 
         expect(
           isValidRedirectUrl(
             "https://example.com.evil.com",
             ["https://*.example.com"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(false);
       });
@@ -150,7 +175,7 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "file://test.example.com",
             ["file://*.example.com"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(false);
 
@@ -158,7 +183,7 @@ describe("isValidRedirectUrl", () => {
           isValidRedirectUrl(
             "ftp://test.example.com",
             ["ftp://*.example.com"],
-            { enableSubDomainWildcards: true },
+            { allowSubDomainWildcards: true },
           ),
         ).toBe(false);
       });
@@ -166,11 +191,9 @@ describe("isValidRedirectUrl", () => {
       it("should require proper domain structure for wildcards", () => {
         // Wildcard domain must have at least one dot after the *
         expect(
-          isValidRedirectUrl(
-            "https://test.com",
-            ["https://*.com"],
-            { enableSubDomainWildcards: true },
-          ),
+          isValidRedirectUrl("https://test.com", ["https://*.com"], {
+            allowSubDomainWildcards: true,
+          }),
         ).toBe(false);
       });
     });

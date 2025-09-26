@@ -1,5 +1,11 @@
 # authhero
 
+## 0.231.0
+
+### Minor Changes
+
+- Update redirect_uri validation logic
+
 ## 0.230.0
 
 ### Minor Changes

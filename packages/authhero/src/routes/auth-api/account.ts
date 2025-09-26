@@ -95,7 +95,7 @@ export const accountRoutes = new OpenAPIHono<{
         if (
           !isValidRedirectUrl(authParams.redirect_uri, validCallbacks, {
             allowPathWildcards: true,
-            enableSubDomainWildcards: true,
+            allowSubDomainWildcards: true,
           })
         ) {
           throw new HTTPException(400, {
