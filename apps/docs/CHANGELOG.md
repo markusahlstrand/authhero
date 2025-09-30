@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.5.0
+
+### Minor Changes
+
+- Extend hooks api
+
 ## 1.4.0
 
 ### Minor Changes

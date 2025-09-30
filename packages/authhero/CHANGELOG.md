@@ -1,5 +1,11 @@
 # authhero
 
+## 0.232.0
+
+### Minor Changes
+
+- Extend hooks api
+
 ## 0.231.0
 
 ### Minor Changes

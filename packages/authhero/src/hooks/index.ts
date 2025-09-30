@@ -221,6 +221,171 @@ export function addDataHooks(
  * - Webhook hooks: invokes the webhook and logs errors if any
  * If neither, returns the user as normal.
  */
+/**
+ * Builds an enhanced event object with Auth0-compatible properties
+ */
+async function buildEnhancedEventObject(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+  tenant_id: string,
+  user: User,
+  loginSession: LoginSession,
+  params: { client: LegacyClient; authParams?: any },
+) {
+  // Get user roles (both global and organization-specific)
+  let userRoles: string[] = [];
+  try {
+    const globalRoles = await data.userRoles.list(
+      tenant_id,
+      user.user_id,
+      undefined,
+      "",
+    );
+    const roleNames = globalRoles.map((role) => role.name || role.id);
+    userRoles = roleNames;
+  } catch (error) {
+    console.error("Error fetching user roles:", error);
+  }
+
+  // Get connection information
+  let connectionInfo: any = {};
+  if (user.connection) {
+    try {
+      const connections = await data.connections.list(tenant_id, {
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+      const connection = connections.connections.find(
+        (c) => c.name === user.connection,
+      );
+      if (connection) {
+        connectionInfo = {
+          id: connection.id,
+          name: connection.name,
+          strategy: connection.strategy || user.provider,
+          metadata: connection.options || {},
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching connection info:", error);
+    }
+  }
+
+  // Get organization information if available
+  let organizationInfo: any = undefined;
+  try {
+    if (loginSession.authParams?.organization) {
+      const org = await data.organizations.get(
+        tenant_id,
+        loginSession.authParams.organization,
+      );
+      if (org) {
+        organizationInfo = {
+          id: org.id,
+          name: org.name,
+          display_name: org.display_name || org.name,
+          metadata: (org as any).metadata || {},
+        };
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching organization info:", error);
+  }
+
+  // Get countryCode from context (set by clientInfoMiddleware)
+  const countryCode = ctx.get("countryCode");
+
+  return {
+    // AuthHero specific
+    ctx,
+
+    // Auth0 compatible properties
+    client: params.client,
+    user,
+    request: {
+      asn: undefined, // ASN not available in current context variables
+      ip: ctx.get("ip") || "",
+      user_agent: ctx.get("useragent"),
+      method: ctx.req.method,
+      url: ctx.req.url,
+      geoip: {
+        cityName: undefined,
+        continentCode: undefined,
+        countryCode: countryCode || undefined,
+        countryName: undefined,
+        latitude: undefined,
+        longitude: undefined,
+        timeZone: undefined,
+      },
+    },
+    transaction: {
+      id: loginSession.id, // Transaction ID - same as login session ID
+      locale: loginSession.authParams?.ui_locales || "en",
+      login_hint: undefined, // Not available in current authParams
+      prompt: loginSession.authParams?.prompt,
+      redirect_uri: loginSession.authParams?.redirect_uri,
+      requested_scopes: loginSession.authParams?.scope?.split(" ") || [],
+      response_mode: loginSession.authParams?.response_mode,
+      response_type: loginSession.authParams?.response_type,
+      state: loginSession.authParams?.state,
+      ui_locales: loginSession.authParams?.ui_locales,
+    },
+    scope: params.authParams?.scope || "",
+    grant_type: params.authParams?.grant_type || "",
+    audience: params.authParams?.audience,
+
+    // Additional Auth0 event properties
+    authentication: {
+      methods: [
+        {
+          name: user.is_social ? "federated" : "pwd",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    },
+    authorization: {
+      roles: userRoles,
+    },
+    connection:
+      Object.keys(connectionInfo).length > 0
+        ? connectionInfo
+        : {
+            id: user.connection || "Username-Password-Authentication",
+            name: user.connection || "Username-Password-Authentication",
+            strategy: user.provider || "auth0",
+          },
+    organization: organizationInfo,
+    resource_server: params.authParams?.audience
+      ? {
+          identifier: params.authParams.audience,
+        }
+      : undefined,
+    stats: {
+      logins_count: user.login_count || 0,
+    },
+    tenant: {
+      id: tenant_id,
+    },
+    session: {
+      id: loginSession.id,
+      created_at: loginSession.created_at,
+      authenticated_at: new Date().toISOString(),
+      clients: [
+        {
+          client_id: params.client.client_id,
+        },
+      ],
+      device: {
+        initial_ip: ctx.get("ip"),
+        initial_user_agent: ctx.get("useragent"),
+        last_ip: user.last_ip || ctx.get("ip"),
+        last_user_agent: ctx.get("useragent"),
+      },
+    },
+  };
+}
+
 export async function postUserLoginHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
@@ -233,28 +398,76 @@ export async function postUserLoginHook(
   if (
     ctx.env.hooks?.onExecutePostLogin &&
     params?.client &&
-    params?.authParams
+    params?.authParams &&
+    loginSession
   ) {
-    await ctx.env.hooks.onExecutePostLogin(
+    let redirectUrl: string | null = null;
+
+    // Build enhanced event object with Auth0 compatibility
+    const eventObject = await buildEnhancedEventObject(
+      ctx,
+      data,
+      tenant_id,
+      user,
+      loginSession,
       {
-        ctx,
         client: params.client,
-        user,
-        request: {
-          ip: ctx.var.ip,
-          user_agent: ctx.var.useragent,
-          method: ctx.req.method,
-          url: ctx.req.url,
-        },
-        scope: params.authParams.scope || "",
-        grant_type: "",
-      },
-      {
-        prompt: {
-          render: (_formId: string) => {},
-        },
+        authParams: params.authParams,
       },
     );
+
+    await ctx.env.hooks.onExecutePostLogin(eventObject, {
+      prompt: {
+        render: (_formId: string) => {},
+      },
+      redirect: {
+        sendUserTo: (
+          url: string,
+          options?: { query?: Record<string, string> },
+        ) => {
+          // Add state parameter automatically for AuthHero compatibility
+          const urlObj = new URL(url, ctx.req.url);
+          urlObj.searchParams.set("state", loginSession.id);
+
+          // Add any additional query parameters
+          if (options?.query) {
+            Object.entries(options.query).forEach(([key, value]) => {
+              urlObj.searchParams.set(key, value);
+            });
+          }
+
+          redirectUrl = urlObj.toString();
+        },
+        encodeToken: (options: {
+          secret: string;
+          payload: Record<string, any>;
+          expiresInSeconds?: number;
+        }) => {
+          // Implement JWT token encoding here
+          // For now, return a placeholder - you'd implement proper JWT signing
+          return JSON.stringify({
+            payload: options.payload,
+            exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
+          });
+        },
+        validateToken: (_options: {
+          secret: string;
+          tokenParameterName?: string;
+        }) => {
+          // Implement JWT token validation here
+          // For now, return null - you'd implement proper JWT verification
+          return null;
+        },
+      },
+    });
+
+    // If a redirect was requested, return it immediately
+    if (redirectUrl) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: redirectUrl },
+      });
+    }
   }
 
   const { hooks } = await data.hooks.list(tenant_id, {

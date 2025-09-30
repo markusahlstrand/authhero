@@ -11,6 +11,7 @@ import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
 export * from "@authhero/adapter-interfaces";
 export * from "./types/Hooks";
+export * from "./types/AuthHeroConfig";
 export * from "./components";
 export * from "./styles";
 export * from "./adapters";
@@ -32,6 +33,18 @@ i18next.init({
 
 export function init(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
+
+  // Add middleware to merge config hooks with env hooks (backwards compatibility)
+  app.use("*", async (ctx, next) => {
+    // Merge config hooks with env hooks, giving precedence to env hooks for backwards compatibility
+    if (config.hooks) {
+      ctx.env.hooks = {
+        ...config.hooks,
+        ...(ctx.env.hooks || {}), // env hooks take precedence
+      };
+    }
+    await next();
+  });
 
   app.get("/", (ctx: Context) => {
     return ctx.json({

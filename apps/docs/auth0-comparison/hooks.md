@@ -101,7 +101,7 @@ Triggered before any user update operation.
 
 #### 5. `onExecutePostLogin`
 
-Triggered after successful user authentication.
+Triggered after successful user authentication. This hook is fully compatible with Auth0's Actions API and supports redirect functionality.
 
 **Event Data:**
 
@@ -115,10 +115,48 @@ Triggered after successful user authentication.
 **API Methods:**
 
 - `prompt.render(formId)`: Render a specific form to the user
+- `redirect.sendUserTo(url, options?)`: Redirect user to a specific URL (Auth0-compatible)
+- `redirect.encodeToken(options)`: Create a secure token for state management
+- `redirect.validateToken(options)`: Validate a token from the request
 
 ### Configuring Programmatic Hooks
 
-When initializing your AuthHero application, you can provide hooks through the environment bindings:
+AuthHero supports two ways to configure hooks:
+
+#### Method 1: Config-Based Hooks (Recommended)
+
+Configure hooks directly when initializing your AuthHero application:
+
+```typescript
+import { init } from "@authhero/authhero";
+
+const authHero = init({
+  dataAdapter: myAdapter,
+  hooks: {
+    onExecutePreUserRegistration: async (event, api) => {
+      // Add custom user metadata during registration
+      api.user.setUserMetadata("signup_source", "web");
+      api.user.setUserMetadata("onboarding_completed", false);
+    },
+
+    onExecutePostLogin: async (event, api) => {
+      // Auth0-compatible redirect functionality
+      if (event.user?.user_metadata?.requires_setup) {
+        api.redirect.sendUserTo("/setup", {
+          query: {
+            user_id: event.user.user_id,
+            step: "profile",
+          },
+        });
+      }
+    },
+  },
+});
+```
+
+#### Method 2: Environment-Based Hooks (Legacy)
+
+You can also provide hooks through the environment bindings:
 
 ```typescript
 import { init } from "@authhero/authhero";
@@ -166,9 +204,19 @@ const env = {
     },
 
     onExecutePostLogin: async (event, api) => {
-      // Redirect to custom form for additional verification
+      // Auth0-compatible redirect functionality
       if (event.user?.requires_mfa_setup) {
-        api.prompt.render("mfa-setup-form");
+        api.redirect.sendUserTo("/mfa/setup", {
+          query: {
+            user_id: event.user.user_id,
+            return_to: "/dashboard",
+          },
+        });
+      }
+
+      // Or render a form within the authentication flow
+      if (event.user?.requires_terms_acceptance) {
+        api.prompt.render("terms-acceptance-form");
       }
     },
   },
@@ -183,6 +231,138 @@ const { authenticationApp, managementApp } = init({
 });
 
 // Use the apps with your framework (Hono, etc.)
+```
+
+## Auth0-Compatible Redirect API
+
+AuthHero's `onExecutePostLogin` hook provides an Auth0-compatible redirect API that allows you to redirect users during the authentication flow:
+
+### Basic Redirect
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  // Simple redirect
+  api.redirect.sendUserTo("/custom-page");
+
+  // Redirect with query parameters
+  api.redirect.sendUserTo("/setup", {
+    query: {
+      user_id: event.user.user_id,
+      source: "login",
+      step: "profile",
+    },
+  });
+};
+```
+
+### Secure Token Management
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  // Create a secure token for state management
+  const setupToken = api.redirect.encodeToken({
+    secret: "your-secret-key",
+    payload: {
+      user_id: event.user.user_id,
+      action: "profile_setup",
+      timestamp: Date.now(),
+    },
+    expiresInSeconds: 600, // 10 minutes
+  });
+
+  // Include token in redirect
+  api.redirect.sendUserTo("/setup", {
+    query: {
+      token: setupToken,
+    },
+  });
+};
+
+// Later, validate the token in your application
+onExecutePostLogin: async (event, api) => {
+  const tokenData = api.redirect.validateToken({
+    secret: "your-secret-key",
+    tokenParameterName: "token", // Query param name to look for
+  });
+
+  if (tokenData && tokenData.payload.action === "profile_setup") {
+    // Token is valid, continue with setup
+    api.redirect.sendUserTo("/setup/step-2");
+  }
+};
+```
+
+### Real-World Use Cases
+
+#### Progressive Profiling
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  const { user } = event;
+
+  // Check if user needs to complete profile
+  if (!user.user_metadata?.profile_completed) {
+    api.redirect.sendUserTo("/onboarding/profile", {
+      query: {
+        step: user.user_metadata?.onboarding_step || "1",
+        user_id: user.user_id,
+      },
+    });
+  }
+};
+```
+
+#### Terms of Service Updates
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  const currentToSVersion = "2.1";
+  const userToSVersion = event.user.user_metadata?.tos_accepted_version;
+
+  if (userToSVersion !== currentToSVersion) {
+    const tosToken = api.redirect.encodeToken({
+      secret: process.env.TOS_SECRET,
+      payload: {
+        user_id: event.user.user_id,
+        required_version: currentToSVersion,
+        current_version: userToSVersion,
+      },
+      expiresInSeconds: 1800, // 30 minutes
+    });
+
+    api.redirect.sendUserTo("/legal/terms-update", {
+      query: {
+        token: tosToken,
+        version: currentToSVersion,
+      },
+    });
+  }
+};
+```
+
+#### Admin Impersonation
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  // Check if user has impersonation permissions
+  const userPermissions = await event.ctx.env.data.userPermissions.list(
+    event.client.tenant.id,
+    event.user.user_id,
+  );
+
+  const canImpersonate = userPermissions.some(
+    (perm) => perm.permission_name === "users:impersonate",
+  );
+
+  if (canImpersonate && event.client.client_id === "admin-dashboard") {
+    api.redirect.sendUserTo("/u/impersonate", {
+      query: {
+        source: "post-login-hook",
+        user_id: event.user.user_id,
+      },
+    });
+  }
+};
 ```
 
 ### Hook Error Handling
