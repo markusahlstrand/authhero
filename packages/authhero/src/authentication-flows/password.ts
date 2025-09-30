@@ -120,7 +120,10 @@ export async function passwordGrant(
     });
   }
 
-  if (!user.email_verified && client.email_validation === "enforced") {
+  if (
+    !user.email_verified &&
+    client.client_metadata?.email_validation === "enforced"
+  ) {
     await sendValidateEmailAddress(ctx, user);
 
     const log = createLogMessage(ctx, {

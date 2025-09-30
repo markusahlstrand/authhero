@@ -167,7 +167,7 @@ export async function preUserSignupHook(
   email: string,
 ) {
   // Check the disabled flag on the client
-  if (client.disable_sign_ups) {
+  if (client.client_metadata?.disable_sign_ups === "true") {
     const authorizeUrl = ctx.var.loginSession?.authorization_url;
 
     // Check if screen_hint=signup was specified in the authorization URL

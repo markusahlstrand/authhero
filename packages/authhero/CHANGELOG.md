@@ -1,5 +1,16 @@
 # authhero
 
+## 0.233.0
+
+### Minor Changes
+
+- Remove disable signup from legacy client
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.92.0
+
 ## 0.232.0
 
 ### Minor Changes

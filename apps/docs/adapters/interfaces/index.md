@@ -382,18 +382,6 @@ export const userSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
-
-export const applicationSchema = z.object({
-  id: z.string(),
-  tenant_id: z.string(),
-  name: z.string(),
-  client_secret: z.string().optional(),
-  callbacks: z.array(z.string()).default([]),
-  allowed_origins: z.array(z.string()).default([]),
-  disable_sign_ups: z.boolean(),
-  created_at: z.string(),
-  updated_at: z.string(),
-});
 ```
 
 ## Implementation Guidelines
@@ -409,10 +397,7 @@ npm install @authhero/adapter-interfaces
 2. **Implement the DatabaseAdapter interface**:
 
 ```typescript
-import {
-  DatabaseAdapter,
-  UserAdapter,
-} from "@authhero/adapter-interfaces";
+import { DatabaseAdapter, UserAdapter } from "@authhero/adapter-interfaces";
 
 export class MyCustomAdapter implements DatabaseAdapter {
   users: UserAdapter;

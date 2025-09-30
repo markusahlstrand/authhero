@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.49.0
+
+### Minor Changes
+
+- Remove disable signup from legacy client
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.92.0
+
 ## 10.48.0
 
 ### Minor Changes

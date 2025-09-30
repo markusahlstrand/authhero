@@ -1,13 +1,16 @@
 # @authhero/adapter-interfaces
 
+## 0.92.0
+
+### Minor Changes
+
+- Remove disable signup from legacy client
+
 ## 0.91.0
 
 ### Minor Changes
 
-<<<<<<< HEAD
-=======
 - 149ab91: Drop the old application table
->>>>>>> main
 - b0e9595: Add client grants
 
 ## 0.90.0
