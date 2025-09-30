@@ -233,8 +233,11 @@ export async function postUserLoginHook(
   if (
     ctx.env.hooks?.onExecutePostLogin &&
     params?.client &&
-    params?.authParams
+    params?.authParams &&
+    loginSession
   ) {
+    let redirectUrl: string | null = null;
+
     await ctx.env.hooks.onExecutePostLogin(
       {
         ctx,
@@ -253,8 +256,55 @@ export async function postUserLoginHook(
         prompt: {
           render: (_formId: string) => {},
         },
+        redirect: {
+          sendUserTo: (
+            url: string,
+            options?: { query?: Record<string, string> },
+          ) => {
+            // Add state parameter automatically for AuthHero compatibility
+            const urlObj = new URL(url, ctx.req.url);
+            urlObj.searchParams.set("state", loginSession.id);
+
+            // Add any additional query parameters
+            if (options?.query) {
+              Object.entries(options.query).forEach(([key, value]) => {
+                urlObj.searchParams.set(key, value);
+              });
+            }
+
+            redirectUrl = urlObj.toString();
+          },
+          encodeToken: (options: {
+            secret: string;
+            payload: Record<string, any>;
+            expiresInSeconds?: number;
+          }) => {
+            // Implement JWT token encoding here
+            // For now, return a placeholder - you'd implement proper JWT signing
+            return JSON.stringify({
+              payload: options.payload,
+              exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
+            });
+          },
+          validateToken: (_options: {
+            secret: string;
+            tokenParameterName?: string;
+          }) => {
+            // Implement JWT token validation here
+            // For now, return null - you'd implement proper JWT verification
+            return null;
+          },
+        },
       },
     );
+
+    // If a redirect was requested, return it immediately
+    if (redirectUrl) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: redirectUrl },
+      });
+    }
   }
 
   const { hooks } = await data.hooks.list(tenant_id, {

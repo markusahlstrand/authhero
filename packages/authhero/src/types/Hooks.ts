@@ -107,6 +107,21 @@ export type OnExecutePostLoginAPI = {
   prompt: {
     render: (formId: string) => void;
   };
+  redirect: {
+    sendUserTo: (
+      url: string,
+      options?: { query?: Record<string, string> },
+    ) => void;
+    encodeToken: (options: {
+      secret: string;
+      payload: Record<string, any>;
+      expiresInSeconds?: number;
+    }) => string;
+    validateToken: (options: {
+      secret: string;
+      tokenParameterName?: string;
+    }) => Record<string, any> | null;
+  };
 };
 
 export type OnExecutePostLogin = (
