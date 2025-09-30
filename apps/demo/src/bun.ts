@@ -45,14 +45,13 @@ if (signingKeys.length === 0) {
     sender_name: "SenderName",
   });
 
-  await dataAdapter.applications.create("default", {
-    id: "default",
+  await dataAdapter.clients.create("default", {
+    client_id: "default",
     client_secret: "clientSecret",
     name: "Default Client",
     callbacks: ["http://localhost:5173/auth-callback"],
     allowed_logout_urls: ["http://localhost:5173/callback"],
     web_origins: ["https://localhost:5173"],
-    disable_sign_ups: false,
   });
 
   await dataAdapter.emailProviders.create("default", {

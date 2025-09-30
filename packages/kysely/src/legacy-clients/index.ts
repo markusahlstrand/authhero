@@ -107,9 +107,6 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
           : {},
         token_quota: client.token_quota ? JSON.parse(client.token_quota) : {},
         tenant: removeNullProperties(tenant),
-        // Extract legacy fields from client_metadata
-        disable_sign_ups: clientMetadata.disable_sign_ups === "true",
-        email_validation: clientMetadata.email_validation || "disabled",
       };
 
       return legacyClient;
