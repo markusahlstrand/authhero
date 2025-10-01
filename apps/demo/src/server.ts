@@ -3,7 +3,13 @@ import { SqliteDialect } from "kysely";
 import { Kysely } from "kysely";
 import createApp from "./app";
 import createAdapters from "@authhero/kysely-adapter";
-import { Bindings, Variables } from "authhero";
+import {
+  AuthHeroConfig,
+  Bindings,
+  HookEvent,
+  OnExecutePostLoginAPI,
+  Variables,
+} from "authhero";
 import Database from "better-sqlite3";
 
 interface Env {
@@ -23,12 +29,36 @@ const server = {
       const db = new Kysely<any>({ dialect });
       const dataAdapter = createAdapters(db);
 
-      app = createApp({
+      const config: AuthHeroConfig = {
         dataAdapter,
-      });
+        hooks: {
+          onExecutePostLogin: async (
+            event: HookEvent,
+            api: OnExecutePostLoginAPI,
+          ) => {
+            console.log("onExecutePostLogin hook triggered");
+            return event.user;
+          },
+        },
+      };
+
+      app = createApp(config);
     }
 
-    return app.fetch(request);
+    return app.fetch(request, {
+      env: {
+        ...env,
+        hooks: {
+          onExecutePostLogin: async (
+            event: HookEvent,
+            api: OnExecutePostLoginAPI,
+          ) => {
+            console.log("onExecutePostLogin hook triggered");
+            return event.user;
+          },
+        },
+      },
+    });
   },
 };
 

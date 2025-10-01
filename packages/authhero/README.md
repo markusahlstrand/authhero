@@ -63,7 +63,7 @@ hooks: {
 - `onExecuteCredentialsExchange`
 - `onExecutePreUserRegistration`
 - `onExecutePostUserRegistration`
-- `onExecutePostUserLogin`
+- `onExecutePostLogin`
 
 ## Email Providers
 

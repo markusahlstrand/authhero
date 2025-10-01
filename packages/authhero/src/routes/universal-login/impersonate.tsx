@@ -176,6 +176,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         loginSession,
         user,
         sessionId: session.id,
+        skipHooks: true, // Skip post-login hooks during impersonation
       });
     },
   )
@@ -304,6 +305,8 @@ export const impersonateRoutes = new OpenAPIHono<{
         loginSession,
         user: targetUser,
         sessionId: currentSession.id,
+        skipHooks: true, // Skip post-login hooks during impersonation
+        impersonatingUser: currentUser, // Set the act claim to identify the original user
       });
     },
   );

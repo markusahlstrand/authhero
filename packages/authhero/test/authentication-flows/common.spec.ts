@@ -12,6 +12,7 @@ import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
 } from "@authhero/adapter-interfaces";
+import { parseJWT } from "oslo/jwt";
 
 describe("common", () => {
   describe("createAuthTokens", () => {
@@ -96,6 +97,127 @@ describe("common", () => {
         token_type: "Bearer",
         expires_in: 86400,
       });
+    });
+
+    it("should create tokens with 1-hour expiration for impersonated users", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      // Create impersonating user for this test
+      const impersonatingUser = await env.data.users.create("tenantId", {
+        email: "admin@example.com",
+        email_verified: true,
+        name: "Admin User",
+        nickname: "Admin User",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|admin",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        impersonatingUser,
+      });
+
+      expect(tokens).toMatchObject({
+        access_token: expect.any(String),
+        id_token: expect.any(String),
+        token_type: "Bearer",
+        expires_in: 3600, // 1 hour for impersonated sessions
+      });
+    });
+
+    it("should include act claim in tokens for impersonated users", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      // Create impersonating user for this test
+      const impersonatingUser = await env.data.users.create("tenantId", {
+        email: "admin@example.com",
+        email_verified: true,
+        name: "Admin User",
+        nickname: "Admin User",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|admin",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        impersonatingUser,
+      });
+
+      // Decode the access token to check for act claim
+      const accessToken = parseJWT(tokens.access_token);
+      const accessTokenPayload = accessToken?.payload as any;
+
+      expect(accessTokenPayload.act).toEqual({
+        sub: impersonatingUser.user_id,
+      });
+
+      // Decode the id token to check for act claim
+      if (tokens.id_token) {
+        const idToken = parseJWT(tokens.id_token);
+        const idTokenPayload = idToken?.payload as any;
+
+        expect(idTokenPayload.act).toEqual({
+          sub: impersonatingUser.user_id,
+        });
+      }
     });
   });
 
@@ -455,6 +577,99 @@ describe("common", () => {
     );
     expect(finalRefreshTokensList.refresh_tokens.length).toBe(
       initialRefreshTokenCount,
+    );
+  });
+
+  it("should NOT create a refresh token for impersonated users even with offline_access scope", async () => {
+    const { env } = await getTestServer();
+    const ctx = {
+      env,
+      var: {
+        tenant_id: "tenantId",
+      },
+      req: {
+        header: () => {},
+        queries: () => {},
+      },
+    } as unknown as Context<{
+      Bindings: Bindings;
+      Variables: Variables;
+    }>;
+
+    // Create the login session
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        username: "foo@example.com",
+        scope: "openid offline_access",
+        audience: "http://example.com",
+        redirect_uri: "http://example.com/callback",
+      },
+    });
+
+    const client = await env.data.legacyClients.get("clientId");
+    const user = await getPrimaryUserByEmail({
+      userAdapter: env.data.users,
+      tenant_id: "tenantId",
+      email: "foo@example.com",
+    });
+
+    // Create impersonating user for this test
+    const impersonatingUser = await env.data.users.create("tenantId", {
+      email: "admin@example.com",
+      email_verified: true,
+      name: "Admin User",
+      nickname: "Admin User",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+      user_id: "email|admin",
+    });
+
+    if (!client || !user) {
+      throw new Error("Client or user not found");
+    }
+
+    // Get initial refresh token count
+    const initialRefreshTokensList = await env.data.refreshTokens.list(
+      "tenantId",
+      {
+        page: 0,
+        per_page: 1,
+        include_totals: true,
+      },
+    );
+    const initialRefreshTokenCount =
+      initialRefreshTokensList.refresh_tokens.length;
+
+    const authResponse = (await createFrontChannelAuthResponse(ctx, {
+      authParams: {
+        client_id: "clientId",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid offline_access", // Request offline_access
+        redirect_uri: "http://example.com/callback",
+      },
+      client,
+      user,
+      loginSession,
+      impersonatingUser, // Include impersonating user
+    })) as Response;
+
+    expect(authResponse.status).toEqual(302);
+
+    // Verify that no new refresh token was created for impersonated user
+    const finalRefreshTokensList = await env.data.refreshTokens.list(
+      "tenantId",
+      {
+        page: 0,
+        per_page: 1,
+        include_totals: true,
+      },
+    );
+    expect(finalRefreshTokensList.refresh_tokens.length).toBe(
+      initialRefreshTokenCount, // Should be the same, no new refresh token created
     );
   });
 

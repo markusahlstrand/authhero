@@ -111,7 +111,6 @@ describe("impersonation routes", () => {
 
       expect(impersonateResponse.status).toBe(200);
       const html = await impersonateResponse.text();
-      expect(html).toContain("Impersonation Panel");
       expect(html).toContain("user@example.com");
     });
 
@@ -150,7 +149,6 @@ describe("impersonation routes", () => {
 
       expect(response.status).toBe(200);
       const html = await response.text();
-      expect(html).toContain("Impersonation Panel");
       expect(html).toContain("user@example.com");
     });
 

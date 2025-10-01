@@ -44,6 +44,7 @@ export interface CreateAuthTokensParams {
   organization?: { id: string; name: string };
   permissions?: string[];
   grantType?: GrantType;
+  impersonatingUser?: User; // The original user who is impersonating
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -52,8 +53,15 @@ export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateAuthTokensParams,
 ): Promise<TokenResponse> {
-  const { authParams, user, client, session_id, organization, permissions } =
-    params;
+  const {
+    authParams,
+    user,
+    client,
+    session_id,
+    organization,
+    permissions,
+    impersonatingUser,
+  } = params;
 
   const { signingKeys } = await ctx.env.data.keys.list({
     q: "type:jwt_signing",
@@ -80,8 +88,9 @@ export async function createAuthTokens(
     iss,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
-    ...(organization && { org_id: organization.id }),
-    ...(permissions && permissions.length > 0 && { permissions }),
+    act: impersonatingUser ? { sub: impersonatingUser.user_id } : undefined, // RFC 8693 act claim for impersonation
+    org_id: organization ? organization.id : undefined,
+    permissions,
   };
 
   const idTokenPayload =
@@ -101,12 +110,15 @@ export async function createAuthTokens(
           name: user.name,
           email: user.email,
           email_verified: user.email_verified,
-          ...(organization
+          act: impersonatingUser
+            ? { sub: impersonatingUser.user_id }
+            : undefined,
+          organization: organization
             ? {
                 org_id: organization.id,
                 org_name: organization.name,
               }
-            : {}),
+            : undefined,
         }
       : undefined;
 
@@ -158,7 +170,7 @@ export async function createAuthTokens(
 
   const header = {
     includeIssuedTimestamp: true,
-    expiresIn: new TimeSpan(1, "d"),
+    expiresIn: impersonatingUser ? new TimeSpan(1, "h") : new TimeSpan(1, "d"),
     headers: {
       kid: signingKey.kid,
     },
@@ -180,7 +192,7 @@ export async function createAuthTokens(
     refresh_token: params.refresh_token,
     id_token,
     token_type: "Bearer",
-    expires_in: 86400,
+    expires_in: impersonatingUser ? 3600 : 86400, // 1 hour for impersonation, 24 hours for regular sessions
   };
 }
 
@@ -317,6 +329,7 @@ export interface CreateAuthResponseParams {
   strategy?: string;
   skipHooks?: boolean;
   organization?: { id: string; name: string };
+  impersonatingUser?: User; // The original user who is impersonating
 }
 
 export async function createFrontChannelAuthResponse(
@@ -414,12 +427,14 @@ export async function createFrontChannelAuthResponse(
   }
 
   // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
+  // Don't create refresh tokens for impersonated users for security reasons.
   if (
     !refresh_token &&
     authParams.scope?.split(" ").includes("offline_access") &&
     ![AuthorizationResponseType.TOKEN, AuthorizationResponseType.CODE].includes(
       responseType,
-    )
+    ) &&
+    !params.impersonatingUser
   ) {
     const newRefreshToken = await createRefreshToken(ctx, {
       user,
@@ -457,6 +472,7 @@ export async function createFrontChannelAuthResponse(
     responseType,
     skipHooks: params.skipHooks,
     organization: params.organization,
+    impersonatingUser: params.impersonatingUser,
   });
 
   // If completeLogin returned a Response (from a hook redirect), return it directly
@@ -637,8 +653,6 @@ export async function completeLogin(
       if (error instanceof HTTPException) {
         throw error;
       }
-      // For other errors, log and continue with original scopes
-      console.error("Error calculating scopes and permissions:", error);
     }
   }
 

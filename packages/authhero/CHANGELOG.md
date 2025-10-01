@@ -1,5 +1,11 @@
 # authhero
 
+## 0.234.0
+
+### Minor Changes
+
+- Add a act claim to the tokens when impersonating
+
 ## 0.233.0
 
 ### Minor Changes
