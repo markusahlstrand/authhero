@@ -273,7 +273,14 @@ async function buildEnhancedEventObject(
   }
 
   // Get organization information if available
-  let organizationInfo: any = undefined;
+  let organizationInfo:
+    | {
+        id: string;
+        name: string;
+        display_name: string;
+        metadata: any;
+      }
+    | undefined = undefined;
   try {
     if (loginSession.authParams?.organization) {
       const org = await data.organizations.get(
@@ -285,7 +292,7 @@ async function buildEnhancedEventObject(
           id: org.id,
           name: org.name,
           display_name: org.display_name || org.name,
-          metadata: (org as any).metadata || {},
+          metadata: org.metadata || {},
         };
       }
     }

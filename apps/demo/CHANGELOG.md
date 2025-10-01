@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.21.0
+
+### Minor Changes
+
+- Add a act claim to the tokens when impersonating
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.234.0
+
 ## 0.20.39
 
 ### Patch Changes

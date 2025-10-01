@@ -15,6 +15,7 @@ export * from "./types/AuthHeroConfig";
 export * from "./components";
 export * from "./styles";
 export * from "./adapters";
+export { waitUntil } from "./helpers/wait-until";
 
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
