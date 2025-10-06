@@ -48,13 +48,11 @@ describe("authenticate", () => {
 
     // Check the logs
     const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults.logs).toHaveLength(2);
+    expect(logsResults.logs).toHaveLength(1);
 
     const [successfulLoginLog] = logsResults.logs;
-    expect(successfulLoginLog).toMatchObject({
-      type: "s",
-      description: "Successful login",
-    });
+    expect(successfulLoginLog.type).toBe("s");
+    expect(successfulLoginLog.description).toContain("Successful login");
   });
 
   it("should create a log message for a login attempt for a non-existing user", async () => {

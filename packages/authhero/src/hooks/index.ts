@@ -201,6 +201,51 @@ export async function preUserSignupHook(
   await preUserSignupWebhook(ctx)(ctx.var.tenant_id || "", email);
 }
 
+function createUserDeletionHooks(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+) {
+  return async (tenant_id: string, user_id: string) => {
+    // Get user details before deletion for logging
+    const userToDelete = await data.users.get(tenant_id, user_id);
+
+    // If user doesn't exist, return false immediately
+    if (!userToDelete) {
+      return false;
+    }
+
+    // Proceed with deletion
+    const result = await data.users.remove(tenant_id, user_id);
+
+    // Log the user deletion if successful
+    if (result) {
+      const log = createLogMessage(ctx, {
+        type: LogTypes.SUCCESS_USER_DELETION,
+        description: `user_id: ${user_id}`,
+        strategy: userToDelete.provider || "auth0",
+        strategy_type: userToDelete.is_social ? "social" : "database",
+      });
+
+      // Add connection details
+      log.connection = userToDelete.connection || "";
+      log.connection_id = ""; // Connection ID not available in current context
+
+      // Add tenant info to details
+      log.details = {
+        ...log.details,
+        body: {
+          tenant: tenant_id,
+          connection: userToDelete.connection || "",
+        },
+      };
+
+      await data.logs.create(tenant_id, log);
+    }
+
+    return result;
+  };
+}
+
 export function addDataHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
@@ -211,6 +256,7 @@ export function addDataHooks(
       ...data.users,
       create: createUserHooks(ctx, data),
       update: createUserUpdateHooks(ctx, data),
+      remove: createUserDeletionHooks(ctx, data),
     },
   };
 }
@@ -399,8 +445,40 @@ export async function postUserLoginHook(
   tenant_id: string,
   user: User,
   loginSession?: LoginSession,
-  params?: { client?: LegacyClient; authParams?: any },
+  params?: {
+    client?: LegacyClient;
+    authParams?: any;
+    authStrategy?: { strategy: string; strategy_type: string };
+  },
 ): Promise<User | Response> {
+  // Determine strategy_type based on explicit auth strategy or user's is_social flag
+  // Use authStrategy if provided (actual authentication method), otherwise infer from user
+  const strategy_type = params?.authStrategy?.strategy_type
+    ? params.authStrategy.strategy_type
+    : user.is_social
+      ? "social"
+      : "database";
+  const strategy = params?.authStrategy?.strategy || user.connection || "";
+
+  // Log successful login
+  const logMessage = createLogMessage(ctx, {
+    type: LogTypes.SUCCESS_LOGIN,
+    description: `Successful login for ${user.user_id}`,
+    userId: user.user_id,
+    strategy_type,
+    strategy,
+    connection: strategy, // Use the same value for both strategy and connection
+  });
+
+  await data.logs.create(tenant_id, logMessage);
+
+  // Update the user's last login info
+  await data.users.update(tenant_id, user.user_id, {
+    last_login: new Date().toISOString(),
+    last_ip: ctx.var.ip || "",
+    login_count: user.login_count + 1,
+  });
+
   // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
   if (
     ctx.env.hooks?.onExecutePostLogin &&

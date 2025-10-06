@@ -231,6 +231,23 @@ export const userRoutes = new OpenAPIHono<{
         throw new HTTPException(404);
       }
 
+      // Log the Management API operation
+      const log = createLogMessage(ctx, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a User",
+      });
+
+      // Add response details to the log
+      log.details = {
+        ...log.details,
+        response: {
+          statusCode: 204,
+          body: {},
+        },
+      };
+
+      waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
+
       return ctx.text("OK");
     },
   )
@@ -454,6 +471,24 @@ export const userRoutes = new OpenAPIHono<{
         // we should never reach here UNLESS there's some race condition where another service deletes the users after the update...
         throw new HTTPException(500);
       }
+
+      // Log the user update operation
+      const log = createLogMessage(ctx, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a User",
+        body,
+      });
+
+      // Add response details to the log
+      log.details = {
+        ...log.details,
+        response: {
+          statusCode: 200,
+          body: patchedUser,
+        },
+      };
+
+      waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
 
       return ctx.json(patchedUser);
     },

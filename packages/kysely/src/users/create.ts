@@ -9,9 +9,9 @@ export function create(db: Kysely<Database>) {
 
     const sqlUser = {
       ...rest,
+      login_count: rest.login_count ?? 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      login_count: 0,
       tenant_id: tenantId,
       email_verified: user.email_verified ? 1 : 0,
       is_social: user.is_social ? 1 : 0,

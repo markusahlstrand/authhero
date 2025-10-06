@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.50.0
+
+### Minor Changes
+
+- Improve logging
+
 ## 10.49.0
 
 ### Minor Changes

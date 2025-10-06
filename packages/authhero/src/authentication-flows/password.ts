@@ -21,6 +21,7 @@ import {
 } from "../constants";
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
+import { postUserLoginHook } from "../hooks/index";
 
 export async function passwordGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -138,14 +139,6 @@ export async function passwordGrant(
     });
   }
 
-  const log = createLogMessage(ctx, {
-    type: LogTypes.SUCCESS_LOGIN,
-    description: "Successful login",
-    strategy_type: "Username-Password-Authentication",
-    strategy: "Username-Password-Authentication",
-  });
-  waitUntil(ctx, data.logs.create(client.tenant.id, log));
-
   return {
     client,
     authParams,
@@ -162,6 +155,31 @@ export async function loginWithPassword(
   ticketAuth?: boolean,
 ) {
   const result = await passwordGrant(ctx, client, authParams, loginSession);
+
+  // Log successful login and update user info via hook
+  const hookResult = await postUserLoginHook(
+    ctx,
+    ctx.env.data,
+    client.tenant.id,
+    result.user,
+    loginSession,
+    {
+      client,
+      authParams,
+      authStrategy: {
+        strategy: "Username-Password-Authentication",
+        strategy_type: "database",
+      },
+    },
+  );
+
+  // If the hook returns a Response (redirect), return it directly
+  if (hookResult instanceof Response) {
+    return hookResult;
+  }
+
+  // Use the updated user from the hook
+  result.user = hookResult;
 
   return createFrontChannelAuthResponse(ctx, {
     ...result,

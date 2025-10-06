@@ -9,6 +9,7 @@ export type LogParams = {
   body?: unknown;
   strategy?: string;
   strategy_type?: string;
+  connection?: string;
 };
 
 export function createLogMessage(
@@ -37,7 +38,7 @@ export function createLogMessage(
     hostname: ctx.req.header("host") || "",
     user_name: ctx.var.username || "",
     connection_id: "",
-    connection: ctx.var.connection || "",
+    connection: params.connection || ctx.var.connection || "",
     strategy: params.strategy || "",
     strategy_type: params.strategy_type || "",
     audience: "",

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.235.0
+
+### Minor Changes
+
+- Improve logging
+
 ## 0.234.0
 
 ### Minor Changes

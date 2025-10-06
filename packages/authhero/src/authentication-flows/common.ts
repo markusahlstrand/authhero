@@ -5,7 +5,6 @@ import {
   LegacyClient,
   LoginSession,
   User,
-  LogTypes,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
@@ -23,8 +22,6 @@ import {
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
-import { waitUntil } from "../helpers/wait-until";
-import { createLogMessage } from "../utils/create-log-message";
 import { postUserLoginHook } from "../hooks/index";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
@@ -343,24 +340,6 @@ export async function createFrontChannelAuthResponse(
     authParams.response_type || AuthorizationResponseType.CODE;
   const responseMode =
     authParams.response_mode || AuthorizationResponseMode.QUERY;
-
-  const logMessage = createLogMessage(ctx, {
-    type: LogTypes.SUCCESS_LOGIN,
-    description: `Successful login for ${user.user_id}`,
-    userId: user.user_id,
-  });
-
-  waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
-
-  // Update the users last login info
-  waitUntil(
-    ctx,
-    ctx.env.data.users.update(client.tenant.id, user.user_id, {
-      last_login: new Date().toISOString(),
-      last_ip: ctx.var.ip || "",
-      login_count: user.login_count + 1,
-    }),
-  );
 
   if (ticketAuth) {
     if (!params.loginSession) {
@@ -681,7 +660,16 @@ export async function completeLogin(
       params.client.tenant.id,
       user,
       params.loginSession,
-      { client: params.client, authParams: updatedAuthParams },
+      {
+        client: params.client,
+        authParams: updatedAuthParams,
+        authStrategy: params.strategy
+          ? {
+              strategy: params.strategy,
+              strategy_type: "social", // Social logins come through this path
+            }
+          : undefined,
+      },
     );
 
     // If the hook returns a Response (redirect), return it directly
