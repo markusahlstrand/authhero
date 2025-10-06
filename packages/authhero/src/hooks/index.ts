@@ -1,6 +1,7 @@
 import {
   LegacyClient,
   DataAdapters,
+  UserDataAdapter,
   LogTypes,
   User,
   LoginSession,
@@ -92,22 +93,40 @@ function createUserHooks(
 function createUserUpdateHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
-) {
-  return async (tenant_id: string, user_id: string, updates: Partial<User>) => {
+): UserDataAdapter["update"] {
+  return async (tenant_id, user_id, updates) => {
+    // If we're only updating linked_to, skip all hooks to avoid recursion
+    if (Object.keys(updates).length === 1 && "linked_to" in updates) {
+      return data.users.update(tenant_id, user_id, updates);
+    }
+
+    // Fetch the user before it's updated
+    const user = await data.users.get(tenant_id, user_id);
+
+    if (!user) {
+      throw new HTTPException(404, {
+        message: "User not found",
+      });
+    }
+
+    // Build request object once for reuse
     const request: HookRequest = {
       method: ctx.req.method,
-      ip: ctx.req.query("x-real-ip") || "",
-      user_agent: ctx.req.query("user-agent"),
-      url: ctx.var.loginSession?.authorization_url || ctx.req.url,
+      ip: ctx.var.ip || ctx.get("ip") || "",
+      user_agent: ctx.var.useragent || ctx.get("useragent") || "",
+      url: ctx.req.url,
     };
 
+    // Hooks don't seem to be called when you link a user. You'll need to set them from the external call
+    // Call pre-user-update hooks if configured
     if (ctx.env.hooks?.onExecutePreUserUpdate) {
       try {
-        // The hook throws to cancel the update
         await ctx.env.hooks.onExecutePreUserUpdate(
           {
             ctx,
+            tenant: { id: tenant_id },
             user_id,
+            user,
             updates,
             request,
           },
@@ -125,17 +144,6 @@ function createUserUpdateHooks(
           },
         );
       } catch (err) {
-        // If it's already an HTTPException, re-throw it
-        if (err instanceof HTTPException) {
-          throw err;
-        }
-
-        const log = createLogMessage(ctx, {
-          type: LogTypes.FAILED_HOOK,
-          description: "Pre user update hook failed",
-        });
-        await data.logs.create(tenant_id, log);
-
         throw new HTTPException(400, {
           message: "Pre user update hook failed",
         });
@@ -145,6 +153,32 @@ function createUserUpdateHooks(
     // If we get here, proceed with the update
     await data.users.update(tenant_id, user_id, updates);
 
+    // Check if email was updated or verified - if so, check for account linking
+    if (updates.email || updates.email_verified) {
+      const updatedUser = await data.users.get(tenant_id, user_id);
+      if (updatedUser && updatedUser.email && updatedUser.email_verified) {
+        // Get all users with the same verified email
+        const { users: matchingUsers } = await data.users.list(tenant_id, {
+          page: 0,
+          per_page: 10,
+          include_totals: false,
+          q: `email:${updatedUser.email}`,
+        });
+
+        // Filter to verified users and exclude the current user
+        const verifiedUsers = matchingUsers.filter(
+          (u) => u.email_verified && u.user_id !== user_id && !u.linked_to,
+        );
+
+        // If there's another verified user with the same email, link to them
+        if (verifiedUsers.length > 0) {
+          await data.users.update(tenant_id, user_id, {
+            linked_to: verifiedUsers[0]!.user_id,
+          });
+        }
+      }
+    }
+
     if (updates.email) {
       const log = createLogMessage(ctx, {
         type: LogTypes.SUCCESS_CHANGE_EMAIL,
@@ -152,8 +186,6 @@ function createUserUpdateHooks(
         userId: user_id,
       });
       await data.logs.create(tenant_id, log);
-
-      console.log("log:", log);
     }
 
     return true;
@@ -250,13 +282,16 @@ export function addDataHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   data: DataAdapters,
 ): DataAdapters {
+  // Store reference to raw data adapter so hooks can bypass themselves
+  const rawData = data;
+
   return {
     ...data,
     users: {
       ...data.users,
-      create: createUserHooks(ctx, data),
-      update: createUserUpdateHooks(ctx, data),
-      remove: createUserDeletionHooks(ctx, data),
+      create: createUserHooks(ctx, rawData),
+      update: createUserUpdateHooks(ctx, rawData),
+      remove: createUserDeletionHooks(ctx, rawData),
     },
   };
 }

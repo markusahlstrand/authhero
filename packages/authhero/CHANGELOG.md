@@ -1,10 +1,17 @@
 # authhero
 
+## 0.236.0
+
+### Minor Changes
+
+- Update the link user logic
+
 ## 0.235.0
 
 ### Minor Changes
 
 - Improve logging
+- Update the logic for account linking
 
 ## 0.234.0
 
