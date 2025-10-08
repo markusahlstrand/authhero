@@ -39,13 +39,27 @@ npm run preview
 
 ## Storybook Integration
 
-The component library Storybook is integrated into the documentation site. During the build process:
+The component library Storybook is integrated into the documentation site. The built Storybook files are **committed to the repository** in `public/storybook/` for deployment simplicity.
 
-1. Storybook is built from `packages/authhero`
-2. Output is placed in `public/storybook/`
-3. Accessible at `/storybook/` in the built site
+### Building Documentation Only
 
-To develop with Storybook:
+```bash
+npm run build
+```
+
+This builds just the VitePress site (does not rebuild Storybook).
+
+### Building Documentation + Storybook
+
+```bash
+npm run build:full
+```
+
+This rebuilds Storybook from `packages/authhero` and then builds VitePress.
+
+### Developing with Storybook
+
+To work on components with live reload:
 
 ```bash
 # In packages/authhero directory
@@ -53,12 +67,14 @@ cd ../../packages/authhero
 pnpm storybook
 ```
 
-To rebuild Storybook for the docs:
+### When to Rebuild Storybook
 
-```bash
-# In packages/authhero directory
-pnpm build-storybook
-```
+Run `npm run build:full` when:
+- Component stories are added or modified
+- Component implementations change
+- You want to update the Storybook in the docs
+
+**Important:** After rebuilding Storybook, commit the changes in `public/storybook/` so they're deployed to production.
 
 ## Configuration
 

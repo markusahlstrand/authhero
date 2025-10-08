@@ -2,5 +2,5 @@
 .vitepress/dist
 .vitepress/cache
 
-# Storybook build output (generated during build)
-public/storybook
+# Note: public/storybook is committed to repo for Vercel deployment
+# To rebuild: run `pnpm build:full` from this directory
