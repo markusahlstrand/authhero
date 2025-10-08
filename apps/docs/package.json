@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
-    "build": "vitepress build",
+    "build": "cd ../../packages/authhero && pnpm build-storybook && cd ../../apps/docs && vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {
