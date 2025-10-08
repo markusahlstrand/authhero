@@ -8,8 +8,6 @@ import { connectionCallback } from "../../authentication-flows/connection";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
 import { getUniversalLoginUrl } from "../../variables";
-// Ensure Response is available, usually global or from Hono if specific types are needed.
-// import { Response } from 'hono'; // Not usually needed for instanceof global Response
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

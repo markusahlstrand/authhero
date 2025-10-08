@@ -503,6 +503,8 @@ export async function postUserLoginHook(
     strategy_type,
     strategy,
     connection: strategy, // Use the same value for both strategy and connection
+    audience: params?.authParams?.audience,
+    scope: params?.authParams?.scope,
   });
 
   await data.logs.create(tenant_id, logMessage);

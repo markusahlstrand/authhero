@@ -10,6 +10,8 @@ export type LogParams = {
   strategy?: string;
   strategy_type?: string;
   connection?: string;
+  audience?: string;
+  scope?: string;
 };
 
 export function createLogMessage(
@@ -41,8 +43,8 @@ export function createLogMessage(
     connection: params.connection || ctx.var.connection || "",
     strategy: params.strategy || "",
     strategy_type: params.strategy_type || "",
-    audience: "",
-    scope: [],
+    audience: params.audience || "",
+    scope: params.scope ? params.scope.split(" ") : [],
   };
 
   return log;
