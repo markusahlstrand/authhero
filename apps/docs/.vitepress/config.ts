@@ -45,6 +45,7 @@ export default withMermaid(
       nav: [
         { text: "Home", link: "/" },
         { text: "Getting Started", link: "/getting-started" },
+        { text: "Components", link: "/components/" },
         { text: "API Reference", link: "/api/" },
       ],
 
@@ -73,6 +74,10 @@ export default withMermaid(
             { text: "Core Library", link: "/packages/authhero/" },
             { text: "Create AuthHero", link: "/packages/create-authhero/" },
           ],
+        },
+        {
+          text: "Components",
+          items: [{ text: "Overview", link: "/components/" }],
         },
         {
           text: "Adapters",
