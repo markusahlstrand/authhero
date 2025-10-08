@@ -24,7 +24,7 @@ The component library includes fully-styled, themable components for:
 Explore all available components, their variations, and configurations in our interactive Storybook:
 
 <div style="margin: 2rem 0;">
-  <a href="/storybook/" target="_blank" style="display: inline-block; padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">
+  <a href="/storybook/index.html" target="_blank" style="display: inline-block; padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">
     Open Component Library →
   </a>
 </div>
@@ -40,6 +40,7 @@ The Storybook opens in a new window and provides an interactive environment to e
 The main login page component that handles email/phone input and social login options.
 
 **Features:**
+
 - Email and/or phone number input
 - Social login buttons (Google, Apple, Vipps, etc.)
 - Error messaging
@@ -47,6 +48,7 @@ The main login page component that handles email/phone input and social login op
 - Passwordless code entry
 
 **Usage in Storybook:**
+
 - EmailOnly - Basic email login
 - PhoneOnly - Phone number login
 - EmailOrPhone - Combined email/phone input
@@ -132,17 +134,17 @@ app.get('/login', (c) => {
 Components are designed for server-side rendering and return HTML strings that can be sent directly to the browser:
 
 ```typescript
-const html = IdentifierPage({ 
-  theme, 
-  branding, 
-  loginSession, 
-  client 
+const html = IdentifierPage({
+  theme,
+  branding,
+  loginSession,
+  client,
 });
 // html is a string ready to be sent to the client
 ```
 
 ## Next Steps
 
-- [Explore components in Storybook](/storybook/)
+- [Explore components in Storybook](/storybook/index.html)
 - [View API Reference](/api/overview)
 - [See authentication flow guide](/guides/authentication-flow)

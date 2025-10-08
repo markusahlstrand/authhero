@@ -77,9 +77,7 @@ export default withMermaid(
         },
         {
           text: "Components",
-          items: [
-            { text: "Overview", link: "/components/" },
-          ],
+          items: [{ text: "Overview", link: "/components/" }],
         },
         {
           text: "Adapters",
