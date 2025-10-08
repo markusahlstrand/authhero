@@ -12,6 +12,8 @@ import {
   OnExecutePostUserRegistration,
   OnExecutePreUserRegistration,
   OnExecutePreUserUpdate,
+  OnExecutePreUserDeletion,
+  OnExecutePostUserDeletion,
 } from "../../src";
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
@@ -28,6 +30,8 @@ type getEnvParams = {
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
     onExecutePreUserUpdate?: OnExecutePreUserUpdate;
+    onExecutePreUserDeletion?: OnExecutePreUserDeletion;
+    onExecutePostUserDeletion?: OnExecutePostUserDeletion;
   };
 };
 

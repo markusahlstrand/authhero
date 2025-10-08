@@ -120,8 +120,10 @@ export default withMermaid(
         {
           text: "Auth0 Comparison",
           items: [
+            { text: "Overview", link: "/auth0-comparison/" },
             { text: "Hooks", link: "/auth0-comparison/hooks" },
             { text: "Multi-Tenant", link: "/auth0-comparison/multi-tenant" },
+            { text: "Redirect URLs", link: "/auth0-comparison/redirect-urls" },
           ],
         },
         {
