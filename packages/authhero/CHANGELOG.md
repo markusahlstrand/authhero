@@ -1,5 +1,17 @@
 # authhero
 
+## 0.238.0
+
+### Minor Changes
+
+- Add storybook
+
+## 0.237.0
+
+### Minor Changes
+
+- 85f639b: Add audience and scope to logs
+
 ## 0.236.0
 
 ### Minor Changes
