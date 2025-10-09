@@ -1,4 +1,4 @@
-import { generateCodeVerifier, Google } from "arctic";
+import { generateCodeVerifier, MicrosoftEntraId } from "arctic";
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
@@ -6,10 +6,10 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import { GoogleLogo } from "./social-strategies";
+import { MicrosoftLogo } from "./social-strategies";
 
-export const displayName = "Google";
-export const logo = GoogleLogo;
+export const displayName = "Microsoft";
+export const logo = MicrosoftLogo;
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -18,12 +18,16 @@ export async function getRedirect(
   const { options } = connection;
 
   if (!options?.client_id || !options.client_secret) {
-    throw new Error("Missing required Google authentication parameters");
+    throw new Error("Missing required Microsoft authentication parameters");
   }
 
   const callbackUrl = `${getAuthUrl(ctx.env)}callback`;
 
-  const google = new Google(
+  // tenant can be 'common', 'organizations', 'consumers', or a specific tenant ID
+  const tenant = options.realms || "common";
+
+  const microsoft = new MicrosoftEntraId(
+    tenant,
     options.client_id,
     options.client_secret,
     callbackUrl,
@@ -32,10 +36,10 @@ export async function getRedirect(
   const code = nanoid();
   const code_verifier = generateCodeVerifier();
 
-  const authorizationUrl = google.createAuthorizationURL(
+  const authorizationUrl = microsoft.createAuthorizationURL(
     code,
     code_verifier,
-    options.scope?.split(" ") ?? ["email", "profile"],
+    options.scope?.split(" ") || ["openid", "profile", "email"],
   );
 
   return {
@@ -57,13 +61,16 @@ export async function validateAuthorizationCodeAndGetUser(
     throw new Error("Missing required authentication parameters");
   }
 
-  const google = new Google(
+  const tenant = options.realms || "common";
+
+  const microsoft = new MicrosoftEntraId(
+    tenant,
     options.client_id,
     options.client_secret,
     `${getAuthUrl(ctx.env)}callback`,
   );
 
-  const tokens = await google.validateAuthorizationCode(code, code_verifier);
+  const tokens = await microsoft.validateAuthorizationCode(code, code_verifier);
 
   const idToken = parseJWT(tokens.idToken());
 
@@ -73,6 +80,8 @@ export async function validateAuthorizationCodeAndGetUser(
 
   const payload = idTokenSchema.parse(idToken.payload);
 
+  ctx.set("log", `Microsoft user: ${JSON.stringify(payload)}`);
+
   return {
     sub: payload.sub,
     email: payload.email,
@@ -80,6 +89,5 @@ export async function validateAuthorizationCodeAndGetUser(
     family_name: payload.family_name,
     name: payload.name,
     picture: payload.picture,
-    locale: payload.locale,
   };
 }

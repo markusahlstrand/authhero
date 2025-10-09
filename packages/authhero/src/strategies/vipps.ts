@@ -7,6 +7,10 @@ import { HTTPException } from "hono/http-exception";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
+import { VippsLogo } from "./social-strategies";
+
+export const displayName = "Vipps";
+export const logo = VippsLogo;
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

@@ -6,6 +6,10 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
+import { AppleLogo } from "./social-strategies";
+
+export const displayName = "Apple";
+export const logo = AppleLogo;
 
 function getAppleOptions(connection: Connection) {
   const { options } = connection;

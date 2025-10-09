@@ -11,10 +11,9 @@ import cn from "classnames";
 import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import SocialButton from "./SocialButton";
-import Google from "./GoogleLogo";
 import FormComponent from "./Form";
-import VippsLogo from "./VippsLogo";
 import Button from "./Button";
+import { getSocialStrategy } from "../strategies";
 
 type Props = {
   error?: string;
@@ -41,12 +40,13 @@ const IdentifierPage: FC<Props> = ({
     connections.includes("Username-Password-Authentication");
   const showPhoneInput = connections.includes("sms");
 
-  // Determine which social logins to show
-  const showFacebook = connections.includes("facebook");
-  const showGoogle = connections.includes("google-oauth2");
-  const showApple = connections.includes("apple");
-  const showVipps = connections.includes("vipps");
-  const anySocialLogin = showFacebook || showGoogle || showApple || showVipps;
+  // Get all available social connections with their configs
+  const socialConnections = connections
+    .map((strategyName) => {
+      const strategy = getSocialStrategy(strategyName);
+      return strategy ? { name: strategyName, ...strategy } : null;
+    })
+    .filter((config): config is NonNullable<typeof config> => config !== null);
 
   // Determine if any auth form should be shown
   const showForm = showEmailInput || showPhoneInput;
@@ -124,7 +124,7 @@ const IdentifierPage: FC<Props> = ({
             </Button>
           </FormComponent>
         )}
-        {showForm && anySocialLogin && (
+        {showForm && socialConnections.length > 0 && (
           <div className="relative mb-5 block text-center text-gray-300 dark:text-gray-300">
             <div className="absolute left-0 right-0 top-1/2 border-b border-gray-200 dark:border-gray-600" />
             <div className="relative inline-block bg-white px-2 dark:bg-gray-800">
@@ -133,56 +133,23 @@ const IdentifierPage: FC<Props> = ({
           </div>
         )}
         <div className="flex space-x-4 sm:flex-col sm:space-x-0 sm:space-y-4 short:flex-row short:space-x-4 short:space-y-0">
-          {showFacebook && (
-            <SocialButton
-              connection="facebook"
-              text={i18next.t("continue_with", { provider: "Facebook" })}
-              canResize={true}
-              icon={
-                <Icon
-                  className="text-xl text-[#1196F5] sm:absolute sm:left-4 sm:top-1/2 sm:-translate-y-1/2 sm:text-2xl short:static short:left-auto short:top-auto short:translate-y-0 short:text-xl"
-                  name="facebook"
-                />
-              }
-              loginSession={loginSession}
-            />
-          )}
-          {showGoogle && (
-            <SocialButton
-              connection="google-oauth2"
-              text={i18next.t("continue_with", { provider: "Google" })}
-              canResize={true}
-              icon={
-                <Google className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
-              }
-              loginSession={loginSession}
-            />
-          )}
-          {showApple && (
-            <SocialButton
-              connection="apple"
-              text={i18next.t("continue_with", { provider: "Apple" })}
-              canResize={true}
-              icon={
-                <Icon
-                  className="text-xl text-black dark:text-white sm:absolute sm:left-4 sm:top-1/2 sm:-translate-y-1/2 sm:text-2xl short:static short:left-auto short:top-auto short:translate-y-0 short:text-xl"
-                  name="apple"
-                />
-              }
-              loginSession={loginSession}
-            />
-          )}
-          {showVipps && (
-            <SocialButton
-              connection="vipps"
-              text={i18next.t("continue_with", { provider: "Vipps" })}
-              canResize={true}
-              icon={
-                <VippsLogo className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
-              }
-              loginSession={loginSession}
-            />
-          )}
+          {socialConnections.map((config) => {
+            const Logo = config.logo;
+            return (
+              <SocialButton
+                key={config.name}
+                connection={config.name}
+                text={i18next.t("continue_with", {
+                  provider: config.displayName,
+                })}
+                canResize={true}
+                icon={
+                  <Logo className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
+                }
+                loginSession={loginSession}
+              />
+            );
+          })}
         </div>
       </div>
     </Layout>
