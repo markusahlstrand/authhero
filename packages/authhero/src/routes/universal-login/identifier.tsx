@@ -1,7 +1,9 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute, usePasswordLogin } from "./common";
+import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
+import AuthLayout from "../../components/AuthLayout";
 import { getPrimaryUserByProvider } from "../../helpers/users";
 import { preUserSignupHook } from "../../hooks";
 import { createLogMessage } from "../../utils/create-log-message";
@@ -34,6 +36,9 @@ export const identifierRoutes = new OpenAPIHono<{
             description: "The state parameter from the authorization request",
           }),
           impersonation: z.string().optional(),
+          style: z.enum(["classic", "shadcn"]).optional().openapi({
+            description: "UI style to use for the login page",
+          }),
         }),
       },
       responses: {
@@ -43,13 +48,36 @@ export const identifierRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { state } = ctx.req.valid("query");
+      const { state, style } = ctx.req.valid("query");
 
       const { theme, branding, loginSession, client } = await initJSXRoute(
         ctx,
         state,
       );
 
+      // Use shadcn style if style param is set to "shadcn", otherwise use classic (default)
+      const useShadcn = style === "shadcn";
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("welcome", "Login")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <IdentifierForm
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              client={client}
+              email={loginSession.authParams.username}
+            />
+          </AuthLayout>,
+        );
+      }
+
+      // Classic style (default)
       return ctx.html(
         <IdentifierPage
           theme={theme}
@@ -74,6 +102,9 @@ export const identifierRoutes = new OpenAPIHono<{
           state: z.string().openapi({
             description: "The state parameter from the authorization request",
           }),
+          style: z.enum(["classic", "shadcn"]).optional().openapi({
+            description: "UI style to use for the login page",
+          }),
         }),
         body: {
           content: {
@@ -97,7 +128,7 @@ export const identifierRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { state } = ctx.req.valid("query");
+      const { state, style } = ctx.req.valid("query");
       const params = ctx.req.valid("form");
       ctx.set("body", params);
       ctx.set("username", params.username);
@@ -118,10 +149,34 @@ export const identifierRoutes = new OpenAPIHono<{
           vendorCountryCode || countryCode,
         );
 
+      // Use shadcn style if style param is set to "shadcn", otherwise use classic (default)
+      const useShadcn = style === "shadcn";
+
       if (
         !client.connections.find((c) => c.strategy === connectionType) ||
         !username
       ) {
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("welcome", "Login")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <IdentifierForm
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                error={i18next.t("invalid_identifier")}
+                email={params.username}
+                client={client}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
         return ctx.html(
           <IdentifierPage
             theme={theme}
@@ -155,6 +210,27 @@ export const identifierRoutes = new OpenAPIHono<{
           });
 
           waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
+
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("welcome", "Login")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <IdentifierForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  error={i18next.t("user_account_does_not_exist")}
+                  email={params.username}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
 
           return ctx.html(
             <IdentifierPage

@@ -4,7 +4,10 @@ const tailwindRowsColumns = require("@ape-egg/tailwind-rows-columns");
 module.exports = {
   plugins: [tailwindRowsColumns],
   darkMode: "class",
-  content: ["./src/components/*.tsx"],
+  content: [
+    "./src/components/*.tsx",
+    "./src/components/ui/*.tsx", // Add UI components
+  ],
   theme: {
     extend: {
       screens: {
