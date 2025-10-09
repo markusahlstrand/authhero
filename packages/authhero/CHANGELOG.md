@@ -1,5 +1,11 @@
 # authhero
 
+## 0.239.0
+
+### Minor Changes
+
+- Add chadcn for ui
+
 ## 0.238.0
 
 ### Minor Changes

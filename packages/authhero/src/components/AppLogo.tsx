@@ -2,8 +2,8 @@ import { Branding, Theme } from "@authhero/adapter-interfaces";
 import type { FC } from "hono/jsx";
 
 type AppLogoProps = {
-  theme: Theme | null;
-  branding: Branding | null;
+  theme?: Theme | null;
+  branding?: Branding | null;
 };
 
 const AppLogo: FC<AppLogoProps> = ({ theme, branding }) => {
@@ -12,7 +12,7 @@ const AppLogo: FC<AppLogoProps> = ({ theme, branding }) => {
 
   if (logoUrl) {
     return (
-      <div className="flex h-9 items-center">
+      <div className="inline-flex h-9 items-center">
         <img src={logoUrl} className="max-h-full" alt="Logo" />
       </div>
     );
