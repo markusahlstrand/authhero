@@ -51,6 +51,36 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
+          {record?.strategy === "github" && (
+            <>
+              <TextInput
+                source="options.scope"
+                label="Scope"
+                placeholder="user:email"
+                helperText="Space-separated scopes (e.g., user:email read:user)"
+                fullWidth
+              />
+            </>
+          )}
+
+          {record?.strategy === "microsoft" && (
+            <>
+              <TextInput
+                source="options.realms"
+                label="Tenant ID"
+                placeholder="common"
+                helperText="Use 'common', 'organizations', 'consumers', or your tenant ID"
+              />
+              <TextInput
+                source="options.scope"
+                label="Scope"
+                placeholder="openid profile email"
+                helperText="Space-separated scopes"
+                fullWidth
+              />
+            </>
+          )}
+
           {record?.strategy === "oauth2" && (
             <>
               <SelectInput

@@ -18,6 +18,7 @@ import Button from "./ui/button";
 import Label from "./ui/label";
 import ErrorMessage from "./ErrorMessage";
 import AppLogo from "./AppLogo";
+import { getSocialStrategy } from "../strategies";
 
 type Props = {
   error?: string;
@@ -46,8 +47,13 @@ const IdentifierForm: FC<Props> = ({
     connections.includes("Username-Password-Authentication");
   const showPhoneInput = connections.includes("sms");
 
-  // Determine which social logins to show
-  const showGoogle = connections.includes("google-oauth2");
+  // Get all available social connections with their configs
+  const socialConnections = connections
+    .map((strategyName) => {
+      const strategy = getSocialStrategy(strategyName);
+      return strategy ? { name: strategyName, ...strategy } : null;
+    })
+    .filter((config): config is NonNullable<typeof config> => config !== null);
 
   // Configure input placeholder based on available connections
   const authMethodKey =
@@ -197,21 +203,26 @@ const IdentifierForm: FC<Props> = ({
               >
                 {i18next.t("continue", "Continue")}
               </Button>
-              {showGoogle && (
-                <a
-                  href={`/authorize/redirect?state=${loginSession.id}&connection=google-oauth2`}
-                  className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 border bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-10 px-4 py-2 w-full"
-                  style={{
-                    borderColor: inputBorder,
-                    borderRadius: `${buttonBorderRadius}px`,
-                    color: bodyText,
-                  }}
-                >
-                  {i18next.t("continue_with", "Login with {{provider}}", {
-                    provider: "Google",
-                  })}
-                </a>
-              )}
+              {socialConnections.map((config) => {
+                const Logo = config.logo;
+                return (
+                  <a
+                    key={config.name}
+                    href={`/authorize/redirect?state=${loginSession.id}&connection=${config.name}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 border bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-10 px-4 py-2 w-full"
+                    style={{
+                      borderColor: inputBorder,
+                      borderRadius: `${buttonBorderRadius}px`,
+                      color: bodyText,
+                    }}
+                  >
+                    <Logo className="h-5 w-5" />
+                    {i18next.t("continue_with", "Login with {{provider}}", {
+                      provider: config.displayName,
+                    })}
+                  </a>
+                );
+              })}
             </div>
           </form>
         </CardContent>

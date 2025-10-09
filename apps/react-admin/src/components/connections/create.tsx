@@ -19,6 +19,8 @@ export function ConnectionCreate() {
             { id: "google-oauth2", name: "Google" },
             { id: "facebook", name: "Facebook" },
             { id: "apple", name: "Apple" },
+            { id: "github", name: "GitHub" },
+            { id: "microsoft", name: "Microsoft" },
             { id: "vipps", name: "Vipps" },
             { id: "oauth2", name: "OAuth2" },
             { id: "Username-Password-Authentication", name: "Password" },

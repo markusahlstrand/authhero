@@ -1,9 +1,12 @@
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
+import type { FC } from "hono/jsx";
 import * as apple from "./apple";
 import * as facebook from "./facebook";
 import * as google from "./google-oauth2";
 import * as vipps from "./vipps";
+import * as github from "./github";
+import * as microsoft from "./microsoft";
 import { Bindings, Variables } from "../types";
 
 export type UserInfo = {
@@ -15,6 +18,8 @@ export type UserInfo = {
 };
 
 export type Strategy = {
+  displayName: string;
+  logo: FC<{ className?: string }>;
   getRedirect: (
     ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
     connection: Connection,
@@ -33,11 +38,13 @@ export function getStrategy(
 ): Strategy {
   const envStrategies = ctx.env.STRATEGIES || {};
 
-  const strategies = {
+  const strategies: Record<string, Strategy> = {
     apple,
     facebook,
     "google-oauth2": google,
     vipps,
+    github,
+    microsoft,
     ...envStrategies,
   };
 
@@ -48,3 +55,27 @@ export function getStrategy(
 
   return strategy;
 }
+
+// Helper to get social strategy by name
+export function getSocialStrategy(name: string): Strategy | undefined {
+  const strategies: Record<string, Strategy> = {
+    apple,
+    facebook,
+    "google-oauth2": google,
+    vipps,
+    github,
+    microsoft,
+  };
+
+  return strategies[name];
+}
+
+// Re-export logo components for direct use if needed
+export {
+  GoogleLogo,
+  FacebookLogo,
+  AppleLogo,
+  VippsLogo,
+  GitHubLogo,
+  MicrosoftLogo,
+} from "./social-strategies";

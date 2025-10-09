@@ -4,6 +4,10 @@ import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { getAuthUrl } from "../variables";
+import { FacebookLogo } from "./social-strategies";
+
+export const displayName = "Facebook";
+export const logo = FacebookLogo;
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

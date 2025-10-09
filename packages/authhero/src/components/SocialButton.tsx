@@ -3,7 +3,7 @@ import Button from "./Button";
 import { LoginSession } from "@authhero/adapter-interfaces";
 
 type Props = {
-  connection: "google-oauth2" | "apple" | "facebook" | "vipps";
+  connection: string;
   // TODO - what is the correct type here in hono/jsx? OR use a children prop
   icon: any;
   text: string;

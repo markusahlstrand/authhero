@@ -366,3 +366,52 @@ export const CustomGoogleFont: Story = {
     },
   },
 };
+
+// Story: Multiple Social Connections
+export const MultipleSocialConnections: Story = {
+  render: (args) => (
+    <HonoJSXWrapper html={renderHonoComponent(IdentifierForm, args)} />
+  ),
+  args: {
+    theme: mockTheme,
+    branding: mockBranding,
+    loginSession: mockLoginSession,
+    client: createMockClient([
+      "email",
+      "google-oauth2",
+      "facebook",
+      "apple",
+      "github",
+      "microsoft",
+    ]),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "This story demonstrates dynamically rendering multiple social login buttons based on available connections. The component now supports Google, Facebook, Apple, GitHub, Microsoft, and Vipps.",
+      },
+    },
+  },
+};
+
+// Story: Developer-Focused Social Logins
+export const DeveloperSocialLogins: Story = {
+  render: (args) => (
+    <HonoJSXWrapper html={renderHonoComponent(IdentifierForm, args)} />
+  ),
+  args: {
+    theme: mockTheme,
+    branding: mockBranding,
+    loginSession: mockLoginSession,
+    client: createMockClient(["email", "github", "microsoft"]),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "This story showcases GitHub and Microsoft authentication options, perfect for developer-focused applications.",
+      },
+    },
+  },
+};

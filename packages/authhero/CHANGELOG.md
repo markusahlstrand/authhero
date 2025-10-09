@@ -1,5 +1,11 @@
 # authhero
 
+## 0.240.0
+
+### Minor Changes
+
+- Add microsoft and github login
+
 ## 0.239.0
 
 ### Minor Changes
