@@ -6,10 +6,13 @@ import {
 import { Bindings, Variables } from "../types";
 import { createAuthTokens } from "../authentication-flows/common";
 
+const AUTH_SERVICE_CLIENT_ID = "auth-service";
+
 export async function createServiceToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
   scope: string,
+  expiresInSeconds?: number,
 ) {
   const tenant = await ctx.env.data.tenants.get(tenant_id);
   if (!tenant) {
@@ -17,14 +20,15 @@ export async function createServiceToken(
   }
 
   // Create a mock LegacyClient for service tokens
+  // Using hardcoded AUTH_SERVICE_CLIENT_ID to prevent spoofing
   const mockClient: LegacyClient = {
-    client_id: ctx.env.ISSUER,
+    client_id: AUTH_SERVICE_CLIENT_ID,
     tenant,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    name: ctx.env.ISSUER,
+    name: "Auth Service",
     global: false,
-    is_first_party: false,
+    is_first_party: true, // Mark as first party
     oidc_conformant: false,
     sso: false,
     sso_disabled: false,
@@ -42,12 +46,18 @@ export async function createServiceToken(
     connections: [],
   } as LegacyClient;
 
-  return createAuthTokens(ctx, {
+  const tokenResponse = await createAuthTokens(ctx, {
     client: mockClient,
     authParams: {
-      client_id: ctx.env.ISSUER,
+      client_id: AUTH_SERVICE_CLIENT_ID,
       response_type: AuthorizationResponseType.TOKEN,
       scope,
     },
   });
+
+  return {
+    access_token: tokenResponse.access_token,
+    token_type: tokenResponse.token_type,
+    expires_in: expiresInSeconds || 3600, // Default 1 hour
+  };
 }

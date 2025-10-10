@@ -270,9 +270,8 @@ Auth0 may be a better fit if you:
 Ready to try AuthHero? Start here:
 
 1. [Getting Started Guide](/getting-started) - Quick start tutorial
-2. [Migration Guide](/guides/migration-from-auth0) - Moving from Auth0
-3. [Architecture Overview](/architecture) - Understanding the system
-4. [Hooks Documentation](./hooks) - Implementing custom logic
+2. [Architecture Overview](/architecture) - Understanding the system
+3. [Hooks Documentation](./hooks) - Implementing custom logic
 
 ## Community & Support
 

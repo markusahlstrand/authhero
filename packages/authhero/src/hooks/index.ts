@@ -16,6 +16,28 @@ import { HTTPException } from "hono/http-exception";
 import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
+import { createServiceToken } from "../helpers/service-token";
+
+// Helper function to create token API
+function createTokenAPI(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenant_id: string,
+) {
+  return {
+    createServiceToken: async (params: {
+      scope: string;
+      expiresInSeconds?: number;
+    }) => {
+      const tokenResponse = await createServiceToken(
+        ctx,
+        tenant_id,
+        params.scope,
+        params.expiresInSeconds,
+      );
+      return tokenResponse.access_token;
+    },
+  };
+}
 
 // Type guard for webhook hooks
 function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
@@ -48,6 +70,7 @@ function createUserHooks(
                 user[key] = value;
               },
             },
+            token: createTokenAPI(ctx, tenant_id),
           },
         );
       } catch (err) {
@@ -72,6 +95,7 @@ function createUserHooks(
           },
           {
             user: {},
+            token: createTokenAPI(ctx, tenant_id),
           },
         );
       } catch (err) {
@@ -140,6 +164,7 @@ function createUserUpdateHooks(
                 message: "User update cancelled by pre-update hook",
               });
             },
+            token: createTokenAPI(ctx, tenant_id),
           },
         );
       } catch (err) {
@@ -272,6 +297,7 @@ function createUserDeletionHooks(
                 message: "User deletion cancelled by pre-deletion hook",
               });
             },
+            token: createTokenAPI(ctx, tenant_id),
           },
         );
       } catch (err) {
@@ -330,7 +356,9 @@ function createUserDeletionHooks(
               id: tenant_id,
             },
           },
-          {},
+          {
+            token: createTokenAPI(ctx, tenant_id),
+          },
         );
       } catch (err) {
         const log = createLogMessage(ctx, {
@@ -649,6 +677,7 @@ export async function postUserLoginHook(
           return null;
         },
       },
+      token: createTokenAPI(ctx, tenant_id),
     });
 
     // If a redirect was requested, return it immediately

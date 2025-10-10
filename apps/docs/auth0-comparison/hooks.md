@@ -346,6 +346,181 @@ const { authenticationApp, managementApp } = init({
 // Use the apps with your framework (Hono, etc.)
 ```
 
+### Service Token API (Available in All Hooks)
+
+**All programmatic hooks** in AuthHero provide a `token` API that allows you to generate service tokens for authenticating with external APIs. This is particularly useful when you need to interact with external systems like CRMs, analytics platforms, or third-party services during any authentication or user lifecycle event.
+
+#### API Interface
+
+The token API is available in all hooks via `api.token.createServiceToken()`:
+
+```typescript
+api.token.createServiceToken({
+  scope: string;           // The scope(s) for the token (space-separated)
+  expiresInSeconds?: number; // Optional expiration time (default: 3600 = 1 hour)
+}): Promise<string>
+```
+
+The service token is a JWT signed with your AuthHero instance's private key and includes:
+
+- **client_id**: Always set to `"auth-service"` (hardcoded for security)
+- **scope**: The requested scope(s)
+- **tenant_id**: Your tenant ID
+- **exp**: Expiration timestamp
+
+#### Security Considerations
+
+The `client_id` is hardcoded to `"auth-service"` to prevent potential spoofing attacks where malicious hook code could try to generate tokens with arbitrary client IDs. This ensures that service tokens are clearly identifiable and can be validated by your external services.
+
+#### Available in All Hooks
+
+The token API is available in:
+
+- `onExecuteCredentialsExchange` - Generate tokens during authentication flows
+- `onExecutePreUserRegistration` - Generate tokens before user registration
+- `onExecutePostUserRegistration` - Generate tokens after user registration
+- `onExecutePreUserUpdate` - Generate tokens before user updates
+- `onExecutePostLogin` - Generate tokens during post-login flows
+- `onExecutePreUserDeletion` - Generate tokens before user deletion
+- `onExecutePostUserDeletion` - Generate tokens after user deletion
+
+#### User Registration Example
+
+```typescript
+onExecutePostUserRegistration: async (event, api) => {
+  // Create user in external CRM after registration
+  const serviceToken = await api.token.createServiceToken({
+    scope: "write:users",
+    expiresInSeconds: 300, // 5 minutes
+  });
+
+  await fetch("https://crm.example.com/api/users", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: event.user.email,
+      name: event.user.name,
+      user_id: event.user.user_id,
+    }),
+  });
+},
+```
+
+#### User Deletion Example
+
+Both `onExecutePreUserDeletion` and `onExecutePostUserDeletion` hooks have access to the token API for managing external service cleanup:
+
+##### Pre-Deletion Hook Example
+
+```typescript
+onExecutePreUserDeletion: async (event, api) => {
+  // Check if user can be deleted from external CRM
+  const serviceToken = await api.token.createServiceToken({
+    scope: "read:users delete:users",
+    expiresInSeconds: 600, // 10 minutes
+  });
+
+  const canDelete = await fetch(
+    `https://crm.example.com/api/users/${event.user_id}/can-delete`,
+    {
+      headers: {
+        Authorization: `Bearer ${serviceToken}`,
+      },
+    }
+  );
+
+  if (!canDelete.ok) {
+    api.cancel(); // Prevent deletion
+    return;
+  }
+},
+```
+
+##### Post-Deletion Hook Example
+
+```typescript
+onExecutePostUserDeletion: async (event, api) => {
+  // Generate token to authenticate with external services
+  const serviceToken = await api.token.createServiceToken({
+    scope: "delete:user_data",
+    expiresInSeconds: 300, // 5 minutes
+  });
+
+  // Delete user data from CRM
+  await fetch(`https://crm.example.com/api/users/${event.user_id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${serviceToken}`,
+    },
+  });
+
+  // Delete user from analytics platform
+  await fetch(`https://analytics.example.com/api/users/${event.user_id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${serviceToken}`,
+    },
+  });
+
+  // Delete user from notification service
+  await fetch(
+    `https://notifications.example.com/api/users/${event.user_id}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${serviceToken}`,
+      },
+    }
+  );
+},
+```
+
+#### Validating Service Tokens in External Services
+
+Your external services should validate the service token by:
+
+1. Verifying the JWT signature using your AuthHero instance's public key (available at `https://your-domain.com/.well-known/jwks.json`)
+2. Checking that `client_id` equals `"auth-service"`
+3. Verifying the token hasn't expired
+4. Validating that the `scope` includes the required permissions
+
+Example validation in an external service:
+
+```typescript
+import { jwtVerify, createRemoteJWKSet } from "jose";
+
+const JWKS = createRemoteJWKSet(
+  new URL("https://your-authhero-domain.com/.well-known/jwks.json"),
+);
+
+async function validateServiceToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: "https://your-authhero-domain.com",
+    });
+
+    // Verify it's a service token
+    if (payload.client_id !== "auth-service") {
+      throw new Error("Invalid client_id");
+    }
+
+    // Check required scope
+    const scopes = (payload.scope as string)?.split(" ") || [];
+    if (!scopes.includes("delete:user_data")) {
+      throw new Error("Insufficient scope");
+    }
+
+    return payload;
+  } catch (error) {
+    console.error("Token validation failed:", error);
+    throw error;
+  }
+}
+```
+
 ## Auth0-Compatible Redirect API
 
 AuthHero's `onExecutePostLogin` hook provides an Auth0-compatible redirect API that allows you to redirect users during the authentication flow:
