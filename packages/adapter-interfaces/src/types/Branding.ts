@@ -16,6 +16,7 @@ export const brandingSchema = z.object({
     .optional(),
   logo_url: z.string().optional(),
   favicon_url: z.string().optional(),
+  powered_by_logo_url: z.string().optional(),
   font: z
     .object({
       url: z.string(),

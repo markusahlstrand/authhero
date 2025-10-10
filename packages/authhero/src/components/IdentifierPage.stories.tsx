@@ -92,6 +92,7 @@ const mockTheme: Theme = {
 
 const mockBranding: Branding = {
   logo_url: "https://via.placeholder.com/150",
+  powered_by_logo_url: "http://acmelogos.com/images/logo-5.svg",
   colors: {
     primary: "#0066cc",
   },

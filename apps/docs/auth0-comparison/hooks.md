@@ -16,6 +16,18 @@ AuthHero's Hooks are designed to be a straightforward way to intercept and modif
     - By specifying a Form ID, AuthHero will present this form to the user at the designated trigger point in the authentication flow.
     - This is particularly powerful for scenarios like progressive profiling, custom consent gathering, or presenting terms of service updates directly within the flow, often without needing to write any backend code for the form interaction itself.
 
+### Available Triggers for URL/Form Hooks
+
+The following trigger points are available for both URL and Form hooks via the Management API:
+
+- `pre-user-signup` - Before a new user is created
+- `post-user-registration` - After a new user is successfully created  
+- `post-user-login` - After successful authentication
+
+::: info Note on User Deletion and Updates
+URL and Form hooks do not currently support user deletion (`pre-user-deletion`, `post-user-deletion`) or user update (`pre-user-update`, `post-user-update`) triggers. However, these events can be handled using **programmatic hooks** (see below) which provide more direct access to the authentication flow.
+:::
+
 ## Key Differences Summarized
 
 | Feature            | Auth0 (Legacy Hooks) | AuthHero                                        |
@@ -33,6 +45,23 @@ In addition to URL and Form hooks configured through the Management API, AuthHer
 ### Available Programmatic Hooks
 
 AuthHero supports the following programmatic hooks that can be configured when initializing your application:
+
+::: info Note on User Deletion
+Currently, AuthHero does not expose a programmatic hook for user deletion (e.g., `onExecutePreUserDeletion` or `onExecutePostUserDeletion`). User deletions are logged automatically by the system. If you need to perform actions before or after user deletion, you can implement this logic in your application layer before calling the Management API's delete user endpoint.
+:::
+
+### Hook Availability Comparison
+
+| Event/Trigger | URL/Form Hooks (Management API) | Programmatic Hooks (Config) |
+|--------------|----------------------------------|------------------------------|
+| Pre User Signup | ✅ `pre-user-signup` | ✅ `onExecutePreUserRegistration` |
+| Post User Registration | ✅ `post-user-registration` | ✅ `onExecutePostUserRegistration` |
+| Post User Login | ✅ `post-user-login` | ✅ `onExecutePostLogin` |
+| Pre User Update | ❌ Not Available | ✅ `onExecutePreUserUpdate` |
+| Credentials Exchange | ❌ Not Available | ✅ `onExecuteCredentialsExchange` |
+| User Deletion | ❌ Not Available | ❌ Not Available |
+
+**Note:** Programmatic hooks provide more direct access to the authentication flow and are executed synchronously within your application. URL/Form hooks are configured via the Management API and can be modified without code changes.
 
 #### 1. `onExecuteCredentialsExchange`
 
@@ -97,7 +126,6 @@ Triggered before any user update operation.
 
 - `user.setUserMetadata(key, value)`: Modify the update data
 - `cancel()`: Cancel the update operation
-- **Return `false`**: Alternative way to cancel the update
 
 #### 5. `onExecutePostLogin`
 
@@ -367,11 +395,13 @@ onExecutePostLogin: async (event, api) => {
 
 ### Hook Error Handling
 
-Programmatic hooks have built-in error handling:
+Programmatic hooks have built-in error handling that varies by hook type:
 
-- **Pre-hooks** (e.g., `onExecutePreUserRegistration`, `onExecutePreUserUpdate`): If a hook throws an error, the operation is logged but continues by default, unless the hook explicitly cancels the operation
-- **Post-hooks** (e.g., `onExecutePostUserRegistration`, `onExecutePostLogin`): Errors are logged but don't affect the primary operation
-- **Credentials Exchange hooks**: Errors can deny access using the `access.deny()` method
+- **`onExecutePreUserRegistration`**: If the hook throws an error, it is logged but the registration continues. The error does not block user creation.
+- **`onExecutePostUserRegistration`**: If the hook throws an error, it is logged but does not affect the completed registration.
+- **`onExecutePreUserUpdate`**: If the hook throws an error or calls `api.cancel()`, the update operation is blocked and an HTTP 400 error is returned to the client.
+- **`onExecuteCredentialsExchange`**: Errors can deny access using the `api.access.deny()` method. Other errors are logged and may affect token generation.
+- **`onExecutePostLogin`**: Errors are logged but typically don't prevent the login from completing. However, redirects and form prompts can modify the authentication flow.
 
 ### Combining Programmatic and Management API Hooks
 
@@ -389,3 +419,138 @@ AuthHero allows you to use both programmatic hooks and Management API hooks (URL
    - Configuration that can be managed by non-developers
 
 This dual approach provides maximum flexibility, allowing you to handle core business logic in code while providing configurable extension points for specific use cases.
+
+## Handling User Deletion
+
+While AuthHero does not currently expose hooks for user deletion events, you can implement custom logic in your application layer when users are deleted. Here are recommended approaches:
+
+### Approach 1: Wrapper Function
+
+Create a wrapper function around the Management API's delete user endpoint:
+
+```typescript
+import { ManagementClient } from '@authhero/management-api';
+
+async function deleteUserWithHooks(
+  managementClient: ManagementClient,
+  tenantId: string,
+  userId: string
+) {
+  // Pre-deletion logic
+  const user = await managementClient.users.get(tenantId, userId);
+  
+  // Perform any cleanup needed
+  await cleanupUserData(user);
+  await notifyExternalSystems(user);
+  await archiveUserRecords(user);
+  
+  // Perform the actual deletion
+  const result = await managementClient.users.delete(tenantId, userId);
+  
+  // Post-deletion logic
+  if (result) {
+    await sendDeletionConfirmation(user.email);
+    await updateAnalytics('user_deleted', { user_id: userId });
+  }
+  
+  return result;
+}
+```
+
+### Approach 2: Event-Driven Architecture
+
+If you're using an event-driven architecture, emit events before and after deletion:
+
+```typescript
+import { EventEmitter } from 'events';
+
+const userEvents = new EventEmitter();
+
+// Register event listeners
+userEvents.on('user:before-delete', async (user) => {
+  console.log(`Preparing to delete user ${user.user_id}`);
+  await cleanupUserSessions(user);
+});
+
+userEvents.on('user:after-delete', async (userId) => {
+  console.log(`User ${userId} deleted successfully`);
+  await notifyTeam(userId);
+});
+
+// In your deletion handler
+async function deleteUser(tenantId: string, userId: string) {
+  const user = await managementClient.users.get(tenantId, userId);
+  
+  // Emit pre-deletion event
+  await userEvents.emit('user:before-delete', user);
+  
+  // Delete the user
+  const result = await managementClient.users.delete(tenantId, userId);
+  
+  if (result) {
+    // Emit post-deletion event
+    await userEvents.emit('user:after-delete', userId);
+  }
+  
+  return result;
+}
+```
+
+### Approach 3: Custom API Endpoint
+
+Create a custom API endpoint in your application that wraps the Management API:
+
+```typescript
+// POST /api/users/:userId/delete
+app.post('/api/users/:userId/delete', async (req, res) => {
+  const { userId } = req.params;
+  const tenantId = req.user.tenantId;
+  
+  try {
+    // Pre-deletion validation
+    const user = await managementClient.users.get(tenantId, userId);
+    
+    if (user.app_metadata?.protected) {
+      return res.status(403).json({ error: 'Cannot delete protected user' });
+    }
+    
+    // Pre-deletion actions
+    await revokeAllTokens(tenantId, userId);
+    await closeUserSessions(tenantId, userId);
+    await exportUserData(user); // GDPR compliance
+    
+    // Perform deletion
+    const result = await managementClient.users.delete(tenantId, userId);
+    
+    // Post-deletion actions
+    if (result) {
+      await auditLog.create({
+        action: 'user_deleted',
+        actor: req.user.id,
+        target: userId,
+        timestamp: new Date(),
+      });
+    }
+    
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+```
+
+### Best Practices for User Deletion
+
+When implementing custom user deletion logic:
+
+1. **Data Retention**: Consider legal and compliance requirements (GDPR, CCPA, etc.)
+2. **Audit Trail**: Always log user deletions with actor, timestamp, and reason
+3. **Cascade Deletion**: Clean up related data (sessions, tokens, preferences)
+4. **Soft Delete Option**: Consider implementing soft deletes for recovery
+5. **Confirmation**: Require explicit confirmation before permanent deletion
+6. **Backup**: Archive user data before deletion for compliance
+7. **Rate Limiting**: Implement rate limits to prevent accidental bulk deletions
+
+::: tip Future Enhancement
+If user deletion hooks are important for your use case, please reach out to the AuthHero team or open a feature request on GitHub. The AuthHero team is actively developing the platform and considers user feedback when prioritizing new features.
+:::
