@@ -507,4 +507,295 @@ describe("impersonation routes", () => {
       expect(html).toContain("not found");
     });
   });
+
+  describe("Social login with impersonation", () => {
+    it("should trigger impersonation page after social login callback when user has permission", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create user with impersonation permission
+      // Note: mock-strategy returns sub: "123" for any code that's not "foo@example.com"
+      await env.data.users.create("tenantId", {
+        user_id: "mock-strategy|123",
+        email: "hello@example.com",
+        email_verified: true,
+        provider: "mock-strategy",
+        connection: "mock-strategy",
+        is_social: true,
+      });
+
+      // Assign impersonation permission to the user
+      await env.data.userPermissions.create("tenantId", "mock-strategy|123", {
+        user_id: "mock-strategy|123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Mock the hooks.list method to return a page hook for impersonation
+      // Page hooks are not stored in the database but recognized by the postUserLoginHook function
+      const originalHooksList = env.data.hooks.list;
+      env.data.hooks.list = async (tenant_id: string, query?: any) => {
+        const result = await originalHooksList(tenant_id, query);
+        if (query?.q === "trigger_id:post-user-login") {
+          result.hooks.push({
+            hook_id: "hook_impersonate_social",
+            enabled: true,
+            trigger_id: "post-user-login",
+            page_id: "impersonate",
+            permission_required: "users:impersonate",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            synchronous: false,
+          } as any);
+        }
+        return result;
+      };
+
+      // Create a connection for social login
+      await env.data.connections.create("tenantId", {
+        id: "google-connection",
+        name: "mock-strategy",
+        strategy: "mock-strategy",
+        options: {
+          client_id: "google-client-id",
+          client_secret: "google-client-secret",
+        },
+      });
+
+      // Create login session (simulating /authorize redirect to Google)
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "auth-state",
+          scope: "openid email profile",
+          response_type: "code",
+        },
+      });
+
+      // Create state code (simulating what connectionAuth creates)
+      const state = await env.data.codes.create("tenantId", {
+        code_id: "oauth2-state-123",
+        code_type: "oauth2_state",
+        login_id: loginSession.id,
+        connection_id: "google-connection",
+        code_verifier: "verifier",
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      });
+
+      // Simulate callback from Google (user returns with auth code)
+      // The mock-strategy returns sub: "123" and email: "hello@example.com" for any code
+      const callbackResponse = await oauthClient.callback.$get({
+        query: {
+          state: state.code_id,
+          code: "test-auth-code",
+        },
+      });
+
+      // Debug: log error if status is not what we expect
+      if (callbackResponse.status !== 302) {
+        const errorText = await callbackResponse.text();
+        console.error("Callback error (status " + callbackResponse.status + "):", errorText);
+        throw new Error(`Expected 302, got ${callbackResponse.status}: ${errorText}`);
+      }
+
+      // Should redirect to impersonation page instead of completing auth
+      expect(callbackResponse.status).toBe(302);
+      const callbackLocation = callbackResponse.headers.get("location");
+      expect(callbackLocation).toContain("/u/impersonate");
+      expect(callbackLocation).toContain(`state=${loginSession.id}`);
+    });
+
+    it("should complete social login normally when user does not have impersonation permission", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create user WITHOUT impersonation permission
+      // Note: mock-strategy returns sub: "123" for any code that's not "foo@example.com"
+      await env.data.users.create("tenantId", {
+        user_id: "mock-strategy|123",
+        email: "hello@example.com",
+        email_verified: true,
+        provider: "mock-strategy",
+        connection: "mock-strategy",
+        is_social: true,
+      });
+
+            // Mock the hooks.list method to return a page hook for impersonation
+      // Page hooks are not stored in the database but recognized by the postUserLoginHook function
+      const originalHooksList = env.data.hooks.list;
+      env.data.hooks.list = async (tenant_id: string, query?: any) => {
+        const result = await originalHooksList(tenant_id, query);
+        if (query?.q === "trigger_id:post-user-login") {
+          result.hooks.push({
+            hook_id: "hook_impersonate_social_2",
+            enabled: true,
+            trigger_id: "post-user-login",
+            page_id: "impersonate",
+            permission_required: "users:impersonate",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            synchronous: false,
+          } as any);
+        }
+        return result;
+      };
+
+      // Create a connection for social login
+      await env.data.connections.create("tenantId", {
+        id: "google-connection-2",
+        name: "mock-strategy",
+        strategy: "mock-strategy",
+        options: {
+          client_id: "google-client-id",
+          client_secret: "google-client-secret",
+        },
+      });
+
+      // Create login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "auth-state",
+          scope: "openid email profile",
+          response_type: "code",
+        },
+      });
+
+      // Create state code
+      const state = await env.data.codes.create("tenantId", {
+        code_id: "oauth2-state-456",
+        code_type: "oauth2_state",
+        login_id: loginSession.id,
+        connection_id: "google-connection-2",
+        code_verifier: "verifier",
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      });
+
+      // Simulate callback from Google
+      const callbackResponse = await oauthClient.callback.$get({
+        query: {
+          state: state.code_id,
+          code: "test-auth-code-2",
+        },
+      });
+
+      // Should complete auth normally (redirect to client callback with code)
+      expect(callbackResponse.status).toBe(302);
+      const callbackLocation = callbackResponse.headers.get("location");
+      expect(callbackLocation).toContain("https://example.com/callback");
+      expect(callbackLocation).toContain("code=");
+      expect(callbackLocation).toContain("state=auth-state");
+      // Should NOT redirect to impersonation page
+      expect(callbackLocation).not.toContain("/u/impersonate");
+    });
+
+    it("should work with linked social accounts and check permissions on primary user", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create primary user with impersonation permission
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|primary-user",
+        email: "admin@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Assign impersonation permission to PRIMARY user
+      await env.data.userPermissions.create("tenantId", "auth2|primary-user", {
+        user_id: "auth2|primary-user",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Create linked Google account (using mock-strategy)
+      // Note: mock-strategy returns sub: "foo" for code "foo@example.com"
+      await env.data.users.create("tenantId", {
+        user_id: "mock-strategy|foo",
+        email: "foo@example.com",
+        email_verified: true,
+        provider: "mock-strategy",
+        connection: "mock-strategy",
+        is_social: true,
+        linked_to: "auth2|primary-user", // Linked to primary user
+      });
+
+      // Mock the hooks.list method to return a page hook for impersonation
+      // Page hooks are not stored in the database but recognized by the postUserLoginHook function
+      const originalHooksList = env.data.hooks.list;
+      env.data.hooks.list = async (tenant_id: string, query?: any) => {
+        const result = await originalHooksList(tenant_id, query);
+        if (query?.q === "trigger_id:post-user-login") {
+          result.hooks.push({
+            hook_id: "hook_impersonate_linked",
+            enabled: true,
+            trigger_id: "post-user-login",
+            page_id: "impersonate",
+            permission_required: "users:impersonate",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            synchronous: false,
+          } as any);
+        }
+        return result;
+      };
+
+      // Create a connection
+      await env.data.connections.create("tenantId", {
+        id: "google-connection-3",
+        name: "mock-strategy",
+        strategy: "mock-strategy",
+        options: {
+          client_id: "google-client-id",
+          client_secret: "google-client-secret",
+        },
+      });
+
+      // Create login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "auth-state",
+          scope: "openid email profile",
+          response_type: "code",
+        },
+      });
+
+      // Create state code
+      const state = await env.data.codes.create("tenantId", {
+        code_id: "oauth2-state-789",
+        code_type: "oauth2_state",
+        login_id: loginSession.id,
+        connection_id: "google-connection-3",
+        code_verifier: "verifier",
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      });
+
+      // Simulate callback from Google (authenticating with linked account)
+      // Use "foo@example.com" as code to get sub: "foo" from mock-strategy
+      const callbackResponse = await oauthClient.callback.$get({
+        query: {
+          state: state.code_id,
+          code: "foo@example.com",
+        },
+      });
+
+      // Should redirect to impersonation page because PRIMARY user has permission
+      expect(callbackResponse.status).toBe(302);
+      const callbackLocation = callbackResponse.headers.get("location");
+      expect(callbackLocation).toContain("/u/impersonate");
+      expect(callbackLocation).toContain(`state=${loginSession.id}`);
+    });
+  });
 });
