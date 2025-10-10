@@ -2,6 +2,32 @@
 
 Auth0 made the decision to deprecate its Hooks feature in October 2024, moving towards Actions as the primary way to customize authentication flows. While Actions offer powerful capabilities, AuthHero continues to support a flexible Hooks system that provides distinct advantages, especially for certain use cases.
 
+## Quick Comparison
+
+| Feature                    | Auth0 Actions             | AuthHero Hooks       |
+| -------------------------- | ------------------------- | -------------------- |
+| **Status**                 | Active (Hooks deprecated) | Active & expanding   |
+| **Pre-User Registration**  | ✅                        | ✅                   |
+| **Post-User Registration** | ✅                        | ✅                   |
+| **Post-Login**             | ✅                        | ✅                   |
+| **Pre-User Update**        | ❌ Limited                | ✅ Full support      |
+| **Pre-User Deletion**      | ❌ Not available          | ✅ **AuthHero-only** |
+| **Post-User Deletion**     | ❌ Not available          | ✅ **AuthHero-only** |
+| **Credentials Exchange**   | ✅                        | ✅                   |
+| **Form Rendering**         | ❌                        | ✅ **AuthHero-only** |
+| **URL Webhooks**           | ✅                        | ✅                   |
+
+::: tip User Deletion Hooks - AuthHero Exclusive
+Auth0 does not provide action triggers for user deletion, making it difficult to:
+
+- Validate deletion requests based on business rules
+- Clean up related data in external systems
+- Send deletion notifications to users
+- Maintain proper audit trails for GDPR/compliance
+
+AuthHero solves this with both **pre** and **post** deletion hooks, giving you full control over the user deletion lifecycle.
+:::
+
 ## AuthHero's Approach to Hooks
 
 AuthHero's Hooks are designed to be a straightforward way to intercept and modify various stages of the authentication and user lifecycle. A key differentiator in AuthHero is the dual nature of its hooks:
@@ -119,6 +145,42 @@ Triggered after successful user authentication. This hook is fully compatible wi
 - `redirect.encodeToken(options)`: Create a secure token for state management
 - `redirect.validateToken(options)`: Validate a token from the request
 
+#### 6. `onExecutePreUserDeletion`
+
+Triggered before a user deletion is executed. This allows you to validate the deletion request, perform pre-deletion checks, or cancel the deletion if needed.
+
+**Event Data:**
+
+- `ctx`: Hono context object
+- `user`: The user object being deleted
+- `user_id`: The ID of the user being deleted
+- `tenant`: Object containing the tenant ID
+- `request`: Request details (IP, user agent, method, URL)
+
+**API Methods:**
+
+- `cancel()`: Cancel the deletion operation
+
+**Note:** If the hook throws an error or calls `cancel()`, the deletion will be prevented. This is useful for implementing deletion policies, checking for dependencies, or requiring additional confirmation.
+
+#### 7. `onExecutePostUserDeletion`
+
+Triggered after a user has been successfully deleted. This allows you to perform cleanup operations, send notifications, or log the deletion for audit purposes.
+
+**Event Data:**
+
+- `ctx`: Hono context object
+- `user`: The user object that was deleted
+- `user_id`: The ID of the user that was deleted
+- `tenant`: Object containing the tenant ID
+- `request`: Request details (IP, user agent, method, URL)
+
+**API Methods:**
+
+- (No API methods - this is an informational hook only)
+
+**Note:** Unlike Auth0 which doesn't have built-in user deletion action triggers, AuthHero provides both pre and post deletion hooks to help with compliance requirements (GDPR, etc.) and cleanup operations. The post-deletion hook runs after successful deletion, so errors in this hook are logged but don't affect the deletion result.
+
 ### Configuring Programmatic Hooks
 
 AuthHero supports two ways to configure hooks:
@@ -218,6 +280,32 @@ const env = {
       if (event.user?.requires_terms_acceptance) {
         api.prompt.render("terms-acceptance-form");
       }
+    },
+
+    onExecutePreUserDeletion: async (event, api) => {
+      // Validate deletion - prevent deletion of admin users
+      if (event.user.app_metadata?.role === "admin") {
+        api.cancel(); // This will prevent the deletion
+        return;
+      }
+
+      // Check for dependencies
+      const hasActiveSubscription = await checkUserSubscription(event.user_id);
+      if (hasActiveSubscription) {
+        api.cancel();
+        return;
+      }
+    },
+
+    onExecutePostUserDeletion: async (event, api) => {
+      // Perform cleanup operations after user is deleted
+      await deleteUserDataFromExternalSystems(event.user_id);
+      await sendAccountDeletionEmail(event.user.email);
+
+      // Log for audit purposes
+      console.log(
+        `User ${event.user_id} deleted from tenant ${event.tenant.id}`,
+      );
     },
   },
   // Other environment configuration...
@@ -369,9 +457,49 @@ onExecutePostLogin: async (event, api) => {
 
 Programmatic hooks have built-in error handling:
 
-- **Pre-hooks** (e.g., `onExecutePreUserRegistration`, `onExecutePreUserUpdate`): If a hook throws an error, the operation is logged but continues by default, unless the hook explicitly cancels the operation
-- **Post-hooks** (e.g., `onExecutePostUserRegistration`, `onExecutePostLogin`): Errors are logged but don't affect the primary operation
-- **Credentials Exchange hooks**: Errors can deny access using the `access.deny()` method
+- **Pre-hooks** (e.g., `onExecutePreUserRegistration`, `onExecutePreUserUpdate`, `onExecutePreUserDeletion`):
+  - If a hook throws an error, the operation is prevented
+  - The `cancel()` API method can be called to explicitly cancel the operation
+  - Errors are logged and the operation stops
+- **Post-hooks** (e.g., `onExecutePostUserRegistration`, `onExecutePostLogin`, `onExecutePostUserDeletion`):
+  - Errors are logged but don't affect the primary operation
+  - The operation has already completed when these hooks run
+- **Credentials Exchange hooks**:
+  - Errors can deny access using the `access.deny()` method
+
+### Hook Execution Order
+
+Understanding when hooks execute is important for proper implementation:
+
+**User Registration Flow:**
+
+1. `onExecutePreUserRegistration` - Before user is created (can modify user data)
+2. User is created in database
+3. `onExecutePostUserRegistration` - After user is created (informational)
+
+**User Update Flow:**
+
+1. `onExecutePreUserUpdate` - Before user is updated (can modify or cancel update)
+2. User is updated in database
+3. Account linking checks (if email changed)
+
+**User Deletion Flow:**
+
+1. `onExecutePreUserDeletion` - Before user is deleted (can cancel deletion)
+2. User is deleted from database
+3. Deletion is logged
+4. `onExecutePostUserDeletion` - After user is deleted (cleanup operations)
+
+**Login Flow:**
+
+1. User authentication occurs
+2. `onExecutePostLogin` - After authentication (can redirect or add form)
+3. Tokens are issued (or redirect happens)
+
+**Token Exchange Flow:**
+
+1. `onExecuteCredentialsExchange` - Before tokens are issued (can modify claims or deny)
+2. Tokens are generated and returned
 
 ### Combining Programmatic and Management API Hooks
 

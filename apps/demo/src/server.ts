@@ -8,6 +8,8 @@ import {
   Bindings,
   HookEvent,
   OnExecutePostLoginAPI,
+  OnExecutePreUserDeletionAPI,
+  OnExecutePostUserDeletionAPI,
   Variables,
 } from "authhero";
 import Database from "better-sqlite3";
@@ -39,6 +41,25 @@ const server = {
             console.log("onExecutePostLogin hook triggered");
             return event.user;
           },
+          onExecutePreUserDeletion: async (
+            event: HookEvent & { user_id: string },
+            api: OnExecutePreUserDeletionAPI,
+          ) => {
+            console.log(
+              `onExecutePreUserDeletion hook triggered for user: ${event.user_id}`,
+            );
+            // Example: Validate deletion, check dependencies, etc.
+            // api.cancel() to prevent deletion if needed
+          },
+          onExecutePostUserDeletion: async (
+            event: HookEvent & { user_id: string },
+            api: OnExecutePostUserDeletionAPI,
+          ) => {
+            console.log(
+              `onExecutePostUserDeletion hook triggered for user: ${event.user_id}`,
+            );
+            // Example: Send notification, cleanup external systems, etc.
+          },
         },
       };
 
@@ -55,6 +76,22 @@ const server = {
           ) => {
             console.log("onExecutePostLogin hook triggered");
             return event.user;
+          },
+          onExecutePreUserDeletion: async (
+            event: HookEvent & { user_id: string },
+            api: OnExecutePreUserDeletionAPI,
+          ) => {
+            console.log(
+              `onExecutePreUserDeletion hook triggered for user: ${event.user_id}`,
+            );
+          },
+          onExecutePostUserDeletion: async (
+            event: HookEvent & { user_id: string },
+            api: OnExecutePostUserDeletionAPI,
+          ) => {
+            console.log(
+              `onExecutePostUserDeletion hook triggered for user: ${event.user_id}`,
+            );
           },
         },
       },

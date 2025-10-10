@@ -41,6 +41,10 @@ features:
   - icon: 🔌
     title: Auth0 Compatible
     details: Drop-in replacement for Auth0 with compatibility proxy. Migrate existing applications with minimal changes.
+
+  - icon: 🪝
+    title: Advanced Hooks
+    details: Comprehensive lifecycle hooks including user deletion hooks (not available in Auth0). Full control over authentication flows.
 ---
 
 ## Quick Start

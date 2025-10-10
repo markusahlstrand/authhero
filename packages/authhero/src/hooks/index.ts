@@ -117,7 +117,6 @@ function createUserUpdateHooks(
       url: ctx.req.url,
     };
 
-    // Hooks don't seem to be called when you link a user. You'll need to set them from the external call
     // Call pre-user-update hooks if configured
     if (ctx.env.hooks?.onExecutePreUserUpdate) {
       try {
@@ -238,12 +237,56 @@ function createUserDeletionHooks(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user_id: string) => {
-    // Get user details before deletion for logging
+    // Get user details before deletion for logging and hooks
     const userToDelete = await data.users.get(tenant_id, user_id);
 
     // If user doesn't exist, return false immediately
     if (!userToDelete) {
       return false;
+    }
+
+    // Build request object for hooks
+    const request: HookRequest = {
+      method: ctx.req.method,
+      ip: ctx.var.ip || ctx.get("ip") || "",
+      user_agent: ctx.var.useragent || ctx.get("useragent") || "",
+      url: ctx.req.url,
+    };
+
+    // Call pre-user-deletion hook if configured
+    if (ctx.env.hooks?.onExecutePreUserDeletion) {
+      try {
+        await ctx.env.hooks.onExecutePreUserDeletion(
+          {
+            ctx,
+            user: userToDelete,
+            user_id,
+            request,
+            tenant: {
+              id: tenant_id,
+            },
+          },
+          {
+            cancel: () => {
+              throw new HTTPException(400, {
+                message: "User deletion cancelled by pre-deletion hook",
+              });
+            },
+          },
+        );
+      } catch (err) {
+        if (err instanceof HTTPException) {
+          throw err;
+        }
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Pre user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        await data.logs.create(tenant_id, log);
+        throw new HTTPException(400, {
+          message: "Pre user deletion hook failed",
+        });
+      }
     }
 
     // Proceed with deletion
@@ -272,6 +315,31 @@ function createUserDeletionHooks(
       };
 
       await data.logs.create(tenant_id, log);
+    }
+
+    // Call post-user-deletion hook if configured (after successful deletion)
+    if (result && ctx.env.hooks?.onExecutePostUserDeletion) {
+      try {
+        await ctx.env.hooks.onExecutePostUserDeletion(
+          {
+            ctx,
+            user: userToDelete,
+            user_id,
+            request,
+            tenant: {
+              id: tenant_id,
+            },
+          },
+          {},
+        );
+      } catch (err) {
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        await data.logs.create(tenant_id, log);
+        // Don't throw - user is already deleted
+      }
     }
 
     return result;

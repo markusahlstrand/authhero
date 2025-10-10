@@ -183,3 +183,21 @@ export type OnExecutePostLogin = (
   event: HookEvent,
   api: OnExecutePostLoginAPI,
 ) => Promise<void>;
+
+export type OnExecutePreUserDeletionAPI = {
+  cancel: () => void;
+};
+
+export type OnExecutePreUserDeletion = (
+  event: HookEvent & { user_id: string },
+  api: OnExecutePreUserDeletionAPI,
+) => Promise<void>;
+
+export type OnExecutePostUserDeletionAPI = {
+  // No API methods for post-deletion - it's informational only
+};
+
+export type OnExecutePostUserDeletion = (
+  event: HookEvent & { user_id: string },
+  api: OnExecutePostUserDeletionAPI,
+) => Promise<void>;
