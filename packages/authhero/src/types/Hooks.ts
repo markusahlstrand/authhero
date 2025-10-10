@@ -109,6 +109,13 @@ export type HookEvent = {
   };
 };
 
+export type TokenAPI = {
+  createServiceToken: (params: {
+    scope: string;
+    expiresInSeconds?: number;
+  }) => Promise<string>;
+};
+
 export type OnExecuteCredentialsExchangeAPI = {
   accessToken: {
     setCustomClaim: (claim: string, value: any) => void;
@@ -119,6 +126,7 @@ export type OnExecuteCredentialsExchangeAPI = {
   access: {
     deny: (code: string, reason?: string) => void;
   };
+  token: TokenAPI;
 };
 
 export type OnExecuteCredentialsExchange = (
@@ -130,10 +138,12 @@ export type OnExecutePreUserRegistrationAPI = {
   user: {
     setUserMetadata: (key: string, value: any) => void;
   };
+  token: TokenAPI;
 };
 
 export type OnExecutePostUserRegistrationAPI = {
   user: {};
+  token: TokenAPI;
 };
 
 export type OnExecutePreUserRegistration = (
@@ -151,6 +161,7 @@ export type OnExecutePreUserUpdateAPI = {
     setUserMetadata: (key: string, value: any) => void;
   };
   cancel: () => void;
+  token: TokenAPI;
 };
 
 export type OnExecutePreUserUpdate = (
@@ -177,6 +188,7 @@ export type OnExecutePostLoginAPI = {
       tokenParameterName?: string;
     }) => Record<string, any> | null;
   };
+  token: TokenAPI;
 };
 
 export type OnExecutePostLogin = (
@@ -186,6 +198,7 @@ export type OnExecutePostLogin = (
 
 export type OnExecutePreUserDeletionAPI = {
   cancel: () => void;
+  token: TokenAPI;
 };
 
 export type OnExecutePreUserDeletion = (
@@ -194,7 +207,7 @@ export type OnExecutePreUserDeletion = (
 ) => Promise<void>;
 
 export type OnExecutePostUserDeletionAPI = {
-  // No API methods for post-deletion - it's informational only
+  token: TokenAPI;
 };
 
 export type OnExecutePostUserDeletion = (

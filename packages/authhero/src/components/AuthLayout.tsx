@@ -50,15 +50,19 @@ const AuthLayout = ({
 
   // Determine the layout classes based on page_layout
   let justifyClass = "justify-center";
+  let paddingClass = "p-6 md:p-10";
   if (pageLayout === "left") {
     justifyClass = "justify-start";
+    paddingClass = "pl-12 pr-6 py-6 md:pl-20 md:pr-10 md:py-10";
   } else if (pageLayout === "right") {
     justifyClass = "justify-end";
+    paddingClass = "pr-12 pl-6 py-6 md:pr-20 md:pl-10 md:py-10";
   }
 
   const containerClasses = cn(
-    "min-h-screen w-full flex items-center p-6 md:p-10 bg-cover bg-center",
+    "min-h-screen w-full flex items-center bg-cover bg-center",
     justifyClass,
+    paddingClass,
   );
 
   const inlineStyles = {
@@ -100,7 +104,25 @@ const AuthLayout = ({
 
       <body>
         <div className={containerClasses} style={inlineStyles}>
-          <div className="w-full max-w-sm">{children}</div>
+          <div className="w-full max-w-sm">
+            {children}
+            {branding?.powered_by_logo_url && (
+              <div className="mt-5 text-left">
+                <a
+                  href="https://authhero.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <img
+                    src={branding.powered_by_logo_url}
+                    alt="Powered by"
+                    className="h-9 opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </body>
       {html`

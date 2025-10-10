@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.22.0
+
+### Minor Changes
+
+- Add new events and update chadcn layout
+
+### Patch Changes
+
+- Updated dependencies
+  - authhero@0.241.0
+  - @authhero/kysely-adapter@10.50.1
+
 ## 0.21.6
 
 ### Patch Changes

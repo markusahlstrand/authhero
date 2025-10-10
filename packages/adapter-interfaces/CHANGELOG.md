@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.93.0
+
+### Minor Changes
+
+- Add new events and update chadcn layout
+
 ## 0.92.0
 
 ### Minor Changes

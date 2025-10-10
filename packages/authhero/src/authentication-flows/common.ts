@@ -161,6 +161,23 @@ export async function createAuthTokens(
             });
           },
         },
+        token: {
+          createServiceToken: async (params: {
+            scope: string;
+            expiresInSeconds?: number;
+          }) => {
+            const { createServiceToken } = await import(
+              "../helpers/service-token"
+            );
+            const tokenResponse = await createServiceToken(
+              ctx,
+              ctx.var.tenant_id,
+              params.scope,
+              params.expiresInSeconds,
+            );
+            return tokenResponse.access_token;
+          },
+        },
       },
     );
   }

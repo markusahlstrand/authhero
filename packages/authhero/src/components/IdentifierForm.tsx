@@ -176,7 +176,7 @@ const IdentifierForm: FC<Props> = ({
         </CardHeader>
         <CardContent>
           <form method="post">
-            <div className="flex flex-col gap-6">
+            <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="username" style={bodyStyle}>
                   {i18next.t(authMethodKey, "Email")}
@@ -203,26 +203,60 @@ const IdentifierForm: FC<Props> = ({
               >
                 {i18next.t("continue", "Continue")}
               </Button>
-              {socialConnections.map((config) => {
-                const Logo = config.logo;
-                return (
-                  <a
-                    key={config.name}
-                    href={`/authorize/redirect?state=${loginSession.id}&connection=${config.name}`}
-                    className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 border bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-10 px-4 py-2 w-full"
+              {socialConnections.length > 0 && (
+                <>
+                  <div
+                    className="relative text-center"
                     style={{
-                      borderColor: inputBorder,
-                      borderRadius: `${buttonBorderRadius}px`,
-                      color: bodyText,
+                      color:
+                        theme?.colors?.input_labels_placeholders || "#6b7280",
+                      fontSize: `${bodySize}px`,
                     }}
                   >
-                    <Logo className="h-5 w-5" />
-                    {i18next.t("continue_with", "Login with {{provider}}", {
-                      provider: config.displayName,
+                    <div
+                      className="absolute left-0 right-0 top-1/2 border-b"
+                      style={{ borderColor: widgetBorder }}
+                    />
+                    <div
+                      className="relative inline-block px-2"
+                      style={{ backgroundColor: widgetBackground }}
+                    >
+                      {i18next.t("or", "Or")}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 sm:flex-col short:flex-row">
+                    {socialConnections.map((config) => {
+                      const Logo = config.logo;
+                      return (
+                        <a
+                          key={config.name}
+                          href={`/authorize/redirect?state=${loginSession.id}&connection=${config.name}`}
+                          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 border bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-10 px-4 py-2 w-full sm:w-full short:flex-1"
+                          style={{
+                            borderColor: inputBorder,
+                            borderRadius: `${buttonBorderRadius}px`,
+                            color: bodyText,
+                          }}
+                        >
+                          <Logo className="h-5 w-5" />
+                          <span className="sm:inline short:hidden">
+                            {i18next.t(
+                              "continue_with",
+                              "Login with {{provider}}",
+                              {
+                                provider: config.displayName,
+                              },
+                            )}
+                          </span>
+                          <span className="hidden short:inline">
+                            {config.displayName}
+                          </span>
+                        </a>
+                      );
                     })}
-                  </a>
-                );
-              })}
+                  </div>
+                </>
+              )}
             </div>
           </form>
         </CardContent>

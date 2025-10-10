@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.240.0",
+  "version": "0.241.0",
   "files": [
     "dist"
   ],
@@ -9,9 +9,9 @@
   "types": "dist/authhero.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/authhero.d.ts",
       "require": "./dist/authhero.cjs",
-      "import": "./dist/authhero.mjs",
-      "types": "./dist/authhero.d.ts"
+      "import": "./dist/authhero.mjs"
     },
     "./styles": {
       "import": "./dist/tailwind.css",

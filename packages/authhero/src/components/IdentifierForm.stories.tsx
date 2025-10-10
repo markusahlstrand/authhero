@@ -94,6 +94,7 @@ const mockTheme: Theme = {
 
 const mockBranding: Branding = {
   logo_url: "http://acmelogos.com/images/logo-5.svg",
+  powered_by_logo_url: "http://acmelogos.com/images/logo-5.svg",
   colors: {
     primary: "#0066cc",
   },

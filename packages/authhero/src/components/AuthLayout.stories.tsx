@@ -181,6 +181,14 @@ const darkTheme: Theme = {
 
 const mockBranding: Branding = {
   logo_url: "http://acmelogos.com/images/logo-5.svg",
+  powered_by_logo_url: "http://acmelogos.com/images/logo-5.svg",
+  colors: {
+    primary: "#0066cc",
+  },
+};
+
+const mockBrandingWithoutPoweredBy: Branding = {
+  logo_url: "http://acmelogos.com/images/logo-5.svg",
   colors: {
     primary: "#0066cc",
   },
@@ -293,7 +301,7 @@ export const LeftLayout: Story = {
   args: {
     title: "Sign In - Left Aligned",
     theme: leftLayoutTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -323,7 +331,7 @@ export const RightLayout: Story = {
   args: {
     title: "Sign In - Right Aligned",
     theme: rightLayoutTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -353,7 +361,7 @@ export const GradientBackground: Story = {
   args: {
     title: "Sign In - Gradient Background",
     theme: gradientBackgroundTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -383,7 +391,7 @@ export const ImageBackground: Story = {
   args: {
     title: "Sign In - Image Background",
     theme: imageBackgroundTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -413,7 +421,7 @@ export const DarkTheme: Story = {
   args: {
     title: "Sign In - Dark Theme",
     theme: darkTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -449,7 +457,7 @@ export const NoLogo: Story = {
         logo_position: "none",
       },
     },
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
 
@@ -481,6 +489,6 @@ export const MultipleComponents: Story = {
   args: {
     title: "Sign In - Layout Flexibility",
     theme: mockTheme,
-    branding: mockBranding,
+    branding: mockBrandingWithoutPoweredBy,
   },
 };
