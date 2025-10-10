@@ -42,3 +42,31 @@ The authentication flow uses a universal login system:
 2. Authentication can be via password, code, or social providers
 3. Upon successful authentication, users receive a session
 4. The session is tenant-specific
+
+## Hooks
+
+Hooks are a powerful extensibility mechanism that allows you to customize the authentication and user lifecycle at various points. AuthHero supports both URL-based webhooks and programmatic hooks defined in code.
+
+### Types of Hooks
+
+**Programmatic Hooks**: Defined directly in your application code during initialization. These provide synchronous, server-side customization capabilities:
+
+- `onExecutePreUserRegistration` - Before a user is created
+- `onExecutePostUserRegistration` - After a user is created
+- `onExecutePreUserUpdate` - Before a user is updated
+- `onExecutePreUserDeletion` - Before a user is deleted (AuthHero-specific)
+- `onExecutePostUserDeletion` - After a user is deleted (AuthHero-specific)
+- `onExecutePostLogin` - After successful authentication
+- `onExecuteCredentialsExchange` - Before tokens are issued
+
+**URL Hooks**: Configured through the Management API to call external webhooks at specific trigger points.
+
+**Form Hooks**: Unique to AuthHero, these render custom forms within the authentication flow for progressive profiling or consent gathering.
+
+### Key Differences from Auth0
+
+- **User Deletion Hooks**: AuthHero provides both pre and post deletion hooks, which Auth0 doesn't offer natively
+- **Form Hooks**: AuthHero can render custom forms directly in the authentication flow
+- **Continued Support**: While Auth0 deprecated their legacy Hooks in 2024, AuthHero continues to support and expand this functionality
+
+[Learn more about Hooks →](/auth0-comparison/hooks)

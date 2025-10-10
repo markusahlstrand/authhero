@@ -73,6 +73,12 @@ const config: AuthHeroConfig = {
     onExecutePreUserUpdate: async (event, api) => {
       // Validate or modify user data before update
     },
+    onExecutePreUserDeletion: async (event, api) => {
+      // Validate or cancel user deletion
+    },
+    onExecutePostUserDeletion: async (event, api) => {
+      // Cleanup after user deletion
+    },
     onExecutePostLogin: async (event, api) => {
       // Perform actions after successful login
     },
@@ -88,7 +94,7 @@ const config: AuthHeroConfig = {
 onExecuteCredentialsExchange: async (event, api) => {
   api.accessToken.setCustomClaim("roles", ["admin", "user"]);
   api.idToken.setCustomClaim("organization", "acme-corp");
-}
+};
 ```
 
 #### `onExecutePreUserRegistration` - Set initial metadata
@@ -96,7 +102,7 @@ onExecuteCredentialsExchange: async (event, api) => {
 ```typescript
 onExecutePreUserRegistration: async (event, api) => {
   api.user.setUserMetadata("signup_source", "web");
-}
+};
 ```
 
 #### `onExecutePostLogin` - Custom redirects
@@ -106,7 +112,7 @@ onExecutePostLogin: async (event, api) => {
   api.redirect.sendUserTo("https://example.com/welcome", {
     query: { user_id: event.user?.user_id },
   });
-}
+};
 ```
 
 For complete hook documentation including all event data, API methods, and advanced use cases, see the [Hooks Documentation](../../auth0-comparison/hooks.md).
@@ -223,7 +229,7 @@ The `powered_by_logo_url` field is available in the API. When set, it displays a
 ```typescript
 {
   font: {
-    url: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+    url: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap";
   }
 }
 ```
@@ -239,13 +245,10 @@ import { createKyselyAdapter } from "@authhero/kysely";
 const config: AuthHeroConfig = {
   // Required: Database adapter
   dataAdapter: createKyselyAdapter(db),
-  
+
   // Optional: CORS configuration
-  allowedOrigins: [
-    "https://app.example.com",
-    "https://example.com"
-  ],
-  
+  allowedOrigins: ["https://app.example.com", "https://example.com"],
+
   // Optional: Hooks for custom logic
   hooks: {
     onExecuteCredentialsExchange: async (event, api) => {
@@ -253,32 +256,35 @@ const config: AuthHeroConfig = {
       if (event.user?.app_metadata?.role) {
         api.accessToken.setCustomClaim("role", event.user.app_metadata.role);
       }
-      
+
       // Add organization info
       if (event.organization) {
         api.idToken.setCustomClaim("org_id", event.organization.id);
       }
     },
-    
+
     onExecutePreUserRegistration: async (event, api) => {
       // Set default user metadata
       api.user.setUserMetadata("created_via", "signup_form");
       api.user.setUserMetadata("terms_accepted", true);
     },
-    
+
     onExecutePostUserRegistration: async (event, api) => {
       // Log registration for analytics
       console.log(`User registered: ${event.user?.email}`);
     },
-    
+
     onExecutePreUserUpdate: async (event, api) => {
       // Track update timestamp
       api.user.setUserMetadata("updated_at", new Date().toISOString());
     },
-    
+
     onExecutePostLogin: async (event, api) => {
       // Check if MFA is required
-      if (event.user?.app_metadata?.require_mfa && !event.authentication?.methods.find(m => m.name === "mfa")) {
+      if (
+        event.user?.app_metadata?.require_mfa &&
+        !event.authentication?.methods.find((m) => m.name === "mfa")
+      ) {
         api.prompt.render("mfa-challenge");
       }
     },

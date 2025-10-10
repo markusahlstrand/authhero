@@ -2,6 +2,32 @@
 
 Auth0 made the decision to deprecate its Hooks feature in October 2024, moving towards Actions as the primary way to customize authentication flows. While Actions offer powerful capabilities, AuthHero continues to support a flexible Hooks system that provides distinct advantages, especially for certain use cases.
 
+## Quick Comparison
+
+| Feature                    | Auth0 Actions             | AuthHero Hooks       |
+| -------------------------- | ------------------------- | -------------------- |
+| **Status**                 | Active (Hooks deprecated) | Active & expanding   |
+| **Pre-User Registration**  | ✅                        | ✅                   |
+| **Post-User Registration** | ✅                        | ✅                   |
+| **Post-Login**             | ✅                        | ✅                   |
+| **Pre-User Update**        | ❌ Limited                | ✅ Full support      |
+| **Pre-User Deletion**      | ❌ Not available          | ✅ **AuthHero-only** |
+| **Post-User Deletion**     | ❌ Not available          | ✅ **AuthHero-only** |
+| **Credentials Exchange**   | ✅                        | ✅                   |
+| **Form Rendering**         | ❌                        | ✅ **AuthHero-only** |
+| **URL Webhooks**           | ✅                        | ✅                   |
+
+::: tip User Deletion Hooks - AuthHero Exclusive
+Auth0 does not provide action triggers for user deletion, making it difficult to:
+
+- Validate deletion requests based on business rules
+- Clean up related data in external systems
+- Send deletion notifications to users
+- Maintain proper audit trails for GDPR/compliance
+
+AuthHero solves this with both **pre** and **post** deletion hooks, giving you full control over the user deletion lifecycle.
+:::
+
 ## AuthHero's Approach to Hooks
 
 AuthHero's Hooks are designed to be a straightforward way to intercept and modify various stages of the authentication and user lifecycle. A key differentiator in AuthHero is the dual nature of its hooks:
@@ -21,11 +47,11 @@ AuthHero's Hooks are designed to be a straightforward way to intercept and modif
 The following trigger points are available for both URL and Form hooks via the Management API:
 
 - `pre-user-signup` - Before a new user is created
-- `post-user-registration` - After a new user is successfully created  
+- `post-user-registration` - After a new user is successfully created
 - `post-user-login` - After successful authentication
 
 ::: info Note on User Deletion and Updates
-URL and Form hooks do not currently support user deletion (`pre-user-deletion`, `post-user-deletion`) or user update (`pre-user-update`, `post-user-update`) triggers. However, these events can be handled using **programmatic hooks** (see below) which provide more direct access to the authentication flow.
+URL and Form hooks do not currently support user deletion or user update triggers. However, these events can be handled using **programmatic hooks** (see below) which provide more direct access to the authentication flow.
 :::
 
 ## Key Differences Summarized
@@ -46,20 +72,17 @@ In addition to URL and Form hooks configured through the Management API, AuthHer
 
 AuthHero supports the following programmatic hooks that can be configured when initializing your application:
 
-::: info Note on User Deletion
-Currently, AuthHero does not expose a programmatic hook for user deletion (e.g., `onExecutePreUserDeletion` or `onExecutePostUserDeletion`). User deletions are logged automatically by the system. If you need to perform actions before or after user deletion, you can implement this logic in your application layer before calling the Management API's delete user endpoint.
-:::
-
 ### Hook Availability Comparison
 
-| Event/Trigger | URL/Form Hooks (Management API) | Programmatic Hooks (Config) |
-|--------------|----------------------------------|------------------------------|
-| Pre User Signup | ✅ `pre-user-signup` | ✅ `onExecutePreUserRegistration` |
-| Post User Registration | ✅ `post-user-registration` | ✅ `onExecutePostUserRegistration` |
-| Post User Login | ✅ `post-user-login` | ✅ `onExecutePostLogin` |
-| Pre User Update | ❌ Not Available | ✅ `onExecutePreUserUpdate` |
-| Credentials Exchange | ❌ Not Available | ✅ `onExecuteCredentialsExchange` |
-| User Deletion | ❌ Not Available | ❌ Not Available |
+| Event/Trigger          | URL/Form Hooks (Management API) | Programmatic Hooks (Config)        |
+| ---------------------- | ------------------------------- | ---------------------------------- |
+| Pre User Signup        | ✅ `pre-user-signup`            | ✅ `onExecutePreUserRegistration`  |
+| Post User Registration | ✅ `post-user-registration`     | ✅ `onExecutePostUserRegistration` |
+| Post User Login        | ✅ `post-user-login`            | ✅ `onExecutePostLogin`            |
+| Pre User Update        | ❌ Not Available                | ✅ `onExecutePreUserUpdate`        |
+| Pre User Deletion      | ❌ Not Available                | ✅ `onExecutePreUserDeletion`      |
+| Post User Deletion     | ❌ Not Available                | ✅ `onExecutePostUserDeletion`     |
+| Credentials Exchange   | ❌ Not Available                | ✅ `onExecuteCredentialsExchange`  |
 
 **Note:** Programmatic hooks provide more direct access to the authentication flow and are executed synchronously within your application. URL/Form hooks are configured via the Management API and can be modified without code changes.
 
@@ -146,6 +169,42 @@ Triggered after successful user authentication. This hook is fully compatible wi
 - `redirect.sendUserTo(url, options?)`: Redirect user to a specific URL (Auth0-compatible)
 - `redirect.encodeToken(options)`: Create a secure token for state management
 - `redirect.validateToken(options)`: Validate a token from the request
+
+#### 6. `onExecutePreUserDeletion`
+
+Triggered before a user deletion is executed. This allows you to validate the deletion request, perform pre-deletion checks, or cancel the deletion if needed.
+
+**Event Data:**
+
+- `ctx`: Hono context object
+- `user`: The user object being deleted
+- `user_id`: The ID of the user being deleted
+- `tenant`: Object containing the tenant ID
+- `request`: Request details (IP, user agent, method, URL)
+
+**API Methods:**
+
+- `cancel()`: Cancel the deletion operation
+
+**Note:** If the hook throws an error or calls `cancel()`, the deletion will be prevented. This is useful for implementing deletion policies, checking for dependencies, or requiring additional confirmation.
+
+#### 7. `onExecutePostUserDeletion`
+
+Triggered after a user has been successfully deleted. This allows you to perform cleanup operations, send notifications, or log the deletion for audit purposes.
+
+**Event Data:**
+
+- `ctx`: Hono context object
+- `user`: The user object that was deleted
+- `user_id`: The ID of the user that was deleted
+- `tenant`: Object containing the tenant ID
+- `request`: Request details (IP, user agent, method, URL)
+
+**API Methods:**
+
+- (No API methods - this is an informational hook only)
+
+**Note:** Unlike Auth0 which doesn't have built-in user deletion action triggers, AuthHero provides both pre and post deletion hooks to help with compliance requirements (GDPR, etc.) and cleanup operations. The post-deletion hook runs after successful deletion, so errors in this hook are logged but don't affect the deletion result.
 
 ### Configuring Programmatic Hooks
 
@@ -246,6 +305,32 @@ const env = {
       if (event.user?.requires_terms_acceptance) {
         api.prompt.render("terms-acceptance-form");
       }
+    },
+
+    onExecutePreUserDeletion: async (event, api) => {
+      // Validate deletion - prevent deletion of admin users
+      if (event.user.app_metadata?.role === "admin") {
+        api.cancel(); // This will prevent the deletion
+        return;
+      }
+
+      // Check for dependencies
+      const hasActiveSubscription = await checkUserSubscription(event.user_id);
+      if (hasActiveSubscription) {
+        api.cancel();
+        return;
+      }
+    },
+
+    onExecutePostUserDeletion: async (event, api) => {
+      // Perform cleanup operations after user is deleted
+      await deleteUserDataFromExternalSystems(event.user_id);
+      await sendAccountDeletionEmail(event.user.email);
+
+      // Log for audit purposes
+      console.log(
+        `User ${event.user_id} deleted from tenant ${event.tenant.id}`,
+      );
     },
   },
   // Other environment configuration...
@@ -400,8 +485,44 @@ Programmatic hooks have built-in error handling that varies by hook type:
 - **`onExecutePreUserRegistration`**: If the hook throws an error, it is logged but the registration continues. The error does not block user creation.
 - **`onExecutePostUserRegistration`**: If the hook throws an error, it is logged but does not affect the completed registration.
 - **`onExecutePreUserUpdate`**: If the hook throws an error or calls `api.cancel()`, the update operation is blocked and an HTTP 400 error is returned to the client.
+- **`onExecutePreUserDeletion`**: If the hook throws an error or calls `api.cancel()`, the deletion operation is blocked and prevented.
+- **`onExecutePostUserDeletion`**: Errors are logged but don't affect the deletion (the user has already been deleted).
 - **`onExecuteCredentialsExchange`**: Errors can deny access using the `api.access.deny()` method. Other errors are logged and may affect token generation.
 - **`onExecutePostLogin`**: Errors are logged but typically don't prevent the login from completing. However, redirects and form prompts can modify the authentication flow.
+
+### Hook Execution Order
+
+Understanding when hooks execute is important for proper implementation:
+
+**User Registration Flow:**
+
+1. `onExecutePreUserRegistration` - Before user is created (can modify user data)
+2. User is created in database
+3. `onExecutePostUserRegistration` - After user is created (informational)
+
+**User Update Flow:**
+
+1. `onExecutePreUserUpdate` - Before user is updated (can modify or cancel update)
+2. User is updated in database
+3. Account linking checks (if email changed)
+
+**User Deletion Flow:**
+
+1. `onExecutePreUserDeletion` - Before user is deleted (can cancel deletion)
+2. User is deleted from database
+3. Deletion is logged
+4. `onExecutePostUserDeletion` - After user is deleted (cleanup operations)
+
+**Login Flow:**
+
+1. User authentication occurs
+2. `onExecutePostLogin` - After authentication (can redirect or add form)
+3. Tokens are issued (or redirect happens)
+
+**Token Exchange Flow:**
+
+1. `onExecuteCredentialsExchange` - Before tokens are issued (can modify claims or deny)
+2. Tokens are generated and returned
 
 ### Combining Programmatic and Management API Hooks
 
@@ -420,137 +541,121 @@ AuthHero allows you to use both programmatic hooks and Management API hooks (URL
 
 This dual approach provides maximum flexibility, allowing you to handle core business logic in code while providing configurable extension points for specific use cases.
 
-## Handling User Deletion
+## User Deletion Best Practices
 
-While AuthHero does not currently expose hooks for user deletion events, you can implement custom logic in your application layer when users are deleted. Here are recommended approaches:
+With the addition of `onExecutePreUserDeletion` and `onExecutePostUserDeletion` hooks, you have full control over the user deletion lifecycle. Here are recommended practices:
 
-### Approach 1: Wrapper Function
+### Pre-Deletion Validation
 
-Create a wrapper function around the Management API's delete user endpoint:
-
-```typescript
-import { ManagementClient } from '@authhero/management-api';
-
-async function deleteUserWithHooks(
-  managementClient: ManagementClient,
-  tenantId: string,
-  userId: string
-) {
-  // Pre-deletion logic
-  const user = await managementClient.users.get(tenantId, userId);
-  
-  // Perform any cleanup needed
-  await cleanupUserData(user);
-  await notifyExternalSystems(user);
-  await archiveUserRecords(user);
-  
-  // Perform the actual deletion
-  const result = await managementClient.users.delete(tenantId, userId);
-  
-  // Post-deletion logic
-  if (result) {
-    await sendDeletionConfirmation(user.email);
-    await updateAnalytics('user_deleted', { user_id: userId });
-  }
-  
-  return result;
-}
-```
-
-### Approach 2: Event-Driven Architecture
-
-If you're using an event-driven architecture, emit events before and after deletion:
+Use `onExecutePreUserDeletion` to enforce business rules before deletion:
 
 ```typescript
-import { EventEmitter } from 'events';
+onExecutePreUserDeletion: async (event, api) => {
+  const user = await event.ctx.env.data.users.get(
+    event.tenant.id,
+    event.user_id,
+  );
 
-const userEvents = new EventEmitter();
-
-// Register event listeners
-userEvents.on('user:before-delete', async (user) => {
-  console.log(`Preparing to delete user ${user.user_id}`);
-  await cleanupUserSessions(user);
-});
-
-userEvents.on('user:after-delete', async (userId) => {
-  console.log(`User ${userId} deleted successfully`);
-  await notifyTeam(userId);
-});
-
-// In your deletion handler
-async function deleteUser(tenantId: string, userId: string) {
-  const user = await managementClient.users.get(tenantId, userId);
-  
-  // Emit pre-deletion event
-  await userEvents.emit('user:before-delete', user);
-  
-  // Delete the user
-  const result = await managementClient.users.delete(tenantId, userId);
-  
-  if (result) {
-    // Emit post-deletion event
-    await userEvents.emit('user:after-delete', userId);
+  // Prevent deletion of protected users
+  if (user?.app_metadata?.protected) {
+    console.log(`Blocked deletion of protected user: ${event.user_id}`);
+    api.cancel();
+    return;
   }
-  
-  return result;
-}
+
+  // Prevent deletion if user has active subscriptions
+  const hasActiveSubscription = await checkActiveSubscription(user);
+  if (hasActiveSubscription) {
+    console.log(`User ${event.user_id} has active subscription`);
+    api.cancel();
+    return;
+  }
+
+  // Log the deletion request
+  console.log(`User deletion approved for: ${event.user_id}`);
+};
 ```
 
-### Approach 3: Custom API Endpoint
+### Post-Deletion Cleanup
 
-Create a custom API endpoint in your application that wraps the Management API:
+Use `onExecutePostUserDeletion` for cleanup operations:
 
 ```typescript
-// POST /api/users/:userId/delete
-app.post('/api/users/:userId/delete', async (req, res) => {
-  const { userId } = req.params;
-  const tenantId = req.user.tenantId;
-  
-  try {
-    // Pre-deletion validation
-    const user = await managementClient.users.get(tenantId, userId);
-    
-    if (user.app_metadata?.protected) {
-      return res.status(403).json({ error: 'Cannot delete protected user' });
-    }
-    
-    // Pre-deletion actions
-    await revokeAllTokens(tenantId, userId);
-    await closeUserSessions(tenantId, userId);
-    await exportUserData(user); // GDPR compliance
-    
-    // Perform deletion
-    const result = await managementClient.users.delete(tenantId, userId);
-    
-    // Post-deletion actions
-    if (result) {
-      await auditLog.create({
-        action: 'user_deleted',
-        actor: req.user.id,
-        target: userId,
-        timestamp: new Date(),
-      });
-    }
-    
-    return res.json({ success: true });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+onExecutePostUserDeletion: async (event, api) => {
+  const userId = event.user_id;
+  const tenantId = event.tenant.id;
+
+  // Revoke all tokens
+  await revokeAllUserTokens(tenantId, userId);
+
+  // Clean up external systems
+  await removeFromCRM(userId);
+  await deleteFromAnalytics(userId);
+  await notifyExternalSystems("user_deleted", { user_id: userId });
+
+  // Send confirmation (if email available in event context)
+  if (event.user?.email) {
+    await sendDeletionConfirmation(event.user.email);
   }
-});
+
+  // Audit logging
+  console.log(`User ${userId} deleted and cleaned up successfully`);
+};
 ```
 
-### Best Practices for User Deletion
+### Compliance and Data Retention
 
-When implementing custom user deletion logic:
+When implementing deletion hooks, consider:
 
-1. **Data Retention**: Consider legal and compliance requirements (GDPR, CCPA, etc.)
-2. **Audit Trail**: Always log user deletions with actor, timestamp, and reason
+1. **GDPR/CCPA Compliance**: Export user data before deletion if required
+2. **Audit Trail**: Log who deleted the user and when
 3. **Cascade Deletion**: Clean up related data (sessions, tokens, preferences)
-4. **Soft Delete Option**: Consider implementing soft deletes for recovery
-5. **Confirmation**: Require explicit confirmation before permanent deletion
-6. **Backup**: Archive user data before deletion for compliance
-7. **Rate Limiting**: Implement rate limits to prevent accidental bulk deletions
+4. **Rate Limiting**: Implement rate limits to prevent accidental bulk deletions
+5. **Soft Delete Option**: Consider flagging users as deleted rather than removing them
+6. **Backup**: Archive critical user data before permanent deletion
+7. **Notification**: Notify relevant parties (user, admin, compliance team)
 
-::: tip Future Enhancement
-If user deletion hooks are important for your use case, please reach out to the AuthHero team or open a feature request on GitHub. The AuthHero team is actively developing the platform and considers user feedback when prioritizing new features.
-:::
+### Complete Example
+
+```typescript
+const config: AuthHeroConfig = {
+  dataAdapter: adapter,
+  hooks: {
+    onExecutePreUserDeletion: async (event, api) => {
+      const user = await event.ctx.env.data.users.get(
+        event.tenant.id,
+        event.user_id,
+      );
+
+      // Business rule validation
+      if (
+        user?.app_metadata?.role === "admin" &&
+        (await isLastAdmin(event.tenant.id))
+      ) {
+        console.error("Cannot delete last admin user");
+        api.cancel();
+        return;
+      }
+
+      // Export data for compliance
+      if (user) {
+        await exportUserDataForCompliance(user);
+      }
+
+      console.log(`Pre-deletion checks passed for user: ${event.user_id}`);
+    },
+
+    onExecutePostUserDeletion: async (event, api) => {
+      // Clean up all user-related data
+      await Promise.all([
+        revokeAllUserTokens(event.tenant.id, event.user_id),
+        deleteUserSessions(event.tenant.id, event.user_id),
+        removeFromExternalServices(event.user_id),
+        updateAnalytics("user_deleted", { user_id: event.user_id }),
+      ]);
+
+      console.log(`User ${event.user_id} fully deleted and cleaned up`);
+    },
+  },
+};
+```
