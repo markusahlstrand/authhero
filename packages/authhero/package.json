@@ -32,8 +32,8 @@
     "test": "vitest run",
     "pull-translations": "i18nexus pull --path ./src/locales",
     "watch-translations": "i18nexus listen --path ./src/locales",
-    "storybook": "pnpm build:shadcn && storybook dev -p 6006",
-    "build-storybook": "pnpm build:shadcn && storybook build -o ../../apps/docs/public/storybook"
+    "storybook": "pnpm build:tailwind && pnpm build:shadcn && storybook dev -p 6006",
+    "build-storybook": "pnpm build:tailwind && pnpm build:shadcn && storybook build -o ../../apps/docs/public/storybook"
   },
   "devDependencies": {
     "@ape-egg/tailwind-rows-columns": "^1.0.2",

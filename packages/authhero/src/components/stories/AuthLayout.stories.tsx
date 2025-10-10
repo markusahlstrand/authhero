@@ -1,8 +1,8 @@
 /** @jsxImportSource react */
 import { Meta, StoryObj } from "@storybook/react";
-import { HonoFullPageWrapper } from "../storybook-utils/HonoJSXWrapper";
-import AuthLayout from "./AuthLayout";
-import IdentifierForm from "./IdentifierForm";
+import { HonoFullPageWrapper } from "../../storybook-utils/HonoJSXWrapper";
+import AuthLayout from "../AuthLayout";
+import IdentifierForm from "../IdentifierForm";
 import type {
   LegacyClient,
   LoginSession,
