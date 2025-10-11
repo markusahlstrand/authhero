@@ -2,9 +2,12 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import ImpersonationPage from "../../components/ImpersonationPage";
+import ImpersonateForm from "../../components/ImpersonateForm";
+import AuthLayout from "../../components/AuthLayout";
 import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
+import i18next from "i18next";
 
 export const impersonateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -36,11 +39,12 @@ export const impersonateRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state } = ctx.req.valid("query");
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-        true, // Allow session since we need it for impersonation
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(
+          ctx,
+          state,
+          true, // Allow session since we need it for impersonation
+        );
 
       if (!loginSession.session_id) {
         throw new HTTPException(400, {
@@ -88,6 +92,25 @@ export const impersonateRoutes = new OpenAPIHono<{
             message="You do not have permission to impersonate other users."
           />,
           403,
+        );
+      }
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("impersonation", "Impersonation")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <ImpersonateForm
+              theme={theme}
+              branding={branding}
+              client={client}
+              user={user}
+              state={state}
+            />
+          </AuthLayout>,
         );
       }
 
@@ -218,11 +241,12 @@ export const impersonateRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { user_id } = ctx.req.valid("form");
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-        true, // Allow session since we need it for impersonation
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(
+          ctx,
+          state,
+          true, // Allow session since we need it for impersonation
+        );
 
       if (!loginSession.session_id) {
         throw new HTTPException(400, {
@@ -280,6 +304,27 @@ export const impersonateRoutes = new OpenAPIHono<{
       );
 
       if (!targetUser) {
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("impersonation", "Impersonation")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <ImpersonateForm
+                theme={theme}
+                branding={branding}
+                client={client}
+                user={currentUser}
+                state={state}
+                error={`User with ID "${user_id}" not found.`}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
         return ctx.html(
           <ImpersonationPage
             theme={theme}
