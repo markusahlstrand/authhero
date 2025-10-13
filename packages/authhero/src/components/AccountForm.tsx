@@ -100,13 +100,18 @@ const AccountForm: FC<AccountFormProps> = ({
   const logoUrl = theme?.widget?.logo_url || branding?.logo_url;
   const showLogo = logoPosition !== "none" && logoUrl;
 
-  // Get linked identities
+  // Get linked identities - exclude the primary identity
+  // Handle both formats: "provider|user_id" and "user_id"
+  const primaryUserId = user.user_id.includes("|")
+    ? user.user_id.split("|")[1]
+    : user.user_id;
+
   const linkedIdentities =
     user.identities?.filter(
       (identity) =>
         !(
           identity.provider === user.provider &&
-          identity.user_id === user.user_id.split("|")[1]
+          identity.user_id === primaryUserId
         ),
     ) || [];
 

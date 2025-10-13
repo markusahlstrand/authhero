@@ -137,7 +137,6 @@ export const enterCodeRoutes = new OpenAPIHono<{
                 branding={branding}
                 email={loginSession.authParams.username}
                 state={state}
-                client={client}
                 hasPasswordLogin={!!passwordUser}
               />
             </AuthLayout>,
@@ -308,7 +307,6 @@ export const enterCodeRoutes = new OpenAPIHono<{
                 branding={branding}
                 email={loginSession.authParams?.username}
                 state={state}
-                client={client}
                 error={(e as Error).message}
                 hasPasswordLogin={!!passwordUser}
               />

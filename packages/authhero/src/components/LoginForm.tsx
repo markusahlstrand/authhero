@@ -80,10 +80,6 @@ const LoginForm: FC<LoginFormProps> = ({
     borderRadius: `${buttonBorderRadius}px`,
   };
 
-  const buttonHoverStyle = {
-    backgroundColor: theme?.colors?.base_hover_color || "#0052a3",
-  };
-
   const secondaryButtonStyle = {
     backgroundColor: "transparent",
     color: bodyText,
@@ -179,10 +175,8 @@ const LoginForm: FC<LoginFormProps> = ({
               {/* Login button */}
               <Button
                 type="submit"
-                className="w-full transition-colors"
+                className="w-full transition-colors hover:brightness-90"
                 style={buttonStyle}
-                onmouseover={`this.style.backgroundColor='${buttonHoverStyle.backgroundColor}'`}
-                onmouseout={`this.style.backgroundColor='${buttonStyle.backgroundColor}'`}
               >
                 {i18next.t("login", "Login")}
               </Button>
@@ -197,54 +191,55 @@ const LoginForm: FC<LoginFormProps> = ({
                   {i18next.t("forgot_password_link", "Forgot password?")}
                 </a>
               </div>
-
-              {/* Code option */}
-              {showCodeOption && (
-                <>
-                  {/* Divider */}
-                  <div className="relative">
-                    <div
-                      className="absolute inset-0 flex items-center"
-                      aria-hidden="true"
-                    >
-                      <div
-                        className="w-full border-t"
-                        style={{ borderColor: widgetBorder }}
-                      />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span
-                        className="px-2"
-                        style={{
-                          backgroundColor: widgetBackground,
-                          ...bodyStyle,
-                        }}
-                      >
-                        {i18next.t("or", "Or")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Enter code button */}
-                  <form
-                    method="post"
-                    action={`/u/login/identifier?state=${encodeURIComponent(state)}`}
-                  >
-                    <input type="hidden" name="login_selection" value="code" />
-                    <input type="hidden" name="username" value={email} />
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      className="w-full transition-colors border"
-                      style={secondaryButtonStyle}
-                    >
-                      {i18next.t("enter_a_code_btn", "Email me a code instead")}
-                    </Button>
-                  </form>
-                </>
-              )}
             </div>
           </form>
+
+          {/* Code option */}
+          {showCodeOption && (
+            <>
+              {/* Divider */}
+              <div className="relative mt-4">
+                <div
+                  className="absolute inset-0 flex items-center"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="w-full border-t"
+                    style={{ borderColor: widgetBorder }}
+                  />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span
+                    className="px-2"
+                    style={{
+                      backgroundColor: widgetBackground,
+                      ...bodyStyle,
+                    }}
+                  >
+                    {i18next.t("or", "Or")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Enter code button */}
+              <form
+                method="post"
+                action={`/u/login/identifier?state=${encodeURIComponent(state)}`}
+                className="mt-4"
+              >
+                <input type="hidden" name="login_selection" value="code" />
+                <input type="hidden" name="username" value={email} />
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full transition-colors border"
+                  style={secondaryButtonStyle}
+                >
+                  {i18next.t("enter_a_code_btn", "Email me a code instead")}
+                </Button>
+              </form>
+            </>
+          )}
         </CardContent>
         <CardFooter>
           <a

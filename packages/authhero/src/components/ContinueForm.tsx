@@ -77,10 +77,6 @@ const ContinueForm: FC<ContinueFormProps> = ({
     borderRadius: `${buttonBorderRadius}px`,
   };
 
-  const buttonHoverStyle = {
-    backgroundColor: theme?.colors?.base_hover_color || "#0052a3",
-  };
-
   const linkStyle = {
     color: theme?.colors?.links_focused_components || primaryColor,
     fontSize: `${bodySize}px`,
@@ -134,10 +130,8 @@ const ContinueForm: FC<ContinueFormProps> = ({
             <div className="grid gap-4">
               <Button
                 type="submit"
-                className="w-full transition-colors"
+                className="w-full transition-colors hover:brightness-90"
                 style={buttonStyle}
-                onmouseover={`this.style.backgroundColor='${buttonHoverStyle.backgroundColor}'`}
-                onmouseout={`this.style.backgroundColor='${buttonStyle.backgroundColor}'`}
               >
                 {i18next.t(
                   "yes_continue_with_existing_account",

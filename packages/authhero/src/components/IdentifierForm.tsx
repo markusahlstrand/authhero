@@ -128,10 +128,6 @@ const IdentifierForm: FC<Props> = ({
     borderRadius: `${buttonBorderRadius}px`,
   };
 
-  const buttonHoverStyle = {
-    backgroundColor: theme?.colors?.base_hover_color || "#0052a3",
-  };
-
   // Determine logo alignment based on theme
   const logoPosition = theme?.widget?.logo_position || "center";
   const logoAlignmentClass =
@@ -196,10 +192,8 @@ const IdentifierForm: FC<Props> = ({
               </div>
               <Button
                 type="submit"
-                className="w-full transition-colors"
+                className="w-full transition-colors hover:brightness-90"
                 style={buttonStyle}
-                onmouseover={`this.style.backgroundColor='${buttonHoverStyle.backgroundColor}'`}
-                onmouseout={`this.style.backgroundColor='${buttonStyle.backgroundColor}'`}
               >
                 {i18next.t("continue", "Continue")}
               </Button>

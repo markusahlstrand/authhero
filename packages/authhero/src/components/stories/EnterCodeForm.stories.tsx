@@ -18,20 +18,11 @@ const meta: Meta<typeof EnterCodeForm> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Simple mock client with minimal required fields
-const mockClient = {
-  connections: [
-    { name: "email", strategy: "email" },
-    { name: "auth2", strategy: "Username-Password-Authentication" },
-  ],
-} as any;
-
 // Default story
 export const Default: Story = {
   args: {
     email: "user@example.com",
     state: "mock-state-123",
-    client: mockClient,
     hasPasswordLogin: false,
     theme: null,
     branding: null,

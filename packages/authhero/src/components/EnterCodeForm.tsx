@@ -1,5 +1,5 @@
 import type { FC, JSXNode } from "hono/jsx";
-import { LegacyClient, Theme, Branding } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import cn from "classnames";
 import Card, {
@@ -21,7 +21,6 @@ type Props = {
   branding?: Branding | null;
   email: string;
   state: string;
-  client: LegacyClient;
   hasPasswordLogin: boolean;
   className?: string;
   onCodeChange?: (code: string) => void;
@@ -36,15 +35,11 @@ const EnterCodeForm: FC<Props> = ({
   branding,
   email,
   state,
-  client,
   hasPasswordLogin,
   className,
   onCodeChange,
   onSubmit,
 }) => {
-  const connections = client.connections.map(({ name }) => name);
-  const showPasswordLogin = connections.includes("auth2");
-
   const passwordLoginLinkParams = new URLSearchParams({
     state,
   });
@@ -92,10 +87,6 @@ const EnterCodeForm: FC<Props> = ({
     backgroundColor: primaryColor,
     color: primaryButtonLabel,
     borderRadius: `${buttonBorderRadius}px`,
-  };
-
-  const buttonHoverStyle = {
-    backgroundColor: theme?.colors?.base_hover_color || "#0052a3",
   };
 
   // Determine logo alignment based on theme
@@ -175,10 +166,8 @@ const EnterCodeForm: FC<Props> = ({
 
               <Button
                 type="submit"
-                className="w-full transition-colors"
+                className="w-full transition-colors hover:brightness-90"
                 style={buttonStyle}
-                onmouseover={`this.style.backgroundColor='${buttonHoverStyle.backgroundColor}'`}
-                onmouseout={`this.style.backgroundColor='${buttonStyle.backgroundColor}'`}
               >
                 {i18next.t("login", "Login")}
               </Button>
@@ -205,7 +194,7 @@ const EnterCodeForm: FC<Props> = ({
                 </div>
               </div>
 
-              {showPasswordLogin && (
+              {hasPasswordLogin && (
                 <div className="text-center">
                   <div
                     className="relative mb-5 block text-center"
