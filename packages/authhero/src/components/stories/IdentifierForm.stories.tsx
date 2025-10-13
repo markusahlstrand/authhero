@@ -4,9 +4,9 @@ import {
   HonoJSXWrapper,
   HonoFullPageWrapper,
   renderHonoComponent,
-} from "../storybook-utils/HonoJSXWrapper";
-import IdentifierForm from "./IdentifierForm";
-import AuthLayout from "./AuthLayout";
+} from "../../storybook-utils/HonoJSXWrapper";
+import IdentifierForm from "../IdentifierForm";
+import AuthLayout from "../AuthLayout";
 import type {
   LegacyClient,
   LoginSession,

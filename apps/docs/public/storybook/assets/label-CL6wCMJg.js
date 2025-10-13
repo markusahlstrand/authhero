@@ -1,0 +1,1 @@
+import{j as d,c as l}from"./AppLogo-gHPKz47t.js";const n=({htmlFor:e,className:a,style:o,children:s})=>d("label",{for:e,className:l("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",a),style:o,children:s});n.__docgenInfo={description:"",methods:[],displayName:"Label"};export{n as L};

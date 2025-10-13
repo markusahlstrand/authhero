@@ -48,16 +48,12 @@ export const identifierRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { state, style } = ctx.req.valid("query");
+      const { state } = ctx.req.valid("query");
 
-      const { theme, branding, loginSession, client } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, loginSession, client, useShadcn } =
+        await initJSXRoute(ctx, state);
 
-      // Use shadcn style if style param is set to "shadcn", otherwise use classic (default)
-      const useShadcn = style === "shadcn";
-
+      // Use shadcn style if useShadcn is true
       if (useShadcn) {
         return ctx.html(
           <AuthLayout
@@ -128,15 +124,13 @@ export const identifierRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
-      const { state, style } = ctx.req.valid("query");
+      const { state } = ctx.req.valid("query");
       const params = ctx.req.valid("form");
       ctx.set("body", params);
       ctx.set("username", params.username);
 
-      const { client, loginSession, theme, branding } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { client, loginSession, theme, branding, useShadcn } =
+        await initJSXRoute(ctx, state);
       ctx.set("client_id", client.client_id);
 
       const countryCode = ctx.get("countryCode");
@@ -148,9 +142,6 @@ export const identifierRoutes = new OpenAPIHono<{
           params.username,
           vendorCountryCode || countryCode,
         );
-
-      // Use shadcn style if style param is set to "shadcn", otherwise use classic (default)
-      const useShadcn = style === "shadcn";
 
       if (
         !client.connections.find((c) => c.strategy === connectionType) ||

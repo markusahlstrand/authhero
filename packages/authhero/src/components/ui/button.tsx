@@ -9,8 +9,6 @@ export interface ButtonProps {
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   style?: Record<string, string | number>;
-  onmouseover?: string;
-  onmouseout?: string;
 }
 
 const Button: FC<PropsWithChildren<ButtonProps>> = ({
@@ -21,8 +19,6 @@ const Button: FC<PropsWithChildren<ButtonProps>> = ({
   type = "button",
   disabled = false,
   style,
-  onmouseover,
-  onmouseout,
 }) => {
   const variantStyles = {
     default:
@@ -49,8 +45,6 @@ const Button: FC<PropsWithChildren<ButtonProps>> = ({
         className,
       )}
       style={style}
-      onmouseover={onmouseover}
-      onmouseout={onmouseout}
     >
       {children}
     </button>

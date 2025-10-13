@@ -32,6 +32,14 @@ export async function initJSXRoute(
   ctx.set("client_id", client.client_id);
   ctx.set("tenant_id", client.tenant.id);
 
+  // Check for shadcn style query parameter
+  let useShadcn = false;
+  if (ctx.req?.url) {
+    const url = new URL(ctx.req.url);
+    const style = url.searchParams.get("style");
+    useShadcn = style === "shadcn";
+  }
+
   const tenant = await env.data.tenants.get(client.tenant.id);
   if (!tenant) {
     throw new HTTPException(400, { message: "Tenant not found" });
@@ -75,6 +83,7 @@ export async function initJSXRoute(
     client,
     tenant,
     loginSession,
+    useShadcn,
   };
 }
 
@@ -82,11 +91,8 @@ export async function initJSXRouteWithSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
 ) {
-  const { theme, branding, client, tenant, loginSession } = await initJSXRoute(
-    ctx,
-    state,
-    true,
-  );
+  const { theme, branding, client, tenant, loginSession, useShadcn } =
+    await initJSXRoute(ctx, state, true);
 
   const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
 
@@ -125,6 +131,7 @@ export async function initJSXRouteWithSession(
     tenant,
     loginSession,
     session,
+    useShadcn,
   };
 }
 

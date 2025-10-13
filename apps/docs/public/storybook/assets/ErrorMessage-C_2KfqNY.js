@@ -1,0 +1,1 @@
+import{j as r,c as t}from"./AppLogo-gHPKz47t.js";const a=({children:e,className:s})=>r("div",{className:t("mb-2 text-sm text-red",s),children:e});a.__docgenInfo={description:"",methods:[],displayName:"ErrorMessage",props:{children:{required:!0,tsType:{name:"string"},description:""},className:{required:!1,tsType:{name:"string"},description:""}}};export{a as E};

@@ -1,6 +1,5 @@
 import { Branding, Theme, LegacyClient } from "@authhero/adapter-interfaces";
 import { PropsWithChildren } from "hono/jsx";
-import { html } from "hono/html";
 import cn from "classnames";
 
 type AuthLayoutProps = {
@@ -124,31 +123,10 @@ const AuthLayout = ({
             )}
           </div>
         </div>
+        {/* Mount point for client-side hydration */}
+        <div id="client-root"></div>
+        <script type="module" src="/u/js/client.js" />
       </body>
-      {html`
-        <script>
-          // Add loading class to submit button on form submission
-          document.addEventListener("DOMContentLoaded", function () {
-            var forms = document.querySelectorAll("form");
-            forms.forEach(function (form) {
-              var submitBtn = form.querySelector("button[type=submit]");
-              if (submitBtn) {
-                form.onsubmit = function () {
-                  submitBtn.classList.add("is-loading");
-                  submitBtn.disabled = true;
-                };
-                // Remove loading class if the page is loaded from browser bfcache
-                window.addEventListener("pageshow", function (event) {
-                  if (event.persisted) {
-                    submitBtn.classList.remove("is-loading");
-                    submitBtn.disabled = false;
-                  }
-                });
-              }
-            });
-          });
-        </script>
-      `}
     </html>
   );
 };

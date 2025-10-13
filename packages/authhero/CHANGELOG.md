@@ -1,5 +1,11 @@
 # authhero
 
+## 0.242.0
+
+### Minor Changes
+
+- Add more shadcn forms
+
 ## 0.241.0
 
 ### Minor Changes

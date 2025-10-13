@@ -3,8 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import {
   HonoJSXWrapper,
   renderHonoComponent,
-} from "../storybook-utils/HonoJSXWrapper";
-import IdentifierPage from "./IdentifierPage";
+} from "../../storybook-utils/HonoJSXWrapper";
+import IdentifierPage from "../IdentifierPage";
 import type {
   LegacyClient,
   LoginSession,

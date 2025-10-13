@@ -597,8 +597,13 @@ describe("impersonation routes", () => {
       // Debug: log error if status is not what we expect
       if (callbackResponse.status !== 302) {
         const errorText = await callbackResponse.text();
-        console.error("Callback error (status " + callbackResponse.status + "):", errorText);
-        throw new Error(`Expected 302, got ${callbackResponse.status}: ${errorText}`);
+        console.error(
+          "Callback error (status " + callbackResponse.status + "):",
+          errorText,
+        );
+        throw new Error(
+          `Expected 302, got ${callbackResponse.status}: ${errorText}`,
+        );
       }
 
       // Should redirect to impersonation page instead of completing auth
@@ -623,7 +628,7 @@ describe("impersonation routes", () => {
         is_social: true,
       });
 
-            // Mock the hooks.list method to return a page hook for impersonation
+      // Mock the hooks.list method to return a page hook for impersonation
       // Page hooks are not stored in the database but recognized by the postUserLoginHook function
       const originalHooksList = env.data.hooks.list;
       env.data.hooks.list = async (tenant_id: string, query?: any) => {

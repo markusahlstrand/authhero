@@ -4,6 +4,7 @@ import { initJSXRouteWithSession } from "./common";
 import AccountPage from "../../components/AccountPage";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
+import { nanoid } from "nanoid";
 
 export const accountRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -45,13 +46,12 @@ export const accountRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
+      const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, user, loginSession } =
+        await initJSXRouteWithSession(ctx, state);
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -73,6 +73,12 @@ export const accountRoutes = new OpenAPIHono<{
         );
       }
 
+      // Generate CSRF token and store in session
+      const csrfToken = nanoid();
+      await env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+        csrf_token: csrfToken,
+      });
+
       return ctx.html(
         <AccountPage
           theme={theme}
@@ -80,6 +86,7 @@ export const accountRoutes = new OpenAPIHono<{
           user={user}
           client={client}
           state={state}
+          csrfToken={csrfToken}
         />,
       );
     },
@@ -105,6 +112,7 @@ export const accountRoutes = new OpenAPIHono<{
                 action: z.enum(["unlink_account"]),
                 provider: z.string().optional(),
                 user_id: z.string().optional(),
+                csrf_token: z.string().optional(),
               }),
             },
           },
@@ -136,16 +144,19 @@ export const accountRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, user, loginSession } =
+        await initJSXRouteWithSession(ctx, state);
 
       let error: string | undefined;
       let success: string | undefined;
 
       try {
         if (body.action === "unlink_account" && body.provider && body.user_id) {
+          // Validate CSRF token
+          if (!body.csrf_token || body.csrf_token !== loginSession.csrf_token) {
+            throw new Error("Invalid CSRF token");
+          }
+
           // Unlink the social account
           await env.data.users.unlink(
             client.tenant.id,
@@ -167,6 +178,12 @@ export const accountRoutes = new OpenAPIHono<{
         user.user_id,
       );
 
+      // Generate new CSRF token for the next request
+      const csrfToken = nanoid();
+      await env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+        csrf_token: csrfToken,
+      });
+
       return ctx.html(
         <AccountPage
           theme={theme}
@@ -176,6 +193,7 @@ export const accountRoutes = new OpenAPIHono<{
           error={error}
           success={success}
           state={state}
+          csrfToken={csrfToken}
         />,
       );
     },

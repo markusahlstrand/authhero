@@ -2,7 +2,6 @@ import { Branding, Theme, LegacyClient } from "@authhero/adapter-interfaces";
 import AppLogo from "./AppLogo";
 import Footer from "./Footer";
 import Icon from "./Icon";
-import { html } from "hono/html";
 import { PropsWithChildren } from "hono/jsx";
 import { lighten } from "../utils/color";
 
@@ -114,29 +113,10 @@ const Layout = ({
             </div>
           </div>
         </div>
+        {/* Mount point for client-side hydration */}
+        <div id="client-root"></div>
       </body>
-      {html`
-        <script>
-          // Add loading class to submit button on form submission
-          document.addEventListener("DOMContentLoaded", function () {
-            var form = document.getElementById("form");
-            if (form) {
-              var submitBtn = form.querySelector("button[type=submit]");
-              if (submitBtn) {
-                form.onsubmit = function () {
-                  submitBtn.classList.add("is-loading");
-                };
-                // Remove loading class if the page is loaded from browser bfcache
-                window.addEventListener("pageshow", function (event) {
-                  if (event.persisted) {
-                    submitBtn.classList.remove("is-loading");
-                  }
-                });
-              }
-            }
-          });
-        </script>
-      `}
+      <script type="module" src="/u/js/client.js" />
     </html>
   );
 };

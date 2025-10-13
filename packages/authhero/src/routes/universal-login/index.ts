@@ -24,6 +24,7 @@ import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { tailwindCss } from "../../styles";
+import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
 import { impersonateRoutes } from "./impersonate";
 import { RedirectException } from "../../errors/redirect-exception";
@@ -67,6 +68,13 @@ export default function create(config: AuthHeroConfig) {
 
     return ctx.text(css, 200, {
       "content-type": "text/css; charset=utf-8",
+    });
+  });
+
+  // Handle client-side JavaScript bundle
+  app.get("/js/client.js", async (ctx: Context) => {
+    return ctx.text(clientJs, 200, {
+      "content-type": "application/javascript; charset=utf-8",
     });
   });
 

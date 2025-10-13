@@ -18,12 +18,14 @@ type Props = {
   error?: string;
   success?: string;
   state?: string;
+  csrfToken?: string;
 };
 
 const showLinkedAccounts = false;
 
 const AccountPage: FC<Props> = (params) => {
-  const { theme, branding, user, client, error, success, state } = params;
+  const { theme, branding, user, client, error, success, state, csrfToken } =
+    params;
 
   const linkedIdentities =
     user.identities?.filter(
@@ -115,6 +117,13 @@ const AccountPage: FC<Props> = (params) => {
                         name="user_id"
                         value={identity.user_id}
                       />
+                      {csrfToken && (
+                        <input
+                          type="hidden"
+                          name="csrf_token"
+                          value={csrfToken}
+                        />
+                      )}
                       <button
                         type="submit"
                         className="bg-red/80 hover:bg-red/90 px-2 py-1.5 text-white font-bold rounded-md !text-xs"
