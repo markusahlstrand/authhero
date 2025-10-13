@@ -175,7 +175,14 @@ const IdentifierForm: FC<Props> = ({
             <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="username" style={bodyStyle}>
-                  {i18next.t(authMethodKey, "Email")}
+                  {i18next.t(
+                    authMethodKey,
+                    showEmailInput && showPhoneInput
+                      ? "Email or Phone Number"
+                      : showEmailInput
+                        ? "Email"
+                        : "Phone Number",
+                  )}
                 </Label>
                 <Input
                   id="username"

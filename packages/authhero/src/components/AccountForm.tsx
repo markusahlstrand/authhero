@@ -27,6 +27,7 @@ export interface AccountFormProps {
   client: LegacyClient;
   className?: string;
   showLinkedAccounts?: boolean;
+  csrfToken?: string;
 }
 
 const AccountForm: FC<AccountFormProps> = ({
@@ -39,6 +40,7 @@ const AccountForm: FC<AccountFormProps> = ({
   client,
   className,
   showLinkedAccounts = false,
+  csrfToken,
 }) => {
   // Extract theme and branding colors (theme overrides branding)
   const primaryColor =
@@ -242,6 +244,13 @@ const AccountForm: FC<AccountFormProps> = ({
                             name="user_id"
                             value={identity.user_id}
                           />
+                          {csrfToken && (
+                            <input
+                              type="hidden"
+                              name="csrf_token"
+                              value={csrfToken}
+                            />
+                          )}
                           <Button
                             type="submit"
                             variant="outline"

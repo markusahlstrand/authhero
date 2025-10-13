@@ -1,5 +1,7 @@
 import path from "path";
 import { defineConfig } from "vite";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
 
 const getPackageName = () => {
   return "authhero";
@@ -20,7 +22,7 @@ const fileName = {
 
 const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
 
-module.exports = defineConfig(({ mode }) => {
+export default defineConfig(({ mode }) => {
   // Client build configuration
   if (mode === "client") {
     return {
@@ -63,7 +65,7 @@ module.exports = defineConfig(({ mode }) => {
     },
     css: {
       postcss: {
-        plugins: [require("tailwindcss"), require("autoprefixer")],
+        plugins: [tailwindcss(), autoprefixer()] as any,
       },
     },
     resolve: {

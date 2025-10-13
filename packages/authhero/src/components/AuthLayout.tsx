@@ -125,8 +125,8 @@ const AuthLayout = ({
         </div>
         {/* Mount point for client-side hydration */}
         <div id="client-root"></div>
+        <script type="module" src="/u/js/client.js" />
       </body>
-      <script type="module" src="/u/js/client.js" />
     </html>
   );
 };
