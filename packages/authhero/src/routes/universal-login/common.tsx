@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { getCookie } from "hono/cookie";
 import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
 import { LegacyClient } from "@authhero/adapter-interfaces";
@@ -32,12 +33,22 @@ export async function initJSXRoute(
   ctx.set("client_id", client.client_id);
   ctx.set("tenant_id", client.tenant.id);
 
-  // Check for shadcn style query parameter
+  // Check for shadcn style: query parameter takes precedence over cookie
+  // Safely get cookie - getCookie requires req.raw which may not exist in tests
+  let cookieStyle: string | undefined;
+  try {
+    cookieStyle = getCookie(ctx, "auth_ui_style");
+  } catch (e) {
+    // Cookie reading failed (e.g., in tests without proper request mock)
+    cookieStyle = undefined;
+  }
+
   let useShadcn = false;
   if (ctx.req?.url) {
     const url = new URL(ctx.req.url);
     const style = url.searchParams.get("style");
-    useShadcn = style === "shadcn";
+    const preferredStyle = style || cookieStyle || "classic";
+    useShadcn = preferredStyle === "shadcn";
   }
 
   const tenant = await env.data.tenants.get(client.tenant.id);

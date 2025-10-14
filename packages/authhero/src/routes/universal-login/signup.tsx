@@ -5,6 +5,8 @@ import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
+import SignUpForm from "../../components/SignUpForm";
+import AuthLayout from "../../components/AuthLayout";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
@@ -44,15 +46,33 @@ export const signupRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, code } = ctx.req.valid("query");
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       const { username } = loginSession.authParams;
 
       if (!username) {
         throw new HTTPException(400, { message: "Username required" });
+      }
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("sign_up", "Sign Up")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <SignUpForm
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              email={username}
+              code={code}
+              client={client}
+            />
+          </AuthLayout>,
+        );
       }
 
       if (code) {
@@ -133,10 +153,8 @@ export const signupRoutes = new OpenAPIHono<{
       const loginParams = ctx.req.valid("form");
       const { env } = ctx;
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       try {
         if (!loginSession.authParams.username) {
@@ -147,6 +165,28 @@ export const signupRoutes = new OpenAPIHono<{
         ctx.set("connection", connection);
 
         if (loginParams.password !== loginParams["re-enter-password"]) {
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("sign_up", "Sign Up")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <SignUpForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={loginSession.authParams.username}
+                  code={loginParams.code}
+                  error={i18next.t("create_account_passwords_didnt_match")}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <SignupPage
               state={state}
@@ -162,6 +202,28 @@ export const signupRoutes = new OpenAPIHono<{
         }
 
         if (!validatePasswordStrength(loginParams.password)) {
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("sign_up", "Sign Up")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <SignUpForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={loginSession.authParams.username}
+                  code={loginParams.code}
+                  error={i18next.t("create_account_weak_password")}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <SignupPage
               state={state}
@@ -199,6 +261,28 @@ export const signupRoutes = new OpenAPIHono<{
         });
 
         if (existingUser) {
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("sign_up", "Sign Up")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <SignUpForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={loginSession.authParams.username}
+                  code={loginParams.code}
+                  error={i18next.t("user_exists_error")}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <SignupPage
               state={state}
@@ -274,6 +358,28 @@ export const signupRoutes = new OpenAPIHono<{
         } else if (err instanceof Error) {
           errorMessage = err.message || errorMessage;
           errorStatus = 500; // Default to 500 for generic errors
+        }
+
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("sign_up", "Sign Up")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <SignUpForm
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                code={loginParams.code}
+                error={errorMessage}
+                client={client}
+              />
+            </AuthLayout>,
+            errorStatus,
+          );
         }
 
         return ctx.html(

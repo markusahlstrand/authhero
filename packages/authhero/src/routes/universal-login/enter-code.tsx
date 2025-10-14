@@ -9,7 +9,7 @@ import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { HTTPException } from "hono/http-exception";
-import { getCookie, setCookie } from "hono/cookie";
+import { setCookie } from "hono/cookie";
 
 type Auth0Client = {
   name: string;
@@ -74,12 +74,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, style } = ctx.req.valid("query");
-      let theme, branding, loginSession, client;
-
-      // Check for style preference: query param > cookie > default (classic)
-      const cookieStyle = getCookie(ctx, "auth_ui_style");
-      const preferredStyle = style || cookieStyle || "classic";
-      const useShadcn = preferredStyle === "shadcn";
+      let theme, branding, loginSession, client, useShadcn;
 
       // Set cookie if style is explicitly provided in query param
       if (style) {
@@ -93,10 +88,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
       }
 
       try {
-        ({ theme, branding, loginSession, client } = await initJSXRoute(
-          ctx,
-          state,
-        ));
+        ({ theme, branding, loginSession, client, useShadcn } =
+          await initJSXRoute(ctx, state));
 
         if (!loginSession.authParams.username) {
           // Render an error page if username is not found
@@ -231,11 +224,6 @@ export const enterCodeRoutes = new OpenAPIHono<{
       const { state, style } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
-      // Check for style preference: query param > cookie > default (classic)
-      const cookieStyle = getCookie(ctx, "auth_ui_style");
-      const preferredStyle = style || cookieStyle || "classic";
-      const useShadcn = preferredStyle === "shadcn";
-
       // Set cookie if style is explicitly provided in query param
       if (style) {
         setCookie(ctx, "auth_ui_style", style, {
@@ -247,10 +235,8 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       if (!loginSession.authParams.username) {
         // Render an error page if username is not found

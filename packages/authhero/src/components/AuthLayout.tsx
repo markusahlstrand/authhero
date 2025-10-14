@@ -59,7 +59,7 @@ const AuthLayout = ({
   }
 
   const containerClasses = cn(
-    "min-h-screen w-full flex items-center bg-cover bg-center",
+    "min-h-screen w-full flex bg-cover bg-center",
     justifyClass,
     paddingClass,
   );
@@ -69,7 +69,7 @@ const AuthLayout = ({
     backgroundColor: backgroundColor,
     // Ensure proper flex behavior and full viewport coverage
     display: "flex",
-    alignItems: "center",
+    alignItems: "stretch", // Changed from center to allow content to grow
     justifyContent:
       pageLayout === "left"
         ? "flex-start"
@@ -79,6 +79,12 @@ const AuthLayout = ({
     minHeight: "100vh",
     width: "100%",
   };
+
+  const contentWrapperClasses = cn(
+    "w-full max-w-sm",
+    // Center vertically within flex container, allowing overflow
+    "flex flex-col justify-center",
+  );
 
   return (
     <html lang="en">
@@ -103,7 +109,7 @@ const AuthLayout = ({
 
       <body>
         <div className={containerClasses} style={inlineStyles}>
-          <div className="w-full max-w-sm">
+          <div className={contentWrapperClasses}>
             {children}
             {branding?.powered_by_logo_url && (
               <div className="mt-5 text-left">
