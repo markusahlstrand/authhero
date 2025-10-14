@@ -4,6 +4,8 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import UnverifiedEmailPage from "../../components/UnverifiedEmailPage";
 import EnterPasswordPage from "../../components/EnterPasswordPage";
+import EnterPasswordForm from "../../components/EnterPasswordForm";
+import AuthLayout from "../../components/AuthLayout";
 import i18next from "i18next";
 import { loginWithPassword } from "../../authentication-flows/password";
 import { AuthError } from "../../types/AuthError";
@@ -36,13 +38,30 @@ export const enterPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
+      }
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("enter_your_password", "Enter your password")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <EnterPasswordForm
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              email={loginSession.authParams.username}
+              client={client}
+            />
+          </AuthLayout>,
+        );
       }
 
       return ctx.html(
@@ -108,10 +127,8 @@ export const enterPasswordRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
       const { password } = body;
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       const { username } = loginSession.authParams;
 
@@ -138,6 +155,27 @@ export const enterPasswordRoutes = new OpenAPIHono<{
           customException.code === "INVALID_PASSWORD" ||
           customException.code === "USER_NOT_FOUND"
         ) {
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("enter_your_password", "Enter your password")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <EnterPasswordForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={username}
+                  error={i18next.t("invalid_password")}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <EnterPasswordPage
               theme={theme}
@@ -162,6 +200,27 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         }
 
         // Fallback for other AuthErrors or unexpected errors
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("enter_your_password", "Enter your password")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <EnterPasswordForm
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={username}
+                error={customException.message || "An unknown error occurred."}
+                client={client}
+              />
+            </AuthLayout>,
+            customException.code ? 400 : 500,
+          );
+        }
+
         return ctx.html(
           <EnterPasswordPage
             theme={theme}

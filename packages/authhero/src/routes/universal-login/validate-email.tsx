@@ -4,6 +4,9 @@ import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
 import { getUserByProvider, getUsersByEmail } from "../../helpers/users";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
+import EmailValidatedForm from "../../components/EmailValidatedForm";
+import AuthLayout from "../../components/AuthLayout";
+import i18next from "i18next";
 
 export const validateEmailRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -38,10 +41,8 @@ export const validateEmailRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { client, loginSession, theme, branding } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { client, loginSession, theme, branding, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       const { username } = loginSession.authParams;
       if (!username) {
@@ -105,6 +106,24 @@ export const validateEmailRoutes = new OpenAPIHono<{
             linked_to: primaryUsers[0]?.user_id,
           });
         }
+      }
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("email_validated", "Email Verified")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <EmailValidatedForm
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              client={client}
+            />
+          </AuthLayout>,
+        );
       }
 
       return ctx.html(

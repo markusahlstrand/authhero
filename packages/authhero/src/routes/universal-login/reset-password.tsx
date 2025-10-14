@@ -6,6 +6,8 @@ import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import ResetPasswordPage from "../../components/ResetPasswordPage";
+import ResetPasswordForm from "../../components/ResetPasswordForm";
+import AuthLayout from "../../components/AuthLayout";
 import MessagePage from "../../components/MessagePage";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
@@ -41,13 +43,30 @@ export const resetPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
+      }
+
+      if (useShadcn) {
+        return ctx.html(
+          <AuthLayout
+            title={i18next.t("reset_password_title", "Reset Password")}
+            theme={theme}
+            branding={branding}
+            client={client}
+          >
+            <ResetPasswordForm
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              email={loginSession.authParams.username}
+              client={client}
+            />
+          </AuthLayout>,
+        );
       }
 
       return ctx.html(
@@ -101,16 +120,35 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, loginSession, useShadcn } =
+        await initJSXRoute(ctx, state);
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
       }
 
       if (password !== reEnterPassword) {
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("reset_password_title", "Reset Password")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <ResetPasswordForm
+                error={i18next.t("create_account_passwords_didnt_match")}
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                client={client}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
         return ctx.html(
           <ResetPasswordPage
             error={i18next.t("create_account_passwords_didnt_match")}
@@ -124,6 +162,27 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       }
 
       if (!validatePasswordStrength(password)) {
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("reset_password_title", "Reset Password")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <ResetPasswordForm
+                error={i18next.t("create_account_weak_password")}
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                client={client}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
         return ctx.html(
           <ResetPasswordPage
             error={i18next.t("create_account_weak_password")}

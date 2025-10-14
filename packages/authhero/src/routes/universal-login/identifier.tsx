@@ -36,9 +36,6 @@ export const identifierRoutes = new OpenAPIHono<{
             description: "The state parameter from the authorization request",
           }),
           impersonation: z.string().optional(),
-          style: z.enum(["classic", "shadcn"]).optional().openapi({
-            description: "UI style to use for the login page",
-          }),
         }),
       },
       responses: {
