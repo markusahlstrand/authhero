@@ -42,7 +42,7 @@ export async function initJSXRoute(
     // Cookie reading failed (e.g., in tests without proper request mock)
     cookieStyle = undefined;
   }
-  
+
   let useShadcn = false;
   if (ctx.req?.url) {
     const url = new URL(ctx.req.url);

@@ -219,6 +219,27 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           // surely we should check this on the GET rather than have the user waste time entering a new password?
           // THEN we can assume here it works and throw a hono exception if it doesn't... because it's an issue with our system
           // ALTHOUGH the user could have taken a long time to enter the password...
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("reset_password_title", "Reset Password")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <ResetPasswordForm
+                  error="Code not found or expired"
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={loginSession.authParams.username}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <ResetPasswordPage
               error="Code not found or expired"
@@ -254,6 +275,27 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         }
       } catch {
         // seems like we should not do this catch... try and see what happens
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("reset_password_title", "Reset Password")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <ResetPasswordForm
+                error="The password could not be reset"
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                client={client}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
         return ctx.html(
           <ResetPasswordPage
             error="The password could not be reset"

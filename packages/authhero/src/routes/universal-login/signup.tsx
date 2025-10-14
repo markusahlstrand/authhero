@@ -261,6 +261,28 @@ export const signupRoutes = new OpenAPIHono<{
         });
 
         if (existingUser) {
+          if (useShadcn) {
+            return ctx.html(
+              <AuthLayout
+                title={i18next.t("sign_up", "Sign Up")}
+                theme={theme}
+                branding={branding}
+                client={client}
+              >
+                <SignUpForm
+                  theme={theme}
+                  branding={branding}
+                  loginSession={loginSession}
+                  email={loginSession.authParams.username}
+                  code={loginParams.code}
+                  error={i18next.t("user_exists_error")}
+                  client={client}
+                />
+              </AuthLayout>,
+              400,
+            );
+          }
+
           return ctx.html(
             <SignupPage
               state={state}
@@ -336,6 +358,28 @@ export const signupRoutes = new OpenAPIHono<{
         } else if (err instanceof Error) {
           errorMessage = err.message || errorMessage;
           errorStatus = 500; // Default to 500 for generic errors
+        }
+
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("sign_up", "Sign Up")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <SignUpForm
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                code={loginParams.code}
+                error={errorMessage}
+                client={client}
+              />
+            </AuthLayout>,
+            errorStatus,
+          );
         }
 
         return ctx.html(
