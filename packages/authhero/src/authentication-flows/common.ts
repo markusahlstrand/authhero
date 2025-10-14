@@ -110,12 +110,8 @@ export async function createAuthTokens(
           act: impersonatingUser
             ? { sub: impersonatingUser.user_id }
             : undefined,
-          organization: organization
-            ? {
-                org_id: organization.id,
-                org_name: organization.name,
-              }
-            : undefined,
+          org_id: organization?.id,
+          org_name: organization?.name,
         }
       : undefined;
 
