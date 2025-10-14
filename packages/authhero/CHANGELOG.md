@@ -1,5 +1,11 @@
 # authhero
 
+## 0.245.0
+
+### Minor Changes
+
+- Fix id-token org format
+
 ## 0.244.0
 
 ### Minor Changes
