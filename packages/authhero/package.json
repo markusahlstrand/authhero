@@ -1,6 +1,6 @@
 {
   "name": "authhero",
-  "version": "0.245.0",
+  "version": "0.246.0",
   "files": [
     "dist"
   ],
@@ -55,6 +55,7 @@
     "postcss": "8.4.36",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "rollup-plugin-visualizer": "^6.0.4",
     "storybook": "^9.1.10",
     "tailwindcss": "3.4.1",
     "typescript": "^5.6.3",
