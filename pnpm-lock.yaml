@@ -67,8 +67,8 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^10.50.0
-        version: 10.50.0(@authhero/adapter-interfaces@0.92.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
+        specifier: ^10.50.1
+        version: 10.50.1(@authhero/adapter-interfaces@0.93.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
       '@hono/swagger-ui':
         specifier: ^0.5.2
         version: 0.5.2(hono@4.9.1)
@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.236.0
-        version: 0.236.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.245.0
+        version: 0.245.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -335,6 +335,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
+      rollup-plugin-visualizer:
+        specifier: ^6.0.4
+        version: 6.0.4(rollup@4.40.2)
       storybook:
         specifier: ^9.1.10
         version: 9.1.10(@testing-library/dom@10.4.0)(msw@2.7.3(@types/node@22.15.17)(typescript@5.8.3))(prettier@3.5.3)(vite@5.4.19(@types/node@22.15.17))
@@ -614,15 +617,15 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.92.0':
-    resolution: {integrity: sha512-FeX5R10m30EUuRvDY83QuGBgmej8VsEjFGMdBvVMSTRkzmU/R+ck8N9em9PgQQq9HxDcvIjf80alU6foz7esLQ==}
+  '@authhero/adapter-interfaces@0.93.0':
+    resolution: {integrity: sha512-VVS8FU9l0uNQFKtaVzOhos3gdW0MvTaEdyjpviMH0JzWOKm/8iLpjME3V/7USapIv1kQZ4ihlqEraRP5Q37DwA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/kysely-adapter@10.50.0':
-    resolution: {integrity: sha512-39K2BX6q5vbS8t1Uw+DZ1Fvb9L1zpIOZAYud3oZf1hjcg28cXHudBK5Tn16JL62e9aUx2CeLr9G4Lkr0T84D/Q==}
+  '@authhero/kysely-adapter@10.50.1':
+    resolution: {integrity: sha512-0PU4x5/w+h8s+JIMwc04v3ODw9TAD5bsz6QdUkneXjjSVwN0GC8MdK26flysAu2IBieKVlBCygPEEQWgWxF0YA==}
     peerDependencies:
-      '@authhero/adapter-interfaces': 0.92.0
+      '@authhero/adapter-interfaces': 0.93.0
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
@@ -3294,8 +3297,8 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.236.0:
-    resolution: {integrity: sha512-ULBgC1ecvOvmmykKTz81OOV8Q6TiPBdlble5L7S7IDl6Ol8AiIscnKauWrrpbDJ4/hhinvD2iDECu4F3lhrsIg==}
+  authhero@0.245.0:
+    resolution: {integrity: sha512-EIo7XO19jCkR6jEMsXVH2SzlHemRVWseVlDjtZOaRf5iMwUbRUGHrF1MdSSkXVXGwFWAAsTvTP17EQdms9uamw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -6212,6 +6215,19 @@ packages:
   rollup-plugin-node-polyfills@0.2.1:
     resolution: {integrity: sha512-4kCrKPTJ6sK4/gLL/U5QzVT8cxJcofO0OU74tnB19F40cmuAKSzH5/siithxlofFEjwvw1YAhPmbvGNA6jEroA==}
 
+  rollup-plugin-visualizer@6.0.4:
+    resolution: {integrity: sha512-q8Q7J/6YofkmaGW1sH/fPRAz37x/+pd7VBuaUU7lwvOS/YikuiiEU9jeb9PH8XHiq50XFrUsBbOxeAMYQ7KZkg==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      rolldown: 1.x || ^1.0.0-beta
+      rollup: 2.x || 3.x || 4.x
+    peerDependenciesMeta:
+      rolldown:
+        optional: true
+      rollup:
+        optional: true
+
   rollup-pluginutils@2.8.2:
     resolution: {integrity: sha512-EEp9NhnUkwY8aif6bxgovPHMoMoNr2FulJziTndpt5H9RdwC47GSGuII9XxpSdzVGM0GWrNPHV6ie1LTNJPaLQ==}
 
@@ -6389,6 +6405,10 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
+
+  source-map@0.7.6:
+    resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
+    engines: {node: '>= 12'}
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -7439,14 +7459,14 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.92.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
+  '@authhero/adapter-interfaces@0.93.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
     dependencies:
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       nanoid: 5.0.8
 
-  '@authhero/kysely-adapter@10.50.0(@authhero/adapter-interfaces@0.92.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
+  '@authhero/kysely-adapter@10.50.1(@authhero/adapter-interfaces@0.93.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.92.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/adapter-interfaces': 0.93.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       hono: 4.9.1
       kysely: 0.27.4
@@ -10155,9 +10175,9 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.236.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  authhero@0.245.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
     dependencies:
-      '@authhero/adapter-interfaces': 0.92.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/adapter-interfaces': 0.93.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       '@peculiar/x509': 1.13.0
       arctic: 3.1.2
@@ -13268,6 +13288,15 @@ snapshots:
     dependencies:
       rollup-plugin-inject: 3.0.2
 
+  rollup-plugin-visualizer@6.0.4(rollup@4.40.2):
+    dependencies:
+      open: 8.4.2
+      picomatch: 4.0.2
+      source-map: 0.7.6
+      yargs: 17.7.2
+    optionalDependencies:
+      rollup: 4.40.2
+
   rollup-pluginutils@2.8.2:
     dependencies:
       estree-walker: 0.6.1
@@ -13546,6 +13575,8 @@ snapshots:
   source-map@0.5.7: {}
 
   source-map@0.6.1: {}
+
+  source-map@0.7.6: {}
 
   sourcemap-codec@1.4.8: {}
 

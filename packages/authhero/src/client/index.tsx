@@ -3,6 +3,7 @@ import { StrictMode } from "hono/jsx";
 import { hydrateRoot } from "hono/jsx/dom/client";
 import { FormHandler } from "./form-handler";
 import { PasswordToggle } from "./password-toggle";
+import { InputOTPHandler } from "./input-otp";
 
 /**
  * Client-side entry point for authentication pages
@@ -20,6 +21,7 @@ if (root) {
     <StrictMode>
       <FormHandler />
       <PasswordToggle />
+      <InputOTPHandler />
     </StrictMode>,
   );
 }

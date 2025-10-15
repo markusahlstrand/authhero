@@ -82,7 +82,7 @@ const mockTheme: Theme = {
     reference_text_size: 14,
   },
   widget: {
-    logo_url: "https://via.placeholder.com/150",
+    logo_url: "http://acmelogos.com/images/logo-5.svg",
     header_text_alignment: "center",
     logo_height: 52,
     logo_position: "center",
@@ -91,7 +91,7 @@ const mockTheme: Theme = {
 };
 
 const mockBranding: Branding = {
-  logo_url: "https://via.placeholder.com/150",
+  logo_url: "http://acmelogos.com/images/logo-5.svg",
   powered_by_logo_url: "http://acmelogos.com/images/logo-5.svg",
   colors: {
     primary: "#0066cc",

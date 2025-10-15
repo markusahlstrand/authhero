@@ -23,8 +23,6 @@ type Props = {
   state: string;
   hasPasswordLogin: boolean;
   className?: string;
-  onCodeChange?: (code: string) => void;
-  onSubmit?: (code: string) => void;
 };
 
 const CODE_LENGTH = 6;
@@ -37,8 +35,6 @@ const EnterCodeForm: FC<Props> = ({
   state,
   hasPasswordLogin,
   className,
-  onCodeChange,
-  onSubmit,
 }) => {
   const passwordLoginLinkParams = new URLSearchParams({
     state,
@@ -102,13 +98,6 @@ const EnterCodeForm: FC<Props> = ({
   const logoUrl = theme?.widget?.logo_url || branding?.logo_url;
   const showLogo = logoPosition !== "none" && logoUrl;
 
-  const handleCodeComplete = (code: string) => {
-    onCodeChange?.(code);
-    if (code.length === CODE_LENGTH) {
-      onSubmit?.(code);
-    }
-  };
-
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-sm", className)}>
       <Card style={cardStyle} className="border">
@@ -149,9 +138,6 @@ const EnterCodeForm: FC<Props> = ({
                     id="code"
                     required
                     autoFocus
-                    pattern={/^[0-9]*$/}
-                    onComplete={handleCodeComplete}
-                    onChange={onCodeChange}
                     containerClassName="gap-2"
                     className={cn(
                       "w-12 h-12 text-center text-lg font-mono border rounded-md transition-colors",

@@ -2,6 +2,7 @@ import path from "path";
 import { defineConfig } from "vite";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const getPackageName = () => {
   return "authhero";
@@ -61,6 +62,14 @@ export default defineConfig(({ mode }) => {
             return assetInfo.name || "";
           },
         },
+        plugins: [
+          visualizer({
+            filename: "./dist/stats.html",
+            open: false,
+            gzipSize: true,
+            brotliSize: true,
+          }) as any,
+        ],
       },
     },
     css: {

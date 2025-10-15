@@ -1,5 +1,11 @@
 # authhero
 
+## 0.246.0
+
+### Minor Changes
+
+- Fix the code form
+
 ## 0.245.0
 
 ### Minor Changes
