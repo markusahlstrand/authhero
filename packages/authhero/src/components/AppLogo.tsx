@@ -13,7 +13,7 @@ const AppLogo: FC<AppLogoProps> = ({ theme, branding }) => {
   if (logoUrl) {
     return (
       <div className="inline-flex h-9 items-center">
-        <img src={logoUrl} className="max-h-full" alt="Logo" />
+        <img src={logoUrl} className="h-full w-auto" alt="Logo" />
       </div>
     );
   }
