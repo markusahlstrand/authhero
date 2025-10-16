@@ -102,6 +102,7 @@ import * as o003_phone_number_index from "./2025-09-24T12:00:00_phone_number_ind
 import * as o004_login_sessions_id_index from "./2025-09-24T12:30:00_login_sessions_id_index";
 import * as o005_connections_tenant_index from "./2025-09-24T13:00:00_connections_tenant_index";
 import * as o006_remove_redundant_user_organizations_tenant_index from "./2025-09-24T13:30:00_remove_redundant_user_organizations_tenant_index";
+import * as o007_tenant_settings from "./2025-10-16T12:00:00_tenant_settings";
 
 // These need to be in alphabetic order
 export default {
@@ -209,4 +210,5 @@ export default {
   o004_login_sessions_id_index,
   o005_connections_tenant_index,
   o006_remove_redundant_user_organizations_tenant_index,
+  o007_tenant_settings,
 };

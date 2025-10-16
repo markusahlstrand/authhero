@@ -137,6 +137,30 @@ export const sqlRoleSchema = z.object({
   updated_at: z.string(),
 });
 
+export const sqlTenantSettingsSchema = z.object({
+  tenant_id: z.string(),
+  idle_session_lifetime: z.number().optional(),
+  session_lifetime: z.number().optional(),
+  session_cookie: z.string().optional(), // JSON
+  enable_client_connections: z.number().optional(), // boolean as int
+  default_redirection_uri: z.string().optional(),
+  enabled_locales: z.string().optional(), // JSON array
+  default_directory: z.string().optional(),
+  error_page: z.string().optional(), // JSON
+  flags: z.string().optional(), // JSON
+  friendly_name: z.string().optional(),
+  picture_url: z.string().optional(),
+  support_email: z.string().optional(),
+  support_url: z.string().optional(),
+  sandbox_version: z.string().optional(),
+  sandbox_versions_available: z.string().optional(), // JSON array
+  change_password: z.string().optional(), // JSON
+  guardian_mfa_page: z.string().optional(), // JSON
+  default_audience: z.string().optional(),
+  default_organization: z.string().optional(),
+  sessions: z.string().optional(), // JSON
+});
+
 export const sqlClientGrantSchema = z.object({
   id: z.string(),
   tenant_id: z.string(),
@@ -261,4 +285,5 @@ export interface Database {
   roles: z.infer<typeof sqlRoleSchema>;
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
+  tenant_settings: z.infer<typeof sqlTenantSettingsSchema>;
 }

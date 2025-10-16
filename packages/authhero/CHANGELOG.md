@@ -1,5 +1,17 @@
 # authhero
 
+## 0.247.0
+
+### Minor Changes
+
+- Add settings endpoint
+- Refactor strategies
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.94.0
+
 ## 0.246.0
 
 ### Minor Changes

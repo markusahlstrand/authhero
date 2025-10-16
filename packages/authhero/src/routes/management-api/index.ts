@@ -27,8 +27,8 @@ import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
+import { settingsRoutes } from "./settings";
 import { organizationRoutes } from "./organizations";
-// import { permissionRoutes } from "./permissions"; // Commented out - using role/user permissions instead
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -112,6 +112,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
     .route("/tenants", tenantRoutes)
+    .route("/settings", settingsRoutes)
     .route("/logs", logRoutes)
     .route("/hooks", hooksRoutes)
     .route("/connections", connectionRoutes)
@@ -122,7 +123,6 @@ export default function create(config: AuthHeroConfig) {
     .route("/roles", roleRoutes)
     .route("/resource-servers", resourceServerRoutes)
     .route("/organizations", organizationRoutes);
-  // .route("/permissions", permissionRoutes); // Commented out - using role/user permissions instead
 
   managementApp.doc("/spec", {
     openapi: "3.0.0",
