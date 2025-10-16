@@ -14,6 +14,7 @@ import Label from "./ui/label";
 import ErrorMessage from "./ErrorMessage";
 import AppLogo from "./AppLogo";
 import Trans from "./Trans";
+import { GoBack } from "./GoBack";
 
 type Props = {
   error?: string;
@@ -221,6 +222,7 @@ const EnterCodeForm: FC<Props> = ({
           </form>
         </CardContent>
       </Card>
+      <GoBack state={state} />
     </div>
   );
 };

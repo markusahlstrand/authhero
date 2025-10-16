@@ -69,13 +69,3 @@ export function getSocialStrategy(name: string): Strategy | undefined {
 
   return strategies[name];
 }
-
-// Re-export logo components for direct use if needed
-export {
-  GoogleLogo,
-  FacebookLogo,
-  AppleLogo,
-  VippsLogo,
-  GitHubLogo,
-  MicrosoftLogo,
-} from "./social-strategies";
