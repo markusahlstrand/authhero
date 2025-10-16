@@ -6,10 +6,24 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import { MicrosoftLogo } from "./social-strategies";
+import type { FC } from "hono/jsx";
 
 export const displayName = "Microsoft";
-export const logo = MicrosoftLogo;
+
+export const logo: FC<{ className?: string }> = ({ className = "" }) => (
+  <svg
+    width="45"
+    height="45"
+    viewBox="0 0 45 45"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path fill="#F25022" d="M0 0H21.43V21.43H0V0Z" />
+    <path fill="#7FBA00" d="M23.57 0H45V21.43H23.57V0Z" />
+    <path fill="#00A4EF" d="M0 23.57H21.43V45H0V23.57Z" />
+    <path fill="#FFB900" d="M23.57 23.57H45V45H23.57V23.57Z" />
+  </svg>
+);
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
