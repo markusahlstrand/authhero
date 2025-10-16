@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.94.0
+
+### Minor Changes
+
+- Add settings endpoint
+
 ## 0.93.0
 
 ### Minor Changes

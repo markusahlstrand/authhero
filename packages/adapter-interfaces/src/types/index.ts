@@ -33,3 +33,4 @@ export * from "./UserRole";
 export * from "./Role";
 export * from "./Organization";
 export * from "./UserOrganization";
+export * from "./TenantSettings";
