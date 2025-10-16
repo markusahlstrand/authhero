@@ -1,6 +1,7 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { tenantSettingsSchema } from "@authhero/adapter-interfaces";
+import { deepMergePatch } from "../../utils/deep-merge";
 
 export const settingsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -90,11 +91,8 @@ export const settingsRoutes = new OpenAPIHono<{
         ctx.var.tenant_id,
       );
 
-      // Merge with updates
-      const mergedSettings = {
-        ...existingSettings,
-        ...updates,
-      };
+      // Deep merge with updates to preserve nested object properties
+      const mergedSettings = deepMergePatch(existingSettings || {}, updates);
 
       await ctx.env.data.tenantSettings.set(ctx.var.tenant_id, mergedSettings);
 
