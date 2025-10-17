@@ -282,7 +282,6 @@ describe("settings", () => {
       support_url: "https://example.com/support",
       idle_session_lifetime: 72,
       session_lifetime: 168,
-      enable_client_connections: true,
       default_redirection_uri: "https://example.com/callback",
       enabled_locales: ["en", "es"],
       default_directory: "Username-Password-Authentication",
@@ -326,7 +325,6 @@ describe("settings", () => {
     expect(updated.support_url).toBe("https://example.com/support");
     expect(updated.idle_session_lifetime).toBe(72);
     expect(updated.session_lifetime).toBe(168);
-    expect(updated.enable_client_connections).toBe(true);
     expect(updated.default_redirection_uri).toBe(
       "https://example.com/callback",
     );

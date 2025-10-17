@@ -19,7 +19,17 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
   await db.schema
     .alterTable("tenants")
-    .addColumn("enable_client_connections", "integer") // boolean as int
+    .addColumn("allowed_logout_urls", "text") // JSON array
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("ephemeral_session_lifetime", "integer")
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("idle_ephemeral_session_lifetime", "integer")
     .execute();
 
   await db.schema
@@ -74,12 +84,27 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
   await db.schema
     .alterTable("tenants")
+    .addColumn("legacy_sandbox_version", "varchar(50)")
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
     .addColumn("change_password", "text") // JSON
     .execute();
 
   await db.schema
     .alterTable("tenants")
     .addColumn("guardian_mfa_page", "text") // JSON
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("device_flow", "text") // JSON
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("default_token_quota", "text") // JSON
     .execute();
 
   await db.schema
@@ -95,6 +120,44 @@ export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .alterTable("tenants")
     .addColumn("sessions", "text") // JSON
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("oidc_logout", "text") // JSON
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn(
+      "allow_organization_name_in_authentication_api",
+      "integer",
+    ) // boolean as int
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("customize_mfa_in_postlogin_action", "integer") // boolean as int
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("acr_values_supported", "text") // JSON array
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("mtls", "text") // JSON
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("pushed_authorization_requests_supported", "integer") // boolean as int
+    .execute();
+
+  await db.schema
+    .alterTable("tenants")
+    .addColumn("authorization_response_iss_parameter_supported", "integer") // boolean as int
     .execute();
 
   // Copy name to friendly_name for all tenants (before we drop the name column)

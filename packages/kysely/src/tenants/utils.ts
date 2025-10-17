@@ -48,11 +48,50 @@ export function sqlTenantToTenant(sqlTenant: any): Tenant {
   if (sqlTenant.sessions && typeof sqlTenant.sessions === "string") {
     tenant.sessions = JSON.parse(sqlTenant.sessions);
   }
+  if (sqlTenant.oidc_logout && typeof sqlTenant.oidc_logout === "string") {
+    tenant.oidc_logout = JSON.parse(sqlTenant.oidc_logout);
+  }
+  if (sqlTenant.device_flow && typeof sqlTenant.device_flow === "string") {
+    tenant.device_flow = JSON.parse(sqlTenant.device_flow);
+  }
+  if (
+    sqlTenant.default_token_quota &&
+    typeof sqlTenant.default_token_quota === "string"
+  ) {
+    tenant.default_token_quota = JSON.parse(sqlTenant.default_token_quota);
+  }
+  if (
+    sqlTenant.allowed_logout_urls &&
+    typeof sqlTenant.allowed_logout_urls === "string"
+  ) {
+    tenant.allowed_logout_urls = JSON.parse(sqlTenant.allowed_logout_urls);
+  }
+  if (
+    sqlTenant.acr_values_supported &&
+    typeof sqlTenant.acr_values_supported === "string"
+  ) {
+    tenant.acr_values_supported = JSON.parse(sqlTenant.acr_values_supported);
+  }
+  if (sqlTenant.mtls && typeof sqlTenant.mtls === "string") {
+    tenant.mtls = JSON.parse(sqlTenant.mtls);
+  }
 
   // Convert integer to boolean
-  if (sqlTenant.enable_client_connections !== undefined) {
-    tenant.enable_client_connections =
-      sqlTenant.enable_client_connections === 1;
+  if (sqlTenant.allow_organization_name_in_authentication_api !== undefined) {
+    tenant.allow_organization_name_in_authentication_api =
+      sqlTenant.allow_organization_name_in_authentication_api === 1;
+  }
+  if (sqlTenant.customize_mfa_in_postlogin_action !== undefined) {
+    tenant.customize_mfa_in_postlogin_action =
+      sqlTenant.customize_mfa_in_postlogin_action === 1;
+  }
+  if (sqlTenant.pushed_authorization_requests_supported !== undefined) {
+    tenant.pushed_authorization_requests_supported =
+      sqlTenant.pushed_authorization_requests_supported === 1;
+  }
+  if (sqlTenant.authorization_response_iss_parameter_supported !== undefined) {
+    tenant.authorization_response_iss_parameter_supported =
+      sqlTenant.authorization_response_iss_parameter_supported === 1;
   }
 
   return removeNullProperties(tenant);
@@ -88,12 +127,43 @@ export function tenantToSqlTenant(tenant: Partial<Tenant>): any {
   if (tenant.sessions !== undefined) {
     sqlTenant.sessions = JSON.stringify(tenant.sessions);
   }
+  if (tenant.oidc_logout !== undefined) {
+    sqlTenant.oidc_logout = JSON.stringify(tenant.oidc_logout);
+  }
+  if (tenant.device_flow !== undefined) {
+    sqlTenant.device_flow = JSON.stringify(tenant.device_flow);
+  }
+  if (tenant.default_token_quota !== undefined) {
+    sqlTenant.default_token_quota = JSON.stringify(tenant.default_token_quota);
+  }
+  if (tenant.allowed_logout_urls !== undefined) {
+    sqlTenant.allowed_logout_urls = JSON.stringify(tenant.allowed_logout_urls);
+  }
+  if (tenant.acr_values_supported !== undefined) {
+    sqlTenant.acr_values_supported = JSON.stringify(
+      tenant.acr_values_supported,
+    );
+  }
+  if (tenant.mtls !== undefined) {
+    sqlTenant.mtls = JSON.stringify(tenant.mtls);
+  }
 
   // Convert boolean to integer
-  if (tenant.enable_client_connections !== undefined) {
-    sqlTenant.enable_client_connections = tenant.enable_client_connections
-      ? 1
-      : 0;
+  if (tenant.allow_organization_name_in_authentication_api !== undefined) {
+    sqlTenant.allow_organization_name_in_authentication_api =
+      tenant.allow_organization_name_in_authentication_api ? 1 : 0;
+  }
+  if (tenant.customize_mfa_in_postlogin_action !== undefined) {
+    sqlTenant.customize_mfa_in_postlogin_action =
+      tenant.customize_mfa_in_postlogin_action ? 1 : 0;
+  }
+  if (tenant.pushed_authorization_requests_supported !== undefined) {
+    sqlTenant.pushed_authorization_requests_supported =
+      tenant.pushed_authorization_requests_supported ? 1 : 0;
+  }
+  if (tenant.authorization_response_iss_parameter_supported !== undefined) {
+    sqlTenant.authorization_response_iss_parameter_supported =
+      tenant.authorization_response_iss_parameter_supported ? 1 : 0;
   }
 
   return sqlTenant;
