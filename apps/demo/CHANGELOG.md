@@ -6,7 +6,7 @@
 
 - Updated dependencies
   - authhero@0.248.0
-  - @authhero/kysely-adapter@11.0.0
+  - @authhero/kysely-adapter@10.52.0
 
 ## 0.22.6
 
