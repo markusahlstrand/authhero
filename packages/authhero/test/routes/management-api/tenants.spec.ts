@@ -30,7 +30,7 @@ describe("tenants", () => {
     const createTenantResponse = await managementClient.tenants.$post(
       {
         json: {
-          name: "test",
+          friendly_name: "test",
           audience: "test",
           sender_name: "test",
           sender_email: "test@example.com",
@@ -46,7 +46,7 @@ describe("tenants", () => {
     expect(createTenantResponse.status).toBe(201);
     const createdTenant = (await createTenantResponse.json()) as Tenant;
 
-    expect(createdTenant.name).toBe("test");
+    expect(createdTenant.friendly_name).toBe("test");
 
     // now fetch list of tenants again to assert tenant deleted
     const listTenantsResponse = await managementClient.tenants.$get(

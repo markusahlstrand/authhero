@@ -74,7 +74,7 @@ describe("initJSXRoute", () => {
 
       // Verify tenant details
       expect(result.tenant.id).toBe("tenantId");
-      expect(result.tenant.name).toBe("Test Tenant");
+      expect(result.tenant.friendly_name).toBe("Test Tenant");
 
       // Verify login session
       expect(result.loginSession.id).toBe(state);
@@ -283,39 +283,7 @@ describe("initJSXRoute", () => {
   });
 
   describe("language handling", () => {
-    it("should use tenant language as fallback when no UI locales", async () => {
-      // Update tenant to have a specific language
-      await testServer.env.data.tenants.update("tenantId", {
-        language: "en",
-      });
-
-      // Remove ui_locales from login session
-      const loginSessionNoLocales = {
-        ...mockLoginSession,
-        authParams: {
-          ...mockLoginSession.authParams,
-          ui_locales: undefined,
-        },
-      };
-
-      await testServer.env.data.loginSessions.update(
-        "tenantId",
-        state,
-        loginSessionNoLocales,
-      );
-
-      const result = await initJSXRoute(ctx, state);
-
-      expect(result).toBeDefined();
-      // The function should process the language change
-    });
-
-    it("should fallback to 'sv' when no UI locales or tenant language", async () => {
-      // Update tenant to have no language
-      await testServer.env.data.tenants.update("tenantId", {
-        language: undefined,
-      });
-
+    it("should fallback to 'sv' when no UI locales", async () => {
       // Remove ui_locales from login session
       const loginSessionNoLocales = {
         ...mockLoginSession,

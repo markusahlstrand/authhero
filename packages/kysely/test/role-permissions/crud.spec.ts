@@ -13,7 +13,7 @@ describe("role permissions adapter", () => {
     // Create tenant first (required for foreign key constraints)
     await adapters.tenants.create({
       id: tenant,
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",

@@ -1,8 +1,7 @@
-import { Admin, Resource, ShowGuesser } from "react-admin";
+import { Admin, Resource } from "react-admin";
 import { getDataprovider } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { TenantsList } from "./components/tenants/list";
-import { TenantsEdit } from "./components/tenants/edit";
 import { TenantsCreate } from "./components/tenants/create";
 import { useMemo, useState } from "react";
 import { Button } from "@mui/material";
@@ -77,13 +76,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
           })
         }
       >
-        <Resource
-          name="tenants"
-          list={TenantsList}
-          edit={TenantsEdit}
-          create={TenantsCreate}
-          show={ShowGuesser}
-        />
+        <Resource name="tenants" list={TenantsList} create={TenantsCreate} />
       </Admin>
     </>
   );

@@ -5,7 +5,11 @@ export function TenantsCreate() {
     <Create>
       <SimpleForm>
         <TextInput source="id" />
-        <TextInput source="name" validate={[required()]} />
+        <TextInput
+          source="friendly_name"
+          label="Name"
+          validate={[required()]}
+        />
         <TextInput source="audience" validate={[required()]} />
         <TextInput source="sender_email" validate={[required()]} />
         <TextInput source="sender_name" validate={[required()]} />

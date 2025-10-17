@@ -6,11 +6,9 @@ import {
   UrlField,
   SimpleList,
   TextInput,
-  FunctionField,
 } from "react-admin";
-import { useMediaQuery, IconButton } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { PostListActions } from "../listActions/PostListActions";
-import { Settings as SettingsIcon } from "@mui/icons-material";
 
 // Use the standard List component but with proper logging
 export function TenantsList(props) {
@@ -36,13 +34,19 @@ export function TenantsList(props) {
     >
       {isSmall ? (
         <SimpleList
-          primaryText={(record) => record.name}
+          primaryText={(record) => record.friendly_name}
           secondaryText={(record) => record.id}
-          linkType="edit"
+          linkType={false}
+          onClick={(record: any) => {
+            handleTenantNavigation(String(record.id));
+          }}
         />
       ) : (
         <Datagrid
-          rowClick="edit"
+          rowClick={(_id, _resource, record) => {
+            handleTenantNavigation(String(record.id));
+            return "";
+          }}
           bulkActionButtons={false}
           rowSx={(tenant) => ({
             ...(tenant.id === "DEFAULT_SETTINGS" && {
@@ -50,27 +54,12 @@ export function TenantsList(props) {
             }),
           })}
         >
-          <TextField source="name" />
+          <TextField source="friendly_name" label="Name" />
           <UrlField source="id" />
           <TextField source="audience" />
           <DateField source="created_at" showTime={true} />
           <DateField source="updated_at" showTime={true} />
           <TextField source="support_url" label="Support Url" />
-          <FunctionField
-            label="Manage"
-            render={(record: any) => (
-              <IconButton
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent row click
-                  handleTenantNavigation(record.id);
-                }}
-                size="small"
-                title={`Manage tenant ${record.name || record.id}`}
-              >
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-            )}
-          />
         </Datagrid>
       )}
     </List>

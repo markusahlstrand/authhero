@@ -165,7 +165,7 @@ const createMockClient = (connections: string[]): LegacyClient => ({
   require_proof_of_possession: false,
   tenant: {
     id: "mock-tenant-id",
-    name: "Mock Tenant",
+    friendly_name: "Mock Tenant",
     audience: "mock-audience",
     sender_email: "noreply@example.com",
     sender_name: "Mock App",

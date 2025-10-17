@@ -91,6 +91,8 @@ function getIdKeyFromResource(resource: string) {
       return "form_id";
     case "resource_servers":
       return "id";
+    case "settings":
+      return "id";
     default:
       console.warn(
         `No specific ID key defined for resource "${resource}", falling back to "${resource}_id" or "id"`,
@@ -101,7 +103,15 @@ function getIdKeyFromResource(resource: string) {
 }
 
 // List of singleton resources (no id in URL, e.g. /api/v2/branding)
-const SINGLETON_RESOURCES = ["branding", "branding/themes/default"];
+const SINGLETON_RESOURCES = ["branding", "branding/themes/default", "settings"];
+
+// Map resource names to their actual API paths
+function getResourcePath(resource: string): string {
+  if (resource === "settings") {
+    return "tenants/settings";
+  }
+  return resource;
+}
 
 /**
  * Maps react-admin queries to the auth0 mamagement api
@@ -116,6 +126,38 @@ export default (
       const resource = parseResource(resourcePath);
       const { page = 1, perPage } = params.pagination || {};
       const { field, order } = params.sort || {};
+
+      const headers = new Headers();
+
+      if (tenantId) {
+        headers.set("tenant-id", tenantId);
+      }
+
+      // Handle singleton resources - they don't have a list endpoint
+      if (SINGLETON_RESOURCES.includes(resource)) {
+        try {
+          const resourcePath = getResourcePath(resource);
+          const res = await httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
+            headers,
+          });
+          return {
+            data: [
+              {
+                id: resource, // Use resource name as ID (e.g., "settings", "branding")
+                ...res.json,
+              },
+            ],
+            total: 1,
+          };
+        } catch (error) {
+          console.error(`Error in getList for singleton ${resource}:`, error);
+          // Return empty data for singleton if not found
+          return {
+            data: [{ id: resource }],
+            total: 1,
+          };
+        }
+      }
 
       // Special case for forms endpoint which doesn't accept query parameters
       let url;
@@ -136,12 +178,6 @@ export default (
         }
 
         url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
-      }
-
-      const headers = new Headers();
-
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
       }
 
       try {
@@ -218,28 +254,30 @@ export default (
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
+        const resourcePath = getResourcePath(resource);
+
         // Special handling for branding to include theme data
         if (resource === "branding") {
           return Promise.all([
-            httpClient(`${apiUrl}/api/v2/${resource}`, { headers }),
+            httpClient(`${apiUrl}/api/v2/${resourcePath}`, { headers }),
             httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
               headers,
             }).catch(() => ({ json: {} })),
           ]).then(([brandingResponse, themeResponse]) => ({
             data: {
-              id: resource,
               ...brandingResponse.json,
               themes: themeResponse.json,
+              id: resource, // Use resource name as ID (must come after spread to override)
             },
           }));
         }
 
-        return httpClient(`${apiUrl}/api/v2/${resource}`, {
+        return httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
           headers,
         }).then(({ json }) => ({
           data: {
-            id: resource, // Use a constant id for singleton
             ...json,
+            id: resource, // Use resource name as ID (must come after spread to override)
           },
         }));
       }
@@ -527,6 +565,8 @@ export default (
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
+        const resourcePath = getResourcePath(resource);
+
         // Special handling for branding to update theme data separately
         if (resource === "branding" && cleanParams.data.themes) {
           const themeData = cleanParams.data.themes;
@@ -534,7 +574,7 @@ export default (
 
           // Update branding and theme data in parallel
           return Promise.all([
-            httpClient(`${apiUrl}/api/v2/${resource}`, {
+            httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
               headers,
               method: "PATCH",
               body: JSON.stringify(cleanParams.data),
@@ -549,19 +589,19 @@ export default (
             }),
           ]).then(([brandingResponse, themeResponse]) => ({
             data: {
-              id: resource,
+              id: resource, // Use resource name as ID
               ...brandingResponse.json,
               themes: themeResponse.json,
             },
           }));
         }
 
-        return httpClient(`${apiUrl}/api/v2/${resource}`, {
+        return httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
           headers,
           method: "PATCH",
           body: JSON.stringify(cleanParams.data),
         }).then(({ json }) => ({
-          data: { id: resource, ...json },
+          data: { id: resource, ...json }, // Use resource name as ID
         }));
       }
 

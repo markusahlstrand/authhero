@@ -1,8 +1,8 @@
 import { Kysely } from "kysely";
-import { removeNullProperties } from "../helpers/remove-nulls";
 import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
+import { sqlTenantToTenant } from "./utils";
 
 export function list(db: Kysely<Database>) {
   return async (params: ListParams) => {
@@ -16,14 +16,16 @@ export function list(db: Kysely<Database>) {
     }
 
     if (q) {
-      query = query.where((eb) => eb.or([eb("name", "like", `%${q}%`)]));
+      query = query.where((eb) =>
+        eb.or([eb("friendly_name", "like", `%${q}%`)]),
+      );
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const tenants = await filteredQuery.selectAll().execute();
 
-    const mappedTenants = tenants.map(removeNullProperties);
+    const mappedTenants = tenants.map(sqlTenantToTenant);
 
     if (!include_totals) {
       return {

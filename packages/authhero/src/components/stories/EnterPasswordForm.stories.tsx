@@ -206,7 +206,7 @@ const mockClient: LegacyClient = {
     id: "test-tenant",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    name: "Test Tenant",
+    friendly_name: "Test Tenant",
     audience: "https://test-tenant.authhero.com",
     sender_email: "noreply@authhero.com",
     sender_name: "AuthHero",

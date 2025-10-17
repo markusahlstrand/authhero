@@ -27,7 +27,6 @@ import { formsRoutes } from "./forms";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
-import { settingsRoutes } from "./settings";
 import { organizationRoutes } from "./organizations";
 
 export default function create(config: AuthHeroConfig) {
@@ -112,7 +111,6 @@ export default function create(config: AuthHeroConfig) {
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
     .route("/tenants", tenantRoutes)
-    .route("/settings", settingsRoutes)
     .route("/logs", logRoutes)
     .route("/hooks", hooksRoutes)
     .route("/connections", connectionRoutes)

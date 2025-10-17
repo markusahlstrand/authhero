@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
-import { removeNullProperties } from "../helpers/remove-nulls";
 import { Tenant } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { sqlTenantToTenant } from "./utils";
 
 export function get(db: Kysely<Database>) {
   return async (id: string): Promise<Tenant | null> => {
@@ -15,6 +15,6 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    return removeNullProperties(tenant);
+    return sqlTenantToTenant(tenant);
   };
 }

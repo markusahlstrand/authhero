@@ -21,7 +21,7 @@ const createMockAdapters = (): DataAdapters => ({
           connections: [],
           tenant: {
             id: "main-tenant",
-            name: "Main Tenant",
+            friendly_name: "Main Tenant",
             audience: "https://main.example.com",
             sender_email: "main@example.com",
             sender_name: "Main Sender",
@@ -52,7 +52,7 @@ const createMockAdapters = (): DataAdapters => ({
           connections: [],
           tenant: {
             id: "tenant-1",
-            name: "Tenant 1",
+            friendly_name: "Tenant 1",
             audience: "https://tenant.example.com",
             sender_email: "tenant@example.com",
             sender_name: "Tenant Sender",

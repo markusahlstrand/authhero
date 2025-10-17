@@ -26,7 +26,6 @@ import { RolesAdapter } from "./Roles";
 import { UserRolesAdapter } from "./UserRoles";
 import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
-import { TenantSettingsAdapter } from "./TenantSettings";
 
 export interface DataAdapters {
   branding: BrandingAdapter;
@@ -52,7 +51,6 @@ export interface DataAdapters {
   roles: RolesAdapter;
   sessions: SessionsAdapter;
   tenants: TenantsDataAdapter;
-  tenantSettings: TenantSettingsAdapter;
   themes: ThemesAdapter;
   users: UserDataAdapter;
   userRoles: UserRolesAdapter;
@@ -69,4 +67,3 @@ export * from "./UserPermissions";
 export * from "./UserRoles";
 export * from "./Organizations";
 export * from "./UserOrganizations";
-export * from "./TenantSettings";

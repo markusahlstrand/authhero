@@ -17,7 +17,7 @@ describe("ClientGrantsAdapter", () => {
       .insertInto("tenants")
       .values({
         id: tenantId,
-        name: "Test Tenant",
+        friendly_name: "Test Tenant",
         audience: "https://test.authhero.com/api/v2/",
         sender_email: "test@authhero.com",
         sender_name: "Test Sender",
@@ -485,7 +485,7 @@ describe("ClientGrantsAdapter", () => {
       .insertInto("tenants")
       .values({
         id: anotherTenantId,
-        name: "Another Tenant",
+        friendly_name: "Another Tenant",
         audience: "https://another.authhero.com/api/v2/",
         sender_email: "another@authhero.com",
         sender_name: "Another Sender",

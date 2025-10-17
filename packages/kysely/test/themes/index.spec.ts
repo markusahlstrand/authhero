@@ -8,7 +8,7 @@ describe("themes", () => {
     // Create a tenant first
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",
@@ -169,7 +169,7 @@ describe("themes", () => {
     // Create a tenant first
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",
@@ -185,7 +185,7 @@ describe("themes", () => {
     // Create two tenants
     await data.tenants.create({
       id: "tenant1",
-      name: "Test Tenant 1",
+      friendly_name: "Test Tenant 1",
       audience: "https://example1.com",
       sender_email: "login@example1.com",
       sender_name: "SenderName1",
@@ -193,7 +193,7 @@ describe("themes", () => {
 
     await data.tenants.create({
       id: "tenant2",
-      name: "Test Tenant 2",
+      friendly_name: "Test Tenant 2",
       audience: "https://example2.com",
       sender_email: "login@example2.com",
       sender_name: "SenderName2",
@@ -302,7 +302,7 @@ describe("themes", () => {
     // Create a tenant first
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",

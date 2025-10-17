@@ -2,7 +2,7 @@ import { Tenant, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
 
 export interface CreateTenantParams {
-  name: string;
+  friendly_name: string;
   audience: string;
   sender_name: string;
   sender_email: string;

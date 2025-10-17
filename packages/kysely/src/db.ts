@@ -14,7 +14,6 @@ import {
   refreshTokenSchema,
   sessionSchema,
   SigningKey,
-  Tenant,
   themeSchema,
   userSchema,
   resourceServerSchema,
@@ -137,8 +136,18 @@ export const sqlRoleSchema = z.object({
   updated_at: z.string(),
 });
 
-export const sqlTenantSettingsSchema = z.object({
-  tenant_id: z.string(),
+// Tenant schema now includes settings fields (merged from tenant_settings)
+export const sqlTenantSchema = z.object({
+  // Base tenant fields
+  id: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  audience: z.string(),
+  sender_email: z.string(),
+  sender_name: z.string(),
+  support_url: z.string().optional(),
+
+  // Settings fields (previously in tenant_settings table)
   idle_session_lifetime: z.number().optional(),
   session_lifetime: z.number().optional(),
   session_cookie: z.string().optional(), // JSON
@@ -148,10 +157,9 @@ export const sqlTenantSettingsSchema = z.object({
   default_directory: z.string().optional(),
   error_page: z.string().optional(), // JSON
   flags: z.string().optional(), // JSON
-  friendly_name: z.string().optional(),
+  friendly_name: z.string(), // Required - replaces the old 'name' field
   picture_url: z.string().optional(),
   support_email: z.string().optional(),
-  support_url: z.string().optional(),
   sandbox_version: z.string().optional(),
   sandbox_versions_available: z.string().optional(), // JSON array
   change_password: z.string().optional(), // JSON
@@ -276,7 +284,7 @@ export interface Database {
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
   sessions: z.infer<typeof sqlSessionSchema>;
-  tenants: Tenant;
+  tenants: z.infer<typeof sqlTenantSchema>;
   themes: z.infer<typeof sqlThemeSchema>;
   resource_servers: z.infer<typeof sqlResourceServerSchema>;
   role_permissions: z.infer<typeof sqlRolePermissionSchema>;
@@ -285,5 +293,4 @@ export interface Database {
   roles: z.infer<typeof sqlRoleSchema>;
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
-  tenant_settings: z.infer<typeof sqlTenantSettingsSchema>;
 }

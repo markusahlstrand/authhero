@@ -1,5 +1,16 @@
 # authhero
 
+## 0.248.0
+
+### Minor Changes
+
+- Merge settings and tenants table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.95.0
+
 ## 0.247.0
 
 ### Minor Changes

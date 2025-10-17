@@ -11,7 +11,7 @@ describe("cleanup", () => {
 
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",
@@ -126,7 +126,7 @@ describe("cleanup", () => {
 
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",
@@ -211,7 +211,7 @@ describe("cleanup", () => {
 
     await data.tenants.create({
       id: "tenantId",
-      name: "Test Tenant",
+      friendly_name: "Test Tenant",
       audience: "https://example.com",
       sender_email: "login@example.com",
       sender_name: "SenderName",
