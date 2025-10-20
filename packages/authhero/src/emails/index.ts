@@ -162,7 +162,7 @@ export async function sendCode(
 
   const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
   const logo = branding?.logo_url || "";
-  const buttonColor = branding?.colors?.primary || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
 
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
