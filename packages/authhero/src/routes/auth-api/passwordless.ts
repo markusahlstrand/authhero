@@ -100,9 +100,9 @@ export const passwordlessRoutes = new OpenAPIHono<{
       });
 
       // Extract language from ui_locales
-      const language = authParams.ui_locales
+      const language = authParams?.ui_locales
         ?.split(" ")
-        .map((locale) => locale.split("-")[0])[0];
+        ?.map((locale) => locale.split("-")[0])[0];
 
       if (send === "link") {
         await sendLink(ctx, {

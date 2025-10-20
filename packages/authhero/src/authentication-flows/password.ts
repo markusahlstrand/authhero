@@ -126,9 +126,9 @@ export async function passwordGrant(
     client.client_metadata?.email_validation === "enforced"
   ) {
     // Extract language from ui_locales if loginSession is available
-    const language = loginSession?.authParams.ui_locales
+    const language = loginSession?.authParams?.ui_locales
       ?.split(" ")
-      .map((locale) => locale.split("-")[0])[0];
+      ?.map((locale) => locale.split("-")[0])[0];
 
     await sendValidateEmailAddress(ctx, user, language);
 

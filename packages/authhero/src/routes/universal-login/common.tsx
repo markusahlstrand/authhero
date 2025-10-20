@@ -77,10 +77,10 @@ export async function initJSXRoute(
   const theme = await env.data.themes.get(tenant.id, "default");
   const branding = await env.data.branding.get(tenant.id);
 
-  const loginSessionLanguage = loginSession.authParams.ui_locales
+  const loginSessionLanguage = loginSession.authParams?.ui_locales
     ?.split(" ")
-    .map((locale) => locale.split("-")[0])
-    .find((language) => {
+    ?.map((locale) => locale.split("-")[0])
+    ?.find((language) => {
       if (Array.isArray(i18next.options.supportedLngs)) {
         return i18next.options.supportedLngs.includes(language);
       }

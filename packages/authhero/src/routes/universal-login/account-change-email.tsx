@@ -171,9 +171,9 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       });
 
       // Extract language from ui_locales
-      const language = loginSession.authParams.ui_locales
+      const language = loginSession.authParams?.ui_locales
         ?.split(" ")
-        .map((locale) => locale.split("-")[0])[0];
+        ?.map((locale) => locale.split("-")[0])[0];
 
       // Send verification email
       await sendCode(ctx, {
