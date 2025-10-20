@@ -228,10 +228,6 @@ export function SettingsEdit() {
                 <TextInput source="" label="" />
               </SimpleFormIterator>
             </ArrayInput>
-            <BooleanInput
-              source="enable_client_connections"
-              label="Enable Client Connections"
-            />
           </Stack>
         </TabbedForm.Tab>
       </TabbedForm>

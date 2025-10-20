@@ -98,6 +98,9 @@ export const tenantRoutes = new OpenAPIHono<{
     async (ctx) => {
       const updates = ctx.req.valid("json");
 
+      // Strip protected system fields that should not be modified
+      const { id, ...sanitizedUpdates } = updates;
+
       // Get existing tenant
       const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
 
@@ -108,7 +111,8 @@ export const tenantRoutes = new OpenAPIHono<{
       }
 
       // Deep merge with updates to preserve nested object properties
-      const mergedTenant = deepMergePatch(existingTenant, updates);
+      // Note: created_at and updated_at are not in the update payload, they're only in the full tenant schema
+      const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
 
       await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
 

@@ -1,5 +1,9 @@
 import { Tenant } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import {
+  stringifyProperties,
+  removeUndefinedAndNull,
+} from "../helpers/stringify";
 
 export function sqlTenantToTenant(sqlTenant: any): Tenant {
   const tenant: any = {
@@ -101,52 +105,26 @@ export function tenantToSqlTenant(tenant: Partial<Tenant>): any {
   const sqlTenant: any = { ...tenant };
 
   // Convert objects to JSON strings
-  if (tenant.session_cookie !== undefined) {
-    sqlTenant.session_cookie = JSON.stringify(tenant.session_cookie);
-  }
-  if (tenant.enabled_locales !== undefined) {
-    sqlTenant.enabled_locales = JSON.stringify(tenant.enabled_locales);
-  }
-  if (tenant.error_page !== undefined) {
-    sqlTenant.error_page = JSON.stringify(tenant.error_page);
-  }
-  if (tenant.flags !== undefined) {
-    sqlTenant.flags = JSON.stringify(tenant.flags);
-  }
-  if (tenant.sandbox_versions_available !== undefined) {
-    sqlTenant.sandbox_versions_available = JSON.stringify(
-      tenant.sandbox_versions_available,
-    );
-  }
-  if (tenant.change_password !== undefined) {
-    sqlTenant.change_password = JSON.stringify(tenant.change_password);
-  }
-  if (tenant.guardian_mfa_page !== undefined) {
-    sqlTenant.guardian_mfa_page = JSON.stringify(tenant.guardian_mfa_page);
-  }
-  if (tenant.sessions !== undefined) {
-    sqlTenant.sessions = JSON.stringify(tenant.sessions);
-  }
-  if (tenant.oidc_logout !== undefined) {
-    sqlTenant.oidc_logout = JSON.stringify(tenant.oidc_logout);
-  }
-  if (tenant.device_flow !== undefined) {
-    sqlTenant.device_flow = JSON.stringify(tenant.device_flow);
-  }
-  if (tenant.default_token_quota !== undefined) {
-    sqlTenant.default_token_quota = JSON.stringify(tenant.default_token_quota);
-  }
-  if (tenant.allowed_logout_urls !== undefined) {
-    sqlTenant.allowed_logout_urls = JSON.stringify(tenant.allowed_logout_urls);
-  }
-  if (tenant.acr_values_supported !== undefined) {
-    sqlTenant.acr_values_supported = JSON.stringify(
-      tenant.acr_values_supported,
-    );
-  }
-  if (tenant.mtls !== undefined) {
-    sqlTenant.mtls = JSON.stringify(tenant.mtls);
-  }
+  stringifyProperties(
+    tenant,
+    [
+      "session_cookie",
+      "enabled_locales",
+      "error_page",
+      "flags",
+      "sandbox_versions_available",
+      "change_password",
+      "guardian_mfa_page",
+      "sessions",
+      "oidc_logout",
+      "device_flow",
+      "default_token_quota",
+      "allowed_logout_urls",
+      "acr_values_supported",
+      "mtls",
+    ],
+    sqlTenant,
+  );
 
   // Convert boolean to integer
   if (tenant.allow_organization_name_in_authentication_api !== undefined) {
@@ -166,5 +144,6 @@ export function tenantToSqlTenant(tenant: Partial<Tenant>): any {
       tenant.authorization_response_iss_parameter_supported ? 1 : 0;
   }
 
-  return sqlTenant;
+  // Strip undefined and null values to keep SQL payload clean
+  return removeUndefinedAndNull(sqlTenant);
 }

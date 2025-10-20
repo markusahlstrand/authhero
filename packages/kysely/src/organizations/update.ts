@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { OrganizationInsert } from "@authhero/adapter-interfaces";
+import { stringifyProperties } from "../helpers/stringify";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -17,18 +18,11 @@ export function update(db: Kysely<Database>) {
     };
 
     // Convert complex objects to JSON strings
-    if (branding !== undefined) {
-      updateData.branding = JSON.stringify(branding);
-    }
-    if (metadata !== undefined) {
-      updateData.metadata = JSON.stringify(metadata);
-    }
-    if (enabled_connections !== undefined) {
-      updateData.enabled_connections = JSON.stringify(enabled_connections);
-    }
-    if (token_quota !== undefined) {
-      updateData.token_quota = JSON.stringify(token_quota);
-    }
+    stringifyProperties(
+      params,
+      ["branding", "metadata", "enabled_connections", "token_quota"],
+      updateData,
+    );
 
     const result = await db
       .updateTable("organizations")

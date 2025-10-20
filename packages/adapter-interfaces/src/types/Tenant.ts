@@ -117,12 +117,12 @@ export const tenantInsertSchema = z.object({
     .object({
       clients: z
         .object({
-          client_credentials: z.object({}).optional(),
+          client_credentials: z.record(z.any()).optional(),
         })
         .optional(),
       organizations: z
         .object({
-          client_credentials: z.object({}).optional(),
+          client_credentials: z.record(z.any()).optional(),
         })
         .optional(),
     })
@@ -170,8 +170,14 @@ export const tenantInsertSchema = z.object({
 });
 
 export const tenantSchema = z.object({
-  created_at: z.string().transform((val) => (val === null ? "" : val)),
-  updated_at: z.string().transform((val) => (val === null ? "" : val)),
+  created_at: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? ""),
+  updated_at: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? ""),
   ...tenantInsertSchema.shape,
   id: z.string(),
 });
