@@ -82,7 +82,7 @@ export async function sendSms(
     template: "auth-code",
     data: {
       code: params.code,
-      tenantName: client.tenant.name,
+      tenantName: client.tenant.friendly_name,
       tenantId: client.tenant.id,
     },
   });
@@ -104,8 +104,8 @@ export async function sendResetPassword(
   const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   const options = {
-    vendorName: tenant.name,
-    lng: tenant.language || "en",
+    vendorName: tenant.friendly_name,
+    lng: "en", // Default language for emails
   };
 
   await sendEmail(ctx, {
@@ -114,11 +114,11 @@ export async function sendResetPassword(
     html: `Click here to reset your password: ${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`,
     template: "auth-password-reset",
     data: {
-      vendorName: tenant.name,
-      logo: tenant.logo || "",
+      vendorName: tenant.friendly_name,
+      logo: "",
       passwordResetUrl,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: tenant.primary_color || "#7d68f4",
+      buttonColor: "#7d68f4",
       passwordResetTitle: t("password_reset_title", options),
       resetPasswordEmailClickToReset: t(
         "reset_password_email_click_to_reset",
@@ -128,7 +128,7 @@ export async function sendResetPassword(
       supportInfo: t("support_info", options),
       contactUs: t("contact_us", options),
       copyright: t("copyright", options),
-      tenantName: tenant.name,
+      tenantName: tenant.friendly_name,
       tenantId: tenant.id,
     },
   });
@@ -157,11 +157,11 @@ export async function sendCode(
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
   const options = {
-    vendorName: tenant.name,
+    vendorName: tenant.friendly_name,
     vendorId: tenant.id,
     loginDomain: loginUrl.hostname,
     code,
-    lng: tenant.language || "en",
+    lng: "en", // Default language for emails
   };
 
   if (connectionType === "email") {
@@ -172,10 +172,10 @@ export async function sendCode(
       template: "auth-code",
       data: {
         code,
-        vendorName: tenant.name,
-        logo: tenant.logo || "",
+        vendorName: tenant.friendly_name,
+        logo: "",
         supportUrl: tenant.support_url || "",
-        buttonColor: tenant.primary_color || "",
+        buttonColor: "",
         welcomeToYourAccount: t("welcome_to_your_account", options),
         linkEmailClickToLogin: t("link_email_click_to_login", options),
         linkEmailLogin: t("link_email_login", options),
@@ -191,7 +191,7 @@ export async function sendCode(
       to,
       text: t("sms_code_text", options),
       code,
-      from: tenant.name,
+      from: tenant.friendly_name,
     });
   }
 
@@ -250,9 +250,9 @@ export async function sendLink(
   }
 
   const options = {
-    vendorName: tenant.name,
+    vendorName: tenant.friendly_name,
     code,
-    lng: tenant.language || "en",
+    lng: "en", // Default language for emails
   };
 
   if (connectionType === "email") {
@@ -263,11 +263,11 @@ export async function sendLink(
       template: "auth-link",
       data: {
         code,
-        vendorName: tenant.name,
-        logo: tenant.logo || "",
+        vendorName: tenant.friendly_name,
+        logo: "",
         supportUrl: tenant.support_url || "",
         magicLink: magicLink.toString(),
-        buttonColor: tenant.primary_color || "",
+        buttonColor: "",
         welcomeToYourAccount: t("welcome_to_your_account", options),
         linkEmailClickToLogin: t("link_email_click_to_login", options),
         linkEmailLogin: t("link_email_login", options),
@@ -284,7 +284,7 @@ export async function sendLink(
       to,
       text: `${t("link_sms_login", options)}: ${magicLink.toString()}`,
       code,
-      from: tenant.name,
+      from: tenant.friendly_name,
     });
   } else {
     throw new HTTPException(400, {
@@ -313,8 +313,8 @@ export async function sendValidateEmailAddress(
   }
 
   const options = {
-    vendorName: tenant.name,
-    lng: tenant.language || "en",
+    vendorName: tenant.friendly_name,
+    lng: "en", // Default language for emails
   };
 
   await sendEmail(ctx, {
@@ -323,11 +323,11 @@ export async function sendValidateEmailAddress(
     html: `Click here to validate your email: ${getUniversalLoginUrl(ctx.env)}validate-email`,
     template: "auth-verify-email",
     data: {
-      vendorName: tenant.name,
-      logo: tenant.logo || "",
+      vendorName: tenant.friendly_name,
+      logo: "",
       emailValidationUrl: `${getUniversalLoginUrl(ctx.env)}validate-email`,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: tenant.primary_color || "#7d68f4",
+      buttonColor: "#7d68f4",
       welcomeToYourAccount: t("welcome_to_your_account", options),
       verifyEmailVerify: t("verify_email_verify", options),
       supportInfo: t("support_info", options),
@@ -349,8 +349,8 @@ export async function sendSignupValidateEmailAddress(
   }
 
   const options = {
-    vendorName: tenant.name,
-    lng: tenant.language || "en",
+    vendorName: tenant.friendly_name,
+    lng: "en", // Default language for emails
   };
 
   const signupUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
@@ -361,14 +361,14 @@ export async function sendSignupValidateEmailAddress(
     html: `Click here to register: ${signupUrl}`,
     template: "auth-pre-signup-verification",
     data: {
-      vendorName: tenant.name,
-      logo: tenant.logo || "",
+      vendorName: tenant.friendly_name,
+      logo: "",
       signupUrl,
       setPassword: t("set_password", options),
       registerPasswordAccount: t("register_password_account", options),
       clickToSignUpDescription: t("click_to_sign_up_description", options),
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: tenant.primary_color || "#7d68f4",
+      buttonColor: "#7d68f4",
       welcomeToYourAccount: t("welcome_to_your_account", options),
       verifyEmailVerify: t("verify_email_verify", options),
       supportInfo: t("support_info", options),

@@ -103,6 +103,7 @@ import * as o004_login_sessions_id_index from "./2025-09-24T12:30:00_login_sessi
 import * as o005_connections_tenant_index from "./2025-09-24T13:00:00_connections_tenant_index";
 import * as o006_remove_redundant_user_organizations_tenant_index from "./2025-09-24T13:30:00_remove_redundant_user_organizations_tenant_index";
 import * as o007_tenant_settings from "./2025-10-16T12:00:00_tenant_settings";
+import * as o008_merge_tenant_settings_into_tenants from "./2025-10-17T10:00:00_merge_tenant_settings_into_tenants";
 
 // These need to be in alphabetic order
 export default {
@@ -211,4 +212,5 @@ export default {
   o005_connections_tenant_index,
   o006_remove_redundant_user_organizations_tenant_index,
   o007_tenant_settings,
+  o008_merge_tenant_settings_into_tenants,
 };

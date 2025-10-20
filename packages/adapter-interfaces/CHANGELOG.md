@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.95.0
+
+### Minor Changes
+
+- Merge settings and tenants table
+
 ## 0.94.0
 
 ### Minor Changes

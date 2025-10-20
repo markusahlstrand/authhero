@@ -14,7 +14,6 @@ import {
   refreshTokenSchema,
   sessionSchema,
   SigningKey,
-  Tenant,
   themeSchema,
   userSchema,
   resourceServerSchema,
@@ -137,28 +136,85 @@ export const sqlRoleSchema = z.object({
   updated_at: z.string(),
 });
 
-export const sqlTenantSettingsSchema = z.object({
-  tenant_id: z.string(),
-  idle_session_lifetime: z.number().optional(),
+// Tenant schema now includes settings fields (merged from tenant_settings)
+export const sqlTenantSchema = z.object({
+  // Base tenant fields
+  id: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  audience: z.string(),
+  sender_email: z.string(),
+  sender_name: z.string(),
+  support_url: z.string().optional(),
+
+  // Basic settings
+  friendly_name: z.string(), // Required - replaces the old 'name' field
+  picture_url: z.string().optional(),
+  support_email: z.string().optional(),
+
+  // Session settings
   session_lifetime: z.number().optional(),
+  idle_session_lifetime: z.number().optional(),
+  ephemeral_session_lifetime: z.number().optional(),
+  idle_ephemeral_session_lifetime: z.number().optional(),
   session_cookie: z.string().optional(), // JSON
-  enable_client_connections: z.number().optional(), // boolean as int
+
+  // Logout settings
+  allowed_logout_urls: z.string().optional(), // JSON array
+
+  // Universal Login settings
   default_redirection_uri: z.string().optional(),
+
+  // Advanced settings
   enabled_locales: z.string().optional(), // JSON array
   default_directory: z.string().optional(),
   error_page: z.string().optional(), // JSON
+
+  // Flags
   flags: z.string().optional(), // JSON
-  friendly_name: z.string().optional(),
-  picture_url: z.string().optional(),
-  support_email: z.string().optional(),
-  support_url: z.string().optional(),
+
+  // Sandbox settings
   sandbox_version: z.string().optional(),
+  legacy_sandbox_version: z.string().optional(),
   sandbox_versions_available: z.string().optional(), // JSON array
+
+  // Change password settings
   change_password: z.string().optional(), // JSON
+
+  // Guardian MFA settings
   guardian_mfa_page: z.string().optional(), // JSON
+
+  // Device flow settings
+  device_flow: z.string().optional(), // JSON
+
+  // Default token quota
+  default_token_quota: z.string().optional(), // JSON
+
+  // Default audience & organization
   default_audience: z.string().optional(),
   default_organization: z.string().optional(),
+
+  // Session management
   sessions: z.string().optional(), // JSON
+
+  // OIDC logout settings
+  oidc_logout: z.string().optional(), // JSON
+
+  // Organization settings
+  allow_organization_name_in_authentication_api: z.number().optional(), // boolean as int
+
+  // MFA settings
+  customize_mfa_in_postlogin_action: z.number().optional(), // boolean as int
+
+  // ACR values
+  acr_values_supported: z.string().optional(), // JSON array
+
+  // mTLS settings
+  mtls: z.string().optional(), // JSON
+
+  // Authorization settings
+  pushed_authorization_requests_supported: z.number().optional(), // boolean as int
+  authorization_response_iss_parameter_supported: z.number().optional(), // boolean as int
 });
 
 export const sqlClientGrantSchema = z.object({
@@ -276,7 +332,7 @@ export interface Database {
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
   sessions: z.infer<typeof sqlSessionSchema>;
-  tenants: Tenant;
+  tenants: z.infer<typeof sqlTenantSchema>;
   themes: z.infer<typeof sqlThemeSchema>;
   resource_servers: z.infer<typeof sqlResourceServerSchema>;
   role_permissions: z.infer<typeof sqlRolePermissionSchema>;
@@ -285,5 +341,4 @@ export interface Database {
   roles: z.infer<typeof sqlRoleSchema>;
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
-  tenant_settings: z.infer<typeof sqlTenantSettingsSchema>;
 }

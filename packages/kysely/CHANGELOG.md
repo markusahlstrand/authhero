@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.52.0
+
+### Minor Changes
+
+- Merge settings and tenants table
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.95.0
+
 ## 10.51.0
 
 ### Minor Changes

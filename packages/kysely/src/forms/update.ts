@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { FormInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { stringifyProperties } from "../helpers/stringify";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -14,17 +15,7 @@ export function update(db: Kysely<Database>) {
     };
 
     // Convert complex objects to JSON strings
-    if (form.nodes) {
-      updateValues.nodes = JSON.stringify(form.nodes);
-    }
-
-    if (form.start) {
-      updateValues.start = JSON.stringify(form.start);
-    }
-
-    if (form.ending) {
-      updateValues.ending = JSON.stringify(form.ending);
-    }
+    stringifyProperties(form, ["nodes", "start", "ending"], updateValues);
 
     const { numUpdatedRows } = await db
       .updateTable("forms")

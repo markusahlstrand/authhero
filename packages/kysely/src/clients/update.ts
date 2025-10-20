@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { Client } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { stringifyProperties } from "../helpers/stringify";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -46,79 +47,33 @@ export function update(db: Kysely<Database>) {
     }
 
     // Convert array/object fields to JSON strings if they exist in the update
-    if (client.callbacks !== undefined) {
-      updateData.callbacks = JSON.stringify(client.callbacks);
-    }
-    if (client.allowed_origins !== undefined) {
-      updateData.allowed_origins = JSON.stringify(client.allowed_origins);
-    }
-    if (client.web_origins !== undefined) {
-      updateData.web_origins = JSON.stringify(client.web_origins);
-    }
-    if (client.client_aliases !== undefined) {
-      updateData.client_aliases = JSON.stringify(client.client_aliases);
-    }
-    if (client.allowed_clients !== undefined) {
-      updateData.allowed_clients = JSON.stringify(client.allowed_clients);
-    }
-    if (client.allowed_logout_urls !== undefined) {
-      updateData.allowed_logout_urls = JSON.stringify(
-        client.allowed_logout_urls,
-      );
-    }
-    if (client.session_transfer !== undefined) {
-      updateData.session_transfer = JSON.stringify(client.session_transfer);
-    }
-    if (client.oidc_logout !== undefined) {
-      updateData.oidc_logout = JSON.stringify(client.oidc_logout);
-    }
-    if (client.grant_types !== undefined) {
-      updateData.grant_types = JSON.stringify(client.grant_types);
-    }
-    if (client.jwt_configuration !== undefined) {
-      updateData.jwt_configuration = JSON.stringify(client.jwt_configuration);
-    }
-    if (client.signing_keys !== undefined) {
-      updateData.signing_keys = JSON.stringify(client.signing_keys);
-    }
-    if (client.encryption_key !== undefined) {
-      updateData.encryption_key = JSON.stringify(client.encryption_key);
-    }
-    if (client.addons !== undefined) {
-      updateData.addons = JSON.stringify(client.addons);
-    }
-    if (client.client_metadata !== undefined) {
-      updateData.client_metadata = JSON.stringify(client.client_metadata);
-    }
-    if (client.mobile !== undefined) {
-      updateData.mobile = JSON.stringify(client.mobile);
-    }
-    if (client.native_social_login !== undefined) {
-      updateData.native_social_login = JSON.stringify(
-        client.native_social_login,
-      );
-    }
-    if (client.refresh_token !== undefined) {
-      updateData.refresh_token = JSON.stringify(client.refresh_token);
-    }
-    if (client.default_organization !== undefined) {
-      updateData.default_organization = JSON.stringify(
-        client.default_organization,
-      );
-    }
-    if (client.client_authentication_methods !== undefined) {
-      updateData.client_authentication_methods = JSON.stringify(
-        client.client_authentication_methods,
-      );
-    }
-    if (client.signed_request_object !== undefined) {
-      updateData.signed_request_object = JSON.stringify(
-        client.signed_request_object,
-      );
-    }
-    if (client.token_quota !== undefined) {
-      updateData.token_quota = JSON.stringify(client.token_quota);
-    }
+    stringifyProperties(
+      client,
+      [
+        "callbacks",
+        "allowed_origins",
+        "web_origins",
+        "client_aliases",
+        "allowed_clients",
+        "allowed_logout_urls",
+        "session_transfer",
+        "oidc_logout",
+        "grant_types",
+        "jwt_configuration",
+        "signing_keys",
+        "encryption_key",
+        "addons",
+        "client_metadata",
+        "mobile",
+        "native_social_login",
+        "refresh_token",
+        "default_organization",
+        "client_authentication_methods",
+        "signed_request_object",
+        "token_quota",
+      ],
+      updateData,
+    );
 
     const result = await db
       .updateTable("clients")

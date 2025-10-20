@@ -4,12 +4,12 @@ import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("settings", () => {
-  it("should return empty object when no settings exist", async () => {
+  it("should return tenant when settings endpoint is called", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);
 
     const token = await getAdminToken();
-    const emptySettingsResponse = await managementClient.settings.$get(
+    const settingsResponse = await managementClient.tenants.settings.$get(
       {
         header: {
           "tenant-id": "tenantId",
@@ -22,9 +22,11 @@ describe("settings", () => {
       },
     );
 
-    expect(emptySettingsResponse.status).toBe(200);
-    const emptySettings = await emptySettingsResponse.json();
-    expect(emptySettings).toEqual({});
+    expect(settingsResponse.status).toBe(200);
+    const settings = await settingsResponse.json();
+    // Settings endpoint now returns the tenant (since they're the same entity)
+    expect(settings.id).toBe("tenantId");
+    expect(settings.friendly_name).toBe("Test Tenant");
   });
 
   it("should set and get basic tenant settings", async () => {
@@ -39,26 +41,27 @@ describe("settings", () => {
     };
 
     // Update the settings
-    const updateSettingsResponse = await managementClient.settings.$patch(
-      {
-        header: {
-          "tenant-id": "tenantId",
+    const updateSettingsResponse =
+      await managementClient.tenants.settings.$patch(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: settingsData,
         },
-        json: settingsData,
-      },
-      {
-        headers: {
-          authorization: `Bearer ${token}`,
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
         },
-      },
-    );
+      );
 
     expect(updateSettingsResponse.status).toBe(200);
     const updatedSettings = await updateSettingsResponse.json();
     expect(updatedSettings).toMatchObject(settingsData);
 
     // Get the updated settings
-    const settingsResponse = await managementClient.settings.$get(
+    const settingsResponse = await managementClient.tenants.settings.$get(
       {
         header: {
           "tenant-id": "tenantId",
@@ -89,7 +92,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -124,7 +127,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -161,7 +164,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -193,7 +196,7 @@ describe("settings", () => {
       enabled_locales: ["en", "es", "fr", "de"],
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -225,7 +228,7 @@ describe("settings", () => {
       idle_session_lifetime: 72,
     };
 
-    await managementClient.settings.$patch(
+    await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -244,7 +247,7 @@ describe("settings", () => {
       friendly_name: "Updated Name",
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -279,7 +282,6 @@ describe("settings", () => {
       support_url: "https://example.com/support",
       idle_session_lifetime: 72,
       session_lifetime: 168,
-      enable_client_connections: true,
       default_redirection_uri: "https://example.com/callback",
       enabled_locales: ["en", "es"],
       default_directory: "Username-Password-Authentication",
@@ -299,7 +301,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -323,7 +325,6 @@ describe("settings", () => {
     expect(updated.support_url).toBe("https://example.com/support");
     expect(updated.idle_session_lifetime).toBe(72);
     expect(updated.session_lifetime).toBe(168);
-    expect(updated.enable_client_connections).toBe(true);
     expect(updated.default_redirection_uri).toBe(
       "https://example.com/callback",
     );
@@ -355,7 +356,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -389,7 +390,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -422,7 +423,7 @@ describe("settings", () => {
       },
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",
@@ -453,7 +454,7 @@ describe("settings", () => {
       sandbox_versions_available: ["8", "12", "16", "18"],
     };
 
-    const updateResponse = await managementClient.settings.$patch(
+    const updateResponse = await managementClient.tenants.settings.$patch(
       {
         header: {
           "tenant-id": "tenantId",

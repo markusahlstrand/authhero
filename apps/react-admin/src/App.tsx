@@ -6,6 +6,7 @@ import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import BusinessIcon from "@mui/icons-material/Business";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { getDataproviderForTenant } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
@@ -43,6 +44,7 @@ import StorageIcon from "@mui/icons-material/Storage";
 import { useMemo } from "react";
 import { RoleCreate, RoleEdit, RoleList } from "./components/roles";
 import SecurityIcon from "@mui/icons-material/Security";
+import { SettingsList, SettingsEdit } from "./components/settings";
 
 interface AppProps {
   tenantId: string;
@@ -169,6 +171,13 @@ export function App(props: AppProps) {
         create={OrganizationCreate}
         edit={OrganizationEdit}
         show={ShowGuesser}
+      />
+      <Resource
+        icon={SettingsIcon}
+        name="settings"
+        list={SettingsList}
+        edit={SettingsEdit}
+        options={{ hasSingle: true }}
       />
     </Admin>
   );
