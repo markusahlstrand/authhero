@@ -15,6 +15,7 @@ export const LogTypes = {
   CODE_LINK_SENT: "cls", // Updated to match the main schema
   FAILED_LOGIN: "f",
   SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN: "seacft",
+  FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN: "feacft",
 } as const;
 
 export type LogTypes = (typeof LogTypes)[keyof typeof LogTypes];

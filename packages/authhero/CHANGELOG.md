@@ -1,5 +1,11 @@
 # authhero
 
+## 0.249.0
+
+### Minor Changes
+
+- Add failed token exchange logs
+
 ## 0.248.0
 
 ### Minor Changes

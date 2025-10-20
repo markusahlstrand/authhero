@@ -30,6 +30,8 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return "Failed Login";
     case LogTypes.SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN:
       return "Success Exchange Authorization Code for Access Token";
+    case LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN:
+      return "Failed Exchange Authorization Code for Access Token";
     default:
       return `${logType}`;
   }
