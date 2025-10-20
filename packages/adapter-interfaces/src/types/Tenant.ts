@@ -67,14 +67,18 @@ export const tenantInsertSchema = z.object({
       enable_pipeline2: z.boolean().optional(),
       enable_public_signup_user_exists_error: z.boolean().optional(),
       enable_sso: z.boolean().optional(),
-      enforce_client_authentication_on_passwordless_start: z.boolean().optional(),
+      enforce_client_authentication_on_passwordless_start: z
+        .boolean()
+        .optional(),
       genai_trial: z.boolean().optional(),
       improved_signup_bot_detection_in_classic: z.boolean().optional(),
       mfa_show_factor_list_on_enrollment: z.boolean().optional(),
       no_disclose_enterprise_connections: z.boolean().optional(),
       remove_alg_from_jwks: z.boolean().optional(),
       revoke_refresh_token_grant: z.boolean().optional(),
-      trust_azure_adfs_email_verified_connection_property: z.boolean().optional(),
+      trust_azure_adfs_email_verified_connection_property: z
+        .boolean()
+        .optional(),
       use_scope_descriptions_for_consent: z.boolean().optional(),
     })
     .optional(),

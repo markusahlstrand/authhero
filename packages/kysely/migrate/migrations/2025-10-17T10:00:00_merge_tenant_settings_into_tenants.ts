@@ -129,10 +129,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
   await db.schema
     .alterTable("tenants")
-    .addColumn(
-      "allow_organization_name_in_authentication_api",
-      "integer",
-    ) // boolean as int
+    .addColumn("allow_organization_name_in_authentication_api", "integer") // boolean as int
     .execute();
 
   await db.schema
