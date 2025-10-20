@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.53.0
+
+### Minor Changes
+
+- Refactor the client adapter
+
 ## 10.52.0
 
 ### Minor Changes

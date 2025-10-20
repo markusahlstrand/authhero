@@ -36,6 +36,32 @@ export function stringifyProperties<T extends Record<string, any>>(
 }
 
 /**
+ * Convert boolean properties to integers (1 for true, 0 for false).
+ * Only properties that are defined will be converted.
+ *
+ * @param source - The source object containing boolean properties to convert
+ * @param properties - Array of property names to convert
+ * @param target - The target object to write integer values to (defaults to source)
+ *
+ * @example
+ * const source = { enabled: true, active: false, name: "Test" };
+ * const result = {};
+ * booleanToInt(source, ['enabled', 'active'], result);
+ * // result = { enabled: 1, active: 0 }
+ */
+export function booleanToInt<T extends Record<string, any>>(
+  source: Partial<T>,
+  properties: (keyof T)[],
+  target: any = source,
+): void {
+  for (const property of properties) {
+    if (source[property] !== undefined) {
+      target[property] = source[property] ? 1 : 0;
+    }
+  }
+}
+
+/**
  * Remove undefined and null properties from an object.
  * This keeps the SQL payload clean by only including defined values.
  */

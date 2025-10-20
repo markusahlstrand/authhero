@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { Client } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { stringifyProperties } from "../helpers/stringify";
+import { stringifyProperties, booleanToInt } from "../helpers/stringify";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -14,37 +14,22 @@ export function update(db: Kysely<Database>) {
       updated_at: new Date().toISOString(),
     };
 
-    // Convert boolean fields to integers if they exist in the update
-    if (client.global !== undefined) {
-      updateData.global = client.global ? 1 : 0;
-    }
-    if (client.is_first_party !== undefined) {
-      updateData.is_first_party = client.is_first_party ? 1 : 0;
-    }
-    if (client.oidc_conformant !== undefined) {
-      updateData.oidc_conformant = client.oidc_conformant ? 1 : 0;
-    }
-    if (client.sso !== undefined) {
-      updateData.sso = client.sso ? 1 : 0;
-    }
-    if (client.sso_disabled !== undefined) {
-      updateData.sso_disabled = client.sso_disabled ? 1 : 0;
-    }
-    if (client.cross_origin_authentication !== undefined) {
-      updateData.cross_origin_authentication =
-        client.cross_origin_authentication ? 1 : 0;
-    }
-    if (client.custom_login_page_on !== undefined) {
-      updateData.custom_login_page_on = client.custom_login_page_on ? 1 : 0;
-    }
-    if (client.require_pushed_authorization_requests !== undefined) {
-      updateData.require_pushed_authorization_requests =
-        client.require_pushed_authorization_requests ? 1 : 0;
-    }
-    if (client.require_proof_of_possession !== undefined) {
-      updateData.require_proof_of_possession =
-        client.require_proof_of_possession ? 1 : 0;
-    }
+    // Convert boolean fields to integers
+    booleanToInt(
+      client,
+      [
+        "global",
+        "is_first_party",
+        "oidc_conformant",
+        "sso",
+        "sso_disabled",
+        "cross_origin_authentication",
+        "custom_login_page_on",
+        "require_pushed_authorization_requests",
+        "require_proof_of_possession",
+      ],
+      updateData,
+    );
 
     // Convert array/object fields to JSON strings if they exist in the update
     stringifyProperties(

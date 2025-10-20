@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { Client, ClientInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { booleanToInt } from "../helpers/stringify";
 
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, params: ClientInsert): Promise<Client> => {
@@ -21,23 +22,30 @@ export function create(db: Kysely<Database>) {
       require_proof_of_possession: params.require_proof_of_possession ?? false,
     };
 
-    await db
-      .insertInto("clients")
-      .values({
-        ...client,
-        tenant_id,
-        // Convert boolean fields to integers for SQL storage
-        global: params.global ? 1 : 0,
-        is_first_party: params.is_first_party ? 1 : 0,
-        oidc_conformant: params.oidc_conformant ? 1 : 0,
-        sso: params.sso ? 1 : 0,
-        sso_disabled: params.sso_disabled ? 1 : 0,
-        cross_origin_authentication: params.cross_origin_authentication ? 1 : 0,
-        custom_login_page_on: params.custom_login_page_on ? 1 : 0,
-        require_pushed_authorization_requests:
-          params.require_pushed_authorization_requests ? 1 : 0,
-        require_proof_of_possession: params.require_proof_of_possession ? 1 : 0,
-        // Convert array/object fields to JSON strings for SQL storage
+    const insertData: any = {
+      ...client,
+      tenant_id,
+    };
+
+    // Convert boolean fields to integers for SQL storage
+    booleanToInt(
+      client,
+      [
+        "global",
+        "is_first_party",
+        "oidc_conformant",
+        "sso",
+        "sso_disabled",
+        "cross_origin_authentication",
+        "custom_login_page_on",
+        "require_pushed_authorization_requests",
+        "require_proof_of_possession",
+      ],
+      insertData,
+    );
+
+    // Convert array/object fields to JSON strings for SQL storage
+    Object.assign(insertData, {
         callbacks: JSON.stringify(params.callbacks || []),
         allowed_origins: JSON.stringify(params.allowed_origins || []),
         web_origins: JSON.stringify(params.web_origins || []),
@@ -63,8 +71,9 @@ export function create(db: Kysely<Database>) {
           params.signed_request_object || {},
         ),
         token_quota: JSON.stringify(params.token_quota || {}),
-      })
-      .execute();
+      });
+
+    await db.insertInto("clients").values(insertData).execute();
 
     return client;
   };
