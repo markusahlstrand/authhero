@@ -320,7 +320,12 @@ export const signupRoutes = new OpenAPIHono<{
         });
 
         if (!email_verified) {
-          await sendValidateEmailAddress(ctx, newUser);
+          // Extract language from ui_locales
+          const language = loginSession.authParams.ui_locales
+            ?.split(" ")
+            .map((locale) => locale.split("-")[0])[0];
+
+          await sendValidateEmailAddress(ctx, newUser, language);
 
           return ctx.html(
             <MessagePage

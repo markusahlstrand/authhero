@@ -117,10 +117,8 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       const { email } = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        state,
-      );
+      const { theme, branding, client, user, loginSession } =
+        await initJSXRouteWithSession(ctx, state);
 
       // Check if email is already taken by checking existing users
       const existingUsers = await env.data.users.list(client.tenant.id, {
@@ -172,10 +170,16 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         user_id: user.user_id,
       });
 
+      // Extract language from ui_locales
+      const language = loginSession.authParams.ui_locales
+        ?.split(" ")
+        .map((locale) => locale.split("-")[0])[0];
+
       // Send verification email
       await sendCode(ctx, {
         to: email,
         code,
+        language,
       });
 
       // Redirect to verification page

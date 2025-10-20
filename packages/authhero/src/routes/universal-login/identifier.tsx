@@ -290,6 +290,11 @@ export const identifierRoutes = new OpenAPIHono<{
         });
       }
 
+      // Extract language from ui_locales
+      const language = loginSession.authParams.ui_locales
+        ?.split(" ")
+        .map((locale) => locale.split("-")[0])[0];
+
       if (
         connectionType === "email" &&
         // This is different to how it works in auth0
@@ -299,11 +304,13 @@ export const identifierRoutes = new OpenAPIHono<{
           to: username,
           code: createdCode.code_id,
           authParams: loginSession.authParams,
+          language,
         });
       } else {
         await sendCode(ctx, {
           to: username,
           code: createdCode.code_id,
+          language,
         });
       }
 
