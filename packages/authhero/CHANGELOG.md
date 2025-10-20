@@ -1,5 +1,11 @@
 # authhero
 
+## 0.250.0
+
+### Minor Changes
+
+- Update the logo and language for sending emails
+
 ## 0.249.0
 
 ### Minor Changes

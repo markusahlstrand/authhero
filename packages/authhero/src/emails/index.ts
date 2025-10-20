@@ -94,6 +94,7 @@ export async function sendResetPassword(
   // auth0 just has a ticket, but we have a code and a state
   code: string,
   state?: string,
+  language?: string,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -103,9 +104,13 @@ export async function sendResetPassword(
   // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
   const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
+
   const options = {
     vendorName: tenant.friendly_name,
-    lng: "en", // Default language for emails
+    lng: language || "en",
   };
 
   await sendEmail(ctx, {
@@ -115,10 +120,10 @@ export async function sendResetPassword(
     template: "auth-password-reset",
     data: {
       vendorName: tenant.friendly_name,
-      logo: "",
+      logo,
       passwordResetUrl,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: "#7d68f4",
+      buttonColor,
       passwordResetTitle: t("password_reset_title", options),
       resetPasswordEmailClickToReset: t(
         "reset_password_email_click_to_reset",
@@ -137,6 +142,7 @@ export async function sendResetPassword(
 export interface SendCodeParams {
   to: string;
   code: string;
+  language?: string;
 }
 
 export interface SendLinkParams extends SendCodeParams {
@@ -145,7 +151,7 @@ export interface SendLinkParams extends SendCodeParams {
 
 export async function sendCode(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  { to, code }: SendCodeParams,
+  { to, code, language }: SendCodeParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -154,6 +160,10 @@ export async function sendCode(
 
   const { connectionType } = getConnectionFromIdentifier(to);
 
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
+
   const loginUrl = new URL(getUniversalLoginUrl(ctx.env));
 
   const options = {
@@ -161,7 +171,7 @@ export async function sendCode(
     vendorId: tenant.id,
     loginDomain: loginUrl.hostname,
     code,
-    lng: "en", // Default language for emails
+    lng: language || "en",
   };
 
   if (connectionType === "email") {
@@ -173,9 +183,9 @@ export async function sendCode(
       data: {
         code,
         vendorName: tenant.friendly_name,
-        logo: "",
+        logo,
         supportUrl: tenant.support_url || "",
-        buttonColor: "",
+        buttonColor,
         welcomeToYourAccount: t("welcome_to_your_account", options),
         linkEmailClickToLogin: t("link_email_click_to_login", options),
         linkEmailLogin: t("link_email_login", options),
@@ -204,7 +214,7 @@ export async function sendCode(
 
 export async function sendLink(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  { to, code, authParams }: SendLinkParams,
+  { to, code, authParams, language }: SendLinkParams,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -216,6 +226,10 @@ export async function sendLink(
   }
 
   const { connectionType } = getConnectionFromIdentifier(to);
+
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "";
 
   const magicLink = new URL(getAuthUrl(ctx.env));
   magicLink.pathname = "passwordless/verify_redirect";
@@ -252,7 +266,7 @@ export async function sendLink(
   const options = {
     vendorName: tenant.friendly_name,
     code,
-    lng: "en", // Default language for emails
+    lng: language || "en",
   };
 
   if (connectionType === "email") {
@@ -264,10 +278,10 @@ export async function sendLink(
       data: {
         code,
         vendorName: tenant.friendly_name,
-        logo: "",
+        logo,
         supportUrl: tenant.support_url || "",
         magicLink: magicLink.toString(),
-        buttonColor: "",
+        buttonColor,
         welcomeToYourAccount: t("welcome_to_your_account", options),
         linkEmailClickToLogin: t("link_email_click_to_login", options),
         linkEmailLogin: t("link_email_login", options),
@@ -302,6 +316,7 @@ export async function sendLink(
 export async function sendValidateEmailAddress(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   user: User,
+  language?: string,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -312,9 +327,13 @@ export async function sendValidateEmailAddress(
     throw new HTTPException(400, { message: "User has no email" });
   }
 
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
+
   const options = {
     vendorName: tenant.friendly_name,
-    lng: "en", // Default language for emails
+    lng: language || "en",
   };
 
   await sendEmail(ctx, {
@@ -324,10 +343,10 @@ export async function sendValidateEmailAddress(
     template: "auth-verify-email",
     data: {
       vendorName: tenant.friendly_name,
-      logo: "",
+      logo,
       emailValidationUrl: `${getUniversalLoginUrl(ctx.env)}validate-email`,
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: "#7d68f4",
+      buttonColor,
       welcomeToYourAccount: t("welcome_to_your_account", options),
       verifyEmailVerify: t("verify_email_verify", options),
       supportInfo: t("support_info", options),
@@ -342,15 +361,20 @@ export async function sendSignupValidateEmailAddress(
   to: string,
   code: string,
   state: string,
+  language?: string,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
 
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
+
   const options = {
     vendorName: tenant.friendly_name,
-    lng: "en", // Default language for emails
+    lng: language || "en",
   };
 
   const signupUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
@@ -362,13 +386,13 @@ export async function sendSignupValidateEmailAddress(
     template: "auth-pre-signup-verification",
     data: {
       vendorName: tenant.friendly_name,
-      logo: "",
+      logo,
       signupUrl,
       setPassword: t("set_password", options),
       registerPasswordAccount: t("register_password_account", options),
       clickToSignUpDescription: t("click_to_sign_up_description", options),
       supportUrl: tenant.support_url || "https://support.sesamy.com",
-      buttonColor: "#7d68f4",
+      buttonColor,
       welcomeToYourAccount: t("welcome_to_your_account", options),
       verifyEmailVerify: t("verify_email_verify", options),
       supportInfo: t("support_info", options),
