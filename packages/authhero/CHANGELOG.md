@@ -1,5 +1,11 @@
 # authhero
 
+## 0.251.0
+
+### Minor Changes
+
+- Pass language to email
+
 ## 0.250.0
 
 ### Minor Changes

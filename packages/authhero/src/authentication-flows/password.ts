@@ -125,7 +125,12 @@ export async function passwordGrant(
     !user.email_verified &&
     client.client_metadata?.email_validation === "enforced"
   ) {
-    await sendValidateEmailAddress(ctx, user);
+    // Extract language from ui_locales if loginSession is available
+    const language = loginSession?.authParams?.ui_locales
+      ?.split(" ")
+      ?.map((locale) => locale.split("-")[0])[0];
+
+    await sendValidateEmailAddress(ctx, user, language);
 
     const log = createLogMessage(ctx, {
       type: LogTypes.FAILED_LOGIN,

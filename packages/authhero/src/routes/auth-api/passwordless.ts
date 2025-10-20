@@ -99,6 +99,11 @@ export const passwordlessRoutes = new OpenAPIHono<{
         redirect_uri: authParams.redirect_uri,
       });
 
+      // Extract language from ui_locales
+      const language = authParams?.ui_locales
+        ?.split(" ")
+        ?.map((locale) => locale.split("-")[0])[0];
+
       if (send === "link") {
         await sendLink(ctx, {
           to: username,
@@ -107,11 +112,13 @@ export const passwordlessRoutes = new OpenAPIHono<{
             ...authParams,
             client_id,
           },
+          language,
         });
       } else {
         await sendCode(ctx, {
           to: username,
           code: code.code_id,
+          language,
         });
       }
 
