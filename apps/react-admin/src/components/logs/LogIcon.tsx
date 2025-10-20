@@ -20,6 +20,7 @@ export function LogIcon({ type: logType }: { type: LogTypes }) {
     case LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD:
     case LogTypes.FAILED_LOGIN_INVALID_EMAIL_USERNAME:
     case LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION:
+    case LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN:
       return <CloseIcon />;
     case LogTypes.CODE_LINK_SENT:
       return <EmailIcon />;
