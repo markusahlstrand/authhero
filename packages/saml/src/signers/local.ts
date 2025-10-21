@@ -16,7 +16,14 @@ export class LocalSamlSigner implements SamlSigner {
   ): Promise<string> {
     // Dynamically import xml-crypto to avoid issues in environments where it's not available
     try {
-      const { SignedXml } = await import("xml-crypto");
+      // xml-crypto is a CommonJS module - need to handle default export interop
+      const xmlCrypto = await import("xml-crypto");
+      // Handle both ESM named import and CJS default export scenarios
+      const SignedXml = xmlCrypto.SignedXml || (xmlCrypto as any).default?.SignedXml;
+      
+      if (!SignedXml) {
+        throw new Error("SignedXml not found in xml-crypto module");
+      }
 
       const sig = new SignedXml({ privateKey, publicCert });
       sig.canonicalizationAlgorithm = canonicalizationAlgorithm;
