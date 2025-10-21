@@ -77,191 +77,95 @@ export async function parseSamlRequestQuery(samlRequestQuery: string) {
 export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
   // Create KeyDescriptor entries for each certificate
   const keyDescriptors = samlMetadataParams.certificates.map((cert) => ({
-    KeyDescriptor: [
-      {
-        ":@": {
-          "@_use": "signing",
-          "@_xmlns": "http://www.w3.org/2000/09/xmldsig#",
-        },
-        KeyInfo: [
+    "@_use": "signing",
+    KeyInfo: {
+      "@_xmlns": "http://www.w3.org/2000/09/xmldsig#",
+      X509Data: {
+        X509Certificate: cert,
+      },
+    },
+  }));
+
+  const samlMetadataJSON = {
+    EntityDescriptor: {
+      "@_entityID": samlMetadataParams.entityId,
+      "@_xmlns": "urn:oasis:names:tc:SAML:2.0:metadata",
+      IDPSSODescriptor: {
+        "@_protocolSupportEnumeration":
+          "urn:oasis:names:tc:SAML:2.0:protocol",
+        KeyDescriptor: keyDescriptors,
+        SingleLogoutService: [
           {
-            X509Data: [
-              {
-                X509Certificate: [{ "#text": cert }],
-              },
-            ],
+            "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "@_Location": samlMetadataParams.singleLogoutServiceUrl,
+          },
+          {
+            "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "@_Location": samlMetadataParams.singleLogoutServiceUrl,
+          },
+        ],
+        NameIDFormat: [
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+        ],
+        SingleSignOnService: [
+          {
+            "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "@_Location": samlMetadataParams.assertionConsumerServiceUrl,
+          },
+          {
+            "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "@_Location": samlMetadataParams.assertionConsumerServiceUrl,
+          },
+        ],
+        Attribute: [
+          {
+            "@_Name":
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+            "@_NameFormat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "@_FriendlyName": "E-Mail Address",
+            "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+          },
+          {
+            "@_Name":
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+            "@_NameFormat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "@_FriendlyName": "Given Name",
+            "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+          },
+          {
+            "@_Name":
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+            "@_NameFormat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "@_FriendlyName": "Name",
+            "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+          },
+          {
+            "@_Name":
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+            "@_NameFormat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "@_FriendlyName": "Surname",
+            "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+          },
+          {
+            "@_Name":
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+            "@_NameFormat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "@_FriendlyName": "Name ID",
+            "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
           },
         ],
       },
-    ],
-  }));
-
-  const samlMetadataJSON = [
-    {
-      ":@": {
-        "@_entityID": samlMetadataParams.entityId,
-        "@_xmlns": "urn:oasis:names:tc:SAML:2.0:metadata",
-      },
-      EntityDescriptor: [
-        {
-          ":@": {
-            "@_protocolSupportEnumeration":
-              "urn:oasis:names:tc:SAML:2.0:protocol",
-          },
-          IDPSSODescriptor: [
-            // Add all key descriptors
-            ...keyDescriptors,
-            {
-              SingleLogoutService: [
-                {
-                  ":@": {
-                    "@_Binding":
-                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-                    "@_Location": samlMetadataParams.singleLogoutServiceUrl,
-                  },
-                },
-              ],
-            },
-            {
-              SingleLogoutService: [
-                {
-                  ":@": {
-                    "@_Binding":
-                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                    "@_Location": samlMetadataParams.singleLogoutServiceUrl,
-                  },
-                },
-              ],
-            },
-            {
-              NameIDFormat: [
-                {
-                  "#text":
-                    "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-                },
-              ],
-            },
-            {
-              NameIDFormat: [
-                {
-                  "#text":
-                    "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
-                },
-              ],
-            },
-            {
-              NameIDFormat: [
-                {
-                  "#text":
-                    "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-                },
-              ],
-            },
-            {
-              SingleSignOnService: [
-                {
-                  ":@": {
-                    "@_Binding":
-                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-                    "@_Location":
-                      samlMetadataParams.assertionConsumerServiceUrl,
-                  },
-                },
-              ],
-            },
-            {
-              SingleSignOnService: [
-                {
-                  ":@": {
-                    "@_Binding":
-                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                    "@_Location":
-                      samlMetadataParams.assertionConsumerServiceUrl,
-                  },
-                },
-              ],
-            },
-            {
-              Attribute: [
-                {
-                  ":@": {
-                    "@_Name":
-                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                    "@_FriendlyName": "E-Mail Address",
-                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-                  },
-                },
-              ],
-            },
-            {
-              Attribute: [
-                {
-                  ":@": {
-                    "@_Name":
-                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                    "@_FriendlyName": "Given Name",
-                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-                  },
-                },
-              ],
-            },
-            {
-              Attribute: [
-                {
-                  ":@": {
-                    "@_Name":
-                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                    "@_FriendlyName": "Name",
-                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-                  },
-                },
-              ],
-            },
-            {
-              Attribute: [
-                {
-                  ":@": {
-                    "@_Name":
-                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                    "@_FriendlyName": "Surname",
-                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-                  },
-                },
-              ],
-            },
-            {
-              Attribute: [
-                {
-                  ":@": {
-                    "@_Name":
-                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                    "@_FriendlyName": "Name ID",
-                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
     },
-  ];
+  };
 
   const builder = new XMLBuilder({
     ignoreAttributes: false,
     suppressEmptyNode: true,
-    preserveOrder: true,
+    preserveOrder: false,
     format: true,
+    attributeNamePrefix: "@_",
   });
 
   // Generate XML
