@@ -1,0 +1,68 @@
+{
+  "name": "@authhero/saml",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
+  "version": "0.1.55",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/saml.cjs",
+  "module": "dist/saml.mjs",
+  "types": "dist/saml.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/saml.cjs",
+      "import": "./dist/saml.mjs",
+      "types": "./dist/saml.d.ts"
+    },
+    "./core": {
+      "require": "./dist/core.cjs",
+      "import": "./dist/core.mjs",
+      "types": "./dist/core.d.ts"
+    },
+    "./local-signer": {
+      "require": "./dist/local-signer.cjs",
+      "import": "./dist/local-signer.mjs",
+      "types": "./dist/local-signer.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "pnpm build:main && pnpm build:core && pnpm build:local && pnpm build:dts",
+    "build:main": "vite build --config vite.config.main.ts",
+    "build:core": "vite build --config vite.config.core.ts",
+    "build:local": "vite build --config vite.config.local.ts",
+    "build:dts": "tsc && pnpm build:dts:main && pnpm build:dts:core && pnpm build:dts:local",
+    "build:dts:main": "dts-bundle-generator -o ./dist/saml.d.ts ./src/index.ts --no-check",
+    "build:dts:core": "dts-bundle-generator -o ./dist/core.d.ts ./src/core.ts --no-check",
+    "build:dts:local": "dts-bundle-generator -o ./dist/local-signer.d.ts ./src/local-signer.ts --no-check",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@hono/zod-openapi": "^0.19.2",
+    "@types/node": "^22.9.1",
+    "dts-bundle-generator": "^9.5.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.1",
+    "nanoid": "^5.0.8",
+    "oslo": "^1.2.1"
+  },
+  "optionalDependencies": {
+    "xml-crypto": "^6.1.2"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^0.19.2"
+  }
+}

@@ -7,9 +7,10 @@ This document provides an overview of the AuthHero architecture and how its comp
 AuthHero is built as a modular system with several key components:
 
 1. **Core Library (authhero)**: The main package that handles authentication logic and API requests
-2. **Admin Dashboard (react-admin)**: Web application for managing auth tenants
-3. **Adapters**: Interface implementations for various databases and services
-4. **CLI Tool (create-authhero)**: Command-line interface for creating new projects
+2. **SAML Package (@authhero/saml)**: Separate package for SAML authentication with pluggable signing strategies
+3. **Admin Dashboard (react-admin)**: Web application for managing auth tenants
+4. **Adapters**: Interface implementations for various databases and services
+5. **CLI Tool (create-authhero)**: Command-line interface for creating new projects
 
 ## Multi-Tenant Architecture
 

@@ -12,6 +12,7 @@ import { init, AuthHeroConfig } from "@authhero/authhero";
 const config: AuthHeroConfig = {
   dataAdapter: adapter, // Required
   allowedOrigins: ["https://example.com"], // Optional
+  samlSigner: new HttpSamlSigner("https://signing-service.com/sign"), // Optional
   hooks: {
     // Optional hooks
   },
@@ -48,6 +49,21 @@ const config: AuthHeroConfig = {
   allowedOrigins: ["https://app.example.com", "https://example.com"],
 };
 ```
+
+### `samlSigner` (optional)
+
+A SAML signer instance for signing SAML responses. This is required if you need SAML authentication support.
+
+```typescript
+import { HttpSamlSigner } from "authhero";
+
+const config: AuthHeroConfig = {
+  dataAdapter: adapter,
+  samlSigner: new HttpSamlSigner("https://signing-service.com/sign"),
+};
+```
+
+For detailed SAML configuration options, see the [SAML Package Documentation](../saml/).
 
 ## Hooks Configuration
 
@@ -127,16 +143,20 @@ When deploying AuthHero, additional configuration is provided through environmen
 - `ISSUER`: The issuer identifier for JWT tokens
 - `JWKS_CACHE_TIMEOUT_IN_SECONDS`: Cache timeout for JWKS keys
 - `ORGANIZATION_NAME`: Organization name used in certificates
-- `SAML_SIGN_URL`: URL for the SAML signing service
 
 ### Optional Environment Variables
 
+- `SAML_SIGN_URL`: URL for the SAML signing service (used if `samlSigner` not provided in config)
 - `JWKS_URL`: Custom JWKS endpoint URL
 - `UNIVERSAL_LOGIN_URL`: Custom universal login page URL
 - `OAUTH_API_URL`: Custom OAuth API URL
 - `DEFAULT_TENANT_ID`: Default tenant to use
 - `DEFAULT_CLIENT_ID`: Default client to use
 - `ENVIRONMENT`: Environment name (e.g., "production", "development")
+
+::: tip SAML Configuration Priority
+If both `samlSigner` config option and `SAML_SIGN_URL` environment variable are set, the `samlSigner` config takes priority. See [SAML Configuration](../saml/configuration.md) for details.
+:::
 
 ### Email Provider Configuration
 

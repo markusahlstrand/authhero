@@ -1,4 +1,5 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import type { SamlSigner } from "@authhero/saml/core";
 import {
   OnExecuteCredentialsExchange,
   OnExecutePreUserRegistration,
@@ -51,6 +52,11 @@ export type Bindings = {
   // This is used as CN in the certificate
   ORGANIZATION_NAME: string;
 
-  // Url for the service to sign SAML requests
-  SAML_SIGN_URL: string;
+  // Optional URL for the service to sign SAML requests
+  // If not provided, SAML signing will need to be done locally with xml-crypto
+  SAML_SIGN_URL?: string;
+
+  // Optional SAML signer instance (takes precedence over SAML_SIGN_URL)
+  // Set via init({ samlSigner: ... }) to use a custom signer
+  samlSigner?: SamlSigner;
 };

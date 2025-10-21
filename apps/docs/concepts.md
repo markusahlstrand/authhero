@@ -14,6 +14,19 @@ Applications represent client applications that use AuthHero for authentication.
 
 Connections are authentication methods available to users, such as username/password, social logins, or enterprise connections like SAML or LDAP.
 
+### SAML Connections
+
+SAML (Security Assertion Markup Language) is an enterprise authentication standard that enables single sign-on (SSO) between an identity provider (IdP) and service providers (SP). AuthHero acts as an identity provider and supports:
+
+- **SAML Request Parsing** - Parse authentication requests from service providers
+- **SAML Response Generation** - Create signed SAML responses with user attributes
+- **SAML Metadata** - Provide metadata for service provider configuration
+- **Flexible Signing** - Support for both local signing (Node.js) and HTTP-based signing (edge environments)
+
+SAML connections are particularly useful for enterprise customers who need to integrate with existing identity management systems or provide SSO to third-party applications.
+
+[Learn more about SAML →](/packages/saml/)
+
 ## Domains
 
 Domains represent the URLs where your authentication pages are hosted. AuthHero supports custom domains for a branded authentication experience.
