@@ -111,9 +111,17 @@ You can implement custom signing logic by implementing the `SamlSigner` interfac
 import type { SamlSigner } from "authhero";
 
 class MyCustomSigner implements SamlSigner {
-  async signSAML(xml: string): Promise<string> {
+  async signSAML(
+    xmlContent: string,
+    privateKey: string,
+    publicCert: string,
+  ): Promise<string> {
     // Your custom signing implementation
-    const signedXml = await yourSigningLogic(xml);
+    const signedXml = await yourSigningLogic(
+      xmlContent,
+      privateKey,
+      publicCert,
+    );
     return signedXml;
   }
 }
@@ -202,7 +210,7 @@ import { LocalSamlSigner } from "@authhero/saml/local-signer";
 
 ### Bundle Size Comparison
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │ HTTP-based signing:  105 KB (28 KB gz) ✅ │
 ├────────────────────────────────────────────┤

@@ -77,12 +77,10 @@ export async function parseSamlRequestQuery(samlRequestQuery: string) {
 export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
   // Create KeyDescriptor entries for each certificate
   const keyDescriptors = samlMetadataParams.certificates.map((cert) => ({
-    ":@": {
-      "@_use": "signing",
-    },
     KeyDescriptor: [
       {
         ":@": {
+          "@_use": "signing",
           "@_xmlns": "http://www.w3.org/2000/09/xmldsig#",
         },
         KeyInfo: [
@@ -114,19 +112,26 @@ export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
             // Add all key descriptors
             ...keyDescriptors,
             {
-              ":@": {
-                "@_Binding":
-                  "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-                "@_Location": samlMetadataParams.singleLogoutServiceUrl,
-              },
-              SingleLogoutService: [],
+              SingleLogoutService: [
+                {
+                  ":@": {
+                    "@_Binding":
+                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+                    "@_Location": samlMetadataParams.singleLogoutServiceUrl,
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                "@_Location": samlMetadataParams.singleLogoutServiceUrl,
-              },
-              SingleLogoutService: [],
+              SingleLogoutService: [
+                {
+                  ":@": {
+                    "@_Binding":
+                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                    "@_Location": samlMetadataParams.singleLogoutServiceUrl,
+                  },
+                },
+              ],
             },
             {
               NameIDFormat: [
@@ -153,74 +158,98 @@ export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
               ],
             },
             {
-              ":@": {
-                "@_Binding":
-                  "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-                "@_Location": samlMetadataParams.assertionConsumerServiceUrl,
-              },
-              SingleSignOnService: [],
+              SingleSignOnService: [
+                {
+                  ":@": {
+                    "@_Binding":
+                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+                    "@_Location":
+                      samlMetadataParams.assertionConsumerServiceUrl,
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                "@_Location": samlMetadataParams.assertionConsumerServiceUrl,
-              },
-              SingleSignOnService: [],
+              SingleSignOnService: [
+                {
+                  ":@": {
+                    "@_Binding":
+                      "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                    "@_Location":
+                      samlMetadataParams.assertionConsumerServiceUrl,
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Name":
-                  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-                "@_NameFormat":
-                  "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                "@_FriendlyName": "E-Mail Address",
-                "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-              },
-              Attribute: [],
+              Attribute: [
+                {
+                  ":@": {
+                    "@_Name":
+                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+                    "@_NameFormat":
+                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                    "@_FriendlyName": "E-Mail Address",
+                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Name":
-                  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
-                "@_NameFormat":
-                  "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                "@_FriendlyName": "Given Name",
-                "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-              },
-              Attribute: [],
+              Attribute: [
+                {
+                  ":@": {
+                    "@_Name":
+                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+                    "@_NameFormat":
+                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                    "@_FriendlyName": "Given Name",
+                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Name":
-                  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                "@_NameFormat":
-                  "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                "@_FriendlyName": "Name",
-                "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-              },
-              Attribute: [],
+              Attribute: [
+                {
+                  ":@": {
+                    "@_Name":
+                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                    "@_NameFormat":
+                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                    "@_FriendlyName": "Name",
+                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Name":
-                  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
-                "@_NameFormat":
-                  "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                "@_FriendlyName": "Surname",
-                "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-              },
-              Attribute: [],
+              Attribute: [
+                {
+                  ":@": {
+                    "@_Name":
+                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+                    "@_NameFormat":
+                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                    "@_FriendlyName": "Surname",
+                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+                  },
+                },
+              ],
             },
             {
-              ":@": {
-                "@_Name":
-                  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-                "@_NameFormat":
-                  "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-                "@_FriendlyName": "Name ID",
-                "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
-              },
-              Attribute: [],
+              Attribute: [
+                {
+                  ":@": {
+                    "@_Name":
+                      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+                    "@_NameFormat":
+                      "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                    "@_FriendlyName": "Name ID",
+                    "@_xmlns": "urn:oasis:names:tc:SAML:2.0:assertion",
+                  },
+                },
+              ],
             },
           ],
         },
@@ -345,155 +374,179 @@ export async function createSamlResponse(
                 {
                   "saml:Attribute": [
                     {
+                      ":@": {
+                        "@_FriendlyName": "persistent",
+                        "@_Name": "id",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
+                      },
                       "saml:AttributeValue": [
-                        { "#text": samlResponseParams.userId },
+                        {
+                          "#text": samlResponseParams.userId,
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
                       ],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
                     },
                   ],
-                  ":@": {
-                    "@_FriendlyName": "persistent",
-                    "@_Name": "id",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-                  },
                 },
                 {
                   "saml:Attribute": [
                     {
+                      ":@": {
+                        "@_Name": "email",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                      },
                       "saml:AttributeValue": [
-                        { "#text": samlResponseParams.email },
+                        {
+                          "#text": samlResponseParams.email,
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
                       ],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
                     },
                   ],
-                  ":@": {
-                    "@_Name": "email",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
                 },
                 {
                   "saml:Attribute": [
                     {
-                      "saml:AttributeValue": [{ "#text": "manage-account" }],
                       ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
                       },
-                    },
-                  ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
-                },
-                {
-                  "saml:Attribute": [
-                    {
                       "saml:AttributeValue": [
-                        { "#text": "default-roles-master" },
+                        {
+                          "#text": "manage-account",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
                       ],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
                     },
                   ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
                 },
                 {
                   "saml:Attribute": [
                     {
-                      "saml:AttributeValue": [{ "#text": "offline_access" }],
                       ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
                       },
-                    },
-                  ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
-                },
-                {
-                  "saml:Attribute": [
-                    {
-                      "saml:AttributeValue": [{ "#text": "view-profile" }],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
-                    },
-                  ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
-                },
-                {
-                  "saml:Attribute": [
-                    {
-                      "saml:AttributeValue": [{ "#text": "uma_authorization" }],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
-                    },
-                  ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
-                },
-                {
-                  "saml:Attribute": [
-                    {
                       "saml:AttributeValue": [
-                        { "#text": "manage-account-links" },
+                        {
+                          "#text": "default-roles-master",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
                       ],
-                      ":@": {
-                        "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
-                        "@_xmlns:xsi":
-                          "http://www.w3.org/2001/XMLSchema-instance",
-                        "@_xsi:type": "xs:string",
-                      },
                     },
                   ],
-                  ":@": {
-                    "@_Name": "Role",
-                    "@_NameFormat":
-                      "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-                  },
+                },
+                {
+                  "saml:Attribute": [
+                    {
+                      ":@": {
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                      },
+                      "saml:AttributeValue": [
+                        {
+                          "#text": "offline_access",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  "saml:Attribute": [
+                    {
+                      ":@": {
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                      },
+                      "saml:AttributeValue": [
+                        {
+                          "#text": "view-profile",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  "saml:Attribute": [
+                    {
+                      ":@": {
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                      },
+                      "saml:AttributeValue": [
+                        {
+                          "#text": "uma_authorization",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  "saml:Attribute": [
+                    {
+                      ":@": {
+                        "@_Name": "Role",
+                        "@_NameFormat":
+                          "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                      },
+                      "saml:AttributeValue": [
+                        {
+                          "#text": "manage-account-links",
+                          ":@": {
+                            "@_xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+                            "@_xmlns:xsi":
+                              "http://www.w3.org/2001/XMLSchema-instance",
+                            "@_xsi:type": "xs:string",
+                          },
+                        },
+                      ],
+                    },
+                  ],
                 },
               ],
             },

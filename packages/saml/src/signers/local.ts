@@ -30,6 +30,21 @@ export class LocalSamlSigner implements SamlSigner {
       });
 
       sig.signatureAlgorithm = signatureAlgorithm;
+
+      // Include X509 KeyInfo in the signature for SP compatibility
+      // Many SPs expect the certificate to be included in the signature
+      const certBody = publicCert
+        .replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----/g, "")
+        .replace(/\s/g, "");
+
+      // Set keyInfoProvider on the signature instance
+      // @ts-expect-error - keyInfoProvider exists on SignedXml but not in types
+      sig.keyInfoProvider = {
+        getKeyInfo: () => {
+          return `<X509Data><X509Certificate>${certBody}</X509Certificate></X509Data>`;
+        },
+      };
+
       sig.computeSignature(xmlContent, {
         // according to:
         // https://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd

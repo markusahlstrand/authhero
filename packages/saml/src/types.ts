@@ -96,18 +96,23 @@ export const samlMetadataResponseSchema = z.array(
 export type SAMLMetadataResponse = z.infer<typeof samlMetadataResponseSchema>;
 
 const attributeSchema = z.object({
+  ":@": z.object({
+    "@_Name": z.string(),
+    "@_NameFormat": z.string(),
+    "@_FriendlyName": z.string().optional(),
+  }),
   "saml:AttributeValue": z.array(
     z.object({
       "#text": z.string(),
+      ":@": z
+        .object({
+          "@_xmlns:xs": z.string().optional(),
+          "@_xmlns:xsi": z.string(),
+          "@_xsi:type": z.string(),
+        })
+        .optional(),
     }),
   ),
-  ":@": z.object({
-    "@_xmlns:xs": z.string().optional(),
-    "@_xmlns:xsi": z.string(),
-    "@_xsi:type": z.string(),
-    "@_Name": z.string().optional(),
-    "@_NameFormat": z.string().optional(),
-  }),
 });
 
 const transformSchema = z.object({
@@ -124,16 +129,22 @@ export const dsSignatureSchema = z.object({
         "ds:SignedInfo": z.array(
           z.union([
             z.object({
-              "ds:CanonicalizationMethod": z.array(z.string()),
-              ":@": z.object({
-                "@_Algorithm": z.string(),
-              }),
+              "ds:CanonicalizationMethod": z.array(
+                z.object({
+                  ":@": z.object({
+                    "@_Algorithm": z.string(),
+                  }),
+                }),
+              ),
             }),
             z.object({
-              "ds:SignatureMethod": z.array(z.string()),
-              ":@": z.object({
-                "@_Algorithm": z.string(),
-              }),
+              "ds:SignatureMethod": z.array(
+                z.object({
+                  ":@": z.object({
+                    "@_Algorithm": z.string(),
+                  }),
+                }),
+              ),
             }),
             z.object({
               "ds:Reference": z.array(
@@ -142,14 +153,22 @@ export const dsSignatureSchema = z.object({
                     "ds:Transforms": z.array(transformSchema),
                   }),
                   z.object({
-                    "ds:DigestMethod": z.array(z.string()),
-                    ":@": z.object({
-                      "@_Algorithm": z.string(),
-                    }),
+                    "ds:DigestMethod": z.array(
+                      z.object({
+                        ":@": z.object({
+                          "@_Algorithm": z.string(),
+                        }),
+                      }),
+                    ),
                   }),
                   z.object({ "ds:DigestValue": z.array(textSchema) }),
                 ]),
               ),
+              ":@": z
+                .object({
+                  "@_URI": z.string().optional(),
+                })
+                .optional(),
             }),
           ]),
         ),
@@ -159,29 +178,62 @@ export const dsSignatureSchema = z.object({
       }),
       z.object({
         "ds:KeyInfo": z.array(
-          z.object({
-            "ds:KeyValue": z.array(
-              z.object({
-                "ds:RSAKeyValue": z.array(
-                  z.union([
-                    z.object({
-                      "ds:Modulus": z.array(textSchema),
-                    }),
-                    z.object({
-                      "ds:Exponent": z.array(textSchema),
-                    }),
-                  ]),
-                ),
-              }),
-            ),
-          }),
+          z.union([
+            z.object({
+              "ds:KeyValue": z.array(
+                z.object({
+                  "ds:RSAKeyValue": z.array(
+                    z.union([
+                      z.object({
+                        "ds:Modulus": z.array(textSchema),
+                      }),
+                      z.object({
+                        "ds:Exponent": z.array(textSchema),
+                      }),
+                    ]),
+                  ),
+                }),
+              ),
+            }),
+            z.object({
+              "ds:X509Data": z.array(
+                z.object({
+                  "ds:X509Certificate": z.array(textSchema),
+                }),
+              ),
+            }),
+            // Support KeyInfo with both KeyValue and X509Data
+            z.object({
+              "ds:KeyValue": z.array(
+                z.object({
+                  "ds:RSAKeyValue": z.array(
+                    z.union([
+                      z.object({
+                        "ds:Modulus": z.array(textSchema),
+                      }),
+                      z.object({
+                        "ds:Exponent": z.array(textSchema),
+                      }),
+                    ]),
+                  ),
+                }),
+              ),
+              "ds:X509Data": z.array(
+                z.object({
+                  "ds:X509Certificate": z.array(textSchema),
+                }),
+              ),
+            }),
+          ]),
         ),
       }),
     ]),
   ),
-  ":@": z.object({
-    "@_xmlns:ds": z.string(),
-  }),
+  ":@": z
+    .object({
+      "@_xmlns:ds": z.string().optional(),
+    })
+    .optional(),
 });
 
 export type DSIGSignature = z.infer<typeof dsSignatureSchema>;
@@ -273,11 +325,6 @@ export const samlResponseJsonSchema = z.array(
                 "saml:AttributeStatement": z.array(
                   z.object({
                     "saml:Attribute": z.array(attributeSchema),
-                    ":@": z.object({
-                      "@_FriendlyName": z.string().optional(),
-                      "@_Name": z.string(),
-                      "@_NameFormat": z.string(),
-                    }),
                   }),
                 ),
               }),

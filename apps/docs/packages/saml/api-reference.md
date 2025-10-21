@@ -70,13 +70,20 @@ Interface for SAML signing implementations.
 
 ```typescript
 interface SamlSigner {
-  signSAML(xml: string): Promise<string>;
+  signSAML(
+    xmlContent: string,
+    privateKey: string,
+    publicCert: string,
+  ): Promise<string>;
 }
 ```
 
 **Methods:**
 
-- `signSAML(xml)` - Sign SAML XML and return signed XML
+- `signSAML(xmlContent, privateKey, publicCert)` - Sign SAML XML and return signed XML
+  - `xmlContent` - The XML content to sign
+  - `privateKey` - The private key in PEM format
+  - `publicCert` - The public certificate
 
 ## Classes
 
@@ -87,7 +94,11 @@ HTTP-based SAML signer that delegates signing to an external service.
 ```typescript
 class HttpSamlSigner implements SamlSigner {
   constructor(url: string);
-  signSAML(xml: string): Promise<string>;
+  signSAML(
+    xmlContent: string,
+    privateKey: string,
+    publicCert: string,
+  ): Promise<string>;
 }
 ```
 
@@ -101,7 +112,7 @@ class HttpSamlSigner implements SamlSigner {
 import { HttpSamlSigner } from "authhero";
 
 const signer = new HttpSamlSigner("https://signing-service.com/sign");
-const signedXml = await signer.signSAML(xmlString);
+const signedXml = await signer.signSAML(xmlContent, privateKey, publicCert);
 ```
 
 ### LocalSamlSigner
@@ -111,7 +122,11 @@ Local SAML signer using xml-crypto (Node.js only).
 ```typescript
 class LocalSamlSigner implements SamlSigner {
   constructor();
-  signSAML(xml: string): Promise<string>;
+  signSAML(
+    xmlContent: string,
+    privateKey: string,
+    publicCert: string,
+  ): Promise<string>;
 }
 ```
 
@@ -121,7 +136,7 @@ class LocalSamlSigner implements SamlSigner {
 import { LocalSamlSigner } from "@authhero/saml/local-signer";
 
 const signer = new LocalSamlSigner();
-const signedXml = await signer.signSAML(xmlString);
+const signedXml = await signer.signSAML(xmlContent, privateKey, publicCert);
 ```
 
 ::: warning
