@@ -17,6 +17,11 @@ export * from "./styles";
 export * from "./adapters";
 export { waitUntil } from "./helpers/wait-until";
 
+// Export SAML types and signers for configuration
+export type { SamlSigner } from "@authhero/saml/core";
+export { HttpSamlSigner } from "@authhero/saml/core";
+// LocalSamlSigner is available via @authhero/saml/local-signer for Node.js users
+
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
   fallbackLng: "en",
@@ -44,6 +49,12 @@ export function init(config: AuthHeroConfig) {
         ...(ctx.env.hooks || {}), // env hooks take precedence
       };
     }
+
+    // Add samlSigner from config if provided
+    if (config.samlSigner) {
+      ctx.env.samlSigner = config.samlSigner;
+    }
+
     await next();
   });
 

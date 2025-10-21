@@ -1,7 +1,9 @@
 pnpm interfaces build
 pnpm kysely build
+pnpm saml build
 pnpm authhero build
 pnpm cloudflare build
 
 pnpm kysely test
+pnpm saml test
 pnpm authhero test

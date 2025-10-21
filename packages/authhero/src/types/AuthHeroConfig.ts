@@ -1,4 +1,5 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import type { SamlSigner } from "@authhero/saml/core";
 import {
   OnExecuteCredentialsExchange,
   OnExecutePreUserRegistration,
@@ -10,6 +11,7 @@ import {
 export interface AuthHeroConfig {
   dataAdapter: DataAdapters;
   allowedOrigins?: string[];
+  samlSigner?: SamlSigner;
   hooks?: {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;

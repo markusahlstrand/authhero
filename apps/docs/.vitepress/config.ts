@@ -72,6 +72,7 @@ export default withMermaid(
           text: "Packages",
           items: [
             { text: "Core Library", link: "/packages/authhero/" },
+            { text: "SAML", link: "/packages/saml/" },
             { text: "Create AuthHero", link: "/packages/create-authhero/" },
           ],
         },
@@ -114,6 +115,7 @@ export default withMermaid(
               link: "/guides/database-integration",
             },
             { text: "Impersonation", link: "/guides/impersonation" },
+            { text: "SAML Migration", link: "/guides/saml-migration" },
             { text: "Troubleshooting", link: "/guides/troubleshooting" },
           ],
         },

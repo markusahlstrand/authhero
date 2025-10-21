@@ -81,6 +81,19 @@ export default defineConfig(({ mode }) => {
       alias: [
         { find: "@", replacement: path.resolve(__dirname, "src") },
         { find: "@@", replacement: path.resolve(__dirname) },
+        // Resolve @authhero/saml subpaths to dist files for tests
+        {
+          find: "@authhero/saml/core",
+          replacement: path.resolve(__dirname, "../saml/dist/core.mjs"),
+        },
+        {
+          find: "@authhero/saml/local-signer",
+          replacement: path.resolve(__dirname, "../saml/dist/local-signer.mjs"),
+        },
+        {
+          find: "@authhero/saml",
+          replacement: path.resolve(__dirname, "../saml/dist/saml.mjs"),
+        },
       ],
     },
   };
