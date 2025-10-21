@@ -30,6 +30,9 @@ jobs:
       - name: Build interfaces
         run: pnpm interfaces build
 
+      - name: Build saml
+        run: pnpm saml build
+
       - name: Build kysely
         run: pnpm kysely build
 
