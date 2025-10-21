@@ -1,5 +1,16 @@
 # authhero
 
+## 0.252.0
+
+### Minor Changes
+
+- e52a74e: Move saml to separate package
+
+### Patch Changes
+
+- Updated dependencies [e52a74e]
+  - @authhero/saml@0.2.0
+
 ## 0.251.0
 
 ### Minor Changes

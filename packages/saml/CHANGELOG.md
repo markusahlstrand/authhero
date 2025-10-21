@@ -1,5 +1,11 @@
 # @authhero/saml
 
+## 0.2.0
+
+### Minor Changes
+
+- e52a74e: Move saml to separate package
+
 ## 0.1.0
 
 ### Minor Changes
