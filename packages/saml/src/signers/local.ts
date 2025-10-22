@@ -19,8 +19,9 @@ export class LocalSamlSigner implements SamlSigner {
       // xml-crypto is a CommonJS module - need to handle default export interop
       const xmlCrypto = await import("xml-crypto");
       // Handle both ESM named import and CJS default export scenarios
-      const SignedXml = xmlCrypto.SignedXml || (xmlCrypto as any).default?.SignedXml;
-      
+      const SignedXml =
+        xmlCrypto.SignedXml || (xmlCrypto as any).default?.SignedXml;
+
       if (!SignedXml) {
         throw new Error("SignedXml not found in xml-crypto module");
       }
