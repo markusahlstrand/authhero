@@ -178,7 +178,7 @@ describe("users management API endpoint", () => {
 
       // Should not double-prefix - should be auth2|myCustomId, not auth2|auth2|myCustomId
       expect(newUser.user_id).toBe("auth2|myCustomId");
-      
+
       const [provider, id] = newUser.user_id.split("|");
       expect(provider).toBe("auth2");
       expect(id).toBe("myCustomId");
@@ -525,7 +525,7 @@ describe("users management API endpoint", () => {
         },
       );
 
-      const createSecondaryUserResponse = await managementClient.users.$post(
+      await managementClient.users.$post(
         {
           json: {
             user_id: "userId2",
@@ -626,6 +626,346 @@ describe("users management API endpoint", () => {
       });
 
       expect(updateUserResponse.status).toBe(404);
+    });
+
+    describe("updating secondary linked accounts via connection parameter", () => {
+      it("should update a secondary linked account's phone number when connection is specified", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user with password connection
+        await env.data.users.create("tenantId", {
+          user_id: "auth2|primary-user",
+          email: "primary@example.com",
+          email_verified: true,
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+          is_social: false,
+        });
+
+        // Create secondary SMS user and link it to primary
+        await env.data.users.create("tenantId", {
+          user_id: "sms|secondary-user",
+          phone_number: "+46701234567",
+          email_verified: false,
+          provider: "sms",
+          connection: "sms",
+          is_social: false,
+          linked_to: "auth2|primary-user",
+        });
+
+        // Update the secondary account via primary user ID with connection parameter
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "auth2|primary-user",
+            },
+            json: {
+              phone_number: "+46709876543",
+              connection: "sms",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        // Verify the secondary account was updated
+        const secondaryUser = await env.data.users.get(
+          "tenantId",
+          "sms|secondary-user",
+        );
+        expect(secondaryUser?.phone_number).toBe("+46709876543");
+      });
+
+      it("should update app_metadata on a secondary linked account when connection is specified", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user with email connection
+        await env.data.users.create("tenantId", {
+          user_id: "email|primary-user",
+          email: "primary@example.com",
+          email_verified: true,
+          provider: "email",
+          connection: "email",
+          is_social: false,
+        });
+
+        // Create secondary user with password connection and link it
+        await env.data.users.create("tenantId", {
+          user_id: "auth2|secondary-user",
+          email: "secondary@example.com",
+          email_verified: false,
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+          is_social: false,
+          linked_to: "email|primary-user",
+          app_metadata: { role: "user" },
+        });
+
+        // Update app_metadata on the secondary account
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "email|primary-user",
+            },
+            json: {
+              app_metadata: { role: "admin", department: "engineering" },
+              connection: "Username-Password-Authentication",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        // Verify the secondary account's app_metadata was updated
+        const secondaryUser = await env.data.users.get(
+          "tenantId",
+          "auth2|secondary-user",
+        );
+        expect(secondaryUser?.app_metadata).toEqual({
+          role: "admin",
+          department: "engineering",
+        });
+      });
+
+      it("should update email_verified on a secondary linked account when connection is specified", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user
+        await env.data.users.create("tenantId", {
+          user_id: "auth2|primary-user",
+          email: "primary@example.com",
+          email_verified: true,
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+          is_social: false,
+        });
+
+        // Create secondary email user (unverified) and link it
+        await env.data.users.create("tenantId", {
+          user_id: "email|secondary-user",
+          email: "secondary@example.com",
+          email_verified: false,
+          provider: "email",
+          connection: "email",
+          is_social: false,
+          linked_to: "auth2|primary-user",
+        });
+
+        // Update email_verified on the secondary account
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "auth2|primary-user",
+            },
+            json: {
+              email_verified: true,
+              connection: "email",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        // Verify the secondary account's email_verified was updated
+        const secondaryUser = await env.data.users.get(
+          "tenantId",
+          "email|secondary-user",
+        );
+        expect(secondaryUser?.email_verified).toBe(true);
+      });
+
+      it("should update password on a secondary linked account when connection is specified", async () => {
+        // Note: Password updates on linked accounts are ONLY allowed for
+        // Username-Password-Authentication connections. This is consistent
+        // with Auth0's behavior - you cannot update passwords for other
+        // connection types (like SMS, email OTP, social, etc.) on linked accounts.
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user with email connection
+        await env.data.users.create("tenantId", {
+          user_id: "email|primary-user",
+          email: "primary@example.com",
+          email_verified: true,
+          provider: "email",
+          connection: "email",
+          is_social: false,
+        });
+
+        // Create secondary user with password connection and link it
+        await env.data.users.create("tenantId", {
+          user_id: "auth2|secondary-user",
+          email: "secondary@example.com",
+          email_verified: true,
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+          is_social: false,
+          linked_to: "email|primary-user",
+        });
+
+        // Create initial password for secondary user
+        await env.data.passwords.create("tenantId", {
+          user_id: "auth2|secondary-user",
+          password: await import("bcryptjs").then((bcrypt) =>
+            bcrypt.hash("oldPassword123", 10),
+          ),
+          algorithm: "bcrypt",
+        });
+
+        // Update password on the secondary account
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "email|primary-user",
+            },
+            json: {
+              password: "newPassword456",
+              connection: "Username-Password-Authentication",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        // Verify the password was updated
+        const updatedPassword = await env.data.passwords.get(
+          "tenantId",
+          "auth2|secondary-user",
+        );
+        expect(updatedPassword).toBeDefined();
+
+        // Verify the new password works
+        const bcrypt = await import("bcryptjs");
+        const isMatch = await bcrypt.compare(
+          "newPassword456",
+          updatedPassword!.password,
+        );
+        expect(isMatch).toBe(true);
+      });
+
+      it("should return 404 when trying to update non-existent connection on primary user", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user with email connection only
+        await env.data.users.create("tenantId", {
+          user_id: "email|primary-user",
+          email: "primary@example.com",
+          email_verified: true,
+          provider: "email",
+          connection: "email",
+          is_social: false,
+        });
+
+        // Try to update a connection that doesn't exist
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "email|primary-user",
+            },
+            json: {
+              phone_number: "+46701234567",
+              connection: "sms",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(404);
+      });
+
+      it("should update primary user when connection matches primary user's connection", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        // Create primary user with email connection
+        await env.data.users.create("tenantId", {
+          user_id: "email|primary-user",
+          email: "primary@example.com",
+          email_verified: false,
+          provider: "email",
+          connection: "email",
+          is_social: false,
+        });
+
+        // Update primary user by specifying its own connection
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "email|primary-user",
+            },
+            json: {
+              email_verified: true,
+              connection: "email",
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        // Verify the primary user was updated
+        const primaryUser = await env.data.users.get(
+          "tenantId",
+          "email|primary-user",
+        );
+        expect(primaryUser?.email_verified).toBe(true);
+      });
     });
   });
 
@@ -755,7 +1095,7 @@ describe("users management API endpoint", () => {
     // - should return CORS headers! Dan broke this on auth-admin. Check from a synthetic auth-admin request we get CORS headers back
     // - pagination! What I've done won't work of course unless we overfetch...
     it("should return an empty list of users for a tenant", async () => {
-      const { managementApp, oauthApp, env } = await getTestServer();
+      const { managementApp, env } = await getTestServer();
       const managementClient = testClient(managementApp, env);
 
       const token = await getAdminToken();
@@ -982,9 +1322,8 @@ describe("users management API endpoint", () => {
 
     it("should be able to search on linked user's email address using profile data query", async () => {
       const token = await getAdminToken();
-      const { managementApp, oauthApp, env } = await getTestServer();
+      const { managementApp, env } = await getTestServer();
 
-      const client = testClient(oauthApp, env);
       const managementClient = testClient(managementApp, env);
 
       // -----------------
@@ -1104,9 +1443,8 @@ describe("users management API endpoint", () => {
       */
       it("should search for a user by email when lucene query uses colon as separator", async () => {
         const token = await getAdminToken();
-        const { managementApp, oauthApp, env } = await getTestServer();
+        const { managementApp, env } = await getTestServer();
 
-        const client = testClient(oauthApp, env);
         const managementClient = testClient(managementApp, env);
 
         const createUserResponse = await managementClient.users.$post(
