@@ -197,9 +197,84 @@ Get a specific user.
 
 #### Update User
 
-Update a user.
+Update a user's properties, including linked account identities.
 
 **Endpoint:** `PATCH /api/v2/users/{id}`
+
+**Request Body:**
+
+```json
+{
+  "email": "updated@example.com",
+  "email_verified": true,
+  "name": "Updated Name",
+  "app_metadata": {
+    "role": "admin"
+  },
+  "user_metadata": {
+    "preference": "value"
+  }
+}
+```
+
+**Updating Linked Accounts:**
+
+When a user has multiple linked identities (e.g., a primary email account and a linked SMS or password account), you can update a specific identity by including a `connection` parameter:
+
+```json
+{
+  "phone_number": "+1234567890",
+  "connection": "sms"
+}
+```
+
+This will update the linked identity that matches the specified connection. Supported update operations for linked accounts:
+
+- **Phone Number**: Update `phone_number` for SMS connections
+- **Email Verified**: Update `email_verified` status for any connection
+- **App Metadata**: Update `app_metadata` for any connection
+- **User Metadata**: Update `user_metadata` for any connection
+- **Password**: Update password for `Username-Password-Authentication` connections
+
+**Important Notes:**
+
+- If no `connection` is specified, the primary user account is updated
+- If the `connection` matches the primary user's connection, the primary account is updated
+- If the `connection` matches a linked secondary account, that account is updated
+- Returns 404 if the specified connection doesn't exist for the user
+- **Password updates for linked accounts**: When updating a password with a `connection` parameter, the connection must be `Username-Password-Authentication`. Auth0 does not allow password changes for other connection types on linked accounts.
+
+**Example - Update Secondary SMS Account:**
+
+```bash
+curl --request PATCH \
+  --url 'https://yourdomain.com/api/v2/users/auth2|primary-user-id' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --header 'tenant-id: YOUR_TENANT_ID' \
+  --data '{
+    "phone_number": "+1234567890",
+    "connection": "sms"
+  }'
+```
+
+**Example - Update Password on Linked Account:**
+
+```bash
+curl --request PATCH \
+  --url 'https://yourdomain.com/api/v2/users/email|primary-user-id' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --header 'tenant-id: YOUR_TENANT_ID' \
+  --data '{
+    "password": "newPassword123!",
+    "connection": "Username-Password-Authentication"
+  }'
+```
+
+**Response:**
+
+Returns the primary user object with all identities included.
 
 #### Delete User
 

@@ -418,31 +418,12 @@ export const userRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
 
-      // verify_email is not persisted
-      const { verify_email, password, ...userFields } = body;
+      // verify_email is not persisted, connection is used to target a specific identity
+      const { verify_email, password, connection, ...userFields } = body;
       const userToPatch = await data.users.get(ctx.var.tenant_id, user_id);
 
       if (!userToPatch) {
         throw new HTTPException(404);
-      }
-
-      // Check if the email is being changed to an existing email of another user
-      if (userFields.email && userFields.email !== userToPatch.email) {
-        const existingUser = await getUsersByEmail(
-          ctx.env.data.users,
-          ctx.var.tenant_id,
-          userFields.email,
-        );
-
-        // If there is an existing user with the same email address, and it is not the same user
-        if (
-          existingUser.length &&
-          existingUser.some((u) => u.user_id !== user_id)
-        ) {
-          throw new HTTPException(409, {
-            message: "Another user with the same email address already exists.",
-          });
-        }
       }
 
       if (userToPatch.linked_to) {
@@ -452,28 +433,105 @@ export const userRoutes = new OpenAPIHono<{
         });
       }
 
-      await ctx.env.data.users.update(ctx.var.tenant_id, user_id, userFields);
+      // If a connection is specified, we need to find the user with that connection
+      // This could be the primary user itself or a linked secondary user
+      let targetUserId = user_id;
+      let targetUser = userToPatch;
 
-      if (password) {
-        const passwordUser = userToPatch.identities?.find(
-          (i) => i.connection === "Username-Password-Authentication",
+      if (connection) {
+        // Check if the primary user has this connection
+        if (userToPatch.connection === connection) {
+          // Target is the primary user
+          targetUserId = user_id;
+          targetUser = userToPatch;
+        } else {
+          // Look for a linked user with this connection
+          const linkedUsers = await data.users.list(ctx.var.tenant_id, {
+            page: 0,
+            per_page: 100,
+            include_totals: false,
+            q: `linked_to:${user_id}`,
+          });
+
+          const linkedUserWithConnection = linkedUsers.users.find(
+            (u) => u.connection === connection,
+          );
+
+          if (!linkedUserWithConnection) {
+            throw new HTTPException(404, {
+              message: `No identity found with connection: ${connection}`,
+            });
+          }
+
+          targetUserId = linkedUserWithConnection.user_id;
+          targetUser = linkedUserWithConnection;
+        }
+      }
+
+      // Check if the email is being changed to an existing email of another user
+      if (userFields.email && userFields.email !== targetUser.email) {
+        const existingUser = await getUsersByEmail(
+          ctx.env.data.users,
+          ctx.var.tenant_id,
+          userFields.email,
         );
 
-        if (!passwordUser) {
-          throw new HTTPException(400, {
-            message: "User does not have a password identity",
+        // If there is an existing user with the same email address, and it is not the same user
+        if (
+          existingUser.length &&
+          existingUser.some((u) => u.user_id !== targetUserId)
+        ) {
+          throw new HTTPException(409, {
+            message: "Another user with the same email address already exists.",
           });
+        }
+      }
+
+      await ctx.env.data.users.update(
+        ctx.var.tenant_id,
+        targetUserId,
+        userFields,
+      );
+
+      if (password) {
+        // When updating password with a connection specified, use that connection
+        // Otherwise, look for Username-Password-Authentication in the primary user's identities
+        let passwordIdentity;
+
+        if (connection) {
+          // If connection is specified and it's a password connection, use the target user
+          if (connection === "Username-Password-Authentication") {
+            passwordIdentity = {
+              provider: targetUser.provider,
+              user_id: userIdParse(targetUserId)!,
+            };
+          } else {
+            throw new HTTPException(400, {
+              message: `Cannot set password for connection: ${connection}`,
+            });
+          }
+        } else {
+          // Original behavior: find password identity in the primary user
+          passwordIdentity = userToPatch.identities?.find(
+            (i) => i.connection === "Username-Password-Authentication",
+          );
+
+          if (!passwordIdentity) {
+            throw new HTTPException(400, {
+              message: "User does not have a password identity",
+            });
+          }
         }
 
         const passwordOptions: PasswordInsert = {
-          user_id: `${passwordUser.provider}|${passwordUser.user_id}`,
+          user_id: `${passwordIdentity.provider}|${passwordIdentity.user_id}`,
           password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
         };
 
         const existingPassword = await data.passwords.get(
           ctx.var.tenant_id,
-          `${passwordUser.provider}|${passwordUser.user_id}`,
+          `${passwordIdentity.provider}|${passwordIdentity.user_id}`,
         );
         if (existingPassword) {
           await data.passwords.update(ctx.var.tenant_id, passwordOptions);
@@ -482,6 +540,7 @@ export const userRoutes = new OpenAPIHono<{
         }
       }
 
+      // Always return the primary user
       const patchedUser = await ctx.env.data.users.get(
         ctx.var.tenant_id,
         user_id,
