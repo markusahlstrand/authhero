@@ -446,7 +446,7 @@ export const userRoutes = new OpenAPIHono<{
         }
 
         const passwordOptions: PasswordInsert = {
-          user_id: passwordUser.user_id,
+          user_id: `${passwordUser.provider}|${passwordUser.user_id}`,
           password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
         };

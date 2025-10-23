@@ -1277,7 +1277,7 @@ describe("users management API endpoint", () => {
         (u: User) => u.user_id === "auth2|userId2",
       );
       expect(newUser).toBeDefined();
-      expect(newUser.identities).toEqual([
+      expect(newUser?.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
@@ -1840,6 +1840,295 @@ describe("users management API endpoint", () => {
       );
 
       expect(addPermissionsResponse.status).toBe(404);
+    });
+  });
+
+  describe("User linking and login", () => {
+    it("should create a password user with same email, link it to primary user, and validate login with password", async () => {
+      const token = await getAdminToken();
+      const { managementApp, oauthApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      const testEmail = "linktest@example.com";
+      const testPassword = "TestPassword123!";
+
+      // Step 1: Create the primary user (passwordless email user)
+      const createPrimaryUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            connection: "email",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createPrimaryUserResponse.status).toBe(201);
+      const primaryUser = await createPrimaryUserResponse.json();
+      expect(primaryUser.user_id).toMatch(/^email\|[a-zA-Z0-9]+$/);
+      expect(primaryUser.email).toBe(testEmail);
+
+      // Step 2: Create a password user with the SAME email using the management API
+      // Note: Different providers allow same email (email| vs auth2|)
+      // We intentionally do NOT set email_verified:true to avoid automatic linking
+      const createPasswordUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            provider: "auth2",
+            connection: "Username-Password-Authentication",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createPasswordUserResponse.status).toBe(201);
+      const passwordUser = await createPasswordUserResponse.json();
+      expect(passwordUser.user_id).toMatch(/^auth2\|/);
+      expect(passwordUser.email).toBe(testEmail);
+
+      // Step 3: Set the password for the password user via PATCH
+      const setPasswordResponse = await managementClient.users[
+        ":user_id"
+      ].$patch(
+        {
+          param: {
+            user_id: passwordUser.user_id,
+          },
+          json: {
+            password: testPassword,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(setPasswordResponse.status).toBe(200);
+
+      // Step 4: Link the password user to the primary user using the management API
+      const linkResponse = await managementClient.users[
+        ":user_id"
+      ].identities.$post(
+        {
+          param: {
+            user_id: primaryUser.user_id,
+          },
+          json: {
+            link_with: passwordUser.user_id,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(linkResponse.status).toBe(201);
+      const identities = await linkResponse.json();
+      expect(identities).toHaveLength(2);
+
+      // Verify the link was created correctly
+      const linkedPasswordUser = await env.data.users.get(
+        "tenantId",
+        passwordUser.user_id,
+      );
+      expect(linkedPasswordUser!.linked_to).toBe(primaryUser.user_id);
+
+      // Step 5: Verify the primary user has both identities
+      const getPrimaryUserResponse = await managementClient.users[
+        ":user_id"
+      ].$get(
+        {
+          param: {
+            user_id: primaryUser.user_id,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getPrimaryUserResponse.status).toBe(200);
+      const updatedPrimaryUser = await getPrimaryUserResponse.json();
+      expect(updatedPrimaryUser.identities).toHaveLength(2);
+      expect(updatedPrimaryUser.identities).toContainEqual(
+        expect.objectContaining({
+          provider: "email",
+          connection: "email",
+        }),
+      );
+      expect(updatedPrimaryUser.identities).toContainEqual(
+        expect.objectContaining({
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+        }),
+      );
+
+      // Step 6: Test login with the email and password
+      const loginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: testPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(loginResponse.status).toBe(200);
+      const loginResult = (await loginResponse.json()) as {
+        login_ticket: string;
+      };
+      expect(loginResult.login_ticket).toBeDefined();
+
+      // Step 7: Verify the login resolved to the primary user
+      // The login should have resolved to the primary user (not the password user)
+      // since they are linked
+      const { logs } = await env.data.logs.list("tenantId", {
+        page: 0,
+        per_page: 10,
+        include_totals: true,
+      });
+
+      const successLog = logs.find((log) => log.type === "s");
+      expect(successLog).toBeDefined();
+      // The log should show the primary user
+      expect(successLog!.user_id).toBe(primaryUser.user_id);
+      // But it should log the database connection that was actually used
+      expect(successLog!.connection).toBe("Username-Password-Authentication");
+    });
+
+    it("should create a password user without password, then set password later", async () => {
+      const token = await getAdminToken();
+      const { managementApp, oauthApp, env } = await getTestServer();
+
+      const managementClient = testClient(managementApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      const testEmail = "nopassword@example.com";
+      const testPassword = "SecurePassword123!";
+
+      // Step 1: Create an auth2 user WITHOUT a password
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            provider: "auth2",
+            connection: "Username-Password-Authentication",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+      const user = await createUserResponse.json();
+      expect(user.user_id).toMatch(/^auth2\|/);
+      expect(user.email).toBe(testEmail);
+
+      // Verify no password exists yet
+      const passwordRecord = await env.data.passwords.get(
+        "tenantId",
+        user.user_id,
+      );
+      expect(passwordRecord).toBeNull();
+
+      // Step 2: Set password via PATCH
+      const setPasswordResponse = await managementClient.users[
+        ":user_id"
+      ].$patch(
+        {
+          param: {
+            user_id: user.user_id,
+          },
+          json: {
+            password: testPassword,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(setPasswordResponse.status).toBe(200);
+
+      // Verify password was created
+      const updatedPasswordRecord = await env.data.passwords.get(
+        "tenantId",
+        user.user_id,
+      );
+      expect(updatedPasswordRecord).toBeDefined();
+      expect(updatedPasswordRecord!.password).toBeDefined();
+
+      // Step 3: Test login with the password
+      const loginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: testPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(loginResponse.status).toBe(200);
+      const loginResult = (await loginResponse.json()) as {
+        login_ticket: string;
+      };
+      expect(loginResult.login_ticket).toBeDefined();
+
+      // Verify the login log
+      const { logs } = await env.data.logs.list("tenantId", {
+        page: 0,
+        per_page: 10,
+        include_totals: true,
+      });
+
+      const successLog = logs.find((log) => log.type === "s");
+      expect(successLog).toBeDefined();
+      expect(successLog!.user_id).toBe(user.user_id);
+      expect(successLog!.connection).toBe("Username-Password-Authentication");
     });
   });
 });
