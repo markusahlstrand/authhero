@@ -306,7 +306,10 @@ export const userRoutes = new OpenAPIHono<{
         password,
       } = body;
 
-      const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
+      // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
+      const rawUserId = body["user_id"];
+      const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
+      const user_id = `${body.provider}|${idPart}`;
 
       try {
         // This bypasses the hooks right now. Should we pass some flag so that the hooks may be bypassed?

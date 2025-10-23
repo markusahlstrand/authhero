@@ -148,6 +148,42 @@ describe("users management API endpoint", () => {
       ]);
     });
 
+    it("should handle provider-prefixed user_id without double-prefixing", async () => {
+      const token = await getAdminToken();
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+
+      // Client sends a user_id that's already prefixed with provider
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            user_id: "auth2|myCustomId",
+            email: "prefixed@example.com",
+            provider: "auth2",
+            connection: "Username-Password-Authentication",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+      const newUser = await createUserResponse.json();
+
+      // Should not double-prefix - should be auth2|myCustomId, not auth2|auth2|myCustomId
+      expect(newUser.user_id).toBe("auth2|myCustomId");
+      
+      const [provider, id] = newUser.user_id.split("|");
+      expect(provider).toBe("auth2");
+      expect(id).toBe("myCustomId");
+    });
+
     describe("should return a 409 if you create the same passwordless email user twice when existing user:", () => {
       it("is an existing primary account", async () => {
         const token = await getAdminToken();
