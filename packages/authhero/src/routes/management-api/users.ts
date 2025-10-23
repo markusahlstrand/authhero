@@ -266,7 +266,10 @@ export const userRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z.object({ ...userInsertSchema.shape }),
+              schema: z.object({
+                ...userInsertSchema.shape,
+                password: z.string().optional(),
+              }),
             },
           },
         },
@@ -300,6 +303,7 @@ export const userRoutes = new OpenAPIHono<{
         email_verified,
         provider,
         connection,
+        password,
       } = body;
 
       const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
@@ -319,6 +323,19 @@ export const userRoutes = new OpenAPIHono<{
           is_social: false,
           last_login: new Date().toISOString(),
         });
+
+        // Create password if provided
+        if (password) {
+          const passwordOptions: PasswordInsert = {
+            user_id: data.user_id,
+            password: await bcryptjs.hash(password, 10),
+            algorithm: "bcrypt",
+          };
+          await ctx.env.data.passwords.create(
+            ctx.var.tenant_id,
+            passwordOptions,
+          );
+        }
 
         ctx.set("user_id", data.user_id);
 
@@ -453,7 +470,7 @@ export const userRoutes = new OpenAPIHono<{
 
         const existingPassword = await data.passwords.get(
           ctx.var.tenant_id,
-          passwordUser.user_id,
+          `${passwordUser.provider}|${passwordUser.user_id}`,
         );
         if (existingPassword) {
           await data.passwords.update(ctx.var.tenant_id, passwordOptions);

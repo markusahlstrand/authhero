@@ -2130,5 +2130,124 @@ describe("users management API endpoint", () => {
       expect(successLog!.user_id).toBe(user.user_id);
       expect(successLog!.connection).toBe("Username-Password-Authentication");
     });
+
+    it("should update an existing password when setting password twice", async () => {
+      const token = await getAdminToken();
+      const { managementApp, oauthApp, env } = await getTestServer();
+
+      const managementClient = testClient(managementApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      const testEmail = "updatepassword@example.com";
+      const firstPassword = "FirstPassword123!";
+      const secondPassword = "SecondPassword456!";
+
+      // Step 1: Create an auth2 user with initial password
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            provider: "auth2",
+            connection: "Username-Password-Authentication",
+            password: firstPassword,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+      const user = await createUserResponse.json();
+      expect(user.user_id).toMatch(/^auth2\|/);
+
+      // Verify password was created
+      const initialPasswordRecord = await env.data.passwords.get(
+        "tenantId",
+        user.user_id,
+      );
+      expect(initialPasswordRecord).toBeDefined();
+      const initialPasswordHash = initialPasswordRecord!.password;
+
+      // Step 2: Test login with first password
+      const firstLoginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: firstPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(firstLoginResponse.status).toBe(200);
+
+      // Step 3: Update password via PATCH
+      const updatePasswordResponse = await managementClient.users[
+        ":user_id"
+      ].$patch(
+        {
+          param: {
+            user_id: user.user_id,
+          },
+          json: {
+            password: secondPassword,
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(updatePasswordResponse.status).toBe(200);
+
+      // Verify password was updated (hash should be different)
+      const updatedPasswordRecord = await env.data.passwords.get(
+        "tenantId",
+        user.user_id,
+      );
+      expect(updatedPasswordRecord).toBeDefined();
+      expect(updatedPasswordRecord!.password).not.toBe(initialPasswordHash);
+
+      // Step 4: Test that old password no longer works
+      const oldPasswordLoginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: firstPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(oldPasswordLoginResponse.status).toBe(403);
+
+      // Step 5: Test login with new password works
+      const newPasswordLoginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: secondPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(newPasswordLoginResponse.status).toBe(200);
+      const loginResult = (await newPasswordLoginResponse.json()) as {
+        login_ticket: string;
+      };
+      expect(loginResult.login_ticket).toBeDefined();
+    });
   });
 });
