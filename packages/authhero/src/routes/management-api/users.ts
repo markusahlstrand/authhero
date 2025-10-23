@@ -266,7 +266,10 @@ export const userRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z.object({ ...userInsertSchema.shape }),
+              schema: z.object({
+                ...userInsertSchema.shape,
+                password: z.string().optional(),
+              }),
             },
           },
         },
@@ -300,9 +303,13 @@ export const userRoutes = new OpenAPIHono<{
         email_verified,
         provider,
         connection,
+        password,
       } = body;
 
-      const user_id = `${body.provider}|${body["user_id"] || userIdGenerate()}`;
+      // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
+      const rawUserId = body["user_id"];
+      const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
+      const user_id = `${body.provider}|${idPart}`;
 
       try {
         // This bypasses the hooks right now. Should we pass some flag so that the hooks may be bypassed?
@@ -319,6 +326,19 @@ export const userRoutes = new OpenAPIHono<{
           is_social: false,
           last_login: new Date().toISOString(),
         });
+
+        // Create password if provided
+        if (password) {
+          const passwordOptions: PasswordInsert = {
+            user_id: data.user_id,
+            password: await bcryptjs.hash(password, 10),
+            algorithm: "bcrypt",
+          };
+          await ctx.env.data.passwords.create(
+            ctx.var.tenant_id,
+            passwordOptions,
+          );
+        }
 
         ctx.set("user_id", data.user_id);
 
@@ -446,14 +466,14 @@ export const userRoutes = new OpenAPIHono<{
         }
 
         const passwordOptions: PasswordInsert = {
-          user_id: passwordUser.user_id,
+          user_id: `${passwordUser.provider}|${passwordUser.user_id}`,
           password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
         };
 
         const existingPassword = await data.passwords.get(
           ctx.var.tenant_id,
-          passwordUser.user_id,
+          `${passwordUser.provider}|${passwordUser.user_id}`,
         );
         if (existingPassword) {
           await data.passwords.update(ctx.var.tenant_id, passwordOptions);

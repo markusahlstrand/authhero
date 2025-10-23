@@ -1,5 +1,11 @@
 # authhero
 
+## 0.253.0
+
+### Minor Changes
+
+- Fix the password when creating a new user
+
 ## 0.252.0
 
 ### Minor Changes

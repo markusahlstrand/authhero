@@ -91,8 +91,7 @@ export function createSamlMetadata(samlMetadataParams: SAMLMetadataParams) {
       "@_entityID": samlMetadataParams.entityId,
       "@_xmlns": "urn:oasis:names:tc:SAML:2.0:metadata",
       IDPSSODescriptor: {
-        "@_protocolSupportEnumeration":
-          "urn:oasis:names:tc:SAML:2.0:protocol",
+        "@_protocolSupportEnumeration": "urn:oasis:names:tc:SAML:2.0:protocol",
         KeyDescriptor: keyDescriptors,
         SingleLogoutService: [
           {
