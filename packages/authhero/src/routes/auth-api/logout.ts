@@ -5,6 +5,7 @@ import { createLogMessage } from "../../utils/create-log-message";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
+import { waitUntil } from "../../helpers/wait-until";
 
 export const logoutRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -118,7 +119,7 @@ export const logoutRoutes = new OpenAPIHono<{
         description: "User successfully logged out",
       });
 
-      await ctx.env.data.logs.create(client.tenant.id, log);
+      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
       return new Response("Redirecting", {
         status: 302,

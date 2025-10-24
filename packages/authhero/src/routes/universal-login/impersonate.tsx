@@ -8,6 +8,13 @@ import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
+import { createLogMessage } from "../../utils/create-log-message";
+import { waitUntil } from "../../helpers/wait-until";
+import {
+  LogTypes,
+  AuthorizationResponseType,
+  AuthorizationResponseMode,
+} from "@authhero/adapter-interfaces";
 
 export const impersonateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -343,10 +350,27 @@ export const impersonateRoutes = new OpenAPIHono<{
         user_id: targetUser.user_id,
       });
 
+      // Log the impersonation as a login with the impersonating user in the description
+      const logMessage = createLogMessage(ctx, {
+        type: LogTypes.SUCCESS_LOGIN,
+        description: `${targetUser.email || targetUser.user_id} (impersonated by ${currentUser.email || currentUser.user_id})`,
+        userId: targetUser.user_id,
+        connection: targetUser.connection,
+        strategy: targetUser.connection,
+        strategy_type: targetUser.is_social ? "social" : "database",
+      });
+
+      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
+
       // Continue with the authentication flow using the impersonated user
+      // Force response_type to token_id_token for impersonation to include act claim immediately
       return createFrontChannelAuthResponse(ctx, {
         client,
-        authParams: loginSession.authParams,
+        authParams: {
+          ...loginSession.authParams,
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: AuthorizationResponseMode.QUERY,
+        },
         loginSession,
         user: targetUser,
         sessionId: currentSession.id,

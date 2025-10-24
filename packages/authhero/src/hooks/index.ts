@@ -17,6 +17,7 @@ import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { createServiceToken } from "../helpers/service-token";
+import { waitUntil } from "../helpers/wait-until";
 
 // Helper function to create token API
 function createTokenAPI(
@@ -78,7 +79,7 @@ function createUserHooks(
           type: LogTypes.FAILED_SIGNUP,
           description: "Pre user registration hook failed",
         });
-        await data.logs.create(tenant_id, log);
+        waitUntil(ctx, data.logs.create(tenant_id, log));
       }
     }
 
@@ -103,7 +104,7 @@ function createUserHooks(
           type: LogTypes.FAILED_SIGNUP,
           description: "Post user registration hook failed",
         });
-        await ctx.env.data.logs.create(tenant_id, log);
+        waitUntil(ctx, ctx.env.data.logs.create(tenant_id, log));
       }
     }
 
@@ -209,7 +210,7 @@ function createUserUpdateHooks(
         description: `Email updated to ${updates.email}`,
         userId: user_id,
       });
-      await data.logs.create(tenant_id, log);
+      waitUntil(ctx, data.logs.create(tenant_id, log));
     }
 
     return true;
@@ -245,7 +246,7 @@ export async function preUserSignupHook(
           type: LogTypes.FAILED_SIGNUP,
           description: "Public signup is disabled",
         });
-        await data.logs.create(client.tenant.id, log);
+        waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
         throw new HTTPException(400, {
           message: "Signups are disabled for this client",
@@ -308,7 +309,7 @@ function createUserDeletionHooks(
           type: LogTypes.FAILED_HOOK,
           description: `Pre user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        await data.logs.create(tenant_id, log);
+        waitUntil(ctx, data.logs.create(tenant_id, log));
         throw new HTTPException(400, {
           message: "Pre user deletion hook failed",
         });
@@ -340,7 +341,7 @@ function createUserDeletionHooks(
         },
       };
 
-      await data.logs.create(tenant_id, log);
+      waitUntil(ctx, data.logs.create(tenant_id, log));
     }
 
     // Call post-user-deletion hook if configured (after successful deletion)
@@ -365,7 +366,7 @@ function createUserDeletionHooks(
           type: LogTypes.FAILED_HOOK,
           description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        await data.logs.create(tenant_id, log);
+        waitUntil(ctx, data.logs.create(tenant_id, log));
         // Don't throw - user is already deleted
       }
     }
@@ -603,7 +604,7 @@ export async function postUserLoginHook(
     scope: params?.authParams?.scope,
   });
 
-  await data.logs.create(tenant_id, logMessage);
+  waitUntil(ctx, data.logs.create(tenant_id, logMessage));
 
   // Update the user's last login info
   await data.users.update(tenant_id, user.user_id, {
@@ -737,7 +738,7 @@ export async function postUserLoginHook(
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke post-user-login webhook: ${hook.url}`,
       });
-      await data.logs.create(tenant_id, log);
+      waitUntil(ctx, data.logs.create(tenant_id, log));
     }
   }
 

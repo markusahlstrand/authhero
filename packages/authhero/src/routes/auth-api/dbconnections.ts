@@ -13,6 +13,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
+import { waitUntil } from "../../helpers/wait-until";
 import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
@@ -116,7 +117,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_SIGNUP,
         description: "Successful signup",
       });
-      await ctx.env.data.logs.create(client.tenant.id, log);
+      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
       return ctx.json({
         _id: newUser.user_id,

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.255.0
+
+### Minor Changes
+
+- Add act claim to token
+
 ## 0.254.0
 
 ### Minor Changes

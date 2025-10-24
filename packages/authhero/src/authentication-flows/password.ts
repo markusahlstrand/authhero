@@ -136,7 +136,7 @@ export async function passwordGrant(
       type: LogTypes.FAILED_LOGIN,
       description: "Email not verified",
     });
-    await data.logs.create(client.tenant.id, log);
+    waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
     throw new AuthError(403, {
       message: "Email not verified",

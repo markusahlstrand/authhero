@@ -102,8 +102,9 @@ export async function authorizationCodeGrantUser(
   if (params.organization && loginSession.authParams.organization) {
     if (params.organization !== loginSession.authParams.organization) {
       throw new JSONHTTPException(400, {
-        error: "invalid_request", 
-        error_description: "Organization parameter does not match login session organization",
+        error: "invalid_request",
+        error_description:
+          "Organization parameter does not match login session organization",
       });
     }
   }
