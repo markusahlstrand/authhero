@@ -17,6 +17,7 @@ import { getClientWithDefaults } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
 import { nanoid } from "nanoid";
+import { waitUntil } from "../helpers/wait-until";
 
 export async function connectionAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -36,7 +37,7 @@ export async function connectionAuth(
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
-    await ctx.env.data.logs.create(client.tenant.id, log);
+    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
     throw new HTTPException(403, { message: "Connection Not Found" });
   }
@@ -158,7 +159,7 @@ export async function connectionCallback(
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
-    await env.data.logs.create(client.tenant.id, log);
+    waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
     throw new HTTPException(403, { message: "Connection not found" });
   }
 
@@ -169,7 +170,7 @@ export async function connectionCallback(
       type: LogTypes.FAILED_LOGIN,
       description: "Redirect URI not defined",
     });
-    await env.data.logs.create(client.tenant.id, log);
+    waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
     throw new HTTPException(403, { message: "Redirect URI not defined" });
   }
 

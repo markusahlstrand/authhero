@@ -8,6 +8,7 @@ import { createLogMessage } from "../utils/create-log-message";
 import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 import { createServiceToken } from "../helpers/service-token";
+import { waitUntil } from "../helpers/wait-until";
 
 async function invokeHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -31,7 +32,7 @@ async function invokeHooks(
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke hook ${hook.hook_id}`,
       });
-      await ctx.env.data.logs.create(data.tenant_id, log);
+      waitUntil(ctx, ctx.env.data.logs.create(data.tenant_id, log));
     }
   }
 }

@@ -9,6 +9,7 @@ import { createFrontChannelAuthResponse } from "../../authentication-flows/commo
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { createLogMessage } from "../../utils/create-log-message";
+import { waitUntil } from "../../helpers/wait-until";
 import {
   LogTypes,
   AuthorizationResponseType,
@@ -359,7 +360,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         strategy_type: targetUser.is_social ? "social" : "database",
       });
 
-      await ctx.env.data.logs.create(client.tenant.id, logMessage);
+      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
 
       // Continue with the authentication flow using the impersonated user
       // Force response_type to token_id_token for impersonation to include act claim immediately
