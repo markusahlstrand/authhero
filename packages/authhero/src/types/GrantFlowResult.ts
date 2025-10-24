@@ -13,6 +13,7 @@ export interface GrantFlowResult {
   session_id?: string;
   authParams: AuthParams;
   organization?: { id: string; name: string };
+  impersonatingUser?: User; // The original user who is impersonating (RFC 8693)
 }
 
 export interface GrantFlowUserResult extends GrantFlowResult {

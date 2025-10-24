@@ -36,3 +36,4 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return `${logType}`;
   }
 }
+

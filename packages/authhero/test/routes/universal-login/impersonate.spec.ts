@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
+import { parseJWT } from "oslo/jwt";
+import { LogTypes } from "@authhero/adapter-interfaces";
 
 describe("impersonation routes", () => {
   describe("GET /u/impersonate", () => {
@@ -801,6 +803,205 @@ describe("impersonation routes", () => {
       const callbackLocation = callbackResponse.headers.get("location");
       expect(callbackLocation).toContain("/u/impersonate");
       expect(callbackLocation).toContain(`state=${loginSession.id}`);
+    });
+  });
+
+  describe("Impersonation token claims and logging", () => {
+    it("should include act claim with impersonating user in access token according to RFC 8693", async () => {
+      const { universalApp, oauthApp, env } = await getTestServer();
+      const universalClient = testClient(universalApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create admin user
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|admin123",
+        email: "admin@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Create target user
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|target123",
+        email: "target@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Assign impersonation permission to admin
+      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
+        user_id: "auth2|admin123",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Create login session with audience to get access token
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "admin@example.com",
+          scope: "openid profile email",
+          audience: "https://api.example.com/",
+          redirect_uri: "https://example.com/callback",
+          response_type: "code",
+        },
+      });
+
+      // Create a session for admin user
+      const session = await env.data.sessions.create("tenantId", {
+        id: "session123",
+        user_id: "auth2|admin123",
+        login_session_id: loginSession.id,
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Link session to login session
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: session.id,
+      });
+
+      // Perform impersonation
+      const response = await universalClient.impersonate.switch.$post({
+        query: { state: loginSession.id },
+        form: { user_id: "auth2|target123" },
+      });
+
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      // Extract the access token from the URL fragment (impersonation uses implicit flow)
+      const redirectUrl = new URL(location!);
+      const accessTokenValue = new URLSearchParams(
+        redirectUrl.hash.substring(1),
+      ).get("access_token");
+      expect(accessTokenValue).toBeTruthy();
+
+      // Parse the access token and verify act claim
+      const accessToken = parseJWT(accessTokenValue!);
+      expect(accessToken).toBeTruthy();
+      const payload = accessToken?.payload as any;
+
+      // Verify the token is for the target user
+      expect(payload.sub).toBe("auth2|target123");
+
+      // Verify the act claim is present with the admin user (RFC 8693)
+      expect(payload.act).toBeDefined();
+      expect(payload.act).toEqual({ sub: "auth2|admin123" });
+    });
+
+    it("should create impersonation log with SUCCESS_LOGIN type and impersonating user in description", async () => {
+      const { universalApp, env } = await getTestServer();
+      const universalClient = testClient(universalApp, env);
+
+      // Create admin user
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|admin456",
+        email: "admin456@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Create target user
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|target456",
+        email: "target456@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Assign impersonation permission to admin
+      await env.data.userPermissions.create("tenantId", "auth2|admin456", {
+        user_id: "auth2|admin456",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Create login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "admin456@example.com",
+          scope: "openid",
+          redirect_uri: "http://localhost:3000/callback",
+        },
+      });
+
+      // Create a session for admin user
+      const session = await env.data.sessions.create("tenantId", {
+        id: "session456",
+        user_id: "auth2|admin456",
+        login_session_id: loginSession.id,
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Link session to login session
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: session.id,
+      });
+
+      // Perform impersonation
+      const response = await universalClient.impersonate.switch.$post({
+        query: { state: loginSession.id },
+        form: { user_id: "auth2|target456" },
+      });
+
+      expect(response.status).toBe(302);
+
+      // Check the logs
+      const { logs } = await env.data.logs.list("tenantId", {
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+
+      // Find the impersonation log (should be a SUCCESS_LOGIN with impersonation in description)
+      const impersonationLog = logs.find(
+        (log) =>
+          log.type === LogTypes.SUCCESS_LOGIN &&
+          log.description?.includes("impersonated by"),
+      );
+
+      expect(impersonationLog).toBeDefined();
+      expect(impersonationLog?.type).toBe(LogTypes.SUCCESS_LOGIN);
+
+      // Verify the log shows the target user
+      expect(impersonationLog?.user_id).toBe("auth2|target456");
+
+      // Verify the log description mentions both users
+      expect(impersonationLog?.description).toContain("target456@example.com");
+      expect(impersonationLog?.description).toContain("impersonated by");
+      expect(impersonationLog?.description).toContain("admin456@example.com");
     });
   });
 });
