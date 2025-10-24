@@ -19,4 +19,3 @@ export const LogTypes = {
 } as const;
 
 export type LogTypes = (typeof LogTypes)[keyof typeof LogTypes];
-

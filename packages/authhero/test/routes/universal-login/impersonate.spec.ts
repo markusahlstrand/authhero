@@ -3,7 +3,10 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
 import { parseJWT } from "oslo/jwt";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  AuthorizationResponseType,
+} from "@authhero/adapter-interfaces";
 
 describe("impersonation routes", () => {
   describe("GET /u/impersonate", () => {
@@ -573,7 +576,7 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-          response_type: "code",
+          response_type: AuthorizationResponseType.CODE,
         },
       });
 
@@ -670,7 +673,7 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-          response_type: "code",
+          response_type: AuthorizationResponseType.CODE,
         },
       });
 
@@ -775,7 +778,7 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-          response_type: "code",
+          response_type: AuthorizationResponseType.CODE,
         },
       });
 
@@ -808,9 +811,8 @@ describe("impersonation routes", () => {
 
   describe("Impersonation token claims and logging", () => {
     it("should include act claim with impersonating user in access token according to RFC 8693", async () => {
-      const { universalApp, oauthApp, env } = await getTestServer();
+      const { universalApp, env } = await getTestServer();
       const universalClient = testClient(universalApp, env);
-      const oauthClient = testClient(oauthApp, env);
 
       // Create admin user
       await env.data.users.create("tenantId", {
@@ -849,7 +851,7 @@ describe("impersonation routes", () => {
           scope: "openid profile email",
           audience: "https://api.example.com/",
           redirect_uri: "https://example.com/callback",
-          response_type: "code",
+          response_type: AuthorizationResponseType.CODE,
         },
       });
 
