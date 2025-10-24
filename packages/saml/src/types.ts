@@ -96,14 +96,13 @@ export const samlMetadataResponseSchema = z.array(
 export type SAMLMetadataResponse = z.infer<typeof samlMetadataResponseSchema>;
 
 const attributeSchema = z.object({
-  ":@": z.object({
-    "@_Name": z.string(),
-    "@_NameFormat": z.string(),
-    "@_FriendlyName": z.string().optional(),
-  }),
-  "saml:AttributeValue": z.array(
+  "saml:Attribute": z.array(
     z.object({
-      "#text": z.string(),
+      "saml:AttributeValue": z.array(
+        z.object({
+          "#text": z.string(),
+        }),
+      ),
       ":@": z
         .object({
           "@_xmlns:xs": z.string().optional(),
@@ -113,6 +112,11 @@ const attributeSchema = z.object({
         .optional(),
     }),
   ),
+  ":@": z.object({
+    "@_Name": z.string(),
+    "@_NameFormat": z.string(),
+    "@_FriendlyName": z.string().optional(),
+  }),
 });
 
 const transformSchema = z.object({
@@ -322,11 +326,7 @@ export const samlResponseJsonSchema = z.array(
                 }),
               }),
               z.object({
-                "saml:AttributeStatement": z.array(
-                  z.object({
-                    "saml:Attribute": z.array(attributeSchema),
-                  }),
-                ),
+                "saml:AttributeStatement": z.array(attributeSchema),
               }),
             ]),
           ),

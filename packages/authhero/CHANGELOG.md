@@ -1,5 +1,12 @@
 # authhero
 
+## 0.255.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/saml@0.3.0
+
 ## 0.255.0
 
 ### Minor Changes
