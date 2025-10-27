@@ -1,5 +1,11 @@
 # authhero
 
+## 0.257.0
+
+### Minor Changes
+
+- Add tenant id to var if there is a bearer token
+
 ## 0.256.0
 
 ### Minor Changes

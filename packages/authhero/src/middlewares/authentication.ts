@@ -26,6 +26,7 @@ interface JwtPayload {
   scope: string;
   permissions?: string[];
   azp?: string;
+  tenant_id?: string;
 }
 
 async function getJwks(bindings: Bindings) {
@@ -152,6 +153,12 @@ export function createAuthMiddleware(
         // Can we just keep the user?
         ctx.set("user_id", tokenPayload.sub);
         ctx.set("user", tokenPayload);
+
+        // Set tenant_id from token if not already set by tenant middleware
+        // This is important for endpoints like /userinfo that don't have tenant context in the URL
+        if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
+          ctx.set("tenant_id", tokenPayload.tenant_id);
+        }
 
         const permissions = tokenPayload.permissions || [];
         const scopes = tokenPayload.scope?.split(" ") || [];

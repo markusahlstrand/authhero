@@ -43,6 +43,7 @@ describe("createAuthMiddleware", () => {
       },
       env: mockEnv,
       set: vi.fn(),
+      var: {},
     };
 
     // Get the actual certificate used by createToken and extract JWK from it
