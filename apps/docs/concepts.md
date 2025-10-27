@@ -46,6 +46,7 @@ Account linking allows a single user to have multiple authentication identities 
 **Primary and Secondary Accounts:**
 
 When accounts are linked:
+
 - One account becomes the **primary account** - this is the main user profile
 - Other accounts become **secondary (linked) accounts** - these are attached as additional identities
 
@@ -62,6 +63,7 @@ PATCH /api/v2/users/{primary_user_id}
 ```
 
 Supported operations on linked accounts:
+
 - Update user metadata and app metadata
 - Update email verification status
 - Update phone numbers (for SMS connections)
@@ -100,6 +102,40 @@ When retrieving a primary user, all linked identities are included in the `ident
   ]
 }
 ```
+
+## Organizations
+
+Organizations enable you to group users and apply specific configurations, branding, and access controls to them. Organizations are useful for B2B applications where you serve multiple customer companies.
+
+### Organization Invitations
+
+Organization invitations provide a streamlined way to onboard new users to an organization. When you create an invitation, you can:
+
+- **Pre-configure user attributes**: Set roles, app metadata, and user metadata before the user accepts
+- **Control the connection**: Specify which authentication method the user should use
+- **Set expiration**: Invitations expire after a configurable time period (default: 7 days, max: 30 days)
+- **Track the inviter**: Record who sent the invitation for auditing purposes
+
+**Invitation Flow:**
+
+1. An admin creates an invitation through the Management API
+2. An invitation URL is generated with a unique ticket
+3. The invitee receives the invitation (optionally via email)
+4. The invitee clicks the invitation URL and completes the signup/login flow
+5. Upon completion, the user is automatically added to the organization with the pre-configured settings
+
+**Key Properties:**
+
+- `inviter`: Information about who sent the invitation
+- `invitee`: Email address of the person being invited
+- `client_id`: The application the user will access
+- `connection_id`: Optional specific authentication connection
+- `roles`: Role IDs to assign to the user
+- `app_metadata` / `user_metadata`: Custom data to attach to the user
+- `ttl_sec`: Time-to-live in seconds before the invitation expires
+- `send_invitation_email`: Whether to automatically send an invitation email
+
+[Learn more about Organization Invitations API →](/api/endpoints#organization-invitations)
 
 ## Tokens
 

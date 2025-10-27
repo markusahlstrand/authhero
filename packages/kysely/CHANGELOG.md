@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.54.0
+
+### Minor Changes
+
+- Added invites
+
+### Patch Changes
+
+- Updated dependencies
+  - @authhero/adapter-interfaces@0.96.0
+
 ## 10.53.0
 
 ### Minor Changes
@@ -74,14 +85,10 @@
 
 ### Minor Changes
 
-# <<<<<<< HEAD
-
 - 149ab91: Drop the old application table
 - b0e9595: Add client grants
 
 ### Patch Changes
-
-# <<<<<<< HEAD
 
 - Updated dependencies [149ab91]
 - Updated dependencies [b0e9595]

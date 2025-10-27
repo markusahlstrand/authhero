@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.7.0
+
+### Minor Changes
+
+- Added invites
+
 ## 1.6.0
 
 ### Minor Changes

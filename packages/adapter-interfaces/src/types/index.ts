@@ -11,6 +11,7 @@ export * from "./CustomDomain";
 export * from "./Forms";
 export * from "./Hook";
 export * from "./Identity";
+export * from "./Invite";
 export * from "./JWKS";
 export * from "./ListParams";
 export * from "./LoginSession";

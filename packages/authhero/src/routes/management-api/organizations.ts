@@ -4,6 +4,8 @@ import {
   organizationInsertSchema,
   totalsSchema,
   roleListSchema,
+  inviteSchema,
+  inviteInsertSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -836,5 +838,247 @@ export const organizationRoutes = new OpenAPIHono<{
       });
 
       return ctx.json(result.roles);
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/organizations/:id/invitations
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "get",
+      path: "/{id}/invitations",
+      request: {
+        params: z.object({
+          id: z.string().openapi({
+            description: "Organization ID",
+            param: { name: "id", in: "path" },
+          }),
+        }),
+        query: querySchema,
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.array(inviteSchema),
+            },
+          },
+          description: "List of organization invitations",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organization_id } = ctx.req.valid("param");
+      const { page, per_page } = ctx.req.valid("query");
+
+      // Verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      const result = await ctx.env.data.invites.list(tenant_id, {
+        page,
+        per_page,
+      });
+
+      // Filter by organization_id
+      const filteredInvites = result.invites.filter(
+        (invite) => invite.organization_id === organization_id,
+      );
+
+      return ctx.json(filteredInvites);
+    },
+  )
+  // --------------------------------
+  // GET /api/v2/organizations/:id/invitations/:invitation_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "get",
+      path: "/{id}/invitations/{invitation_id}",
+      request: {
+        params: z.object({
+          id: z.string().openapi({
+            description: "Organization ID",
+            param: { name: "id", in: "path" },
+          }),
+          invitation_id: z.string().openapi({
+            description: "Invitation ID",
+            param: { name: "invitation_id", in: "path" },
+          }),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: inviteSchema,
+            },
+          },
+          description: "An invitation",
+        },
+        404: {
+          description: "Invitation not found",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organization_id, invitation_id } = ctx.req.valid("param");
+
+      const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
+
+      if (!invite || invite.organization_id !== organization_id) {
+        throw new HTTPException(404, { message: "Invitation not found" });
+      }
+
+      return ctx.json(invite);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/organizations/:id/invitations
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "post",
+      path: "/{id}/invitations",
+      request: {
+        params: z.object({
+          id: z.string().openapi({
+            description: "Organization ID",
+            param: { name: "id", in: "path" },
+          }),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: inviteInsertSchema,
+            },
+          },
+        },
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        201: {
+          content: {
+            "application/json": {
+              schema: inviteSchema,
+            },
+          },
+          description: "The created invitation",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organization_id } = ctx.req.valid("param");
+      const body = ctx.req.valid("json");
+
+      // Verify organization exists
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      const inviteData = {
+        ...body,
+        organization_id,
+      };
+
+      const invite = await ctx.env.data.invites.create(tenant_id, inviteData);
+
+      return ctx.json(invite, { status: 201 });
+    },
+  )
+  // --------------------------------
+  // DELETE /api/v2/organizations/:id/invitations/:invitation_id
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["organizations"],
+      method: "delete",
+      path: "/{id}/invitations/{invitation_id}",
+      request: {
+        params: z.object({
+          id: z.string().openapi({
+            description: "Organization ID",
+            param: { name: "id", in: "path" },
+          }),
+          invitation_id: z.string().openapi({
+            description: "Invitation ID",
+            param: { name: "invitation_id", in: "path" },
+          }),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        204: {
+          description: "Invitation deleted successfully",
+        },
+        404: {
+          description: "Invitation not found",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id: organization_id, invitation_id } = ctx.req.valid("param");
+
+      // Verify the invitation exists and belongs to the organization
+      const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
+      if (!invite || invite.organization_id !== organization_id) {
+        throw new HTTPException(404, { message: "Invitation not found" });
+      }
+
+      const result = await ctx.env.data.invites.remove(
+        tenant_id,
+        invitation_id,
+      );
+      if (!result) {
+        throw new HTTPException(404, { message: "Invitation not found" });
+      }
+
+      return ctx.body(null, { status: 204 });
     },
   );

@@ -26,6 +26,7 @@ import { RolesAdapter } from "./Roles";
 import { UserRolesAdapter } from "./UserRoles";
 import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
+import { InvitesAdapter } from "./Invites";
 
 export interface DataAdapters {
   branding: BrandingAdapter;
@@ -39,6 +40,7 @@ export interface DataAdapters {
   emailProviders: EmailProvidersAdapter;
   forms: FormsAdapter;
   hooks: HooksAdapter;
+  invites: InvitesAdapter;
   keys: KeysAdapter;
   loginSessions: LoginSessionsAdapter;
   logs: LogsDataAdapter;
@@ -67,3 +69,4 @@ export * from "./UserPermissions";
 export * from "./UserRoles";
 export * from "./Organizations";
 export * from "./UserOrganizations";
+export * from "./Invites";
