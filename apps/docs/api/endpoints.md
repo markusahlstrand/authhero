@@ -179,11 +179,14 @@ List all invitations for an organization.
 
 **Query Parameters:**
 
-- `page` (optional): Page number
-- `per_page` (optional): Results per page (default: 10)
-- `sort` (optional): Sort order
+- `page` (optional): Page index of the results to return. First page is 0 (default: 0)
+- `per_page` (optional): Number of results per page (default: 50)
+- `include_totals` (optional): When `true`, return results inside an object that also contains the start and limit. When `false` (default), a direct array of results is returned
+- `fields` (optional): Comma-separated list of fields to include or exclude (based on value provided for `include_fields`) in the result. Leave empty to retrieve all fields
+- `include_fields` (optional): Whether specified fields are to be included (`true`) or excluded (`false`). Defaults to `true`
+- `sort` (optional): Field to sort by. Use `field:order` where order is `1` for ascending and `-1` for descending. Defaults to `created_at:-1`
 
-**Response:**
+**Response (without include_totals):**
 
 ```json
 [
@@ -197,7 +200,7 @@ List all invitations for an organization.
       "email": "newuser@example.com"
     },
     "invitation_url": "https://your-domain.com/invitation?ticket=...",
-    "ticket": "...",
+    "ticket_id": "...",
     "client_id": "client_123",
     "connection_id": "con_456",
     "app_metadata": {
@@ -213,6 +216,43 @@ List all invitations for an organization.
     "expires_at": "2025-11-03T10:00:00.000Z"
   }
 ]
+```
+
+**Response (with include_totals=true):**
+
+```json
+{
+  "invitations": [
+    {
+      "id": "inv_123abc",
+      "organization_id": "org_456def",
+      "inviter": {
+        "name": "Admin User"
+      },
+      "invitee": {
+        "email": "newuser@example.com"
+      },
+      "invitation_url": "https://your-domain.com/invitation?ticket=...",
+      "ticket_id": "...",
+      "client_id": "client_123",
+      "connection_id": "con_456",
+      "app_metadata": {
+        "role": "member"
+      },
+      "user_metadata": {
+        "department": "Engineering"
+      },
+      "roles": ["role_123"],
+      "ttl_sec": 604800,
+      "send_invitation_email": true,
+      "created_at": "2025-10-27T10:00:00.000Z",
+      "expires_at": "2025-11-03T10:00:00.000Z"
+    }
+  ],
+  "start": 0,
+  "limit": 50,
+  "length": 1
+}
 ```
 
 ##### Create Organization Invitation
@@ -270,7 +310,7 @@ Create a new invitation for an organization.
     "email": "newuser@example.com"
   },
   "invitation_url": "https://your-domain.com/invitation?ticket=...",
-  "ticket": "...",
+  "ticket_id": "...",
   "client_id": "client_123",
   "connection_id": "con_456",
   "app_metadata": {

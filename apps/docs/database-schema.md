@@ -406,7 +406,7 @@ erDiagram
         text inviter
         text invitee
         varchar invitation_url
-        varchar ticket
+        varchar ticket_id
         varchar client_id
         varchar connection_id
         text app_metadata

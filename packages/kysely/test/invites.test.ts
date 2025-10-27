@@ -5,6 +5,7 @@ import { InviteInsert } from "@authhero/adapter-interfaces";
 describe("InvitesAdapter", () => {
   let adapter: any;
   const tenantId = "test-tenant";
+  const testInvitationUrl = "https://test.example.com/invite/test";
 
   beforeEach(async () => {
     const { data } = await getTestServer();
@@ -13,12 +14,14 @@ describe("InvitesAdapter", () => {
 
   it("should create an invite", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: {
         name: "John Doe",
       },
       invitee: {
         email: "invitee@example.com",
       },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
       connection_id: "conn_456",
       app_metadata: {
@@ -53,12 +56,14 @@ describe("InvitesAdapter", () => {
 
   it("should create an invite with default values", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: {
         name: "Jane Smith",
       },
       invitee: {
         email: "user@example.com",
       },
+      invitation_url: testInvitationUrl,
       client_id: "client_789",
     };
 
@@ -74,12 +79,14 @@ describe("InvitesAdapter", () => {
 
   it("should get an invite by id", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: {
         name: "Test Inviter",
       },
       invitee: {
         email: "test@example.com",
       },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
     };
 
@@ -99,13 +106,17 @@ describe("InvitesAdapter", () => {
 
   it("should list invites", async () => {
     const invite1: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Inviter 1" },
       invitee: { email: "user1@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_1",
     };
     const invite2: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Inviter 2" },
       invitee: { email: "user2@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_2",
     };
 
@@ -127,8 +138,10 @@ describe("InvitesAdapter", () => {
     // Create 5 invites
     for (let i = 1; i <= 5; i++) {
       await adapter.invites.create(tenantId, {
+        organization_id: "org_123",
         inviter: { name: `Inviter ${i}` },
         invitee: { email: `user${i}@example.com` },
+        invitation_url: testInvitationUrl,
         client_id: "client_123",
       });
     }
@@ -150,8 +163,10 @@ describe("InvitesAdapter", () => {
 
   it("should update an invite", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Original Inviter" },
       invitee: { email: "original@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
       roles: ["role_1"],
     };
@@ -173,8 +188,10 @@ describe("InvitesAdapter", () => {
 
   it("should update invite ttl_sec and recalculate expires_at", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Test Inviter" },
       invitee: { email: "test@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
       ttl_sec: 86400, // 1 day
     };
@@ -200,8 +217,10 @@ describe("InvitesAdapter", () => {
 
   it("should return true when updating non-existent fields (no-op)", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Test Inviter" },
       invitee: { email: "test@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
     };
 
@@ -213,8 +232,10 @@ describe("InvitesAdapter", () => {
 
   it("should remove an invite", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "To Be Deleted" },
       invitee: { email: "delete@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
     };
 
@@ -234,8 +255,10 @@ describe("InvitesAdapter", () => {
 
   it("should handle invites with optional fields as null", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Test Inviter" },
       invitee: { email: "test@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
       connection_id: undefined,
     };
@@ -251,8 +274,10 @@ describe("InvitesAdapter", () => {
     const tenant2 = "tenant_2";
 
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Test Inviter" },
       invitee: { email: "test@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
     };
 
@@ -276,8 +301,10 @@ describe("InvitesAdapter", () => {
 
   it("should handle complex metadata structures", async () => {
     const inviteData: InviteInsert = {
+      organization_id: "org_123",
       inviter: { name: "Complex Inviter" },
       invitee: { email: "complex@example.com" },
+      invitation_url: testInvitationUrl,
       client_id: "client_123",
       app_metadata: {
         nested: {

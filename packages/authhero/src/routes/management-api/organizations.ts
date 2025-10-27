@@ -9,9 +9,72 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
-import { generateOrganizationId } from "../../utils/entity-id";
+import {
+  generateOrganizationId,
+  generateInviteId,
+} from "../../utils/entity-id";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
+
+// Query schema for invitations list endpoint
+const invitationsQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .default("0")
+    .transform((p) => parseInt(p, 10))
+    .openapi({
+      description: "Page index of the results to return. First page is 0.",
+    }),
+  per_page: z
+    .string()
+    .optional()
+    .default("50")
+    .transform((p) => parseInt(p, 10))
+    .openapi({
+      description: "Number of results per page. Defaults to 50.",
+    }),
+  include_totals: z
+    .string()
+    .optional()
+    .default("false")
+    .transform((it) => it === "true")
+    .openapi({
+      description:
+        "When true, return results inside an object that also contains the start and limit. When false (default), a direct array of results is returned.",
+    }),
+  fields: z.string().optional().openapi({
+    description:
+      "Comma-separated list of fields to include or exclude (based on value provided for include_fields) in the result. Leave empty to retrieve all fields.",
+  }),
+  include_fields: z
+    .string()
+    .optional()
+    .default("true")
+    .transform((it) => it === "true")
+    .openapi({
+      description:
+        "Whether specified fields are to be included (true) or excluded (false). Defaults to true.",
+    }),
+  sort: z.string().optional().default("created_at:-1").openapi({
+    description:
+      "Field to sort by. Use field:order where order is 1 for ascending and -1 for descending. Defaults to created_at:-1.",
+  }),
+});
+
+// Response schema for invitations list (with totals)
+const invitationsListWithTotalsSchema = z.object({
+  invitations: z.array(inviteSchema),
+  start: z.number(),
+  limit: z.number(),
+  length: z.number(),
+});
+
+// Request schema for creating invitations (organization_id and invitation_url come from API layer)
+const inviteCreateRequestSchema = inviteInsertSchema.omit({
+  organization_id: true,
+  invitation_url: true,
+});
 
 const organizationsWithTotalsSchema = totalsSchema.extend({
   organizations: z.array(organizationSchema),
@@ -855,7 +918,7 @@ export const organizationRoutes = new OpenAPIHono<{
             param: { name: "id", in: "path" },
           }),
         }),
-        query: querySchema,
+        query: invitationsQuerySchema,
         headers: z.object({
           "tenant-id": z.string(),
         }),
@@ -869,7 +932,10 @@ export const organizationRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: z.array(inviteSchema),
+              schema: z.union([
+                z.array(inviteSchema),
+                invitationsListWithTotalsSchema,
+              ]),
             },
           },
           description: "List of organization invitations",
@@ -879,7 +945,8 @@ export const organizationRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id: organization_id } = ctx.req.valid("param");
-      const { page, per_page } = ctx.req.valid("query");
+      const { page, per_page, include_totals, fields, include_fields, sort } =
+        ctx.req.valid("query");
 
       // Verify organization exists
       const organization = await ctx.env.data.organizations.get(
@@ -896,9 +963,52 @@ export const organizationRoutes = new OpenAPIHono<{
       });
 
       // Filter by organization_id
-      const filteredInvites = result.invites.filter(
+      let filteredInvites = result.invites.filter(
         (invite) => invite.organization_id === organization_id,
       );
+
+      // Apply sorting
+      if (sort) {
+        const sortConfig = parseSort(sort);
+        if (sortConfig) {
+          const { sort_by, sort_order } = sortConfig;
+          filteredInvites.sort((a, b) => {
+            const aValue = a[sort_by as keyof typeof a];
+            const bValue = b[sort_by as keyof typeof b];
+            if (aValue === undefined || bValue === undefined) return 0;
+            if (aValue === bValue) return 0;
+            const comparison = aValue < bValue ? -1 : 1;
+            return sort_order === "asc" ? comparison : -comparison;
+          });
+        }
+      }
+
+      // Apply field filtering
+      if (fields) {
+        const fieldList = fields.split(",").map((f) => f.trim());
+        filteredInvites = filteredInvites.map((invite) => {
+          const filtered: any = {};
+          for (const key of Object.keys(invite)) {
+            const shouldInclude = include_fields
+              ? fieldList.includes(key)
+              : !fieldList.includes(key);
+            if (shouldInclude) {
+              filtered[key] = invite[key as keyof typeof invite];
+            }
+          }
+          return filtered;
+        });
+      }
+
+      // Return with totals if requested
+      if (include_totals) {
+        return ctx.json({
+          invitations: filteredInvites,
+          start: page * per_page,
+          limit: per_page,
+          length: filteredInvites.length,
+        });
+      }
 
       return ctx.json(filteredInvites);
     },
@@ -976,7 +1086,7 @@ export const organizationRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: inviteInsertSchema,
+              schema: inviteCreateRequestSchema,
             },
           },
         },
@@ -1014,9 +1124,14 @@ export const organizationRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "Organization not found" });
       }
 
+      // Generate invitation ID and URL
+      const inviteId = generateInviteId();
+      const invitationUrl = `https://invite.placeholder/${inviteId}`;
+
       const inviteData = {
         ...body,
         organization_id,
+        invitation_url: invitationUrl,
       };
 
       const invite = await ctx.env.data.invites.create(tenant_id, inviteData);

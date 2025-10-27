@@ -2,11 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
-import {
-  Invite,
-  InviteInsert,
-  OrganizationInsert,
-} from "@authhero/adapter-interfaces";
+import { Invite, OrganizationInsert } from "@authhero/adapter-interfaces";
 
 describe("organization invitations management API endpoint", () => {
   async function createTestOrganization() {
@@ -49,7 +45,7 @@ describe("organization invitations management API endpoint", () => {
       const { organizationId, managementClient, token } =
         await createTestOrganization();
 
-      const invitationData: InviteInsert = {
+      const invitationData = {
         inviter: {
           name: "John Inviter",
         },
@@ -96,7 +92,7 @@ describe("organization invitations management API endpoint", () => {
       const { organizationId, managementClient, token } =
         await createTestOrganization();
 
-      const invitationData: InviteInsert = {
+      const invitationData = {
         inviter: {
           name: "Jane Smith",
         },
@@ -136,7 +132,7 @@ describe("organization invitations management API endpoint", () => {
     it("should return 404 when creating invitation for non-existent organization", async () => {
       const { managementClient, token } = await createTestOrganization();
 
-      const invitationData: InviteInsert = {
+      const invitationData = {
         inviter: { name: "Test" },
         invitee: { email: "test@example.com" },
         client_id: "client_123",
@@ -165,7 +161,7 @@ describe("organization invitations management API endpoint", () => {
     it("should require authentication", async () => {
       const { managementClient } = await createTestOrganization();
 
-      const invitationData: InviteInsert = {
+      const invitationData = {
         inviter: { name: "Test" },
         invitee: { email: "test@example.com" },
         client_id: "client_123",
@@ -191,13 +187,13 @@ describe("organization invitations management API endpoint", () => {
         await createTestOrganization();
 
       // Create two invitations
-      const invitation1: InviteInsert = {
+      const invitation1 = {
         inviter: { name: "Inviter 1" },
         invitee: { email: "user1@example.com" },
         client_id: "client_1",
       };
 
-      const invitation2: InviteInsert = {
+      const invitation2 = {
         inviter: { name: "Inviter 2" },
         invitee: { email: "user2@example.com" },
         client_id: "client_2",
@@ -329,6 +325,196 @@ describe("organization invitations management API endpoint", () => {
       expect(page2Response.status).toBe(200);
       const page2 = await page2Response.json();
       expect(page2.length).toBe(1);
+    });
+
+    it("should support include_totals parameter", async () => {
+      const { organizationId, managementClient, token } =
+        await createTestOrganization();
+
+      // Create 2 invitations
+      for (let i = 1; i <= 2; i++) {
+        await managementClient.organizations[":id"].invitations.$post(
+          {
+            param: { id: organizationId },
+            json: {
+              inviter: { name: `Inviter ${i}` },
+              invitee: { email: `user${i}@example.com` },
+              client_id: "client_123",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          {
+            headers: { authorization: `Bearer ${token}` },
+          },
+        );
+      }
+
+      // Get with include_totals
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$get(
+        {
+          param: { id: organizationId },
+          query: { include_totals: "true" },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const result: any = await response.json();
+
+      expect(result.invitations).toBeDefined();
+      expect(Array.isArray(result.invitations)).toBe(true);
+      expect(result.invitations.length).toBe(2);
+      expect(result.start).toBe(0);
+      expect(result.limit).toBe(50);
+      expect(result.length).toBe(2);
+    });
+
+    it("should support sorting", async () => {
+      const { organizationId, managementClient, token } =
+        await createTestOrganization();
+
+      // Create invitations with different emails
+      await managementClient.organizations[":id"].invitations.$post(
+        {
+          param: { id: organizationId },
+          json: {
+            inviter: { name: "Inviter" },
+            invitee: { email: "zebra@example.com" },
+            client_id: "client_123",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      await managementClient.organizations[":id"].invitations.$post(
+        {
+          param: { id: organizationId },
+          json: {
+            inviter: { name: "Inviter" },
+            invitee: { email: "alpha@example.com" },
+            client_id: "client_123",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      // Get sorted by created_at descending (most recent first)
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$get(
+        {
+          param: { id: organizationId },
+          query: { sort: "created_at:-1" },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const invitations: any = await response.json();
+      expect(invitations.length).toBe(2);
+      // Most recently created should be first (alpha was created second)
+      expect(invitations[0].invitee.email).toBe("alpha@example.com");
+    });
+
+    it("should support field filtering with include_fields=true", async () => {
+      const { organizationId, managementClient, token } =
+        await createTestOrganization();
+
+      // Create an invitation
+      await managementClient.organizations[":id"].invitations.$post(
+        {
+          param: { id: organizationId },
+          json: {
+            inviter: { name: "Inviter" },
+            invitee: { email: "test@example.com" },
+            client_id: "client_123",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      // Get with only specific fields
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$get(
+        {
+          param: { id: organizationId },
+          query: { fields: "id,invitee", include_fields: "true" },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const invitations: any = await response.json();
+      expect(invitations.length).toBe(1);
+      expect(invitations[0].id).toBeDefined();
+      expect(invitations[0].invitee).toBeDefined();
+      expect(invitations[0].client_id).toBeUndefined();
+      expect(invitations[0].created_at).toBeUndefined();
+    });
+
+    it("should support field filtering with include_fields=false", async () => {
+      const { organizationId, managementClient, token } =
+        await createTestOrganization();
+
+      // Create an invitation
+      await managementClient.organizations[":id"].invitations.$post(
+        {
+          param: { id: organizationId },
+          json: {
+            inviter: { name: "Inviter" },
+            invitee: { email: "test@example.com" },
+            client_id: "client_123",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      // Get excluding specific fields
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$get(
+        {
+          param: { id: organizationId },
+          query: { fields: "created_at,expires_at", include_fields: "false" },
+          header: { "tenant-id": "tenantId" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const invitations: any = await response.json();
+      expect(invitations.length).toBe(1);
+      expect(invitations[0].id).toBeDefined();
+      expect(invitations[0].invitee).toBeDefined();
+      expect(invitations[0].client_id).toBeDefined();
+      expect(invitations[0].created_at).toBeUndefined();
+      expect(invitations[0].expires_at).toBeUndefined();
     });
 
     it("should return 404 for non-existent organization", async () => {
