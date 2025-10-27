@@ -29,6 +29,7 @@ import { createUserPermissionsAdapter } from "./user-permissions/adapter";
 import { createUserRolesAdapter } from "./user-roles/adapter";
 import { createOrganizationsAdapter } from "./organizations";
 import { createUserOrganizationsAdapter } from "./user-organizations";
+import { createInvitesAdapter } from "./invites";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -47,6 +48,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     customDomains: createCustomDomainsAdapter(db),
     forms: createFormsAdapter(db),
     hooks: createHooksAdapter(db),
+    invites: createInvitesAdapter(db),
     keys: createKeysAdapter(db),
     loginSessions: createLoginAdapter(db),
     logs: createLogsAdapter(db),

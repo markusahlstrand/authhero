@@ -167,6 +167,186 @@ Delete an organization.
 
 **Endpoint:** `DELETE /api/v2/organizations/{id}`
 
+#### Organization Invitations
+
+Manage invitations to join an organization. Invitations allow you to onboard new users to an organization with pre-configured roles, metadata, and connection settings.
+
+##### List Organization Invitations
+
+List all invitations for an organization.
+
+**Endpoint:** `GET /api/v2/organizations/{id}/invitations`
+
+**Query Parameters:**
+
+- `page` (optional): Page index of the results to return. First page is 0 (default: 0)
+- `per_page` (optional): Number of results per page (default: 50)
+- `include_totals` (optional): When `true`, return results inside an object that also contains the start and limit. When `false` (default), a direct array of results is returned
+- `fields` (optional): Comma-separated list of fields to include or exclude (based on value provided for `include_fields`) in the result. Leave empty to retrieve all fields
+- `include_fields` (optional): Whether specified fields are to be included (`true`) or excluded (`false`). Defaults to `true`
+- `sort` (optional): Field to sort by. Use `field:order` where order is `1` for ascending and `-1` for descending. Defaults to `created_at:-1`
+
+**Response (without include_totals):**
+
+```json
+[
+  {
+    "id": "inv_123abc",
+    "organization_id": "org_456def",
+    "inviter": {
+      "name": "Admin User"
+    },
+    "invitee": {
+      "email": "newuser@example.com"
+    },
+    "invitation_url": "https://your-domain.com/invitation?ticket=...",
+    "ticket_id": "...",
+    "client_id": "client_123",
+    "connection_id": "con_456",
+    "app_metadata": {
+      "role": "member"
+    },
+    "user_metadata": {
+      "department": "Engineering"
+    },
+    "roles": ["role_123"],
+    "ttl_sec": 604800,
+    "send_invitation_email": true,
+    "created_at": "2025-10-27T10:00:00.000Z",
+    "expires_at": "2025-11-03T10:00:00.000Z"
+  }
+]
+```
+
+**Response (with include_totals=true):**
+
+```json
+{
+  "invitations": [
+    {
+      "id": "inv_123abc",
+      "organization_id": "org_456def",
+      "inviter": {
+        "name": "Admin User"
+      },
+      "invitee": {
+        "email": "newuser@example.com"
+      },
+      "invitation_url": "https://your-domain.com/invitation?ticket=...",
+      "ticket_id": "...",
+      "client_id": "client_123",
+      "connection_id": "con_456",
+      "app_metadata": {
+        "role": "member"
+      },
+      "user_metadata": {
+        "department": "Engineering"
+      },
+      "roles": ["role_123"],
+      "ttl_sec": 604800,
+      "send_invitation_email": true,
+      "created_at": "2025-10-27T10:00:00.000Z",
+      "expires_at": "2025-11-03T10:00:00.000Z"
+    }
+  ],
+  "start": 0,
+  "limit": 50,
+  "length": 1
+}
+```
+
+##### Create Organization Invitation
+
+Create a new invitation for an organization.
+
+**Endpoint:** `POST /api/v2/organizations/{id}/invitations`
+
+**Request Body:**
+
+```json
+{
+  "inviter": {
+    "name": "Admin User"
+  },
+  "invitee": {
+    "email": "newuser@example.com"
+  },
+  "client_id": "client_123",
+  "connection_id": "con_456",
+  "app_metadata": {
+    "role": "member"
+  },
+  "user_metadata": {
+    "department": "Engineering"
+  },
+  "roles": ["role_123"],
+  "ttl_sec": 604800,
+  "send_invitation_email": true
+}
+```
+
+**Field Descriptions:**
+
+- `inviter.name` (required): Name of the person sending the invitation
+- `invitee.email` (required): Email address of the person being invited
+- `client_id` (required): Client ID for the invitation flow
+- `connection_id` (optional): Specific connection to use
+- `app_metadata` (optional): Application metadata to assign to the user
+- `user_metadata` (optional): User metadata to assign to the user
+- `roles` (optional): Array of role IDs to assign to the user (default: `[]`)
+- `ttl_sec` (optional): Time-to-live in seconds (default: 604800 = 7 days, max: 2592000 = 30 days)
+- `send_invitation_email` (optional): Whether to send invitation email (default: `true`)
+
+**Response:**
+
+```json
+{
+  "id": "inv_123abc",
+  "organization_id": "org_456def",
+  "inviter": {
+    "name": "Admin User"
+  },
+  "invitee": {
+    "email": "newuser@example.com"
+  },
+  "invitation_url": "https://your-domain.com/invitation?ticket=...",
+  "ticket_id": "...",
+  "client_id": "client_123",
+  "connection_id": "con_456",
+  "app_metadata": {
+    "role": "member"
+  },
+  "user_metadata": {
+    "department": "Engineering"
+  },
+  "roles": ["role_123"],
+  "ttl_sec": 604800,
+  "send_invitation_email": true,
+  "created_at": "2025-10-27T10:00:00.000Z",
+  "expires_at": "2025-11-03T10:00:00.000Z"
+}
+```
+
+##### Get Organization Invitation
+
+Get a specific invitation.
+
+**Endpoint:** `GET /api/v2/organizations/{id}/invitations/{invitation_id}`
+
+**Response:**
+
+Returns a single invitation object (same structure as create response).
+
+##### Delete Organization Invitation
+
+Delete an invitation.
+
+**Endpoint:** `DELETE /api/v2/organizations/{id}/invitations/{invitation_id}`
+
+**Response:**
+
+Returns `204 No Content` on success.
+
 ### Users
 
 Manage users in your tenant.
@@ -527,5 +707,27 @@ curl -X PATCH https://your-domain.com/api/v2/clients/client-id \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Client Name"
+  }'
+```
+
+### Create an Organization Invitation
+
+```bash
+curl -X POST https://your-domain.com/api/v2/organizations/org_123/invitations \
+  -H "Authorization: Bearer your-token" \
+  -H "tenant-id: your-tenant-id" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inviter": {
+      "name": "Admin User"
+    },
+    "invitee": {
+      "email": "newuser@example.com"
+    },
+    "client_id": "client_123",
+    "roles": ["role_member"],
+    "app_metadata": {
+      "department": "Engineering"
+    }
   }'
 ```

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.96.0
+
+### Minor Changes
+
+- Added invites
+
 ## 0.95.0
 
 ### Minor Changes

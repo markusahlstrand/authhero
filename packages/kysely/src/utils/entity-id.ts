@@ -9,7 +9,8 @@ export type EntityType =
   | "hook"
   | "rule"
   | "resource_server"
-  | "guardian_factor";
+  | "guardian_factor"
+  | "invite";
 
 const ENTITY_PREFIXES: Record<EntityType, string> = {
   organization: "org_",
@@ -19,6 +20,7 @@ const ENTITY_PREFIXES: Record<EntityType, string> = {
   rule: "rul_",
   resource_server: "api_",
   guardian_factor: "gfa_",
+  invite: "inv_",
 };
 
 export function generateEntityId(entityType: EntityType): string {
@@ -74,6 +76,10 @@ export function generateResourceServerId(): string {
 
 export function generateGuardianFactorId(): string {
   return generateEntityId("guardian_factor");
+}
+
+export function generateInviteId(): string {
+  return generateEntityId("invite");
 }
 
 // Generic function to determine entity type from ID

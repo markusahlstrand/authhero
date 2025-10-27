@@ -399,6 +399,25 @@ erDiagram
         varchar updated_at
     }
 
+    invites {
+        varchar id PK
+        varchar tenant_id FK
+        varchar organization_id FK
+        text inviter
+        text invitee
+        varchar invitation_url
+        varchar ticket_id
+        varchar client_id
+        varchar connection_id
+        text app_metadata
+        text user_metadata
+        text roles
+        integer ttl_sec
+        boolean send_invitation_email
+        varchar created_at
+        varchar expires_at
+    }
+
     %% Customization & Branding
     branding {
         varchar tenant_id PK,FK
@@ -593,6 +612,7 @@ erDiagram
 
     %% Organization Relationships
     organizations ||--o{ user_organizations : "has many"
+    organizations ||--o{ invites : "has many"
     user_organizations }o--|| users : "belongs to"
     user_organizations }o--|| organizations : "belongs to"
 
@@ -999,6 +1019,24 @@ Enables hierarchical multi-tenancy within a tenant:
 - Organization branding and metadata
 - Enabled connections per organization
 - Token quotas and limits
+
+#### `user_organizations`
+
+Maps users to organizations (many-to-many relationship):
+
+- Allows users to belong to multiple organizations
+- Tracks organization membership per tenant
+
+#### `invites`
+
+Manages organization invitations for user onboarding:
+
+- Pre-configured user attributes (roles, metadata)
+- Invitation tracking with inviter/invitee information
+- Expiration management (default 7 days, max 30 days)
+- Connection specification for authentication
+- Unique invitation URLs with tickets
+- Optional email delivery
 
 ### Customization and Branding
 

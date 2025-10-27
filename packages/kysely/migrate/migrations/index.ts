@@ -104,6 +104,7 @@ import * as o005_connections_tenant_index from "./2025-09-24T13:00:00_connection
 import * as o006_remove_redundant_user_organizations_tenant_index from "./2025-09-24T13:30:00_remove_redundant_user_organizations_tenant_index";
 import * as o007_tenant_settings from "./2025-10-16T12:00:00_tenant_settings";
 import * as o008_merge_tenant_settings_into_tenants from "./2025-10-17T10:00:00_merge_tenant_settings_into_tenants";
+import * as o009_create_invites_table from "./2025-10-27T14:00:00_create_invites_table";
 
 // These need to be in alphabetic order
 export default {
@@ -213,4 +214,5 @@ export default {
   o006_remove_redundant_user_organizations_tenant_index,
   o007_tenant_settings,
   o008_merge_tenant_settings_into_tenants,
+  o009_create_invites_table,
 };

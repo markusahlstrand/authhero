@@ -277,6 +277,25 @@ export const sqlUserOrganizationSchema = z.object({
   updated_at: z.string(),
 });
 
+export const sqlInviteSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  organization_id: z.string(),
+  inviter: z.string(), // JSON string
+  invitee: z.string(), // JSON string
+  client_id: z.string(),
+  connection_id: z.string().optional().nullable(),
+  invitation_url: z.string(),
+  created_at: z.string(),
+  expires_at: z.string(),
+  app_metadata: z.string().optional().default("{}"), // JSON string
+  user_metadata: z.string().optional().default("{}"), // JSON string
+  roles: z.string().optional().default("[]"), // JSON array string
+  ticket_id: z.string().optional().nullable(),
+  ttl_sec: z.number().optional(),
+  send_invitation_email: z.number().optional().default(1), // boolean as int
+});
+
 const sqlClientSchema = z.object({
   ...clientSchema.shape,
   tenant_id: z.string(),
@@ -341,4 +360,5 @@ export interface Database {
   roles: z.infer<typeof sqlRoleSchema>;
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
+  invites: z.infer<typeof sqlInviteSchema>;
 }
