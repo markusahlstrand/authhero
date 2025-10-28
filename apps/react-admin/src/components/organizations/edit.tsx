@@ -466,6 +466,203 @@ const OrganizationMembersTab = () => {
   );
 };
 
+const CreateInviteButton = () => {
+  const [open, setOpen] = useState(false);
+  const [inviteData, setInviteData] = useState({
+    inviterName: "",
+    inviteeEmail: "",
+    clientId: "",
+  });
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { id: organizationId } = useParams();
+
+  const handleOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setInviteData({
+      inviterName: "",
+      inviteeEmail: "",
+      clientId: "",
+    });
+  };
+
+  const handleCreateInvite = async () => {
+    if (!organizationId) return;
+
+    try {
+      await dataProvider.create("organization-invitations", {
+        data: {
+          organization_id: organizationId,
+          inviter: { name: inviteData.inviterName },
+          invitee: { email: inviteData.inviteeEmail },
+          client_id: inviteData.clientId,
+        },
+      });
+
+      notify("Invitation created successfully", { type: "success" });
+      refresh();
+      handleClose();
+    } catch (error) {
+      notify("Error creating invitation", { type: "error" });
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        onClick={handleOpen}
+        sx={{ mb: 2 }}
+      >
+        Create Invitation
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Create Organization Invitation</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Create an invitation to invite a user to join this organization.
+          </DialogContentText>
+
+          <MuiTextField
+            fullWidth
+            label="Inviter Name"
+            value={inviteData.inviterName}
+            onChange={(e) =>
+              setInviteData({ ...inviteData, inviterName: e.target.value })
+            }
+            sx={{ mb: 2, mt: 1 }}
+            required
+          />
+
+          <MuiTextField
+            fullWidth
+            label="Invitee Email"
+            type="email"
+            value={inviteData.inviteeEmail}
+            onChange={(e) =>
+              setInviteData({ ...inviteData, inviteeEmail: e.target.value })
+            }
+            sx={{ mb: 2 }}
+            required
+          />
+
+          <MuiTextField
+            fullWidth
+            label="Client ID"
+            value={inviteData.clientId}
+            onChange={(e) =>
+              setInviteData({ ...inviteData, clientId: e.target.value })
+            }
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={handleCreateInvite}
+            variant="contained"
+            disabled={
+              !inviteData.inviterName ||
+              !inviteData.inviteeEmail ||
+              !inviteData.clientId
+            }
+          >
+            Create Invitation
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+const DeleteInviteButton = ({ record }: { record: any }) => {
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { id: organizationId } = useParams();
+
+  const handleDeleteInvite = async () => {
+    if (!organizationId || !record?.id) return;
+
+    try {
+      await dataProvider.delete("organization-invitations", {
+        id: record.id,
+        previousData: record,
+      });
+
+      notify("Invitation deleted successfully", { type: "success" });
+      refresh();
+    } catch (error) {
+      notify("Error deleting invitation", { type: "error" });
+    }
+  };
+
+  return (
+    <IconButton
+      onClick={handleDeleteInvite}
+      color="error"
+      size="small"
+      title="Delete invitation"
+    >
+      <DeleteIcon />
+    </IconButton>
+  );
+};
+
+const OrganizationInvitesTab = () => {
+  const record = useRecordContext();
+
+  if (!record?.id) {
+    return (
+      <Typography>
+        Save the organization first to manage invitations.
+      </Typography>
+    );
+  }
+
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Organization Invitations
+      </Typography>
+
+      <CreateInviteButton />
+
+      <ReferenceManyField
+        reference="organization-invitations"
+        target="organization_id"
+        pagination={<Pagination />}
+      >
+        <Datagrid bulkActionButtons={false}>
+          <TextField source="id" label="Invitation ID" />
+          <FunctionField
+            label="Invitee Email"
+            render={(record) => record.invitee?.email || "-"}
+          />
+          <FunctionField
+            label="Inviter Name"
+            render={(record) => record.inviter?.name || "-"}
+          />
+          <TextField source="client_id" label="Client ID" />
+          <TextField source="created_at" label="Created At" />
+          <TextField source="expires_at" label="Expires At" />
+          <FunctionField
+            label="Actions"
+            render={(record) => <DeleteInviteButton record={record} />}
+          />
+        </Datagrid>
+      </ReferenceManyField>
+    </Box>
+  );
+};
+
 export function OrganizationEdit() {
   return (
     <Edit>
@@ -475,6 +672,9 @@ export function OrganizationEdit() {
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Members">
           <OrganizationMembersTab />
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="Invites">
+          <OrganizationInvitesTab />
         </TabbedForm.Tab>
       </TabbedForm>
     </Edit>
