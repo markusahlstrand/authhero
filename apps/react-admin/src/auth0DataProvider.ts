@@ -75,6 +75,8 @@ function getIdKeyFromResource(resource: string) {
       return "permission_id";
     case "organizations":
       return "organization_id";
+    case "organization_invitations":
+      return "id";
     case "actions":
       return "action_id";
     case "branding":
@@ -444,6 +446,43 @@ export default (
         };
       }
 
+      // Special case for organization-invitations which are nested under organizations
+      if (
+        resource === "organization-invitations" &&
+        params.target === "organization_id"
+      ) {
+        const headers = new Headers();
+        if (tenantId) {
+          headers.set("tenant-id", tenantId);
+        }
+
+        const query = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        };
+
+        const url = `${apiUrl}/api/v2/organizations/${params.id}/invitations?${stringify(query)}`;
+        const res = await httpClient(url, { headers });
+
+        // The API returns either an array directly or an object with invitations array
+        const invitationsData = Array.isArray(res.json)
+          ? res.json
+          : res.json.invitations || res.json;
+        const total =
+          res.json.total || res.json.length || invitationsData.length;
+
+        return {
+          data: invitationsData.map((item: any) => ({
+            id: item.id,
+            organization_id: params.id,
+            ...item,
+          })),
+          total,
+        };
+      }
+
       // Special case for user-organizations which are nested under users
       if (resource === "user-organizations" && params.target === "user_id") {
         const headers = new Headers();
@@ -621,6 +660,29 @@ export default (
     updateMany: () => Promise.reject("not supporting updateMany"),
 
     create: async (resource, params) => {
+      // Special case for organization-invitations: POST /organizations/:id/invitations
+      if (resource === "organization-invitations") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const { organization_id, ...inviteData } = params.data;
+        const url = `${apiUrl}/api/v2/organizations/${organization_id}/invitations`;
+
+        const res = await httpClient(url, {
+          method: "POST",
+          body: JSON.stringify(inviteData),
+          headers,
+        });
+
+        return {
+          data: {
+            id: res.json.id,
+            organization_id,
+            ...res.json,
+          },
+        };
+      }
+
       // Special case for organization-members: POST /organizations/:id/members
       if (resource === "organization-members") {
         const headers = new Headers({ "content-type": "application/json" });
@@ -728,6 +790,30 @@ export default (
     },
 
     delete: async (resource, params) => {
+      // Special case for organization-invitations: DELETE /organizations/:organization_id/invitations/:invitation_id
+      if (resource === "organization-invitations") {
+        const headers = new Headers({ "content-type": "application/json" });
+        if (tenantId) headers.set("tenant-id", tenantId);
+
+        const invitation_id = params.id;
+        const organization_id = params.previousData?.organization_id;
+
+        if (!organization_id || !invitation_id) {
+          throw new Error(
+            "Missing organization_id or invitation_id for invitation deletion",
+          );
+        }
+
+        const url = `${apiUrl}/api/v2/organizations/${organization_id}/invitations/${invitation_id}`;
+
+        const res = await httpClient(url, {
+          method: "DELETE",
+          headers,
+        });
+
+        return { data: res.json || { id: invitation_id } };
+      }
+
       // Special case for organization-members: DELETE /organizations/:id/members
       if (resource === "organization-members") {
         const headers = new Headers({ "content-type": "application/json" });

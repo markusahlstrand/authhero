@@ -129,7 +129,28 @@ export const getAuthProvider = (
         return Promise.resolve();
       },
       checkAuth: async () => {
-        // Token auth is always authenticated
+        // Verify that credentials are actually available
+        if (!domainConfig) {
+          return Promise.reject(new Error("No domain configuration found"));
+        }
+
+        if (domainConfig.connectionMethod === "token" && !domainConfig.token) {
+          return Promise.reject(
+            new Error("Token authentication selected but no token provided"),
+          );
+        }
+
+        if (
+          domainConfig.connectionMethod === "client_credentials" &&
+          (!domainConfig.clientId || !domainConfig.clientSecret)
+        ) {
+          return Promise.reject(
+            new Error(
+              "Client credentials authentication selected but credentials missing",
+            ),
+          );
+        }
+
         return Promise.resolve();
       },
       getIdentity: async () => {
@@ -186,6 +207,31 @@ export const getAuthProvider = (
     },
     checkAuth: async (params: any) => {
       try {
+        // Don't check auth while on the callback page - we're in the middle of authenticating
+        if (window.location.pathname === "/auth-callback") {
+          // Return success to prevent redirect loops during callback processing
+          return Promise.resolve();
+        }
+
+        // If auth is in progress, wait for it to complete
+        if (authRequestInProgress || activeSessions.has(domain)) {
+          return new Promise((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+              if (!authRequestInProgress && !activeSessions.has(domain)) {
+                clearInterval(checkInterval);
+                // Re-check auth now that the redirect is complete
+                baseAuthProvider.checkAuth(params).then(resolve).catch(reject);
+              }
+            }, 100);
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              reject(new Error("Authentication timeout"));
+            }, 30000);
+          });
+        }
+
         const result = await baseAuthProvider.checkAuth(params);
         return result;
       } catch (error) {
@@ -216,20 +262,80 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
     return pendingRequests.get(requestKey)!;
   }
 
+  // Prevent API calls while on the auth callback page
+  if (window.location.pathname === "/auth-callback") {
+    return Promise.reject({
+      json: {
+        message: "Authentication in progress. Please wait...",
+      },
+      status: 401,
+      headers: new Headers(),
+      body: JSON.stringify({ message: "Authentication in progress" }),
+    });
+  }
+
   // Check if we're using token-based auth or client credentials
   const domains = getDomainFromStorage();
   const selectedDomain = getSelectedDomainFromStorage();
   const domainConfig = domains.find((d) => d.url === selectedDomain);
 
+  // If using login method and auth request is in progress, delay the request
+  if (
+    domainConfig?.connectionMethod === "login" &&
+    (authRequestInProgress || activeSessions.has(selectedDomain))
+  ) {
+    // Return a promise that waits for auth to complete
+    const delayedRequest = new Promise((resolve, reject) => {
+      const checkInterval = setInterval(() => {
+        if (!authRequestInProgress && !activeSessions.has(selectedDomain)) {
+          clearInterval(checkInterval);
+          // Retry the request now that auth is complete
+          authorizedHttpClient(url, options).then(resolve).catch(reject);
+        }
+      }, 100);
+
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error("Authentication timeout"));
+      }, 30000);
+    });
+
+    pendingRequests.set(requestKey, delayedRequest);
+    delayedRequest.finally(() => {
+      pendingRequests.delete(requestKey);
+    });
+
+    return delayedRequest;
+  }
+
+  // If no domain config found, throw an error
+  if (!domainConfig) {
+    return Promise.reject({
+      json: {
+        message:
+          "No domain configuration found. Please select a domain and configure authentication.",
+      },
+      status: 401,
+      headers: new Headers(),
+      body: JSON.stringify({ message: "No domain configuration found" }),
+    });
+  }
+
   let request;
   if (
-    domainConfig &&
     ["token", "client_credentials"].includes(
       domainConfig.connectionMethod || "",
     )
   ) {
     // For token auth or client credentials, use the getToken helper
     request = getToken(domainConfig)
+      .catch((error) => {
+        // If we can't get a token, throw a more helpful error
+        throw new Error(
+          `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
+        );
+      })
       .then((token) => {
         let headersObj: Headers;
         const method = (options.method || "GET").toUpperCase();
