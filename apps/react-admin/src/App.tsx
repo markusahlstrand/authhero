@@ -1,7 +1,6 @@
 import { Admin, Resource, ShowGuesser } from "react-admin";
 import Group from "@mui/icons-material/Group";
 import CloudQueue from "@mui/icons-material/CloudQueue";
-import PickALogsIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
@@ -26,7 +25,7 @@ import {
 import { BrandingList, BrandingEdit } from "./components/branding";
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
-import { SessionsList, SessionEdit } from "./components/sessions";
+import { SessionEdit } from "./components/sessions";
 import {
   ResourceServerCreate,
   ResourceServerEdit,
@@ -124,13 +123,7 @@ export function App(props: AppProps) {
         edit={HookEdit}
       />
       <Resource icon={HistoryIcon} name="logs" list={LogsList} show={LogShow} />
-      <Resource
-        icon={PickALogsIcon}
-        name="sessions"
-        list={SessionsList}
-        edit={SessionEdit}
-        show={ShowGuesser}
-      />
+      <Resource name="sessions" edit={SessionEdit} show={ShowGuesser} />
       <Resource
         icon={FormatAlignLeftIcon}
         name="forms"

@@ -264,7 +264,7 @@ export const getAuthProvider = (
         throw error;
       }
     },
-    checkAuth: async (params: any) => {
+    checkAuth: async (params: any): Promise<void> => {
       try {
         // Don't check auth while on the callback page - we're in the middle of authenticating
         if (window.location.pathname === "/auth-callback") {
@@ -274,7 +274,7 @@ export const getAuthProvider = (
 
         // If auth is in progress, wait for it to complete
         if (authRequestInProgress || activeSessions.has(domain)) {
-          return new Promise((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (!authRequestInProgress && !activeSessions.has(domain)) {
                 clearInterval(checkInterval);
@@ -291,8 +291,8 @@ export const getAuthProvider = (
           });
         }
 
-        const result = await baseAuthProvider.checkAuth(params);
-        return result;
+        await baseAuthProvider.checkAuth(params);
+        return;
       } catch (error) {
         if (onAuthComplete) onAuthComplete();
         activeSessions.delete(domain);

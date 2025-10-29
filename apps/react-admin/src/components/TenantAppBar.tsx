@@ -39,7 +39,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
       })
       .then((result) => {
         const foundTenant = result.data.find(
-          (t: any) => t.id === tenantId || t.tenant_id === tenantId
+          (t: any) => t.id === tenantId || t.tenant_id === tenantId,
         );
         if (foundTenant) {
           setTenant(foundTenant as TenantResponse);
