@@ -146,12 +146,10 @@ export const createManagementClient = async (
 };
 
 // Clear management client cache when token might be expired
-export const clearManagementClientCache = (domain?: string) => {
-  if (domain) {
-    managementClientCache.delete(domain);
-  } else {
-    managementClientCache.clear();
-  }
+// Note: Clears the entire cache since cache keys use apiDomain[:tenantId]
+// but callers typically only have access to the OAuth domain
+export const clearManagementClientCache = () => {
+  managementClientCache.clear();
 };
 
 // Create a function to get the auth provider with the specified domain
@@ -176,12 +174,12 @@ export const getAuthProvider = (
       },
       logout: async () => {
         // Clear management client cache on logout
-        clearManagementClientCache(domain);
+        clearManagementClientCache();
         return Promise.resolve();
       },
       checkError: async (error: any) => {
         if (error.status === 401 || error.statusCode === 401) {
-          clearManagementClientCache(domain);
+          clearManagementClientCache();
           return Promise.reject();
         }
         return Promise.resolve();
@@ -255,7 +253,7 @@ export const getAuthProvider = (
     },
     logout: async (params: any) => {
       try {
-        clearManagementClientCache(domain);
+        clearManagementClientCache();
         const result = await baseAuthProvider.logout(params);
         if (onAuthComplete) onAuthComplete();
         return result;
@@ -296,17 +294,15 @@ export const getAuthProvider = (
       } catch (error) {
         if (onAuthComplete) onAuthComplete();
         activeSessions.delete(domain);
-        clearManagementClientCache(domain);
+        clearManagementClientCache();
         throw error;
       }
     },
   };
 };
 
-// Create a singleton auth0 client and auth provider for the selected domain
-const selectedDomain = getSelectedDomainFromStorage();
-const auth0 = createAuth0Client(selectedDomain);
-const authProvider = getAuthProvider(selectedDomain);
+// Create auth provider for the selected domain
+const authProvider = getAuthProvider(getSelectedDomainFromStorage());
 
 // Create a debounced http client to prevent parallel token requests
 let pendingRequests = new Map<string, Promise<any>>();
@@ -434,12 +430,14 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
             console.warn(
               "Auth0 server detected without multi-tenant support. Navigating to Auth0 page",
             );
+            // Clean up pending request to prevent deadlock
+            pendingRequests.delete(requestKey);
             // Use history.pushState for a soft navigation instead of a hard redirect
             window.history.pushState({}, "", "/auth0");
             // Dispatch a navigation event so the app can respond to the URL change
             window.dispatchEvent(new PopStateEvent("popstate"));
-            // Return a promise that never resolves, as we're redirecting
-            return new Promise(() => {});
+            // Reject with a clear error message instead of hanging
+            throw new Error("Navigating to Auth0 configuration");
           }
 
           throw new Error(response.statusText);
@@ -462,8 +460,9 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
         };
       });
   } else {
-    // For Auth0, use the httpClient as before
-    request = httpClient(auth0)(url, options);
+    // For Auth0 login method, create a client for the current domain
+    const currentAuth0Client = createAuth0Client(selectedDomain);
+    request = httpClient(currentAuth0Client)(url, options);
   }
 
   // Handle cleanup when request is done

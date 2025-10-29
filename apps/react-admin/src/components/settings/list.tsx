@@ -7,7 +7,7 @@ export function SettingsList() {
 
   useEffect(() => {
     // For singleton resources, redirect to edit with "settings" as the ID
-    redirect(`${basename}/settings/settings/edit`);
+    redirect(`${basename}/settings/settings`);
   }, [redirect, basename]);
 
   return null;

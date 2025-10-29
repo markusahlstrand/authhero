@@ -274,7 +274,10 @@ export default (
         include_totals: true,
         page: page - 1,
         per_page: perPage,
-        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+        sort:
+          field && order
+            ? `${field}:${order === "DESC" ? "-1" : "1"}`
+            : undefined,
         q: params.filter?.q,
       };
 
@@ -912,6 +915,7 @@ export default (
     },
 
     delete: async (resource, params) => {
+      const managementClient = await getManagementClient();
       const headers = new Headers({ "content-type": "application/json" });
       if (tenantId) headers.set("tenant-id", tenantId);
 
@@ -985,10 +989,10 @@ export default (
           );
         }
 
-        const res = await del(
-          `users/${user_id}/organizations/${organization_id}`,
-        );
-        return { data: res.json };
+        await managementClient.organizations.members.delete(organization_id, {
+          members: [user_id],
+        });
+        return { data: { id: params.id } };
       }
 
       // Nested permissions/roles detection

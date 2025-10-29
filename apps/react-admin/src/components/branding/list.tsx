@@ -6,7 +6,7 @@ export function BrandingList() {
   const basename = useBasename();
   useEffect(() => {
     // For singleton resources, redirect to edit with "branding" as the ID
-    redirect(`${basename}/branding/branding/edit`);
+    redirect(`${basename}/branding/branding`);
   }, [redirect, basename]);
   return null;
 }
