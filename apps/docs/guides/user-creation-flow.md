@@ -273,5 +273,3 @@ await clients.update("tenant-id", "client-id", {
 ## Related Documentation
 
 - [Hooks: AuthHero vs. Auth0](../auth0-comparison/hooks.md)
-- [Account Linking](./account-linking.md)
-- [Universal Login](./universal-login.md)
