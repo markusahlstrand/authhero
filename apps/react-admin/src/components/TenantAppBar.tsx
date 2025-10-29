@@ -1,7 +1,6 @@
-import { AppBar, TitlePortal } from "react-admin";
+import { AppBar, TitlePortal, useDataProvider } from "react-admin";
 import { useEffect, useState } from "react";
-import { Link, Box, Typography } from "@mui/material";
-import { authorizedHttpClient } from "../authProvider";
+import { Link, Box } from "@mui/material";
 
 type TenantResponse = {
   audience: string;
@@ -27,16 +26,40 @@ export function TenantAppBar(props: TenantAppBarProps) {
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const tenantId = pathSegments[0];
   const [tenant, setTenant] = useState<TenantResponse>();
+  const dataProvider = useDataProvider();
 
   useEffect(() => {
-    authorizedHttpClient(
-      `${import.meta.env.VITE_SIMPLE_REST_URL}/api/v2/tenants/${tenantId}`,
-      {},
-    ).then((response) => {
-      const res: TenantResponse = JSON.parse(response.body);
-      setTenant(res);
-    });
-  }, [tenantId]);
+    // Use the dataProvider to fetch tenants list and find the matching one
+    // This ensures we use the correct API URL configured in the app
+    dataProvider
+      .getList("tenants", {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: "id", order: "ASC" },
+        filter: {},
+      })
+      .then((result) => {
+        const foundTenant = result.data.find(
+          (t: any) => t.id === tenantId || t.tenant_id === tenantId
+        );
+        if (foundTenant) {
+          setTenant(foundTenant as TenantResponse);
+        } else {
+          // Set a minimal tenant object if not found
+          setTenant({
+            id: tenantId,
+            name: tenantId,
+          } as TenantResponse);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to fetch tenant:", error);
+        // Set a minimal tenant object on error
+        setTenant({
+          id: tenantId,
+          name: tenantId,
+        } as TenantResponse);
+      });
+  }, [tenantId, dataProvider]);
 
   const isDefaultSettings = tenantId === "DEFAULT_SETTINGS";
 

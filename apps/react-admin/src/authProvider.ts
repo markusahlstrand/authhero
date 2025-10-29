@@ -1,5 +1,6 @@
 import { Auth0AuthProvider, httpClient } from "ra-auth-auth0";
 import { Auth0Client } from "@auth0/auth0-spa-js";
+import { ManagementClient } from "auth0";
 import {
   getSelectedDomainFromStorage,
   getClientIdFromStorage,
@@ -18,6 +19,9 @@ const activeSessions = new Map<string, boolean>();
 
 // Cache for auth0 clients
 const auth0ClientCache = new Map<string, Auth0Client>();
+
+// Cache for management clients
+const managementClientCache = new Map<string, ManagementClient>();
 
 // Create a function to get Auth0Client with the specified domain
 export const createAuth0Client = (domain: string) => {
@@ -98,6 +102,58 @@ export const createAuth0Client = (domain: string) => {
   return auth0Client;
 };
 
+// Create a Management API client
+export const createManagementClient = async (
+  apiDomain: string,
+  tenantId?: string,
+  oauthDomain?: string,
+): Promise<ManagementClient> => {
+  const cacheKey = tenantId ? `${apiDomain}:${tenantId}` : apiDomain;
+
+  // Check cache first
+  if (managementClientCache.has(cacheKey)) {
+    return managementClientCache.get(cacheKey)!;
+  }
+
+  // Use oauthDomain for finding credentials, fallback to apiDomain
+  const domainForAuth = oauthDomain || apiDomain;
+  const domains = getDomainFromStorage();
+  const domainConfig = domains.find((d) => d.url === domainForAuth);
+
+  if (!domainConfig) {
+    throw new Error(
+      `No domain configuration found for domain: ${domainForAuth}`,
+    );
+  }
+
+  // Get auth0Client if using login method
+  let auth0Client: Auth0Client | undefined;
+  if (domainConfig.connectionMethod === "login") {
+    auth0Client = createAuth0Client(domainForAuth);
+  }
+
+  const token = await getToken(domainConfig, auth0Client);
+
+  // ManagementClient expects domain WITHOUT protocol and uses the API domain
+  const managementClient = new ManagementClient({
+    domain: apiDomain,
+    token,
+    headers: tenantId ? { "tenant-id": tenantId } : undefined,
+  });
+
+  managementClientCache.set(cacheKey, managementClient);
+  return managementClient;
+};
+
+// Clear management client cache when token might be expired
+export const clearManagementClientCache = (domain?: string) => {
+  if (domain) {
+    managementClientCache.delete(domain);
+  } else {
+    managementClientCache.clear();
+  }
+};
+
 // Create a function to get the auth provider with the specified domain
 export const getAuthProvider = (
   domain: string,
@@ -119,11 +175,13 @@ export const getAuthProvider = (
         return Promise.resolve();
       },
       logout: async () => {
-        // No need to do anything for token auth
+        // Clear management client cache on logout
+        clearManagementClientCache(domain);
         return Promise.resolve();
       },
       checkError: async (error: any) => {
-        if (error.status === 401) {
+        if (error.status === 401 || error.statusCode === 401) {
+          clearManagementClientCache(domain);
           return Promise.reject();
         }
         return Promise.resolve();
@@ -197,6 +255,7 @@ export const getAuthProvider = (
     },
     logout: async (params: any) => {
       try {
+        clearManagementClientCache(domain);
         const result = await baseAuthProvider.logout(params);
         if (onAuthComplete) onAuthComplete();
         return result;
@@ -237,6 +296,7 @@ export const getAuthProvider = (
       } catch (error) {
         if (onAuthComplete) onAuthComplete();
         activeSessions.delete(domain);
+        clearManagementClientCache(domain);
         throw error;
       }
     },

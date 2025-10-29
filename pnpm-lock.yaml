@@ -67,8 +67,8 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^10.52.0
-        version: 10.53.0(@authhero/adapter-interfaces@0.95.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
+        specifier: ^10.53.0
+        version: 10.53.0(@authhero/adapter-interfaces@0.96.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
       '@hono/swagger-ui':
         specifier: ^0.5.2
         version: 0.5.2(hono@4.9.1)
@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.251.0
-        version: 0.251.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
+        specifier: ^0.257.0
+        version: 0.257.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -131,6 +131,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.6.4
         version: 12.6.4(@types/react@19.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      auth0:
+        specifier: ^5.0.0
+        version: 5.0.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -652,8 +655,8 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.95.0':
-    resolution: {integrity: sha512-roDp3QUYJ9Ff1vVN4del+Ef0HupZWvNpvDQzO1nc8IZCjQGItTI786RLSBUp9psxNhDSvlFzV1fghO4BO+jeNw==}
+  '@authhero/adapter-interfaces@0.96.0':
+    resolution: {integrity: sha512-fQMEniQsFWvaboCsyYw1BlbcQ3A3GSR2xx1eJcvtiLHXLJXUHYJj5ZChLMW/l+DekH6iido6sSiZYq6PZLDiQA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
@@ -665,6 +668,11 @@ packages:
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
       kysely-planetscale: ^1.5.0
+
+  '@authhero/saml@0.3.0':
+    resolution: {integrity: sha512-hoUqYjZk+4aqj0XPjCpBIKegqIszwMngBG+GQDVYNsV33Gs2gI1wVmTb18VVkl5LbKjq2TZ0ZD5i/yFnyyxC9g==}
+    peerDependencies:
+      '@hono/zod-openapi': ^0.19.2
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -3332,8 +3340,16 @@ packages:
     resolution: {integrity: sha512-7prDjvt9HmqiZ0cl5CRjtS84sEyhsHP2coDkaZKRKVfCDo9s7iw7ChVmar78Gu9pC4SoR/28wFu/G5JJhTnqEg==}
     engines: {node: '>=4'}
 
-  authhero@0.251.0:
-    resolution: {integrity: sha512-648AzlHZLGKyTMBlQ0uh9O05d4E048gs6/R1Lmrtn1pMJSMC+NqVYB39GKMfiU6gom7mmChTFthofDQOvOhPtw==}
+  auth0@4.33.0:
+    resolution: {integrity: sha512-+zRMFXakIpKudDJKGzwlsYp6LC91J9w7hMz9k9d/qRmGbfqkJeqp3wPmKV7GqAcprfUr9fWCJH3XFFxzJV2jow==}
+    engines: {node: '>=18'}
+
+  auth0@5.0.0:
+    resolution: {integrity: sha512-UFPHnq41NCB/iYgn/MTkbhOyjZ/16eZleWlox3N2YjGYICliDpQz/vPMUkSLRZfJMxZy+ttjtojItIv4i3KSIA==}
+    engines: {node: ^20.19.0 || ^22.12.0 || ^24.0.0}
+
+  authhero@0.257.0:
+    resolution: {integrity: sha512-pmcHcGdihmDSP0YGZDaqkO6xw932E393WhvQDb8eBIHfsyqCglgf8OQU/TZHOJ2UMA0u/pWQx+72v84W/Uv9fA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
@@ -4965,6 +4981,9 @@ packages:
 
   jju@1.4.0:
     resolution: {integrity: sha512-8wb9Yw966OSxApiCt0K3yNJL8pnNeIv+OEq2YMidz4FKP6nonSRoOXc80iXY4JaN2FC11B9qsNmDsm+ZOfMROA==}
+
+  jose@4.15.9:
+    resolution: {integrity: sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -6878,6 +6897,10 @@ packages:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
     hasBin: true
 
+  uuid@9.0.1:
+    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    hasBin: true
+
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -7470,20 +7493,29 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.95.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
+  '@authhero/adapter-interfaces@0.96.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
     dependencies:
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       nanoid: 5.0.8
 
-  '@authhero/kysely-adapter@10.53.0(@authhero/adapter-interfaces@0.95.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
+  '@authhero/kysely-adapter@10.53.0(@authhero/adapter-interfaces@0.96.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.1.3)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.95.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/adapter-interfaces': 0.96.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       hono: 4.9.1
       kysely: 0.27.4
       kysely-bun-sqlite: 0.4.0(@types/react@19.1.3)(kysely@0.28.5)
       kysely-planetscale: 1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5)
       nanoid: 5.0.8
+
+  '@authhero/saml@0.3.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
+    dependencies:
+      '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
+      fast-xml-parser: 4.5.1
+      nanoid: 5.0.8
+      oslo: 1.2.1
+    optionalDependencies:
+      xml-crypto: 6.1.2
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -9960,9 +9992,11 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@xmldom/is-dom-node@1.0.1': {}
+  '@xmldom/is-dom-node@1.0.1':
+    optional: true
 
-  '@xmldom/xmldom@0.8.10': {}
+  '@xmldom/xmldom@0.8.10':
+    optional: true
 
   '@xyflow/react@12.6.4(@types/react@19.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -10186,22 +10220,33 @@ snapshots:
 
   attr-accept@2.2.2: {}
 
-  authhero@0.251.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+  auth0@4.33.0:
     dependencies:
-      '@authhero/adapter-interfaces': 0.95.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      jose: 4.15.9
+      undici-types: 6.21.0
+      uuid: 9.0.1
+
+  auth0@5.0.0:
+    dependencies:
+      auth0-legacy: auth0@4.33.0
+      jose: 4.15.9
+      uuid: 11.1.0
+
+  authhero@0.257.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.8.3):
+    dependencies:
+      '@authhero/adapter-interfaces': 0.96.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/saml': 0.3.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       '@peculiar/x509': 1.13.0
       arctic: 3.1.2
       bcryptjs: 2.4.3
       check-password-strength: 2.0.10
       classnames: 2.5.1
-      fast-xml-parser: 4.5.1
       hono: 4.9.1
       i18next: 24.2.0(typescript@5.8.3)
       libphonenumber-js: 1.12.8
       nanoid: 5.0.8
       oslo: 1.2.1
-      xml-crypto: 6.1.2
     transitivePeerDependencies:
       - typescript
 
@@ -11981,6 +12026,8 @@ snapshots:
   jiti@1.21.7: {}
 
   jju@1.4.0: {}
+
+  jose@4.15.9: {}
 
   js-tokens@4.0.0: {}
 
@@ -14072,6 +14119,8 @@ snapshots:
 
   uuid@11.1.0: {}
 
+  uuid@9.0.1: {}
+
   vary@1.1.2: {}
 
   vfile-message@4.0.3:
@@ -14481,12 +14530,14 @@ snapshots:
       '@xmldom/is-dom-node': 1.0.1
       '@xmldom/xmldom': 0.8.10
       xpath: 0.0.33
+    optional: true
 
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
 
-  xpath@0.0.33: {}
+  xpath@0.0.33:
+    optional: true
 
   y18n@5.0.8: {}
 

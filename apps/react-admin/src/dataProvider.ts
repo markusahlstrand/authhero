@@ -42,7 +42,12 @@ export function getDataprovider(auth0Domain?: string) {
 
   // TODO - duplicate auth0DataProvider to tenantsDataProvider
   // we are introducing non-auth0 endpoints AND we don't require the tenants-id header
-  const provider = auth0DataProvider(baseUrl, authorizedHttpClient);
+  const provider = auth0DataProvider(
+    baseUrl,
+    authorizedHttpClient,
+    undefined,
+    auth0Domain,
+  );
 
   return withLifecycleCallbacks(provider, [
     {
@@ -80,11 +85,12 @@ export function getDataproviderForTenant(
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
 
-  // Create the auth0Provider with the API URL and tenant ID
+  // Create the auth0Provider with the API URL, tenant ID, and domain
   const auth0Provider = auth0DataProvider(
     apiUrl,
     authorizedHttpClient,
     tenantId,
+    auth0Domain,
   );
 
   return auth0Provider;

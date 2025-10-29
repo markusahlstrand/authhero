@@ -1,5 +1,7 @@
 import { fetchUtils, DataProvider } from "ra-core";
 import { UpdateParams } from "react-admin";
+import { createManagementClient } from "./authProvider";
+import { ManagementClient } from "auth0";
 
 // Add this at the top of the file with other imports
 function stringify(obj: Record<string, any>): string {
@@ -115,51 +117,226 @@ function getResourcePath(resource: string): string {
   return resource;
 }
 
+// Helper to normalize SDK response format variations
+function normalizeSDKResponse(
+  result: any,
+  resourceKey: string,
+): { data: any[]; total: number } {
+  const response = (result as any).response || {};
+
+  // Handle direct array format
+  if (Array.isArray(response)) {
+    return { data: response, total: response.length };
+  }
+
+  // Handle SDK wrapper format with resource key
+  if (response[resourceKey]) {
+    return {
+      data: response[resourceKey],
+      total: response.total || response.length || response[resourceKey].length,
+    };
+  }
+
+  // Handle result itself being the array
+  if (Array.isArray(result)) {
+    return { data: result, total: result.length };
+  }
+
+  // Fallback to empty array
+  return { data: [], total: 0 };
+}
+
+// Helper to create headers with tenant ID
+function createHeaders(tenantId?: string): Headers {
+  const headers = new Headers();
+  if (tenantId) {
+    headers.set("tenant-id", tenantId);
+  }
+  return headers;
+}
+
+// Helper to handle singleton resource fetching
+async function fetchSingleton(
+  resource: string,
+  fetcher: () => Promise<any>,
+): Promise<{ data: any[]; total: number }> {
+  try {
+    const result = await fetcher();
+    const data = (result as any).response || result;
+    return {
+      data: [{ id: resource, ...data }],
+      total: 1,
+    };
+  } catch (error) {
+    console.error(`Error in getList for ${resource}:`, error);
+    return {
+      data: [{ id: resource }],
+      total: 1,
+    };
+  }
+}
+
 /**
- * Maps react-admin queries to the auth0 mamagement api
+ * Maps react-admin queries to the auth0 management api
+ * Uses HTTP client for all API calls with custom headers for tenant isolation
  */
 export default (
   apiUrl: string,
   httpClient = fetchUtils.fetchJson,
   tenantId?: string,
+  domain?: string,
 ): DataProvider => {
+  // Get or create management client for SDK calls
+  let managementClientPromise: Promise<ManagementClient> | null = null;
+  const getManagementClient = async () => {
+    if (!managementClientPromise) {
+      // Extract API domain from apiUrl
+      const apiDomain = apiUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      // Pass both API domain and OAuth domain for authentication
+      managementClientPromise = createManagementClient(
+        apiDomain,
+        tenantId,
+        domain,
+      );
+    }
+    return managementClientPromise;
+  };
+
   return {
     getList: async (resourcePath, params) => {
       const resource = parseResource(resourcePath);
       const { page = 1, perPage } = params.pagination || {};
       const { field, order } = params.sort || {};
+      const managementClient = await getManagementClient();
 
-      const headers = new Headers();
+      // SDK resource handlers configuration
+      const sdkHandlers: Record<
+        string,
+        {
+          fetch: (client: ManagementClient) => Promise<any>;
+          resourceKey: string;
+          idKey: string;
+        }
+      > = {
+        users: {
+          fetch: (client) =>
+            client.users.list({
+              page: page - 1,
+              per_page: perPage,
+              sort:
+                field && order
+                  ? `${field}:${order === "DESC" ? "-1" : "1"}`
+                  : undefined,
+              q: params.filter?.q,
+              include_totals: true,
+            }),
+          resourceKey: "users",
+          idKey: "user_id",
+        },
+        clients: {
+          fetch: (client) =>
+            client.clients.list({
+              page: page - 1,
+              per_page: perPage,
+              include_totals: true,
+            }),
+          resourceKey: "clients",
+          idKey: "client_id",
+        },
+        connections: {
+          fetch: (client) => client.connections.list(),
+          resourceKey: "connections",
+          idKey: "id",
+        },
+        roles: {
+          fetch: (client) =>
+            client.roles.list({
+              page: page - 1,
+              per_page: perPage,
+            }),
+          resourceKey: "roles",
+          idKey: "id",
+        },
+        "resource-servers": {
+          fetch: (client) => client.resourceServers.list(),
+          resourceKey: "resource_servers",
+          idKey: "id",
+        },
+        organizations: {
+          fetch: (client) =>
+            client.organizations.list({
+              from: String((page - 1) * (perPage || 10)),
+              take: perPage || 10,
+            }),
+          resourceKey: "organizations",
+          idKey: "id",
+        },
+        logs: {
+          fetch: (client) =>
+            client.logs.list({
+              page: page - 1,
+              per_page: perPage,
+              q: params.filter?.q,
+            }),
+          resourceKey: "logs",
+          idKey: "log_id",
+        },
+        rules: {
+          fetch: (client) => client.rules.list(),
+          resourceKey: "rules",
+          idKey: "id",
+        },
+      };
 
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
+      // Handle SDK resources
+      const handler = sdkHandlers[resource];
+      if (handler) {
+        const result = await handler.fetch(managementClient);
+        const { data, total } = normalizeSDKResponse(result, handler.resourceKey);
+        return {
+          data: data.map((item: any) => ({
+            id: item[handler.idKey],
+            ...item,
+          })),
+          total,
+        };
       }
 
-      // Handle singleton resources - they don't have a list endpoint
+      // Handle singleton resources
+      if (resource === "branding") {
+        return fetchSingleton(resource, () => managementClient.branding.get());
+      }
+
+      if (resource === "settings") {
+        return fetchSingleton(resource, () =>
+          managementClient.tenants.settings.get(),
+        );
+      }
+
+      // Handle other singleton resources with HTTP (like branding/themes/default)
       if (SINGLETON_RESOURCES.includes(resource)) {
+        const headers = createHeaders(tenantId);
+        const resourcePath = getResourcePath(resource);
+
         try {
-          const resourcePath = getResourcePath(resource);
           const res = await httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
             headers,
           });
           return {
-            data: [
-              {
-                id: resource, // Use resource name as ID (e.g., "settings", "branding")
-                ...res.json,
-              },
-            ],
+            data: [{ id: resource, ...res.json }],
             total: 1,
           };
         } catch (error) {
           console.error(`Error in getList for singleton ${resource}:`, error);
-          // Return empty data for singleton if not found
           return {
             data: [{ id: resource }],
             total: 1,
           };
         }
       }
+
+      // Use HTTP client for all other list operations
+      const headers = createHeaders(tenantId);
 
       // Special case for forms endpoint which doesn't accept query parameters
       let url;
@@ -208,18 +385,6 @@ export default (
           };
         }
 
-        // Handle special case for resource-servers (API uses resource_servers key)
-        if (resource === "resource-servers") {
-          const resourceServers = res.json.resource_servers || [];
-          return {
-            data: resourceServers.map((item: any) => ({
-              id: item[getIdKeyFromResource("resource_servers")],
-              ...item,
-            })),
-            total: res.json.length || resourceServers.length,
-          };
-        }
-
         // Handle special case for client-grants (API uses client_grants key)
         if (resource === "client-grants") {
           const clientGrants = res.json.client_grants || [];
@@ -247,43 +412,92 @@ export default (
       }
     },
 
-    getOne: (resource, params) => {
-      const headers = new Headers();
+    getOne: async (resource, params) => {
+      const managementClient = await getManagementClient();
 
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
+      // SDK resource handlers for getOne
+      const sdkGetHandlers: Record<
+        string,
+        { fetch: (id: string) => Promise<any>; idKey: string }
+      > = {
+        users: {
+          fetch: (id) => managementClient.users.get(id),
+          idKey: "user_id",
+        },
+        clients: {
+          fetch: (id) => managementClient.clients.get(id),
+          idKey: "client_id",
+        },
+      };
+
+      const handler = sdkGetHandlers[resource];
+      if (handler) {
+        const result = await handler.fetch(params.id as string);
+        return {
+          data: {
+            id: result[handler.idKey],
+            ...result,
+          },
+        };
       }
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
+        const headers = createHeaders(tenantId);
         const resourcePath = getResourcePath(resource);
-
-        // Special handling for branding to include theme data
-        if (resource === "branding") {
-          return Promise.all([
-            httpClient(`${apiUrl}/api/v2/${resourcePath}`, { headers }),
-            httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
-              headers,
-            }).catch(() => ({ json: {} })),
-          ]).then(([brandingResponse, themeResponse]) => ({
-            data: {
-              ...brandingResponse.json,
-              themes: themeResponse.json,
-              id: resource, // Use resource name as ID (must come after spread to override)
-            },
-          }));
-        }
-
-        return httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
+        const res = await httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
           headers,
-        }).then(({ json }) => ({
+        });
+        return {
           data: {
-            ...json,
-            id: resource, // Use resource name as ID (must come after spread to override)
+            id: resource,
+            ...res.json,
           },
-        }));
+        };
       }
 
+      // Special handling for tenants - fetch from list and find by ID
+      if (resource === "tenants") {
+        const headers = createHeaders(tenantId);
+
+        try {
+          const res = await httpClient(`${apiUrl}/api/v2/tenants`, {
+            headers,
+          });
+
+          const tenants = res.json.tenants || [];
+          const tenant = tenants.find(
+            (t: any) => t.id === params.id || t.tenant_id === params.id,
+          );
+
+          if (tenant) {
+            return {
+              data: {
+                id: tenant.id || tenant.tenant_id,
+                ...tenant,
+              },
+            };
+          }
+
+          return {
+            data: {
+              id: params.id,
+              name: params.id,
+            },
+          };
+        } catch (error) {
+          console.warn(`Could not fetch tenant ${params.id}:`, error);
+          return {
+            data: {
+              id: params.id,
+              name: params.id,
+            },
+          };
+        }
+      }
+
+      // HTTP for other resources
+      const headers = createHeaders(tenantId);
       return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
         headers,
       }).then(({ json }) => ({
@@ -310,50 +524,42 @@ export default (
     getManyReference: async (resource, params) => {
       const { page, perPage } = params.pagination;
       const { field, order } = params.sort;
+      const headers = createHeaders(tenantId);
 
-      // Special case for sessions which are nested under users
+      // Build common query params
+      const buildQuery = (includeTotals = true) => ({
+        include_totals: includeTotals,
+        page: page - 1,
+        per_page: perPage,
+        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+      });
+
+      // Helper to fetch nested resource
+      const fetchNested = async (endpoint: string, query?: any) => {
+        const url = query
+          ? `${apiUrl}/api/v2/${endpoint}?${stringify(query)}`
+          : `${apiUrl}/api/v2/${endpoint}`;
+        return httpClient(url, { headers });
+      };
+
+      // Sessions nested under users
       if (resource === "sessions") {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        };
-
-        const url = `${apiUrl}/api/v2/users/${params.id}/sessions?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
+        const res = await fetchNested(
+          `users/${params.id}/sessions`,
+          buildQuery(),
+        );
         return {
-          data: res.json.sessions.map((item: any) => ({
-            id: item.id,
-            ...item,
-          })),
+          data: res.json.sessions.map((item: any) => ({ id: item.id, ...item })),
           total: res.json.length || 0,
         };
       }
 
-      // Special case for permissions which are nested under users
+      // Permissions nested under users
       if (resource === "permissions" && params.target === "user_id") {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        };
-
-        const url = `${apiUrl}/api/v2/users/${params.id}/permissions?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
+        const res = await fetchNested(
+          `users/${params.id}/permissions`,
+          buildQuery(),
+        );
         return {
           data: res.json.map((item: any) => ({
             id: `${item.resource_server_identifier}:${item.permission_name}`,
@@ -363,24 +569,12 @@ export default (
         };
       }
 
-      // Special case for permissions which are nested under roles
+      // Permissions nested under roles
       if (resource === "permissions" && params.target === "role_id") {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: false,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        } as any;
-
-        const url = `${apiUrl}/api/v2/roles/${params.id}/permissions?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
-        // API returns an array of permissions with details
+        const res = await fetchNested(
+          `roles/${params.id}/permissions`,
+          buildQuery(false),
+        );
         const arr = Array.isArray(res.json)
           ? res.json
           : res.json?.permissions || [];
@@ -393,14 +587,9 @@ export default (
         };
       }
 
-      // Special case for roles which are nested under users
+      // Roles nested under users
       if (resource === "roles" && params.target === "user_id") {
-        const headers = new Headers();
-        if (tenantId) headers.set("tenant-id", tenantId);
-
-        const url = `${apiUrl}/api/v2/users/${params.id}/roles`;
-        const res = await httpClient(url, { headers });
-
+        const res = await fetchNested(`users/${params.id}/roles`);
         return {
           data: (Array.isArray(res.json) ? res.json : []).map((item: any) => ({
             id: item.id,
@@ -410,27 +599,15 @@ export default (
         };
       }
 
-      // Special case for organization-members which are nested under organizations
+      // Organization members
       if (
         resource === "organization-members" &&
         params.target === "organization_id"
       ) {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        };
-
-        const url = `${apiUrl}/api/v2/organizations/${params.id}/members?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
-        // The API returns either an array directly or an object with array and total
+        const res = await fetchNested(
+          `organizations/${params.id}/members`,
+          buildQuery(),
+        );
         const membersData = Array.isArray(res.json)
           ? res.json
           : res.json.members || res.json;
@@ -438,7 +615,7 @@ export default (
 
         return {
           data: membersData.map((item: any) => ({
-            id: `${params.id}_${item.user_id}`, // Composite ID for organization-member relationship
+            id: `${params.id}_${item.user_id}`,
             organization_id: params.id,
             ...item,
           })),
@@ -446,27 +623,15 @@ export default (
         };
       }
 
-      // Special case for organization-invitations which are nested under organizations
+      // Organization invitations
       if (
         resource === "organization-invitations" &&
         params.target === "organization_id"
       ) {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        };
-
-        const url = `${apiUrl}/api/v2/organizations/${params.id}/invitations?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
-        // The API returns either an array directly or an object with invitations array
+        const res = await fetchNested(
+          `organizations/${params.id}/invitations`,
+          buildQuery(),
+        );
         const invitationsData = Array.isArray(res.json)
           ? res.json
           : res.json.invitations || res.json;
@@ -483,53 +648,36 @@ export default (
         };
       }
 
-      // Special case for user-organizations which are nested under users
+      // User organizations
       if (resource === "user-organizations" && params.target === "user_id") {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
+        const res = await fetchNested(
+          `users/${params.id}/organizations`,
+          buildQuery(),
+        );
 
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        };
-
-        const url = `${apiUrl}/api/v2/users/${params.id}/organizations?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
-        // Handle Auth0 API response format: either array of organizations or object with organizations array
         let organizationsData: any[];
         let total: number;
 
         if (Array.isArray(res.json)) {
-          // Direct array response
           organizationsData = res.json;
           total = res.json.length;
         } else if (res.json.organizations) {
-          // Paginated response with organizations array
           organizationsData = res.json.organizations;
           total = res.json.total || organizationsData.length;
         } else {
-          // Fallback - try legacy format
           organizationsData = res.json.organizations || [];
           total = res.json.total || organizationsData.length;
         }
 
         return {
           data: organizationsData.map((org: any) => ({
-            // Use organization ID as the primary ID since we're displaying organization data
             id: org.id || org.organization_id,
             user_id: params.id,
-            // Include all organization fields according to Auth0 API schema
             name: org.name,
             display_name: org.display_name,
             branding: org.branding,
             metadata: org.metadata || {},
             token_quota: org.token_quota,
-            // Membership details (when user joined)
             created_at: org.created_at,
             updated_at: org.updated_at,
             ...org,
@@ -538,24 +686,12 @@ export default (
         };
       }
 
-      // Special case for client-grants which are queried by client_id
+      // Client grants
       if (resource === "client-grants" && params.target === "client_id") {
-        const headers = new Headers();
-        if (tenantId) {
-          headers.set("tenant-id", tenantId);
-        }
-
-        const query = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-          client_id: params.id,
-        };
-
-        const url = `${apiUrl}/api/v2/client-grants?${stringify(query)}`;
-        const res = await httpClient(url, { headers });
-
+        const res = await fetchNested(
+          "client-grants",
+          { ...buildQuery(), client_id: params.id },
+        );
         return {
           data: (res.json.client_grants || []).map((item: any) => ({
             id: item.id,
@@ -565,24 +701,11 @@ export default (
         };
       }
 
-      // Original implementation for other resources
-      const query = {
-        include_totals: true,
-        page: page - 1,
-        per_page: perPage,
-        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-        q: `user_id:${params.id}`,
-      };
-
-      const headers = new Headers();
-
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
-      }
-
-      const url = `${apiUrl}/api/v2/${resource}?${stringify(query)}`;
-
-      const res = await httpClient(url, { headers });
+      // Default implementation for other resources
+      const res = await fetchNested(
+        resource,
+        { ...buildQuery(), q: `user_id:${params.id}` },
+      );
 
       return {
         data: res.json[resource].map((item: any) => ({
@@ -593,14 +716,9 @@ export default (
       };
     },
 
-    update: (resource, params) => {
-      const headers = new Headers();
-
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
-      }
-
+    update: async (resource, params) => {
       const cleanParams = removeExtraFields(params);
+      const headers = createHeaders(tenantId);
 
       // Handle singleton resources
       if (SINGLETON_RESOURCES.includes(resource)) {
@@ -628,7 +746,7 @@ export default (
             }),
           ]).then(([brandingResponse, themeResponse]) => ({
             data: {
-              id: resource, // Use resource name as ID
+              id: resource,
               ...brandingResponse.json,
               themes: themeResponse.json,
             },
@@ -640,7 +758,7 @@ export default (
           method: "PATCH",
           body: JSON.stringify(cleanParams.data),
         }).then(({ json }) => ({
-          data: { id: resource, ...json }, // Use resource name as ID
+          data: { id: resource, ...json },
         }));
       }
 
@@ -660,20 +778,24 @@ export default (
     updateMany: () => Promise.reject("not supporting updateMany"),
 
     create: async (resource, params) => {
-      // Special case for organization-invitations: POST /organizations/:id/invitations
-      if (resource === "organization-invitations") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
+      const headers = new Headers({ "content-type": "application/json" });
+      if (tenantId) headers.set("tenant-id", tenantId);
 
-        const { organization_id, ...inviteData } = params.data;
-        const url = `${apiUrl}/api/v2/organizations/${organization_id}/invitations`;
-
-        const res = await httpClient(url, {
+      // Helper for POST requests
+      const post = async (endpoint: string, body: any) =>
+        httpClient(`${apiUrl}/api/v2/${endpoint}`, {
           method: "POST",
-          body: JSON.stringify(inviteData),
+          body: JSON.stringify(body),
           headers,
         });
 
+      // Organization invitations
+      if (resource === "organization-invitations") {
+        const { organization_id, ...inviteData } = params.data;
+        const res = await post(
+          `organizations/${organization_id}/invitations`,
+          inviteData,
+        );
         return {
           data: {
             id: res.json.id,
@@ -683,81 +805,53 @@ export default (
         };
       }
 
-      // Special case for organization-members: POST /organizations/:id/members
+      // Organization members
       if (resource === "organization-members") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
-
         const { organization_id, user_id, user_ids } = params.data;
-        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
-
-        // Support both single user and multiple users
         const usersToAdd = user_ids || [user_id];
-
-        const res = await httpClient(url, {
-          method: "POST",
-          body: JSON.stringify({ members: usersToAdd }),
-          headers,
-        });
-
+        const res = await post(
+          `organizations/${organization_id}/members`,
+          { members: usersToAdd },
+        );
         return {
           data: {
             id: `${organization_id}_${usersToAdd.join("_")}`,
             organization_id,
-            user_id: user_id || usersToAdd[0], // For backward compatibility
-            members: usersToAdd, // Use 'members' to match the API terminology
+            user_id: user_id || usersToAdd[0],
+            members: usersToAdd,
             ...res.json,
           },
         };
       }
 
-      // Special case for user-organizations: POST /organizations/:id/members (same endpoint, different usage)
+      // User organizations (same endpoint as org members)
       if (resource === "user-organizations") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
-
         const { organization_id, user_id, user_ids } = params.data;
-        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
-
-        // Support both single user and multiple users
         const usersToAdd = user_ids || [user_id];
-
-        const res = await httpClient(url, {
-          method: "POST",
-          body: JSON.stringify({ members: usersToAdd }),
-          headers,
-        });
-
+        const res = await post(
+          `organizations/${organization_id}/members`,
+          { members: usersToAdd },
+        );
         return {
           data: {
-            id: organization_id, // Use organization ID as primary ID
-            user_id: user_id || usersToAdd[0], // For backward compatibility
-            members: usersToAdd, // Use 'members' to match the API terminology
+            id: organization_id,
+            user_id: user_id || usersToAdd[0],
+            members: usersToAdd,
             organization_id,
             ...res.json,
           },
         };
       }
 
-      // Special case: assign roles to user via POST /users/:id/roles
+      // User roles assignment
       const userRolesMatch = resource.match(/^users\/([^/]+)\/roles$/);
       if (userRolesMatch) {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
-
-        const res = await httpClient(`${apiUrl}/api/v2/${resource}`, {
-          method: "POST",
-          body: JSON.stringify(params.data),
-          headers,
-        });
-
-        // React Admin expects an id field for the created resource
-        // For role assignments, we can use a composite ID or generate one
+        const res = await post(resource, params.data);
         const userId = userRolesMatch[1];
         const roleIds = params.data?.roles || [];
         return {
           data: {
-            id: `${userId}_${roleIds.join("_")}`, // Composite ID for the assignment
+            id: `${userId}_${roleIds.join("_")}`,
             user_id: userId,
             roles: roleIds,
             ...res.json,
@@ -765,36 +859,30 @@ export default (
         };
       }
 
-      const headers = new Headers({
-        "content-type": "application/json",
-      });
-
-      if (tenantId) {
-        headers.set("tenant-id", tenantId);
-      }
-
-      const res = await httpClient(`${apiUrl}/api/v2/${resource}`, {
-        method: "POST",
-        body: JSON.stringify(params.data),
-        headers,
-      });
-
-      const data = {
-        ...res.json,
-        id: res.json.id,
-      };
-
+      // Default create
+      const res = await post(resource, params.data);
       return {
-        data,
+        data: {
+          ...res.json,
+          id: res.json.id,
+        },
       };
     },
 
     delete: async (resource, params) => {
-      // Special case for organization-invitations: DELETE /organizations/:organization_id/invitations/:invitation_id
-      if (resource === "organization-invitations") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
+      const headers = new Headers({ "content-type": "application/json" });
+      if (tenantId) headers.set("tenant-id", tenantId);
 
+      // Helper for DELETE requests
+      const del = async (endpoint: string, body?: any) =>
+        httpClient(`${apiUrl}/api/v2/${endpoint}`, {
+          method: "DELETE",
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+
+      // Organization invitations
+      if (resource === "organization-invitations") {
         const invitation_id = params.id;
         const organization_id = params.previousData?.organization_id;
 
@@ -804,37 +892,22 @@ export default (
           );
         }
 
-        const url = `${apiUrl}/api/v2/organizations/${organization_id}/invitations/${invitation_id}`;
-
-        const res = await httpClient(url, {
-          method: "DELETE",
-          headers,
-        });
-
+        const res = await del(
+          `organizations/${organization_id}/invitations/${invitation_id}`,
+        );
         return { data: res.json || { id: invitation_id } };
       }
 
-      // Special case for organization-members: DELETE /organizations/:id/members
+      // Organization members
       if (resource === "organization-members") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
-
-        // Extract organization_id and user_id(s) from the composite ID or params
         let organization_id, user_ids;
 
-        if (params.previousData && params.previousData.members) {
-          // New approach: organization ID is in params.id, user IDs are in previousData.members
+        if (params.previousData?.members) {
           organization_id = params.id;
           user_ids = params.previousData.members;
-        } else if (
-          params.id &&
-          typeof params.id === "string" &&
-          params.id.includes("_")
-        ) {
-          // Legacy approach: composite ID format
+        } else if (typeof params.id === "string" && params.id.includes("_")) {
           [organization_id, ...user_ids] = params.id.split("_");
         } else if (params.previousData) {
-          // Fallback approach
           organization_id = params.previousData.organization_id || params.id;
           user_ids = params.previousData.user_ids || [
             params.previousData.user_id,
@@ -847,37 +920,21 @@ export default (
           );
         }
 
-        const url = `${apiUrl}/api/v2/organizations/${organization_id}/members`;
-
-        const res = await httpClient(url, {
-          method: "DELETE",
-          body: JSON.stringify({ members: user_ids }),
-          headers,
+        const res = await del(`organizations/${organization_id}/members`, {
+          members: user_ids,
         });
-
         return { data: res.json };
       }
 
-      // Special case for user-organizations: DELETE /users/:user_id/organizations/:organization_id
+      // User organizations
       if (resource === "user-organizations") {
-        const headers = new Headers({ "content-type": "application/json" });
-        if (tenantId) headers.set("tenant-id", tenantId);
-
-        // Extract organization_id and user_id
         let organization_id, user_id;
 
         if (params.previousData) {
           user_id = params.previousData.user_id;
-          organization_id = params.id; // ID is now the organization ID directly
-        } else {
-          // Fallback: try to extract from composite ID format if still used
-          if (
-            params.id &&
-            typeof params.id === "string" &&
-            params.id.includes("_")
-          ) {
-            [user_id, organization_id] = params.id.split("_");
-          }
+          organization_id = params.id;
+        } else if (typeof params.id === "string" && params.id.includes("_")) {
+          [user_id, organization_id] = params.id.split("_");
         }
 
         if (!organization_id || !user_id) {
@@ -886,43 +943,23 @@ export default (
           );
         }
 
-        const url = `${apiUrl}/api/v2/users/${user_id}/organizations/${organization_id}`;
-
-        const res = await httpClient(url, {
-          method: "DELETE",
-          headers,
-        });
-
+        const res = await del(`users/${user_id}/organizations/${organization_id}`);
         return { data: res.json };
       }
 
-      // Detect special case: DELETE /users/:userId/permissions or /roles/:roleId/permissions with JSON body
+      // Nested permissions/roles detection
       const isNestedPermissionsDelete =
         /(^|\/)users\/[^/]+\/permissions$/.test(resource) ||
         /(^|\/)roles\/[^/]+\/permissions$/.test(resource);
-
-      // Also support nested roles deletion: DELETE /users/:userId/roles
       const isNestedRolesDelete = /(^|\/)users\/[^/]+\/roles$/.test(resource);
-
-      // Special case for organization member roles: DELETE /organizations/:id/members/:user_id/roles
       const isOrgMemberRolesDelete =
         /(^|\/)organizations\/[^/]+\/members\/[^/]+\/roles$/.test(resource);
 
-      const headers = new Headers({
-        "Content-Type":
-          isNestedPermissionsDelete ||
-          isNestedRolesDelete ||
-          isOrgMemberRolesDelete
-            ? "application/json"
-            : "text/plain",
-      });
-      if (tenantId) headers.set("tenant-id", tenantId);
-
       const hasId =
-        params &&
-        params.id !== undefined &&
-        params.id !== null &&
+        params?.id !== undefined &&
+        params?.id !== null &&
         String(params.id) !== "";
+
       const shouldAppendId =
         hasId &&
         !(
@@ -931,16 +968,14 @@ export default (
           isOrgMemberRolesDelete
         );
 
-      const baseUrl = `${apiUrl}/api/v2/${resource}`;
       const resourceUrl = shouldAppendId
-        ? `${baseUrl}/${encodeURIComponent(String(params.id))}`
-        : baseUrl;
+        ? `${resource}/${encodeURIComponent(String(params.id))}`
+        : resource;
 
-      let body: string | undefined = undefined;
+      let body: any = undefined;
 
       if (isNestedPermissionsDelete) {
-        // Build payload from previousData or params.id when available
-        const prev: any = (params as any)?.previousData ?? {};
+        const prev: any = params?.previousData ?? {};
         const parsedFromId = (() => {
           if (!hasId)
             return {
@@ -959,44 +994,43 @@ export default (
           }
         })();
 
-        const permission_name =
-          prev.permission_name ?? parsedFromId.permission_name;
-        const resource_server_identifier =
-          prev.resource_server_identifier ??
-          parsedFromId.resource_server_identifier;
-
-        body = JSON.stringify({
+        body = {
           permissions: [
             {
-              permission_name,
-              resource_server_identifier,
+              permission_name:
+                prev.permission_name ?? parsedFromId.permission_name,
+              resource_server_identifier:
+                prev.resource_server_identifier ??
+                parsedFromId.resource_server_identifier,
             },
           ],
-        });
-      } else if (isNestedRolesDelete) {
-        const roles = Array.isArray((params as any)?.previousData?.roles)
-          ? (params as any).previousData.roles
+        };
+      } else if (isNestedRolesDelete || isOrgMemberRolesDelete) {
+        const roles = Array.isArray(params?.previousData?.roles)
+          ? params.previousData.roles
           : hasId
             ? [String(params.id)]
             : [];
-        body = JSON.stringify({ roles });
-      } else if (isOrgMemberRolesDelete) {
-        // For organization member roles, expect role IDs in previousData or as the ID
-        const roles = Array.isArray((params as any)?.previousData?.roles)
-          ? (params as any).previousData.roles
-          : hasId
-            ? [String(params.id)]
-            : [];
-        body = JSON.stringify({ roles });
+        body = { roles };
       }
 
-      const res = await httpClient(resourceUrl, {
+      // Update headers for nested endpoints
+      if (
+        !isNestedPermissionsDelete &&
+        !isNestedRolesDelete &&
+        !isOrgMemberRolesDelete
+      ) {
+        headers.set("Content-Type", "text/plain");
+      }
+
+      const res = await httpClient(`${apiUrl}/api/v2/${resourceUrl}`, {
         method: "DELETE",
         headers,
-        body,
+        body: body ? JSON.stringify(body) : undefined,
       });
       return { data: res.json };
     },
-    deleteMany: () => Promise.reject("not supporting updateMany"),
+
+    deleteMany: () => Promise.reject("not supporting deleteMany"),
   };
 };
