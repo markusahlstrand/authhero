@@ -50,6 +50,25 @@ function createUserHooks(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User) => {
+    // Get the client_id from context if available (auth flows)
+    // Management API calls won't have client_id, so skip validation in that case
+    if (ctx.var.client_id) {
+      const client = await data.legacyClients.get(ctx.var.client_id);
+
+      if (!client) {
+        throw new HTTPException(400, {
+          message: "Client not found",
+        });
+      }
+
+      // Call preUserSignupHook BEFORE any user creation logic
+      // This ensures ALL signup methods (email, code, social) are checked
+      // Only validate email-based signups (skip SMS/phone-based signups)
+      if (user.email) {
+        await preUserSignupHook(ctx, client, data, user.email);
+      }
+    }
+
     const request: HookRequest = {
       method: ctx.req.method,
       ip: ctx.req.query("x-real-ip") || "",
@@ -217,12 +236,19 @@ function createUserUpdateHooks(
   };
 }
 
-export async function preUserSignupHook(
+/**
+ * Validates if an email can be used for signup based on client settings.
+ * This is a lightweight check that can be done early (e.g., on identifier page)
+ * without committing to creating a user.
+ *
+ * @returns An object with `allowed` boolean and optional `reason` string
+ */
+export async function validateSignupEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: LegacyClient,
   data: DataAdapters,
   email: string,
-) {
+): Promise<{ allowed: boolean; reason?: string }> {
   // Check the disabled flag on the client
   if (client.client_metadata?.disable_sign_ups === "true") {
     const authorizeUrl = ctx.var.loginSession?.authorization_url;
@@ -232,30 +258,60 @@ export async function preUserSignupHook(
       authorizeUrl &&
       new URL(authorizeUrl).searchParams.get("screen_hint") === "signup";
 
-    // If screen_hint=signup was specified, allow the signup regardless of the disable_sign_ups setting
-    if (!isExplicitSignup) {
-      // If there is another user with the same email, allow the signup as they will be linked together
-      const existingUser = await getPrimaryUserByEmail({
-        userAdapter: data.users,
-        tenant_id: client.tenant.id,
-        email,
-      });
+    // If screen_hint=signup was specified, allow the signup
+    if (isExplicitSignup) {
+      return { allowed: true };
+    }
 
-      if (!existingUser) {
-        const log = createLogMessage(ctx, {
-          type: LogTypes.FAILED_SIGNUP,
-          description: "Public signup is disabled",
-        });
-        waitUntil(ctx, data.logs.create(client.tenant.id, log));
+    // If there is another user with the same email, allow as they will be linked
+    const existingUser = await getPrimaryUserByEmail({
+      userAdapter: data.users,
+      tenant_id: client.tenant.id,
+      email,
+    });
 
-        throw new HTTPException(400, {
-          message: "Signups are disabled for this client",
-        });
-      }
+    if (!existingUser) {
+      return {
+        allowed: false,
+        reason: "Public signup is disabled for this client",
+      };
     }
   }
 
-  await preUserSignupWebhook(ctx)(ctx.var.tenant_id || "", email);
+  return { allowed: true };
+}
+
+/**
+ * Pre-user signup hook that runs RIGHT BEFORE user creation.
+ * This runs for ALL signup methods (email/password, code, social, etc.)
+ * and enforces signup policies and invokes webhooks.
+ *
+ * This hook is called from createUserHooks and will throw an HTTPException
+ * if the signup should be blocked.
+ */
+export async function preUserSignupHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client: LegacyClient,
+  data: DataAdapters,
+  email: string,
+) {
+  // Re-validate signup eligibility at creation time
+  const validation = await validateSignupEmail(ctx, client, data, email);
+
+  if (!validation.allowed) {
+    const log = createLogMessage(ctx, {
+      type: LogTypes.FAILED_SIGNUP,
+      description: validation.reason || "Signup not allowed",
+    });
+    waitUntil(ctx, data.logs.create(client.tenant.id, log));
+
+    throw new HTTPException(400, {
+      message: validation.reason || "Signups are disabled for this client",
+    });
+  }
+
+  // Invoke pre-signup webhooks
+  await preUserSignupWebhook(ctx)(client.tenant.id, email);
 }
 
 function createUserDeletionHooks(

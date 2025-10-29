@@ -1,5 +1,11 @@
 # authhero
 
+## 0.258.0
+
+### Minor Changes
+
+- Move pre signup hook
+
 ## 0.257.0
 
 ### Minor Changes
