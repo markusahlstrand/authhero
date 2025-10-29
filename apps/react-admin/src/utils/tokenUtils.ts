@@ -1,4 +1,5 @@
 import { DomainConfig } from "./domainUtils";
+import { Auth0Client } from "@auth0/auth0-spa-js";
 
 async function fetchTokenWithClientCredentials(
   domain: string,
@@ -38,6 +39,7 @@ async function fetchTokenWithClientCredentials(
 
 export default async function getToken(
   domainConfig: DomainConfig,
+  auth0Client?: Auth0Client,
 ): Promise<string> {
   // Check if the domain config has a token
   if (domainConfig.connectionMethod === "token" && domainConfig.token) {
@@ -54,6 +56,16 @@ export default async function getToken(
       domainConfig.clientSecret,
     );
     return token;
+  } else if (domainConfig.connectionMethod === "login" && auth0Client) {
+    // If using OAuth login, get token from auth0Client
+    try {
+      const token = await auth0Client.getTokenSilently();
+      return token;
+    } catch (error) {
+      throw new Error(
+        "Failed to get token from OAuth session. Please log in again.",
+      );
+    }
   }
 
   // If no token is available, throw an error
