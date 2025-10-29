@@ -6,7 +6,7 @@ export function SettingsList() {
   const basename = useBasename();
 
   useEffect(() => {
-    // For singleton resources with hasSingle: true, redirect to edit with the resource name as ID
+    // For singleton resources, redirect to edit with "settings" as the ID
     redirect(`${basename}/settings/settings`);
   }, [redirect, basename]);
 

@@ -50,73 +50,6 @@ function parseResource(resourcePath: string) {
   return resourcePath.split("/").pop() || resourcePath;
 }
 
-function getIdKeyFromResource(resource: string) {
-  // Normalize resource name by converting hyphens to underscores
-  const normalizedResource = resource.replace(/-/g, "_");
-
-  switch (normalizedResource) {
-    case "connections":
-      return "connnection_id";
-    case "custom_domains":
-      return "custom_domain_id";
-    case "users":
-      return "user_id";
-    case "logs":
-      return "log_id";
-    case "hooks":
-      return "hook_id";
-    case "tenants":
-      return "tenant_id";
-    case "clients":
-      return "client_id";
-    case "sessions":
-      return "id";
-    case "roles":
-      return "id";
-    case "permissions":
-      return "permission_id";
-    case "organizations":
-      return "organization_id";
-    case "organization_invitations":
-      return "id";
-    case "actions":
-      return "action_id";
-    case "branding":
-      return "branding_id";
-    case "prompts":
-      return "prompt_id";
-    case "rules":
-      return "rule_id";
-    case "emails":
-      return "email_id";
-    case "email_templates":
-      return "template_id";
-    case "forms":
-      return "form_id";
-    case "resource_servers":
-      return "id";
-    case "settings":
-      return "id";
-    default:
-      console.warn(
-        `No specific ID key defined for resource "${resource}", falling back to "${resource}_id" or "id"`,
-      );
-      // Try resource-specific ID first, then generic ID
-      return `${normalizedResource}_id`;
-  }
-}
-
-// List of singleton resources (no id in URL, e.g. /api/v2/branding)
-const SINGLETON_RESOURCES = ["branding", "branding/themes/default", "settings"];
-
-// Map resource names to their actual API paths
-function getResourcePath(resource: string): string {
-  if (resource === "settings") {
-    return "tenants/settings";
-  }
-  return resource;
-}
-
 // Helper to normalize SDK response format variations
 function normalizeSDKResponse(
   result: any,
@@ -163,8 +96,9 @@ async function fetchSingleton(
   try {
     const result = await fetcher();
     const data = (result as any).response || result;
+    // Spread data first, then override id to ensure it matches the resource name
     return {
-      data: [{ id: resource, ...data }],
+      data: [{ ...data, id: resource }],
       total: 1,
     };
   } catch (error) {
@@ -286,13 +220,33 @@ export default (
           resourceKey: "rules",
           idKey: "id",
         },
+        "client-grants": {
+          fetch: (client) =>
+            client.clientGrants.list({
+              page: page - 1,
+              per_page: perPage,
+              ...(params.filter?.client_id && {
+                client_id: params.filter.client_id,
+              }),
+            }),
+          resourceKey: "client_grants",
+          idKey: "id",
+        },
+        forms: {
+          fetch: (client) => client.forms.list(),
+          resourceKey: "forms",
+          idKey: "id",
+        },
       };
 
       // Handle SDK resources
       const handler = sdkHandlers[resource];
       if (handler) {
         const result = await handler.fetch(managementClient);
-        const { data, total } = normalizeSDKResponse(result, handler.resourceKey);
+        const { data, total } = normalizeSDKResponse(
+          result,
+          handler.resourceKey,
+        );
         return {
           data: data.map((item: any) => ({
             id: item[handler.idKey],
@@ -313,51 +267,21 @@ export default (
         );
       }
 
-      // Handle other singleton resources with HTTP (like branding/themes/default)
-      if (SINGLETON_RESOURCES.includes(resource)) {
-        const headers = createHeaders(tenantId);
-        const resourcePath = getResourcePath(resource);
-
-        try {
-          const res = await httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
-            headers,
-          });
-          return {
-            data: [{ id: resource, ...res.json }],
-            total: 1,
-          };
-        } catch (error) {
-          console.error(`Error in getList for singleton ${resource}:`, error);
-          return {
-            data: [{ id: resource }],
-            total: 1,
-          };
-        }
-      }
-
       // Use HTTP client for all other list operations
       const headers = createHeaders(tenantId);
 
-      // Special case for forms endpoint which doesn't accept query parameters
-      let url;
-      if (resource === "forms") {
-        url = `${apiUrl}/api/v2/${resourcePath}`;
-      } else {
-        const query: any = {
-          include_totals: true,
-          page: page - 1,
-          per_page: perPage,
-          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-          q: params.filter?.q,
-        };
+      const query: any = {
+        include_totals: true,
+        page: page - 1,
+        per_page: perPage,
+        sort:
+          field && order
+            ? `${field}:${order === "DESC" ? "-1" : "1"}`
+            : undefined,
+        q: params.filter?.q,
+      };
 
-        // Special case for client-grants to support client_id filtering
-        if (resource === "client-grants" && params.filter?.client_id) {
-          query.client_id = params.filter.client_id;
-        }
-
-        url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
-      }
+      const url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
 
       try {
         const res = await httpClient(url, { headers });
@@ -366,34 +290,10 @@ export default (
         if (Array.isArray(res.json)) {
           return {
             data: res.json.map((item) => ({
-              id: item[getIdKeyFromResource(resource)],
+              id: item.id,
               ...item,
             })),
             total: res.json.length,
-          };
-        }
-
-        // Handle special case for forms resource which returns a simple array
-        if (resource === "forms") {
-          const forms = res.json[resource] || [];
-          return {
-            data: forms.map((item: any) => ({
-              id: item[getIdKeyFromResource(resource)],
-              ...item,
-            })),
-            total: forms.length,
-          };
-        }
-
-        // Handle special case for client-grants (API uses client_grants key)
-        if (resource === "client-grants") {
-          const clientGrants = res.json.client_grants || [];
-          return {
-            data: clientGrants.map((item: any) => ({
-              id: item[getIdKeyFromResource("client_grants")],
-              ...item,
-            })),
-            total: res.json.total || clientGrants.length,
           };
         }
 
@@ -401,7 +301,7 @@ export default (
         return {
           data:
             res.json[resource]?.map((item: any) => ({
-              id: item[getIdKeyFromResource(resource)],
+              id: item.id,
               ...item,
             })) || [],
           total: res.json.total || res.json.length || 0,
@@ -442,16 +342,22 @@ export default (
       }
 
       // Handle singleton resources
-      if (SINGLETON_RESOURCES.includes(resource)) {
-        const headers = createHeaders(tenantId);
-        const resourcePath = getResourcePath(resource);
-        const res = await httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
-          headers,
-        });
+      if (resource === "branding") {
+        const result = await managementClient.branding.get();
         return {
           data: {
+            ...result,
             id: resource,
-            ...res.json,
+          },
+        };
+      }
+
+      if (resource === "settings") {
+        const result = await managementClient.tenants.settings.get();
+        return {
+          data: {
+            ...result,
+            id: resource,
           },
         };
       }
@@ -502,20 +408,19 @@ export default (
         headers,
       }).then(({ json }) => ({
         data: {
-          id: json.id || json[getIdKeyFromResource(resource)],
+          id: json.id,
           ...json,
         },
       }));
     },
 
     getMany: (resourcePath, params) => {
-      const resource = parseResource(resourcePath);
-      const query = `${getIdKeyFromResource(resource)}:(${params.ids.join(" ")})})`;
+      const query = `id:(${params.ids.join(" ")})`;
 
       const url = `${apiUrl}/api/v2/${resourcePath}?q=${query}`;
       return httpClient(url).then(({ json }) => ({
         data: {
-          id: json[getIdKeyFromResource(resource)],
+          id: json.id,
           ...json,
         },
       }));
@@ -524,78 +429,86 @@ export default (
     getManyReference: async (resource, params) => {
       const { page, perPage } = params.pagination;
       const { field, order } = params.sort;
-      const headers = createHeaders(tenantId);
+      const managementClient = await getManagementClient();
 
-      // Build common query params
-      const buildQuery = (includeTotals = true) => ({
-        include_totals: includeTotals,
+      // Build common query params for pagination
+      const buildPaginationParams = () => ({
         page: page - 1,
         per_page: perPage,
-        sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
       });
-
-      // Helper to fetch nested resource
-      const fetchNested = async (endpoint: string, query?: any) => {
-        const url = query
-          ? `${apiUrl}/api/v2/${endpoint}?${stringify(query)}`
-          : `${apiUrl}/api/v2/${endpoint}`;
-        return httpClient(url, { headers });
-      };
 
       // Sessions nested under users
       if (resource === "sessions") {
-        const res = await fetchNested(
-          `users/${params.id}/sessions`,
-          buildQuery(),
+        // Sessions are user-specific, use HTTP
+        const headers = createHeaders(tenantId);
+        const res = await httpClient(
+          `${apiUrl}/api/v2/users/${params.id}/sessions?${stringify({
+            include_totals: true,
+            ...buildPaginationParams(),
+            sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          })}`,
+          { headers },
         );
         return {
-          data: res.json.sessions.map((item: any) => ({ id: item.id, ...item })),
+          data: res.json.sessions.map((item: any) => ({
+            id: item.id,
+            ...item,
+          })),
           total: res.json.length || 0,
         };
       }
 
       // Permissions nested under users
       if (resource === "permissions" && params.target === "user_id") {
-        const res = await fetchNested(
-          `users/${params.id}/permissions`,
-          buildQuery(),
+        const result = await managementClient.users.permissions.list(
+          params.id as string,
+          buildPaginationParams(),
         );
+        const permissions = (result as any).response || result;
+        const permissionsArray = Array.isArray(permissions)
+          ? permissions
+          : permissions.permissions || [];
         return {
-          data: res.json.map((item: any) => ({
+          data: permissionsArray.map((item: any) => ({
             id: `${item.resource_server_identifier}:${item.permission_name}`,
             ...item,
           })),
-          total: res.json.length || 0,
+          total: permissionsArray.length || 0,
         };
       }
 
       // Permissions nested under roles
       if (resource === "permissions" && params.target === "role_id") {
-        const res = await fetchNested(
-          `roles/${params.id}/permissions`,
-          buildQuery(false),
+        const result = await managementClient.roles.permissions.list(
+          params.id as string,
+          buildPaginationParams(),
         );
-        const arr = Array.isArray(res.json)
-          ? res.json
-          : res.json?.permissions || [];
+        const permissions = (result as any).response || result;
+        const permissionsArray = Array.isArray(permissions)
+          ? permissions
+          : permissions.permissions || [];
         return {
-          data: arr.map((item: any) => ({
+          data: permissionsArray.map((item: any) => ({
             id: `${item.resource_server_identifier}:${item.permission_name}`,
             ...item,
           })),
-          total: arr.length || 0,
+          total: permissionsArray.length || 0,
         };
       }
 
       // Roles nested under users
       if (resource === "roles" && params.target === "user_id") {
-        const res = await fetchNested(`users/${params.id}/roles`);
+        const result = await managementClient.users.roles.list(
+          params.id as string,
+        );
+        const roles = (result as any).response || result;
+        const rolesArray = Array.isArray(roles) ? roles : [];
         return {
-          data: (Array.isArray(res.json) ? res.json : []).map((item: any) => ({
+          data: rolesArray.map((item: any) => ({
             id: item.id,
             ...item,
           })),
-          total: Array.isArray(res.json) ? res.json.length : 0,
+          total: rolesArray.length,
         };
       }
 
@@ -604,14 +517,18 @@ export default (
         resource === "organization-members" &&
         params.target === "organization_id"
       ) {
-        const res = await fetchNested(
-          `organizations/${params.id}/members`,
-          buildQuery(),
+        const result = await managementClient.organizations.members.list(
+          params.id as string,
+          {
+            from: String((page - 1) * perPage),
+            take: perPage,
+          },
         );
-        const membersData = Array.isArray(res.json)
-          ? res.json
-          : res.json.members || res.json;
-        const total = res.json.total || membersData.length;
+        const response = (result as any).response || result;
+        const membersData = Array.isArray(response)
+          ? response
+          : response.members || [];
+        const total = response.total || membersData.length;
 
         return {
           data: membersData.map((item: any) => ({
@@ -628,15 +545,18 @@ export default (
         resource === "organization-invitations" &&
         params.target === "organization_id"
       ) {
-        const res = await fetchNested(
-          `organizations/${params.id}/invitations`,
-          buildQuery(),
+        const result = await managementClient.organizations.invitations.list(
+          params.id as string,
+          {
+            page: page - 1,
+            per_page: perPage,
+          },
         );
-        const invitationsData = Array.isArray(res.json)
-          ? res.json
-          : res.json.invitations || res.json;
-        const total =
-          res.json.total || res.json.length || invitationsData.length;
+        const response = (result as any).response || result;
+        const invitationsData = Array.isArray(response)
+          ? response
+          : response.invitations || [];
+        const total = response.total || invitationsData.length;
 
         return {
           data: invitationsData.map((item: any) => ({
@@ -650,23 +570,27 @@ export default (
 
       // User organizations
       if (resource === "user-organizations" && params.target === "user_id") {
-        const res = await fetchNested(
-          `users/${params.id}/organizations`,
-          buildQuery(),
+        const result = await managementClient.users.organizations.list(
+          params.id as string,
+          {
+            page: page - 1,
+            per_page: perPage,
+          },
         );
+        const response = (result as any).response || result;
 
         let organizationsData: any[];
         let total: number;
 
-        if (Array.isArray(res.json)) {
-          organizationsData = res.json;
-          total = res.json.length;
-        } else if (res.json.organizations) {
-          organizationsData = res.json.organizations;
-          total = res.json.total || organizationsData.length;
+        if (Array.isArray(response)) {
+          organizationsData = response;
+          total = response.length;
+        } else if (response.organizations) {
+          organizationsData = response.organizations;
+          total = response.total || organizationsData.length;
         } else {
-          organizationsData = res.json.organizations || [];
-          total = res.json.total || organizationsData.length;
+          organizationsData = [];
+          total = 0;
         }
 
         return {
@@ -686,30 +610,42 @@ export default (
         };
       }
 
-      // Client grants
+      // Client grants filtered by client_id
       if (resource === "client-grants" && params.target === "client_id") {
-        const res = await fetchNested(
-          "client-grants",
-          { ...buildQuery(), client_id: params.id },
-        );
+        const result = await managementClient.clientGrants.list({
+          ...buildPaginationParams(),
+          client_id: params.id as string,
+        });
+        const response = (result as any).response || result;
+        const grantsData = Array.isArray(response)
+          ? response
+          : response.client_grants || [];
+        const total = response.total || grantsData.length;
+
         return {
-          data: (res.json.client_grants || []).map((item: any) => ({
+          data: grantsData.map((item: any) => ({
             id: item.id,
             ...item,
           })),
-          total: res.json.total || res.json.length || 0,
+          total,
         };
       }
 
-      // Default implementation for other resources
-      const res = await fetchNested(
-        resource,
-        { ...buildQuery(), q: `user_id:${params.id}` },
+      // Default implementation for other resources - use HTTP fallback
+      const headers = createHeaders(tenantId);
+      const res = await httpClient(
+        `${apiUrl}/api/v2/${resource}?${stringify({
+          include_totals: true,
+          ...buildPaginationParams(),
+          sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          q: `user_id:${params.id}`,
+        })}`,
+        { headers },
       );
 
       return {
         data: res.json[resource].map((item: any) => ({
-          id: item[getIdKeyFromResource(resource)],
+          id: item.id,
           ...item,
         })),
         total: res.json.total,
@@ -718,50 +654,161 @@ export default (
 
     update: async (resource, params) => {
       const cleanParams = removeExtraFields(params);
+      const managementClient = await getManagementClient();
       const headers = createHeaders(tenantId);
 
       // Handle singleton resources
-      if (SINGLETON_RESOURCES.includes(resource)) {
-        const resourcePath = getResourcePath(resource);
+      if (resource === "settings") {
+        const result = await managementClient.tenants.settings.update(
+          cleanParams.data,
+        );
+        return {
+          data: { ...result, id: resource },
+        };
+      }
 
-        // Special handling for branding to update theme data separately
-        if (resource === "branding" && cleanParams.data.themes) {
+      // Special handling for branding to update theme data separately
+      if (resource === "branding") {
+        if (cleanParams.data.themes) {
           const themeData = cleanParams.data.themes;
           delete cleanParams.data.themes;
 
-          // Update branding and theme data in parallel
-          return Promise.all([
-            httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
-              headers,
-              method: "PATCH",
-              body: JSON.stringify(cleanParams.data),
-            }),
+          // Update branding using SDK, theme still uses HTTP as SDK may not support it
+          const [brandingResult, themeResult] = await Promise.all([
+            managementClient.branding.update(cleanParams.data),
             httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
               headers,
               method: "PATCH",
               body: JSON.stringify(themeData),
-            }).catch((error) => {
-              console.warn("Failed to update theme data:", error);
-              return { json: {} };
-            }),
-          ]).then(([brandingResponse, themeResponse]) => ({
+            })
+              .then((res) => res.json)
+              .catch((error) => {
+                console.warn("Failed to update theme data:", error);
+                return {};
+              }),
+          ]);
+
+          return {
             data: {
               id: resource,
-              ...brandingResponse.json,
-              themes: themeResponse.json,
+              ...brandingResult,
+              themes: themeResult,
             },
-          }));
+          };
         }
 
-        return httpClient(`${apiUrl}/api/v2/${resourcePath}`, {
-          headers,
-          method: "PATCH",
-          body: JSON.stringify(cleanParams.data),
-        }).then(({ json }) => ({
-          data: { id: resource, ...json },
-        }));
+        const result = await managementClient.branding.update(cleanParams.data);
+        return {
+          data: { ...result, id: resource },
+        };
       }
 
+      // SDK-handled resources
+      if (resource === "users") {
+        const result = await managementClient.users.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.user_id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "clients") {
+        const result = await managementClient.clients.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.client_id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "connections") {
+        const result = await managementClient.connections.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "roles") {
+        const result = await managementClient.roles.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "resource-servers") {
+        const result = await managementClient.resourceServers.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "organizations") {
+        const result = await managementClient.organizations.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "rules") {
+        const result = await managementClient.rules.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      if (resource === "client-grants") {
+        const result = await managementClient.clientGrants.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.id,
+            ...result,
+          },
+        };
+      }
+
+      // HTTP fallback for other resources
       return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
         headers,
         method: "PATCH",
@@ -809,10 +856,9 @@ export default (
       if (resource === "organization-members") {
         const { organization_id, user_id, user_ids } = params.data;
         const usersToAdd = user_ids || [user_id];
-        const res = await post(
-          `organizations/${organization_id}/members`,
-          { members: usersToAdd },
-        );
+        const res = await post(`organizations/${organization_id}/members`, {
+          members: usersToAdd,
+        });
         return {
           data: {
             id: `${organization_id}_${usersToAdd.join("_")}`,
@@ -828,10 +874,9 @@ export default (
       if (resource === "user-organizations") {
         const { organization_id, user_id, user_ids } = params.data;
         const usersToAdd = user_ids || [user_id];
-        const res = await post(
-          `organizations/${organization_id}/members`,
-          { members: usersToAdd },
-        );
+        const res = await post(`organizations/${organization_id}/members`, {
+          members: usersToAdd,
+        });
         return {
           data: {
             id: organization_id,
@@ -870,6 +915,7 @@ export default (
     },
 
     delete: async (resource, params) => {
+      const managementClient = await getManagementClient();
       const headers = new Headers({ "content-type": "application/json" });
       if (tenantId) headers.set("tenant-id", tenantId);
 
@@ -943,8 +989,10 @@ export default (
           );
         }
 
-        const res = await del(`users/${user_id}/organizations/${organization_id}`);
-        return { data: res.json };
+        await managementClient.organizations.members.delete(organization_id, {
+          members: [user_id],
+        });
+        return { data: { id: params.id } };
       }
 
       // Nested permissions/roles detection

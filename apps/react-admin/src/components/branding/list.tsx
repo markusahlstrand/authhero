@@ -5,8 +5,8 @@ export function BrandingList() {
   const redirect = useRedirect();
   const basename = useBasename();
   useEffect(() => {
-    // Prepend the tenant id (basename) to the singleton branding show view
-    redirect(`${basename}/branding/branding/edit`);
+    // For singleton resources, redirect to edit with "branding" as the ID
+    redirect(`${basename}/branding/branding`);
   }, [redirect, basename]);
   return null;
 }

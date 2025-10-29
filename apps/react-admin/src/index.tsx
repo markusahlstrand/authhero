@@ -13,7 +13,10 @@ function Root() {
   const isAuthCallback = currentPath === "/auth-callback";
   const isRootPath = currentPath === "/";
   // Only match /tenants exactly or /tenants/create (not /tenants/:id which would be a tenant admin route)
-  const isTenantsPath = currentPath === "/tenants" || currentPath.startsWith("/tenants/create") || currentPath === "/tenants/";
+  const isTenantsPath =
+    currentPath === "/tenants" ||
+    currentPath.startsWith("/tenants/create") ||
+    currentPath === "/tenants/";
 
   // Load domain from cookies on component mount
   useEffect(() => {
