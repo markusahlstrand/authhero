@@ -312,8 +312,9 @@ export const userRoutes = new OpenAPIHono<{
       const user_id = `${body.provider}|${idPart}`;
 
       try {
-        // This bypasses the hooks right now. Should we pass some flag so that the hooks may be bypassed?
-        const data = await ctx.env.data.users.create(ctx.var.tenant_id, {
+        // ctx.env.data is already wrapped with hooks by the management API middleware,
+        // so we can use it directly to enable automatic account linking
+        const userToCreate = {
           email,
           user_id,
           name: name || email || phone_number,
@@ -325,12 +326,21 @@ export const userRoutes = new OpenAPIHono<{
           last_ip: "",
           is_social: false,
           last_login: new Date().toISOString(),
-        });
+        };
+
+        // Create the user - this may trigger account linking
+        const result = await ctx.env.data.users.create(
+          ctx.var.tenant_id,
+          userToCreate,
+        );
 
         // Create password if provided
+        // IMPORTANT: The password should be stored on the NEWLY CREATED user (user_id),
+        // not on the returned user (result), because result may be the primary user
+        // if automatic linking occurred
         if (password) {
           const passwordOptions: PasswordInsert = {
-            user_id: data.user_id,
+            user_id, // Use the original user_id, not result.user_id
             password: await bcryptjs.hash(password, 10),
             algorithm: "bcrypt",
           };
@@ -340,7 +350,7 @@ export const userRoutes = new OpenAPIHono<{
           );
         }
 
-        ctx.set("user_id", data.user_id);
+        ctx.set("user_id", result.user_id);
 
         const log = createLogMessage(ctx, {
           type: LogTypes.SUCCESS_API_OPERATION,
@@ -348,17 +358,21 @@ export const userRoutes = new OpenAPIHono<{
         });
         waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
 
-        const userResponse = {
-          ...data,
-          identities: [
-            {
-              connection: data.connection,
-              provider: data.provider,
-              user_id: userIdParse(data.user_id),
-              isSocial: data.is_social,
-            },
-          ],
-        };
+        // Build response with identities
+        // If linking occurred, result will be the primary user with identities populated
+        const userResponse = result.identities
+          ? result
+          : {
+              ...result,
+              identities: [
+                {
+                  connection: result.connection,
+                  provider: result.provider,
+                  user_id: userIdParse(result.user_id),
+                  isSocial: result.is_social,
+                },
+              ],
+            };
 
         return ctx.json(auth0UserResponseSchema.parse(userResponse), {
           status: 201,

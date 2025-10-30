@@ -25,7 +25,16 @@ export function linkUsersHook(data: DataAdapters) {
       linked_to: primaryUser.user_id,
     });
 
-    // TODO: add the new user to the identities
-    return primaryUser;
+    // Fetch the primary user again to get the updated identities
+    const updatedPrimaryUser = await data.users.get(
+      tenant_id,
+      primaryUser.user_id,
+    );
+
+    if (!updatedPrimaryUser) {
+      throw new Error("Failed to fetch primary user after linking");
+    }
+
+    return updatedPrimaryUser;
   };
 }

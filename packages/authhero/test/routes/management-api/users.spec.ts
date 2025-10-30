@@ -2623,5 +2623,114 @@ describe("users management API endpoint", () => {
       };
       expect(loginResult.login_ticket).toBeDefined();
     });
+
+    it("should create password user with same verified email and password, auto-link it, and store password on correct user", async () => {
+      const token = await getAdminToken();
+      const { managementApp, oauthApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      const testEmail = "autolink@example.com";
+      const testPassword = "AutoLinkPassword123!";
+
+      // Step 1: Create the primary user (passwordless email user) with verified email
+      const createPrimaryUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            email_verified: true,
+            connection: "email",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createPrimaryUserResponse.status).toBe(201);
+      const primaryUser = await createPrimaryUserResponse.json();
+      expect(primaryUser.user_id).toMatch(/^email\|/);
+      expect(primaryUser.email).toBe(testEmail);
+
+      // Step 2: Create a password user with the SAME verified email AND password
+      // This should trigger automatic account linking via linkUsersHook
+      const createPasswordUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: testEmail,
+            email_verified: true, // This should trigger automatic linking
+            password: testPassword,
+            provider: "auth2",
+            connection: "Username-Password-Authentication",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createPasswordUserResponse.status).toBe(201);
+      const passwordUser = await createPasswordUserResponse.json();
+
+      // The response should be the PRIMARY user since linking occurred
+      expect(passwordUser.user_id).toBe(primaryUser.user_id);
+      expect(passwordUser.identities).toHaveLength(2);
+
+      // Find the secondary user that was created
+      const allUsers = await env.data.users.list("tenantId", {
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+      const secondaryUser = allUsers.users.find(
+        (u) =>
+          u.connection === "Username-Password-Authentication" &&
+          u.email === testEmail,
+      );
+
+      expect(secondaryUser).toBeDefined();
+      expect(secondaryUser!.linked_to).toBe(primaryUser.user_id);
+
+      // Step 3: Verify the password was stored on the SECONDARY user, not the primary
+      const passwordOnPrimary = await env.data.passwords.get(
+        "tenantId",
+        primaryUser.user_id,
+      );
+      expect(passwordOnPrimary).toBeNull(); // Password should NOT be on primary user
+
+      const passwordOnSecondary = await env.data.passwords.get(
+        "tenantId",
+        secondaryUser!.user_id,
+      );
+      expect(passwordOnSecondary).toBeDefined(); // Password SHOULD be on secondary user
+      expect(passwordOnSecondary!.user_id).toBe(secondaryUser!.user_id);
+
+      // Step 4: Test login with the email and password should work
+      const loginResponse = await oauthClient.co.authenticate.$post({
+        json: {
+          credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+          username: testEmail,
+          password: testPassword,
+          realm: "Username-Password-Authentication",
+          client_id: "clientId",
+        },
+      });
+
+      expect(loginResponse.status).toBe(200);
+      const loginResult = (await loginResponse.json()) as {
+        login_ticket: string;
+      };
+      expect(loginResult.login_ticket).toBeDefined();
+    });
   });
 });

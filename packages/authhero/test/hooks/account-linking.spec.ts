@@ -28,7 +28,7 @@ describe("account-linking-hook", () => {
   });
 
   it("should link accounts when user email is updated to match another user", async () => {
-    const { env, universalApp } = await getTestServer();
+    const { env } = await getTestServer();
 
     // Create a mock context for hooks
     const mockCtx: any = {
