@@ -107,9 +107,9 @@ describe("token", () => {
       );
 
       expect(response.status).toBe(403);
-      const body = await response.text();
+      const body = await response.json();
 
-      expect(body).toBe("Invalid client credentials");
+      expect(body).toEqual({ message: "Invalid client credentials" });
     });
 
     it("should return all granted scopes when no scope is specified in client_credentials", async () => {
@@ -374,9 +374,9 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
-        const body = await response.text();
+        const body = await response.json();
 
-        expect(body).toBe("Invalid client credentials");
+        expect(body).toEqual({ message: "Invalid client credentials" });
       });
 
       it("should return a 403 if the redirect-url does not match the url passed in the authorize call", async () => {
@@ -423,9 +423,9 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
-        const body = await response.text();
+        const body = await response.json();
 
-        expect(body).toBe("Invalid redirect uri");
+        expect(body).toEqual({ message: "Invalid redirect uri" });
       });
 
       it("should return a 403 if the client id does not match the client id passed in the authorize call", async () => {
@@ -470,9 +470,9 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
-        const body = await response.text();
+        const body = await response.json();
 
-        expect(body).toBe("Client not found");
+        expect(body).toEqual({ message: "Client not found" });
       });
 
       it("should return a 403 if the code is expired", async () => {
@@ -517,8 +517,8 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
-        const body = await response.text();
-        expect(body).toBe("Code expired");
+        const body = await response.json();
+        expect(body).toEqual({ message: "Code expired" });
       });
 
       it("should return a 403 if the code is used twice", async () => {
@@ -852,9 +852,9 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
-        const body = await response.text();
+        const body = await response.json();
 
-        expect(body).toBe("Invalid client credentials");
+        expect(body).toEqual({ message: "Invalid client credentials" });
       });
     });
   });

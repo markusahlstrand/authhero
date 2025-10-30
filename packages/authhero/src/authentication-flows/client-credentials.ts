@@ -1,4 +1,4 @@
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { AuthParams } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
@@ -21,14 +21,14 @@ export async function clientCredentialsGrant(
   const client = await ctx.env.data.legacyClients.get(params.client_id);
 
   if (!client) {
-    throw new HTTPException(403, { message: "Invalid client credentials" });
+    throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   }
 
   if (
     client.client_secret &&
     !safeCompare(client.client_secret, params.client_secret)
   ) {
-    throw new HTTPException(403, { message: "Invalid client credentials" });
+    throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   }
 
   const authParams: AuthParams = {

@@ -16,8 +16,8 @@ describe("callback", () => {
     });
 
     expect(response.status).toEqual(403);
-    const responseText = await response.text();
-    expect(responseText).toEqual("State not found");
+    const responseBody = await response.json();
+    expect(responseBody).toEqual({ message: "State not found" });
   });
 
   it("should return a 302 back to universal auth if there's an error", async () => {

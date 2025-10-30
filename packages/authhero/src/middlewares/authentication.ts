@@ -2,6 +2,7 @@ import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { decode, verify } from "hono/jwt";
 import { getJwksFromDatabase } from "../utils/jwks";
 
@@ -61,7 +62,7 @@ async function validateJwtToken(
     const jwksKey = jwksKeys.find((key) => key.kid === header.kid);
 
     if (!jwksKey) {
-      throw new HTTPException(401, { message: "No matching kid found" });
+      throw new JSONHTTPException(401, { message: "No matching kid found" });
     }
 
     // Convert JWKS key to CryptoKey for verification
@@ -81,7 +82,7 @@ async function validateJwtToken(
     if (error instanceof HTTPException) {
       throw error;
     }
-    throw new HTTPException(403, { message: "Invalid JWT signature" });
+    throw new JSONHTTPException(403, { message: "Invalid JWT signature" });
   }
 }
 
@@ -143,7 +144,7 @@ export function createAuthMiddleware(
       const authHeader = ctx.req.header("authorization") || "";
       const [authType, bearer] = authHeader.split(" ");
       if (authType?.toLowerCase() !== "bearer" || !bearer) {
-        throw new HTTPException(401, {
+        throw new JSONHTTPException(401, {
           message: "Missing bearer token",
         });
       }
@@ -174,13 +175,13 @@ export function createAuthMiddleware(
             )
           )
         ) {
-          throw new HTTPException(403, { message: "Unauthorized" });
+          throw new JSONHTTPException(403, { message: "Unauthorized" });
         }
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error;
         }
-        throw new HTTPException(403, { message: "Invalid token" });
+        throw new JSONHTTPException(403, { message: "Invalid token" });
       }
     }
 

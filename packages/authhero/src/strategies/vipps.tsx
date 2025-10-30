@@ -3,7 +3,7 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
@@ -120,7 +120,9 @@ export async function validateAuthorizationCodeAndGetUser(
   );
 
   if (!userInfoResponse.ok) {
-    throw new HTTPException(400, { message: "Failed to get user from vipps" });
+    throw new JSONHTTPException(400, {
+      message: "Failed to get user from vipps",
+    });
   }
 
   const userInfo = await userInfoResponse.json();

@@ -1,5 +1,5 @@
 import { AuthParams } from "@authhero/adapter-interfaces";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getOrCreateUserByProvider } from "../helpers/users";
@@ -14,7 +14,7 @@ function getProviderFromRealm(realm: string) {
     return "email";
   }
 
-  throw new HTTPException(403, { message: "Invalid realm" });
+  throw new JSONHTTPException(403, { message: "Invalid realm" });
 }
 
 export async function ticketAuth(
@@ -30,7 +30,7 @@ export async function ticketAuth(
 
   const code = await env.data.codes.get(tenant_id, ticketId, "ticket");
   if (!code || code.used_at) {
-    throw new HTTPException(403, { message: "Ticket not found" });
+    throw new JSONHTTPException(403, { message: "Ticket not found" });
   }
 
   const loginSession = await env.data.loginSessions.get(
@@ -38,14 +38,14 @@ export async function ticketAuth(
     code.login_id,
   );
   if (!loginSession || !loginSession.authParams.username) {
-    throw new HTTPException(403, { message: "Session not found" });
+    throw new JSONHTTPException(403, { message: "Session not found" });
   }
 
   const client = await env.data.legacyClients.get(
     loginSession.authParams.client_id,
   );
   if (!client) {
-    throw new HTTPException(403, { message: "Client not found" });
+    throw new JSONHTTPException(403, { message: "Client not found" });
   }
   ctx.set("client_id", loginSession.authParams.client_id);
 

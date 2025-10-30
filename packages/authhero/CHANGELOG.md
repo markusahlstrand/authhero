@@ -1,5 +1,11 @@
 # authhero
 
+## 0.259.0
+
+### Minor Changes
+
+- Change errors to return json
+
 ## 0.258.0
 
 ### Minor Changes

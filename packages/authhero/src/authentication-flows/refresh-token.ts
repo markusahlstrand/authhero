@@ -1,4 +1,4 @@
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
@@ -17,7 +17,7 @@ export async function refreshTokenGrant(
 ): Promise<GrantFlowUserResult> {
   const client = await ctx.env.data.legacyClients.get(params.client_id);
   if (!client) {
-    throw new HTTPException(403, { message: "Client not found" });
+    throw new JSONHTTPException(403, { message: "Client not found" });
   }
 
   const refreshToken = await ctx.env.data.refreshTokens.get(
@@ -27,11 +27,9 @@ export async function refreshTokenGrant(
 
   // These error codes should ne 400's according to the OAuth2 spec, but it seems auth0 uses 403's
   if (!refreshToken) {
-    throw new HTTPException(403, {
-      message: JSON.stringify({
-        error: "invalid_grant",
-        error_description: "Invalid refresh token",
-      }),
+    throw new JSONHTTPException(403, {
+      error: "invalid_grant",
+      error_description: "Invalid refresh token",
     });
   } else if (
     (refreshToken.expires_at &&
@@ -39,11 +37,9 @@ export async function refreshTokenGrant(
     (refreshToken.idle_expires_at &&
       new Date(refreshToken.idle_expires_at) < new Date())
   ) {
-    throw new HTTPException(403, {
-      message: JSON.stringify({
-        error: "invalid_grant",
-        error_description: "Refresh token has expired",
-      }),
+    throw new JSONHTTPException(403, {
+      error: "invalid_grant",
+      error_description: "Refresh token has expired",
     });
   }
 
@@ -52,7 +48,7 @@ export async function refreshTokenGrant(
     refreshToken.user_id,
   );
   if (!user) {
-    throw new HTTPException(403, { message: "User not found" });
+    throw new JSONHTTPException(403, { message: "User not found" });
   }
 
   const resourceServer = refreshToken.resource_servers[0];

@@ -69,7 +69,7 @@ export async function createAuthTokens(
   const signingKey = validKeys[validKeys.length - 1];
 
   if (!signingKey?.pkcs7) {
-    throw new HTTPException(500, { message: "No signing key available" });
+    throw new JSONHTTPException(500, { message: "No signing key available" });
   }
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
@@ -152,7 +152,7 @@ export async function createAuthTokens(
         },
         access: {
           deny: (code) => {
-            throw new HTTPException(400, {
+            throw new JSONHTTPException(400, {
               message: `Access denied: ${code}`,
             });
           },
@@ -356,7 +356,7 @@ export async function createFrontChannelAuthResponse(
 
   if (ticketAuth) {
     if (!params.loginSession) {
-      throw new HTTPException(500, {
+      throw new JSONHTTPException(500, {
         message: "Login session not found for ticket auth.",
       });
     }
@@ -405,7 +405,7 @@ export async function createFrontChannelAuthResponse(
   } else if (!session_id) {
     // Scenario 2: Creating a new session
     if (!params.loginSession) {
-      throw new HTTPException(500, {
+      throw new JSONHTTPException(500, {
         message: "Login session not found for creating a new session.",
       });
     }
@@ -474,7 +474,7 @@ export async function createFrontChannelAuthResponse(
 
   if (responseMode === AuthorizationResponseMode.WEB_MESSAGE) {
     if (!authParams.redirect_uri) {
-      throw new HTTPException(400, {
+      throw new JSONHTTPException(400, {
         message: "Redirect URI not allowed for WEB_MESSAGE response mode.",
       });
     }
@@ -510,7 +510,7 @@ export async function createFrontChannelAuthResponse(
   }
 
   if (!authParams.redirect_uri) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: "Redirect uri not found for this response mode.",
     });
   }
@@ -545,7 +545,7 @@ export async function createFrontChannelAuthResponse(
       ...(authParams.scope && { scope: authParams.scope }),
     }).toString();
   } else {
-    throw new HTTPException(500, {
+    throw new JSONHTTPException(500, {
       message: "Invalid token response for implicit flow.",
     });
   }
@@ -697,7 +697,7 @@ export async function completeLogin(
   // Return either code data or tokens based on response type
   if (responseType === AuthorizationResponseType.CODE) {
     if (!user || !params.loginSession) {
-      throw new HTTPException(500, {
+      throw new JSONHTTPException(500, {
         message: "User and loginSession is required for code flow",
       });
     }
