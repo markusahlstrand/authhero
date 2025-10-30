@@ -1,5 +1,11 @@
 # authhero
 
+## 0.261.0
+
+### Minor Changes
+
+- Fix account linking for created password accounts
+
 ## 0.260.0
 
 ### Minor Changes

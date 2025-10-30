@@ -20,7 +20,7 @@ describe("on-post-user-registration-hook", () => {
 
     const token = await getAdminToken();
 
-    // Create a user
+    // Create a user via Management API
     const userResponse = await client.users.$post(
       {
         json: {
@@ -39,6 +39,8 @@ describe("on-post-user-registration-hook", () => {
 
     expect(userResponse.status).toBe(201);
 
+    // The hook should fire once when the user is created
     expect(events.length).toBe(1);
+    expect(events[0]?.user.email).toBe("foo2@example.com");
   });
 });
