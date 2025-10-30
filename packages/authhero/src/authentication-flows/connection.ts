@@ -4,7 +4,7 @@ import {
   LegacyClient,
   LogTypes,
 } from "@authhero/adapter-interfaces";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { createLogMessage } from "../utils/create-log-message";
 import { stringifyAuth0Client } from "../utils/client-info";
 import { Bindings, Variables } from "../types";
@@ -26,7 +26,7 @@ export async function connectionAuth(
   authParams: AuthParams,
 ) {
   if (!authParams.state) {
-    throw new HTTPException(400, { message: "State not found" });
+    throw new JSONHTTPException(400, { message: "State not found" });
   }
 
   const connection = client.connections.find((p) => p.name === connectionName);
@@ -39,7 +39,7 @@ export async function connectionAuth(
     });
     waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
-    throw new HTTPException(403, { message: "Connection Not Found" });
+    throw new JSONHTTPException(403, { message: "Connection Not Found" });
   }
 
   let loginSession = await ctx.env.data.loginSessions.get(
@@ -105,7 +105,7 @@ export async function connectionCallback(
     "oauth2_state",
   );
   if (!auth0state || !auth0state.connection_id) {
-    throw new HTTPException(403, { message: "State not found" });
+    throw new JSONHTTPException(403, { message: "State not found" });
   }
 
   const loginSession = await env.data.loginSessions.get(
@@ -113,7 +113,7 @@ export async function connectionCallback(
     auth0state.login_id,
   );
   if (!loginSession) {
-    throw new HTTPException(403, { message: "Session not found" });
+    throw new JSONHTTPException(403, { message: "Session not found" });
   }
 
   // Check if the login was initiated from a custom domain that doesn't match the current request
@@ -160,7 +160,7 @@ export async function connectionCallback(
       description: "Connection not found",
     });
     waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
-    throw new HTTPException(403, { message: "Connection not found" });
+    throw new JSONHTTPException(403, { message: "Connection not found" });
   }
 
   ctx.set("connection", connection.name);
@@ -171,7 +171,7 @@ export async function connectionCallback(
       description: "Redirect URI not defined",
     });
     waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
-    throw new HTTPException(403, { message: "Redirect URI not defined" });
+    throw new JSONHTTPException(403, { message: "Redirect URI not defined" });
   }
 
   const strategy = getStrategy(ctx, connection.strategy);

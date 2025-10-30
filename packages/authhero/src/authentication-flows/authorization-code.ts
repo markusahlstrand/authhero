@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception";
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
 import { JSONHTTPException } from "../errors/json-http-exception";
@@ -51,7 +50,7 @@ export async function authorizationCodeGrantUser(
 ): Promise<GrantFlowUserResult> {
   const client = await ctx.env.data.legacyClients.get(params.client_id);
   if (!client) {
-    throw new HTTPException(403, { message: "Client not found" });
+    throw new JSONHTTPException(403, { message: "Client not found" });
   }
 
   const code = await ctx.env.data.codes.get(
@@ -66,7 +65,7 @@ export async function authorizationCodeGrantUser(
       description: "Invalid client credentials",
     });
     waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
-    throw new HTTPException(403, { message: "Invalid client credentials" });
+    throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   } else if (new Date(code.expires_at) < new Date()) {
     const log = createLogMessage(ctx, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
@@ -74,7 +73,7 @@ export async function authorizationCodeGrantUser(
       userId: code.user_id,
     });
     waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
-    throw new HTTPException(403, { message: "Code expired" });
+    throw new JSONHTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
     const log = createLogMessage(ctx, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
@@ -94,7 +93,7 @@ export async function authorizationCodeGrantUser(
   );
 
   if (!loginSession) {
-    throw new HTTPException(403, { message: "Invalid login" });
+    throw new JSONHTTPException(403, { message: "Invalid login" });
   }
 
   // Validate organization parameter matches login session organization
@@ -126,7 +125,9 @@ export async function authorizationCodeGrantUser(
         userId: code.user_id,
       });
       waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
-      throw new HTTPException(403, { message: "Invalid client credentials" });
+      throw new JSONHTTPException(403, {
+        message: "Invalid client credentials",
+      });
     }
   } else if (
     code.code_challenge &&
@@ -145,7 +146,9 @@ export async function authorizationCodeGrantUser(
         userId: code.user_id,
       });
       waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
-      throw new HTTPException(403, { message: "Invalid client credentials" });
+      throw new JSONHTTPException(403, {
+        message: "Invalid client credentials",
+      });
     }
   }
 
@@ -157,12 +160,12 @@ export async function authorizationCodeGrantUser(
       userId: code.user_id,
     });
     waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
-    throw new HTTPException(403, { message: "Invalid redirect uri" });
+    throw new JSONHTTPException(403, { message: "Invalid redirect uri" });
   }
 
   const user = await ctx.env.data.users.get(client.tenant.id, code.user_id);
   if (!user) {
-    throw new HTTPException(403, { message: "User not found" });
+    throw new JSONHTTPException(403, { message: "User not found" });
   }
 
   await ctx.env.data.codes.used(client.tenant.id, params.code);

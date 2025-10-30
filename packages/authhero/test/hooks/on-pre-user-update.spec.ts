@@ -127,8 +127,8 @@ describe("on-pre-user-update-hook", () => {
     // The update should be rejected
     expect(updateUserResponse.status).toBe(400);
 
-    const errorResponse = await updateUserResponse.text();
-    expect(errorResponse).toBe("Pre user update hook failed");
+    const errorResponse = await updateUserResponse.json();
+    expect(errorResponse).toEqual({ message: "Pre user update hook failed" });
 
     // Verify the user was not updated by fetching it again
     const getUserResponse = await client.users[":user_id"].$get(

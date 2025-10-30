@@ -13,6 +13,7 @@ import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { createLogMessage } from "../utils/create-log-message";
 import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
@@ -56,7 +57,7 @@ function createUserHooks(
       const client = await data.legacyClients.get(ctx.var.client_id);
 
       if (!client) {
-        throw new HTTPException(400, {
+        throw new JSONHTTPException(400, {
           message: "Client not found",
         });
       }
@@ -148,7 +149,7 @@ function createUserUpdateHooks(
     const user = await data.users.get(tenant_id, user_id);
 
     if (!user) {
-      throw new HTTPException(404, {
+      throw new JSONHTTPException(404, {
         message: "User not found",
       });
     }
@@ -180,7 +181,7 @@ function createUserUpdateHooks(
               },
             },
             cancel: () => {
-              throw new HTTPException(400, {
+              throw new JSONHTTPException(400, {
                 message: "User update cancelled by pre-update hook",
               });
             },
@@ -188,7 +189,7 @@ function createUserUpdateHooks(
           },
         );
       } catch (err) {
-        throw new HTTPException(400, {
+        throw new JSONHTTPException(400, {
           message: "Pre user update hook failed",
         });
       }
@@ -305,7 +306,7 @@ export async function preUserSignupHook(
     });
     waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: validation.reason || "Signups are disabled for this client",
     });
   }
@@ -350,7 +351,7 @@ function createUserDeletionHooks(
           },
           {
             cancel: () => {
-              throw new HTTPException(400, {
+              throw new JSONHTTPException(400, {
                 message: "User deletion cancelled by pre-deletion hook",
               });
             },
@@ -366,7 +367,7 @@ function createUserDeletionHooks(
           description: `Pre user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
         waitUntil(ctx, data.logs.create(tenant_id, log));
-        throw new HTTPException(400, {
+        throw new JSONHTTPException(400, {
           message: "Pre user deletion hook failed",
         });
       }

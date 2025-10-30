@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../../errors/json-http-exception";
 import { getCookie } from "hono/cookie";
 import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
@@ -21,7 +21,7 @@ export async function initJSXRoute(
   );
 
   if (!loginSession) {
-    throw new HTTPException(400, { message: "Login session not found" });
+    throw new JSONHTTPException(400, { message: "Login session not found" });
   }
 
   ctx.set("loginSession", loginSession);
@@ -53,11 +53,11 @@ export async function initJSXRoute(
 
   const tenant = await env.data.tenants.get(client.tenant.id);
   if (!tenant) {
-    throw new HTTPException(400, { message: "Tenant not found" });
+    throw new JSONHTTPException(400, { message: "Tenant not found" });
   } else if (loginSession.session_id && !allowSession) {
     // Return redirect response with error parameters as per RFC 6749 section 4.1.2.1
     if (!loginSession.authParams.redirect_uri) {
-      throw new HTTPException(400, {
+      throw new JSONHTTPException(400, {
         message: "Login session closed and no redirect URI available",
       });
     }

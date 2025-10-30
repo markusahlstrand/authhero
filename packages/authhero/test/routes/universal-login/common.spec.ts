@@ -181,7 +181,7 @@ describe("initJSXRoute", () => {
         expect(error).toBeInstanceOf(HTTPException);
         expect((error as HTTPException).status).toBe(400);
         expect((error as HTTPException).message).toBe(
-          "Login session not found",
+          '{"message":"Login session not found"}',
         );
       }
     });

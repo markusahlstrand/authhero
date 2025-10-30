@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
 import { authParamsSchema } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
@@ -38,33 +38,33 @@ export async function passwordlessGrantUser(
   );
 
   if (!normalized) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: "Invalid username format",
     });
   }
 
   const client = await ctx.env.data.legacyClients.get(client_id);
   if (!client) {
-    throw new HTTPException(403, { message: "Client not found" });
+    throw new JSONHTTPException(403, { message: "Client not found" });
   }
 
   const { env } = ctx;
   const code = await env.data.codes.get(client.tenant.id, otp, "otp");
 
   if (!code) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: t("code_invalid"),
     });
   }
 
   if (code.expires_at < new Date().toISOString()) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: t("code_expired"),
     });
   }
 
   if (code.used_at) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: t("code_used"),
     });
   }
@@ -75,7 +75,7 @@ export async function passwordlessGrantUser(
   );
 
   if (!loginSession || loginSession.authParams.username !== username) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: "Code not found or expired",
     });
   }

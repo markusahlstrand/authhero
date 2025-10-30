@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { AuthParams, LegacyClient, User } from "@authhero/adapter-interfaces";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 // Use core import to avoid xml-crypto dependency
 import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
 
@@ -49,13 +49,13 @@ export async function samlCallback(
   sid: string,
 ) {
   if (!authParams.redirect_uri) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: "Missing redirect_uri in authParams",
     });
   }
 
   if (!user.email) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: "Missing email in user",
     });
   }
@@ -66,13 +66,13 @@ export async function samlCallback(
 
   const [signingKey] = signingKeys;
   if (!signingKey) {
-    throw new HTTPException(500, {
+    throw new JSONHTTPException(500, {
       message: "No signing key found",
     });
   }
 
   if (!client.addons?.samlp) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: `SAML Addon is not enabled for client ${client.client_id}`,
     });
   }
@@ -81,7 +81,7 @@ export async function samlCallback(
   const inResponseTo = authParams.state || "";
 
   if (!recipient || !inResponseTo || !user || !authParams.state) {
-    throw new HTTPException(400, {
+    throw new JSONHTTPException(400, {
       message: `Missing recipient or inResponseTo`,
     });
   }

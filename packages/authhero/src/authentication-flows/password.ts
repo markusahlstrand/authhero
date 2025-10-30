@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import bcryptjs from "bcryptjs";
 import { createLogMessage } from "../utils/create-log-message";
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import {
   AuthParams,
   LegacyClient,
@@ -34,7 +34,7 @@ export async function passwordGrant(
   const { username } = authParams;
   ctx.set("username", username);
   if (!username) {
-    throw new HTTPException(400, { message: "Username is required" });
+    throw new JSONHTTPException(400, { message: "Username is required" });
   }
 
   const user = await getUserByProvider({

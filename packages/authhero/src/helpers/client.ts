@@ -1,4 +1,4 @@
-import { HTTPException } from "hono/http-exception";
+import { JSONHTTPException } from "../errors/json-http-exception";
 import {
   LegacyClient,
   connectionOptionsSchema,
@@ -13,7 +13,7 @@ export async function getClientWithDefaults(
 ): Promise<LegacyClient> {
   const client = await env.data.legacyClients.get(clientId);
   if (!client) {
-    throw new HTTPException(403, { message: "Client not found" });
+    throw new JSONHTTPException(403, { message: "Client not found" });
   }
 
   // Check if we have default tenant/client configuration for backward compatibility
