@@ -1,5 +1,11 @@
 # authhero
 
+## 0.260.0
+
+### Minor Changes
+
+- Use authorization type form authorize request when impersonating
+
 ## 0.259.0
 
 ### Minor Changes

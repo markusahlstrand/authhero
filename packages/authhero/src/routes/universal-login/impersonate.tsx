@@ -10,11 +10,7 @@ import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { createLogMessage } from "../../utils/create-log-message";
 import { waitUntil } from "../../helpers/wait-until";
-import {
-  LogTypes,
-  AuthorizationResponseType,
-  AuthorizationResponseMode,
-} from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 
 export const impersonateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -363,14 +359,10 @@ export const impersonateRoutes = new OpenAPIHono<{
       waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
 
       // Continue with the authentication flow using the impersonated user
-      // Force response_type to token_id_token for impersonation to include act claim immediately
+      // Use the original response_type and response_mode from the authorize request
       return createFrontChannelAuthResponse(ctx, {
         client,
-        authParams: {
-          ...loginSession.authParams,
-          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
-          response_mode: AuthorizationResponseMode.QUERY,
-        },
+        authParams: loginSession.authParams,
         loginSession,
         user: targetUser,
         sessionId: currentSession.id,
