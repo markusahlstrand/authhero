@@ -851,7 +851,7 @@ describe("impersonation routes", () => {
           scope: "openid profile email",
           audience: "https://api.example.com/",
           redirect_uri: "https://example.com/callback",
-          response_type: AuthorizationResponseType.CODE,
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
         },
       });
 
@@ -1004,6 +1004,203 @@ describe("impersonation routes", () => {
       expect(impersonationLog?.description).toContain("target456@example.com");
       expect(impersonationLog?.description).toContain("impersonated by");
       expect(impersonationLog?.description).toContain("admin456@example.com");
+    });
+
+    it("should respect the original response_type from authorize request (authorization code flow)", async () => {
+      const { universalApp, env } = await getTestServer();
+      const universalClient = testClient(universalApp, env);
+
+      // Create admin user with impersonation permission
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|admin-code-flow",
+        email: "admin-code@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      await env.data.userPermissions.create(
+        "tenantId",
+        "auth2|admin-code-flow",
+        {
+          user_id: "auth2|admin-code-flow",
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
+
+      // Create target user to impersonate
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|target-code-flow",
+        email: "target-code@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Create login session with CODE response_type (authorization code flow)
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          scope: "openid profile email",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE, // Authorization code flow
+          state: "original-state",
+        },
+      });
+
+      // Create a session for admin user
+      const session = await env.data.sessions.create("tenantId", {
+        id: "session-code-flow",
+        user_id: "auth2|admin-code-flow",
+        login_session_id: loginSession.id,
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Link session to login session
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: session.id,
+      });
+
+      // Perform impersonation
+      const response = await universalClient.impersonate.switch.$post({
+        query: { state: loginSession.id },
+        form: { user_id: "auth2|target-code-flow" },
+      });
+
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUrl = new URL(location!);
+
+      // IMPORTANT: Should redirect with authorization code, NOT tokens in fragment
+      // The original request used response_type=code, so impersonation should respect that
+      expect(redirectUrl.searchParams.get("code")).toBeTruthy();
+      expect(redirectUrl.searchParams.get("state")).toBe("original-state");
+
+      // Should NOT have tokens in the URL fragment (that's implicit flow)
+      expect(redirectUrl.hash).toBe("");
+
+      // Verify no access_token in query or fragment
+      expect(redirectUrl.searchParams.get("access_token")).toBeNull();
+      expect(redirectUrl.hash).not.toContain("access_token");
+    });
+
+    it("should respect the original response_type from authorize request (implicit flow)", async () => {
+      const { universalApp, env } = await getTestServer();
+      const universalClient = testClient(universalApp, env);
+
+      // Create admin user with impersonation permission
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|admin-implicit-flow",
+        email: "admin-implicit@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      await env.data.userPermissions.create(
+        "tenantId",
+        "auth2|admin-implicit-flow",
+        {
+          user_id: "auth2|admin-implicit-flow",
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
+
+      // Create target user to impersonate
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|target-implicit-flow",
+        email: "target-implicit@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Create login session with TOKEN_ID_TOKEN response_type (implicit flow)
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          scope: "openid profile email",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN, // Implicit flow
+          state: "original-state-implicit",
+        },
+      });
+
+      // Create a session for admin user
+      const session = await env.data.sessions.create("tenantId", {
+        id: "session-implicit-flow",
+        user_id: "auth2|admin-implicit-flow",
+        login_session_id: loginSession.id,
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Link session to login session
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: session.id,
+      });
+
+      // Perform impersonation
+      const response = await universalClient.impersonate.switch.$post({
+        query: { state: loginSession.id },
+        form: { user_id: "auth2|target-implicit-flow" },
+      });
+
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUrl = new URL(location!);
+
+      // Should have tokens in the URL fragment (implicit flow)
+      expect(redirectUrl.hash).toContain("access_token");
+      
+      // In implicit flow, state is in the fragment, not search params
+      const fragmentParams = new URLSearchParams(redirectUrl.hash.substring(1));
+      expect(fragmentParams.get("state")).toBe("original-state-implicit");
+
+      // Should NOT have an authorization code
+      expect(redirectUrl.searchParams.get("code")).toBeNull();
+
+      // Parse the access token and verify act claim is still present
+      const accessTokenValue = fragmentParams.get("access_token");
+      expect(accessTokenValue).toBeTruthy();
+
+      const accessToken = parseJWT(accessTokenValue!);
+      const payload = accessToken?.payload as any;
+
+      // Verify the token is for the target user with act claim
+      expect(payload.sub).toBe("auth2|target-implicit-flow");
+      expect(payload.act).toEqual({ sub: "auth2|admin-implicit-flow" });
     });
   });
 });
