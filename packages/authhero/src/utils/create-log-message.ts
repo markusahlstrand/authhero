@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { Log, LogType } from "@authhero/adapter-interfaces";
+import { LogInsert, LogType } from "@authhero/adapter-interfaces";
 import { Variables, Bindings } from "../types";
 
 export type LogParams = {
@@ -18,7 +18,7 @@ export function createLogMessage(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: LogParams,
 ) {
-  const log: Log = {
+  const log: LogInsert = {
     type: params.type,
     description: params.description || "",
     ip: ctx.var.ip,

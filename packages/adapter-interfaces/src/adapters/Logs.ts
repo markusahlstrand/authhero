@@ -1,12 +1,12 @@
-import { LogsResponse, Log, Totals } from "../types";
+import { Log, LogInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
 
 interface ListLogsResponse extends Totals {
-  logs: LogsResponse[];
+  logs: Log[];
 }
 
 export interface LogsDataAdapter {
-  create(tenantId: string, params: Log): Promise<Log>;
+  create(tenantId: string, params: LogInsert): Promise<Log>;
   list(tenantId: string, params?: ListParams): Promise<ListLogsResponse>;
-  get(tenantId: string, logId: string): Promise<LogsResponse | null>;
+  get(tenantId: string, logId: string): Promise<Log | null>;
 }
