@@ -1,5 +1,5 @@
-import { LogsResponse } from "@authhero/adapter-interfaces";
-import { SqlLog } from "./Log";
+import { Log } from "@authhero/adapter-interfaces";
+import { Database } from "../db";
 
 function tryParseJSON(jsonString?: string): any {
   if (!jsonString) {
@@ -13,8 +13,8 @@ function tryParseJSON(jsonString?: string): any {
   }
 }
 
-export function getLogResponse(log: SqlLog): LogsResponse {
-  const logResponse: LogsResponse = {
+export function getLogResponse(log: Database["logs"]): Log {
+  const logResponse: Log = {
     ...log,
     client_id: log.client_id,
     client_name: "",
@@ -23,7 +23,6 @@ export function getLogResponse(log: SqlLog): LogsResponse {
     isMobile: !!log.isMobile,
     scope: log.scope ? log.scope.split(",") : undefined,
     log_id: log.id,
-    _id: log.id,
   };
   return logResponse;
 }

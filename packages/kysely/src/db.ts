@@ -8,6 +8,7 @@ import {
   emailProviderSchema,
   formSchema,
   loginSessionSchema,
+  logSchema,
   organizationSchema,
   Password,
   promptSettingSchema,
@@ -19,7 +20,6 @@ import {
   resourceServerSchema,
   roleSchema,
 } from "@authhero/adapter-interfaces";
-import { SqlLog } from "./logs/Log";
 import { flattenSchema } from "./utils/flatten";
 
 const sqlThemeSchema = flattenSchema(themeSchema).extend({
@@ -109,6 +109,31 @@ const sqlFormSchema = z.object({
   nodes: z.string().optional().default("[]"),
   start: z.string().optional().default("{}"),
   ending: z.string().optional().default("{}"),
+});
+
+const sqlLogSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  type: logSchema.shape.type,
+  date: z.string(),
+  description: z.string().optional(),
+  ip: z.string(),
+  user_agent: z.string(),
+  details: z.string().optional(),
+  auth0_client: z.string().optional(),
+  isMobile: z.number().optional(),
+  user_id: z.string().optional(),
+  user_name: z.string().optional(),
+  connection: z.string().optional(),
+  connection_id: z.string().optional(),
+  client_id: z.string().optional(),
+  client_name: z.string().optional(),
+  audience: z.string().optional(),
+  scope: z.string().optional(),
+  strategy: z.string().optional(),
+  strategy_type: z.string().optional(),
+  hostname: z.string().optional(),
+  session_connection: z.string().optional(),
 });
 
 export const sqlResourceServerSchema = z
@@ -345,7 +370,7 @@ export interface Database {
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
   login_sessions: z.infer<typeof sqlLoginSchema>;
-  logs: SqlLog;
+  logs: z.infer<typeof sqlLogSchema>;
   passwords: Password & { tenant_id: string };
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;

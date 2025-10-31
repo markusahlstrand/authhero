@@ -206,12 +206,10 @@ export const Auth0Client = z.object({
     .optional(),
 });
 
-export const logSchema = z.object({
+export const logInsertSchema = z.object({
   type: LogType,
   date: z.string(),
   description: z.string().optional(),
-  log_id: z.string().optional(),
-  _id: z.string().optional(),
   ip: z.string(),
   user_agent: z.string(),
   details: z.any().optional(), // Using z.any() as a placeholder for "details" type
@@ -228,11 +226,14 @@ export const logSchema = z.object({
   strategy_type: z.string().optional(),
   hostname: z.string().optional(),
   auth0_client: Auth0Client.optional(),
+  log_id: z.string().optional(),
+});
+
+export type LogInsert = z.infer<typeof logInsertSchema>;
+
+export const logSchema = z.object({
+  ...logInsertSchema.shape,
+  log_id: z.string(),
 });
 
 export type Log = z.infer<typeof logSchema>;
-
-export type LogsResponse = Log & {
-  log_id: string;
-  _id: string;
-};

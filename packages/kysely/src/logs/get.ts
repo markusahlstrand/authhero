@@ -1,13 +1,10 @@
 import { Kysely } from "kysely";
-import { LogsResponse } from "@authhero/adapter-interfaces";
+import { Log } from "@authhero/adapter-interfaces";
 import { getLogResponse } from "./logs";
 import { Database } from "../db";
 
 export function getLogs(db: Kysely<Database>) {
-  return async (
-    tenantId: string,
-    logId: string,
-  ): Promise<LogsResponse | null> => {
+  return async (tenantId: string, logId: string): Promise<Log | null> => {
     const log = await db
       .selectFrom("logs")
       .where("logs.tenant_id", "=", tenantId)

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.97.0
+
+### Minor Changes
+
+- Update the logs schemas
+
 ## 0.96.0
 
 ### Minor Changes
