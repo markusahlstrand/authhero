@@ -140,10 +140,28 @@ export const identifierRoutes = new OpenAPIHono<{
           vendorCountryCode || countryCode,
         );
 
-      if (
-        !client.connections.find((c) => c.strategy === connectionType) ||
-        !username
-      ) {
+      // Get the user first to check app_metadata.strategy
+      const user = username
+        ? await getPrimaryUserByProvider({
+            userAdapter: env.data.users,
+            tenant_id: client.tenant.id,
+            username,
+            provider: connectionType,
+          })
+        : null;
+
+      // Check if user has password strategy set, even if there's no password connection
+      const hasPasswordStrategy =
+        user?.app_metadata.strategy === "Username-Password-Authentication";
+
+      // Allow connection if:
+      // 1. There's a matching connection on the client, OR
+      // 2. User has password strategy and we're dealing with email connection
+      const hasValidConnection =
+        client.connections.find((c) => c.strategy === connectionType) ||
+        (hasPasswordStrategy && connectionType === "email");
+
+      if (!hasValidConnection || !username) {
         if (useShadcn) {
           return ctx.html(
             <AuthLayout
@@ -177,13 +195,6 @@ export const identifierRoutes = new OpenAPIHono<{
           400,
         );
       }
-
-      const user = await getPrimaryUserByProvider({
-        userAdapter: env.data.users,
-        tenant_id: client.tenant.id,
-        username,
-        provider: connectionType,
-      });
       if (user) {
         ctx.set("user_id", user.user_id);
       }

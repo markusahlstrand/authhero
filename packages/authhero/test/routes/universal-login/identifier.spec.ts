@@ -163,4 +163,74 @@ describe("login identifier page", () => {
     const redirectLocation = validEmailResponse.headers.get("location");
     expect(redirectLocation).toContain("/u/enter-code");
   });
+
+  it("should allow password login when user has password strategy even without password connection", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+
+    // Create a user with password strategy in app_metadata
+    await env.data.users.create("tenantId", {
+      user_id: "email|userWithPassword",
+      email: "user@example.com",
+      name: "Test User",
+      provider: "email",
+      connection: "email",
+      email_verified: false,
+      is_social: false,
+      login_count: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      app_metadata: {
+        strategy: "Username-Password-Authentication",
+      },
+    });
+
+    // Create a client WITHOUT password connection (only email connection)
+    // Note: The test server already creates an email connection, so we just create a new client
+    await env.data.clients.create("tenantId", {
+      client_id: "clientWithOnlyEmail",
+      name: "Test Client Without Password",
+      callbacks: ["https://example.com/callback"],
+      allowed_logout_urls: ["https://example.com/callback"],
+      web_origins: ["https://example.com"],
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Start OAuth authorization flow with client that has no password connection
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientWithOnlyEmail",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // --------------------------------
+    // POST email of user with password strategy
+    // --------------------------------
+    const identifierResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "user@example.com" },
+    });
+
+    // Should redirect to password page even without password connection on the client
+    // because the user has app_metadata.strategy set to "Username-Password-Authentication"
+    expect(identifierResponse.status).toBe(302);
+    const redirectLocation = identifierResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u/enter-password");
+  });
 });

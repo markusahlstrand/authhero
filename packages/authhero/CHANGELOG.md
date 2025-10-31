@@ -1,5 +1,11 @@
 # authhero
 
+## 0.262.0
+
+### Minor Changes
+
+- Check for password identity on login
+
 ## 0.261.1
 
 ### Patch Changes
