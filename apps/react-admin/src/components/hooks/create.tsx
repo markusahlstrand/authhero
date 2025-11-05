@@ -68,9 +68,14 @@ export function HooksCreate() {
         <SelectInput
           source="trigger_id"
           choices={[
+            { id: "validate-signup-email", name: "Validate Signup Email" },
             { id: "pre-user-signup", name: "Pre User Signup" },
+            { id: "pre-user-registration", name: "Pre User Registration" },
             { id: "post-user-registration", name: "Post User Registration" },
             { id: "post-user-login", name: "Post User Login" },
+            { id: "pre-user-update", name: "Pre User Update" },
+            { id: "pre-user-deletion", name: "Pre User Deletion" },
+            { id: "post-user-deletion", name: "Post User Deletion" },
           ]}
           required
         />

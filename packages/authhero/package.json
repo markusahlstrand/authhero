@@ -1,5 +1,16 @@
 {
   "name": "authhero",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
   "version": "0.262.0",
   "files": [
     "dist"

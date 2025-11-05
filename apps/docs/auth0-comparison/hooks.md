@@ -2,11 +2,16 @@
 
 Auth0 made the decision to deprecate its Hooks feature in October 2024, moving towards Actions as the primary way to customize authentication flows. While Actions offer powerful capabilities, AuthHero continues to support a flexible Hooks system that provides distinct advantages, especially for certain use cases.
 
+::: tip Complete Hooks Documentation
+For comprehensive documentation on hooks including lifecycle, configuration, payloads, and examples, see the [Hooks Guide](../guides/hooks.md).
+:::
+
 ## Quick Comparison
 
 | Feature                    | Auth0 Actions             | AuthHero Hooks       |
 | -------------------------- | ------------------------- | -------------------- |
 | **Status**                 | Active (Hooks deprecated) | Active & expanding   |
+| **Validate Signup Email**  | ❌ Not available          | ✅ **AuthHero-only** |
 | **Pre-User Registration**  | ✅                        | ✅                   |
 | **Post-User Registration** | ✅                        | ✅                   |
 | **Post-Login**             | ✅                        | ✅                   |
@@ -17,16 +22,129 @@ Auth0 made the decision to deprecate its Hooks feature in October 2024, moving t
 | **Form Rendering**         | ❌                        | ✅ **AuthHero-only** |
 | **URL Webhooks**           | ✅                        | ✅                   |
 
-::: tip User Deletion Hooks - AuthHero Exclusive
-Auth0 does not provide action triggers for user deletion, making it difficult to:
+::: tip AuthHero Exclusive Features
+AuthHero provides several hooks not available in Auth0:
 
-- Validate deletion requests based on business rules
-- Clean up related data in external systems
-- Send deletion notifications to users
-- Maintain proper audit trails for GDPR/compliance
+- **Validate Signup Email**: Check if signup is allowed before creating user
+- **Pre/Post User Deletion**: Full control over user deletion lifecycle
+- **Form Rendering**: Present custom forms directly in authentication flow
+- **Pre-User Update**: Validate and modify all user updates
+  :::
 
-AuthHero solves this with both **pre** and **post** deletion hooks, giving you full control over the user deletion lifecycle.
-:::
+## Supported Trigger IDs
+
+AuthHero supports the following trigger points for hooks:
+
+### Via Management API (URL/Form/Page Hooks)
+
+- `validate-signup-email` - Validate if email can sign up (before user exists)
+- `pre-user-signup` - Before user creation
+- `pre-user-registration` - Before user creation (alternative trigger)
+- `post-user-registration` - After user creation
+- `post-user-login` - After authentication
+
+### Via Code (Programmatic Hooks)
+
+- `onExecuteValidateSignupEmail` - Validate signup eligibility
+- `onExecutePreUserRegistration` - Before user creation
+- `onExecutePostUserRegistration` - After user creation
+- `onExecutePostLogin` - After authentication
+- `onExecutePreUserUpdate` - Before user updates
+- `onExecutePreUserDeletion` - Before user deletion
+- `onExecutePostUserDeletion` - After user deletion
+- `onExecuteCredentialsExchange` - During token exchange
+
+For detailed information on each hook including payloads, API methods, and examples, see the [Hooks Guide](../guides/hooks.md).
+
+## Key Architectural Differences
+
+### Hook Types
+
+AuthHero supports multiple hook types:
+
+1. **Code-Based Hooks**: Functions defined in application initialization
+2. **URL Hooks (Webhooks)**: HTTP endpoints called at trigger points
+3. **Form Hooks**: Render custom forms in the authentication flow
+4. **Page Hooks**: Redirect to custom pages with permission checks
+
+Auth0 Actions primarily focus on code-based actions with limited webhook support.
+
+### Synchronous vs. Asynchronous
+
+| Hook Type                       | Execution | Can Block Flow |
+| ------------------------------- | --------- | -------------- |
+| Validate Signup Email           | Sync      | ✅ Yes         |
+| Pre-User Registration           | Sync      | ✅ Yes         |
+| Post-User Registration          | Async     | ❌ No          |
+| Post-Login (code/form/page)     | Sync      | ✅ Yes         |
+| Post-Login (webhooks)           | Async     | ❌ No          |
+| Pre-User Update                 | Sync      | ✅ Yes         |
+| Pre-User Deletion               | Sync      | ✅ Yes         |
+| Post-User Deletion              | Async     | ❌ No          |
+| Post-User Registration Webhooks | Async     | ❌ No          |
+
+See the [Hook Execution Order](../guides/hooks.md#hook-execution-order-summary) section for complete lifecycle details.
+
+## Configuration Methods
+
+### Via Code (Initialization)
+
+```typescript
+const authhero = new AuthHero({
+  hooks: {
+    onExecuteValidateSignupEmail: async (event, api) => {
+      // Validate signup
+    },
+    onExecutePostLogin: async (event, api) => {
+      // Handle post-login
+    },
+    // ... other hooks
+  },
+});
+```
+
+### Via Management API
+
+```bash
+# Create webhook
+POST /api/v2/hooks
+{
+  "name": "Post-Login Webhook",
+  "trigger_id": "post-user-login",
+  "url": "https://api.example.com/hooks",
+  "enabled": true
+}
+
+# Create form hook
+POST /api/v2/hooks
+{
+  "trigger_id": "post-user-login",
+  "form_id": "form_123",
+  "enabled": true
+}
+```
+
+For complete configuration examples, see the [Hooks Guide Configuration Section](../guides/hooks.md#configuration).
+
+## Migration from Auth0
+
+If you're migrating from Auth0 Actions to AuthHero Hooks:
+
+1. **Post-Login Actions** → `onExecutePostLogin` (Auth0-compatible API)
+2. **Pre-User Registration** → `onExecutePreUserRegistration`
+3. **Post-User Registration** → `onExecutePostUserRegistration`
+4. **Credentials Exchange** → `onExecuteCredentialsExchange`
+
+AuthHero's `onExecutePostLogin` hook provides an Auth0-compatible event object and API, making migration straightforward.
+
+## Additional Resources
+
+- [Hooks Guide](../guides/hooks.md) - Complete hooks documentation
+- [Hook Lifecycle](../guides/hooks.md#hook-lifecycle) - Detailed execution flow
+- [Hook Types](../guides/hooks.md#hook-types) - Code, webhooks, forms, and pages
+- [API Objects](../guides/hooks.md#api-objects) - Available APIs in each hook
+- [Best Practices](../guides/hooks.md#best-practices) - Implementation guidelines
+- [Common Use Cases](../guides/hooks.md#common-use-cases) - Real-world examples
 
 ## AuthHero's Approach to Hooks
 

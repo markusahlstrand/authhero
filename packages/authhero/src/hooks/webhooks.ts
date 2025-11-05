@@ -93,3 +93,17 @@ export function postUserLoginWebhook(
     return user;
   };
 }
+
+export async function getValidateSignupEmailWebhook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenant_id: string,
+): Promise<Hook | null> {
+  const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
+    q: "trigger_id:validate-signup-email",
+    page: 0,
+    per_page: 1,
+    include_totals: false,
+  });
+
+  return hooks.find((h) => "url" in h && h.enabled) || null;
+}

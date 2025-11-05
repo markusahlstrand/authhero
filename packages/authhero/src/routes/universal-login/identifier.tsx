@@ -5,7 +5,7 @@ import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
 import AuthLayout from "../../components/AuthLayout";
 import { getPrimaryUserByProvider } from "../../helpers/users";
-import { preUserSignupHook } from "../../hooks";
+import { validateSignupEmail } from "../../hooks";
 import { createLogMessage } from "../../utils/create-log-message";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
@@ -200,12 +200,18 @@ export const identifierRoutes = new OpenAPIHono<{
       }
 
       if (!user) {
-        try {
-          await preUserSignupHook(ctx, client, ctx.env.data, username);
-        } catch {
+        const validation = await validateSignupEmail(
+          ctx,
+          client,
+          ctx.env.data,
+          username,
+          connectionType,
+        );
+
+        if (!validation.allowed) {
           const log = createLogMessage(ctx, {
             type: LogTypes.FAILED_SIGNUP,
-            description: "Public signup is disabled",
+            description: validation.reason || "Public signup is disabled",
           });
 
           waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));

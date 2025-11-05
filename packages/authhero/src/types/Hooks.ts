@@ -214,3 +214,15 @@ export type OnExecutePostUserDeletion = (
   event: HookEvent & { user_id: string },
   api: OnExecutePostUserDeletionAPI,
 ) => Promise<void>;
+
+export type OnExecuteValidateSignupEmailAPI = {
+  deny: (reason?: string) => void;
+  token: TokenAPI;
+};
+
+export type OnExecuteValidateSignupEmail = (
+  event: Omit<HookEvent, "user"> & {
+    user: { email: string; connection: string };
+  },
+  api: OnExecuteValidateSignupEmailAPI,
+) => Promise<void>;

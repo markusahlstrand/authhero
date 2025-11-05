@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 
@@ -164,45 +164,24 @@ describe("login identifier page", () => {
     expect(redirectLocation).toContain("/u/enter-code");
   });
 
-  it("should allow password login when user has password strategy even without password connection", async () => {
+  it("should call validateSignupEmail hook when user doesn't exist", async () => {
+    const validateSignupEmailSpy = vi.fn(async () => {
+      // Hook allows signup by not calling api.deny()
+    });
+
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
-    });
-
-    // Create a user with password strategy in app_metadata
-    await env.data.users.create("tenantId", {
-      user_id: "email|userWithPassword",
-      email: "user@example.com",
-      name: "Test User",
-      provider: "email",
-      connection: "email",
-      email_verified: false,
-      is_social: false,
-      login_count: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      app_metadata: {
-        strategy: "Username-Password-Authentication",
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
       },
     });
-
-    // Create a client WITHOUT password connection (only email connection)
-    // Note: The test server already creates an email connection, so we just create a new client
-    await env.data.clients.create("tenantId", {
-      client_id: "clientWithOnlyEmail",
-      name: "Test Client Without Password",
-      callbacks: ["https://example.com/callback"],
-      allowed_logout_urls: ["https://example.com/callback"],
-      web_origins: ["https://example.com"],
-    });
-
     const oauthClient = testClient(oauthApp, env);
     const universalClient = testClient(universalApp, env);
 
-    // Start OAuth authorization flow with client that has no password connection
+    // Start OAuth authorization flow
     const authorizeResponse = await oauthClient.authorize.$get({
       query: {
-        client_id: "clientWithOnlyEmail",
+        client_id: "clientId",
         redirect_uri: "https://example.com/callback",
         state: "state",
         nonce: "nonce",
@@ -219,18 +198,139 @@ describe("login identifier page", () => {
       throw new Error("No state found");
     }
 
-    // --------------------------------
-    // POST email of user with password strategy
-    // --------------------------------
-    const identifierResponse = await universalClient.login.identifier.$post({
+    // POST new email (user doesn't exist) to identifier page
+    const newUserResponse = await universalClient.login.identifier.$post({
       query: { state },
-      form: { username: "user@example.com" },
+      form: { username: "newuser@example.com" },
     });
 
-    // Should redirect to password page even without password connection on the client
-    // because the user has app_metadata.strategy set to "Username-Password-Authentication"
-    expect(identifierResponse.status).toBe(302);
-    const redirectLocation = identifierResponse.headers.get("location");
-    expect(redirectLocation).toContain("/u/enter-password");
+    // Should call the validateSignupEmail hook
+    expect(validateSignupEmailSpy).toHaveBeenCalledTimes(1);
+    expect(validateSignupEmailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          email: "newuser@example.com",
+        }),
+        client: expect.objectContaining({
+          client_id: "clientId",
+        }),
+        request: expect.objectContaining({
+          method: "POST",
+        }),
+      }),
+      expect.objectContaining({
+        deny: expect.any(Function),
+        token: expect.any(Object),
+      }),
+    );
+
+    // Should succeed and redirect
+    expect(newUserResponse.status).toBe(302);
+  });
+
+  it("should block signup when validateSignupEmail hook denies", async () => {
+    const validateSignupEmailSpy = vi.fn(async (_event, api) => {
+      api.deny("Signups not allowed from this domain");
+    });
+
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST new email to identifier page
+    const blockedResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "blocked@example.com" },
+    });
+
+    // Should call the hook
+    expect(validateSignupEmailSpy).toHaveBeenCalledTimes(1);
+
+    // Should return 400 with error message
+    expect(blockedResponse.status).toBe(400);
+    const body = await blockedResponse.text();
+    expect(body).toContain("Kontot existerar inte");
+  });
+
+  it("should not call validateSignupEmail hook when user exists", async () => {
+    const validateSignupEmailSpy = vi.fn(async () => {
+      // Hook allows signup by not calling api.deny()
+    });
+
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a user first
+    await env.data.users.create("tenantId", {
+      user_id: "auth2|existinguser",
+      email: "existing@example.com",
+      email_verified: true,
+      provider: "email",
+      connection: "email",
+      is_social: false,
+    });
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST existing user's email to identifier page
+    const existingUserResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "existing@example.com" },
+    });
+
+    // Should NOT call the validateSignupEmail hook for existing users
+    expect(validateSignupEmailSpy).not.toHaveBeenCalled();
+
+    // Should succeed and redirect
+    expect(existingUserResponse.status).toBe(302);
   });
 });
