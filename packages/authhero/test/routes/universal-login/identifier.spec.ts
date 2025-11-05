@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 
@@ -162,5 +162,175 @@ describe("login identifier page", () => {
     // Should redirect to enter-code page for email authentication
     const redirectLocation = validEmailResponse.headers.get("location");
     expect(redirectLocation).toContain("/u/enter-code");
+  });
+
+  it("should call validateSignupEmail hook when user doesn't exist", async () => {
+    const validateSignupEmailSpy = vi.fn(async () => {
+      // Hook allows signup by not calling api.deny()
+    });
+
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST new email (user doesn't exist) to identifier page
+    const newUserResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "newuser@example.com" },
+    });
+
+    // Should call the validateSignupEmail hook
+    expect(validateSignupEmailSpy).toHaveBeenCalledTimes(1);
+    expect(validateSignupEmailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          email: "newuser@example.com",
+        }),
+        client: expect.objectContaining({
+          client_id: "clientId",
+        }),
+        request: expect.objectContaining({
+          method: "POST",
+        }),
+      }),
+      expect.objectContaining({
+        deny: expect.any(Function),
+        token: expect.any(Object),
+      }),
+    );
+
+    // Should succeed and redirect
+    expect(newUserResponse.status).toBe(302);
+  });
+
+  it("should block signup when validateSignupEmail hook denies", async () => {
+    const validateSignupEmailSpy = vi.fn(async (_event, api) => {
+      api.deny("Signups not allowed from this domain");
+    });
+
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST new email to identifier page
+    const blockedResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "blocked@example.com" },
+    });
+
+    // Should call the hook
+    expect(validateSignupEmailSpy).toHaveBeenCalledTimes(1);
+
+    // Should return 400 with error message
+    expect(blockedResponse.status).toBe(400);
+    const body = await blockedResponse.text();
+    expect(body).toContain("Kontot existerar inte");
+  });
+
+  it("should not call validateSignupEmail hook when user exists", async () => {
+    const validateSignupEmailSpy = vi.fn(async () => {
+      // Hook allows signup by not calling api.deny()
+    });
+
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      hooks: {
+        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a user first
+    await env.data.users.create("tenantId", {
+      user_id: "auth2|existinguser",
+      email: "existing@example.com",
+      email_verified: true,
+      provider: "email",
+      connection: "email",
+      is_social: false,
+    });
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST existing user's email to identifier page
+    const existingUserResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "existing@example.com" },
+    });
+
+    // Should NOT call the validateSignupEmail hook for existing users
+    expect(validateSignupEmailSpy).not.toHaveBeenCalled();
+
+    // Should succeed and redirect
+    expect(existingUserResponse.status).toBe(302);
   });
 });

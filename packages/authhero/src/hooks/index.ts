@@ -7,7 +7,11 @@ import {
   LoginSession,
 } from "@authhero/adapter-interfaces";
 import { linkUsersHook } from "./link-users";
-import { postUserRegistrationWebhook, preUserSignupWebhook } from "./webhooks";
+import {
+  postUserRegistrationWebhook,
+  preUserSignupWebhook,
+  getValidateSignupEmailWebhook,
+} from "./webhooks";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
@@ -242,6 +246,8 @@ function createUserUpdateHooks(
  * This is a lightweight check that can be done early (e.g., on identifier page)
  * without committing to creating a user.
  *
+ * Now supports code-based hooks and webhooks via onExecuteValidateSignupEmail
+ *
  * @returns An object with `allowed` boolean and optional `reason` string
  */
 export async function validateSignupEmail(
@@ -249,6 +255,7 @@ export async function validateSignupEmail(
   client: LegacyClient,
   data: DataAdapters,
   email: string,
+  connection: string = "email",
 ): Promise<{ allowed: boolean; reason?: string }> {
   // Check the disabled flag on the client
   if (client.client_metadata?.disable_sign_ups === "true") {
@@ -276,6 +283,95 @@ export async function validateSignupEmail(
         allowed: false,
         reason: "Public signup is disabled for this client",
       };
+    }
+  }
+
+  // Call code-based hook if configured
+  if (ctx.env.hooks?.onExecuteValidateSignupEmail) {
+    const request: HookRequest = {
+      method: ctx.req.method,
+      ip: ctx.var.ip || ctx.get("ip") || "",
+      user_agent: ctx.var.useragent || ctx.get("useragent") || "",
+      url: ctx.req.url,
+    };
+
+    let denied = false;
+    let denyReason: string | undefined;
+
+    try {
+      await ctx.env.hooks.onExecuteValidateSignupEmail(
+        {
+          ctx,
+          client,
+          request,
+          tenant: { id: client.tenant.id },
+          user: { email, connection },
+        },
+        {
+          deny: (reason?: string) => {
+            denied = true;
+            denyReason = reason;
+          },
+          token: createTokenAPI(ctx, client.tenant.id),
+        },
+      );
+
+      if (denied) {
+        return { allowed: false, reason: denyReason };
+      }
+    } catch (err) {
+      // If hook throws, treat as denial
+      return {
+        allowed: false,
+        reason: "Signup validation hook failed",
+      };
+    }
+  }
+
+  // Call webhook if configured
+  const validateSignupEmailWebhook = await getValidateSignupEmailWebhook(
+    ctx,
+    client.tenant.id,
+  );
+  if (validateSignupEmailWebhook && "url" in validateSignupEmailWebhook) {
+    try {
+      const response = await fetch(validateSignupEmailWebhook.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenant_id: client.tenant.id,
+          email,
+          connection,
+          client_id: client.client_id,
+          trigger_id: "validate-signup-email",
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        return {
+          allowed: false,
+          reason: body || "Signup not allowed by webhook",
+        };
+      }
+
+      // Check if webhook returned a denial
+      const webhookResult = await response.json();
+      if (webhookResult.allowed === false) {
+        return {
+          allowed: false,
+          reason: webhookResult.reason || "Signup not allowed by webhook",
+        };
+      }
+    } catch (err) {
+      // Log webhook error but don't block signup
+      const log = createLogMessage(ctx, {
+        type: LogTypes.FAILED_HOOK,
+        description: "Validate signup email webhook failed",
+      });
+      waitUntil(ctx, data.logs.create(client.tenant.id, log));
     }
   }
 

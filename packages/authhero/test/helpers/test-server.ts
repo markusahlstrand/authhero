@@ -14,6 +14,7 @@ import {
   OnExecutePreUserUpdate,
   OnExecutePreUserDeletion,
   OnExecutePostUserDeletion,
+  OnExecuteValidateSignupEmail,
 } from "../../src";
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
@@ -32,6 +33,7 @@ type getEnvParams = {
     onExecutePreUserUpdate?: OnExecutePreUserUpdate;
     onExecutePreUserDeletion?: OnExecutePreUserDeletion;
     onExecutePostUserDeletion?: OnExecutePostUserDeletion;
+    onExecuteValidateSignupEmail?: OnExecuteValidateSignupEmail;
   };
 };
 
