@@ -1,5 +1,11 @@
 # authhero
 
+## 0.263.0
+
+### Minor Changes
+
+- 3ae077b: ValidateSignupEmail hook
+
 ## 0.262.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.8.0
+
+### Minor Changes
+
+- 3ae077b: ValidateSignupEmail hook
+
 ## 1.7.0
 
 ### Minor Changes
