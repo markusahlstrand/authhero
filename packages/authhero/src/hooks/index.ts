@@ -335,9 +335,13 @@ export async function validateSignupEmail(
   );
   if (validateSignupEmailWebhook && "url" in validateSignupEmailWebhook) {
     try {
+      // Create service token for webhook authentication
+      const token = await createServiceToken(ctx, client.tenant.id, "webhook");
+
       const response = await fetch(validateSignupEmailWebhook.url, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${token.access_token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
