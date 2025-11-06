@@ -19,13 +19,13 @@ Users can be created through several methods:
 
 ### 1. Early Validation (Optional)
 
-Before a user even attempts to sign up, you can validate their eligibility using the `validateSignupEmail` function. This is useful for:
+Before a user even attempts to sign up, you can validate their eligibility using the `validateRegistrationUsername` function. This is useful for:
 
 - Identifier pages that check if signup is allowed before showing the signup form
 - Providing early feedback to users
 - Avoiding unnecessary user interactions when signup is disabled
 
-**Function:** `validateSignupEmail(ctx, client, data, email)`
+**Function:** `validateRegistrationUsername(ctx, client, data, email)`
 
 **Returns:** `{ allowed: boolean, reason?: string }`
 
@@ -35,11 +35,11 @@ Before a user even attempts to sign up, you can validate their eligibility using
 - If `screen_hint=signup` is present in authorization URL (overrides the disable setting)
 - If another user with the same email exists (allows linking)
 
-### 2. Pre-Signup Hook (Right Before User Creation)
+### 2. Pre-Registration Hook (Right Before User Creation)
 
-When user creation is attempted through any signup flow (email/password, social, passwordless email), the `preUserSignupHook` is executed.
+When user creation is attempted through any signup flow (email/password, social, passwordless email), the `preUserRegistrationHook` is executed.
 
-**Function:** `preUserSignupHook(ctx, client, data, email)`
+**Function:** `preUserRegistrationHook(ctx, client, data, email)`
 
 **Executed for:**
 
@@ -53,9 +53,9 @@ When user creation is attempted through any signup flow (email/password, social,
 
 **Actions:**
 
-1. Re-validates signup eligibility using `validateSignupEmail`
+1. Re-validates signup eligibility using `validateRegistrationUsername`
 2. Logs failed signup attempts (type: `fs`)
-3. Invokes pre-signup webhooks if configured
+3. Invokes pre-registration webhooks if configured
 4. Throws `HTTPException 400` if signup should be blocked
 
 **Bypass Conditions:**
@@ -65,13 +65,13 @@ When user creation is attempted through any signup flow (email/password, social,
 
 ### 3. User Creation Hook
 
-Once the pre-signup hook passes, the actual user creation begins through `data.users.create`. This triggers additional hooks through `createUserHooks`.
+Once the pre-registration hook passes, the actual user creation begins through `data.users.create`. This triggers additional hooks through `createUserHooks`.
 
 **Actions:**
 
 1. Validates client_id exists in context (auth flows only)
 2. Fetches client configuration
-3. Executes `preUserSignupHook` (for auth flows with client_id)
+3. Executes `preUserRegistrationHook` (for auth flows with client_id)
 4. Invokes `onExecutePreUserRegistration` (programmatic hook)
 5. Performs account linking if applicable via `linkUsersHook`
 6. Invokes `onExecutePostUserRegistration` (programmatic hook)
@@ -82,16 +82,16 @@ Once the pre-signup hook passes, the actual user creation begins through `data.u
 When a new user signs up through an authentication flow:
 
 ```
-1. validateSignupEmail (optional, early check)
+1. validateRegistrationUsername (optional, early check)
    ↓
-2. preUserSignupHook
-   ├── validateSignupEmail (re-validation)
+2. preUserRegistrationHook
+   ├── validateRegistrationUsername (re-validation)
    ├── Log failed signup (if blocked)
-   └── preUserSignupWebhook
+   └── preUserRegistrationWebhook
    ↓
 3. data.users.create (wrapped with hooks)
    ├── Validate client_id and fetch client
-   ├── preUserSignupHook (redundant check, already done)
+   ├── preUserRegistrationHook (redundant check, already done)
    ├── onExecutePreUserRegistration (programmatic)
    ├── linkUsersHook (automatic account linking)
    ├── onExecutePostUserRegistration (programmatic)
@@ -137,7 +137,6 @@ When `disable_sign_ups` is enabled:
 1. **Invite-Only Applications**
    - Block public signups but allow invited users via `screen_hint=signup`
 2. **Account Linking**
-
    - User signs up with email/password
    - Later tries to sign in with Google using the same email
    - Google account is automatically linked to existing account even with `disable_sign_ups: true`
@@ -153,9 +152,12 @@ When `disable_sign_ups` is enabled:
 
 Configured via the Management API and support the following triggers:
 
-- `pre-user-signup` - Before user creation
+- `pre-user-registration` - Before user creation
 - `post-user-registration` - After successful creation
 - `post-user-login` - After successful login
+- `validate-registration-username` - Validate registration eligibility
+- `pre-user-deletion` - Before user deletion
+- `post-user-deletion` - After user deletion
 
 ### Programmatic Hooks (Application Config)
 
@@ -190,11 +192,13 @@ When creating users through the Management API (`POST /api/v2/users`):
 
 ## Best Practices
 
-1. **Use `validateSignupEmail` early** - Check eligibility before showing signup forms
+1. **Use `validateRegistrationUsername` early** - Check eligibility before showing signup forms
 2. **Log blocked signups** - Monitor failed signup attempts for security
 3. **Test with different methods** - Verify that all signup methods respect `disable_sign_ups`
 4. **Use `screen_hint=signup`** - For invitation flows and onboarding
 5. **Monitor account linking** - Ensure users with same email are properly linked
+
+````
 
 ## Error Messages
 
@@ -221,7 +225,7 @@ await clients.update("tenant-id", "client-id", {
 
 // 3. Existing user tries to log in with Google
 // Result: Success - login proceeds normally
-```
+````
 
 ### Example 2: Invite-Only Application
 

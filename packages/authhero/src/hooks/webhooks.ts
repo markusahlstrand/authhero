@@ -53,12 +53,12 @@ export function postUserRegistrationWebhook(
   };
 }
 
-export function preUserSignupWebhook(
+export function preUserRegistrationWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
 ) {
   return async (tenant_id: string, email: string): Promise<void> => {
     const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-      q: "trigger_id:pre-user-signup",
+      q: "trigger_id:pre-user-registration",
       page: 0,
       per_page: 100,
       include_totals: false,
@@ -67,10 +67,13 @@ export function preUserSignupWebhook(
     await invokeHooks(ctx, hooks, {
       tenant_id,
       email,
-      trigger_id: "pre-user-signup",
+      trigger_id: "pre-user-registration",
     });
   };
 }
+
+// Backwards compatibility alias
+export const preUserSignupWebhook = preUserRegistrationWebhook;
 
 export function postUserLoginWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -94,16 +97,62 @@ export function postUserLoginWebhook(
   };
 }
 
-export async function getValidateSignupEmailWebhook(
+export async function getValidateRegistrationUsernameWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
 ): Promise<Hook | null> {
   const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-    q: "trigger_id:validate-signup-email",
+    q: "trigger_id:validate-registration-username",
     page: 0,
     per_page: 1,
     include_totals: false,
   });
 
   return hooks.find((h) => "url" in h && h.enabled) || null;
+}
+
+// Backwards compatibility alias
+export const getValidateSignupEmailWebhook =
+  getValidateRegistrationUsernameWebhook;
+
+export function preUserDeletionWebhook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+) {
+  return async (tenant_id: string, user: User): Promise<User> => {
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
+      q: "trigger_id:pre-user-deletion",
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    await invokeHooks(ctx, hooks, {
+      tenant_id,
+      user,
+      trigger_id: "pre-user-deletion",
+    });
+
+    return user;
+  };
+}
+
+export function postUserDeletionWebhook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+) {
+  return async (tenant_id: string, user: User): Promise<User> => {
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
+      q: "trigger_id:post-user-deletion",
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    await invokeHooks(ctx, hooks, {
+      tenant_id,
+      user,
+      trigger_id: "post-user-deletion",
+    });
+
+    return user;
+  };
 }

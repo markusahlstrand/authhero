@@ -17,40 +17,34 @@ AuthHero provides a flexible hooks system that allows you to execute custom logi
 
 When a user signs up, the following hooks are triggered in order:
 
-1. **Validate Signup Email** (`validateSignupEmail` / `onExecuteValidateSignupEmail`)
-
+1. **Validate Registration Username** (`validateRegistrationUsername` / `onExecuteValidateRegistrationUsername`)
    - Runs when email is entered on identifier page (before user exists)
    - Checks if signup is allowed for this email
    - **Synchronous**: Blocks signup if validation fails
    - **Can modify**: Cannot modify user (no user exists yet)
    - Can be called on identifier page without creating a user
 
-2. **Pre-User Signup** (`preUserSignupHook`)
-
+2. **Pre-User Registration** (`preUserRegistrationHook`)
    - Runs **RIGHT BEFORE** user creation
    - Executes for ALL signup methods (email/password, code, social, etc.)
    - **Synchronous**: Can block signup by throwing an exception
    - **Can modify**: Cannot modify user (not created yet)
-   - Invokes `preUserSignupWebhook` if configured
+   - Invokes `preUserRegistrationWebhook` if configured
 
 3. **Pre-User Registration** (`onExecutePreUserRegistration`)
-
    - Code-based hook that runs just before user creation
    - **Synchronous**: Runs before DB insert
    - **Can modify**: Can set user metadata via `api.user.setUserMetadata()`
    - Has access to request context and token API
 
 4. **User Creation**
-
    - User record is created in the database
 
 5. **Account Linking** (`linkUsersHook`)
-
    - Checks for existing users with same verified email
    - Automatically links accounts if found
 
 6. **Post-User Registration** (`onExecutePostUserRegistration`)
-
    - Code-based hook that runs after user creation
    - **Asynchronous**: Errors are logged but don't block the flow
    - **Can modify**: Cannot modify user (already created)
@@ -66,28 +60,23 @@ When a user signs up, the following hooks are triggered in order:
 When a user logs in, the following hooks are triggered:
 
 1. **User Authentication**
-
    - User credentials are verified
 
 2. **Login Statistics Update**
-
    - `last_login`, `last_ip`, and `login_count` are updated
 
 3. **Post-Login Code Hook** (`onExecutePostLogin`)
-
    - Code-based hook with Auth0-compatible API
    - **Synchronous**: Can modify authentication flow
    - **Can modify**: Can redirect users, render forms, modify tokens
    - Can access user, client, transaction, and session information
 
 4. **Post-Login Form Hook**
-
    - If configured, redirects to custom form
    - **Synchronous**: User must complete form before continuing
    - **Can modify**: Form can collect additional data
 
 5. **Post-Login Page Hook**
-
    - If configured, redirects to custom page
    - **Synchronous**: User must complete page flow
    - Can require specific permissions
@@ -102,14 +91,12 @@ When a user logs in, the following hooks are triggered:
 When a user is updated via the Management API:
 
 1. **Pre-User Update Hook** (`onExecutePreUserUpdate`)
-
    - Code-based hook that runs before update
    - **Synchronous**: Can block update by calling `api.cancel()`
    - **Can modify**: Can modify update data via `api.user.setUserMetadata()`
    - Has access to current user state and requested updates
 
 2. **User Update**
-
    - User record is updated in database
 
 3. **Email Verification Check**
@@ -121,14 +108,12 @@ When a user is updated via the Management API:
 When a user is deleted:
 
 1. **Pre-User Deletion Hook** (`onExecutePreUserDeletion`)
-
    - Code-based hook that runs before deletion
    - **Synchronous**: Can block deletion by calling `api.cancel()`
    - **Can modify**: Cannot modify user (will be deleted)
    - Has access to user data before deletion
 
 2. **User Deletion**
-
    - User record is removed from database
 
 3. **Post-User Deletion Hook** (`onExecutePostUserDeletion`)
@@ -145,7 +130,7 @@ Code-based hooks are functions defined in your application initialization:
 ```typescript
 const authhero = new AuthHero({
   hooks: {
-    onExecuteValidateSignupEmail: async (event, api) => {
+    onExecuteValidateRegistrationUsername: async (event, api) => {
       // Validate if email is allowed to sign up
       if (event.user.email.endsWith("@competitor.com")) {
         api.deny("Signups from this domain are not allowed");
@@ -305,7 +290,7 @@ Pass hooks during AuthHero initialization:
 const authhero = new AuthHero({
   // ... other config
   hooks: {
-    onExecuteValidateSignupEmail: async (event, api) => {
+    onExecuteValidateRegistrationUsername: async (event, api) => {
       /* ... */
     },
     onExecutePostLogin: async (event, api) => {
@@ -362,7 +347,7 @@ DELETE /api/v2/hooks/{hook_id}
 
 ### Validation Hooks
 
-#### `onExecuteValidateSignupEmail`
+#### `onExecuteValidateRegistrationUsername`
 
 Validates if an email can be used for signup.
 
@@ -373,6 +358,8 @@ Validates if an email can be used for signup.
 **Can modify user**: No (user doesn't exist yet)
 
 **Event Payload**:
+
+````
 
 ```typescript
 {
@@ -385,7 +372,7 @@ Validates if an email can be used for signup.
     connection: string       // Connection type (email, phone, etc.)
   }
 }
-```
+````
 
 **API Object**:
 
@@ -708,22 +695,22 @@ api.deny(reason?: string): void  // Denies the operation with optional reason
 
 ## Hook Execution Order Summary
 
-| Hook                            | When                       | Sync/Async | Can Modify         |
-| ------------------------------- | -------------------------- | ---------- | ------------------ |
-| `onExecuteValidateSignupEmail`  | Identifier page (no user)  | Sync       | N/A                |
-| `preUserSignupHook`             | Before user creation       | Sync       | No                 |
-| `onExecutePreUserRegistration`  | Before user creation       | Sync       | Yes (metadata)     |
-| User Created                    | -                          | -          | -                  |
-| `onExecutePostUserRegistration` | After user creation        | Async      | No                 |
-| `postUserRegistrationWebhook`   | After user creation        | Async      | No                 |
-| `onExecutePostLogin`            | After authentication       | Sync       | Yes (flow)         |
-| Post-Login Forms/Pages          | After `onExecutePostLogin` | Sync       | Yes (collect data) |
-| Post-Login Webhooks             | After authentication       | Async      | No                 |
-| `onExecutePreUserUpdate`        | Before update              | Sync       | Yes                |
-| User Updated                    | -                          | -          | -                  |
-| `onExecutePreUserDeletion`      | Before deletion            | Sync       | No                 |
-| User Deleted                    | -                          | -          | -                  |
-| `onExecutePostUserDeletion`     | After deletion             | Async      | No                 |
+| Hook                                    | When                       | Sync/Async | Can Modify         |
+| --------------------------------------- | -------------------------- | ---------- | ------------------ |
+| `onExecuteValidateRegistrationUsername` | Identifier page (no user)  | Sync       | N/A                |
+| `preUserRegistrationHook`               | Before user creation       | Sync       | No                 |
+| `onExecutePreUserRegistration`          | Before user creation       | Sync       | Yes (metadata)     |
+| User Created                            | -                          | -          | -                  |
+| `onExecutePostUserRegistration`         | After user creation        | Async      | No                 |
+| `postUserRegistrationWebhook`           | After user creation        | Async      | No                 |
+| `onExecutePostLogin`                    | After authentication       | Sync       | Yes (flow)         |
+| Post-Login Forms/Pages                  | After `onExecutePostLogin` | Sync       | Yes (collect data) |
+| Post-Login Webhooks                     | After authentication       | Async      | No                 |
+| `onExecutePreUserUpdate`                | Before update              | Sync       | Yes                |
+| User Updated                            | -                          | -          | -                  |
+| `onExecutePreUserDeletion`              | Before deletion            | Sync       | No                 |
+| User Deleted                            | -                          | -          | -                  |
+| `onExecutePostUserDeletion`             | After deletion             | Async      | No                 |
 
 ## Best Practices
 
@@ -737,7 +724,7 @@ api.deny(reason?: string): void  // Denies the operation with optional reason
 5. **Monitor hook execution**: Check logs for hook failures
 6. **Use token API for external calls**: Create service tokens for authenticated API requests
 7. **Be careful with cancellation**: Only cancel operations when absolutely necessary
-8. **Validate early**: Use `onExecuteValidateSignupEmail` for early validation before creating users
+8. **Validate early**: Use `onExecuteValidateRegistrationUsername` for early validation before creating users
 
 ## Debugging
 
@@ -763,7 +750,15 @@ Example log entry:
 ### Block signups from certain domains
 
 ```typescript
-onExecuteValidateSignupEmail: async (event, api) => {
+
+```
+
+## Common Use Cases
+
+### Block signups from certain domains
+
+```typescript
+onExecuteValidateRegistrationUsername: async (event, api) => {
   const blockedDomains = ["tempmail.com", "disposable.com"];
   const domain = event.user.email.split("@")[1];
 
@@ -771,6 +766,9 @@ onExecuteValidateSignupEmail: async (event, api) => {
     api.deny("Signups from disposable email providers are not allowed");
   }
 };
+```
+
+````
 ```
 
 ### Enrich user profile on registration
@@ -831,3 +829,4 @@ onExecutePostUserDeletion: async (event, api) => {
   });
 };
 ```
+````

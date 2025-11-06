@@ -37,15 +37,16 @@ AuthHero supports the following trigger points for hooks:
 
 ### Via Management API (URL/Form/Page Hooks)
 
-- `validate-signup-email` - Validate if email can sign up (before user exists)
-- `pre-user-signup` - Before user creation
-- `pre-user-registration` - Before user creation (alternative trigger)
+- `validate-registration-username` - Validate if email can sign up (before user exists)
+- `pre-user-registration` - Before user creation
 - `post-user-registration` - After user creation
 - `post-user-login` - After authentication
+- `pre-user-deletion` - Before user deletion
+- `post-user-deletion` - After user deletion
 
 ### Via Code (Programmatic Hooks)
 
-- `onExecuteValidateSignupEmail` - Validate signup eligibility
+- `onExecuteValidateRegistrationUsername` - Validate signup eligibility
 - `onExecutePreUserRegistration` - Before user creation
 - `onExecutePostUserRegistration` - After user creation
 - `onExecutePostLogin` - After authentication
@@ -53,6 +54,8 @@ AuthHero supports the following trigger points for hooks:
 - `onExecutePreUserDeletion` - Before user deletion
 - `onExecutePostUserDeletion` - After user deletion
 - `onExecuteCredentialsExchange` - During token exchange
+
+````
 
 For detailed information on each hook including payloads, API methods, and examples, see the [Hooks Guide](../guides/hooks.md).
 
@@ -92,7 +95,7 @@ See the [Hook Execution Order](../guides/hooks.md#hook-execution-order-summary) 
 ```typescript
 const authhero = new AuthHero({
   hooks: {
-    onExecuteValidateSignupEmail: async (event, api) => {
+    onExecuteValidateRegistrationUsername: async (event, api) => {
       // Validate signup
     },
     onExecutePostLogin: async (event, api) => {
@@ -101,7 +104,7 @@ const authhero = new AuthHero({
     // ... other hooks
   },
 });
-```
+````
 
 ### Via Management API
 
@@ -151,7 +154,6 @@ AuthHero's `onExecutePostLogin` hook provides an Auth0-compatible event object a
 AuthHero's Hooks are designed to be a straightforward way to intercept and modify various stages of the authentication and user lifecycle. A key differentiator in AuthHero is the dual nature of its hooks:
 
 1.  **URL Hooks (Web Hooks)**:
-
     - Similar to traditional webhooks, you can specify a URL that AuthHero will call at a specific trigger point (e.g., "pre-user-signup", "post-user-login").
     - This allows you to execute custom server-side logic, integrate with external systems, or perform data validation by sending a payload to your endpoint.
 
@@ -164,13 +166,18 @@ AuthHero's Hooks are designed to be a straightforward way to intercept and modif
 
 The following trigger points are available for both URL and Form hooks via the Management API:
 
-- `pre-user-signup` - Before a new user is created
+- `validate-registration-username` - Validate registration eligibility
+- `pre-user-registration` - Before a new user is created
 - `post-user-registration` - After a new user is successfully created
 - `post-user-login` - After successful authentication
+- `pre-user-deletion` - Before user deletion
+- `post-user-deletion` - After user deletion
 
 ::: info Note on User Deletion and Updates
-URL and Form hooks do not currently support user deletion or user update triggers. However, these events can be handled using **programmatic hooks** (see below) which provide more direct access to the authentication flow.
+URL and Form hooks now support user deletion triggers (`pre-user-deletion` and `post-user-deletion`). For user updates and other events, you can use **programmatic hooks** (see below) which provide more direct access to the authentication flow.
 :::
+
+```
 
 ## Key Differences Summarized
 
@@ -192,15 +199,18 @@ AuthHero supports the following programmatic hooks that can be configured when i
 
 ### Hook Availability Comparison
 
-| Event/Trigger          | URL/Form Hooks (Management API) | Programmatic Hooks (Config)        |
-| ---------------------- | ------------------------------- | ---------------------------------- |
-| Pre User Signup        | ✅ `pre-user-signup`            | ✅ `onExecutePreUserRegistration`  |
-| Post User Registration | ✅ `post-user-registration`     | ✅ `onExecutePostUserRegistration` |
-| Post User Login        | ✅ `post-user-login`            | ✅ `onExecutePostLogin`            |
-| Pre User Update        | ❌ Not Available                | ✅ `onExecutePreUserUpdate`        |
-| Pre User Deletion      | ❌ Not Available                | ✅ `onExecutePreUserDeletion`      |
-| Post User Deletion     | ❌ Not Available                | ✅ `onExecutePostUserDeletion`     |
-| Credentials Exchange   | ❌ Not Available                | ✅ `onExecuteCredentialsExchange`  |
+| Event/Trigger          | URL/Form Hooks (Management API)        | Programmatic Hooks (Config)        |
+| ---------------------- | -------------------------------------- | ---------------------------------- |
+| Validate Registration  | ✅ `validate-registration-username`    | ✅ `onExecuteValidateRegistrationUsername`  |
+| Pre User Registration  | ✅ `pre-user-registration`             | ✅ `onExecutePreUserRegistration`  |
+| Post User Registration | ✅ `post-user-registration`            | ✅ `onExecutePostUserRegistration` |
+| Post User Login        | ✅ `post-user-login`                   | ✅ `onExecutePostLogin`            |
+| Pre User Update        | ❌ Not Available                       | ✅ `onExecutePreUserUpdate`        |
+| Pre User Deletion      | ✅ `pre-user-deletion`                 | ✅ `onExecutePreUserDeletion`      |
+| Post User Deletion     | ✅ `post-user-deletion`                | ✅ `onExecutePostUserDeletion`     |
+| Credentials Exchange   | ❌ Not Available                       | ✅ `onExecuteCredentialsExchange`  |
+
+```
 
 **Note:** Programmatic hooks provide more direct access to the authentication flow and are executed synchronously within your application. URL/Form hooks are configured via the Management API and can be modified without code changes.
 
@@ -822,7 +832,6 @@ Understanding when hooks execute is important for proper implementation:
 AuthHero allows you to use both programmatic hooks and Management API hooks (URL/Form hooks) simultaneously:
 
 1. **Programmatic hooks** execute first and are ideal for:
-
    - Complex business logic requiring access to your application's dependencies
    - Synchronous operations that need to modify the authentication flow
    - Data validation and transformation

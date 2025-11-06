@@ -18,7 +18,7 @@ describe("hooks", () => {
       {
         json: {
           url: "https://example.com/hook",
-          trigger_id: "pre-user-signup",
+          trigger_id: "pre-user-registration",
         },
         header: {
           "tenant-id": "tenantId",
@@ -38,7 +38,7 @@ describe("hooks", () => {
 
     expect(rest).toEqual({
       url: "https://example.com/hook",
-      trigger_id: "pre-user-signup",
+      trigger_id: "pre-user-registration",
       enabled: false,
       synchronous: false,
     });

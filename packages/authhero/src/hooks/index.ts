@@ -9,8 +9,10 @@ import {
 import { linkUsersHook } from "./link-users";
 import {
   postUserRegistrationWebhook,
-  preUserSignupWebhook,
-  getValidateSignupEmailWebhook,
+  preUserRegistrationWebhook,
+  getValidateRegistrationUsernameWebhook,
+  preUserDeletionWebhook,
+  postUserDeletionWebhook,
 } from "./webhooks";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
@@ -329,10 +331,8 @@ export async function validateSignupEmail(
   }
 
   // Call webhook if configured
-  const validateSignupEmailWebhook = await getValidateSignupEmailWebhook(
-    ctx,
-    client.tenant.id,
-  );
+  const validateSignupEmailWebhook =
+    await getValidateRegistrationUsernameWebhook(ctx, client.tenant.id);
   if (validateSignupEmailWebhook && "url" in validateSignupEmailWebhook) {
     try {
       // Create service token for webhook authentication
@@ -349,7 +349,7 @@ export async function validateSignupEmail(
           email,
           connection,
           client_id: client.client_id,
-          trigger_id: "validate-signup-email",
+          trigger_id: "validate-registration-username",
         }),
       });
 
@@ -411,8 +411,8 @@ export async function preUserSignupHook(
     });
   }
 
-  // Invoke pre-signup webhooks
-  await preUserSignupWebhook(ctx)(client.tenant.id, email);
+  // Invoke pre-registration webhooks
+  await preUserRegistrationWebhook(ctx)(client.tenant.id, email);
 }
 
 function createUserDeletionHooks(
@@ -473,6 +473,20 @@ function createUserDeletionHooks(
       }
     }
 
+    // Invoke pre-user-deletion webhooks
+    try {
+      await preUserDeletionWebhook(ctx)(tenant_id, userToDelete);
+    } catch (err) {
+      const log = createLogMessage(ctx, {
+        type: LogTypes.FAILED_HOOK,
+        description: `Pre user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      waitUntil(ctx, data.logs.create(tenant_id, log));
+      throw new JSONHTTPException(400, {
+        message: "Pre user deletion webhook failed",
+      });
+    }
+
     // Proceed with deletion
     const result = await data.users.remove(tenant_id, user_id);
 
@@ -499,6 +513,18 @@ function createUserDeletionHooks(
       };
 
       waitUntil(ctx, data.logs.create(tenant_id, log));
+
+      // Invoke post-user-deletion webhooks
+      try {
+        await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
+      } catch (err) {
+        const log = createLogMessage(ctx, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        waitUntil(ctx, data.logs.create(tenant_id, log));
+        // Don't throw - user is already deleted
+      }
     }
 
     // Call post-user-deletion hook if configured (after successful deletion)
@@ -902,3 +928,7 @@ export async function postUserLoginHook(
   // If no form hook, just return the user
   return user;
 }
+
+// Backwards compatibility aliases
+export const validateRegistrationUsername = validateSignupEmail;
+export const preUserRegistrationHook = preUserSignupHook;
