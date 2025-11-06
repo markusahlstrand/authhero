@@ -1,5 +1,11 @@
 # authhero
 
+## 0.265.0
+
+### Minor Changes
+
+- a96d5ef: Handle client secret for refresh tokens
+
 ## 0.264.0
 
 ### Minor Changes
