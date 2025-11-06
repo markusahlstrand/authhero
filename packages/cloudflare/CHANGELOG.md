@@ -1,5 +1,12 @@
 # @authhero/cloudflare-adapter
 
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [6067f00]
+  - @authhero/adapter-interfaces@0.98.0
+
 ## 2.7.5
 
 ### Patch Changes

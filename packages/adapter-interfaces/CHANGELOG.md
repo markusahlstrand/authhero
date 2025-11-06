@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.98.0
+
+### Minor Changes
+
+- 6067f00: Update the hook names
+
 ## 0.97.0
 
 ### Minor Changes
