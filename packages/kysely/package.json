@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "10.55.0",
+  "version": "10.55.1",
   "files": [
     "dist"
   ],
@@ -31,7 +31,6 @@
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.19.2",
-    "@authhero/adapter-interfaces": "workspace:*",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
@@ -45,11 +44,11 @@
     "vitest": "^2.1.5"
   },
   "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:^",
     "kysely": "^0.27.4",
     "nanoid": "^5.0.8"
   },
   "peerDependencies": {
-    "@authhero/adapter-interfaces": "workspace:*",
     "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.6.8",
     "kysely-bun-sqlite": "^0.3.2",

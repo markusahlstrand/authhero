@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.9.0
+
+### Minor Changes
+
+- 6067f00: Update the hook names
+
 ## 1.8.0
 
 ### Minor Changes

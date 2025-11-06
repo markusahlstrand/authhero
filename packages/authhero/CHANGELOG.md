@@ -1,5 +1,16 @@
 # authhero
 
+## 0.264.0
+
+### Minor Changes
+
+- 6067f00: Update the hook names
+
+### Patch Changes
+
+- Updated dependencies [6067f00]
+  - @authhero/adapter-interfaces@0.98.0
+
 ## 0.263.0
 
 ### Minor Changes

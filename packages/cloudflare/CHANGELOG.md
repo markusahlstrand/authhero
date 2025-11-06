@@ -1,5 +1,14 @@
 # @authhero/cloudflare-adapter
 
+## 2.7.6
+
+### Patch Changes
+
+- 6067f00: Update the hook names
+- Updated dependencies [6067f00]
+  - @authhero/adapter-interfaces@0.98.0
+  - @authhero/kysely-adapter@10.55.1
+
 ## 2.7.5
 
 ### Patch Changes

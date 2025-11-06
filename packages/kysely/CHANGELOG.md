@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 10.55.1
+
+### Patch Changes
+
+- 6067f00: Update the hook names
+- Updated dependencies [6067f00]
+  - @authhero/adapter-interfaces@0.98.0
+
 ## 10.55.0
 
 ### Minor Changes
