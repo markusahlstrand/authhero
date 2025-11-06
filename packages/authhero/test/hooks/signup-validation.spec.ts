@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 
 describe("signup validation hooks", () => {
-  describe("validateSignupEmail", () => {
+  describe("validateRegistrationUsername", () => {
     it("should allow signup when disable_sign_ups is false", async () => {
       const { env, oauthApp } = await getTestServer({ mockEmail: true });
 
@@ -14,7 +14,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "newuser@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -48,7 +48,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "blocked@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -100,7 +100,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "existing@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -135,7 +135,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "password@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -188,7 +188,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "user@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },
@@ -223,7 +223,7 @@ describe("signup validation hooks", () => {
         {
           json: {
             email: "blocked@example.com",
-            password: "Test1234!",
+            password: "Test12345!",
             connection: "Username-Password-Authentication",
             client_id: "clientId",
           },

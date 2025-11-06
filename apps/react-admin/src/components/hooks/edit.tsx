@@ -81,9 +81,15 @@ export function HookEdit() {
         <SelectInput
           source="trigger_id"
           choices={[
-            { id: "pre-user-signup", name: "Pre User Signup" },
+            { id: "pre-user-registration", name: "Pre User Registration" },
             { id: "post-user-registration", name: "Post User Registration" },
             { id: "post-user-login", name: "Post User Login" },
+            {
+              id: "validate-registration-username",
+              name: "Validate Registration Username",
+            },
+            { id: "pre-user-deletion", name: "Pre User Deletion" },
+            { id: "post-user-deletion", name: "Post User Deletion" },
           ]}
           required
         />

@@ -3,16 +3,22 @@ import { baseEntitySchema } from "./BaseEntity";
 
 // Define allowed trigger IDs for different hook types
 const webHookAllowedTriggers = z.enum([
-  "pre-user-signup",
+  "pre-user-registration",
   "post-user-registration",
   "post-user-login",
+  "validate-registration-username",
+  "pre-user-deletion",
+  "post-user-deletion",
   // Potentially other triggers specific to webhooks in the future
 ]);
 
 const formHookAllowedTriggers = z.enum([
-  "pre-user-signup",
+  "pre-user-registration",
   "post-user-registration",
   "post-user-login",
+  "validate-registration-username",
+  "pre-user-deletion",
+  "post-user-deletion",
 ]);
 
 // Base properties common to hook definitions (excluding hook_id and trigger_id which vary)

@@ -9,6 +9,7 @@ import {
   OnExecutePreUserDeletion,
   OnExecutePostUserDeletion,
   OnExecuteValidateSignupEmail,
+  OnExecuteValidateRegistrationUsername,
 } from "./Hooks";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
@@ -38,6 +39,7 @@ export type Bindings = {
     onExecutePreUserDeletion?: OnExecutePreUserDeletion;
     onExecutePostUserDeletion?: OnExecutePostUserDeletion;
     onExecuteValidateSignupEmail?: OnExecuteValidateSignupEmail;
+    onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;
   };
   emailProviders?: { [key: string]: EmailService };
   smsProviders?: { [key: string]: smsService };

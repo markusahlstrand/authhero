@@ -215,14 +215,20 @@ export type OnExecutePostUserDeletion = (
   api: OnExecutePostUserDeletionAPI,
 ) => Promise<void>;
 
-export type OnExecuteValidateSignupEmailAPI = {
+export type OnExecuteValidateRegistrationUsernameAPI = {
   deny: (reason?: string) => void;
   token: TokenAPI;
 };
 
-export type OnExecuteValidateSignupEmail = (
+export type OnExecuteValidateRegistrationUsername = (
   event: Omit<HookEvent, "user"> & {
     user: { email: string; connection: string };
   },
-  api: OnExecuteValidateSignupEmailAPI,
+  api: OnExecuteValidateRegistrationUsernameAPI,
 ) => Promise<void>;
+
+// Backwards compatibility alias
+export type OnExecuteValidateSignupEmail =
+  OnExecuteValidateRegistrationUsername;
+export type OnExecuteValidateSignupEmailAPI =
+  OnExecuteValidateRegistrationUsernameAPI;
