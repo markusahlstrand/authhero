@@ -53,9 +53,10 @@ const CreateRequestSchema = z.union([
   // Refresh token
   z.object({
     grant_type: z.literal("refresh_token"),
-    client_id: z.string(),
+    client_id: z.string().optional(),
     refresh_token: z.string(),
     redirect_uri: z.string().optional(),
+    client_secret: z.string().optional(),
   }),
   // OTP
   z.object({
