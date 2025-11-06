@@ -3,12 +3,14 @@ import { Context } from "hono";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
+import { safeCompare } from "../utils/safe-compare";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
   client_id: z.string(),
   redirect_uri: z.string().optional(),
   refresh_token: z.string(),
+  client_secret: z.string().optional(),
 });
 
 export async function refreshTokenGrant(
@@ -18,6 +20,19 @@ export async function refreshTokenGrant(
   const client = await ctx.env.data.legacyClients.get(params.client_id);
   if (!client) {
     throw new JSONHTTPException(403, { message: "Client not found" });
+  }
+
+  // Validate client_secret if provided
+  if (params.client_secret) {
+    if (
+      client.client_secret &&
+      !safeCompare(client.client_secret, params.client_secret)
+    ) {
+      throw new JSONHTTPException(403, {
+        error: "invalid_client",
+        error_description: "Client authentication failed",
+      });
+    }
   }
 
   const refreshToken = await ctx.env.data.refreshTokens.get(

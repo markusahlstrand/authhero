@@ -30,6 +30,7 @@ describe("token", () => {
       const client = testClient(oauthApp, env);
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "client_credentials",
@@ -61,6 +62,7 @@ describe("token", () => {
       const client = testClient(oauthApp, env);
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "client_credentials",
@@ -91,6 +93,7 @@ describe("token", () => {
       const client = testClient(oauthApp, env);
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "client_credentials",
@@ -136,6 +139,7 @@ describe("token", () => {
 
       // Test client credentials request WITHOUT specifying scope parameter
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "client_credentials",
@@ -193,6 +197,7 @@ describe("token", () => {
 
       // Test client credentials request WITH specific scope parameter
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "client_credentials",
@@ -254,6 +259,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -308,6 +314,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -357,6 +364,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -406,6 +414,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -453,6 +462,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -500,6 +510,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -538,6 +549,7 @@ describe("token", () => {
 
         // First request
         const firstResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -558,6 +570,7 @@ describe("token", () => {
 
         // Second request with the same code
         const secondResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -593,6 +606,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -641,6 +655,7 @@ describe("token", () => {
 
         // First request should succeed
         const firstResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -662,6 +677,7 @@ describe("token", () => {
 
         // Second request with the same code should fail
         const secondResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -717,6 +733,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -776,6 +793,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -835,6 +853,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "authorization_code",
@@ -893,6 +912,7 @@ describe("token", () => {
       });
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "refresh_token",
@@ -950,6 +970,7 @@ describe("token", () => {
       });
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "refresh_token",
@@ -996,6 +1017,7 @@ describe("token", () => {
       });
 
       const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
         {
           form: {
             grant_type: "refresh_token",
@@ -1011,6 +1033,170 @@ describe("token", () => {
       expect(body).toEqual({
         error: "invalid_grant",
         error_description: "Refresh token has expired",
+      });
+    });
+
+    it("should accept client_id and client_secret in refresh token request", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshToken",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toMatchObject({
+        access_token: expect.any(String),
+        refresh_token: expect.any(String),
+        id_token: expect.any(String),
+      });
+    });
+
+    it("should accept client_id and client_secret via basic auth in refresh token request", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshToken",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+            authorization: "Basic " + btoa("clientId:clientSecret"),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toMatchObject({
+        access_token: expect.any(String),
+        refresh_token: expect.any(String),
+        id_token: expect.any(String),
+      });
+    });
+
+    it("should return a 403 if the client_secret is wrong in refresh token request", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshToken",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshToken",
+            client_id: "clientId",
+            client_secret: "invalidClientSecret",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "invalid_client",
+        error_description: "Client authentication failed",
       });
     });
   });
@@ -1067,15 +1253,18 @@ describe("token", () => {
       void code; // Used for test setup
 
       // Try to exchange the code for tokens
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-org-code",
-          redirect_uri: "https://example.com/callback",
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-org-code",
+            redirect_uri: "https://example.com/callback",
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(403);
       const body = (await response.json()) as ErrorResponse;
@@ -1177,15 +1366,18 @@ describe("token", () => {
       void code; // Used for test setup
 
       // Exchange code for tokens
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-org-scopes-code",
-          redirect_uri: "https://example.com/callback",
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-org-scopes-code",
+            redirect_uri: "https://example.com/callback",
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
@@ -1261,16 +1453,19 @@ describe("token", () => {
       void code; // Used for test setup
 
       // Exchange code for tokens with matching organization parameter
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-org-param-code",
-          redirect_uri: "https://example.com/callback",
-          organization: organization.id, // This should match the login session
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-org-param-code",
+            redirect_uri: "https://example.com/callback",
+            organization: organization.id, // This should match the login session
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
@@ -1333,16 +1528,19 @@ describe("token", () => {
       void code; // Used for test setup
 
       // Try to exchange code with different organization parameter
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-org-mismatch-code",
-          redirect_uri: "https://example.com/callback",
-          organization: organization2.id, // This does NOT match the login session
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-org-mismatch-code",
+            redirect_uri: "https://example.com/callback",
+            organization: organization2.id, // This does NOT match the login session
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(400);
       const body = (await response.json()) as ErrorResponse;
@@ -1405,16 +1603,19 @@ describe("token", () => {
 
       // Exchange code with organization parameter when login session has no organization
       // This should now be allowed (Auth0 compatibility)
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-no-org-code",
-          redirect_uri: "https://example.com/callback",
-          organization: organization.id, // This should now be accepted
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-no-org-code",
+            redirect_uri: "https://example.com/callback",
+            organization: organization.id, // This should now be accepted
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
@@ -1469,16 +1670,19 @@ describe("token", () => {
       void code; // Used for test setup
 
       // Exchange code for tokens without organization parameter - should work normally
-      const response = await client.oauth.token.$post({
-        form: {
-          grant_type: "authorization_code",
-          client_id: "clientId",
-          client_secret: "clientSecret",
-          code: "test-backward-compat-code",
-          redirect_uri: "https://example.com/callback",
-          // NO organization parameter
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+            code: "test-backward-compat-code",
+            redirect_uri: "https://example.com/callback",
+            // NO organization parameter
+          },
         },
-      });
+      );
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
@@ -1564,15 +1768,18 @@ describe("token", () => {
         });
 
         // Exchange code for tokens
-        const response = await client.oauth.token.$post({
-          form: {
-            grant_type: "authorization_code",
-            client_id: "clientId",
-            client_secret: "clientSecret",
-            code: "test-permissions-code",
-            redirect_uri: "https://example.com/callback",
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              code: "test-permissions-code",
+              redirect_uri: "https://example.com/callback",
+            },
           },
-        });
+        );
 
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
@@ -1667,15 +1874,18 @@ describe("token", () => {
         });
 
         // Exchange code for tokens
-        const response = await client.oauth.token.$post({
-          form: {
-            grant_type: "authorization_code",
-            client_id: "clientId",
-            client_secret: "clientSecret",
-            code: "test-scopes-code",
-            redirect_uri: "https://example.com/callback",
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              code: "test-scopes-code",
+              redirect_uri: "https://example.com/callback",
+            },
           },
-        });
+        );
 
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
@@ -1726,15 +1936,18 @@ describe("token", () => {
         });
 
         // Make client_credentials token request
-        const response = await client.oauth.token.$post({
-          form: {
-            grant_type: "client_credentials",
-            client_id: "clientId",
-            client_secret: "clientSecret",
-            audience: "https://client-permissions-api.example.com",
-            scope: "read:data write:data",
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "client_credentials",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              audience: "https://client-permissions-api.example.com",
+              scope: "read:data write:data",
+            },
           },
-        });
+        );
 
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
@@ -1769,6 +1982,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             json: {
               grant_type: "client_credentials",
@@ -1804,6 +2018,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             json: {
               grant_type: "client_credentials",
@@ -1860,6 +2075,7 @@ describe("token", () => {
         });
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             json: {
               grant_type: "authorization_code",
@@ -1921,6 +2137,7 @@ describe("token", () => {
 
         // Test refresh token with JSON
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             json: {
               grant_type: "refresh_token",
@@ -1952,6 +2169,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             form: {
               grant_type: "client_credentials",
@@ -1988,6 +2206,7 @@ describe("token", () => {
         const client = testClient(oauthApp, env);
 
         const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
           {
             json: {
               grant_type: "client_credentials",
