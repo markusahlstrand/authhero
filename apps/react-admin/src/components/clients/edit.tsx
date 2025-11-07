@@ -19,6 +19,8 @@ import {
   useDataProvider,
   useRecordContext,
   useRefresh,
+  useInput,
+  FormDataConsumer,
 } from "react-admin";
 import { JsonOutput } from "../common/JsonOutput";
 import { DateAgo } from "../common";
@@ -36,8 +38,10 @@ import {
   Tooltip,
   Autocomplete,
   Chip,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -619,6 +623,160 @@ const RemoveClientGrantButton = () => {
   );
 };
 
+const GrantTypesInput = ({ source }: { source: string }) => {
+  const { field } = useInput({ source });
+  const { value, onChange } = field;
+
+  const grantTypeOptions = [
+    { value: "implicit", label: "Implicit" },
+    { value: "authorization_code", label: "Authorization Code" },
+    { value: "refresh_token", label: "Refresh Token" },
+    { value: "client_credentials", label: "Client Credentials" },
+    { value: "password", label: "Password" },
+    { value: "mfa", label: "MFA" },
+    { value: "passwordless_otp", label: "Passwordless OTP" },
+  ];
+
+  const handleChange = (grantType: string, checked: boolean) => {
+    const currentGrants = Array.isArray(value) ? value : [];
+    let newGrants;
+
+    if (checked) {
+      newGrants = [...currentGrants, grantType];
+    } else {
+      newGrants = currentGrants.filter((gt: string) => gt !== grantType);
+    }
+
+    onChange(newGrants);
+  };
+
+  const isChecked = (grantType: string) => {
+    return Array.isArray(value) && value.includes(grantType);
+  };
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+        Grant Types
+      </Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+        {grantTypeOptions.map((option) => (
+          <FormControlLabel
+            key={option.value}
+            control={
+              <Checkbox
+                checked={isChecked(option.value)}
+                onChange={(e) => handleChange(option.value, e.target.checked)}
+              />
+            }
+            label={option.label}
+          />
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
+const ClientMetadataInput = ({ source }: { source: string }) => {
+  const { field } = useInput({ source });
+  const { value, onChange } = field;
+  const [metadataArray, setMetadataArray] = useState<
+    Array<{ key: string; value: string }>
+  >([]);
+
+  // Initialize metadata array from the current value
+  useEffect(() => {
+    if (value && typeof value === "object") {
+      const array = Object.entries(value).map(([key, val]) => ({
+        key,
+        value: String(val),
+      }));
+      setMetadataArray(array);
+    } else if (!value) {
+      setMetadataArray([]);
+    }
+  }, [value]);
+
+  const handleAdd = () => {
+    setMetadataArray([...metadataArray, { key: "", value: "" }]);
+  };
+
+  const handleRemove = (index: number) => {
+    const newArray = metadataArray.filter((_, i) => i !== index);
+    setMetadataArray(newArray);
+    updateFormData(newArray);
+  };
+
+  const handleChange = (
+    index: number,
+    field: "key" | "value",
+    newValue: string,
+  ) => {
+    const newArray = [...metadataArray];
+    const currentItem = newArray[index];
+    if (currentItem) {
+      newArray[index] = {
+        key: field === "key" ? newValue : currentItem.key,
+        value: field === "value" ? newValue : currentItem.value,
+      };
+      setMetadataArray(newArray);
+      updateFormData(newArray);
+    }
+  };
+
+  const updateFormData = (array: Array<{ key: string; value: string }>) => {
+    const newObject: Record<string, any> = {};
+    array.forEach((item) => {
+      if (item.key && item.key.trim()) {
+        newObject[item.key.trim()] = item.value;
+      }
+    });
+    onChange(newObject);
+  };
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Application Metadata
+      </Typography>
+      {metadataArray.map((item, index) => (
+        <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <MuiTextField
+            label="Key"
+            value={item.key}
+            onChange={(e) => handleChange(index, "key", e.target.value)}
+            sx={{ mr: 1, minWidth: 150 }}
+            size="small"
+          />
+          <MuiTextField
+            label="Value"
+            value={item.value}
+            onChange={(e) => handleChange(index, "value", e.target.value)}
+            sx={{ mr: 1, minWidth: 200 }}
+            size="small"
+          />
+          <IconButton
+            onClick={() => handleRemove(index)}
+            size="small"
+            color="error"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      ))}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={handleAdd}
+        sx={{ mt: 1 }}
+      >
+        Add Metadata
+      </Button>
+    </Box>
+  );
+};
+
 export function ClientEdit() {
   return (
     <Edit>
@@ -644,6 +802,8 @@ export function ClientEdit() {
             format={(value) => value === "true" || value === true}
             parse={(value) => (value ? "true" : "false")}
           />
+          <ClientMetadataInput source="client_metadata" />
+          <GrantTypesInput source="grant_types" />
           <ArrayInput source="callbacks">
             <SimpleFormIterator inline>
               <TextInput source="" defaultValue="" />
