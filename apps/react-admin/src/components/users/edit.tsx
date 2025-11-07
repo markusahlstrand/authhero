@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Datagrid,
   DateField,
@@ -17,6 +18,7 @@ import {
   useDataProvider,
   useRecordContext,
   useRefresh,
+  FormDataConsumer,
 } from "react-admin";
 import { LogType, LogIcon } from "../logs";
 import { DateAgo } from "../common";
@@ -607,6 +609,125 @@ const RemovePermissionButton = () => {
   );
 };
 
+// Metadata card for editing user and app metadata
+const MetadataCard = () => {
+  return (
+    <FormDataConsumer>
+      {() => (
+        <Box sx={{ mt: 3, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            Metadata
+          </Typography>
+
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1, fontWeight: "bold" }}
+              >
+                User Metadata
+              </Typography>
+              <TextInput
+                source="user_metadata"
+                multiline
+                fullWidth
+                rows={8}
+                variant="outlined"
+                size="small"
+                sx={{ fontFamily: "monospace", fontSize: "0.85em" }}
+                parse={(v) => {
+                  if (!v || v.trim() === "") return {};
+                  if (typeof v === "string") {
+                    try {
+                      return JSON.parse(v);
+                    } catch (e) {
+                      console.warn(
+                        "Invalid JSON in user_metadata, keeping as string:",
+                        e,
+                      );
+                      return v; // Keep as string if invalid JSON
+                    }
+                  }
+                  return v || {};
+                }}
+                format={(v) => {
+                  if (
+                    !v ||
+                    (typeof v === "object" && Object.keys(v).length === 0)
+                  ) {
+                    return "{}";
+                  }
+                  if (typeof v === "string") {
+                    // Try to format if it's valid JSON
+                    try {
+                      const parsed = JSON.parse(v);
+                      return JSON.stringify(parsed, null, 2);
+                    } catch {
+                      return v; // Keep as-is if not valid JSON
+                    }
+                  }
+                  return JSON.stringify(v, null, 2);
+                }}
+              />
+            </Box>
+
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1, fontWeight: "bold" }}
+              >
+                App Metadata
+              </Typography>
+              <TextInput
+                source="app_metadata"
+                multiline
+                fullWidth
+                rows={8}
+                variant="outlined"
+                size="small"
+                sx={{ fontFamily: "monospace", fontSize: "0.85em" }}
+                parse={(v) => {
+                  if (!v || v.trim() === "") return {};
+                  if (typeof v === "string") {
+                    try {
+                      return JSON.parse(v);
+                    } catch (e) {
+                      console.warn(
+                        "Invalid JSON in app_metadata, keeping as string:",
+                        e,
+                      );
+                      return v; // Keep as string if invalid JSON
+                    }
+                  }
+                  return v || {};
+                }}
+                format={(v) => {
+                  if (
+                    !v ||
+                    (typeof v === "object" && Object.keys(v).length === 0)
+                  ) {
+                    return "{}";
+                  }
+                  if (typeof v === "string") {
+                    // Try to format if it's valid JSON
+                    try {
+                      const parsed = JSON.parse(v);
+                      return JSON.stringify(parsed, null, 2);
+                    } catch {
+                      return v; // Keep as-is if not valid JSON
+                    }
+                  }
+                  return JSON.stringify(v, null, 2);
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </FormDataConsumer>
+  );
+};
+
 // Custom component to display user roles with organization context
 const UserRolesTable = ({
   onRolesChanged,
@@ -1178,7 +1299,9 @@ export function UserEdit() {
           <Stack spacing={2} direction="row">
             <TextInput source="email" sx={{ mb: 4 }} />
             <TextInput source="phone_number" sx={{ mb: 4 }} />
-            <Labeled label={<FieldTitle source="id" />}>
+            <Labeled
+              label={React.createElement(FieldTitle as any, { source: "id" })}
+            >
               <TextField source="id" sx={{ mb: 4 }} />
             </Labeled>
           </Stack>
@@ -1189,27 +1312,43 @@ export function UserEdit() {
           </Stack>
           <Stack spacing={2} direction="row">
             <TextInput source="name" />
-            <Labeled label={<FieldTitle source="connection" />}>
+            <Labeled
+              label={React.createElement(FieldTitle as any, {
+                source: "connection",
+              })}
+            >
               <TextField source="connection" />
             </Labeled>
           </Stack>
           <TextInput source="picture" />
           <ArrayField source="identities">
-            <Datagrid bulkActionButtons={false} sx={{ my: 4 }} rowClick="">
-              <TextField source="connection" />
-              <TextField source="provider" />
-              <TextField source="user_id" />
-              <BooleanField source="isSocial" />
-              <UnlinkButton />
-            </Datagrid>
+            {React.createElement(
+              Datagrid as any,
+              { bulkActionButtons: false, sx: { my: 4 }, rowClick: "" },
+              React.createElement(TextField, { source: "connection" }),
+              React.createElement(TextField, { source: "provider" }),
+              React.createElement(TextField, { source: "user_id" }),
+              React.createElement(BooleanField, { source: "isSocial" }),
+              React.createElement(UnlinkButton),
+            )}
           </ArrayField>
 
           <LinkUserButton />
 
-          <Labeled label={<FieldTitle source="created_at" />}>
+          <MetadataCard />
+
+          <Labeled
+            label={React.createElement(FieldTitle as any, {
+              source: "created_at",
+            })}
+          >
             <DateField source="created_at" showTime={true} />
           </Labeled>
-          <Labeled label={<FieldTitle source="updated_at" />}>
+          <Labeled
+            label={React.createElement(FieldTitle as any, {
+              source: "updated_at",
+            })}
+          >
             <DateField source="updated_at" showTime={true} />
           </Labeled>
         </TabbedForm.Tab>
@@ -1217,97 +1356,111 @@ export function UserEdit() {
           <ReferenceManyField
             reference="sessions"
             target="user_id"
-            pagination={<Pagination />}
+            pagination={React.createElement(Pagination as any)}
             perPage={10}
             sort={{ field: "used_at", order: "DESC" }}
           >
-            <Datagrid
-              sx={{
-                width: "100%",
-                "& .column-comment": {
-                  maxWidth: "20em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+            {React.createElement(
+              Datagrid as any,
+              {
+                sx: {
+                  width: "100%",
+                  "& .column-comment": {
+                    maxWidth: "20em",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
                 },
-              }}
-              rowClick="edit"
-              empty={<div>No active sessions found</div>}
-            >
-              <TextField source="id" sortable={true} />
-              <DateField
-                source="used_at"
-                showTime={true}
-                emptyText="-"
-                sortable={true}
-              />
-              <DateField
-                source="idle_expires_at"
-                showTime={true}
-                sortable={true}
-              />
-              <TextField
-                source="device.last_ip"
-                label="IP Address"
-                emptyText="-"
-                sortable={false}
-              />
-              <TextField
-                source="device.last_user_agent"
-                label="User Agent"
-                emptyText="-"
-                sortable={false}
-              />
-              <FunctionField
-                label="Client IDs"
-                render={(record) =>
-                  record.clients ? record.clients.join(", ") : "-"
-                }
-                sortable={false}
-              />
-              <DateField source="created_at" showTime={true} sortable={true} />
-              <FunctionField
-                label="Status"
-                render={(record) => (record.revoked_at ? "Revoked" : "Active")}
-                sortable={false}
-              />
-            </Datagrid>
+                rowClick: "edit",
+                empty: React.createElement(
+                  "div",
+                  null,
+                  "No active sessions found",
+                ),
+              },
+              React.createElement(TextField, { source: "id", sortable: true }),
+              React.createElement(DateField, {
+                source: "used_at",
+                showTime: true,
+                emptyText: "-",
+                sortable: true,
+              }),
+              React.createElement(DateField, {
+                source: "idle_expires_at",
+                showTime: true,
+                sortable: true,
+              }),
+              React.createElement(TextField, {
+                source: "device.last_ip",
+                label: "IP Address",
+                emptyText: "-",
+                sortable: false,
+              }),
+              React.createElement(TextField, {
+                source: "device.last_user_agent",
+                label: "User Agent",
+                emptyText: "-",
+                sortable: false,
+              }),
+              React.createElement(FunctionField, {
+                label: "Client IDs",
+                render: (record) =>
+                  record.clients ? record.clients.join(", ") : "-",
+                sortable: false,
+              }),
+              React.createElement(DateField, {
+                source: "created_at",
+                showTime: true,
+                sortable: true,
+              }),
+              React.createElement(FunctionField, {
+                label: "Status",
+                render: (record) => (record.revoked_at ? "Revoked" : "Active"),
+                sortable: false,
+              }),
+            )}
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="logs">
           <ReferenceManyField
             reference="logs"
             target="userId"
-            pagination={<Pagination />}
+            pagination={React.createElement(Pagination as any)}
             sort={{ field: "date", order: "DESC" }}
           >
-            <Datagrid
-              sx={{
-                width: "100%",
-                "& .column-comment": {
-                  maxWidth: "20em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+            {React.createElement(
+              Datagrid as any,
+              {
+                sx: {
+                  width: "100%",
+                  "& .column-comment": {
+                    maxWidth: "20em",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
                 },
-              }}
-              rowClick="show"
-            >
-              <FunctionField
-                source="success"
-                render={(record: any) => <LogIcon type={record.type} />}
-              />
-              <FunctionField
-                source="type"
-                render={(record: any) => <LogType type={record.type} />}
-              />
-              <FunctionField
-                source="date"
-                render={(record: any) => <DateAgo date={record.date} />}
-                sortable={true}
-              />
-              <TextField source="description" />
-            </Datagrid>
+                rowClick: "show",
+              },
+              React.createElement(FunctionField, {
+                source: "success",
+                render: (record) =>
+                  React.createElement(LogIcon, { type: record.type }),
+              }),
+              React.createElement(FunctionField, {
+                source: "type",
+                render: (record) =>
+                  React.createElement(LogType, { type: record.type }),
+              }),
+              React.createElement(FunctionField, {
+                source: "date",
+                render: (record) =>
+                  React.createElement(DateAgo, { date: record.date }),
+                sortable: true,
+              }),
+              React.createElement(TextField, { source: "description" }),
+            )}
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="permissions">
@@ -1315,38 +1468,50 @@ export function UserEdit() {
           <ReferenceManyField
             reference="permissions"
             target="user_id"
-            pagination={<Pagination />}
+            pagination={React.createElement(Pagination as any)}
             sort={{ field: "permission_name", order: "ASC" }}
           >
-            <Datagrid
-              sx={{
-                width: "100%",
-                "& .column-comment": {
-                  maxWidth: "20em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+            {React.createElement(
+              Datagrid as any,
+              {
+                sx: {
+                  width: "100%",
+                  "& .column-comment": {
+                    maxWidth: "20em",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
                 },
-              }}
-              rowClick=""
-              bulkActionButtons={false}
-            >
-              <TextField
-                source="resource_server_identifier"
-                label="Resource Server"
-              />
-              <TextField source="resource_server_name" label="Resource Name" />
-              <TextField source="permission_name" label="Permission" />
-              <TextField source="description" label="Description" />
-              <FunctionField
-                source="created_at"
-                render={(record: any) =>
-                  record.created_at ? <DateAgo date={record.created_at} /> : "-"
-                }
-                label="Assigned"
-              />
-              <RemovePermissionButton />
-            </Datagrid>
+                rowClick: "",
+                bulkActionButtons: false,
+              },
+              React.createElement(TextField, {
+                source: "resource_server_identifier",
+                label: "Resource Server",
+              }),
+              React.createElement(TextField, {
+                source: "resource_server_name",
+                label: "Resource Name",
+              }),
+              React.createElement(TextField, {
+                source: "permission_name",
+                label: "Permission",
+              }),
+              React.createElement(TextField, {
+                source: "description",
+                label: "Description",
+              }),
+              React.createElement(FunctionField, {
+                source: "created_at",
+                render: (record) =>
+                  record.created_at
+                    ? React.createElement(DateAgo, { date: record.created_at })
+                    : "-",
+                label: "Assigned",
+              }),
+              React.createElement(RemovePermissionButton),
+            )}
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="roles">
@@ -1356,43 +1521,55 @@ export function UserEdit() {
           <ReferenceManyField
             reference="user-organizations"
             target="user_id"
-            pagination={<Pagination />}
+            pagination={React.createElement(Pagination as any)}
             sort={{ field: "name", order: "ASC" }}
           >
-            <Datagrid
-              sx={{
-                width: "100%",
-                "& .column-comment": {
-                  maxWidth: "20em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+            {React.createElement(
+              Datagrid as any,
+              {
+                sx: {
+                  width: "100%",
+                  "& .column-comment": {
+                    maxWidth: "20em",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
                 },
-              }}
-              rowClick={(_, __, record) => `/organizations/${record.id}`}
-              bulkActionButtons={false}
-            >
-              <TextField source="name" label="Organization Name" />
-              <TextField source="display_name" label="Display Name" />
-              <TextField source="id" label="Organization ID" />
-              <FunctionField
-                source="metadata"
-                render={(record: any) => {
+                rowClick: (_, __, record) => `/organizations/${record.id}`,
+                bulkActionButtons: false,
+              },
+              React.createElement(TextField, {
+                source: "name",
+                label: "Organization Name",
+              }),
+              React.createElement(TextField, {
+                source: "display_name",
+                label: "Display Name",
+              }),
+              React.createElement(TextField, {
+                source: "id",
+                label: "Organization ID",
+              }),
+              React.createElement(FunctionField, {
+                source: "metadata",
+                render: (record) => {
                   const metadata = record.metadata || {};
                   const metadataCount = Object.keys(metadata).length;
                   return metadataCount > 0
                     ? `${metadataCount} properties`
                     : "-";
-                }}
-                label="Metadata"
-              />
-              <FunctionField
-                label="Joined"
-                render={(record: any) =>
-                  record.created_at ? <DateAgo date={record.created_at} /> : "-"
-                }
-              />
-            </Datagrid>
+                },
+                label: "Metadata",
+              }),
+              React.createElement(FunctionField, {
+                label: "Joined",
+                render: (record) =>
+                  record.created_at
+                    ? React.createElement(DateAgo, { date: record.created_at })
+                    : "-",
+              }),
+            )}
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
