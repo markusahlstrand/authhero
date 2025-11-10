@@ -237,6 +237,11 @@ export default (
           resourceKey: "forms",
           idKey: "id",
         },
+        "custom-domains": {
+          fetch: (client: any) => client.customDomains.list(),
+          resourceKey: "custom_domains",
+          idKey: "custom_domain_id",
+        },
       };
 
       // Handle SDK resources
@@ -249,7 +254,7 @@ export default (
         );
         return {
           data: data.map((item: any) => ({
-            id: item[handler.idKey],
+            id: item[handler.idKey] || item.id,
             ...item,
           })),
           total,
@@ -290,7 +295,7 @@ export default (
         if (Array.isArray(res.json)) {
           return {
             data: res.json.map((item) => ({
-              id: item.id,
+              id: item.custom_domain_id || item.id,
               ...item,
             })),
             total: res.json.length,
@@ -301,7 +306,7 @@ export default (
         return {
           data:
             res.json[resource]?.map((item: any) => ({
-              id: item.id,
+              id: item.custom_domain_id || item.id,
               ...item,
             })) || [],
           total: res.json.total || res.json.length || 0,
@@ -328,6 +333,10 @@ export default (
           fetch: (id) => managementClient.clients.get(id),
           idKey: "client_id",
         },
+        "custom-domains": {
+          fetch: (id) => (managementClient as any).customDomains.get(id),
+          idKey: "custom_domain_id",
+        },
       };
 
       const handler = sdkGetHandlers[resource];
@@ -335,7 +344,7 @@ export default (
         const result = await handler.fetch(params.id as string);
         return {
           data: {
-            id: result[handler.idKey],
+            id: result[handler.idKey] || result.id,
             ...result,
           },
         };
@@ -669,38 +678,26 @@ export default (
 
       // Special handling for branding to update theme data separately
       if (resource === "branding") {
+        // Update branding
+        const brandingResult = await managementClient.branding.update(
+          cleanParams.data,
+        );
+
+        // Update themes if provided
+        const result: any = {
+          id: resource,
+          ...brandingResult,
+        };
+
         if (cleanParams.data.themes) {
-          const themeData = cleanParams.data.themes;
-          delete cleanParams.data.themes;
-
-          // Update branding using SDK, theme still uses HTTP as SDK may not support it
-          const [brandingResult, themeResult] = await Promise.all([
-            managementClient.branding.update(cleanParams.data),
-            httpClient(`${apiUrl}/api/v2/branding/themes/default`, {
-              headers,
-              method: "PATCH",
-              body: JSON.stringify(themeData),
-            })
-              .then((res) => res.json)
-              .catch((error) => {
-                console.warn("Failed to update theme data:", error);
-                return {};
-              }),
-          ]);
-
-          return {
-            data: {
-              id: resource,
-              ...brandingResult,
-              themes: themeResult,
-            },
-          };
+          const themeUpdateResult = await (
+            managementClient.branding.themes as any
+          ).default.patch(cleanParams.data.themes);
+          result.themes =
+            (themeUpdateResult as any).response || themeUpdateResult;
         }
 
-        const result = await managementClient.branding.update(cleanParams.data);
-        return {
-          data: { ...result, id: resource },
-        };
+        return { data: result };
       }
 
       // SDK-handled resources
@@ -808,6 +805,19 @@ export default (
         };
       }
 
+      if (resource === "custom-domains") {
+        const result = await (managementClient as any).customDomains.update(
+          params.id as string,
+          cleanParams.data,
+        );
+        return {
+          data: {
+            id: result.custom_domain_id || result.id,
+            ...result,
+          },
+        };
+      }
+
       // HTTP fallback for other resources
       return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
         headers,
@@ -827,6 +837,7 @@ export default (
     create: async (resource, params) => {
       const headers = new Headers({ "content-type": "application/json" });
       if (tenantId) headers.set("tenant-id", tenantId);
+      const managementClient = await getManagementClient();
 
       // Helper for POST requests
       const post = async (endpoint: string, body: any) =>
@@ -835,6 +846,61 @@ export default (
           body: JSON.stringify(body),
           headers,
         });
+
+      // SDK resource handlers for create
+      const sdkCreateHandlers: Record<
+        string,
+        { create: (data: any) => Promise<any>; idKey: string }
+      > = {
+        users: {
+          create: (data) => managementClient.users.create(data),
+          idKey: "user_id",
+        },
+        clients: {
+          create: (data) => managementClient.clients.create(data),
+          idKey: "client_id",
+        },
+        connections: {
+          create: (data) => managementClient.connections.create(data),
+          idKey: "id",
+        },
+        roles: {
+          create: (data) => managementClient.roles.create(data),
+          idKey: "id",
+        },
+        "resource-servers": {
+          create: (data) => managementClient.resourceServers.create(data),
+          idKey: "id",
+        },
+        organizations: {
+          create: (data) => managementClient.organizations.create(data),
+          idKey: "id",
+        },
+        rules: {
+          create: (data) => managementClient.rules.create(data),
+          idKey: "id",
+        },
+        "client-grants": {
+          create: (data) => managementClient.clientGrants.create(data),
+          idKey: "id",
+        },
+        "custom-domains": {
+          create: (data) =>
+            (managementClient as any).customDomains.create(data),
+          idKey: "custom_domain_id",
+        },
+      };
+
+      const handler = sdkCreateHandlers[resource];
+      if (handler) {
+        const result = await handler.create(params.data);
+        return {
+          data: {
+            id: result[handler.idKey] || result.id,
+            ...result,
+          },
+        };
+      }
 
       // Organization invitations
       if (resource === "organization-invitations") {
@@ -904,7 +970,7 @@ export default (
         };
       }
 
-      // Default create
+      // Default create (for endpoints not in SDK)
       const res = await post(resource, params.data);
       return {
         data: {
@@ -992,6 +1058,14 @@ export default (
         await managementClient.organizations.members.delete(organization_id, {
           members: [user_id],
         });
+        return { data: { id: params.id } };
+      }
+
+      // Custom-domains using SDK
+      if (resource === "custom-domains") {
+        await (managementClient as any).customDomains.delete(
+          params.id as string,
+        );
         return { data: { id: params.id } };
       }
 
