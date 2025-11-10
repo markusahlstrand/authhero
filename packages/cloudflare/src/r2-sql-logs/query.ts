@@ -21,24 +21,22 @@ export async function executeR2SQLQuery(
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    // Note: This uses the Cloudflare SQL API endpoint
-    // In a Cloudflare Worker environment, you would use the native SQL binding instead
-    // For this adapter, we use the HTTP API
-    const response = await fetch(
-      `${config.apiBaseUrl || "https://sql.r2.workers.dev"}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.authToken}`,
-        },
-        body: JSON.stringify({
-          warehouse: config.warehouseName,
-          query: query,
-        }),
-        signal: controller.signal,
+    // Construct the official Cloudflare R2 SQL API endpoint
+    // Format: https://api.sql.cloudflarestorage.com/api/v1/accounts/{ACCOUNT_ID}/r2-sql/query/{WAREHOUSE}
+    const endpoint = `https://api.sql.cloudflarestorage.com/api/v1/accounts/${config.accountId}/r2-sql/query/${config.warehouseName}`;
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.authToken}`,
       },
-    );
+      // Request body should be shaped as { "query": "..." }
+      body: JSON.stringify({
+        query: query,
+      }),
+      signal: controller.signal,
+    });
 
     if (!response.ok) {
       throw new Error(

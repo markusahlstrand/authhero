@@ -89,6 +89,11 @@ async function sendToPipeline(
   tenantId: string,
   log: Log,
 ): Promise<void> {
+  // Helper to stringify JSON fields if needed
+  const stringifyIfTruthy = (value: any): string | undefined => {
+    return value ? JSON.stringify(value) : undefined;
+  };
+
   // Prepare log data for Pipeline ingestion
   const logData = {
     id: log.log_id,
@@ -98,7 +103,7 @@ async function sendToPipeline(
     description: log.description?.substring(0, 256),
     ip: log.ip,
     user_agent: log.user_agent,
-    details: log.details,
+    details: stringifyIfTruthy(log.details)?.substring(0, 8192),
     isMobile: log.isMobile ? 1 : 0,
     user_id: log.user_id,
     user_name: log.user_name,
@@ -111,7 +116,7 @@ async function sendToPipeline(
     strategy: log.strategy,
     strategy_type: log.strategy_type,
     hostname: log.hostname,
-    auth0_client: log.auth0_client,
+    auth0_client: stringifyIfTruthy(log.auth0_client),
     log_id: log.log_id,
   };
 

@@ -24,6 +24,13 @@ export interface R2SQLLogsAdapterConfig {
   };
 
   /**
+   * Cloudflare account ID for R2 SQL API
+   * Required for the official API endpoint
+   * Can be passed via environment variable: CLOUDFLARE_ACCOUNT_ID
+   */
+  accountId: string;
+
+  /**
    * Cloudflare R2 SQL API token for querying logs
    * Can be passed via environment variable: R2_SQL_AUTH_TOKEN
    */
@@ -44,11 +51,6 @@ export interface R2SQLLogsAdapterConfig {
    * Catalog table name for logs (default: "logs")
    */
   tableName?: string;
-
-  /**
-   * R2 SQL API base URL (default: "https://api.cloudflare.com/client/v4")
-   */
-  apiBaseUrl?: string;
 
   /**
    * HTTP timeout in milliseconds (default: 30000)

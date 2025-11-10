@@ -33,7 +33,11 @@ module.exports = defineConfig({
       fileName: (format) => fileName[format],
     },
     rollupOptions: {
-      external: ["@authhero/adapter-interfaces", "wretch"],
+      external: [
+        "@authhero/adapter-interfaces",
+        "@authhero/kysely-adapter",
+        "wretch",
+      ],
     },
   },
   resolve: {

@@ -41,11 +41,12 @@ function buildWhereConditions(filters: Record<string, string>): string[] {
 
   for (const [key, value] of Object.entries(filters)) {
     const sanitizedKey = key.replace(/[^a-zA-Z0-9_]/g, "");
-    const sanitizedValue = value.replace(/[^a-zA-Z0-9_\-@.]/g, "");
 
-    if (sanitizedKey && sanitizedValue) {
+    // escapeSQLString properly handles SQL injection prevention,
+    // so we don't need aggressive value sanitization
+    if (sanitizedKey && value) {
       conditions.push(
-        `${escapeSQLIdentifier(sanitizedKey)} = ${escapeSQLString(sanitizedValue)}`,
+        `${escapeSQLIdentifier(sanitizedKey)} = ${escapeSQLString(value)}`,
       );
     }
   }
