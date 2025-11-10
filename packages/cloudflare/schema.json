@@ -1,0 +1,26 @@
+{
+  "fields": [
+    { "name": "id", "type": "string", "required": true },
+    { "name": "tenant_id", "type": "string", "required": true },
+    { "name": "type", "type": "string", "required": true },
+    { "name": "date", "type": "string", "required": true },
+    { "name": "description", "type": "string", "required": false },
+    { "name": "ip", "type": "string", "required": true },
+    { "name": "user_agent", "type": "string", "required": true },
+    { "name": "details", "type": "string", "required": false },
+    { "name": "isMobile", "type": "int64", "required": false },
+    { "name": "user_id", "type": "string", "required": false },
+    { "name": "user_name", "type": "string", "required": false },
+    { "name": "connection", "type": "string", "required": false },
+    { "name": "connection_id", "type": "string", "required": false },
+    { "name": "client_id", "type": "string", "required": false },
+    { "name": "client_name", "type": "string", "required": false },
+    { "name": "audience", "type": "string", "required": false },
+    { "name": "scope", "type": "string", "required": false },
+    { "name": "strategy", "type": "string", "required": false },
+    { "name": "strategy_type", "type": "string", "required": false },
+    { "name": "hostname", "type": "string", "required": false },
+    { "name": "auth0_client", "type": "string", "required": false },
+    { "name": "log_id", "type": "string", "required": true }
+  ]
+}

@@ -1,4 +1,5 @@
 import { CustomDomainsAdapter } from "@authhero/adapter-interfaces";
+import type { R2SQLLogsAdapterConfig } from "../r2-sql-logs";
 
 export interface CloudflareConfig {
   zoneId: string;
@@ -18,4 +19,8 @@ export interface CloudflareConfig {
    * Key prefix to namespace cache entries (optional)
    */
   keyPrefix?: string;
+  /**
+   * R2 SQL logs adapter configuration (optional)
+   */
+  r2SqlLogs?: R2SQLLogsAdapterConfig;
 }

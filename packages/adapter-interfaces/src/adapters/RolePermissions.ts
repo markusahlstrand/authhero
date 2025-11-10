@@ -1,7 +1,7 @@
 import { ListParams } from "../types/ListParams";
 import {
   RolePermissionInsert,
-  RolePermissionWithDetailsList,
+  RolePermissionList,
 } from "../types/RolePermission";
 
 export interface RolePermissionsAdapter {
@@ -27,5 +27,5 @@ export interface RolePermissionsAdapter {
     tenant_id: string,
     role_id: string,
     params?: ListParams,
-  ): Promise<RolePermissionWithDetailsList>;
+  ): Promise<RolePermissionList>;
 }

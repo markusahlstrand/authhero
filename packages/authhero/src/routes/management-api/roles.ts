@@ -7,7 +7,7 @@ import {
   roleSchema,
   roleInsertSchema,
   totalsSchema,
-  rolePermissionWithDetailsListSchema,
+  rolePermissionListSchema,
 } from "@authhero/adapter-interfaces";
 
 const rolesWithTotalsSchema = totalsSchema.extend({
@@ -277,7 +277,7 @@ export const roleRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: rolePermissionWithDetailsListSchema,
+              schema: rolePermissionListSchema,
             },
           },
           description: "Role permissions",

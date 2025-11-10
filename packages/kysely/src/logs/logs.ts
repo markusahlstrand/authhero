@@ -22,7 +22,7 @@ export function getLogResponse(log: Database["logs"]): Log {
     details: tryParseJSON(log.details),
     isMobile: !!log.isMobile,
     scope: log.scope ? log.scope.split(",") : undefined,
-    log_id: log.id,
+    log_id: log.log_id,
   };
   return logResponse;
 }
