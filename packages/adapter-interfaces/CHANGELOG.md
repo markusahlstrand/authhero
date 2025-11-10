@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.99.0
+
+### Minor Changes
+
+- a3c69f0: Add support for logs with cloudflare sql
+
 ## 0.98.0
 
 ### Minor Changes

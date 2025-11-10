@@ -1,5 +1,17 @@
 # @authhero/cloudflare-adapter
 
+## 2.8.0
+
+### Minor Changes
+
+- a3c69f0: Add support for logs with cloudflare sql
+
+### Patch Changes
+
+- Updated dependencies [a3c69f0]
+  - @authhero/adapter-interfaces@0.99.0
+  - @authhero/kysely-adapter@10.56.0
+
 ## 2.7.6
 
 ### Patch Changes

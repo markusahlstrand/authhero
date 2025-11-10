@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.56.0
+
+### Minor Changes
+
+- a3c69f0: Add support for logs with cloudflare sql
+
+### Patch Changes
+
+- Updated dependencies [a3c69f0]
+  - @authhero/adapter-interfaces@0.99.0
+
 ## 10.55.1
 
 ### Patch Changes
