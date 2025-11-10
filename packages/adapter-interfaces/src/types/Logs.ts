@@ -210,7 +210,7 @@ export const logInsertSchema = z.object({
   type: LogType,
   date: z.string(),
   description: z.string().optional(),
-  ip: z.string(),
+  ip: z.string().optional(),
   user_agent: z.string(),
   details: z.any().optional(), // Using z.any() as a placeholder for "details" type
   isMobile: z.boolean(),

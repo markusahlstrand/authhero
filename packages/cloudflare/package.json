@@ -20,9 +20,9 @@
   "types": "dist/cloudflare-adapter.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/cloudflare-adapter.d.ts",
       "require": "./dist/cloudflare-adapter.cjs",
-      "import": "./dist/cloudflare-adapter.mjs",
-      "types": "./dist/cloudflare-adapter.d.ts"
+      "import": "./dist/cloudflare-adapter.mjs"
     }
   },
   "scripts": {
@@ -30,26 +30,27 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.19.2",
-    "@rollup/plugin-commonjs": "^28.0.1",
-    "@rollup/plugin-node-resolve": "^15.3.0",
-    "@types/node": "^22.9.1",
-    "better-sqlite3": "^11.5.0",
+    "@hono/zod-openapi": "^0.19.10",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^24.10.0",
+    "better-sqlite3": "^12.4.1",
     "dts-bundle-generator": "^9.5.1",
-    "hono": "^4.6.8",
-    "kysely": "^0.27.4",
-    "msw": "^2.7.3",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.11",
-    "vitest": "^2.1.5"
+    "hono": "^4.10.4",
+    "kysely": "^0.28.8",
+    "msw": "^2.12.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.7"
   },
   "peerDependencies": {
-    "@hono/zod-openapi": "^0.19.2",
+    "@hono/zod-openapi": "^0.19.10",
     "hono": "^4.6.8"
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:^",
     "@authhero/kysely-adapter": "workspace:^",
-    "wretch": "^2.11.0"
+    "nanoid": "^5.1.6",
+    "wretch": "^3.0.2"
   }
 }

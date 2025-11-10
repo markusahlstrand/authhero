@@ -8,7 +8,7 @@ export function getLogs(db: Kysely<Database>) {
     const log = await db
       .selectFrom("logs")
       .where("logs.tenant_id", "=", tenantId)
-      .where("logs.id", "=", logId)
+      .where("logs.log_id", "=", logId)
       .selectAll()
       .executeTakeFirst();
 

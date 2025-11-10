@@ -13,9 +13,13 @@ import {
   Password,
   promptSettingSchema,
   refreshTokenSchema,
+  rolePermissionSchema,
   sessionSchema,
   SigningKey,
+  tenantSchema,
   themeSchema,
+  userPermissionSchema,
+  userRoleSchema,
   userSchema,
   resourceServerSchema,
   roleSchema,
@@ -112,27 +116,14 @@ const sqlFormSchema = z.object({
 });
 
 const sqlLogSchema = z.object({
-  id: z.string(),
+  ...logSchema.shape,
+  id: z.string().optional(), // Legacy field, will be dropped
   tenant_id: z.string(),
-  type: logSchema.shape.type,
-  date: z.string(),
-  description: z.string().optional(),
-  ip: z.string(),
-  user_agent: z.string(),
-  details: z.string().optional(),
-  auth0_client: z.string().optional(),
+  // Override fields that need different types in SQL
   isMobile: z.number().optional(),
-  user_id: z.string().optional(),
-  user_name: z.string().optional(),
-  connection: z.string().optional(),
-  connection_id: z.string().optional(),
-  client_id: z.string().optional(),
-  client_name: z.string().optional(),
-  audience: z.string().optional(),
-  scope: z.string().optional(),
-  strategy: z.string().optional(),
-  strategy_type: z.string().optional(),
-  hostname: z.string().optional(),
+  scope: z.string().optional(), // Stored as comma-separated string in SQL
+  auth0_client: z.string().optional(), // Stored as JSON string in SQL
+  details: z.string().optional(), // Stored as JSON string in SQL
   session_connection: z.string().optional(),
 });
 
@@ -163,83 +154,7 @@ export const sqlRoleSchema = z.object({
 
 // Tenant schema now includes settings fields (merged from tenant_settings)
 export const sqlTenantSchema = z.object({
-  // Base tenant fields
-  id: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  audience: z.string(),
-  sender_email: z.string(),
-  sender_name: z.string(),
-  support_url: z.string().optional(),
-
-  // Basic settings
-  friendly_name: z.string(), // Required - replaces the old 'name' field
-  picture_url: z.string().optional(),
-  support_email: z.string().optional(),
-
-  // Session settings
-  session_lifetime: z.number().optional(),
-  idle_session_lifetime: z.number().optional(),
-  ephemeral_session_lifetime: z.number().optional(),
-  idle_ephemeral_session_lifetime: z.number().optional(),
-  session_cookie: z.string().optional(), // JSON
-
-  // Logout settings
-  allowed_logout_urls: z.string().optional(), // JSON array
-
-  // Universal Login settings
-  default_redirection_uri: z.string().optional(),
-
-  // Advanced settings
-  enabled_locales: z.string().optional(), // JSON array
-  default_directory: z.string().optional(),
-  error_page: z.string().optional(), // JSON
-
-  // Flags
-  flags: z.string().optional(), // JSON
-
-  // Sandbox settings
-  sandbox_version: z.string().optional(),
-  legacy_sandbox_version: z.string().optional(),
-  sandbox_versions_available: z.string().optional(), // JSON array
-
-  // Change password settings
-  change_password: z.string().optional(), // JSON
-
-  // Guardian MFA settings
-  guardian_mfa_page: z.string().optional(), // JSON
-
-  // Device flow settings
-  device_flow: z.string().optional(), // JSON
-
-  // Default token quota
-  default_token_quota: z.string().optional(), // JSON
-
-  // Default audience & organization
-  default_audience: z.string().optional(),
-  default_organization: z.string().optional(),
-
-  // Session management
-  sessions: z.string().optional(), // JSON
-
-  // OIDC logout settings
-  oidc_logout: z.string().optional(), // JSON
-
-  // Organization settings
-  allow_organization_name_in_authentication_api: z.number().optional(), // boolean as int
-
-  // MFA settings
-  customize_mfa_in_postlogin_action: z.number().optional(), // boolean as int
-
-  // ACR values
-  acr_values_supported: z.string().optional(), // JSON array
-
-  // mTLS settings
-  mtls: z.string().optional(), // JSON
-
-  // Authorization settings
-  pushed_authorization_requests_supported: z.number().optional(), // boolean as int
-  authorization_response_iss_parameter_supported: z.number().optional(), // boolean as int
+  ...tenantSchema.shape,
 });
 
 export const sqlClientGrantSchema = z.object({
@@ -258,28 +173,16 @@ export const sqlClientGrantSchema = z.object({
 });
 
 export const sqlRolePermissionSchema = z.object({
+  ...rolePermissionSchema.shape,
   tenant_id: z.string(),
-  role_id: z.string(),
-  resource_server_identifier: z.string(),
-  permission_name: z.string(),
-  created_at: z.string(),
 });
 
 export const sqlUserPermissionSchema = z.object({
-  tenant_id: z.string(),
-  user_id: z.string(),
-  resource_server_identifier: z.string(),
-  permission_name: z.string(),
-  organization_id: z.string(),
-  created_at: z.string(),
+  ...userPermissionSchema.shape,
 });
 
 export const sqlUserRoleSchema = z.object({
-  tenant_id: z.string(),
-  user_id: z.string(),
-  role_id: z.string(),
-  organization_id: z.string(),
-  created_at: z.string(),
+  ...userRoleSchema.shape,
 });
 
 export const sqlOrganizationSchema = z.object({
