@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.10.0
+
+### Minor Changes
+
+- a3c69f0: Add support for logs with cloudflare sql
+
 ## 1.9.0
 
 ### Minor Changes
