@@ -1183,7 +1183,7 @@ describe("impersonation routes", () => {
 
       // Should have tokens in the URL fragment (implicit flow)
       expect(redirectUrl.hash).toContain("access_token");
-      
+
       // In implicit flow, state is in the fragment, not search params
       const fragmentParams = new URLSearchParams(redirectUrl.hash.substring(1));
       expect(fragmentParams.get("state")).toBe("original-state-implicit");
@@ -1284,12 +1284,11 @@ describe("impersonation routes", () => {
       expect(state).toBeTruthy();
 
       // Step 2: Enter email on identifier page
-      const identifierPostResponse = await universalClient.login.identifier.$post(
-        {
+      const identifierPostResponse =
+        await universalClient.login.identifier.$post({
           query: { state: state! },
           form: { username: "admin-pwd@example.com" },
-        },
-      );
+        });
 
       if (identifierPostResponse.status !== 302) {
         const errorBody = await identifierPostResponse.text();
@@ -1305,33 +1304,39 @@ describe("impersonation routes", () => {
         form: { password: "adminpassword123" },
       });
       expect(enterPasswordPostResponse.status).toBe(302);
-      
-      const enterPasswordLocation = enterPasswordPostResponse.headers.get(
-        "location",
-      );
-      
+
+      const enterPasswordLocation =
+        enterPasswordPostResponse.headers.get("location");
+
       // After entering password, it should either go to check-account or directly to impersonate
       // If there's an impersonation hook, it might skip check-account and go straight to impersonate
       expect(enterPasswordLocation).toBeTruthy();
-      
+
       // Check if it went directly to impersonate (due to post-login hook)
       if (!enterPasswordLocation!.includes("/u/impersonate")) {
         // If it went to check-account, call it next
         expect(enterPasswordLocation).toContain("/u/check-account");
 
-        const checkAccountUrl = new URL(`https://example.com${enterPasswordLocation}`);
+        const checkAccountUrl = new URL(
+          `https://example.com${enterPasswordLocation}`,
+        );
         const checkAccountState = checkAccountUrl.searchParams.get("state");
         expect(checkAccountState).toBeTruthy();
 
-        const checkAccountResponse = await universalClient["check-account"].$post({
+        const checkAccountResponse = await universalClient[
+          "check-account"
+        ].$post({
           query: { state: checkAccountState! },
         });
 
         expect(checkAccountResponse.status).toBe(302);
-        const checkAccountLocation = checkAccountResponse.headers.get("location");
+        const checkAccountLocation =
+          checkAccountResponse.headers.get("location");
         expect(checkAccountLocation).toContain("/u/impersonate");
 
-        const impersonateUrl = new URL(`https://example.com${checkAccountLocation}`);
+        const impersonateUrl = new URL(
+          `https://example.com${checkAccountLocation}`,
+        );
         const impersonateState = impersonateUrl.searchParams.get("state");
         expect(impersonateState).toBeTruthy();
 
@@ -1345,7 +1350,9 @@ describe("impersonation routes", () => {
         expect(impersonateHtml).toContain("admin-pwd@example.com");
       } else {
         // It went directly to impersonate, extract the state from the location
-        const impersonateUrl = new URL(`https://example.com${enterPasswordLocation}`);
+        const impersonateUrl = new URL(
+          `https://example.com${enterPasswordLocation}`,
+        );
         const impersonateState = impersonateUrl.searchParams.get("state");
         expect(impersonateState).toBeTruthy();
 
@@ -1359,17 +1366,15 @@ describe("impersonation routes", () => {
         expect(impersonateHtml).toContain("admin-pwd@example.com");
 
         // Step 6: Perform the impersonation switch
-        const impersonatePostResponse = await universalClient.impersonate.switch.$post(
-          {
+        const impersonatePostResponse =
+          await universalClient.impersonate.switch.$post({
             query: { state: impersonateState! },
             form: { user_id: "auth2|target-pwd" },
-          },
-        );
+          });
 
         expect(impersonatePostResponse.status).toBe(302);
-        const impersonatePostLocation = impersonatePostResponse.headers.get(
-          "location",
-        );
+        const impersonatePostLocation =
+          impersonatePostResponse.headers.get("location");
         expect(impersonatePostLocation).toBeTruthy();
 
         // Verify the final redirect is to the client callback
