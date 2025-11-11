@@ -1,5 +1,11 @@
 # authhero
 
+## 0.266.0
+
+### Minor Changes
+
+- edc006c: Fix the impersonate flow with password
+
 ## 0.265.1
 
 ### Patch Changes
