@@ -12,7 +12,7 @@ const PasswordInput = ({
   placeholder = i18next.t("password"),
 }: Props) => {
   return (
-    <div className="password-input relative mb-2">
+    <div className="password-input relative mb-2" data-password-toggle>
       <input
         type="password"
         name={name}
@@ -24,17 +24,11 @@ const PasswordInput = ({
         type="button"
         aria-label={i18next.t("show_password")}
         title={i18next.t("show_password")}
-        className="show-password-toggle-show absolute right-0 top-0 w-10 h-full rounded-r-lg text-gray-400 column hover:bg-black/5"
+        className="absolute right-0 top-0 w-10 h-full rounded-r-lg text-gray-400 column hover:bg-black/5"
+        data-password-toggle-btn
       >
-        <IconEye />
-      </button>
-      <button
-        type="button"
-        aria-label={i18next.t("hide_password")}
-        title={i18next.t("hide_password")}
-        className="show-password-toggle-hide !hidden absolute right-0 top-0 w-10 h-full rounded-r-lg text-gray-400 column hover:bg-black/5"
-      >
-        <IconEyeSlash />
+        <IconEye data-show-icon />
+        <IconEyeSlash data-hide-icon className="hidden" />
       </button>
     </div>
   );

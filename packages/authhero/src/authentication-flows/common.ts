@@ -35,7 +35,7 @@ export interface CreateAuthTokensParams {
   user?: User;
   session_id?: string;
   refresh_token?: string;
-  strategy?: string;
+  authStrategy?: { strategy: string; strategy_type: string };
   ticketAuth?: boolean;
   skipHooks?: boolean;
   organization?: { id: string; name: string };
@@ -336,7 +336,7 @@ export interface CreateAuthResponseParams {
   sessionId?: string;
   refreshToken?: string;
   ticketAuth?: boolean;
-  strategy?: string;
+  authStrategy?: { strategy: string; strategy_type: string };
   skipHooks?: boolean;
   organization?: { id: string; name: string };
   impersonatingUser?: User; // The original user who is impersonating
@@ -360,6 +360,41 @@ export async function createFrontChannelAuthResponse(
         message: "Login session not found for ticket auth.",
       });
     }
+
+    // Call post-login hooks before returning the ticket
+    // This ensures logging and metadata updates happen immediately
+    if (user && !params.skipHooks) {
+      // Update the user's app_metadata with the strategy used for login
+      if (
+        params.authStrategy &&
+        user.app_metadata?.strategy !== params.authStrategy.strategy
+      ) {
+        user.app_metadata = {
+          ...user.app_metadata,
+          strategy: params.authStrategy.strategy,
+        };
+        await ctx.env.data.users.update(client.tenant.id, user.user_id, {
+          app_metadata: {
+            ...(user.app_metadata || {}),
+            strategy: params.authStrategy.strategy,
+          },
+        });
+      }
+
+      await postUserLoginHook(
+        ctx,
+        ctx.env.data,
+        client.tenant.id,
+        user,
+        params.loginSession,
+        {
+          client,
+          authParams,
+          authStrategy: params.authStrategy,
+        },
+      );
+    }
+
     const co_verifier = generateCodeVerifier();
     const co_id = nanoid(12);
 
@@ -459,7 +494,7 @@ export async function createFrontChannelAuthResponse(
     client,
     session_id,
     refresh_token,
-    strategy: params.strategy,
+    authStrategy: params.authStrategy,
     loginSession: params.loginSession,
     responseType,
     skipHooks: params.skipHooks,
@@ -657,12 +692,18 @@ export async function completeLogin(
   // Run hooks if we have a loginSession (authentication flow) and skipHooks is not set
   if (params.loginSession && user && !params.skipHooks) {
     // Update the user's app_metadata with the strategy used for login
-    if (params.strategy && user.app_metadata?.strategy !== params.strategy) {
-      user.app_metadata = { ...user.app_metadata, strategy: params.strategy };
+    if (
+      params.authStrategy &&
+      user.app_metadata?.strategy !== params.authStrategy.strategy
+    ) {
+      user.app_metadata = {
+        ...user.app_metadata,
+        strategy: params.authStrategy.strategy,
+      };
       await ctx.env.data.users.update(params.client.tenant.id, user.user_id, {
         app_metadata: {
           ...(user.app_metadata || {}),
-          strategy: params.strategy,
+          strategy: params.authStrategy.strategy,
         },
       });
     }
@@ -676,12 +717,7 @@ export async function completeLogin(
       {
         client: params.client,
         authParams: updatedAuthParams,
-        authStrategy: params.strategy
-          ? {
-              strategy: params.strategy,
-              strategy_type: "social", // Social logins come through this path
-            }
-          : undefined,
+        authStrategy: params.authStrategy,
       },
     );
 

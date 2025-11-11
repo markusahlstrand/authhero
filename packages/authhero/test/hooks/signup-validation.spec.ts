@@ -79,11 +79,8 @@ describe("signup validation hooks", () => {
         name: "Existing User",
         nickname: "existing",
         picture: "",
-        login_count: 0,
         last_ip: "",
         last_login: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       // Update the client to disable signups
@@ -167,11 +164,8 @@ describe("signup validation hooks", () => {
         name: "Test User",
         nickname: "user",
         picture: "",
-        login_count: 0,
         last_ip: "",
         last_login: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       // Update the client to disable signups

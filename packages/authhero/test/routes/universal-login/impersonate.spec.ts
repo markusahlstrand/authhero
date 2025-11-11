@@ -1183,7 +1183,7 @@ describe("impersonation routes", () => {
 
       // Should have tokens in the URL fragment (implicit flow)
       expect(redirectUrl.hash).toContain("access_token");
-      
+
       // In implicit flow, state is in the fragment, not search params
       const fragmentParams = new URLSearchParams(redirectUrl.hash.substring(1));
       expect(fragmentParams.get("state")).toBe("original-state-implicit");
@@ -1201,6 +1201,186 @@ describe("impersonation routes", () => {
       // Verify the token is for the target user with act claim
       expect(payload.sub).toBe("auth2|target-implicit-flow");
       expect(payload.act).toEqual({ sub: "auth2|admin-implicit-flow" });
+    });
+  });
+
+  describe("Password login with impersonation", () => {
+    it("should allow impersonation after password login", async () => {
+      const { universalApp, oauthApp, env } = await getTestServer({
+        mockEmail: true,
+      });
+      const universalClient = testClient(universalApp, env);
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create admin user with impersonation permission
+      const bcryptjs = (await import("bcryptjs")).default;
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|admin-pwd",
+        email: "admin-pwd@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Add password for admin
+      await env.data.passwords.create("tenantId", {
+        user_id: "auth2|admin-pwd",
+        password: await bcryptjs.hash("adminpassword123", 10),
+        algorithm: "bcrypt",
+      });
+
+      // Assign impersonation permission to admin
+      await env.data.userPermissions.create("tenantId", "auth2|admin-pwd", {
+        user_id: "auth2|admin-pwd",
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Create target user to impersonate
+      await env.data.users.create("tenantId", {
+        user_id: "auth2|target-pwd",
+        email: "target-pwd@example.com",
+        email_verified: true,
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      // Mock the hooks.list to return impersonation page hook
+      const originalHooksList = env.data.hooks.list;
+      env.data.hooks.list = async (tenant_id: string, query?: any) => {
+        const result = await originalHooksList(tenant_id, query);
+        if (query?.q === "trigger_id:post-user-login") {
+          result.hooks.push({
+            hook_id: "hook_impersonate_pwd",
+            enabled: true,
+            trigger_id: "post-user-login",
+            page_id: "impersonate",
+            permission_required: "users:impersonate",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            synchronous: false,
+          } as any);
+        }
+        return result;
+      };
+
+      // Step 1: Start OAuth authorization flow
+      const authorizeResponse = await oauthClient.authorize.$get({
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "auth-state",
+          nonce: "nonce",
+          scope: "openid email profile",
+        },
+      });
+
+      expect(authorizeResponse.status).toBe(302);
+      const authorizeLocation = authorizeResponse.headers.get("location");
+      const authorizeUrl = new URL(`https://example.com${authorizeLocation}`);
+      const state = authorizeUrl.searchParams.get("state");
+      expect(state).toBeTruthy();
+
+      // Step 2: Enter email on identifier page
+      const identifierPostResponse =
+        await universalClient.login.identifier.$post({
+          query: { state: state! },
+          form: { username: "admin-pwd@example.com" },
+        });
+
+      if (identifierPostResponse.status !== 302) {
+        const errorBody = await identifierPostResponse.text();
+        console.error("Identifier POST error:", errorBody);
+      }
+      expect(identifierPostResponse.status).toBe(302);
+
+      // Step 3: Enter password on enter-password page
+      const enterPasswordPostResponse = await universalClient[
+        "enter-password"
+      ].$post({
+        query: { state: state! },
+        form: { password: "adminpassword123" },
+      });
+      expect(enterPasswordPostResponse.status).toBe(302);
+
+      const enterPasswordLocation =
+        enterPasswordPostResponse.headers.get("location");
+
+      // After entering password, it should either go to check-account or directly to impersonate
+      // If there's an impersonation hook, it might skip check-account and go straight to impersonate
+      expect(enterPasswordLocation).toBeTruthy();
+
+      // Check if it went directly to impersonate (due to post-login hook)
+      if (!enterPasswordLocation!.includes("/u/impersonate")) {
+        // If it went to check-account, call it next
+        expect(enterPasswordLocation).toContain("/u/check-account");
+
+        const checkAccountUrl = new URL(
+          `https://example.com${enterPasswordLocation}`,
+        );
+        const checkAccountState = checkAccountUrl.searchParams.get("state");
+        expect(checkAccountState).toBeTruthy();
+
+        const checkAccountResponse = await universalClient[
+          "check-account"
+        ].$post({
+          query: { state: checkAccountState! },
+        });
+
+        expect(checkAccountResponse.status).toBe(302);
+        const checkAccountLocation =
+          checkAccountResponse.headers.get("location");
+        expect(checkAccountLocation).toContain("/u/impersonate");
+
+        const impersonateUrl = new URL(
+          `https://example.com${checkAccountLocation}`,
+        );
+        const impersonateState = impersonateUrl.searchParams.get("state");
+        expect(impersonateState).toBeTruthy();
+
+        // Step 5: Verify impersonation page renders with session linked
+        const impersonateGetResponse = await universalClient.impersonate.$get({
+          query: { state: impersonateState! },
+        });
+
+        expect(impersonateGetResponse.status).toBe(200);
+        const impersonateHtml = await impersonateGetResponse.text();
+        expect(impersonateHtml).toContain("admin-pwd@example.com");
+      } else {
+        // It went directly to impersonate, extract the state from the location
+        const impersonateUrl = new URL(
+          `https://example.com${enterPasswordLocation}`,
+        );
+        const impersonateState = impersonateUrl.searchParams.get("state");
+        expect(impersonateState).toBeTruthy();
+
+        // Step 5: Verify impersonation page renders with session linked
+        const impersonateGetResponse = await universalClient.impersonate.$get({
+          query: { state: impersonateState! },
+        });
+
+        expect(impersonateGetResponse.status).toBe(200);
+        const impersonateHtml = await impersonateGetResponse.text();
+        expect(impersonateHtml).toContain("admin-pwd@example.com");
+
+        // Step 6: Perform the impersonation switch
+        const impersonatePostResponse =
+          await universalClient.impersonate.switch.$post({
+            query: { state: impersonateState! },
+            form: { user_id: "auth2|target-pwd" },
+          });
+
+        expect(impersonatePostResponse.status).toBe(302);
+        const impersonatePostLocation =
+          impersonatePostResponse.headers.get("location");
+        expect(impersonatePostLocation).toBeTruthy();
+
+        // Verify the final redirect is to the client callback
+        const finalRedirectUrl = new URL(impersonatePostLocation!);
+        expect(finalRedirectUrl.searchParams.get("code")).toBeTruthy();
+      }
     });
   });
 });

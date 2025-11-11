@@ -208,6 +208,9 @@ export async function connectionCallback(
     authParams: loginSession.authParams,
     loginSession,
     user,
-    strategy: connection.strategy,
+    authStrategy: {
+      strategy: connection.strategy,
+      strategy_type: "social",
+    },
   });
 }

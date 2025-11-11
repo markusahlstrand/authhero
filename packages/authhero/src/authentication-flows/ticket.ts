@@ -53,12 +53,21 @@ export async function ticketAuth(
 
   const provider = getProviderFromRealm(realm);
 
+  // Look up the connection to get its strategy
+  const connection = client.connections.find((c) => c.name === realm);
+  const strategy =
+    connection?.strategy ||
+    (provider === "auth2" ? "Username-Password-Authentication" : "email");
+  const strategy_type =
+    strategy === "Username-Password-Authentication"
+      ? "database"
+      : "passwordless";
+
   let user = await getOrCreateUserByProvider(ctx, {
     username: loginSession.authParams.username,
     provider,
     client,
-    connection:
-      provider === "auth2" ? "Username-Password-Authentication" : "email",
+    connection: realm,
     isSocial: false,
     ip: ctx.var.ip,
   });
@@ -80,5 +89,9 @@ export async function ticketAuth(
     sessionId: session.id,
     user,
     client,
+    authStrategy: {
+      strategy,
+      strategy_type,
+    },
   });
 }

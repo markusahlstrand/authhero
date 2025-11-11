@@ -735,7 +735,10 @@ describe("common", () => {
         client,
         user: userBefore,
         loginSession,
-        strategy: "Username-Password-Authentication",
+        authStrategy: {
+          strategy: "Username-Password-Authentication",
+          strategy_type: "database",
+        },
       });
 
       expect(authResponse.status).toEqual(302);
@@ -807,7 +810,10 @@ describe("common", () => {
         client,
         user,
         loginSession,
-        strategy: "email",
+        authStrategy: {
+          strategy: "email",
+          strategy_type: "passwordless",
+        },
       });
 
       expect(authResponse.status).toEqual(302);
@@ -899,7 +905,10 @@ describe("common", () => {
         client,
         user: updatedUser,
         loginSession,
-        strategy: "Username-Password-Authentication",
+        authStrategy: {
+          strategy: "Username-Password-Authentication",
+          strategy_type: "database",
+        },
       });
 
       expect(authResponse.status).toEqual(302);

@@ -123,6 +123,9 @@ export async function passwordlessGrant(
     client: result.client,
     user: result.user,
     loginSession: result.loginSession,
-    strategy: "email",
+    authStrategy: {
+      strategy: "email",
+      strategy_type: "passwordless",
+    },
   });
 }
