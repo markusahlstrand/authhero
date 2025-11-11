@@ -80,5 +80,10 @@ export async function ticketAuth(
     sessionId: session.id,
     user,
     client,
+    strategy: "Username-Password-Authentication",
+    authStrategy: {
+      strategy: "Username-Password-Authentication",
+      strategy_type: "database",
+    },
   });
 }

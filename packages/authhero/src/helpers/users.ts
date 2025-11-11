@@ -1,4 +1,8 @@
-import { LegacyClient, User, UserDataAdapter } from "@authhero/adapter-interfaces";
+import {
+  LegacyClient,
+  User,
+  UserDataAdapter,
+} from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getDataAdapter } from "./data";

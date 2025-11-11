@@ -333,4 +333,60 @@ describe("login identifier page", () => {
     // Should succeed and redirect
     expect(existingUserResponse.status).toBe(302);
   });
+
+  it("should redirect to enter-password page when user has password strategy (auth2 provider)", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a user with password strategy (auth2 provider, not email provider)
+    // This tests the bug where getPrimaryUserByProvider couldn't find the user
+    // because it was looking for provider="email" but user had provider="auth2"
+    await env.data.users.create("tenantId", {
+      user_id: "auth2|passworduser",
+      email: "password@example.com",
+      email_verified: true,
+      provider: "auth2",
+      connection: "Username-Password-Authentication",
+      is_social: false,
+      app_metadata: {
+        strategy: "Username-Password-Authentication",
+      },
+    });
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // --------------------------------
+    // POST email to identifier page
+    // --------------------------------
+    const passwordUserResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "password@example.com" },
+    });
+
+    // Should redirect to enter-password page
+    expect(passwordUserResponse.status).toBe(302);
+    const redirectLocation = passwordUserResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u/enter-password");
+  });
 });
