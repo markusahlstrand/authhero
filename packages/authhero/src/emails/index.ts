@@ -137,6 +137,13 @@ export async function sendResetPassword(
       tenantId: tenant.id,
     },
   });
+
+  // Log the password reset request
+  const log = createLogMessage(ctx, {
+    type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
+    description: to,
+  });
+  waitUntil(ctx, ctx.env.data.logs.create(tenant.id, log));
 }
 
 export interface SendCodeParams {
