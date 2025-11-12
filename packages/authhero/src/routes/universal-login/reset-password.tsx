@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import { PasswordInsert } from "@authhero/adapter-interfaces";
+import { PasswordInsert, LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
@@ -11,6 +11,8 @@ import AuthLayout from "../../components/AuthLayout";
 import MessagePage from "../../components/MessagePage";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
+import { createLogMessage } from "../../utils/create-log-message";
+import { waitUntil } from "../../helpers/wait-until";
 
 export const resetPasswordRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -273,6 +275,14 @@ export const resetPasswordRoutes = new OpenAPIHono<{
             email_verified: true,
           });
         }
+
+        // Log the successful password change
+        const log = createLogMessage(ctx, {
+          type: LogTypes.SUCCESS_CHANGE_PASSWORD,
+          description: `Password changed for ${user.email}`,
+          userId: user.user_id,
+        });
+        waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
       } catch {
         // seems like we should not do this catch... try and see what happens
         if (useShadcn) {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("passwords", () => {
@@ -181,5 +182,178 @@ describe("passwords", () => {
     });
 
     expect(resetPasswordGetResponse.status).toBe(200);
+  });
+
+  it("should log password reset request when email is sent", async () => {
+    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a password user
+    await env.data.users.create("tenantId", {
+      email: "reset-log@example.com",
+      email_verified: true,
+      name: "Reset Log User",
+      nickname: "resetlog",
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+      is_social: false,
+      user_id: "auth2|resetLog123",
+    });
+
+    // Add the password
+    await env.data.passwords.create("tenantId", {
+      user_id: "auth2|resetLog123",
+      password: await bcryptjs.hash("password", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Start authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    // Enter email
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "reset-log@example.com" },
+    });
+
+    // Request password reset
+    const forgotPasswordResponse = await universalClient[
+      "forgot-password"
+    ].$post({
+      query: { state },
+    });
+
+    expect(forgotPasswordResponse.status).toBe(200);
+
+    // Check logs for password reset request
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    // Look for SUCCESS_CHANGE_PASSWORD_REQUEST log
+    const passwordResetRequestLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST
+    );
+
+    expect(passwordResetRequestLog).toBeDefined();
+    expect(passwordResetRequestLog?.description).toBe("reset-log@example.com");
+  });
+
+  it("should log successful password change when password reset is completed", async () => {
+    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a password user
+    await env.data.users.create("tenantId", {
+      email: "reset-complete@example.com",
+      email_verified: true,
+      name: "Reset Complete User",
+      nickname: "resetcomplete",
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+      is_social: false,
+      user_id: "auth2|resetComplete456",
+    });
+
+    // Add the password
+    await env.data.passwords.create("tenantId", {
+      user_id: "auth2|resetComplete456",
+      password: await bcryptjs.hash("password", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Start authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+      },
+    });
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    // Enter email
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "reset-complete@example.com" },
+    });
+
+    // Request password reset
+    await universalClient["forgot-password"].$post({
+      query: { state },
+    });
+
+    // Get the password reset email
+    const sentEmails = getSentEmails();
+    const passwordResetEmail = sentEmails[sentEmails.length - 1];
+
+    if (passwordResetEmail.data.passwordResetUrl === undefined) {
+      throw new Error("No reset URL found in email");
+    }
+
+    const passwordResetUrl = new URL(passwordResetEmail.data.passwordResetUrl);
+    const passwordResetCode = passwordResetUrl.searchParams.get("code");
+    const state2 = passwordResetUrl.searchParams.get("state");
+
+    if (!passwordResetCode || !state2) {
+      throw new Error("No code or state found in email");
+    }
+
+    // Submit new password
+    const resetPasswordResponse = await universalClient[
+      "reset-password"
+    ].$post({
+      query: { state: state2, code: passwordResetCode },
+      form: {
+        password: "yByF#s4IO7wROi",
+        "re-enter-password": "yByF#s4IO7wROi",
+      },
+    });
+
+    expect(resetPasswordResponse.status).toBe(200);
+
+    // Check logs for successful password change
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    // Look for SUCCESS_CHANGE_PASSWORD log
+    const passwordResetSuccessLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD
+    );
+
+    expect(passwordResetSuccessLog).toBeDefined();
+    expect(passwordResetSuccessLog?.user_id).toBe("auth2|resetComplete456");
   });
 });
