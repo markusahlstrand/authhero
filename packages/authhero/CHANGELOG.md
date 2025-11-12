@@ -1,5 +1,11 @@
 # authhero
 
+## 0.267.0
+
+### Minor Changes
+
+- 251c143: Add logs for reset password
+
 ## 0.266.0
 
 ### Minor Changes
