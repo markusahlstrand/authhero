@@ -251,7 +251,7 @@ describe("passwords", () => {
 
     // Look for SUCCESS_CHANGE_PASSWORD_REQUEST log
     const passwordResetRequestLog = logs.find(
-      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
     );
 
     expect(passwordResetRequestLog).toBeDefined();
@@ -329,15 +329,15 @@ describe("passwords", () => {
     }
 
     // Submit new password
-    const resetPasswordResponse = await universalClient[
-      "reset-password"
-    ].$post({
-      query: { state: state2, code: passwordResetCode },
-      form: {
-        password: "yByF#s4IO7wROi",
-        "re-enter-password": "yByF#s4IO7wROi",
+    const resetPasswordResponse = await universalClient["reset-password"].$post(
+      {
+        query: { state: state2, code: passwordResetCode },
+        form: {
+          password: "yByF#s4IO7wROi",
+          "re-enter-password": "yByF#s4IO7wROi",
+        },
       },
-    });
+    );
 
     expect(resetPasswordResponse.status).toBe(200);
 
@@ -350,7 +350,7 @@ describe("passwords", () => {
 
     // Look for SUCCESS_CHANGE_PASSWORD log
     const passwordResetSuccessLog = logs.find(
-      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD,
     );
 
     expect(passwordResetSuccessLog).toBeDefined();
