@@ -16,5 +16,11 @@ export default defineConfig({
   test: {
     environment: "jsdom", // Set JSDOM as the default test environment
     globals: true, // Make test globals available
+    server: {
+      deps: {
+        // Workaround for React Admin ES module issues
+        inline: ["ra-ui-materialui"],
+      },
+    },
   },
 });
