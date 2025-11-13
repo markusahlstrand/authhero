@@ -1,7 +1,6 @@
 import {
   DateField,
   Edit,
-  FieldTitle,
   Labeled,
   SelectInput,
   TextInput,
@@ -20,8 +19,11 @@ import {
   useRecordContext,
   useRefresh,
   useInput,
-  FormDataConsumer,
 } from "react-admin";
+// @ts-ignore - React Admin components compatibility with React 19
+const PaginationComponent = Pagination as any;
+// @ts-ignore - React Admin components compatibility with React 19
+const DatagridComponent = Datagrid as any;
 import { JsonOutput } from "../common/JsonOutput";
 import { DateAgo } from "../common";
 import {
@@ -687,10 +689,15 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
   // Initialize metadata array from the current value
   useEffect(() => {
     if (value && typeof value === "object") {
-      const array = Object.entries(value).map(([key, val]) => ({
-        key,
-        value: String(val),
-      }));
+      // Fields managed by other inputs (BooleanInput, SelectInput, etc.)
+      const preservedFields = ["disable_sign_ups", "email_validation"];
+
+      const array = Object.entries(value)
+        .filter(([key]) => !preservedFields.includes(key))
+        .map(([key, val]) => ({
+          key,
+          value: String(val),
+        }));
       setMetadataArray(array);
     } else if (!value) {
       setMetadataArray([]);
@@ -725,6 +732,8 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
   };
 
   const updateFormData = (array: Array<{ key: string; value: string }>) => {
+    // Preserve existing fields managed by other inputs (like disable_sign_ups)
+    const preservedFields = ["disable_sign_ups", "email_validation"];
     const newObject: Record<string, any> = {};
     array.forEach((item) => {
       if (item.key && item.key.trim()) {
@@ -824,10 +833,10 @@ export function ClientEdit() {
               <TextInput source="" defaultValue="" />
             </SimpleFormIterator>
           </ArrayInput>
-          <Labeled label={<FieldTitle source="created_at" />}>
+          <Labeled label="Created At">
             <DateField source="created_at" showTime={true} />
           </Labeled>
-          <Labeled label={<FieldTitle source="updated_at" />}>
+          <Labeled label="Updated At">
             <DateField source="updated_at" showTime={true} />
           </Labeled>
         </TabbedForm.Tab>
@@ -852,10 +861,10 @@ export function ClientEdit() {
           <ReferenceManyField
             reference="client-grants"
             target="client_id"
-            pagination={<Pagination />}
+            pagination={<PaginationComponent />}
             sort={{ field: "audience", order: "ASC" }}
           >
-            <Datagrid
+            <DatagridComponent
               sx={{
                 width: "100%",
                 "& .column-comment": {
@@ -888,7 +897,7 @@ export function ClientEdit() {
               />
               <EditClientGrantButton />
               <RemoveClientGrantButton />
-            </Datagrid>
+            </DatagridComponent>
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
