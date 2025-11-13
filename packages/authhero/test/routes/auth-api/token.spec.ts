@@ -1811,7 +1811,7 @@ describe("token", () => {
         await env.data.users.remove("tenantId", user.user_id);
       });
 
-      it("should NOT include permissions when token_dialect is access_token (default)", async () => {
+      it("should include permissions when token_dialect is access_token (default) and RBAC is enabled", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
@@ -1827,7 +1827,7 @@ describe("token", () => {
             ],
             options: {
               enforce_policies: true, // RBAC enabled
-              token_dialect: "access_token", // Should use scopes, not permissions
+              token_dialect: "access_token", // Should include both scopes and permissions
             },
           },
         );
@@ -1896,8 +1896,9 @@ describe("token", () => {
 
         expect(accessToken).not.toBeNull();
 
-        // For access_token dialect, should use scopes not permissions
-        expect(payload.permissions).toBeUndefined();
+        // For access_token dialect with RBAC enabled, should include both scopes and permissions
+        expect(payload.permissions).toBeDefined();
+        expect(payload.permissions).toEqual(["read:users"]); // Only the permission user has
         expect(payload.scope).toBe("read:users"); // Only the scope user has permission for
 
         // Clean up

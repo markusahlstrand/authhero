@@ -82,6 +82,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Exchange code for tokens
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "authorization_code",
@@ -122,7 +123,7 @@ describe("token endpoint - permissions in JWT", () => {
       await env.data.users.remove("tenantId", user.user_id);
     });
 
-    it("should NOT include permissions when token_dialect is access_token (default)", async () => {
+    it("should include permissions when token_dialect is access_token (default) and RBAC is enabled", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -136,7 +137,7 @@ describe("token endpoint - permissions in JWT", () => {
         ],
         options: {
           enforce_policies: true, // RBAC enabled
-          token_dialect: "access_token", // Should use scopes, not permissions
+          token_dialect: "access_token", // Should include both scopes and permissions
         },
       });
 
@@ -182,6 +183,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Exchange code for tokens
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "authorization_code",
@@ -201,8 +203,9 @@ describe("token endpoint - permissions in JWT", () => {
 
       expect(accessToken).not.toBeNull();
 
-      // For access_token dialect, should use scopes not permissions
-      expect(payload.permissions).toBeUndefined();
+      // For access_token dialect with RBAC enabled, should include both scopes and permissions
+      expect(payload.permissions).toBeDefined();
+      expect(payload.permissions).toEqual(["read:users"]); // Only the permission user has
       expect(payload.scope).toBe("read:users"); // Only the scope user has permission for
 
       // Clean up
@@ -238,6 +241,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "client_credentials",
@@ -267,6 +271,130 @@ describe("token endpoint - permissions in JWT", () => {
 
       // For access_token_authz dialect, scopes should be empty
       expect(payload.scope).toBe("");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+  });
+
+  describe("client_credentials flow with RBAC enabled (default token_dialect)", () => {
+    it("should include permissions in JWT token for client_credentials grant", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server with RBAC enabled but default token_dialect
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        identifier: "https://client-permissions-default-api.example.com",
+        name: "Client Permissions Default API",
+        scopes: [
+          { value: "read:data", description: "Read data" },
+          { value: "write:data", description: "Write data" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          // token_dialect defaults to "access_token"
+        },
+      });
+
+      // Create a client grant
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://client-permissions-default-api.example.com",
+        scope: ["read:data", "write:data"],
+      });
+
+      // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://client-permissions-default-api.example.com",
+          scope: "read:data write:data",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      // Parse the access token
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+
+      expect(accessToken).not.toBeNull();
+      expect(payload.sub).toBe("clientId");
+      expect(payload.aud).toBe(
+        "https://client-permissions-default-api.example.com",
+      );
+
+      // THIS IS THE KEY TEST: Verify permissions are included even with default token_dialect when RBAC is enabled
+      expect(payload.permissions).toBeDefined();
+      expect(payload.permissions).toEqual(
+        expect.arrayContaining(["read:data", "write:data"]),
+      );
+
+      // For default token_dialect, scopes should be included in scope claim
+      expect(payload.scope).toBe("read:data write:data");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+  });
+
+  describe("client_credentials flow with RBAC disabled", () => {
+    it("should not include permissions in JWT token for client_credentials grant", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server with RBAC disabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        identifier: "https://no-rbac-api.example.com",
+        name: "No RBAC API",
+        scopes: [
+          { value: "read:data", description: "Read data" },
+          { value: "write:data", description: "Write data" },
+        ],
+        options: {
+          enforce_policies: false, // RBAC disabled
+        },
+      });
+
+      // Create a client grant
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://no-rbac-api.example.com",
+        scope: ["read:data", "write:data"],
+      });
+
+      // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://no-rbac-api.example.com",
+          scope: "read:data write:data",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      // Parse the access token
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+
+      expect(accessToken).not.toBeNull();
+      expect(payload.sub).toBe("clientId");
+      expect(payload.aud).toBe("https://no-rbac-api.example.com");
+
+      // When RBAC is disabled, permissions should not be included
+      expect(payload.permissions).toBeUndefined();
+
+      // Scopes should still be included in the scope claim
+      expect(payload.scope).toBe("read:data write:data");
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
