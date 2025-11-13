@@ -168,10 +168,10 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
 
-        expect(result).toEqual({
-          scopes: ["read:users"], // Only the scope the user has permission for
-          permissions: ["read:users"], // Permissions should be included when RBAC is enabled
-        });      // Clean up
+      expect(result).toEqual({
+        scopes: ["read:users"], // Only the scope the user has permission for
+        permissions: ["read:users"], // Permissions should be included when RBAC is enabled
+      }); // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 

@@ -82,6 +82,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Exchange code for tokens
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "authorization_code",
@@ -182,6 +183,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Exchange code for tokens
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "authorization_code",
@@ -239,6 +241,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "client_credentials",
@@ -301,6 +304,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "client_credentials",
@@ -320,7 +324,9 @@ describe("token endpoint - permissions in JWT", () => {
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");
-      expect(payload.aud).toBe("https://client-permissions-default-api.example.com");
+      expect(payload.aud).toBe(
+        "https://client-permissions-default-api.example.com",
+      );
 
       // THIS IS THE KEY TEST: Verify permissions are included even with default token_dialect when RBAC is enabled
       expect(payload.permissions).toBeDefined();
@@ -362,6 +368,7 @@ describe("token endpoint - permissions in JWT", () => {
       });
 
       // Make client_credentials token request
+      // @ts-expect-error - testClient type requires both form and json
       const response = await client.oauth.token.$post({
         form: {
           grant_type: "client_credentials",
