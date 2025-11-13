@@ -1,5 +1,11 @@
 # authhero
 
+## 0.268.0
+
+### Minor Changes
+
+- 9c24bcb: Set permissions for client credentials when rbac is enabled
+
 ## 0.267.0
 
 ### Minor Changes
