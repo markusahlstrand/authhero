@@ -23,7 +23,7 @@ export default defineConfig({
     server: {
       deps: {
         // Workaround for React Admin ES module issues
-        inline: ["ra-ui-materialui", "ra-core", "react-admin"],
+        inline: ["ra-ui-materialui", "ra-core", "react-admin", "@mui/material", "@mui/icons-material"],
       },
     },
   },
