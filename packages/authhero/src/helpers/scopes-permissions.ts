@@ -144,12 +144,12 @@ async function calculateClientCredentialsScopes(
 
   // RBAC is enabled - permissions are based on the granted scopes in the client grant
   // For client_credentials, we consider the granted scopes as permissions since there's no user context
+  const allowedPermissions = grantedScopes.filter((scope) =>
+    definedScopes.includes(scope),
+  );
 
   if (tokenDialect === "access_token_authz") {
     // Return permissions that are defined as scopes on the resource server and granted to the client
-    const allowedPermissions = grantedScopes.filter((scope) =>
-      definedScopes.includes(scope),
-    );
     return { scopes: defaultOidcScopes, permissions: allowedPermissions };
   }
 
@@ -173,7 +173,7 @@ async function calculateClientCredentialsScopes(
     ...new Set([...defaultOidcScopes, ...allowedScopes]),
   ];
 
-  return { scopes: allAllowedScopes, permissions: [] };
+  return { scopes: allAllowedScopes, permissions: allowedPermissions };
 }
 
 /**
@@ -321,12 +321,13 @@ export async function calculateScopesAndPermissions(
 
   const userPermissionsList = Array.from(allUserPermissions);
 
+  // When RBAC is enabled, permissions should always be included
+  const allowedPermissions = userPermissionsList.filter((permission) =>
+    definedScopes.includes(permission),
+  );
+
   // If token_dialect is access_token_authz, return permissions directly plus default OIDC scopes
   if (tokenDialect === "access_token_authz") {
-    // Return all permissions the user has access to that are defined as scopes on the resource server
-    const allowedPermissions = userPermissionsList.filter((permission) =>
-      definedScopes.includes(permission),
-    );
     return { scopes: defaultOidcScopes, permissions: allowedPermissions };
   }
 
@@ -339,5 +340,5 @@ export async function calculateScopesAndPermissions(
     ...new Set([...defaultOidcScopes, ...resourceServerScopes]),
   ];
 
-  return { scopes: allAllowedScopes, permissions: [] };
+  return { scopes: allAllowedScopes, permissions: allowedPermissions };
 }

@@ -168,12 +168,10 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
 
-      expect(result).toEqual({
-        scopes: ["read:users"], // Only the scope the user has permission for
-        permissions: [],
-      });
-
-      // Clean up
+        expect(result).toEqual({
+          scopes: ["read:users"], // Only the scope the user has permission for
+          permissions: ["read:users"], // Permissions should be included when RBAC is enabled
+        });      // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 
@@ -243,6 +241,67 @@ describe("scopes-permissions helper", () => {
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
       await env.data.roles.remove("tenantId", role.id);
+    });
+
+    it("should return only requested scopes but all permissions when user has more permissions than requested", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {},
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with User Subset",
+        identifier: "https://user-subset-api.example.com",
+        scopes: [
+          { value: "read:users", description: "Read users" },
+          { value: "write:users", description: "Write users" },
+          { value: "delete:users", description: "Delete users" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create a user with multiple permissions
+      await env.data.userPermissions.create("tenantId", "testUserId4", {
+        user_id: "testUserId4",
+        resource_server_identifier: "https://user-subset-api.example.com",
+        permission_name: "read:users",
+      });
+
+      await env.data.userPermissions.create("tenantId", "testUserId4", {
+        user_id: "testUserId4",
+        resource_server_identifier: "https://user-subset-api.example.com",
+        permission_name: "write:users",
+      });
+
+      await env.data.userPermissions.create("tenantId", "testUserId4", {
+        user_id: "testUserId4",
+        resource_server_identifier: "https://user-subset-api.example.com",
+        permission_name: "delete:users",
+      });
+
+      const result = await calculateScopesAndPermissions(ctx, {
+        tenantId: "tenantId",
+        clientId: "test-client-id",
+        userId: "testUserId4",
+        audience: "https://user-subset-api.example.com",
+        requestedScopes: ["read:users"], // Only requesting read permission
+      });
+
+      expect(result).toEqual({
+        scopes: ["read:users"], // Only the requested scope
+        permissions: ["read:users", "write:users", "delete:users"], // All user permissions
+      });
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 
     it("should throw 403 error when user is not a member of the specified organization", async () => {
@@ -589,7 +648,65 @@ describe("scopes-permissions helper", () => {
 
         expect(result).toEqual({
           scopes: ["read:users", "write:users"], // Only granted scopes returned, delete:users excluded
-          permissions: [],
+          permissions: ["read:users", "write:users"], // Should include permissions when RBAC is enabled
+        });
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+
+      it("should return only requested scopes but all permissions when client has more permissions than requested", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://client-subset-api.example.com",
+            name: "Client Subset API",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "delete:users", description: "Delete users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        // Create a test client
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        // Create a client grant that allows all scopes
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://client-subset-api.example.com",
+          scope: ["read:users", "write:users", "delete:users"], // Client has all permissions
+        });
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          grantType: GrantType.ClientCredential,
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          audience: "https://client-subset-api.example.com",
+          requestedScopes: ["read:users"], // Only requesting read permission
+        });
+
+        expect(result).toEqual({
+          scopes: ["read:users"], // Only the requested scope
+          permissions: ["read:users", "write:users", "delete:users"], // All granted permissions
         });
 
         // Clean up
@@ -696,6 +813,63 @@ describe("scopes-permissions helper", () => {
         expect(result).toEqual({
           scopes: [],
           permissions: [],
+        });
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+
+      it("should return scopes but no permissions when RBAC is disabled for client_credentials", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server with RBAC disabled
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://no-rbac-api.example.com",
+            name: "No RBAC API",
+            scopes: [
+              { value: "read:data", description: "Read data" },
+              { value: "write:data", description: "Write data" },
+            ],
+            options: {
+              enforce_policies: false, // RBAC disabled
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        // Create a test client
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        // Create a client grant
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://no-rbac-api.example.com",
+          scope: ["read:data", "write:data"],
+        });
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          grantType: GrantType.ClientCredential,
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          audience: "https://no-rbac-api.example.com",
+          requestedScopes: ["read:data"],
+        });
+
+        expect(result).toEqual({
+          scopes: ["read:data"], // Requested scope returned
+          permissions: [], // No permissions when RBAC is disabled
         });
 
         // Clean up
