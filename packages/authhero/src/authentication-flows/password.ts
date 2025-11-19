@@ -22,6 +22,37 @@ import {
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
 
+async function recordFailedLogin(
+  data: Bindings["data"],
+  tenantId: string,
+  primaryUser: any,
+): Promise<void> {
+  const appMetadata = primaryUser.app_metadata || {};
+  const failedLogins = appMetadata.failed_logins || [];
+  const now = Date.now();
+
+  // Add current timestamp and remove timestamps older than 5 minutes
+  const recentFailedLogins = [
+    ...failedLogins.filter((ts: number) => now - ts < 1000 * 60 * 5),
+    now,
+  ];
+
+  appMetadata.failed_logins = recentFailedLogins;
+
+  await data.users.update(tenantId, primaryUser.user_id, {
+    app_metadata: appMetadata,
+  });
+}
+
+function getRecentFailedLogins(user: any): number[] {
+  const appMetadata = user.app_metadata || {};
+  const failedLogins = appMetadata.failed_logins || [];
+  const now = Date.now();
+
+  // Filter to only include timestamps within the last 5 minutes
+  return failedLogins.filter((ts: number) => now - ts < 1000 * 60 * 5);
+}
+
 export async function passwordGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   client: LegacyClient,
@@ -85,27 +116,19 @@ export async function passwordGrant(
 
     waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
+    // Record failed login attempt in app_metadata
+    waitUntil(ctx, recordFailedLogin(data, client.tenant.id, primaryUser));
+
     throw new AuthError(403, {
       message: "Invalid password",
       code: "INVALID_PASSWORD",
     });
   }
 
-  // Check the logs for failed login attempts
-  const logs = await data.logs.list(client.tenant.id, {
-    page: 0,
-    per_page: 10,
-    include_totals: false,
-    q: `user_id:${primaryUser.user_id}`,
-  });
+  // Check failed login attempts from app_metadata
+  const recentFailedLogins = getRecentFailedLogins(primaryUser);
 
-  const failedLogins = logs.logs.filter(
-    (log) =>
-      log.type === LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD &&
-      new Date(log.date) > new Date(Date.now() - 1000 * 60 * 5),
-  );
-
-  if (failedLogins.length >= 3) {
+  if (recentFailedLogins.length >= 3) {
     const log = createLogMessage(ctx, {
       // TODO: change to BLOCKED_ACCOUNT_EMAIL
       type: LogTypes.FAILED_LOGIN,
@@ -141,6 +164,18 @@ export async function passwordGrant(
       message: "Email not verified",
       code: "EMAIL_NOT_VERIFIED",
     });
+  }
+
+  // Clear failed login attempts on successful password validation
+  const appMetadata = primaryUser.app_metadata || {};
+  if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
+    appMetadata.failed_logins = [];
+    waitUntil(
+      ctx,
+      data.users.update(client.tenant.id, primaryUser.user_id, {
+        app_metadata: appMetadata,
+      }),
+    );
   }
 
   return {
