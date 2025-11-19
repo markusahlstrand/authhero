@@ -1,5 +1,11 @@
 # authhero
 
+## 0.269.0
+
+### Minor Changes
+
+- fa14193: Store failed passwords in the app_metadata
+
 ## 0.268.0
 
 ### Minor Changes
