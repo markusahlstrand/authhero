@@ -1,5 +1,11 @@
 # authhero
 
+## 0.270.0
+
+### Minor Changes
+
+- 7f8ac8e: Add a incognito warning message
+
 ## 0.269.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.11.0
+
+### Minor Changes
+
+- 7f8ac8e: Add a incognito warning message
+
 ## 1.10.0
 
 ### Minor Changes
