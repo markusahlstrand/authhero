@@ -1425,7 +1425,7 @@ export function UserEdit() {
         <TabbedForm.Tab label="logs">
           <ReferenceManyField
             reference="logs"
-            target="userId"
+            target="user_id"
             pagination={React.createElement(Pagination as any)}
             sort={{ field: "date", order: "DESC" }}
           >

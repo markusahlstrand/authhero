@@ -4,6 +4,7 @@ import { hydrateRoot } from "hono/jsx/dom/client";
 import { FormHandler } from "./form-handler";
 import { PasswordToggle } from "./password-toggle";
 import { InputOTPHandler } from "./input-otp";
+import { IncognitoDetectionHandler } from "./incognito-handler";
 
 /**
  * Client-side entry point for authentication pages
@@ -11,6 +12,9 @@ import { InputOTPHandler } from "./input-otp";
  * This script hydrates the server-rendered HTML with client-side interactivity.
  * It attaches event handlers and enables progressive enhancement features.
  */
+
+// Run incognito detection immediately
+IncognitoDetectionHandler();
 
 // Wait for DOM to be ready
 const root = document.getElementById("client-root");

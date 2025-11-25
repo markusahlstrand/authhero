@@ -143,6 +143,21 @@ const IdentifierForm: FC<Props> = ({
 
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-sm", className)}>
+      <div
+        id="incognito-warning-container"
+        className="mb-4 hidden rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-100"
+        role="alert"
+      >
+        <div className="flex items-start gap-3">
+          <span className="text-lg leading-none">⚠️</span>
+          <div>
+            <strong>{i18next.t("incognito_mode_detected")}</strong>
+            <p className="mt-1 text-xs opacity-90">
+              {i18next.t("incognito_mode_warning")}
+            </p>
+          </div>
+        </div>
+      </div>
       <Card style={cardStyle} className="border">
         <CardHeader>
           {showLogo && (

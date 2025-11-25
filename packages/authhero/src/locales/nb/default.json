@@ -68,6 +68,8 @@
   "forgot_password_title": "Har du glemt passordet?",
   "go_back": "Gå tilbake",
   "hide_password": "Skjul passord",
+  "incognito_mode_detected": "Inkognitomodus oppdaget",
+  "incognito_mode_warning": "Du er i inkognito/privat modus. Øktdataene vedvarer kanskje ikke på tvers av sideoppdateringer. Noen funksjoner fungerer kanskje ikke som forventet.",
   "invalid-email": "Ugyldig epost",
   "invalid_identifier": "Ugyldig identifikator",
   "invalid_password": "Ugyldig passord",
