@@ -400,4 +400,76 @@ describe("token endpoint - permissions in JWT", () => {
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
   });
+
+  describe("client_credentials flow with tenant default_audience", () => {
+    it("should include permissions when tenant has default_audience and no audience provided", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Set default_audience on the tenant
+      await env.data.tenants.update("tenantId", {
+        default_audience: "https://default-audience-api.example.com",
+      });
+
+      // Create a resource server matching the default_audience
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        identifier: "https://default-audience-api.example.com",
+        name: "Default Audience API",
+        scopes: [
+          { value: "read:data", description: "Read data" },
+          { value: "write:data", description: "Write data" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create a client grant for the default audience
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://default-audience-api.example.com",
+        scope: ["read:data", "write:data"],
+      });
+
+      // Make client_credentials token request WITHOUT providing audience
+      // @ts-expect-error - testClient type requires both form and json
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          scope: "read:data write:data",
+          // No audience provided - should use tenant's default_audience
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      // Parse the access token
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+
+      expect(accessToken).not.toBeNull();
+      expect(payload.sub).toBe("clientId");
+      expect(payload.aud).toBe("https://default-audience-api.example.com");
+
+      // Permissions should be included because RBAC is enabled and default_audience was used
+      expect(payload.permissions).toBeDefined();
+      expect(payload.permissions).toEqual(
+        expect.arrayContaining(["read:data", "write:data"]),
+      );
+
+      // Scopes should be included
+      expect(payload.scope).toBe("read:data write:data");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      // Reset tenant default_audience
+      await env.data.tenants.update("tenantId", {
+        default_audience: undefined,
+      });
+    });
+  });
 });
