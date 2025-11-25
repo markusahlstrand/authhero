@@ -1,5 +1,11 @@
 # authhero
 
+## 0.271.0
+
+### Minor Changes
+
+- a0dd349: Fix permissions for client credentials flow
+
 ## 0.270.0
 
 ### Minor Changes
