@@ -68,6 +68,8 @@
   "forgot_password_title": "Zapomněli jste heslo?",
   "go_back": "Vrátit se zpět",
   "hide_password": "Skrýt heslo",
+  "incognito_mode_detected": "Zjištěn režim inkognito",
+  "incognito_mode_warning": "Jste v inkognito/soukromém režimu. Data relace nemusí přetrvávat při obnovení stránky. Některé funkce nemusí fungovat podle očekávání.",
   "invalid-email": "Neplatný e-mail",
   "invalid_identifier": "Neplatný identifikátor",
   "invalid_password": "Neplatné heslo",

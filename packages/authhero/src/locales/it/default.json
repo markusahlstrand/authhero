@@ -68,6 +68,8 @@
   "forgot_password_title": "Hai dimenticato la password?",
   "go_back": "Torna indietro",
   "hide_password": "Nascondere la password",
+  "incognito_mode_detected": "Rilevata la modalità Incognito",
+  "incognito_mode_warning": "Siete in modalità incognito/privata. I dati della sessione potrebbero non persistere durante l'aggiornamento della pagina. Alcune funzioni potrebbero non funzionare come previsto.",
   "invalid-email": "Email non valida",
   "invalid_identifier": "Identificatore non valido",
   "invalid_password": "Password non valida",

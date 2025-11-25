@@ -68,6 +68,8 @@
   "forgot_password_title": "Forgot password?",
   "go_back": "Go back",
   "hide_password": "Hide password",
+  "incognito_mode_detected": "Incognito Mode Detected",
+  "incognito_mode_warning": "You are in incognito/private mode. Session data may not persist across page refreshes. Some features might not work as expected.",
   "invalid-email": "Invalid email",
   "invalid_identifier": "Invalid identifier",
   "invalid_password": "Invalid password",

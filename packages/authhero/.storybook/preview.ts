@@ -25,6 +25,25 @@ const preview: Preview = {
       },
     },
   },
+
+  // Load the client script after each story renders
+  async beforeEach() {
+    // Wait for the DOM to be ready
+    if (document.readyState === "loading") {
+      await new Promise((resolve) =>
+        document.addEventListener("DOMContentLoaded", resolve, { once: true }),
+      );
+    }
+
+    // Give the story time to render
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Load the actual built client script
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "/dist/client.js";
+    document.head.appendChild(script);
+  },
 };
 
 export default preview;

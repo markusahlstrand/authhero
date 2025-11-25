@@ -68,6 +68,8 @@
   "forgot_password_title": "Har du glömt lösenordet?",
   "go_back": "Gå tillbaka",
   "hide_password": "Dölj lösenord",
+  "incognito_mode_detected": "Inkognitoläge upptäckt",
+  "incognito_mode_warning": "Du befinner dig i inkognito/privat läge. Sessionsdata kanske inte kvarstår vid siduppdateringar. Vissa funktioner kanske inte fungerar som förväntat.",
   "invalid-email": "Ogiltig e-postadress",
   "invalid_identifier": "Ogiltig identifierare",
   "invalid_password": "Ogiltigt lösenord",

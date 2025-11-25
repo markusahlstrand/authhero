@@ -355,6 +355,64 @@ const html = IdentifierPage({
 // html is a string ready to be sent to the client
 ```
 
+## Client-Side Features
+
+### Incognito Mode Detection
+
+AuthHero automatically detects when users are browsing in incognito/private mode and displays a warning message. This helps inform users about potential session persistence issues.
+
+**How it works:**
+
+- Detection runs automatically on login pages when the client script loads
+- Uses the `detectincognitojs` library loaded from CDN
+- Results are cached in sessionStorage to avoid repeated detection
+- Warning is shown/hidden dynamically without page reload
+
+**Warning Message:**
+
+The warning appears at the top of the login form with:
+
+- ⚠️ Warning icon
+- "Incognito Mode Detected" heading
+- Information about potential session data persistence issues
+
+**Implementation:**
+
+```typescript
+// Server-side: Warning div is always rendered (hidden by default)
+<div
+  id="incognito-warning-container"
+  className="mb-4 hidden rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800"
+  role="alert"
+>
+  <div className="flex items-start gap-3">
+    <span className="text-lg leading-none">⚠️</span>
+    <div>
+      <strong>Incognito Mode Detected</strong>
+      <p className="mt-1 text-xs opacity-90">
+        You are in incognito/private mode. Session data may not persist
+        across page refreshes. Some features might not work as expected.
+      </p>
+    </div>
+  </div>
+</div>
+
+// Client-side: Detection handler removes 'hidden' class when incognito is detected
+```
+
+**Features:**
+
+- ✅ Automatic detection on page load
+- ✅ Cached results for performance
+- ✅ No console logging in production
+- ✅ Graceful fallback if detection fails
+- ✅ Works in both classic and shadcn UI styles
+- ✅ Internationalization support via i18next
+
+**Testing:**
+
+You can test the incognito detection in Storybook using the "WithIncognitoWarning" story variants for IdentifierForm and IdentifierPage components.
+
 ## Next Steps
 
 - [Explore components in Storybook](/storybook/index.html)

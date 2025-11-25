@@ -211,6 +211,11 @@ export default (
               page: page - 1,
               per_page: perPage,
               q: params.filter?.q,
+              sort:
+                field && order
+                  ? `${field}:${order === "DESC" ? "-1" : "1"}`
+                  : undefined,
+              include_totals: true,
             }),
           resourceKey: "logs",
           idKey: "log_id",
@@ -638,6 +643,22 @@ export default (
           })),
           total,
         };
+      }
+
+      // Logs filtered by user_id
+      if (resource === "logs" && params.target === "user_id") {
+        const result = await managementClient.logs.list({
+          page: page - 1,
+          per_page: perPage,
+          q: `user_id:${params.id}`,
+          sort:
+            field && order
+              ? `${field}:${order === "DESC" ? "-1" : "1"}`
+              : undefined,
+          include_totals: true,
+        });
+
+        return normalizeSDKResponse(result, "logs");
       }
 
       // Default implementation for other resources - use HTTP fallback

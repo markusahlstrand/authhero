@@ -68,6 +68,8 @@
   "forgot_password_title": "Unohditko salasanan?",
   "go_back": "Palaa takaisin",
   "hide_password": "Piilota salasana",
+  "incognito_mode_detected": "Incognito-tila havaittu",
+  "incognito_mode_warning": "Olet incognito/yksityisessä tilassa. Istuntotiedot eivät välttämättä säily sivun päivitysten aikana. Jotkin ominaisuudet eivät ehkä toimi odotetulla tavalla.",
   "invalid-email": "Virheellinen sähköpostiosoite",
   "invalid_identifier": "Virheellinen tunniste",
   "invalid_password": "Virheellinen salasana",
