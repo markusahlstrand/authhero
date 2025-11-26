@@ -17,6 +17,8 @@ export function PasswordToggle() {
       "[data-password-toggle]",
     );
 
+    const cleanupFunctions: Array<() => void> = [];
+
     passwordContainers.forEach((container) => {
       const passwordInput = container.querySelector<HTMLInputElement>(
         "input[type='password'], input[data-password-input]",
@@ -55,11 +57,16 @@ export function PasswordToggle() {
 
       toggleButton.addEventListener("click", handleToggle);
 
-      // Cleanup
-      return () => {
+      // Collect cleanup function
+      cleanupFunctions.push(() => {
         toggleButton.removeEventListener("click", handleToggle);
-      };
+      });
     });
+
+    // Return cleanup function for useEffect
+    return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup());
+    };
   }, []);
 
   return null;
