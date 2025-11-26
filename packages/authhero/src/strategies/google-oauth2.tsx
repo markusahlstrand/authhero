@@ -10,6 +10,8 @@ import type { FC } from "hono/jsx";
 
 export const displayName = "Google";
 
+export const disableEmbeddedBrowsers = true;
+
 export const logo: FC<{ className?: string }> = ({ className = "" }) => (
   <svg
     width="45"

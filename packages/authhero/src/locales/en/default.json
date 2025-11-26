@@ -51,6 +51,8 @@
   "email_validated_cta": "Now enter your password to login again",
   "email_verification_for_signup_sent_description": "An email has been sent to <0>{{email}}</0> with a verification link. Please click the link to verify your email address and set a password.",
   "email_verification_for_signup_sent_title": "Email verification sent",
+  "embedded_browser_detected": "Do you have to keep logging in?",
+  "embedded_browser_warning": "You are currently inside the {browserName}. This browser often logs you out, so we recommend using your phone's default browser instead.",
   "enter_a_code_btn": "Enter a code",
   "enter_email_for_verification_description": "We'll send you a verification link to ensure you own this email address.",
   "enter_new_email": "Enter new email",

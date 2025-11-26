@@ -51,6 +51,8 @@
   "email_validated_cta": "Nyní zadejte své heslo a znovu se přihlaste",
   "email_verification_for_signup_sent_description": "E-mail byl odeslán na adresu <0>{{email}}</0> s ověřovacím odkazem. Kliknutím na odkaz ověřte svou e-mailovou adresu a nastavte heslo.",
   "email_verification_for_signup_sent_title": "Ověření e-mailem odesláno",
+  "embedded_browser_detected": "Musíte se stále přihlašovat?",
+  "embedded_browser_warning": "Právě se nacházíte uvnitř {jméno prohlížeče}. Tento prohlížeč vás často odhlašuje, proto doporučujeme použít místo něj výchozí prohlížeč telefonu.",
   "enter_a_code_btn": "Zadejte kód",
   "enter_email_for_verification_description": "Pošleme vám ověřovací odkaz, abychom se ujistili, že tuto e-mailovou adresu vlastníte.",
   "enter_new_email": "Zadejte nový e-mail",

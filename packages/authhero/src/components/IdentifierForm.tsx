@@ -28,6 +28,8 @@ type Props = {
   email?: string;
   client: LegacyClient;
   className?: string;
+  isEmbedded?: boolean;
+  browserName?: string;
 };
 
 const IdentifierForm: FC<Props> = ({
@@ -38,6 +40,8 @@ const IdentifierForm: FC<Props> = ({
   email,
   client,
   className,
+  isEmbedded,
+  browserName,
 }) => {
   const connections = client.connections.map(({ strategy }) => strategy);
 
@@ -53,7 +57,14 @@ const IdentifierForm: FC<Props> = ({
       const strategy = getSocialStrategy(strategyName);
       return strategy ? { name: strategyName, ...strategy } : null;
     })
-    .filter((config): config is NonNullable<typeof config> => config !== null);
+    .filter((config): config is NonNullable<typeof config> => config !== null)
+    .filter((config) => {
+      // Filter out strategies that are disabled for embedded browsers
+      if (isEmbedded && config.disableEmbeddedBrowsers) {
+        return false;
+      }
+      return true;
+    });
 
   // Configure input placeholder based on available connections
   const authMethodKey =
@@ -158,6 +169,26 @@ const IdentifierForm: FC<Props> = ({
           </div>
         </div>
       </div>
+      {isEmbedded && (
+        <div
+          className="mb-4 rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 dark:border-orange-900 dark:bg-orange-900/20 dark:text-orange-100"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-lg leading-none">⚠️</span>
+            <div>
+              <strong>
+                {i18next.t("embedded_browser_do_you_keep_logging_in")}
+              </strong>
+              <p className="mt-1 text-xs opacity-90">
+                {i18next.t("embedded_browser_warning", {
+                  browserName: browserName || "the app",
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <Card style={cardStyle} className="border">
         <CardHeader>
           {showLogo && (

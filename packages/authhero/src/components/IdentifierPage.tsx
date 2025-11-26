@@ -22,6 +22,8 @@ type Props = {
   loginSession: LoginSession;
   email?: string;
   client: LegacyClient;
+  isEmbedded?: boolean;
+  browserName?: string;
 };
 
 const IdentifierPage: FC<Props> = ({
@@ -31,6 +33,8 @@ const IdentifierPage: FC<Props> = ({
   loginSession,
   email,
   client,
+  isEmbedded,
+  browserName,
 }) => {
   const connections = client.connections.map(({ strategy }) => strategy);
 
@@ -46,7 +50,14 @@ const IdentifierPage: FC<Props> = ({
       const strategy = getSocialStrategy(strategyName);
       return strategy ? { name: strategyName, ...strategy } : null;
     })
-    .filter((config): config is NonNullable<typeof config> => config !== null);
+    .filter((config): config is NonNullable<typeof config> => config !== null)
+    .filter((config) => {
+      // Filter out strategies that are disabled for embedded browsers
+      if (isEmbedded && config.disableEmbeddedBrowsers) {
+        return false;
+      }
+      return true;
+    });
 
   // Determine if any auth form should be shown
   const showForm = showEmailInput || showPhoneInput;
@@ -102,6 +113,26 @@ const IdentifierPage: FC<Props> = ({
           </div>
         </div>
       </div>
+      {isEmbedded && (
+        <div
+          className="mb-4 rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 dark:border-orange-900 dark:bg-orange-900/20 dark:text-orange-100"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-lg leading-none">⚠️</span>
+            <div>
+              <strong>
+                {i18next.t("embedded_browser_do_you_keep_logging_in")}
+              </strong>
+              <p className="mt-1 text-xs opacity-90">
+                {i18next.t("embedded_browser_warning", {
+                  browserName: browserName || "app",
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-4 text-lg font-medium sm:text-2xl">
         {i18next.t("welcome")}
       </div>

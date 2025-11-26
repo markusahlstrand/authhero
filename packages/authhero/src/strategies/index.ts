@@ -30,6 +30,7 @@ export type Strategy = {
     code: string,
     codeVerifier?: string,
   ) => Promise<UserInfo>;
+  disableEmbeddedBrowsers?: boolean;
 };
 
 export function getStrategy(
