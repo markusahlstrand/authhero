@@ -658,7 +658,11 @@ export default (
           include_totals: true,
         });
 
-        return normalizeSDKResponse(result, "logs");
+        const normalized = normalizeSDKResponse(result, "logs");
+        return {
+          data: normalized.data.map((log: any) => ({ id: log.log_id, ...log })),
+          total: normalized.total,
+        };
       }
 
       // Default implementation for other resources - use HTTP fallback
