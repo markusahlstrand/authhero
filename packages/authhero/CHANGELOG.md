@@ -1,5 +1,11 @@
 # authhero
 
+## 0.272.0
+
+### Minor Changes
+
+- 745a032: Fix show password
+
 ## 0.271.0
 
 ### Minor Changes
