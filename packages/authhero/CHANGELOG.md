@@ -1,5 +1,13 @@
 # authhero
 
+## 0.273.0
+
+### Minor Changes
+
+- 79680de: Enforce audience with fallback to tenant default and embedded browser detection.
+- 79680de: Enforce audience
+- 29192de: Add warning for embedded browsers
+
 ## 0.272.0
 
 ### Minor Changes
