@@ -52,7 +52,7 @@
   "email_verification_for_signup_sent_description": "Sähköposti on lähetetty osoitteeseen <0>{{email}}</0> jossa on vahvistuslinkki. Klikkaa linkkiä vahvistaaksesi sähköpostiosoitteesi ja asettaaksesi salasanan.",
   "email_verification_for_signup_sent_title": "Sähköpostivarmennus lähetetty",
   "embedded_browser_detected": "Pitääkö sinun kirjautua jatkuvasti sisään?",
-  "embedded_browser_warning": "Olet tällä hetkellä {selaimenNimi} sisällä. Tämä selain kirjautuu usein ulos, joten suosittelemme käyttämään sen sijaan puhelimen oletusselainta.",
+  "embedded_browser_warning": "Olet tällä hetkellä osoitteessa {{browserName}}. Tämä selain kirjautuu usein ulos, joten suosittelemme käyttämään sen sijaan puhelimen oletusselainta.",
   "enter_a_code_btn": "Syötä koodi",
   "enter_email_for_verification_description": "Lähetämme sinulle vahvistuslinkin varmistaaksemme, että omistat tämän sähköpostiosoitteen.",
   "enter_new_email": "Kirjoita uusi sähköpostiosoite",

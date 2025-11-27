@@ -52,7 +52,7 @@
   "email_verification_for_signup_sent_description": "Wiadomość e-mail została wysłana do <0>{{email}}</0> z linkiem weryfikacyjnym. Kliknij łącze, aby zweryfikować swój adres e-mail i ustawić hasło.",
   "email_verification_for_signup_sent_title": "Wysłano weryfikację e-mail",
   "embedded_browser_detected": "Czy musisz się ciągle logować?",
-  "embedded_browser_warning": "Znajdujesz się obecnie w przeglądarce {browserName}. Przeglądarka ta często wylogowuje użytkownika, dlatego zalecamy korzystanie z domyślnej przeglądarki telefonu.",
+  "embedded_browser_warning": "Znajdujesz się obecnie w przeglądarce {{browserName}}. Przeglądarka ta często wylogowuje użytkownika, dlatego zalecamy korzystanie z domyślnej przeglądarki telefonu.",
   "enter_a_code_btn": "Wprowadź kod",
   "enter_email_for_verification_description": "Wyślemy Ci link weryfikacyjny, aby upewnić się, że posiadasz ten adres e-mail.",
   "enter_new_email": "Wprowadź nowy adres e-mail",

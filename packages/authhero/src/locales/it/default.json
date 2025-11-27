@@ -52,7 +52,7 @@
   "email_verification_for_signup_sent_description": "È stata inviata un'e-mail a <0>{{email}}</0> con un link di verifica. Fare clic sul link per verificare l'indirizzo e-mail e impostare una password.",
   "email_verification_for_signup_sent_title": "Email di verifica inviata",
   "embedded_browser_detected": "È necessario continuare a collegarsi?",
-  "embedded_browser_warning": "Attualmente ci si trova all'interno di {browserName}. Questo browser spesso si disconnette, pertanto si consiglia di utilizzare il browser predefinito del telefono.",
+  "embedded_browser_warning": "Siete attualmente all'interno del sito {{browserName}}. Questo browser vi fa spesso uscire, quindi vi consigliamo di utilizzare il browser predefinito del vostro telefono.",
   "enter_a_code_btn": "Inserire un codice",
   "enter_email_for_verification_description": "Vi invieremo un link di verifica per assicurarvi di possedere questo indirizzo e-mail.",
   "enter_new_email": "Inserire un nuovo indirizzo e-mail",

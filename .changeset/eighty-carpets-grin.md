@@ -3,4 +3,4 @@
 "@authhero/docs": minor
 ---
 
-git add -A
+Enforce audience with fallback to tenant default and embedded browser detection.

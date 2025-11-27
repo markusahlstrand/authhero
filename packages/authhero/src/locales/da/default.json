@@ -52,7 +52,7 @@
   "email_verification_for_signup_sent_description": "Der er sendt en e-mail til <0>{{email}}</0> med et bekræftelseslink. Klik på linket for at bekræfte din e-mailadresse og angive en adgangskode.",
   "email_verification_for_signup_sent_title": "E-mail-bekræftelse sendt",
   "embedded_browser_detected": "Skal man blive ved med at logge ind?",
-  "embedded_browser_warning": "Du er i øjeblikket inde i {browsernavn}. Denne browser logger dig ofte ud, så vi anbefaler, at du bruger din telefons standardbrowser i stedet.",
+  "embedded_browser_warning": "Du er i øjeblikket inde på {{browserName}}. Denne browser logger dig ofte ud, så vi anbefaler, at du bruger din telefons standardbrowser i stedet.",
   "enter_a_code_btn": "Indtast en kode",
   "enter_email_for_verification_description": "Vi sender dig et bekræftelseslink for at sikre, at du ejer denne e-mailadresse.",
   "enter_new_email": "Indtast ny e-mail",

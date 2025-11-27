@@ -477,7 +477,8 @@ export type Strategy = {
 // Server-side: Detect embedded browser from User-Agent
 const userAgent = ctx.req.header("user-agent");
 const detector = new DefaultUserAgentDetector();
-const { isEmbedded, browserName } = detector.detectEmbedded(userAgent);
+const { isEmbedded, browser } = detector.parse(userAgent);
+const browserName = browser?.name;
 
 // Pass to component
 <IdentifierPage
@@ -524,14 +525,61 @@ You can provide your own user agent detection by implementing the `UserAgentDete
 
 ```typescript
 export interface UserAgentDetector {
-  detectEmbedded(userAgent?: string): UserAgentInfo;
+  parse(userAgent: string): UserAgentInfo;
 }
 
 export interface UserAgentInfo {
-  isEmbedded: boolean;
   browser?: {
     name?: string;
+    version?: string;
   };
+  os?: {
+    name?: string;
+    version?: string;
+  };
+  device?: {
+    type?: string;
+    name?: string;
+  };
+  isEmbedded?: boolean;
+}
+```
+
+**Enhanced Detection with ua-parser-js PRO:**
+
+For more accurate user agent detection, you can use the PRO version of ua-parser-js.
+
+> **Note:** ua-parser-js PRO requires a commercial license. When you subscribe to a PRO license, you will receive the package name and installation instructions.
+
+```typescript
+import { UAParser } from "<ua-parser-js-pro>";
+
+export class UAParserDetector implements UserAgentDetector {
+  parse(userAgent: string): UserAgentInfo {
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
+
+    return {
+      browser: {
+        name: result.browser.name,
+        version: result.browser.version,
+      },
+      os: {
+        name: result.os.name,
+        version: result.os.version,
+      },
+      device: {
+        type: result.device.type,
+        name: result.device.model,
+      },
+      isEmbedded: this.detectEmbedded(result),
+    };
+  }
+
+  private detectEmbedded(result: any): boolean {
+    // Implement your embedded browser detection logic
+    return false;
+  }
 }
 ```
 

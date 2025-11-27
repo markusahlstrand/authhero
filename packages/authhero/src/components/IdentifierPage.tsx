@@ -122,7 +122,7 @@ const IdentifierPage: FC<Props> = ({
             <span className="text-lg leading-none">⚠️</span>
             <div>
               <strong>
-                {i18next.t("embedded_browser_do_you_keep_logging_in")}
+                {i18next.t("embedded_browser_detected")}
               </strong>
               <p className="mt-1 text-xs opacity-90">
                 {i18next.t("embedded_browser_warning", {

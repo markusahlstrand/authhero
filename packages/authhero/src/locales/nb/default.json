@@ -52,7 +52,7 @@
   "email_verification_for_signup_sent_description": "En e-post har blitt sendt til <0>{{email}}</0> med en bekreftelseslenke. Klikk på lenken for å bekrefte e-postadressen din og angi et passord.",
   "email_verification_for_signup_sent_title": "E-postbekreftelse sendt",
   "embedded_browser_detected": "Må du fortsette å logge inn?",
-  "embedded_browser_warning": "Du er for øyeblikket inne i {nettlesernavn}. Denne nettleseren logger deg ofte ut, så vi anbefaler at du bruker telefonens standardnettleser i stedet.",
+  "embedded_browser_warning": "Du er for øyeblikket inne på {{browserName}}. Denne nettleseren logger deg ofte ut, så vi anbefaler at du bruker telefonens standardnettleser i stedet.",
   "enter_a_code_btn": "Angi en kode",
   "enter_email_for_verification_description": "Vi sender deg en bekreftelseskobling for å sikre at du eier denne e-postadressen.",
   "enter_new_email": "Skriv inn ny e-post",

@@ -213,6 +213,7 @@ Migrate from Auth0 with minimal code changes:
 - **Clarity**: Prevents ambiguous tokens that could be accepted by unintended resource servers
 
 **Migration Note**: If you're migrating from Auth0 and currently rely on opaque tokens, you should:
+
 - Configure a `default_audience` on each tenant, OR
 - Update your token requests to include an explicit `audience` parameter
 
