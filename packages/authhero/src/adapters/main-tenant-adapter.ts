@@ -74,6 +74,17 @@ export function createMainTenantAdapter(
           })
           .filter((c) => c);
 
+        // Merge tenant properties with main tenant fallbacks
+        const mergedTenant = {
+          ...(mainClient?.tenant || {}),
+          ...client.tenant,
+        };
+
+        // Use main tenant's audience as fallback if not set on client tenant
+        if (!client.tenant.audience && mainClient?.tenant?.audience) {
+          mergedTenant.audience = mainClient.tenant.audience;
+        }
+
         // Return client with merged properties
         return {
           ...client,
@@ -90,10 +101,7 @@ export function createMainTenantAdapter(
             ...(client.callbacks || []),
           ],
           connections,
-          tenant: {
-            ...(mainClient?.tenant || {}),
-            ...client.tenant,
-          },
+          tenant: mergedTenant,
         };
       },
     },

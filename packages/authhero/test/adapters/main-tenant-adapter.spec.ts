@@ -28,8 +28,6 @@ const createMockAdapters = (): DataAdapters => ({
             created_at: "2023-01-01T00:00:00Z",
             updated_at: "2023-01-01T00:00:00Z",
           },
-          disable_sign_ups: false,
-          email_validation: "disabled",
           created_at: "2023-01-01T00:00:00Z",
           updated_at: "2023-01-01T00:00:00Z",
           global: false,
@@ -59,8 +57,35 @@ const createMockAdapters = (): DataAdapters => ({
             created_at: "2023-01-01T00:00:00Z",
             updated_at: "2023-01-01T00:00:00Z",
           },
-          disable_sign_ups: false,
-          email_validation: "disabled",
+          created_at: "2023-01-01T00:00:00Z",
+          updated_at: "2023-01-01T00:00:00Z",
+          global: false,
+          is_first_party: false,
+          oidc_conformant: true,
+          sso: false,
+          sso_disabled: true,
+          cross_origin_authentication: false,
+          custom_login_page_on: false,
+          require_pushed_authorization_requests: false,
+          require_proof_of_possession: false,
+        },
+        "tenant-without-audience": {
+          client_id: "tenant-without-audience",
+          name: "Tenant Without Audience",
+          client_secret: "tenant-secret",
+          web_origins: ["https://tenant-no-aud.example.com"],
+          allowed_logout_urls: ["https://tenant-no-aud.example.com/logout"],
+          callbacks: ["https://tenant-no-aud.example.com/callback"],
+          connections: [],
+          tenant: {
+            id: "tenant-2",
+            friendly_name: "Tenant 2",
+            audience: "", // Empty audience, should fallback to main
+            sender_email: "tenant2@example.com",
+            sender_name: "Tenant 2 Sender",
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
           created_at: "2023-01-01T00:00:00Z",
           updated_at: "2023-01-01T00:00:00Z",
           global: false,
@@ -159,8 +184,9 @@ const createMockAdapters = (): DataAdapters => ({
     },
   },
   clients: {} as any,
+  clientGrants: {} as any,
+  invites: {} as any,
   // Mock other adapters
-  applications: {} as any,
   branding: {} as any,
   codes: {} as any,
   customDomains: {} as any,
@@ -220,6 +246,22 @@ describe("Main Tenant Adapter", () => {
     it("should return null for non-existent client", async () => {
       const client = await mainTenantAdapter.legacyClients.get("non-existent");
       expect(client).toBeNull();
+    });
+
+    it("should fallback to main tenant audience when tenant has empty audience", async () => {
+      const client = await mainTenantAdapter.legacyClients.get(
+        "tenant-without-audience",
+      );
+
+      expect(client).toBeDefined();
+      expect(client!.tenant.audience).toBe("https://main.example.com");
+    });
+
+    it("should use tenant audience when it is set", async () => {
+      const client = await mainTenantAdapter.legacyClients.get("tenant-client");
+
+      expect(client).toBeDefined();
+      expect(client!.tenant.audience).toBe("https://tenant.example.com");
     });
   });
 
