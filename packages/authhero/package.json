@@ -90,6 +90,12 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.19.2",
-    "hono": "^4.8.7"
+    "hono": "^4.8.7",
+    "ua-parser-js": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ua-parser-js": {
+      "optional": true
+    }
   }
 }

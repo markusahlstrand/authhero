@@ -77,9 +77,19 @@ export async function createAuthTokens(
     ? `https://${ctx.var.custom_domain}/`
     : ctx.env.ISSUER;
 
+  // Determine audience with fallback to tenant default
+  const audience = authParams.audience || client.tenant.audience;
+
+  if (!audience) {
+    throw new JSONHTTPException(400, {
+      error: "invalid_request",
+      error_description:
+        "An audience must be specified in the request or configured as the tenant default_audience",
+    });
+  }
+
   const accessTokenPayload = {
-    // TODO: consider if the dafault should be removed
-    aud: authParams.audience || "default",
+    aud: audience,
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
     iss,

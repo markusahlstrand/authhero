@@ -413,6 +413,196 @@ The warning appears at the top of the login form with:
 
 You can test the incognito detection in Storybook using the "WithIncognitoWarning" story variants for IdentifierForm and IdentifierPage components.
 
+### Embedded Browser Detection
+
+AuthHero automatically detects when users are accessing the login page from within embedded browsers (like in-app browsers in social media apps) and provides appropriate warnings and feature restrictions.
+
+**How it works:**
+
+- Detection happens server-side by analyzing the User-Agent header
+- Uses pattern matching to identify ~13 common embedded browsers including:
+  - WebView (Android/iOS)
+  - Google Search App (GSA)
+  - Facebook, Instagram, TikTok, Twitter/X
+  - LinkedIn, UC Browser, Samsung Internet
+  - Electron, Tauri
+- Returns both a boolean flag and the detected browser name
+- Browser name is interpolated into user-facing messages via i18next
+
+**Warning Message:**
+
+The warning appears at the top of the login form with:
+
+- 🔄 Icon indicating browser limitation
+- "Do you have to keep logging in?" heading
+- Personalized message: "You are currently inside the {browserName}. This browser often logs you out, so we recommend using your phone's default browser instead."
+
+**Social Login Restrictions:**
+
+Strategies can opt-in to being disabled in embedded browsers by setting the `disableEmbeddedBrowsers` property:
+
+```typescript
+// Example: Google OAuth2 strategy
+export const displayName = "Google";
+export const disableEmbeddedBrowsers = true; // Hides button in embedded browsers
+
+export const logo: FC<{ className?: string }> = ({ className = "" }) => (
+  // ... logo component
+);
+```
+
+**Strategy Type Definition:**
+
+```typescript
+export type Strategy = {
+  displayName: string;
+  logo: FC<{ className?: string }>;
+  getRedirect: (
+    ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+    connection: Connection,
+  ) => Promise<{ redirectUrl: string; code: string; codeVerifier?: string }>;
+  validateAuthorizationCodeAndGetUser: (
+    ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+    connection: Connection,
+    code: string,
+    codeVerifier?: string,
+  ) => Promise<UserInfo>;
+  disableEmbeddedBrowsers?: boolean; // Optional: hide this strategy in embedded browsers
+};
+```
+
+**Implementation:**
+
+```typescript
+// Server-side: Detect embedded browser from User-Agent
+const userAgent = ctx.req.header("user-agent");
+const detector = new DefaultUserAgentDetector();
+const { isEmbedded, browser } = detector.parse(userAgent);
+const browserName = browser?.name;
+
+// Pass to component
+<IdentifierPage
+  isEmbedded={isEmbedded}
+  browserName={browserName}
+  // ... other props
+/>
+
+// Component: Filter out disabled strategies
+const socialConnections = connections
+  .map((strategyName) => {
+    const strategy = getSocialStrategy(strategyName);
+    return strategy ? { name: strategyName, ...strategy } : null;
+  })
+  .filter((config): config is NonNullable<typeof config> => config !== null)
+  .filter((config) => {
+    // Filter out strategies that are disabled for embedded browsers
+    if (isEmbedded && config.disableEmbeddedBrowsers) {
+      return false;
+    }
+    return true;
+  });
+```
+
+**Detected Browsers:**
+
+The following embedded browsers are currently detected:
+
+- **WebView**: Generic Android/iOS WebView
+- **Google Search App (GSA)**: Google's in-app browser
+- **Facebook**: Facebook in-app browser
+- **Instagram**: Instagram in-app browser
+- **TikTok**: TikTok in-app browser
+- **Twitter/X**: Twitter/X in-app browser
+- **LinkedIn**: LinkedIn in-app browser
+- **UC Browser**: UC Browser app
+- **Samsung Internet**: Samsung's browser app
+- **Electron**: Electron-based desktop apps
+- **Tauri**: Tauri-based desktop apps
+
+**Custom Implementation:**
+
+You can provide your own user agent detection by implementing the `UserAgentDetector` interface:
+
+```typescript
+export interface UserAgentDetector {
+  parse(userAgent: string): UserAgentInfo;
+}
+
+export interface UserAgentInfo {
+  browser?: {
+    name?: string;
+    version?: string;
+  };
+  os?: {
+    name?: string;
+    version?: string;
+  };
+  device?: {
+    type?: string;
+    name?: string;
+  };
+  isEmbedded?: boolean;
+}
+```
+
+**Enhanced Detection with ua-parser-js PRO:**
+
+For more accurate user agent detection, you can use the PRO version of ua-parser-js.
+
+> **Note:** ua-parser-js PRO requires a commercial license. When you subscribe to a PRO license, you will receive the package name and installation instructions.
+
+```typescript
+import { UAParser } from "<ua-parser-js-pro>";
+
+export class UAParserDetector implements UserAgentDetector {
+  parse(userAgent: string): UserAgentInfo {
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
+
+    return {
+      browser: {
+        name: result.browser.name,
+        version: result.browser.version,
+      },
+      os: {
+        name: result.os.name,
+        version: result.os.version,
+      },
+      device: {
+        type: result.device.type,
+        name: result.device.model,
+      },
+      isEmbedded: this.detectEmbedded(result),
+    };
+  }
+
+  private detectEmbedded(result: any): boolean {
+    // Implement your embedded browser detection logic
+    return false;
+  }
+}
+```
+
+**Features:**
+
+- ✅ Server-side detection (no client-side JavaScript required)
+- ✅ Personalized browser name in warning messages
+- ✅ Strategy-level control over availability in embedded browsers
+- ✅ Graceful fallback if User-Agent not available
+- ✅ Works in both classic and shadcn UI styles
+- ✅ Full internationalization support with i18next variable interpolation
+
+**Why Disable Social Login in Embedded Browsers?**
+
+Many social login providers (especially Google) have issues in embedded browsers due to:
+
+- Cookie handling restrictions
+- Redirect chain complications
+- Security policies that block third-party authentication flows
+- Users frequently being logged out due to session storage limitations
+
+By disabling problematic social login options and showing a clear warning, you provide a better user experience and reduce support requests.
+
 ## Next Steps
 
 - [Explore components in Storybook](/storybook/index.html)

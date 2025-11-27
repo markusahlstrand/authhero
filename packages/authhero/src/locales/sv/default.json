@@ -51,6 +51,8 @@
   "email_validated_cta": "Ange nu ditt lösenord för att logga in igen",
   "email_verification_for_signup_sent_description": "Ett e-postmeddelande har skickats till <0>{{email}}</0> med en verifieringslänk. Vänligen klicka på länken för att verifiera din e-postadress och välja ett lösenord.",
   "email_verification_for_signup_sent_title": "E-postverifiering skickad",
+  "embedded_browser_detected": "Måste du logga in hela tiden?",
+  "embedded_browser_warning": "Du befinner dig för närvarande på {{browserName}}. Den här webbläsaren loggar ofta ut, så vi rekommenderar att du använder telefonens standardwebbläsare istället.",
   "enter_a_code_btn": "Logga in med kod",
   "enter_email_for_verification_description": "Vi skickar dig en verifieringslänk för att säkerställa att du äger den här e-postadressen.",
   "enter_new_email": "Ange ny e-postadress",

@@ -187,6 +187,36 @@ Migrate from Auth0 with minimal code changes:
 - **JWT format**: Same token structure
 - **Migration tools**: Import existing users and configuration
 
+## Key Behavioral Differences
+
+### Token Issuance Without Audience
+
+**Auth0 Behavior**: When no `audience` parameter is provided in the token request and no default audience is configured, Auth0 returns an **opaque (non-JWT) access token**.
+
+**AuthHero Behavior**: AuthHero requires an explicit audience for all access tokens and follows this priority:
+
+1. `audience` parameter in the token request
+2. `default_audience` configured on the tenant
+3. If neither is available, AuthHero returns an error:
+
+```json
+{
+  "error": "invalid_request",
+  "error_description": "An audience must be specified in the request or configured as the tenant default_audience"
+}
+```
+
+**Why the difference?**
+
+- **Security**: Every access token should have a clearly defined audience (the resource server it's intended for)
+- **Standards Compliance**: OAuth 2.0 best practices recommend explicit audience claims
+- **Clarity**: Prevents ambiguous tokens that could be accepted by unintended resource servers
+
+**Migration Note**: If you're migrating from Auth0 and currently rely on opaque tokens, you should:
+
+- Configure a `default_audience` on each tenant, OR
+- Update your token requests to include an explicit `audience` parameter
+
 ## Feature Comparison
 
 ### Authentication Methods

@@ -15,8 +15,24 @@ import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { HTTPException } from "hono/http-exception";
 import { waitUntil } from "../../helpers/wait-until";
+import { DefaultUserAgentDetector } from "../../client/user-agent-detector";
 
 export type SendType = "link" | "code";
+
+/**
+ * Detect if the request is from an embedded browser
+ */
+function detectEmbeddedBrowser(userAgent: string): {
+  isEmbedded: boolean;
+  browserName?: string;
+} {
+  const detector = new DefaultUserAgentDetector();
+  const userAgentInfo = detector.parse(userAgent);
+  return {
+    isEmbedded: userAgentInfo.isEmbedded ?? false,
+    browserName: userAgentInfo.browser?.name,
+  };
+}
 
 export const identifierRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -50,6 +66,10 @@ export const identifierRoutes = new OpenAPIHono<{
       const { theme, branding, loginSession, client, useShadcn } =
         await initJSXRoute(ctx, state);
 
+      // Detect embedded browser from User-Agent
+      const userAgent = ctx.req.header("user-agent") || "";
+      const { isEmbedded, browserName } = detectEmbeddedBrowser(userAgent);
+
       // Use shadcn style if useShadcn is true
       if (useShadcn) {
         return ctx.html(
@@ -65,6 +85,8 @@ export const identifierRoutes = new OpenAPIHono<{
               loginSession={loginSession}
               client={client}
               email={loginSession.authParams.username}
+              isEmbedded={isEmbedded}
+              browserName={browserName}
             />
           </AuthLayout>,
         );
@@ -78,6 +100,8 @@ export const identifierRoutes = new OpenAPIHono<{
           loginSession={loginSession}
           client={client}
           email={loginSession.authParams.username}
+          isEmbedded={isEmbedded}
+          browserName={browserName}
         />,
       );
     },
@@ -130,6 +154,10 @@ export const identifierRoutes = new OpenAPIHono<{
         await initJSXRoute(ctx, state);
       ctx.set("client_id", client.client_id);
 
+      // Detect embedded browser from User-Agent
+      const userAgent = ctx.req.header("user-agent") || "";
+      const { isEmbedded, browserName } = detectEmbeddedBrowser(userAgent);
+
       const countryCode = ctx.get("countryCode");
       // Note: country code not available in theme or branding schema yet
       const vendorCountryCode = undefined; // Could add to theme.widget or branding later
@@ -177,6 +205,8 @@ export const identifierRoutes = new OpenAPIHono<{
                 error={i18next.t("invalid_identifier")}
                 email={params.username}
                 client={client}
+                isEmbedded={isEmbedded}
+                browserName={browserName}
               />
             </AuthLayout>,
             400,
@@ -231,6 +261,8 @@ export const identifierRoutes = new OpenAPIHono<{
                   error={i18next.t("user_account_does_not_exist")}
                   email={params.username}
                   client={client}
+                  isEmbedded={isEmbedded}
+                  browserName={browserName}
                 />
               </AuthLayout>,
               400,
@@ -245,6 +277,8 @@ export const identifierRoutes = new OpenAPIHono<{
               error={i18next.t("user_account_does_not_exist")}
               email={params.username}
               client={client}
+              isEmbedded={isEmbedded}
+              browserName={browserName}
             />,
             400,
           );
