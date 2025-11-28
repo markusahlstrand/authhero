@@ -125,6 +125,15 @@ const sqlLogSchema = z.object({
   auth0_client: z.string().optional(), // Stored as JSON string in SQL
   details: z.string().optional(), // Stored as JSON string in SQL
   session_connection: z.string().optional(),
+  // Location info stored as separate columns for filtering
+  country_code: z.string().optional(),
+  country_code3: z.string().optional(),
+  country_name: z.string().optional(),
+  city_name: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  time_zone: z.string().optional(),
+  continent_code: z.string().optional(),
 });
 
 export const sqlResourceServerSchema = z

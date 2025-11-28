@@ -50,7 +50,7 @@ export async function silentAuth({
 
   // Helper function to handle login required scenarios
   async function handleLoginRequired(description: string = "Login required") {
-    const log = createLogMessage(ctx, {
+    const log = await createLogMessage(ctx, {
       type: LogTypes.FAILED_SILENT_AUTH,
       description,
     });
@@ -156,7 +156,7 @@ export async function silentAuth({
   });
 
   // Log successful authentication
-  const log = createLogMessage(ctx, {
+  const log = await createLogMessage(ctx, {
     type: LogTypes.SUCCESS_SILENT_AUTH,
     description: "Successful silent authentication",
   });

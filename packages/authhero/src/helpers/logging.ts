@@ -14,10 +14,11 @@ export type LogParams = {
   scope?: string;
 };
 
-export async function createLogMessage(
+export async function logMessage(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
   params: LogParams,
-): Promise<LogInsert> {
+): Promise<void> {
   // Get geo information if adapter is available
   let locationInfo: LogInsert["location_info"] = undefined;
   if (ctx.env.data.geo) {
@@ -60,5 +61,6 @@ export async function createLogMessage(
     location_info: locationInfo,
   };
 
-  return log;
+  // Persist the log message
+  await ctx.env.data.logs.create(tenantId, log);
 }

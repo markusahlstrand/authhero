@@ -139,7 +139,7 @@ export async function sendResetPassword(
   });
 
   // Log the password reset request
-  const log = createLogMessage(ctx, {
+  const log = await createLogMessage(ctx, {
     type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
     description: to,
   });
@@ -212,7 +212,7 @@ export async function sendCode(
     });
   }
 
-  const log = createLogMessage(ctx, {
+  const log = await createLogMessage(ctx, {
     type: LogTypes.CODE_LINK_SENT,
     description: to,
   });
@@ -313,7 +313,7 @@ export async function sendLink(
     });
   }
 
-  const log = createLogMessage(ctx, {
+  const log = await createLogMessage(ctx, {
     type: LogTypes.CODE_LINK_SENT,
     description: to,
   });

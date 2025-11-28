@@ -12,8 +12,7 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
-import { createLogMessage } from "../utils/create-log-message";
-import { waitUntil } from "../helpers/wait-until";
+import { logMessage } from "../helpers/logging";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -60,27 +59,24 @@ export async function authorizationCodeGrantUser(
   );
 
   if (!code || !code.user_id) {
-    const log = createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid client credentials",
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   } else if (new Date(code.expires_at) < new Date()) {
-    const log = createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Code expired",
       userId: code.user_id,
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
-    const log = createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid authorization code",
       userId: code.user_id,
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, {
       error: "invalid_grant",
       error_description: "Invalid authorization code",
@@ -119,12 +115,11 @@ export async function authorizationCodeGrantUser(
       !safeCompare(client.client_secret, params.client_secret) &&
       !safeCompare(defaultClient?.client_secret, params.client_secret)
     ) {
-      const log = createLogMessage(ctx, {
+      await logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Invalid client credentials",
         userId: code.user_id,
       });
-      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
       throw new JSONHTTPException(403, {
         message: "Invalid client credentials",
       });
@@ -140,12 +135,11 @@ export async function authorizationCodeGrantUser(
       code.code_challenge_method,
     );
     if (!safeCompare(challenge, code.code_challenge)) {
-      const log = createLogMessage(ctx, {
+      await logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Invalid client credentials",
         userId: code.user_id,
       });
-      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
       throw new JSONHTTPException(403, {
         message: "Invalid client credentials",
       });
@@ -154,12 +148,11 @@ export async function authorizationCodeGrantUser(
 
   // Validate the redirect_uri
   if (code.redirect_uri && code.redirect_uri !== params.redirect_uri) {
-    const log = createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid redirect uri",
       userId: code.user_id,
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, { message: "Invalid redirect uri" });
   }
 

@@ -74,9 +74,9 @@ describe("user deletion - Management API logging", () => {
     expect(deletionLog?.strategy_type).toBeDefined();
 
     // Verify details contain tenant and connection info
-    expect(deletionLog?.details?.body).toBeDefined();
-    expect(deletionLog?.details?.body?.tenant).toBe("tenantId");
-    expect(deletionLog?.details?.body?.connection).toBeDefined();
+    expect(deletionLog?.details?.request?.body).toBeDefined();
+    expect(deletionLog?.details?.request?.body?.tenant).toBe("tenantId");
+    expect(deletionLog?.details?.request?.body?.connection).toBeDefined();
 
     // Find the sapi (SUCCESS_API_OPERATION) log
     const sapiLog = logs.find(
@@ -172,9 +172,9 @@ describe("user deletion - Management API logging", () => {
     expect(deletionLog?.strategy_type).toBeDefined();
 
     // Verify details contain tenant and connection info
-    expect(deletionLog?.details?.body).toBeDefined();
-    expect(deletionLog?.details?.body?.tenant).toBe("tenantId");
-    expect(deletionLog?.details?.body?.connection).toBeDefined();
+    expect(deletionLog?.details?.request?.body).toBeDefined();
+    expect(deletionLog?.details?.request?.body?.tenant).toBe("tenantId");
+    expect(deletionLog?.details?.request?.body?.connection).toBeDefined();
   });
 
   it("should log deletion with correct strategy_type for database users", async () => {

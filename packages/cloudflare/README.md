@@ -4,10 +4,11 @@ Cloudflare-specific adapters for AuthHero, providing integrations with Cloudflar
 
 ## Features
 
-This package provides three adapters:
+This package provides four adapters:
 
 - **Custom Domains** - Manage custom domains via Cloudflare API
 - **Cache** - Caching using Cloudflare's Cache API
+- **Geo** (optional) - Extract geographic information from Cloudflare request headers
 - **Logs** (optional) - Write authentication logs to Cloudflare R2 using Pipelines and query with R2 SQL
 
 ## Installation
@@ -35,6 +36,13 @@ const adapters = createAdapters({
   defaultTtlSeconds: 3600,
   keyPrefix: "authhero:",
 
+  // Geo adapter configuration (optional) - automatically included when getHeaders is provided
+  getHeaders: () => {
+    // In Cloudflare Workers, you'd typically pass request headers
+    // Cloudflare automatically adds cf-ipcountry, cf-ipcity, etc.
+    return request.headers;
+  },
+
   // R2 SQL logs configuration (optional) - HTTP mode
   r2SqlLogs: {
     pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
@@ -46,7 +54,7 @@ const adapters = createAdapters({
 });
 
 // Use the adapters
-const { customDomains, cache, logs } = adapters;
+const { customDomains, cache, geo, logs } = adapters;
 ```
 
 ### Service Binding Mode (Cloudflare Workers)
@@ -66,6 +74,9 @@ export default {
       authEmail: "your-cloudflare-email",
       customDomainAdapter: yourDatabaseCustomDomainsAdapter,
 
+      // Geo adapter - extract location from Cloudflare headers
+      getHeaders: () => Object.fromEntries(request.headers),
+
       // R2 SQL logs with service binding
       r2SqlLogs: {
         pipelineBinding: env.PIPELINE_SERVICE,
@@ -74,7 +85,7 @@ export default {
       },
     });
 
-    // Use adapters.logs
+    // Use adapters.logs and adapters.geo
   },
 };
 ```
@@ -384,6 +395,136 @@ npx wrangler r2 sql query "your_warehouse" "
   GROUP BY type
 "
 ```
+
+## Geo Adapter
+
+The Cloudflare Geo adapter extracts geographic location information from Cloudflare's automatic request headers. This is used to enrich authentication logs with location data.
+
+### Features
+
+- **Zero Latency**: Uses headers already provided by Cloudflare Workers
+- **No API Calls**: No external services or databases required
+- **Comprehensive Data**: Includes country, city, coordinates, timezone, and continent
+- **Automatic**: Cloudflare populates headers automatically for every request
+
+### Configuration
+
+The geo adapter is automatically created when you provide the `getHeaders` function:
+
+```typescript
+const adapters = createAdapters({
+  // ... other config
+  getHeaders: () => Object.fromEntries(request.headers),
+});
+
+// Access the geo adapter
+const geoInfo = await adapters.geo?.getGeoInfo();
+```
+
+### Cloudflare Headers Used
+
+The adapter reads these Cloudflare-provided headers:
+
+| Header           | Description               | Example               |
+| ---------------- | ------------------------- | --------------------- |
+| `cf-ipcountry`   | 2-letter ISO country code | `US`                  |
+| `cf-ipcity`      | City name                 | `San Francisco`       |
+| `cf-iplatitude`  | Latitude coordinate       | `37.7749`             |
+| `cf-iplongitude` | Longitude coordinate      | `-122.4194`           |
+| `cf-timezone`    | IANA timezone identifier  | `America/Los_Angeles` |
+| `cf-ipcontinent` | 2-letter continent code   | `NA`                  |
+
+### Response Format
+
+```typescript
+interface GeoInfo {
+  country_code: string; // "US"
+  country_code3: string; // "USA"
+  country_name: string; // "United States"
+  city_name: string; // "San Francisco"
+  latitude: string; // "37.7749"
+  longitude: string; // "-122.4194"
+  time_zone: string; // "America/Los_Angeles"
+  continent_code: string; // "NA"
+}
+```
+
+### Integration with AuthHero
+
+When configured in AuthHero, the geo adapter automatically enriches authentication logs:
+
+```typescript
+import { init } from "@authhero/authhero";
+import createAdapters from "@authhero/cloudflare-adapter";
+
+const cloudflareAdapters = createAdapters({
+  getHeaders: () => Object.fromEntries(request.headers),
+  // ... other config
+});
+
+const authhero = init({
+  data: yourDatabaseAdapter,
+  geo: cloudflareAdapters.geo, // Add geo adapter
+  // ... other config
+});
+```
+
+Logs will automatically include `location_info`:
+
+```json
+{
+  "type": "s",
+  "date": "2025-11-28T12:00:00.000Z",
+  "location_info": {
+    "country_code": "US",
+    "country_code3": "USA",
+    "country_name": "United States",
+    "city_name": "San Francisco",
+    "latitude": "37.7749",
+    "longitude": "-122.4194",
+    "time_zone": "America/Los_Angeles",
+    "continent_code": "NA"
+  }
+}
+```
+
+### Alternative: IP Geolocation Databases
+
+If you're not using Cloudflare Workers or need more detailed location data, you can implement a custom `GeoAdapter` using IP geolocation databases like MaxMind GeoIP2:
+
+```typescript
+import maxmind from "maxmind";
+import { GeoAdapter, GeoInfo } from "@authhero/adapter-interfaces";
+
+class MaxMindGeoAdapter implements GeoAdapter {
+  private reader: maxmind.Reader<maxmind.CityResponse>;
+
+  async getGeoInfo(): Promise<GeoInfo | null> {
+    const ip = this.getClientIP();
+    const lookup = this.reader.get(ip);
+
+    if (!lookup) return null;
+
+    return {
+      country_code: lookup.country?.iso_code || "",
+      country_code3: lookup.country?.iso_code3 || "",
+      country_name: lookup.country?.names?.en || "",
+      city_name: lookup.city?.names?.en || "",
+      latitude: lookup.location?.latitude?.toString() || "",
+      longitude: lookup.location?.longitude?.toString() || "",
+      time_zone: lookup.location?.time_zone || "",
+      continent_code: lookup.continent?.code || "",
+    };
+  }
+}
+```
+
+**Considerations for IP Databases**:
+
+- Requires database downloads and regular updates
+- Additional latency for lookups (1-5ms typically)
+- May require licensing fees
+- Works in any environment, not just edge platforms
 
 ## Environment Variables
 

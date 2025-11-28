@@ -112,7 +112,7 @@ async function sendToPipeline(
     client_id: log.client_id,
     client_name: log.client_name,
     audience: log.audience,
-    scope: log.scope?.join(","),
+    scope: log.scope,
     strategy: log.strategy,
     strategy_type: log.strategy_type,
     hostname: log.hostname,

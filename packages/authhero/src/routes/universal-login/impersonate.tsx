@@ -8,8 +8,8 @@ import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
-import { createLogMessage } from "../../utils/create-log-message";
-import { waitUntil } from "../../helpers/wait-until";
+import { logMessage } from "../../helpers/logging";
+
 import { LogTypes } from "@authhero/adapter-interfaces";
 
 export const impersonateRoutes = new OpenAPIHono<{
@@ -347,7 +347,7 @@ export const impersonateRoutes = new OpenAPIHono<{
       });
 
       // Log the impersonation as a login with the impersonating user in the description
-      const logMessage = createLogMessage(ctx, {
+      await logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_LOGIN,
         description: `${targetUser.email || targetUser.user_id} (impersonated by ${currentUser.email || currentUser.user_id})`,
         userId: targetUser.user_id,
@@ -355,8 +355,6 @@ export const impersonateRoutes = new OpenAPIHono<{
         strategy: targetUser.connection,
         strategy_type: targetUser.is_social ? "social" : "database",
       });
-
-      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, logMessage));
 
       // Continue with the authentication flow using the impersonated user
       // Use the original response_type and response_mode from the authorize request

@@ -33,7 +33,7 @@ export async function connectionAuth(
 
   if (!connection) {
     ctx.set("client_id", client.client_id);
-    const log = createLogMessage(ctx, {
+    const log = await createLogMessage(ctx, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
@@ -155,7 +155,7 @@ export async function connectionCallback(
   );
 
   if (!connection) {
-    const log = createLogMessage(ctx, {
+    const log = await createLogMessage(ctx, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
@@ -166,7 +166,7 @@ export async function connectionCallback(
   ctx.set("connection", connection.name);
 
   if (!loginSession.authParams.redirect_uri) {
-    const log = createLogMessage(ctx, {
+    const log = await createLogMessage(ctx, {
       type: LogTypes.FAILED_LOGIN,
       description: "Redirect URI not defined",
     });

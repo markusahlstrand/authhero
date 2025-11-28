@@ -11,8 +11,7 @@ import AuthLayout from "../../components/AuthLayout";
 import MessagePage from "../../components/MessagePage";
 import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
-import { createLogMessage } from "../../utils/create-log-message";
-import { waitUntil } from "../../helpers/wait-until";
+import { logMessage } from "../../helpers/logging";
 
 export const resetPasswordRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -277,12 +276,11 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         }
 
         // Log the successful password change
-        const log = createLogMessage(ctx, {
+        await logMessage(ctx, client.tenant.id, {
           type: LogTypes.SUCCESS_CHANGE_PASSWORD,
           description: `Password changed for ${user.email}`,
           userId: user.user_id,
         });
-        waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
       } catch {
         // seems like we should not do this catch... try and see what happens
         if (useShadcn) {

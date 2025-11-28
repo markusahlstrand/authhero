@@ -244,15 +244,56 @@ Migrate from Auth0 with minimal code changes:
 
 ### Management & Operations
 
-| Feature              | Auth0         | AuthHero        |
-| -------------------- | ------------- | --------------- |
-| Admin Dashboard      | ✅            | ✅              |
-| User Management      | ✅            | ✅              |
-| Logs & Analytics     | ✅            | ✅              |
-| Custom Domains       | ✅ Enterprise | ✅ All plans    |
-| Branding             | ✅ Limited    | ✅ Full control |
-| Email Templates      | ✅            | ✅              |
-| Multi-tenant Support | ✅ Enterprise | ✅ Built-in     |
+| Feature              | Auth0           | AuthHero        |
+| -------------------- | --------------- | --------------- |
+| Admin Dashboard      | ✅              | ✅              |
+| User Management      | ✅              | ✅              |
+| Logs & Analytics     | ✅              | ✅              |
+| Geo Location Data    | ⚠️ Country only | ✅ Full details |
+| Custom Domains       | ✅ Enterprise   | ✅ All plans    |
+| Branding             | ✅ Limited      | ✅ Full control |
+| Email Templates      | ✅              | ✅              |
+| Multi-tenant Support | ✅ Enterprise   | ✅ Built-in     |
+
+### Geographic Location Data
+
+**Auth0 Limitation**: Auth0 only provides a 2-letter country code (e.g., "US") in authentication logs via the `geoip.country_code` field. This limits geographic analysis and security monitoring capabilities.
+
+**AuthHero Solution**: Provides comprehensive geographic information when using the optional `GeoAdapter`:
+
+- **country_code**: 2-letter ISO code (e.g., "US")
+- **country_code3**: 3-letter ISO code (e.g., "USA")
+- **country_name**: Full country name (e.g., "United States")
+- **city_name**: City name (e.g., "San Francisco")
+- **latitude/longitude**: Geographic coordinates for mapping
+- **time_zone**: IANA time zone identifier
+- **continent_code**: 2-letter continent code
+
+This data is automatically included in authentication logs when a `GeoAdapter` is configured:
+
+```json
+{
+  "type": "s",
+  "date": "2025-11-28T12:00:00.000Z",
+  "location_info": {
+    "country_code": "US",
+    "country_code3": "USA",
+    "country_name": "United States",
+    "city_name": "San Francisco",
+    "latitude": "37.7749",
+    "longitude": "-122.4194",
+    "time_zone": "America/Los_Angeles",
+    "continent_code": "NA"
+  }
+}
+```
+
+**Implementation Options**:
+
+1. **Edge Provider (Recommended)**: Use Cloudflare Workers headers for zero-latency geo data
+2. **Geo Database**: Use MaxMind GeoIP2 or similar for IP-based lookups
+
+See the [Geo Adapter documentation](/packages/adapters/adapter-interfaces#geoadapter) for implementation details.
 
 ## Migration from Auth0
 
