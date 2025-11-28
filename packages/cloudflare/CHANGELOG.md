@@ -1,5 +1,17 @@
 # @authhero/cloudflare-adapter
 
+## 2.9.0
+
+### Minor Changes
+
+- 3a0d8ee: Add geo info
+
+### Patch Changes
+
+- Updated dependencies [3a0d8ee]
+  - @authhero/adapter-interfaces@0.100.0
+  - @authhero/kysely-adapter@10.57.0
+
 ## 2.8.0
 
 ### Minor Changes
