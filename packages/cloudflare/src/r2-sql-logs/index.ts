@@ -25,7 +25,7 @@ export type { R2SQLLogsAdapterConfig };
  * @example Service binding mode (Workers)
  * ```typescript
  * const adapter = createR2SQLLogsAdapter({
- *   pipelineBinding: env.PIPELINE_SERVICE,
+ *   pipelineBinding: env.AUTHHERO_LOGS_STREAM,
  *   authToken: process.env.R2_SQL_AUTH_TOKEN,
  *   warehouseName: process.env.R2_WAREHOUSE_NAME,
  * });

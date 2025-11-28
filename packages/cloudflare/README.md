@@ -236,7 +236,15 @@ In the Cloudflare Dashboard:
     { "name": "strategy_type", "type": "string", "required": false },
     { "name": "hostname", "type": "string", "required": false },
     { "name": "auth0_client", "type": "string", "required": false },
-    { "name": "log_id", "type": "string", "required": true }
+    { "name": "log_id", "type": "string", "required": true },
+    { "name": "country_code", "type": "string", "required": false },
+    { "name": "country_code3", "type": "string", "required": false },
+    { "name": "country_name", "type": "string", "required": false },
+    { "name": "city_name", "type": "string", "required": false },
+    { "name": "latitude", "type": "string", "required": false },
+    { "name": "longitude", "type": "string", "required": false },
+    { "name": "time_zone", "type": "string", "required": false },
+    { "name": "continent_code", "type": "string", "required": false }
   ]
 }
 ```
@@ -294,24 +302,24 @@ Use this mode when running inside a Cloudflare Worker with a service binding to 
 ```typescript
 // wrangler.toml
 [[pipelines]];
-binding = "PIPELINE_SERVICE";
+binding = "AUTHHERO_LOGS_STREAM";
 pipeline = "my-pipeline";
 
 // TypeScript
 interface Env {
-  PIPELINE_SERVICE: { fetch: typeof fetch };
+  AUTHHERO_LOGS_STREAM: { fetch: typeof fetch };
 }
 
 const { logs } = createAdapters({
   r2SqlLogs: {
-    pipelineBinding: env.PIPELINE_SERVICE,
+    pipelineBinding: env.AUTHHERO_LOGS_STREAM,
     authToken: env.R2_SQL_AUTH_TOKEN,
     warehouseName: env.R2_WAREHOUSE_NAME,
   },
 });
 ```
 
-This mode is more efficient as it avoids HTTP overhead for Worker-to-Worker communication.
+This mode is more efficient as it avoids HTTP overhead for Worker-to-Worker communication. The `AUTHHERO_LOGS_STREAM` binding name is recommended for consistency across workers.
 
 ##### 3. Passthrough Mode (Wrap Another Adapter)
 

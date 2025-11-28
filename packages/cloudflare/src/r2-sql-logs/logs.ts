@@ -43,6 +43,27 @@ export function formatLogFromStorage(row: Record<string, any>): Log {
     hostname: row.hostname,
     auth0_client: tryParseJSON(row.auth0_client),
     log_id: row.id,
+    // Include location_info if any geo fields are present
+    location_info:
+      row.country_code ||
+      row.country_code3 ||
+      row.country_name ||
+      row.city_name ||
+      row.latitude ||
+      row.longitude ||
+      row.time_zone ||
+      row.continent_code
+        ? {
+            country_code: row.country_code || "",
+            country_code3: row.country_code3 || "",
+            country_name: row.country_name || "",
+            city_name: row.city_name || "",
+            latitude: row.latitude || "",
+            longitude: row.longitude || "",
+            time_zone: row.time_zone || "",
+            continent_code: row.continent_code || "",
+          }
+        : undefined,
   };
 }
 
@@ -118,6 +139,15 @@ async function sendToPipeline(
     hostname: log.hostname,
     auth0_client: stringifyIfTruthy(log.auth0_client),
     log_id: log.log_id,
+    // Geo fields from location_info
+    country_code: log.location_info?.country_code,
+    country_code3: log.location_info?.country_code3,
+    country_name: log.location_info?.country_name,
+    city_name: log.location_info?.city_name,
+    latitude: log.location_info?.latitude,
+    longitude: log.location_info?.longitude,
+    time_zone: log.location_info?.time_zone,
+    continent_code: log.location_info?.continent_code,
   };
 
   const timeout = config.timeout || 30000;
