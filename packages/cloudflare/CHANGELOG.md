@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 2.10.0
+
+### Minor Changes
+
+- d381383: Use env for writing logs to R2 pipeline
+
 ## 2.9.0
 
 ### Minor Changes
