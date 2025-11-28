@@ -14,10 +14,22 @@ export type LogParams = {
   scope?: string;
 };
 
-export function createLogMessage(
+export async function createLogMessage(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: LogParams,
-) {
+): Promise<LogInsert> {
+  // Get geo information if adapter is available
+  let locationInfo: LogInsert["location_info"] = undefined;
+  if (ctx.env.data.geo) {
+    try {
+      const geoInfo = await ctx.env.data.geo.getGeoInfo();
+      locationInfo = geoInfo || undefined;
+    } catch (error) {
+      // Silently ignore geo lookup errors
+      console.warn("Failed to get geo information:", error);
+    }
+  }
+
   const log: LogInsert = {
     type: params.type,
     description: params.description || "",
@@ -44,7 +56,8 @@ export function createLogMessage(
     strategy: params.strategy || "",
     strategy_type: params.strategy_type || "",
     audience: params.audience || "",
-    scope: params.scope ? params.scope.split(" ") : [],
+    scope: params.scope || "",
+    location_info: locationInfo,
   };
 
   return log;

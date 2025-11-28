@@ -3,7 +3,7 @@ import bcryptjs from "bcryptjs";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
-import { createLogMessage } from "../../utils/create-log-message";
+import { logMessage } from "../../helpers/logging";
 import {
   getPrimaryUserByProvider,
   getUserByProvider,
@@ -13,7 +13,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import validatePasswordStrength from "../../utils/password";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
-import { waitUntil } from "../../helpers/wait-until";
+
 import { stringifyAuth0Client } from "../../utils/client-info";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
@@ -113,11 +113,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
 
       await sendValidateEmailAddress(ctx, newUser);
 
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_SIGNUP,
         description: "Successful signup",
       });
-      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
       return ctx.json({
         _id: newUser.user_id,

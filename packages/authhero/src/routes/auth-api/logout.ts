@@ -1,11 +1,10 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { createLogMessage } from "../../utils/create-log-message";
+import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
-import { waitUntil } from "../../helpers/wait-until";
 
 export const logoutRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -114,12 +113,10 @@ export const logoutRoutes = new OpenAPIHono<{
           }
         }
       }
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_LOGOUT,
         description: "User successfully logged out",
       });
-
-      waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
       return new Response("Redirecting", {
         status: 302,

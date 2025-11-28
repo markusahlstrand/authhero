@@ -206,12 +206,23 @@ export const Auth0Client = z.object({
     .optional(),
 });
 
+export const LocationInfo = z.object({
+  country_code: z.string().length(2),
+  country_code3: z.string().length(3),
+  country_name: z.string(),
+  city_name: z.string(),
+  latitude: z.string(),
+  longitude: z.string(),
+  time_zone: z.string(),
+  continent_code: z.string(),
+});
+
 export const logInsertSchema = z.object({
   type: LogType,
   date: z.string(),
   description: z.string().optional(),
   ip: z.string().optional(),
-  user_agent: z.string(),
+  user_agent: z.string().optional(),
   details: z.any().optional(), // Using z.any() as a placeholder for "details" type
   isMobile: z.boolean(),
   user_id: z.string().optional(),
@@ -221,12 +232,13 @@ export const logInsertSchema = z.object({
   client_id: z.string().optional(),
   client_name: z.string().optional(),
   audience: z.string().optional(),
-  scope: z.array(z.string()).optional(),
+  scope: z.string().optional(),
   strategy: z.string().optional(),
   strategy_type: z.string().optional(),
   hostname: z.string().optional(),
   auth0_client: Auth0Client.optional(),
   log_id: z.string().optional(),
+  location_info: LocationInfo.optional(),
 });
 
 export type LogInsert = z.infer<typeof logInsertSchema>;

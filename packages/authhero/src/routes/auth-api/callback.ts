@@ -5,8 +5,8 @@ import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
 import { Bindings, Variables } from "../../types";
 import { connectionCallback } from "../../authentication-flows/connection";
-import { createLogMessage } from "../../utils/create-log-message";
-import { waitUntil } from "../../helpers/wait-until";
+import { logMessage } from "../../helpers/logging";
+
 import { getUniversalLoginUrl } from "../../variables";
 
 async function returnError(
@@ -39,11 +39,10 @@ async function returnError(
     throw new HTTPException(400, { message: "Redirect uri not found" });
   }
 
-  const log = createLogMessage(ctx, {
+  logMessage(ctx, ctx.var.tenant_id, {
     type: LogTypes.FAILED_LOGIN,
     description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
   });
-  waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
 
   const redirectUri = new URL(redirect_uri);
   setSearchParams(redirectUri, {

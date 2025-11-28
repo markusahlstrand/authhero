@@ -27,6 +27,7 @@ import { UserRolesAdapter } from "./UserRoles";
 import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
 import { InvitesAdapter } from "./Invites";
+import { GeoAdapter } from "./Geo";
 
 export interface DataAdapters {
   branding: BrandingAdapter;
@@ -39,6 +40,7 @@ export interface DataAdapters {
   customDomains: CustomDomainsAdapter;
   emailProviders: EmailProvidersAdapter;
   forms: FormsAdapter;
+  geo?: GeoAdapter;
   hooks: HooksAdapter;
   invites: InvitesAdapter;
   keys: KeysAdapter;
@@ -70,3 +72,4 @@ export * from "./UserRoles";
 export * from "./Organizations";
 export * from "./UserOrganizations";
 export * from "./Invites";
+export * from "./Geo";

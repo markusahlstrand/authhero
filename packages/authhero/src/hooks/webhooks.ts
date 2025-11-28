@@ -4,11 +4,10 @@ import {
   LogTypes,
   User,
 } from "@authhero/adapter-interfaces";
-import { createLogMessage } from "../utils/create-log-message";
+import { logMessage } from "../helpers/logging";
 import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 import { createServiceToken } from "../helpers/service-token";
-import { waitUntil } from "../helpers/wait-until";
 
 async function invokeHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -28,11 +27,10 @@ async function invokeHooks(
     });
 
     if (!response.ok) {
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, data.tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke hook ${hook.hook_id}`,
       });
-      waitUntil(ctx, ctx.env.data.logs.create(data.tenant_id, log));
     }
   }
 }

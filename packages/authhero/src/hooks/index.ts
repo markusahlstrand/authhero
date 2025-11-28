@@ -17,14 +17,13 @@ import {
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
-import { createLogMessage } from "../utils/create-log-message";
+import { logMessage } from "../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { createServiceToken } from "../helpers/service-token";
-import { waitUntil } from "../helpers/wait-until";
 
 // Helper function to create token API
 function createTokenAPI(
@@ -101,11 +100,10 @@ function createUserHooks(
           },
         );
       } catch (err) {
-        const log = createLogMessage(ctx, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_SIGNUP,
           description: "Pre user registration hook failed",
         });
-        waitUntil(ctx, data.logs.create(tenant_id, log));
       }
     }
 
@@ -126,11 +124,10 @@ function createUserHooks(
           },
         );
       } catch (err) {
-        const log = createLogMessage(ctx, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_SIGNUP,
           description: "Post user registration hook failed",
         });
-        waitUntil(ctx, ctx.env.data.logs.create(tenant_id, log));
       }
     }
 
@@ -231,12 +228,11 @@ function createUserUpdateHooks(
     }
 
     if (updates.email) {
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_CHANGE_EMAIL,
         description: `Email updated to ${updates.email}`,
         userId: user_id,
       });
-      waitUntil(ctx, data.logs.create(tenant_id, log));
     }
 
     return true;
@@ -371,11 +367,10 @@ export async function validateSignupEmail(
       }
     } catch (err) {
       // Log webhook error but don't block signup
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_HOOK,
         description: "Validate signup email webhook failed",
       });
-      waitUntil(ctx, data.logs.create(client.tenant.id, log));
     }
   }
 
@@ -400,11 +395,10 @@ export async function preUserSignupHook(
   const validation = await validateSignupEmail(ctx, client, data, email);
 
   if (!validation.allowed) {
-    const log = createLogMessage(ctx, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_SIGNUP,
       description: validation.reason || "Signup not allowed",
     });
-    waitUntil(ctx, data.logs.create(client.tenant.id, log));
 
     throw new JSONHTTPException(400, {
       message: validation.reason || "Signups are disabled for this client",
@@ -462,11 +456,10 @@ function createUserDeletionHooks(
         if (err instanceof HTTPException) {
           throw err;
         }
-        const log = createLogMessage(ctx, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Pre user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        waitUntil(ctx, data.logs.create(tenant_id, log));
         throw new JSONHTTPException(400, {
           message: "Pre user deletion hook failed",
         });
@@ -477,11 +470,10 @@ function createUserDeletionHooks(
     try {
       await preUserDeletionWebhook(ctx)(tenant_id, userToDelete);
     } catch (err) {
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Pre user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
       });
-      waitUntil(ctx, data.logs.create(tenant_id, log));
       throw new JSONHTTPException(400, {
         message: "Pre user deletion webhook failed",
       });
@@ -492,37 +484,26 @@ function createUserDeletionHooks(
 
     // Log the user deletion if successful
     if (result) {
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_USER_DELETION,
         description: `user_id: ${user_id}`,
         strategy: userToDelete.provider || "auth0",
         strategy_type: userToDelete.is_social ? "social" : "database",
-      });
-
-      // Add connection details
-      log.connection = userToDelete.connection || "";
-      log.connection_id = ""; // Connection ID not available in current context
-
-      // Add tenant info to details
-      log.details = {
-        ...log.details,
+        connection: userToDelete.connection || "",
         body: {
           tenant: tenant_id,
           connection: userToDelete.connection || "",
         },
-      };
-
-      waitUntil(ctx, data.logs.create(tenant_id, log));
+      });
 
       // Invoke post-user-deletion webhooks
       try {
         await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
       } catch (err) {
-        const log = createLogMessage(ctx, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        waitUntil(ctx, data.logs.create(tenant_id, log));
         // Don't throw - user is already deleted
       }
     }
@@ -545,11 +526,10 @@ function createUserDeletionHooks(
           },
         );
       } catch (err) {
-        const log = createLogMessage(ctx, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        waitUntil(ctx, data.logs.create(tenant_id, log));
         // Don't throw - user is already deleted
       }
     }
@@ -776,7 +756,7 @@ export async function postUserLoginHook(
   const strategy = params?.authStrategy?.strategy || user.connection || "";
 
   // Log successful login
-  const logMessage = createLogMessage(ctx, {
+  logMessage(ctx, tenant_id, {
     type: LogTypes.SUCCESS_LOGIN,
     description: `Successful login for ${user.user_id}`,
     userId: user.user_id,
@@ -786,8 +766,6 @@ export async function postUserLoginHook(
     audience: params?.authParams?.audience,
     scope: params?.authParams?.scope,
   });
-
-  waitUntil(ctx, data.logs.create(tenant_id, logMessage));
 
   // Update the user's last login info
   await data.users.update(tenant_id, user.user_id, {
@@ -917,11 +895,10 @@ export async function postUserLoginHook(
         }),
       });
     } catch (err) {
-      const log = createLogMessage(ctx, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke post-user-login webhook: ${hook.url}`,
       });
-      waitUntil(ctx, data.logs.create(tenant_id, log));
     }
   }
 

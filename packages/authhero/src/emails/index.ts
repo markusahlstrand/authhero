@@ -3,8 +3,7 @@ import { t } from "i18next";
 import { Bindings, Variables } from "../types";
 import { AuthParams, LogTypes, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
-import { createLogMessage } from "../utils/create-log-message";
-import { waitUntil } from "../helpers/wait-until";
+import { logMessage } from "../helpers/logging";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getClientWithDefaults } from "../helpers/client";
@@ -139,11 +138,10 @@ export async function sendResetPassword(
   });
 
   // Log the password reset request
-  const log = createLogMessage(ctx, {
+  logMessage(ctx, tenant.id, {
     type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
     description: to,
   });
-  waitUntil(ctx, ctx.env.data.logs.create(tenant.id, log));
 }
 
 export interface SendCodeParams {
@@ -212,11 +210,10 @@ export async function sendCode(
     });
   }
 
-  const log = createLogMessage(ctx, {
+  logMessage(ctx, tenant.id, {
     type: LogTypes.CODE_LINK_SENT,
     description: to,
   });
-  waitUntil(ctx, ctx.env.data.logs.create(tenant.id, log));
 }
 
 export async function sendLink(
@@ -313,11 +310,10 @@ export async function sendLink(
     });
   }
 
-  const log = createLogMessage(ctx, {
+  logMessage(ctx, tenant.id, {
     type: LogTypes.CODE_LINK_SENT,
     description: to,
   });
-  waitUntil(ctx, ctx.env.data.logs.create(tenant.id, log));
 }
 
 export async function sendValidateEmailAddress(

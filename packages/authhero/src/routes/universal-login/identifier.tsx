@@ -6,7 +6,7 @@ import IdentifierPage from "../../components/IdentifierPage";
 import AuthLayout from "../../components/AuthLayout";
 import { getPrimaryUserByProvider } from "../../helpers/users";
 import { validateSignupEmail } from "../../hooks";
-import { createLogMessage } from "../../utils/create-log-message";
+import { logMessage } from "../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import generateOTP from "../../utils/otp";
@@ -14,7 +14,7 @@ import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getConnectionFromIdentifier } from "../../utils/username";
 import { HTTPException } from "hono/http-exception";
-import { waitUntil } from "../../helpers/wait-until";
+
 import { DefaultUserAgentDetector } from "../../client/user-agent-detector";
 
 export type SendType = "link" | "code";
@@ -239,12 +239,10 @@ export const identifierRoutes = new OpenAPIHono<{
         );
 
         if (!validation.allowed) {
-          const log = createLogMessage(ctx, {
+          await logMessage(ctx, client.tenant.id, {
             type: LogTypes.FAILED_SIGNUP,
             description: validation.reason || "Public signup is disabled",
           });
-
-          waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
           if (useShadcn) {
             return ctx.html(

@@ -232,7 +232,7 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       // Log the Management API operation
-      const log = createLogMessage(ctx, {
+      const log = await createLogMessage(ctx, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Delete a User",
       });
@@ -352,7 +352,7 @@ export const userRoutes = new OpenAPIHono<{
 
         ctx.set("user_id", result.user_id);
 
-        const log = createLogMessage(ctx, {
+        const log = await createLogMessage(ctx, {
           type: LogTypes.SUCCESS_API_OPERATION,
           description: "User created",
         });
@@ -566,7 +566,7 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       // Log the user update operation
-      const log = createLogMessage(ctx, {
+      const log = await createLogMessage(ctx, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Update a User",
         body,
