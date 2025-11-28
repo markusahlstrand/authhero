@@ -99,6 +99,22 @@ export async function passwordGrant(
   ctx.set("connection", user.connection);
   ctx.set("user_id", primaryUser.user_id);
 
+  // Check failed login attempts from app_metadata BEFORE validating password
+  const recentFailedLogins = getRecentFailedLogins(primaryUser);
+
+  if (recentFailedLogins.length >= 3) {
+    logMessage(ctx, client.tenant.id, {
+      // TODO: change to BLOCKED_ACCOUNT_EMAIL
+      type: LogTypes.FAILED_LOGIN,
+      description: "Too many failed login attempts",
+    });
+
+    throw new AuthError(403, {
+      message: "Too many failed login attempts",
+      code: "TOO_MANY_FAILED_LOGINS",
+    });
+  }
+
   const password = await data.passwords.get(client.tenant.id, user.user_id);
 
   const valid =
@@ -117,22 +133,6 @@ export async function passwordGrant(
     throw new AuthError(403, {
       message: "Invalid password",
       code: "INVALID_PASSWORD",
-    });
-  }
-
-  // Check failed login attempts from app_metadata
-  const recentFailedLogins = getRecentFailedLogins(primaryUser);
-
-  if (recentFailedLogins.length >= 3) {
-    logMessage(ctx, client.tenant.id, {
-      // TODO: change to BLOCKED_ACCOUNT_EMAIL
-      type: LogTypes.FAILED_LOGIN,
-      description: "Too many failed login attempts",
-    });
-
-    throw new AuthError(403, {
-      message: "Too many failed login attempts",
-      code: "TOO_MANY_FAILED_LOGINS",
     });
   }
 
