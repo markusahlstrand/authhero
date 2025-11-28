@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.14.0
+
+### Minor Changes
+
+- d381383: Use env for writing logs to R2 pipeline
+
 ## 1.13.0
 
 ### Minor Changes

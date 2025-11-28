@@ -1,5 +1,11 @@
 # authhero
 
+## 0.275.0
+
+### Minor Changes
+
+- d381383: Moved failed invalid passwords up in the flow
+
 ## 0.274.0
 
 ### Minor Changes
