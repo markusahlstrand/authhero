@@ -100,7 +100,7 @@ function createUserHooks(
           },
         );
       } catch (err) {
-        await logMessage(ctx, tenant_id, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_SIGNUP,
           description: "Pre user registration hook failed",
         });
@@ -124,7 +124,7 @@ function createUserHooks(
           },
         );
       } catch (err) {
-        await logMessage(ctx, tenant_id, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_SIGNUP,
           description: "Post user registration hook failed",
         });
@@ -228,7 +228,7 @@ function createUserUpdateHooks(
     }
 
     if (updates.email) {
-      await logMessage(ctx, tenant_id, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_CHANGE_EMAIL,
         description: `Email updated to ${updates.email}`,
         userId: user_id,
@@ -367,7 +367,7 @@ export async function validateSignupEmail(
       }
     } catch (err) {
       // Log webhook error but don't block signup
-      await logMessage(ctx, client.tenant.id, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_HOOK,
         description: "Validate signup email webhook failed",
       });
@@ -395,7 +395,7 @@ export async function preUserSignupHook(
   const validation = await validateSignupEmail(ctx, client, data, email);
 
   if (!validation.allowed) {
-    await logMessage(ctx, client.tenant.id, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_SIGNUP,
       description: validation.reason || "Signup not allowed",
     });
@@ -456,7 +456,7 @@ function createUserDeletionHooks(
         if (err instanceof HTTPException) {
           throw err;
         }
-        await logMessage(ctx, tenant_id, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Pre user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -470,7 +470,7 @@ function createUserDeletionHooks(
     try {
       await preUserDeletionWebhook(ctx)(tenant_id, userToDelete);
     } catch (err) {
-      await logMessage(ctx, tenant_id, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Pre user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
       });
@@ -484,7 +484,7 @@ function createUserDeletionHooks(
 
     // Log the user deletion if successful
     if (result) {
-      await logMessage(ctx, tenant_id, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_USER_DELETION,
         description: `user_id: ${user_id}`,
         strategy: userToDelete.provider || "auth0",
@@ -500,7 +500,7 @@ function createUserDeletionHooks(
       try {
         await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
       } catch (err) {
-        await logMessage(ctx, tenant_id, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -526,7 +526,7 @@ function createUserDeletionHooks(
           },
         );
       } catch (err) {
-        await logMessage(ctx, tenant_id, {
+        logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -756,7 +756,7 @@ export async function postUserLoginHook(
   const strategy = params?.authStrategy?.strategy || user.connection || "";
 
   // Log successful login
-  await logMessage(ctx, tenant_id, {
+  logMessage(ctx, tenant_id, {
     type: LogTypes.SUCCESS_LOGIN,
     description: `Successful login for ${user.user_id}`,
     userId: user.user_id,
@@ -895,7 +895,7 @@ export async function postUserLoginHook(
         }),
       });
     } catch (err) {
-      await logMessage(ctx, tenant_id, {
+      logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke post-user-login webhook: ${hook.url}`,
       });

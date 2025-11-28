@@ -113,7 +113,7 @@ export const logoutRoutes = new OpenAPIHono<{
           }
         }
       }
-      await logMessage(ctx, client.tenant.id, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_LOGOUT,
         description: "User successfully logged out",
       });

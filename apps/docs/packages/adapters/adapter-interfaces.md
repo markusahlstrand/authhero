@@ -92,14 +92,19 @@ const geoAdapter = createCloudflareGeoAdapter({
 
 Use a geo database service like MaxMind GeoIP2 to look up location based on IP address:
 
-```typescript
+````typescript
 import maxmind from "maxmind";
 
 class MaxMindGeoAdapter implements GeoAdapter {
   private reader: maxmind.Reader<maxmind.CityResponse>;
 
-  constructor(databasePath: string) {
-    this.reader = await maxmind.open(databasePath);
+  private constructor(reader: maxmind.Reader<maxmind.CityResponse>) {
+    this.reader = reader;
+  }
+
+  static async create(databasePath: string): Promise<MaxMindGeoAdapter> {
+    const reader = await maxmind.open<maxmind.CityResponse>(databasePath);
+    return new MaxMindGeoAdapter(reader);
   }
 
   async getGeoInfo(): Promise<GeoInfo | null> {
@@ -120,9 +125,10 @@ class MaxMindGeoAdapter implements GeoAdapter {
     };
   }
 }
-```
 
-**Benefits:**
+// Usage:
+const geoAdapter = await MaxMindGeoAdapter.create("/path/to/GeoLite2-City.mmdb");
+```**Benefits:**
 
 - Works in any environment
 - Can be used with local databases for privacy
@@ -153,7 +159,7 @@ When a `GeoAdapter` is configured, authentication logs automatically include loc
     "continent_code": "NA"
   }
 }
-```
+````
 
 [Other adapter interfaces will be documented here]
 

@@ -37,7 +37,7 @@ export function formatLogFromStorage(row: Record<string, any>): Log {
     client_id: row.client_id,
     client_name: row.client_name,
     audience: row.audience,
-    scope: row.scope ? row.scope.split(",") : undefined,
+    scope: row.scope,
     strategy: row.strategy,
     strategy_type: row.strategy_type,
     hostname: row.hostname,

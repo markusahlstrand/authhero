@@ -27,7 +27,7 @@ async function invokeHooks(
     });
 
     if (!response.ok) {
-      await logMessage(ctx, data.tenant_id, {
+      logMessage(ctx, data.tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke hook ${hook.hook_id}`,
       });

@@ -6,14 +6,13 @@ import {
   LogTypes,
   Session,
 } from "@authhero/adapter-interfaces";
-import { createLogMessage } from "../utils/create-log-message";
+import { logMessage } from "../helpers/logging";
 import { Bindings, Variables } from "../types";
 import { serializeAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens, createCodeData } from "./common";
 import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
 import { nanoid } from "nanoid";
-import { waitUntil } from "../helpers/wait-until";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -50,11 +49,10 @@ export async function silentAuth({
 
   // Helper function to handle login required scenarios
   async function handleLoginRequired(description: string = "Login required") {
-    const log = await createLogMessage(ctx, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_SILENT_AUTH,
       description,
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
     return ctx.html(
       renderAuthIframe(
@@ -156,11 +154,10 @@ export async function silentAuth({
   });
 
   // Log successful authentication
-  const log = await createLogMessage(ctx, {
+  logMessage(ctx, client.tenant.id, {
     type: LogTypes.SUCCESS_SILENT_AUTH,
     description: "Successful silent authentication",
   });
-  waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
   // Set response headers
   const headers = new Headers();

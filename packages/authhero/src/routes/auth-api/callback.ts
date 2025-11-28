@@ -39,7 +39,7 @@ async function returnError(
     throw new HTTPException(400, { message: "Redirect uri not found" });
   }
 
-  await logMessage(ctx, ctx.var.tenant_id, {
+  logMessage(ctx, ctx.var.tenant_id, {
     type: LogTypes.FAILED_LOGIN,
     description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
   });

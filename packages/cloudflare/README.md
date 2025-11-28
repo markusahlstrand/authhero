@@ -499,6 +499,15 @@ import { GeoAdapter, GeoInfo } from "@authhero/adapter-interfaces";
 class MaxMindGeoAdapter implements GeoAdapter {
   private reader: maxmind.Reader<maxmind.CityResponse>;
 
+  private constructor(reader: maxmind.Reader<maxmind.CityResponse>) {
+    this.reader = reader;
+  }
+
+  static async create(databasePath: string): Promise<MaxMindGeoAdapter> {
+    const reader = await maxmind.open<maxmind.CityResponse>(databasePath);
+    return new MaxMindGeoAdapter(reader);
+  }
+
   async getGeoInfo(): Promise<GeoInfo | null> {
     const ip = this.getClientIP();
     const lookup = this.reader.get(ip);
@@ -517,6 +526,11 @@ class MaxMindGeoAdapter implements GeoAdapter {
     };
   }
 }
+
+// Usage:
+const geoAdapter = await MaxMindGeoAdapter.create(
+  "/path/to/GeoLite2-City.mmdb",
+);
 ```
 
 **Considerations for IP Databases**:

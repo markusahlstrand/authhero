@@ -12,7 +12,6 @@ import { Bindings, GrantFlowUserResult, Variables } from "../types";
 import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
-import { waitUntil } from "../helpers/wait-until";
 import { stringifyAuth0Client } from "../utils/client-info";
 import { createFrontChannelAuthResponse } from "./common";
 import {
@@ -75,7 +74,7 @@ export async function passwordGrant(
   });
 
   if (!user) {
-    await logMessage(ctx, client.tenant.id, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
       description: "Invalid user",
     });
@@ -107,13 +106,13 @@ export async function passwordGrant(
     (await bcryptjs.compare(authParams.password, password.password));
 
   if (!valid) {
-    await logMessage(ctx, client.tenant.id, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
       description: "Invalid password",
     });
 
     // Record failed login attempt in app_metadata
-    waitUntil(ctx, recordFailedLogin(data, client.tenant.id, primaryUser));
+    recordFailedLogin(data, client.tenant.id, primaryUser);
 
     throw new AuthError(403, {
       message: "Invalid password",
@@ -125,7 +124,7 @@ export async function passwordGrant(
   const recentFailedLogins = getRecentFailedLogins(primaryUser);
 
   if (recentFailedLogins.length >= 3) {
-    await logMessage(ctx, client.tenant.id, {
+    logMessage(ctx, client.tenant.id, {
       // TODO: change to BLOCKED_ACCOUNT_EMAIL
       type: LogTypes.FAILED_LOGIN,
       description: "Too many failed login attempts",
@@ -148,7 +147,7 @@ export async function passwordGrant(
 
     await sendValidateEmailAddress(ctx, user, language);
 
-    await logMessage(ctx, client.tenant.id, {
+    logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Email not verified",
     });
@@ -163,12 +162,9 @@ export async function passwordGrant(
   const appMetadata = primaryUser.app_metadata || {};
   if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
     appMetadata.failed_logins = [];
-    waitUntil(
-      ctx,
-      data.users.update(client.tenant.id, primaryUser.user_id, {
-        app_metadata: appMetadata,
-      }),
-    );
+    data.users.update(client.tenant.id, primaryUser.user_id, {
+      app_metadata: appMetadata,
+    });
   }
 
   return {

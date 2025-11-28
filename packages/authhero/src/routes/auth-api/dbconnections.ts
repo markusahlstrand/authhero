@@ -113,7 +113,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
 
       await sendValidateEmailAddress(ctx, newUser);
 
-      await logMessage(ctx, client.tenant.id, {
+      logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_SIGNUP,
         description: "Successful signup",
       });
