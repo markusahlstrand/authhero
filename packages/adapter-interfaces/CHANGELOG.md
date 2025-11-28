@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.100.0
+
+### Minor Changes
+
+- 3a0d8ee: Add geo info
+
 ## 0.99.0
 
 ### Minor Changes

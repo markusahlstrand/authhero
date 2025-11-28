@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.57.0
+
+### Minor Changes
+
+- 3a0d8ee: Add geo info
+
+### Patch Changes
+
+- Updated dependencies [3a0d8ee]
+  - @authhero/adapter-interfaces@0.100.0
+
 ## 10.56.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.13.0
+
+### Minor Changes
+
+- 3a0d8ee: Add geo info
+
 ## 1.12.0
 
 ### Minor Changes
