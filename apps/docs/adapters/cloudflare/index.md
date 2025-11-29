@@ -304,23 +304,23 @@ const adapters = createAdapters({
 });
 ```
 
-#### 2. Service Binding Mode (Cloudflare Workers)
+#### 2. Pipeline Binding Mode (Cloudflare Workers)
 
-Use this mode when running inside a Cloudflare Worker with a service binding to the Pipeline. This is more efficient as it avoids HTTP overhead for Worker-to-Worker communication.
+Use this mode when running inside a Cloudflare Worker with a Pipeline binding. This is the most efficient mode as it uses direct bindings without HTTP overhead.
 
 **wrangler.toml:**
 
 ```toml
 [[pipelines]]
-binding = "AUTHHERO_LOGS_STREAM"
-pipeline = "my-pipeline"
+binding = "AUTH_LOGS_STREAM"
+pipeline = "your-pipeline-id"
 ```
 
 **TypeScript:**
 
 ```typescript
 interface Env {
-  AUTHHERO_LOGS_STREAM: { fetch: typeof fetch };
+  AUTH_LOGS_STREAM: Pipeline;
   R2_SQL_AUTH_TOKEN: string;
   R2_WAREHOUSE_NAME: string;
 }
@@ -334,11 +334,43 @@ export default {
       customDomainAdapter: yourDbAdapter,
 
       r2SqlLogs: {
-        pipelineBinding: env.AUTHHERO_LOGS_STREAM,
+        pipelineBinding: env.AUTH_LOGS_STREAM,
         authToken: env.R2_SQL_AUTH_TOKEN,
         warehouseName: env.R2_WAREHOUSE_NAME,
       },
     });
+
+    const { logs } = adapters;
+    // Use logs adapter
+  },
+};
+```
+
+**With Base Adapter (Passthrough Mode):**
+
+```typescript
+import { createKyselyAdapter } from "@authhero/kysely-adapter";
+
+const baseAdapter = createKyselyAdapter(db);
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const adapters = createAdapters({
+      // ... other config
+      r2SqlLogs: {
+        baseAdapter: baseAdapter.logs, // Logs written to base adapter first
+        pipelineBinding: env.AUTH_LOGS_STREAM, // Then sent to Pipeline in background
+        // authToken and warehouseName not needed when using baseAdapter
+      },
+    });
+
+    const { logs } = adapters;
+    // Logs will be written to both DB and Pipeline
+  },
+};
+```
+
+The Pipeline binding uses the `.send()` method for direct data ingestion.
 
     const { logs } = adapters;
     // Use logs adapter

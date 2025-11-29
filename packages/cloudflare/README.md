@@ -295,31 +295,64 @@ Use this mode when calling the Pipeline from outside a Cloudflare Worker:
 }
 ```
 
-##### 2. Service Binding Mode (Workers)
+##### 2. Pipeline Binding Mode (Workers)
 
-Use this mode when running inside a Cloudflare Worker with a service binding to the Pipeline:
+Use this mode when running inside a Cloudflare Worker with a Pipeline binding. This is the most efficient mode as it uses direct bindings without HTTP overhead.
+
+**wrangler.toml:**
+
+```toml
+[[pipelines]]
+binding = "AUTH_LOGS_STREAM"
+pipeline = "your-pipeline-id"
+```
+
+**TypeScript:**
 
 ```typescript
-// wrangler.toml
-[[pipelines]];
-binding = "AUTHHERO_LOGS_STREAM";
-pipeline = "my-pipeline";
-
-// TypeScript
 interface Env {
-  AUTHHERO_LOGS_STREAM: { fetch: typeof fetch };
+  AUTH_LOGS_STREAM: Pipeline;
+  R2_SQL_AUTH_TOKEN: string;
+  R2_WAREHOUSE_NAME: string;
 }
 
-const { logs } = createAdapters({
+export default {
+  async fetch(request: Request, env: Env) {
+    const adapters = createAdapters({
+      zoneId: "your-zone-id",
+      authKey: "your-api-key",
+      authEmail: "your-email",
+      customDomainAdapter: yourDbAdapter,
+
+      r2SqlLogs: {
+        pipelineBinding: env.AUTH_LOGS_STREAM,
+        authToken: env.R2_SQL_AUTH_TOKEN,
+        warehouseName: env.R2_WAREHOUSE_NAME,
+      },
+    });
+
+    const { logs } = adapters;
+    // Use logs adapter
+  },
+};
+```
+
+**With Base Adapter (Passthrough Mode):**
+
+```typescript
+const baseAdapter = createKyselyLogsAdapter(db);
+
+const adapters = createAdapters({
+  // ... other config
   r2SqlLogs: {
-    pipelineBinding: env.AUTHHERO_LOGS_STREAM,
-    authToken: env.R2_SQL_AUTH_TOKEN,
-    warehouseName: env.R2_WAREHOUSE_NAME,
+    baseAdapter, // Logs written to base adapter first
+    pipelineBinding: env.AUTH_LOGS_STREAM, // Then sent to Pipeline in background
+    // authToken and warehouseName not needed when using baseAdapter
   },
 });
 ```
 
-This mode is more efficient as it avoids HTTP overhead for Worker-to-Worker communication. The `AUTHHERO_LOGS_STREAM` binding name is recommended for consistency across workers.
+The Pipeline binding uses the `.send()` method for direct data ingestion.
 
 ##### 3. Passthrough Mode (Wrap Another Adapter)
 
