@@ -7,12 +7,12 @@ export interface R2SQLLogsAdapterConfig {
   pipelineEndpoint?: string;
 
   /**
-   * Cloudflare service binding for Pipeline (for Workers)
+   * Cloudflare Pipeline binding (for Workers)
    * Use this instead of pipelineEndpoint when running in a Worker
-   * Must have a fetch() method or can be the Pipeline directly
-   * Can be passed as env.AUTHHERO_LOGS_STREAM from wrangler.toml
+   * Pass the Pipeline object from env (e.g., env.AUTH_LOGS_STREAM_STREAM)
+   * The Pipeline has a send() method for ingesting data
    */
-  pipelineBinding?: { fetch: typeof fetch };
+  pipelineBinding?: { send: (data: any) => Promise<void> };
 
   /**
    * Base logs adapter to wrap (passthrough mode)
