@@ -150,47 +150,44 @@ async function sendToPipeline(
     continent_code: log.location_info?.continent_code,
   };
 
-  const timeout = config.timeout || 30000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
   try {
-    let response: Response;
-
-    // Service binding mode (Workers)
+    // Pipeline binding mode (Workers)
     if (config.pipelineBinding) {
-      response = await config.pipelineBinding.fetch("https://pipeline", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([logData]), // Pipelines accept array of records
-        signal: controller.signal,
-      });
+      // Pipeline.send() accepts data directly (no need for fetch)
+      await config.pipelineBinding.send(logData);
     }
     // HTTP endpoint mode
     else if (config.pipelineEndpoint) {
-      response = await fetch(config.pipelineEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([logData]), // Pipelines accept array of records
-        signal: controller.signal,
-      });
+      const timeout = config.timeout || 30000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const response = await fetch(config.pipelineEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([logData]), // Pipelines accept array of records
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Pipeline ingestion failed: ${response.status} ${response.statusText}`,
+          );
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } else {
       throw new Error(
         "Either pipelineEndpoint or pipelineBinding must be configured",
       );
     }
-
-    if (!response.ok) {
-      throw new Error(
-        `Pipeline ingestion failed: ${response.status} ${response.statusText}`,
-      );
-    }
-  } finally {
-    clearTimeout(timeoutId);
+  } catch (error) {
+    console.error("Failed to send log to Pipeline:", error);
+    throw error;
   }
 }
 

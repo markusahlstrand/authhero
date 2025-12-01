@@ -24,10 +24,15 @@ export type { R2SQLLogsAdapterConfig };
  *
  * @example Service binding mode (Workers)
  * ```typescript
+ * // In wrangler.toml:
+ * // [[pipelines]]
+ * // binding = "AUTH_LOGS_STREAM"
+ * // pipeline = "your-pipeline-id"
+ *
  * const adapter = createR2SQLLogsAdapter({
- *   pipelineBinding: env.AUTHHERO_LOGS_STREAM,
- *   authToken: process.env.R2_SQL_AUTH_TOKEN,
- *   warehouseName: process.env.R2_WAREHOUSE_NAME,
+ *   pipelineBinding: env.AUTH_LOGS_STREAM,
+ *   authToken: env.R2_SQL_AUTH_TOKEN,
+ *   warehouseName: env.R2_WAREHOUSE_NAME,
  * });
  * ```
  *
