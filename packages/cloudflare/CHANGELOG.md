@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 2.11.0
+
+### Minor Changes
+
+- 1988826: Update the binding for cloudflare pipelines
+
 ## 2.10.0
 
 ### Minor Changes
