@@ -9,7 +9,7 @@ export interface R2SQLLogsAdapterConfig {
   /**
    * Cloudflare Pipeline binding (for Workers)
    * Use this instead of pipelineEndpoint when running in a Worker
-   * Pass the Pipeline object from env (e.g., env.AUTH_LOGS_STREAM_STREAM)
+   * Pass the Pipeline object from env (e.g., env.AUTH_LOGS_STREAM)
    * The Pipeline has a send() method for ingesting data
    */
   pipelineBinding?: { send: (data: any) => Promise<void> };

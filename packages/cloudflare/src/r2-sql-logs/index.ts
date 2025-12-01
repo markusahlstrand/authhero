@@ -26,11 +26,11 @@ export type { R2SQLLogsAdapterConfig };
  * ```typescript
  * // In wrangler.toml:
  * // [[pipelines]]
- * // binding = "AUTH_LOGS_STREAM_STREAM"
+ * // binding = "AUTH_LOGS_STREAM"
  * // pipeline = "your-pipeline-id"
- * 
+ *
  * const adapter = createR2SQLLogsAdapter({
- *   pipelineBinding: env.AUTH_LOGS_STREAM_STREAM,
+ *   pipelineBinding: env.AUTH_LOGS_STREAM,
  *   authToken: env.R2_SQL_AUTH_TOKEN,
  *   warehouseName: env.R2_WAREHOUSE_NAME,
  * });

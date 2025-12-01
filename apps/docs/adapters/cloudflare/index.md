@@ -372,12 +372,6 @@ export default {
 
 The Pipeline binding uses the `.send()` method for direct data ingestion.
 
-    const { logs } = adapters;
-    // Use logs adapter
-  },
-};
-```
-
 #### 3. Passthrough Mode (Multiple Destinations)
 
 Use this mode to send logs to both the R2 SQL Pipeline and another logs adapter. This is useful when you want to maintain compatibility with an existing logging system while also ingesting into R2.
