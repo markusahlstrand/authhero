@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.15.0
+
+### Minor Changes
+
+- 1988826: Update the binding for cloudflare pipelines
+
 ## 1.14.0
 
 ### Minor Changes
