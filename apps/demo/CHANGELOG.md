@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.23.0
+
+### Minor Changes
+
+- 0ffb5ca: Add support for password strength
+
+### Patch Changes
+
+- Updated dependencies [0ffb5ca]
+  - authhero@0.276.0
+  - @authhero/kysely-adapter@10.58.0
+
 ## 0.22.23
 
 ### Patch Changes

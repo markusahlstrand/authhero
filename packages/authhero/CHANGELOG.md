@@ -1,5 +1,16 @@
 # authhero
 
+## 0.276.0
+
+### Minor Changes
+
+- 0ffb5ca: Add support for password strength
+
+### Patch Changes
+
+- Updated dependencies [0ffb5ca]
+  - @authhero/adapter-interfaces@0.101.0
+
 ## 0.275.0
 
 ### Minor Changes

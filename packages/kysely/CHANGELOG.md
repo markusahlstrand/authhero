@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.58.0
+
+### Minor Changes
+
+- 0ffb5ca: Add support for password strength
+
+### Patch Changes
+
+- Updated dependencies [0ffb5ca]
+  - @authhero/adapter-interfaces@0.101.0
+
 ## 10.57.0
 
 ### Minor Changes
