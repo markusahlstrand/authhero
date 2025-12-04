@@ -343,6 +343,7 @@ export const userRoutes = new OpenAPIHono<{
             user_id, // Use the original user_id, not result.user_id
             password: await bcryptjs.hash(password, 10),
             algorithm: "bcrypt",
+            is_current: true,
           };
           await ctx.env.data.passwords.create(
             ctx.var.tenant_id,
@@ -541,6 +542,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: `${passwordIdentity.provider}|${passwordIdentity.user_id}`,
           password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
+          is_current: true,
         };
 
         const existingPassword = await data.passwords.get(

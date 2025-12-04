@@ -20,6 +20,10 @@ import {
 } from "../constants";
 import generateOTP from "../utils/otp";
 import { nanoid } from "nanoid";
+import {
+  validatePasswordPolicy,
+  getPasswordPolicy,
+} from "../helpers/password-policy";
 
 async function recordFailedLogin(
   data: Bindings["data"],
@@ -194,6 +198,49 @@ export async function loginWithPassword(
       strategy: "Username-Password-Authentication",
       strategy_type: "database",
     },
+  });
+}
+
+export async function changePassword(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client: LegacyClient,
+  userId: string,
+  newPassword: string,
+  connectionName: string,
+): Promise<void> {
+  const { data } = ctx.env;
+  const policy = await getPasswordPolicy(
+    data,
+    client.tenant.id,
+    connectionName,
+  );
+  const user = await data.users.get(client.tenant.id, userId);
+
+  await validatePasswordPolicy(policy, {
+    tenantId: client.tenant.id,
+    userId,
+    newPassword,
+    userData: user,
+    data,
+  });
+
+  // Mark old password as not current
+  const oldPassword = await data.passwords.get(client.tenant.id, userId);
+  if (oldPassword) {
+    await data.passwords.update(client.tenant.id, {
+      user_id: userId,
+      password: oldPassword.password,
+      algorithm: oldPassword.algorithm,
+      is_current: false,
+    });
+  }
+
+  // Create new password
+  await data.passwords.create(client.tenant.id, {
+    user_id: userId,
+    password: await bcryptjs.hash(newPassword, 10),
+    algorithm: "bcrypt",
+    is_current: true,
   });
 }
 

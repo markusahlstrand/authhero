@@ -10,7 +10,6 @@ import {
   loginSessionSchema,
   logSchema,
   organizationSchema,
-  Password,
   promptSettingSchema,
   refreshTokenSchema,
   rolePermissionSchema,
@@ -49,6 +48,17 @@ const sqlPromptSettingSchema = z.object({
   password_first: z.number(),
   webauthn_platform_first_factor: z.number(),
   tenant_id: z.string(),
+});
+
+const sqlPasswordSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  tenant_id: z.string(),
+  password: z.string(),
+  algorithm: z.enum(["bcrypt", "argon2id"]),
+  created_at: z.string(),
+  updated_at: z.string(),
+  is_current: z.number(),
 });
 
 export const sqlUserSchema = z.object({
@@ -283,7 +293,7 @@ export interface Database {
   keys: SigningKey & { created_at: string };
   login_sessions: z.infer<typeof sqlLoginSchema>;
   logs: z.infer<typeof sqlLogSchema>;
-  passwords: Password & { tenant_id: string };
+  passwords: z.infer<typeof sqlPasswordSchema>;
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;

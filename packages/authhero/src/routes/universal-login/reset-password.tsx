@@ -257,6 +257,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           user_id: user.user_id,
           password: await bcryptjs.hash(password, 10),
           algorithm: "bcrypt",
+          is_current: true,
         };
 
         const existingPassword = await env.data.passwords.get(

@@ -317,6 +317,7 @@ export const signupRoutes = new OpenAPIHono<{
           user_id,
           password: await bcryptjs.hash(loginParams.password, 10),
           algorithm: "bcrypt",
+          is_current: true,
         });
 
         if (!email_verified) {

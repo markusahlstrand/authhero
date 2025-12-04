@@ -1,9 +1,13 @@
 import {
+  ArrayInput,
+  BooleanInput,
   ChipField,
   Edit,
   FunctionField,
+  NumberInput,
   ReferenceManyField,
   SelectInput,
+  SimpleFormIterator,
   SimpleShowLayout,
   SingleFieldList,
   TabbedForm,
@@ -128,6 +132,59 @@ function ConnectionTabbedFrom() {
               />
               <TextInput source="options.twilio_token" label="Twilio Token" />
               <TextInput source="options.from" label="From" />
+            </>
+          )}
+
+          {record?.strategy === "Username-Password-Authentication" && (
+            <>
+              <SelectInput
+                source="options.passwordPolicy"
+                label="Password Policy"
+                choices={[
+                  { id: "none", name: "None" },
+                  { id: "low", name: "Low" },
+                  { id: "fair", name: "Fair" },
+                  { id: "good", name: "Good" },
+                  { id: "excellent", name: "Excellent" },
+                  { id: null, name: "Null" },
+                ]}
+              />
+              <NumberInput
+                source="options.password_complexity_options.min_length"
+                label="Minimum Password Length"
+              />
+              <BooleanInput
+                source="options.password_history.enable"
+                label="Enable Password History"
+              />
+              <NumberInput
+                source="options.password_history.size"
+                label="Password History Size"
+              />
+              <BooleanInput
+                source="options.password_no_personal_info.enable"
+                label="Enable No Personal Info in Passwords"
+              />
+              <BooleanInput
+                source="options.password_dictionary.enable"
+                label="Enable Password Dictionary"
+              />
+              <ArrayInput
+                source="options.password_dictionary.dictionary"
+                label="Custom Password Dictionary"
+              >
+                <SimpleFormIterator>
+                  <TextInput
+                    source=""
+                    label="Dictionary Entry"
+                    validate={(value) =>
+                      value && value.length > 50
+                        ? "Entry must be 50 characters or less"
+                        : undefined
+                    }
+                  />
+                </SimpleFormIterator>
+              </ArrayInput>
             </>
           )}
 
