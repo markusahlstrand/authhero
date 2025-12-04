@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.101.0
+
+### Minor Changes
+
+- 0ffb5ca: Add support for password strength
+
 ## 0.100.0
 
 ### Minor Changes
