@@ -189,6 +189,29 @@ Migrate from Auth0 with minimal code changes:
 
 ## Key Behavioral Differences
 
+### Refresh Token Error Status Codes
+
+**Auth0 Behavior**: Auth0 returns a `403 Forbidden` status code when a refresh token is invalid or expired.
+
+**AuthHero Behavior**: AuthHero returns a `400 Bad Request` status code for invalid or expired refresh tokens, in compliance with [RFC 6749 (OAuth 2.0)](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) which specifies that invalid grant errors should use HTTP 400.
+
+**Why the difference?**
+
+- **Standards Compliance**: OAuth 2.0 specification requires 400 for invalid grant errors
+- **Industry Standard**: Other major identity providers (Okta, Azure AD, Google) also return 400
+- **Proper Semantics**: 400 indicates a client error (bad request), while 403 indicates authorization failure
+
+**Impact**: While most OAuth clients validate the error response body rather than the status code, some clients and monitoring tools may rely on the status code. This difference ensures better interoperability with standard OAuth 2.0 clients and tools.
+
+**Example Error Response**:
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid refresh token"
+}
+```
+
 ### Token Issuance Without Audience
 
 **Auth0 Behavior**: When no `audience` parameter is provided in the token request and no default audience is configured, Auth0 returns an **opaque (non-JWT) access token**.

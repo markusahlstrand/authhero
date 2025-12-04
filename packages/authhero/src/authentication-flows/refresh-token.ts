@@ -41,10 +41,9 @@ export async function refreshTokenGrant(
     params.refresh_token,
   );
 
-  // These error codes should ne 400's according to the OAuth2 spec, but it seems auth0 uses 403's
   if (!refreshToken) {
     appendLog(ctx, `Invalid refresh token: ${params.refresh_token}`);
-    throw new JSONHTTPException(403, {
+    throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Invalid refresh token",
     });
@@ -55,7 +54,7 @@ export async function refreshTokenGrant(
       new Date(refreshToken.idle_expires_at) < new Date())
   ) {
     appendLog(ctx, `Refresh token has expired: ${params.refresh_token}`);
-    throw new JSONHTTPException(403, {
+    throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Refresh token has expired",
     });

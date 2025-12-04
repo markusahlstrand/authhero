@@ -942,7 +942,7 @@ describe("token", () => {
       expect(refreshToken.idle_expires_at).not.toBe(idle_expires_at);
     });
 
-    it("should return a 403 for a expired refresh token", async () => {
+    it("should return a 400 for a expired refresh token", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -981,7 +981,7 @@ describe("token", () => {
         { headers: { "tenant-id": "tenantId" } },
       );
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(400);
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_grant",
@@ -989,7 +989,7 @@ describe("token", () => {
       });
     });
 
-    it("should return a 403 for a idle expired refresh token", async () => {
+    it("should return a 400 for a idle expired refresh token", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -1028,7 +1028,7 @@ describe("token", () => {
         { headers: { "tenant-id": "tenantId" } },
       );
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(400);
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_grant",
