@@ -1,10 +1,11 @@
 import { Kysely } from "kysely";
+import { nanoid } from "nanoid";
 import { Database } from "../db";
 import { Password, PasswordInsert } from "@authhero/adapter-interfaces";
 
 export function create(db: Kysely<Database>) {
   return async (tenant_id: string, password: PasswordInsert) => {
-    const id = password.id || crypto.randomUUID();
+    const id = password.id || nanoid();
     const isCurrent = password.is_current ?? true;
     const createdPassword: Password = {
       id,

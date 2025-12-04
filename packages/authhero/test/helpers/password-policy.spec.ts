@@ -29,7 +29,7 @@ describe("password-policy helper", () => {
           userId: "user1",
           data: mockData,
         }),
-      ).rejects.toThrow("Password must be at least 8 characters.");
+      ).rejects.toThrow("Password must be at least 8 characters");
     });
 
     it("should throw on weak password for good policy", async () => {
@@ -41,7 +41,7 @@ describe("password-policy helper", () => {
           userId: "user1",
           data: mockData,
         }),
-      ).rejects.toThrow("Password does not meet good requirements.");
+      ).rejects.toThrow("Password must contain at least one uppercase letter");
     });
 
     it("should throw on reused password", async () => {
@@ -62,7 +62,7 @@ describe("password-policy helper", () => {
           userId: "user1",
           data: mockData,
         }),
-      ).rejects.toThrow("Password reused from history.");
+      ).rejects.toThrow("Password was used recently and cannot be reused");
     });
 
     it("should throw on personal info", async () => {
@@ -75,7 +75,7 @@ describe("password-policy helper", () => {
           userData: { email: "test@example.com" },
           data: mockData,
         }),
-      ).rejects.toThrow("Password contains personal info.");
+      ).rejects.toThrow("Password cannot contain personal information");
     });
 
     it("should throw on dictionary word", async () => {
@@ -89,7 +89,7 @@ describe("password-policy helper", () => {
           userId: "user1",
           data: mockData,
         }),
-      ).rejects.toThrow("Password contains forbidden words.");
+      ).rejects.toThrow("Password contains a forbidden word");
     });
 
     it("should pass valid password", async () => {

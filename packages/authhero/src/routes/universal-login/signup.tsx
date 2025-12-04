@@ -10,6 +10,7 @@ import AuthLayout from "../../components/AuthLayout";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
+  PasswordPolicyError,
 } from "../../helpers/password-policy";
 import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
@@ -219,8 +220,16 @@ export const signupRoutes = new OpenAPIHono<{
             data: env.data,
           });
         } catch (policyError: any) {
-          const errorMessage =
-            policyError?.message || i18next.t("create_account_weak_password");
+          let errorMessage: string;
+          if (policyError instanceof PasswordPolicyError) {
+            errorMessage = i18next.t(policyError.code, {
+              defaultValue: policyError.message,
+              ...policyError.params,
+            });
+          } else {
+            errorMessage =
+              policyError?.message || i18next.t("create_account_weak_password");
+          }
 
           if (useShadcn) {
             return ctx.html(
