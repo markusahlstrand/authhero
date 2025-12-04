@@ -67,8 +67,8 @@ importers:
   apps/demo:
     dependencies:
       '@authhero/kysely-adapter':
-        specifier: ^10.54.0
-        version: 10.55.0(@authhero/adapter-interfaces@0.98.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.2.2)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
+        specifier: ^10.57.0
+        version: 10.58.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.2.2)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))
       '@hono/swagger-ui':
         specifier: ^0.5.2
         version: 0.5.2(hono@4.9.1)
@@ -79,8 +79,8 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0
       authhero:
-        specifier: ^0.263.0
-        version: 0.263.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.9.3)
+        specifier: ^0.275.0
+        version: 0.275.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.9.3)(ua-parser-js@2.0.6)
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.2.0
@@ -262,9 +262,6 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
-      check-password-strength:
-        specifier: ^3.0.0
-        version: 3.0.0
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -280,6 +277,9 @@ importers:
       oslo:
         specifier: ^1.2.1
         version: 1.2.1
+      ua-parser-js:
+        specifier: ^2.0.0
+        version: 2.0.6
     devDependencies:
       '@ape-egg/tailwind-rows-columns':
         specifier: ^1.0.2
@@ -365,6 +365,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:^
         version: link:../adapter-interfaces
+      '@authhero/kysely-adapter':
+        specifier: workspace:^
+        version: link:../kysely
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -660,20 +663,19 @@ packages:
   '@auth0/auth0-spa-js@2.1.3':
     resolution: {integrity: sha512-NMTBNuuG4g3rame1aCnNS5qFYIzsTUV5qTFPRfTyYFS1feS6jsCBR+eTq9YkxCp1yuoM2UIcjunPaoPl77U9xQ==}
 
-  '@authhero/adapter-interfaces@0.97.0':
-    resolution: {integrity: sha512-Q+dEd/fm5SL5j8WbP+6n3k3RKndHJoaaSH71eD2GdjdwpyHADyiDjG2rNQfHh6kAXXMKqmICBMdGnC0NoCBYtA==}
+  '@authhero/adapter-interfaces@0.100.0':
+    resolution: {integrity: sha512-vKq5rXCfOOUY7cT1tApB+k69YR2PdluSP3/XduDWPWKOmzKts2wW4cNuBfmw3G8XpkU9eQuQeeQsT4LMaM/utw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/adapter-interfaces@0.98.0':
-    resolution: {integrity: sha512-nZgoZYkNpYzj2ceeAUHEQFvuNIANo6tmkScHsTcLI621nyUn5SMtNq9+p0ac1pn5uai4xO8okVUWRlweieJ02A==}
+  '@authhero/adapter-interfaces@0.101.0':
+    resolution: {integrity: sha512-J1aRFy2rAb1edtDtWqguKSnQ1jFAF3eirigjsbFXWjYc7qDg0FHwmGiShz5MZWHiR8oMgaosPtatKb8rzfVuCA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/kysely-adapter@10.55.0':
-    resolution: {integrity: sha512-r+TpyXxxdmIUrFRagKZqVBwYI55EEFQ++wi0yw4DY0Grh7/wnvMQipchOjFToj77P/usNxtc0qT/1rK5P7j2mg==}
+  '@authhero/kysely-adapter@10.58.0':
+    resolution: {integrity: sha512-r4k+nPf+sxm30SiYEvTBs1geG3G7x8XaxnZt1twAHVKt312K/yK3eTz1FjF20g4BCcKPGr18wZHGKhC00Gb20w==}
     peerDependencies:
-      '@authhero/adapter-interfaces': 0.97.0
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
@@ -799,10 +801,6 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
-
-  '@babel/runtime@7.25.7':
-    resolution: {integrity: sha512-FjoyLe754PMiYsFaN5C94ttGiOmBNYTf6pLr4xXHAT5uctHb092PBszndLDR5XA/jghQvn4n7JMHl7dmTgbm9w==}
-    engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.27.1':
     resolution: {integrity: sha512-1x3D2xEk2fRo3PAhwQwu5UubzgiVWSXTBfWpVd2Mx2AzRqJuDJCsgaDVZ7HB5iGzDW1Hl1sWN2mFyKjmR9uAog==}
@@ -3593,9 +3591,6 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
-  arctic@3.1.2:
-    resolution: {integrity: sha512-rZfIac3RK0j99/Z87rS3QajLxpKs/PPoHsOEZe+NiuJhpWslHqmvGWyqZSTUD3aRQ6FJY4YnUO6UabOiuOZtkQ==}
-
   arctic@3.7.0:
     resolution: {integrity: sha512-ZMQ+f6VazDgUJOd+qNV+H7GohNSYal1mVjm5kEaZfE2Ifb7Ss70w+Q7xpJC87qZDkMZIXYf0pTIYZA0OPasSbw==}
 
@@ -3674,11 +3669,15 @@ packages:
     resolution: {integrity: sha512-UFPHnq41NCB/iYgn/MTkbhOyjZ/16eZleWlox3N2YjGYICliDpQz/vPMUkSLRZfJMxZy+ttjtojItIv4i3KSIA==}
     engines: {node: ^20.19.0 || ^22.12.0 || ^24.0.0}
 
-  authhero@0.263.0:
-    resolution: {integrity: sha512-YpfsBpZQuLHgMvibDVIspvdyN5WTQxvcf52y8u6ho64rxOyUpSUIu1wavAnJz543urj1HbFz/rm/qJivJ1EFWw==}
+  authhero@0.275.0:
+    resolution: {integrity: sha512-6slI2YzV9dmHYH02H7QNpDE0Dj5Hx6niXH20HIGsZk8yrWNBd0ifIm1RzsVsaIwDz4K21/Yvt/N2ZzoYo9HiIw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
+      ua-parser-js: ^2.0.0
+    peerDependenciesMeta:
+      ua-parser-js:
+        optional: true
 
   autoprefixer@10.4.21:
     resolution: {integrity: sha512-O+A6LWV5LDHSJD3LjHYoNi4VLsj/Whi7k6zG12xTYaU4cQ8oxQGckXNX8cRHK5yOZ/ppVHe0ZBXGzSV9jXdVbQ==}
@@ -3707,9 +3706,6 @@ packages:
   baseline-browser-mapping@2.8.24:
     resolution: {integrity: sha512-uUhTRDPXamakPyghwrUcjaGvvBqGrWvBHReoiULMIpOJVM9IYzQh83Xk2Onx5HlGI2o10NNCzcs9TG/S3TkwrQ==}
     hasBin: true
-
-  bcryptjs@2.4.3:
-    resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
   bcryptjs@3.0.2:
     resolution: {integrity: sha512-k38b3XOZKv60C4E2hVsXTolJWfkGRMbILBIe2IBITXciy5bOsTKot5kDrf3ZfufQtQOUN5mXceUEpU1rTl9Uog==}
@@ -3858,9 +3854,6 @@ packages:
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
-
-  check-password-strength@2.0.10:
-    resolution: {integrity: sha512-HRM5ICPmtnNtLnTv2QrfVkq1IxI9z3bzYpDJ1k5ixwD9HtJGHuv265R6JmHOV6r8wLhQMlULnIUVpkrC2yaiCw==}
 
   check-password-strength@3.0.0:
     resolution: {integrity: sha512-XIBvWpb7/RI2DO05tMixE4WbFFvEC7ls/jr1VSrWgXvlCmdiH2fsdkixG0cNGs1uIXwoSqJ75T3s9H/TlJV6Cw==}
@@ -4358,6 +4351,9 @@ packages:
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
+
+  detect-europe-js@0.1.2:
+    resolution: {integrity: sha512-lgdERlL3u0aUdHocoouzT10d9I89VVhk0qNRmll7mXdGfJT1/wqZ2ZLA4oJAjeACPY5fT1wsbq2AT+GkuInsow==}
 
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
@@ -5115,14 +5111,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  i18next@24.2.0:
-    resolution: {integrity: sha512-ArJJTS1lV6lgKH7yEf4EpgNZ7+THl7bsGxxougPYiXRTJ/Fe1j08/TBpV9QsXCIYVfdE/HWG/xLezJ5DOlfBOA==}
-    peerDependencies:
-      typescript: ^5
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   i18next@25.6.0:
     resolution: {integrity: sha512-tTn8fLrwBYtnclpL5aPXK/tAYBLWVvoHM1zdfXoRNLcI+RvtMsoZRV98ePlaW3khHYKuNh/Q65W/+NVFUeIwVw==}
     peerDependencies:
@@ -5313,6 +5301,9 @@ packages:
     resolution: {integrity: sha512-ISWac8drv4ZGfwKl5slpHG9OwPNty4jOWPRIhBpxOoD+hqITiwuipOQ2bNthAzwA3B4fIjO4Nln74N0S9byq8A==}
     engines: {node: '>= 0.4'}
 
+  is-standalone-pwa@0.1.1:
+    resolution: {integrity: sha512-9Cbovsa52vNQCjdXOzeQq5CnCbAcRk05aU62K20WO372NrTv0NxibLFCK6lQ4/iZEFdEA3p3t2VNOn8AJ53F5g==}
+
   is-string@1.1.1:
     resolution: {integrity: sha512-BtEeSsoaQjlSPBemMQIrY1MY0uM6vnS1g5fmufYOtnxLGUZM2178PKbhsk7Ffv58IX+ZtcvoGwccYsh0PglkAA==}
     engines: {node: '>= 0.4'}
@@ -5502,9 +5493,6 @@ packages:
 
   libphonenumber-js@1.12.25:
     resolution: {integrity: sha512-u90tUu/SEF8b+RaDKCoW7ZNFDakyBtFlX1ex3J+VH+ElWes/UaitJLt/w4jGu8uAE41lltV/s+kMVtywcMEg7g==}
-
-  libphonenumber-js@1.12.8:
-    resolution: {integrity: sha512-f1KakiQJa9tdc7w1phC2ST+DyxWimy9c3g3yeF+84QtEanJr2K77wAmBPP22riU05xldniHsvXuflnLZ4oysqA==}
 
   lightningcss-android-arm64@1.30.2:
     resolution: {integrity: sha512-BH9sEdOCahSgmkVhBLeU7Hc9DWeZ1Eb6wNS6Da8igvUwAe0sqROHddIlvU06q3WyXVEOYDZ6ykBZQnjTbmo4+A==}
@@ -6657,9 +6645,6 @@ packages:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
     engines: {node: '>= 0.4'}
 
-  regenerator-runtime@0.14.1:
-    resolution: {integrity: sha512-dYnhHh0nJoMfnkZs6GmmhFknAGRrLznOu5nc9ML+EJxGvrx6H7teuevqVqCuPcPK//3eDrrjQhehXVx9cnkGdw==}
-
   regex-recursion@6.0.2:
     resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
 
@@ -7312,6 +7297,13 @@ packages:
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
+    hasBin: true
+
+  ua-is-frozen@0.1.2:
+    resolution: {integrity: sha512-RwKDW2p3iyWn4UbaxpP2+VxwqXh0jpvdxsYpZ5j/MLLiQOfbsV5shpgQiw93+KMYQPcteeMQ289MaAFzs3G9pw==}
+
+  ua-parser-js@2.0.6:
+    resolution: {integrity: sha512-EmaxXfltJaDW75SokrY4/lXMrVyXomE/0FpIIqP2Ctic93gK7rlme55Cwkz8l3YZ6gqf94fCU7AnIkidd/KXPg==}
     hasBin: true
 
   ufo@1.6.1:
@@ -8077,25 +8069,25 @@ snapshots:
 
   '@auth0/auth0-spa-js@2.1.3': {}
 
-  '@authhero/adapter-interfaces@0.97.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
+  '@authhero/adapter-interfaces@0.100.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
     dependencies:
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       nanoid: 5.1.6
 
-  '@authhero/adapter-interfaces@0.98.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
+  '@authhero/adapter-interfaces@0.101.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
     dependencies:
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       nanoid: 5.1.6
 
-  '@authhero/kysely-adapter@10.55.0(@authhero/adapter-interfaces@0.98.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4)))(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.2.2)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
+  '@authhero/kysely-adapter@10.58.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(kysely-bun-sqlite@0.4.0(@types/react@19.2.2)(kysely@0.28.5))(kysely-planetscale@1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.98.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/adapter-interfaces': 0.101.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
       hono: 4.9.1
       kysely: 0.27.4
       kysely-bun-sqlite: 0.4.0(@types/react@19.2.2)(kysely@0.28.5)
       kysely-planetscale: 1.5.0(@planetscale/database@1.18.0)(kysely@0.28.5)
-      nanoid: 5.0.8
+      nanoid: 5.1.6
 
   '@authhero/saml@0.3.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))':
     dependencies:
@@ -8259,10 +8251,6 @@ snapshots:
     dependencies:
       '@babel/core': 7.27.1
       '@babel/helper-plugin-utils': 7.27.1
-
-  '@babel/runtime@7.25.7':
-    dependencies:
-      regenerator-runtime: 0.14.1
 
   '@babel/runtime@7.27.1': {}
 
@@ -11114,12 +11102,6 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  arctic@3.1.2:
-    dependencies:
-      '@oslojs/crypto': 1.0.1
-      '@oslojs/encoding': 1.1.0
-      '@oslojs/jwt': 0.2.0
-
   arctic@3.7.0:
     dependencies:
       '@oslojs/crypto': 1.0.1
@@ -11235,21 +11217,23 @@ snapshots:
       jose: 4.15.9
       uuid: 11.1.0
 
-  authhero@0.263.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.9.3):
+  authhero@0.275.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))(hono@4.9.1)(typescript@5.9.3)(ua-parser-js@2.0.6):
     dependencies:
-      '@authhero/adapter-interfaces': 0.97.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
+      '@authhero/adapter-interfaces': 0.100.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@authhero/saml': 0.3.0(@hono/zod-openapi@0.19.2(hono@4.9.1)(zod@3.24.4))
       '@hono/zod-openapi': 0.19.2(hono@4.9.1)(zod@3.24.4)
-      '@peculiar/x509': 1.13.0
-      arctic: 3.1.2
-      bcryptjs: 2.4.3
-      check-password-strength: 2.0.10
+      '@peculiar/x509': 1.14.0
+      arctic: 3.7.0
+      bcryptjs: 3.0.3
+      check-password-strength: 3.0.0
       classnames: 2.5.1
       hono: 4.9.1
-      i18next: 24.2.0(typescript@5.9.3)
-      libphonenumber-js: 1.12.8
-      nanoid: 5.0.8
+      i18next: 25.6.0(typescript@5.9.3)
+      libphonenumber-js: 1.12.25
+      nanoid: 5.1.6
       oslo: 1.2.1
+    optionalDependencies:
+      ua-parser-js: 2.0.6
     transitivePeerDependencies:
       - typescript
 
@@ -11282,8 +11266,6 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.8.24: {}
-
-  bcryptjs@2.4.3: {}
 
   bcryptjs@3.0.2: {}
 
@@ -11447,8 +11429,6 @@ snapshots:
   chardet@2.1.1: {}
 
   check-error@2.1.1: {}
-
-  check-password-strength@2.0.10: {}
 
   check-password-strength@3.0.0:
     dependencies:
@@ -11962,6 +11942,8 @@ snapshots:
   depd@2.0.0: {}
 
   dequal@2.0.3: {}
+
+  detect-europe-js@0.1.2: {}
 
   detect-indent@6.1.0: {}
 
@@ -12824,12 +12806,6 @@ snapshots:
 
   husky@9.1.7: {}
 
-  i18next@24.2.0(typescript@5.9.3):
-    dependencies:
-      '@babel/runtime': 7.25.7
-    optionalDependencies:
-      typescript: 5.9.3
-
   i18next@25.6.0(typescript@5.9.3):
     dependencies:
       '@babel/runtime': 7.28.4
@@ -13010,6 +12986,8 @@ snapshots:
   is-shared-array-buffer@1.0.4:
     dependencies:
       call-bound: 1.0.4
+
+  is-standalone-pwa@0.1.1: {}
 
   is-string@1.1.1:
     dependencies:
@@ -13210,8 +13188,6 @@ snapshots:
       type-check: 0.4.0
 
   libphonenumber-js@1.12.25: {}
-
-  libphonenumber-js@1.12.8: {}
 
   lightningcss-android-arm64@1.30.2:
     optional: true
@@ -14376,8 +14352,6 @@ snapshots:
       get-proto: 1.0.1
       which-builtin-type: 1.2.1
 
-  regenerator-runtime@0.14.1: {}
-
   regex-recursion@6.0.2:
     dependencies:
       regex-utilities: 2.3.0
@@ -15190,6 +15164,14 @@ snapshots:
   typescript@5.8.3: {}
 
   typescript@5.9.3: {}
+
+  ua-is-frozen@0.1.2: {}
+
+  ua-parser-js@2.0.6:
+    dependencies:
+      detect-europe-js: 0.1.2
+      is-standalone-pwa: 0.1.1
+      ua-is-frozen: 0.1.2
 
   ufo@1.6.1: {}
 

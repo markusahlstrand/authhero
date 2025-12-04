@@ -81,7 +81,6 @@
     "@peculiar/x509": "^1.14.0",
     "arctic": "3.7.0",
     "bcryptjs": "^3.0.3",
-    "check-password-strength": "^3.0.0",
     "classnames": "^2.5.1",
     "i18next": "^25.6.0",
     "libphonenumber-js": "^1.12.25",

@@ -24,25 +24,38 @@ export async function validatePasswordPolicy(
 ): Promise<void> {
   const { newPassword, userData, data, tenantId, userId } = options;
 
+  // Check if policy is empty - apply sensible defaults
+  const hasAnyPolicySetting =
+    policy.passwordPolicy !== undefined ||
+    policy.password_complexity_options !== undefined ||
+    policy.password_history !== undefined ||
+    policy.password_no_personal_info !== undefined ||
+    policy.password_dictionary !== undefined;
+
+  // If no policy settings exist, apply sensible defaults
+  const effectivePasswordPolicy = hasAnyPolicySetting
+    ? policy.passwordPolicy
+    : "good";
+  const effectiveMinLength = hasAnyPolicySetting
+    ? policy.password_complexity_options?.min_length
+    : 8;
+
   // Min length
-  if (
-    policy.password_complexity_options?.min_length &&
-    newPassword.length < policy.password_complexity_options.min_length
-  ) {
+  if (effectiveMinLength && newPassword.length < effectiveMinLength) {
     throw new JSONHTTPException(400, {
-      message: `Password must be at least ${policy.password_complexity_options.min_length} characters.`,
+      message: `Password must be at least ${effectiveMinLength} characters.`,
     });
   }
 
   // Strength
-  if (policy.passwordPolicy && policy.passwordPolicy !== "none") {
+  if (effectivePasswordPolicy && effectivePasswordPolicy !== "none") {
     const strengthRegex =
-      policy.passwordPolicy === "good"
-        ? /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/
+      effectivePasswordPolicy === "good"
+        ? /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/
         : /.*/;
     if (!strengthRegex.test(newPassword)) {
       throw new JSONHTTPException(400, {
-        message: `Password does not meet ${policy.passwordPolicy} requirements.`,
+        message: `Password does not meet ${effectivePasswordPolicy} requirements.`,
       });
     }
   }

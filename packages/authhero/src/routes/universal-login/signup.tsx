@@ -7,7 +7,10 @@ import { initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
 import SignUpForm from "../../components/SignUpForm";
 import AuthLayout from "../../components/AuthLayout";
-import validatePasswordStrength from "../../utils/password";
+import {
+  getPasswordPolicy,
+  validatePasswordPolicy,
+} from "../../helpers/password-policy";
 import { getUserByProvider } from "../../helpers/users";
 import { userIdGenerate } from "../../utils/user-id";
 import MessagePage from "../../components/MessagePage";
@@ -201,7 +204,24 @@ export const signupRoutes = new OpenAPIHono<{
           );
         }
 
-        if (!validatePasswordStrength(loginParams.password)) {
+        // Validate password against connection policy
+        const policy = await getPasswordPolicy(
+          env.data,
+          client.tenant.id,
+          "Username-Password-Authentication",
+        );
+
+        try {
+          await validatePasswordPolicy(policy, {
+            tenantId: client.tenant.id,
+            userId: "", // No user yet for signup
+            newPassword: loginParams.password,
+            data: env.data,
+          });
+        } catch (policyError: any) {
+          const errorMessage =
+            policyError?.message || i18next.t("create_account_weak_password");
+
           if (useShadcn) {
             return ctx.html(
               <AuthLayout
@@ -216,7 +236,7 @@ export const signupRoutes = new OpenAPIHono<{
                   loginSession={loginSession}
                   email={loginSession.authParams.username}
                   code={loginParams.code}
-                  error={i18next.t("create_account_weak_password")}
+                  error={errorMessage}
                   client={client}
                 />
               </AuthLayout>,
@@ -231,7 +251,7 @@ export const signupRoutes = new OpenAPIHono<{
               theme={theme}
               branding={branding}
               client={client}
-              error={i18next.t("create_account_weak_password")}
+              error={errorMessage}
               email={loginSession.authParams.username}
             />,
             400,

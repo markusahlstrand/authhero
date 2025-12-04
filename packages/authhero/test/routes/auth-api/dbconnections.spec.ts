@@ -67,7 +67,8 @@ describe("dbconnections", () => {
 
       expect(response.status).toBe(400);
       const message = await response.text();
-      expect(message).toBe("Password does not meet the requirements");
+      // Password policy now returns specific error message
+      expect(message).toContain("Password must be at least 8 characters");
     });
 
     it("should return an error if the user allready exists", async () => {
