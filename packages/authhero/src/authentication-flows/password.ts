@@ -235,6 +235,7 @@ export async function changePassword(
   const oldPassword = await data.passwords.get(client.tenant.id, userId);
   if (oldPassword) {
     await data.passwords.update(client.tenant.id, {
+      id: oldPassword.id,
       user_id: userId,
       password: oldPassword.password,
       algorithm: oldPassword.algorithm,

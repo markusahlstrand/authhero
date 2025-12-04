@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import { PasswordInsert, LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
@@ -253,22 +253,28 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           );
         }
 
-        const passwordOptions: PasswordInsert = {
-          user_id: user.user_id,
-          password: await bcryptjs.hash(password, 10),
-          algorithm: "bcrypt",
-          is_current: true,
-        };
-
+        // Mark old password as not current (for password history)
         const existingPassword = await env.data.passwords.get(
           client.tenant.id,
           user.user_id,
         );
         if (existingPassword) {
-          await env.data.passwords.update(client.tenant.id, passwordOptions);
-        } else {
-          await env.data.passwords.create(client.tenant.id, passwordOptions);
+          await env.data.passwords.update(client.tenant.id, {
+            id: existingPassword.id,
+            user_id: user.user_id,
+            password: existingPassword.password,
+            algorithm: existingPassword.algorithm,
+            is_current: false,
+          });
         }
+
+        // Create new password
+        await env.data.passwords.create(client.tenant.id, {
+          user_id: user.user_id,
+          password: await bcryptjs.hash(password, 10),
+          algorithm: "bcrypt",
+          is_current: true,
+        });
 
         if (!user.email_verified) {
           await env.data.users.update(client.tenant.id, user.user_id, {
