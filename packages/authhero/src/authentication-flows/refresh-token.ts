@@ -4,6 +4,7 @@ import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
+import { appendLog } from "../utils/append-log";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -42,6 +43,7 @@ export async function refreshTokenGrant(
 
   // These error codes should ne 400's according to the OAuth2 spec, but it seems auth0 uses 403's
   if (!refreshToken) {
+    appendLog(ctx, `Invalid refresh token: ${params.refresh_token}`);
     throw new JSONHTTPException(403, {
       error: "invalid_grant",
       error_description: "Invalid refresh token",
@@ -52,6 +54,7 @@ export async function refreshTokenGrant(
     (refreshToken.idle_expires_at &&
       new Date(refreshToken.idle_expires_at) < new Date())
   ) {
+    appendLog(ctx, `Refresh token has expired: ${params.refresh_token}`);
     throw new JSONHTTPException(403, {
       error: "invalid_grant",
       error_description: "Refresh token has expired",
@@ -65,6 +68,8 @@ export async function refreshTokenGrant(
   if (!user) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
+
+  ctx.set("user_id", user.user_id);
 
   const resourceServer = refreshToken.resource_servers[0];
 
