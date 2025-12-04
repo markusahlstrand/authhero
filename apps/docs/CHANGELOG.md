@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.16.0
+
+### Minor Changes
+
+- 8c373f0: Change to return 400 for refresh token error code
+
 ## 1.15.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # authhero
 
+## 0.280.0
+
+### Minor Changes
+
+- 8c373f0: Change to return 400 for refresh token error code
+
 ## 0.279.0
 
 ### Minor Changes
