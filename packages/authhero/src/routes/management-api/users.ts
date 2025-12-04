@@ -343,6 +343,7 @@ export const userRoutes = new OpenAPIHono<{
             user_id, // Use the original user_id, not result.user_id
             password: await bcryptjs.hash(password, 10),
             algorithm: "bcrypt",
+            is_current: true,
           };
           await ctx.env.data.passwords.create(
             ctx.var.tenant_id,
@@ -537,21 +538,30 @@ export const userRoutes = new OpenAPIHono<{
           }
         }
 
-        const passwordOptions: PasswordInsert = {
-          user_id: `${passwordIdentity.provider}|${passwordIdentity.user_id}`,
-          password: await bcryptjs.hash(password, 10),
-          algorithm: "bcrypt",
-        };
+        const userId = `${passwordIdentity.provider}|${passwordIdentity.user_id}`;
 
+        // Mark old password as not current (for password history)
         const existingPassword = await data.passwords.get(
           ctx.var.tenant_id,
-          `${passwordIdentity.provider}|${passwordIdentity.user_id}`,
+          userId,
         );
         if (existingPassword) {
-          await data.passwords.update(ctx.var.tenant_id, passwordOptions);
-        } else {
-          await data.passwords.create(ctx.var.tenant_id, passwordOptions);
+          await data.passwords.update(ctx.var.tenant_id, {
+            id: existingPassword.id,
+            user_id: userId,
+            password: existingPassword.password,
+            algorithm: existingPassword.algorithm,
+            is_current: false,
+          });
         }
+
+        // Create new password
+        await data.passwords.create(ctx.var.tenant_id, {
+          user_id: userId,
+          password: await bcryptjs.hash(password, 10),
+          algorithm: "bcrypt",
+          is_current: true,
+        });
       }
 
       // Always return the primary user

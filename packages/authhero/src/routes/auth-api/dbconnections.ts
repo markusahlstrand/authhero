@@ -109,6 +109,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         user_id: newUser.user_id,
         password: hashedPassword,
         algorithm: "bcrypt",
+        is_current: true,
       });
 
       await sendValidateEmailAddress(ctx, newUser);

@@ -107,6 +107,7 @@ import * as o008_merge_tenant_settings_into_tenants from "./2025-10-17T10:00:00_
 import * as o009_create_invites_table from "./2025-10-27T14:00:00_create_invites_table";
 import * as o010_add_log_id_to_logs from "./2025-11-03T10:00:00_add_log_id_to_logs";
 import * as o011_add_location_info_to_logs from "./2025-11-28T10:00:00_add_location_info_to_logs";
+import * as o012_add_password_history from "./2025-12-03T19:45:12_add_password_history";
 
 // These need to be in alphabetic order
 export default {
@@ -219,4 +220,5 @@ export default {
   o009_create_invites_table,
   o010_add_log_id_to_logs,
   o011_add_location_info_to_logs,
+  o012_add_password_history,
 };
