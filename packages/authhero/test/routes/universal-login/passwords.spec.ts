@@ -626,6 +626,6 @@ describe("passwords", () => {
     });
     expect(weakPasswordResponse2.status).toBe(400);
     const weakPasswordText2 = await weakPasswordResponse2.text();
-    expect(weakPasswordText2).toContain("good requirements");
+    expect(weakPasswordText2).toContain("uppercase letter");
   });
 });

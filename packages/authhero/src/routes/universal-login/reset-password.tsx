@@ -14,6 +14,7 @@ import { logMessage } from "../../helpers/logging";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
+  PasswordPolicyError,
 } from "../../helpers/password-policy";
 
 export const resetPasswordRoutes = new OpenAPIHono<{
@@ -317,16 +318,28 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       } catch (err) {
         // Log the actual error for debugging
         console.error("Password reset failed:", err);
+        const errorDetails =
+          err instanceof Error ? err.message : JSON.stringify(err);
         await logMessage(ctx, client.tenant.id, {
           type: LogTypes.FAILED_CHANGE_PASSWORD,
-          description: `Password reset failed for ${user.email}: ${err instanceof Error ? err.message : "Unknown error"}`,
+          description: `Password reset failed for ${user.email}: ${errorDetails}`,
           userId: user.user_id,
         });
 
-        const resetErrorMessage = i18next.t(
-          "password_reset_failed",
-          "The password could not be reset",
-        );
+        // Use translated error message with interpolation for policy errors
+        let resetErrorMessage: string;
+        if (err instanceof PasswordPolicyError) {
+          // Try to get translated message, fall back to error message
+          resetErrorMessage = i18next.t(err.code, {
+            defaultValue: err.message,
+            ...err.params,
+          });
+        } else {
+          resetErrorMessage = i18next.t(
+            "password_reset_failed",
+            "The password could not be reset",
+          );
+        }
 
         if (useShadcn) {
           return ctx.html(
