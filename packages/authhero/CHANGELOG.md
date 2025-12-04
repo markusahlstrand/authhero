@@ -1,5 +1,11 @@
 # authhero
 
+## 0.279.0
+
+### Minor Changes
+
+- 84f7b60: Change id of passwords to use nanoid
+
 ## 0.278.0
 
 ### Minor Changes

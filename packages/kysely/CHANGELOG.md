@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.59.0
+
+### Minor Changes
+
+- 84f7b60: Change id of passwords to use nanoid
+
 ## 10.58.0
 
 ### Minor Changes
