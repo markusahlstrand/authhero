@@ -7,17 +7,17 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
   await db.schema
     .createTable("passwords")
-    .addColumn("id", "varchar(255)", (col) => col.primaryKey())
-    .addColumn("user_id", "varchar(255)", (col) => col.notNull())
-    .addColumn("tenant_id", "varchar(255)", (col) =>
+    .addColumn("id", "varchar(21)", (col) => col.primaryKey())
+    .addColumn("user_id", "varchar(191)", (col) => col.notNull())
+    .addColumn("tenant_id", "varchar(191)", (col) =>
       col.references("tenants.id").onDelete("cascade").notNull(),
     )
     .addColumn("password", "varchar(255)", (col) => col.notNull())
     .addColumn("algorithm", "varchar(255)", (col) =>
-      col.notNull().defaultTo("argon2id"),
+      col.notNull().defaultTo("bcrypt"),
     )
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .addColumn("is_current", "integer", (col) => col.notNull().defaultTo(1))
     .addForeignKeyConstraint(
       "passwords_user_id_tenant_id_constraint",
@@ -40,10 +40,10 @@ export async function down(db: Kysely<Database>): Promise<void> {
     )
     .addColumn("password", "varchar(255)", (col) => col.notNull())
     .addColumn("algorithm", "varchar(255)", (col) =>
-      col.notNull().defaultTo("argon2id"),
+      col.notNull().defaultTo("bcrypt"),
     )
-    .addColumn("created_at", "varchar(255)", (col) => col.notNull())
-    .addColumn("updated_at", "varchar(255)", (col) => col.notNull())
+    .addColumn("created_at", "varchar(35)", (col) => col.notNull())
+    .addColumn("updated_at", "varchar(35)", (col) => col.notNull())
     .addPrimaryKeyConstraint("passwords_pkey", ["user_id", "tenant_id"])
     .addForeignKeyConstraint(
       "passwords_user_id_tenant_id_constraint",

@@ -216,6 +216,13 @@ export async function changePassword(
   );
   const user = await data.users.get(client.tenant.id, userId);
 
+  if (!user) {
+    throw new AuthError(404, {
+      message: "User not found",
+      code: "USER_NOT_FOUND",
+    });
+  }
+
   await validatePasswordPolicy(policy, {
     tenantId: client.tenant.id,
     userId,
