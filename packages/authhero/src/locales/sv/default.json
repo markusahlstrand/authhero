@@ -100,6 +100,8 @@
   "password": "Lösenord",
   "password_has_been_reset": "Lösenordet har återställts",
   "password_has_been_reset_title": "Framgång",
+  "password_reset_code_expired": "Koden hittades inte eller har löpt ut",
+  "password_reset_failed": "Lösenordet kunde inte återställas",
   "password_reset_subject": "Byt lösenord för ditt {{vendorName}} konto",
   "password_reset_title": "Byt lösenord för ditt {{vendorName}} konto",
   "phone_placeholder": "Telefonnummer",

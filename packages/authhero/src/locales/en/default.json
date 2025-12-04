@@ -100,6 +100,8 @@
   "password": "Password",
   "password_has_been_reset": "The password has been reset",
   "password_has_been_reset_title": "Success",
+  "password_reset_code_expired": "Code not found or expired",
+  "password_reset_failed": "The password could not be reset",
   "password_reset_subject": "Change password for your {{vendorName}} account",
   "password_reset_title": "Change password for your {{vendorName}} account",
   "phone_placeholder": "Phone number",

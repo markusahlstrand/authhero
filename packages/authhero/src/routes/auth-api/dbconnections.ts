@@ -10,7 +10,10 @@ import {
 } from "../../helpers/users";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { userIdGenerate } from "../../utils/user-id";
-import validatePasswordStrength from "../../utils/password";
+import {
+  getPasswordPolicy,
+  validatePasswordPolicy,
+} from "../../helpers/password-policy";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
 
@@ -71,10 +74,24 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
-      // auth0 returns a detailed JSON response with the way the password does match the strength rules
-      if (!validatePasswordStrength(password)) {
+      // Validate password against connection policy
+      const policy = await getPasswordPolicy(
+        ctx.env.data,
+        client.tenant.id,
+        "Username-Password-Authentication",
+      );
+
+      try {
+        await validatePasswordPolicy(policy, {
+          tenantId: client.tenant.id,
+          userId: "", // No user yet for signup
+          newPassword: password,
+          data: ctx.env.data,
+        });
+      } catch (policyError: any) {
         throw new HTTPException(400, {
-          message: "Password does not meet the requirements",
+          message:
+            policyError?.message || "Password does not meet the requirements",
         });
       }
 

@@ -9,9 +9,12 @@ import ResetPasswordPage from "../../components/ResetPasswordPage";
 import ResetPasswordForm from "../../components/ResetPasswordForm";
 import AuthLayout from "../../components/AuthLayout";
 import MessagePage from "../../components/MessagePage";
-import validatePasswordStrength from "../../utils/password";
 import { getUserByProvider } from "../../helpers/users";
 import { logMessage } from "../../helpers/logging";
+import {
+  getPasswordPolicy,
+  validatePasswordPolicy,
+} from "../../helpers/password-policy";
 
 export const resetPasswordRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -162,40 +165,6 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         );
       }
 
-      if (!validatePasswordStrength(password)) {
-        if (useShadcn) {
-          return ctx.html(
-            <AuthLayout
-              title={i18next.t("reset_password_title", "Reset Password")}
-              theme={theme}
-              branding={branding}
-              client={client}
-            >
-              <ResetPasswordForm
-                error={i18next.t("create_account_weak_password")}
-                theme={theme}
-                branding={branding}
-                loginSession={loginSession}
-                email={loginSession.authParams.username}
-                client={client}
-              />
-            </AuthLayout>,
-            400,
-          );
-        }
-
-        return ctx.html(
-          <ResetPasswordPage
-            error={i18next.t("create_account_weak_password")}
-            theme={theme}
-            branding={branding}
-            client={client}
-            email={loginSession.authParams.username}
-          />,
-          400,
-        );
-      }
-
       // Note! we don't use the primary user here. Something to be careful of
       // this means the primary user could have a totally different email address
       const user = await getUserByProvider({
@@ -209,6 +178,58 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "User not found" });
       }
 
+      // Validate password against connection policy
+      const policy = await getPasswordPolicy(
+        env.data,
+        client.tenant.id,
+        "Username-Password-Authentication",
+      );
+
+      try {
+        await validatePasswordPolicy(policy, {
+          tenantId: client.tenant.id,
+          userId: user.user_id,
+          newPassword: password,
+          userData: user,
+          data: env.data,
+        });
+      } catch (policyError: any) {
+        const errorMessage =
+          policyError?.message || i18next.t("create_account_weak_password");
+
+        if (useShadcn) {
+          return ctx.html(
+            <AuthLayout
+              title={i18next.t("reset_password_title", "Reset Password")}
+              theme={theme}
+              branding={branding}
+              client={client}
+            >
+              <ResetPasswordForm
+                error={errorMessage}
+                theme={theme}
+                branding={branding}
+                loginSession={loginSession}
+                email={loginSession.authParams.username}
+                client={client}
+              />
+            </AuthLayout>,
+            400,
+          );
+        }
+
+        return ctx.html(
+          <ResetPasswordPage
+            error={errorMessage}
+            theme={theme}
+            branding={branding}
+            client={client}
+            email={loginSession.authParams.username}
+          />,
+          400,
+        );
+      }
+
       try {
         const foundCode = await env.data.codes.get(
           client.tenant.id,
@@ -220,6 +241,11 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           // surely we should check this on the GET rather than have the user waste time entering a new password?
           // THEN we can assume here it works and throw a hono exception if it doesn't... because it's an issue with our system
           // ALTHOUGH the user could have taken a long time to enter the password...
+          const codeExpiredMessage = i18next.t(
+            "password_reset_code_expired",
+            "Code not found or expired",
+          );
+
           if (useShadcn) {
             return ctx.html(
               <AuthLayout
@@ -229,7 +255,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
                 client={client}
               >
                 <ResetPasswordForm
-                  error="Code not found or expired"
+                  error={codeExpiredMessage}
                   theme={theme}
                   branding={branding}
                   loginSession={loginSession}
@@ -243,7 +269,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
           return ctx.html(
             <ResetPasswordPage
-              error="Code not found or expired"
+              error={codeExpiredMessage}
               theme={theme}
               branding={branding}
               client={client}
@@ -288,8 +314,20 @@ export const resetPasswordRoutes = new OpenAPIHono<{
           description: `Password changed for ${user.email}`,
           userId: user.user_id,
         });
-      } catch {
-        // seems like we should not do this catch... try and see what happens
+      } catch (err) {
+        // Log the actual error for debugging
+        console.error("Password reset failed:", err);
+        await logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_CHANGE_PASSWORD,
+          description: `Password reset failed for ${user.email}: ${err instanceof Error ? err.message : "Unknown error"}`,
+          userId: user.user_id,
+        });
+
+        const resetErrorMessage = i18next.t(
+          "password_reset_failed",
+          "The password could not be reset",
+        );
+
         if (useShadcn) {
           return ctx.html(
             <AuthLayout
@@ -299,7 +337,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
               client={client}
             >
               <ResetPasswordForm
-                error="The password could not be reset"
+                error={resetErrorMessage}
                 theme={theme}
                 branding={branding}
                 loginSession={loginSession}
@@ -313,7 +351,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
 
         return ctx.html(
           <ResetPasswordPage
-            error="The password could not be reset"
+            error={resetErrorMessage}
             theme={theme}
             branding={branding}
             client={client}

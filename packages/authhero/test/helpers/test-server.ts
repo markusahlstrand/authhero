@@ -108,6 +108,14 @@ export async function getTestServer(
     },
   });
 
+  // Add the Username-Password-Authentication connection
+  await data.connections.create("tenantId", {
+    id: "Username-Password-Authentication",
+    name: "Username-Password-Authentication",
+    strategy: "auth2",
+    options: {},
+  });
+
   // Add a test user
   await data.users.create("tenantId", {
     email: "foo@example.com",

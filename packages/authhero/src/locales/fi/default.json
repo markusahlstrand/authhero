@@ -100,6 +100,8 @@
   "password": "Salasana",
   "password_has_been_reset": "Salasana on nollattu",
   "password_has_been_reset_title": "Menestys",
+  "password_reset_code_expired": "Koodia ei löytynyt tai se on vanhentunut",
+  "password_reset_failed": "Salasanaa ei voitu nollata",
   "password_reset_subject": "Vaihda salasana tilillesi {{vendorName}} ",
   "password_reset_title": "Vaihda salasana tilillesi {{vendorName}} ",
   "phone_placeholder": "Puhelinnumero",
