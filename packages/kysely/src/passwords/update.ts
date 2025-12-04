@@ -12,6 +12,7 @@ export function update(db: Kysely<Database>) {
       })
       .where("tenant_id", "=", tenant_id)
       .where("user_id", "=", password.user_id)
+      .where("is_current", "=", 1)
       .execute();
 
     return results.length === 1;
