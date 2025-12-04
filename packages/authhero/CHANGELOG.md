@@ -1,5 +1,11 @@
 # authhero
 
+## 0.277.0
+
+### Minor Changes
+
+- 584871c: Add more logging for refresh token flow
+
 ## 0.276.0
 
 ### Minor Changes
