@@ -1,5 +1,11 @@
 # authhero
 
+## 0.278.0
+
+### Minor Changes
+
+- 9d92786: Fix password reset
+
 ## 0.277.0
 
 ### Minor Changes
