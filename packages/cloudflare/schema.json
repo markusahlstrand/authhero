@@ -1,6 +1,5 @@
 {
   "fields": [
-    { "name": "id", "type": "string", "required": true },
     { "name": "tenant_id", "type": "string", "required": true },
     { "name": "type", "type": "string", "required": true },
     { "name": "date", "type": "string", "required": true },

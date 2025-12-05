@@ -25,6 +25,7 @@ describe("on-post-user-registration-hook", () => {
       {
         json: {
           email: "foo2@example.com",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",

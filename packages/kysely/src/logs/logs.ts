@@ -27,8 +27,6 @@ export function getLogResponse(log: Database["logs"]): Log {
     location_info: log.country_code
       ? {
           country_code: log.country_code,
-          country_code3: log.country_code3 || "",
-          country_name: log.country_name || "",
           city_name: log.city_name || "",
           latitude: log.latitude || "",
           longitude: log.longitude || "",

@@ -215,7 +215,6 @@ In the Cloudflare Dashboard:
 ```json
 {
   "fields": [
-    { "name": "id", "type": "string", "required": true },
     { "name": "tenant_id", "type": "string", "required": true },
     { "name": "type", "type": "string", "required": true },
     { "name": "date", "type": "string", "required": true },
@@ -238,8 +237,6 @@ In the Cloudflare Dashboard:
     { "name": "auth0_client", "type": "string", "required": false },
     { "name": "log_id", "type": "string", "required": true },
     { "name": "country_code", "type": "string", "required": false },
-    { "name": "country_code3", "type": "string", "required": false },
-    { "name": "country_name", "type": "string", "required": false },
     { "name": "city_name", "type": "string", "required": false },
     { "name": "latitude", "type": "string", "required": false },
     { "name": "longitude", "type": "string", "required": false },
@@ -480,8 +477,6 @@ The adapter reads these Cloudflare-provided headers:
 ```typescript
 interface GeoInfo {
   country_code: string; // "US"
-  country_code3: string; // "USA"
-  country_name: string; // "United States"
   city_name: string; // "San Francisco"
   latitude: string; // "37.7749"
   longitude: string; // "-122.4194"
@@ -518,8 +513,6 @@ Logs will automatically include `location_info`:
   "date": "2025-11-28T12:00:00.000Z",
   "location_info": {
     "country_code": "US",
-    "country_code3": "USA",
-    "country_name": "United States",
     "city_name": "San Francisco",
     "latitude": "37.7749",
     "longitude": "-122.4194",
@@ -557,8 +550,6 @@ class MaxMindGeoAdapter implements GeoAdapter {
 
     return {
       country_code: lookup.country?.iso_code || "",
-      country_code3: lookup.country?.iso_code3 || "",
-      country_name: lookup.country?.names?.en || "",
       city_name: lookup.city?.names?.en || "",
       latitude: lookup.location?.latitude?.toString() || "",
       longitude: lookup.location?.longitude?.toString() || "",

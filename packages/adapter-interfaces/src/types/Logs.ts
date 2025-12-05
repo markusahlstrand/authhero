@@ -208,8 +208,6 @@ export const Auth0Client = z.object({
 
 export const LocationInfo = z.object({
   country_code: z.string().length(2),
-  country_code3: z.string().length(3),
-  country_name: z.string(),
   city_name: z.string(),
   latitude: z.string(),
   longitude: z.string(),
