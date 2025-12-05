@@ -19,6 +19,7 @@
     "demo": "pnpm --filter @authhero/demo",
     "saml": "pnpm --filter @authhero/saml",
     "vitepress": "pnpm --filter @authhero/docs",
+    "multi-tenancy": "pnpm --filter @authhero/multi-tenancy",
     "prepare": "husky"
   },
   "keywords": [],

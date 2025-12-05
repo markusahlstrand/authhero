@@ -14,6 +14,13 @@ export type LogParams = {
   audience?: string;
   scope?: string;
   /**
+   * Response details to include in the log (for Management API operations)
+   */
+  response?: {
+    statusCode: number;
+    body?: unknown;
+  };
+  /**
    * If true, wait for the log to complete before returning.
    * If false (default), execute logging asynchronously in the background.
    * @default false
@@ -53,6 +60,9 @@ export async function logMessage(
           qs: ctx.req.queries(),
           body: params.body || ctx.var.body || "",
         },
+        ...(params.response && {
+          response: params.response,
+        }),
       },
       isMobile: false,
       client_id: ctx.var.client_id,

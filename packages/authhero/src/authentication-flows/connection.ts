@@ -5,7 +5,7 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
-import { createLogMessage } from "../utils/create-log-message";
+import { logMessage } from "../helpers/logging";
 import { stringifyAuth0Client } from "../utils/client-info";
 import { Bindings, Variables } from "../types";
 import {
@@ -17,7 +17,6 @@ import { getClientWithDefaults } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
 import { nanoid } from "nanoid";
-import { waitUntil } from "../helpers/wait-until";
 
 export async function connectionAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -33,11 +32,10 @@ export async function connectionAuth(
 
   if (!connection) {
     ctx.set("client_id", client.client_id);
-    const log = await createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
-    waitUntil(ctx, ctx.env.data.logs.create(client.tenant.id, log));
 
     throw new JSONHTTPException(403, { message: "Connection Not Found" });
   }
@@ -155,22 +153,20 @@ export async function connectionCallback(
   );
 
   if (!connection) {
-    const log = await createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
-    waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, { message: "Connection not found" });
   }
 
   ctx.set("connection", connection.name);
 
   if (!loginSession.authParams.redirect_uri) {
-    const log = await createLogMessage(ctx, {
+    await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Redirect URI not defined",
     });
-    waitUntil(ctx, env.data.logs.create(client.tenant.id, log));
     throw new JSONHTTPException(403, { message: "Redirect URI not defined" });
   }
 
