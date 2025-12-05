@@ -1,5 +1,11 @@
 # authhero
 
+## 0.281.0
+
+### Minor Changes
+
+- 165addf: Update how scopes work for refresh tokens
+
 ## 0.280.0
 
 ### Minor Changes
