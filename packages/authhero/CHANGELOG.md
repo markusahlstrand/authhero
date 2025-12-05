@@ -1,5 +1,11 @@
 # authhero
 
+## 0.282.0
+
+### Minor Changes
+
+- 8ab05b4: Add multi-tenancy package
+
 ## 0.281.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.18.0
+
+### Minor Changes
+
+- 8ab05b4: Add multi-tenancy package
+
 ## 1.17.0
 
 ### Minor Changes
