@@ -1,8 +1,18 @@
-import { Hono } from "hono";
-import { MultiTenancyConfig } from "./types";
+import { Hono, MiddlewareHandler } from "hono";
+import {
+  MultiTenancyConfig,
+  MultiTenancyHooks,
+  MultiTenancyBindings,
+  MultiTenancyVariables,
+} from "./types";
 import { createMultiTenancyMiddleware } from "./middleware";
 import { createMultiTenancyHooks } from "./index";
 import { createTenantsRouter } from "./routes";
+
+type MultiTenancyEnv = {
+  Bindings: MultiTenancyBindings;
+  Variables: MultiTenancyVariables;
+};
 
 /**
  * Plugin interface for AuthHero extensions
@@ -16,19 +26,19 @@ export interface AuthHeroPlugin {
   /**
    * Middleware to run before AuthHero routes
    */
-  middleware?: any;
+  middleware?: MiddlewareHandler<MultiTenancyEnv>;
 
   /**
    * Lifecycle hooks
    */
-  hooks?: any;
+  hooks?: MultiTenancyHooks;
 
   /**
    * Additional routes to mount
    */
   routes?: Array<{
     path: string;
-    handler: Hono<any>;
+    handler: Hono<MultiTenancyEnv>;
   }>;
 
   /**

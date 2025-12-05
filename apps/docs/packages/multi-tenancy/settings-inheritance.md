@@ -453,7 +453,7 @@ async function updateMainTenantSettings(updates: Partial<TenantSettings>) {
 
   // Determine which settings to propagate
   const propagatable = ["logo", "primary_color", "support_email"];
-  const toPropagateate = Object.keys(updates).filter((key) =>
+  const toPropagate = Object.keys(updates).filter((key) =>
     propagatable.includes(key),
   );
 

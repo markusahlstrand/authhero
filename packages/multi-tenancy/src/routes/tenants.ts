@@ -1,25 +1,16 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { z } from "@hono/zod-openapi";
-import { tenantInsertSchema } from "@authhero/adapter-interfaces";
+import { z } from "zod";
+import {
+  tenantInsertSchema,
+  auth0QuerySchema,
+} from "@authhero/adapter-interfaces";
 import {
   MultiTenancyBindings,
   MultiTenancyVariables,
   MultiTenancyConfig,
   MultiTenancyHooks,
 } from "../types";
-
-const querySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  per_page: z.coerce.number().optional().default(20),
-  include_totals: z
-    .enum(["true", "false"])
-    .transform((v) => v === "true")
-    .optional()
-    .default("false"),
-  q: z.string().optional(),
-  sort: z.string().optional(),
-});
 
 /**
  * Creates the tenant management routes.
@@ -59,7 +50,7 @@ export function createTenantsRouter(
       }
     }
 
-    const query = querySchema.parse(ctx.req.query());
+    const query = auth0QuerySchema.parse(ctx.req.query());
     const { page, per_page, include_totals, q } = query;
 
     const result = await ctx.env.data.tenants.list({
@@ -130,9 +121,9 @@ export function createTenantsRouter(
       }
 
       return ctx.json(tenant, 201);
-    } catch (error: any) {
+    } catch (error) {
       // Handle validation errors
-      if (error.name === "ZodError") {
+      if (error instanceof z.ZodError) {
         throw new HTTPException(400, {
           message: "Validation error",
           cause: error,
@@ -141,8 +132,9 @@ export function createTenantsRouter(
 
       // Handle duplicate key errors
       if (
-        error.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
-        error.message?.includes("UNIQUE constraint failed")
+        error instanceof Error &&
+        (("code" in error && error.code === "SQLITE_CONSTRAINT_PRIMARYKEY") ||
+          error.message?.includes("UNIQUE constraint failed"))
       ) {
         throw new HTTPException(409, {
           message: "Tenant with this ID already exists",
@@ -183,7 +175,13 @@ export function createTenantsRouter(
     await ctx.env.data.tenants.update(id, updates);
 
     const updatedTenant = await ctx.env.data.tenants.get(id);
-    return ctx.json(updatedTenant!);
+    if (!updatedTenant) {
+      throw new HTTPException(404, {
+        message: "Tenant not found after update",
+      });
+    }
+
+    return ctx.json(updatedTenant);
   });
 
   // --------------------------------

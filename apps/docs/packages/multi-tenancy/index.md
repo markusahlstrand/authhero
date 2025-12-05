@@ -126,7 +126,7 @@ const token = await getAccessTokenSilently({
 
 ## Related Packages
 
-- **[@authhero/cloudflare](../cloudflare/)** - Cloudflare D1 database factory
+- **[@authhero/cloudflare](../adapters/cloudflare.md)** - Cloudflare D1 database factory
 - **[authhero](../authhero/)** - Core authentication library
 
 ## License
