@@ -237,13 +237,14 @@ export async function calculateScopesAndPermissions(
     );
 
   if (matchingResourceServers.length === 0) {
-    // No matching resource servers found - return only default OIDC scopes
-    return { scopes: defaultOidcScopes, permissions: [] };
+    // No matching resource servers found - return all requested scopes
+    // When there's no resource server defined, we don't restrict scopes
+    return { scopes: requestedScopes, permissions: [] };
   }
 
   const resourceServer = matchingResourceServers[0];
   if (!resourceServer) {
-    return { scopes: defaultOidcScopes, permissions: [] };
+    return { scopes: requestedScopes, permissions: [] };
   }
 
   const definedScopes = (resourceServer.scopes || []).map(
@@ -252,15 +253,11 @@ export async function calculateScopesAndPermissions(
   const rbacEnabled = resourceServer.options?.enforce_policies === true;
   const tokenDialect = resourceServer.options?.token_dialect || "access_token";
 
-  // If RBAC is not enabled, return requested scopes that are defined on the resource server plus default OIDC scopes
+  // If RBAC is not enabled, return all requested scopes
+  // Per Auth0: "When RBAC is disabled, an application can request any permission
+  // defined for the API, and the scope claim includes all requested permissions."
   if (!rbacEnabled) {
-    const resourceServerScopes = requestedScopes.filter((scope) =>
-      definedScopes.includes(scope),
-    );
-    const allAllowedScopes = [
-      ...new Set([...defaultOidcScopes, ...resourceServerScopes]),
-    ];
-    return { scopes: allAllowedScopes, permissions: [] };
+    return { scopes: requestedScopes, permissions: [] };
   }
 
   // RBAC is enabled - get user's permissions
@@ -326,18 +323,28 @@ export async function calculateScopesAndPermissions(
     definedScopes.includes(permission),
   );
 
-  // If token_dialect is access_token_authz, return permissions directly plus default OIDC scopes
+  // Scopes NOT defined on the resource server pass through (the API doesn't restrict them)
+  const undefinedScopes = requestedScopes.filter(
+    (scope) =>
+      !definedScopes.includes(scope) && !DEFAULT_OIDC_SCOPES.includes(scope),
+  );
+
+  // If token_dialect is access_token_authz, return permissions directly plus default OIDC scopes and undefined scopes
   if (tokenDialect === "access_token_authz") {
-    return { scopes: defaultOidcScopes, permissions: allowedPermissions };
+    const allScopes = [...new Set([...defaultOidcScopes, ...undefinedScopes])];
+    return { scopes: allScopes, permissions: allowedPermissions };
   }
 
-  // For access_token dialect, return scopes that the user has permission for plus default OIDC scopes
+  // For access_token dialect:
+  // - Include OIDC scopes (always available)
+  // - Include scopes defined on resource server that user has permission for
+  // - Include scopes NOT defined on resource server (pass through)
   const resourceServerScopes = requestedScopes.filter(
     (scope) =>
       definedScopes.includes(scope) && userPermissionsList.includes(scope),
   );
   const allAllowedScopes = [
-    ...new Set([...defaultOidcScopes, ...resourceServerScopes]),
+    ...new Set([...defaultOidcScopes, ...resourceServerScopes, ...undefinedScopes]),
   ];
 
   return { scopes: allAllowedScopes, permissions: allowedPermissions };

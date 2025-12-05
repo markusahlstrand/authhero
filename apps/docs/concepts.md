@@ -107,6 +107,16 @@ When retrieving a primary user, all linked identities are included in the `ident
 
 Organizations enable you to group users and apply specific configurations, branding, and access controls to them. Organizations are useful for B2B applications where you serve multiple customer companies.
 
+Each organization can have:
+- Its own set of members (users)
+- Organization-specific roles and permissions
+- Custom branding and configuration
+- Isolated access controls
+
+When users authenticate with an organization context, the resulting tokens include an `org_id` claim that your API can use to enforce organization-level authorization.
+
+[Learn more about Organizations in the Security Model →](/security-model#organizations)
+
 ### Organization Invitations
 
 Organization invitations provide a streamlined way to onboard new users to an organization. When you create an invitation, you can:
@@ -136,6 +146,12 @@ Organization invitations provide a streamlined way to onboard new users to an or
 - `send_invitation_email`: Whether to automatically send an invitation email
 
 [Learn more about Organization Invitations API →](/api/endpoints#organization-invitations)
+
+## Resource Servers (APIs)
+
+Resource Servers represent APIs in your system. They define the scopes (permissions) available for your API and control access through Role-Based Access Control (RBAC).
+
+[Learn more about Resource Servers, Scopes, Roles, and Permissions →](/security-model)
 
 ## Tokens
 

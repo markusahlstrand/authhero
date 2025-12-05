@@ -7,7 +7,7 @@ import { GrantType } from "@authhero/adapter-interfaces";
 
 describe("scopes-permissions helper", () => {
   describe("calculateScopesAndPermissions", () => {
-    it("should return empty arrays when no resource server matches the audience", async () => {
+    it("should return all requested scopes when no resource server matches the audience", async () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
@@ -25,13 +25,14 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users"],
       });
 
+      // When no resource server is defined, all requested scopes are returned
       expect(result).toEqual({
-        scopes: [],
+        scopes: ["read:users", "write:users"],
         permissions: [],
       });
     });
 
-    it("should return requested scopes when RBAC is disabled", async () => {
+    it("should return all requested scopes when RBAC is disabled", async () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
@@ -64,8 +65,9 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "invalid:scope"],
       });
 
+      // When RBAC is disabled, all requested scopes are returned (Auth0 behavior)
       expect(result).toEqual({
-        scopes: ["read:users", "write:users"], // Only valid scopes returned
+        scopes: ["read:users", "write:users", "invalid:scope"],
         permissions: [],
       });
 
@@ -172,6 +174,100 @@ describe("scopes-permissions helper", () => {
         scopes: ["read:users"], // Only the scope the user has permission for
         permissions: ["read:users"], // Permissions should be included when RBAC is enabled
       }); // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+
+    it("should pass through scopes not defined on resource server when RBAC is enabled", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {},
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Create a resource server with RBAC enabled - only "impersonate" scope is defined/restricted
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Restricted Scopes",
+        identifier: "https://restricted-api.example.com",
+        scopes: [
+          { value: "impersonate", description: "Impersonate users - restricted" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // User does NOT have the impersonate permission
+      const result = await calculateScopesAndPermissions(ctx, {
+        tenantId: "tenantId",
+        clientId: "test-client-id",
+        userId: "testUserId3",
+        audience: "https://restricted-api.example.com",
+        requestedScopes: ["openid", "impersonate", "entitlement"],
+      });
+
+      expect(result).toEqual({
+        // "openid" - OIDC scope, always allowed
+        // "impersonate" - defined on resource server but user lacks permission, NOT included
+        // "entitlement" - not defined on resource server, passes through
+        scopes: ["openid", "entitlement"],
+        permissions: [],
+      });
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+
+    it("should include restricted scope when user has permission", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {},
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Test API with Impersonate",
+        identifier: "https://impersonate-api.example.com",
+        scopes: [
+          { value: "impersonate", description: "Impersonate users - restricted" },
+        ],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token",
+        },
+      });
+
+      // Give user the impersonate permission
+      await env.data.userPermissions.create("tenantId", "adminUser", {
+        user_id: "adminUser",
+        resource_server_identifier: "https://impersonate-api.example.com",
+        permission_name: "impersonate",
+      });
+
+      const result = await calculateScopesAndPermissions(ctx, {
+        tenantId: "tenantId",
+        clientId: "test-client-id",
+        userId: "adminUser",
+        audience: "https://impersonate-api.example.com",
+        requestedScopes: ["openid", "impersonate", "entitlement"],
+      });
+
+      expect(result).toEqual({
+        // "openid" - OIDC scope, always allowed
+        // "impersonate" - defined on resource server AND user has permission, included
+        // "entitlement" - not defined on resource server, passes through
+        scopes: ["openid", "impersonate", "entitlement"],
+        permissions: ["impersonate"],
+      });
+
+      // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 

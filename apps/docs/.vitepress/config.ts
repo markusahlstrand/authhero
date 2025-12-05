@@ -58,6 +58,7 @@ export default withMermaid(
             { text: "Architecture", link: "/architecture" },
             { text: "Database Schema", link: "/database-schema" },
             { text: "Concepts", link: "/concepts" },
+            { text: "Security Model", link: "/security-model" },
           ],
         },
         {
@@ -115,6 +116,7 @@ export default withMermaid(
               link: "/guides/database-integration",
             },
             { text: "Impersonation", link: "/guides/impersonation" },
+            { text: "RBAC and Scopes", link: "/guides/rbac-and-scopes" },
             { text: "SAML Migration", link: "/guides/saml-migration" },
             { text: "Troubleshooting", link: "/guides/troubleshooting" },
           ],

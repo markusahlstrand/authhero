@@ -942,6 +942,64 @@ describe("token", () => {
       expect(refreshToken.idle_expires_at).not.toBe(idle_expires_at);
     });
 
+    it("should preserve the original scopes in the new access token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      // Create a refresh token with specific scopes (no resource server needed when RBAC is disabled)
+      const originalScopes = "openid profile email read:users";
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenWithScopes",
+        session_id: "sessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: originalScopes,
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenWithScopes",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body.access_token).toBeDefined();
+
+      // Parse the access token and verify the scope claim
+      const accessToken = parseJWT(body.access_token);
+      expect(accessToken).not.toBeNull();
+
+      const payload = accessToken?.payload as { scope?: string };
+      expect(payload.scope).toBe(originalScopes);
+    });
+
     it("should return a 400 for a expired refresh token", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
