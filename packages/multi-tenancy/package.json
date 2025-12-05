@@ -1,0 +1,55 @@
+{
+  "name": "@authhero/multi-tenancy",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
+  "version": "0.1.0",
+  "description": "Multi-tenancy support for AuthHero with organization-based access control and per-tenant database isolation",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/multi-tenancy.cjs",
+  "module": "dist/multi-tenancy.mjs",
+  "types": "dist/multi-tenancy.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/multi-tenancy.d.ts",
+      "require": "./dist/multi-tenancy.cjs",
+      "import": "./dist/multi-tenancy.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@authhero/kysely-adapter": "workspace:*",
+    "@hono/zod-openapi": "^0.19.10",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "better-sqlite3": "^11.7.0",
+    "dts-bundle-generator": "^9.5.1",
+    "hono": "^4.7.0",
+    "kysely": "^0.27.4",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:*",
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^0.19.10",
+    "authhero": "workspace:*",
+    "hono": "^4.7.0"
+  }
+}

@@ -6,8 +6,7 @@ import { getUsersByEmail } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
-import { createLogMessage } from "../../utils/create-log-message";
-import { waitUntil } from "../../helpers/wait-until";
+import { logMessage } from "../../helpers/logging";
 import {
   LogTypes,
   PasswordInsert,
@@ -232,21 +231,14 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       // Log the Management API operation
-      const log = await createLogMessage(ctx, {
+      await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Delete a User",
-      });
-
-      // Add response details to the log
-      log.details = {
-        ...log.details,
         response: {
           statusCode: 204,
           body: {},
         },
-      };
-
-      waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
+      });
 
       return ctx.text("OK");
     },
@@ -353,11 +345,10 @@ export const userRoutes = new OpenAPIHono<{
 
         ctx.set("user_id", result.user_id);
 
-        const log = await createLogMessage(ctx, {
+        await logMessage(ctx, ctx.var.tenant_id, {
           type: LogTypes.SUCCESS_API_OPERATION,
           description: "User created",
         });
-        waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
 
         // Build response with identities
         // If linking occurred, result will be the primary user with identities populated
@@ -576,22 +567,15 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       // Log the user update operation
-      const log = await createLogMessage(ctx, {
+      await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Update a User",
         body,
-      });
-
-      // Add response details to the log
-      log.details = {
-        ...log.details,
         response: {
           statusCode: 200,
           body: patchedUser,
         },
-      };
-
-      waitUntil(ctx, ctx.env.data.logs.create(ctx.var.tenant_id, log));
+      });
 
       return ctx.json(patchedUser);
     },

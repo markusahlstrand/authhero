@@ -73,6 +73,41 @@ export default withMermaid(
           text: "Packages",
           items: [
             { text: "Core Library", link: "/packages/authhero/" },
+            {
+              text: "Multi-Tenancy",
+              link: "/packages/multi-tenancy/",
+              collapsed: false,
+              items: [
+                {
+                  text: "Architecture",
+                  link: "/packages/multi-tenancy/architecture",
+                },
+                {
+                  text: "Database Isolation",
+                  link: "/packages/multi-tenancy/database-isolation",
+                },
+                {
+                  text: "Tenant Lifecycle",
+                  link: "/packages/multi-tenancy/tenant-lifecycle",
+                },
+                {
+                  text: "Settings Inheritance",
+                  link: "/packages/multi-tenancy/settings-inheritance",
+                },
+                {
+                  text: "Subdomain Routing",
+                  link: "/packages/multi-tenancy/subdomain-routing",
+                },
+                {
+                  text: "API Reference",
+                  link: "/packages/multi-tenancy/api-reference",
+                },
+                {
+                  text: "Migration Guide",
+                  link: "/packages/multi-tenancy/migration",
+                },
+              ],
+            },
             { text: "SAML", link: "/packages/saml/" },
             { text: "Create AuthHero", link: "/packages/create-authhero/" },
           ],

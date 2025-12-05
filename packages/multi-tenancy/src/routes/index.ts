@@ -1,0 +1,1 @@
+export { createTenantsRouter } from "./tenants";
