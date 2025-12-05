@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.17.0
+
+### Minor Changes
+
+- 165addf: Update how scopes work for refresh tokens
+
 ## 1.16.0
 
 ### Minor Changes
