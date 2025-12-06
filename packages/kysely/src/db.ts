@@ -137,8 +137,6 @@ const sqlLogSchema = z.object({
   session_connection: z.string().optional(),
   // Location info stored as separate columns for filtering
   country_code: z.string().optional(),
-  country_code3: z.string().optional(),
-  country_name: z.string().optional(),
   city_name: z.string().optional(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),

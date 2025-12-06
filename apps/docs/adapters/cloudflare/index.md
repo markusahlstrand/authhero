@@ -228,8 +228,6 @@ Create a file named `schema.json`:
     { "name": "auth0_client", "type": "string", "required": false },
     { "name": "log_id", "type": "string", "required": true },
     { "name": "country_code", "type": "string", "required": false },
-    { "name": "country_code3", "type": "string", "required": false },
-    { "name": "country_name", "type": "string", "required": false },
     { "name": "city_name", "type": "string", "required": false },
     { "name": "latitude", "type": "string", "required": false },
     { "name": "longitude", "type": "string", "required": false },

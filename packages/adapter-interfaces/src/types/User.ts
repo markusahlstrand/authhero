@@ -30,8 +30,8 @@ export const userInsertSchema = baseUserSchema.extend({
   last_ip: z.string().optional(),
   last_login: z.string().optional(),
   user_id: z.string().optional(),
-  provider: z.string().default("email"),
-  connection: z.string().default("email"),
+  provider: z.string().optional(),
+  connection: z.string(),
   is_social: z.boolean().optional(),
 });
 
@@ -41,6 +41,7 @@ export const userSchema = z.object({
   ...userInsertSchema.shape,
   ...baseEntitySchema.shape,
   user_id: z.string(),
+  provider: z.string(),
   is_social: z.boolean(),
   email: z.string().optional(),
   login_count: z.number().default(0),

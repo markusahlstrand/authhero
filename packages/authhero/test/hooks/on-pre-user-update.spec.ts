@@ -26,6 +26,7 @@ describe("on-pre-user-update-hook", () => {
       {
         json: {
           email: "test-update@example.com",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -89,6 +90,7 @@ describe("on-pre-user-update-hook", () => {
         json: {
           email: "test-cancel@example.com",
           name: "Original Name",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",

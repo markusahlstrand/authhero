@@ -40,8 +40,6 @@ Interface for retrieving geographic information from requests. This is used to e
 ```typescript
 interface GeoInfo {
   country_code: string; // 2-letter ISO country code (e.g., "US")
-  country_code3: string; // 3-letter ISO country code (e.g., "USA")
-  country_name: string; // Full country name (e.g., "United States")
   city_name: string; // City name
   latitude: string; // Latitude coordinate
   longitude: string; // Longitude coordinate
@@ -115,8 +113,6 @@ class MaxMindGeoAdapter implements GeoAdapter {
 
     return {
       country_code: lookup.country?.iso_code || "",
-      country_code3: lookup.country?.iso_code3 || "",
-      country_name: lookup.country?.names?.en || "",
       city_name: lookup.city?.names?.en || "",
       latitude: lookup.location?.latitude?.toString() || "",
       longitude: lookup.location?.longitude?.toString() || "",
@@ -150,8 +146,6 @@ When a `GeoAdapter` is configured, authentication logs automatically include loc
   "date": "2025-11-28T12:00:00.000Z",
   "location_info": {
     "country_code": "US",
-    "country_code3": "USA",
-    "country_name": "United States",
     "city_name": "San Francisco",
     "latitude": "37.7749",
     "longitude": "-122.4194",

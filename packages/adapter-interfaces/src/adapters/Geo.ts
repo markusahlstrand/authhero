@@ -1,7 +1,5 @@
 export interface GeoInfo {
   country_code: string;
-  country_code3: string;
-  country_name: string;
   city_name: string;
   latitude: string;
   longitude: string;

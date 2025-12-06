@@ -18,6 +18,7 @@ describe("user update - Management API logging", () => {
           email_verified: false,
           name: "Test User",
           nickname: "test",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -107,6 +108,7 @@ describe("user update - Management API logging", () => {
           email: "old@example.com",
           email_verified: false,
           name: "Test User",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -180,6 +182,7 @@ describe("user update - Management API logging", () => {
         json: {
           email: "timestamp-test@example.com",
           name: "Timestamp Test",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -259,6 +262,7 @@ describe("user update - Management API logging", () => {
         json: {
           email: "metadata-test@example.com",
           name: "Metadata Test",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",

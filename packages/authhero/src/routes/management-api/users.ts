@@ -18,6 +18,7 @@ import {
   roleListSchema,
   organizationSchema,
 } from "@authhero/adapter-interfaces";
+import { getProviderFromConnection } from "../../strategies";
 
 const usersWithTotalsSchema = totalsSchema.extend({
   users: z.array(auth0UserResponseSchema),
@@ -293,15 +294,26 @@ export const userRoutes = new OpenAPIHono<{
         name,
         linked_to,
         email_verified,
-        provider,
+        provider: providedProvider,
         connection,
         password,
       } = body;
 
+      // Look up the connection to derive the provider
+      const connectionRecord = await ctx.env.data.connections.get(
+        ctx.var.tenant_id,
+        connection,
+      );
+
+      // Derive provider from connection, or use provided provider for migration
+      const provider = connectionRecord
+        ? getProviderFromConnection(connectionRecord)
+        : providedProvider || connection;
+
       // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
       const rawUserId = body["user_id"];
       const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
-      const user_id = `${body.provider}|${idPart}`;
+      const user_id = `${provider}|${idPart}`;
 
       try {
         // ctx.env.data is already wrapped with hooks by the management API middleware,

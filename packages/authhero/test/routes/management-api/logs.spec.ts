@@ -40,6 +40,7 @@ describe("logs", () => {
       {
         json: {
           email: "test@example.com",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",

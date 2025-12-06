@@ -285,8 +285,6 @@ Migrate from Auth0 with minimal code changes:
 **AuthHero Solution**: Provides comprehensive geographic information when using the optional `GeoAdapter`:
 
 - **country_code**: 2-letter ISO code (e.g., "US")
-- **country_code3**: 3-letter ISO code (e.g., "USA")
-- **country_name**: Full country name (e.g., "United States")
 - **city_name**: City name (e.g., "San Francisco")
 - **latitude/longitude**: Geographic coordinates for mapping
 - **time_zone**: IANA time zone identifier
@@ -300,8 +298,6 @@ This data is automatically included in authentication logs when a `GeoAdapter` i
   "date": "2025-11-28T12:00:00.000Z",
   "location_info": {
     "country_code": "US",
-    "country_code3": "USA",
-    "country_name": "United States",
     "city_name": "San Francisco",
     "latitude": "37.7749",
     "longitude": "-122.4194",
