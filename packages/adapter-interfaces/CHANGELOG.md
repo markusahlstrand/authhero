@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.102.0
+
+### Minor Changes
+
+- 0566155: Get provider from connection
+- 0566155: Remove country 3 and country name fields
+
 ## 0.101.0
 
 ### Minor Changes

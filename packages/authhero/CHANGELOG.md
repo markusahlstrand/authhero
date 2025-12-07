@@ -1,5 +1,17 @@
 # authhero
 
+## 0.283.0
+
+### Minor Changes
+
+- 0566155: Get provider from connection
+
+### Patch Changes
+
+- Updated dependencies [0566155]
+- Updated dependencies [0566155]
+  - @authhero/adapter-interfaces@0.102.0
+
 ## 0.282.0
 
 ### Minor Changes
