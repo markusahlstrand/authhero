@@ -18,6 +18,7 @@ describe("user deletion - Management API logging", () => {
           email_verified: false,
           name: "Delete Test User",
           nickname: "deletetest",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -116,6 +117,7 @@ describe("user deletion - Management API logging", () => {
           email_verified: false,
           name: "Delete Test User",
           nickname: "deletetest",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",
@@ -251,6 +253,7 @@ describe("user deletion - Management API logging", () => {
         json: {
           email: "timestamp-delete@example.com",
           name: "Timestamp Delete Test",
+          connection: "Username-Password-Authentication",
         },
         header: {
           "tenant-id": "tenantId",

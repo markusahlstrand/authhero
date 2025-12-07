@@ -57,8 +57,6 @@ describe("logging helper - geo functionality", () => {
   it("should include location_info when geo adapter returns geo data", async () => {
     const mockGeoInfo: GeoInfo = {
       country_code: "US",
-      country_code3: "USA",
-      country_name: "United States",
       city_name: "New York",
       latitude: "40.7128",
       longitude: "-74.0060",

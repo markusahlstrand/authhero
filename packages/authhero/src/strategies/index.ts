@@ -70,3 +70,16 @@ export function getSocialStrategy(name: string): Strategy | undefined {
 
   return strategies[name];
 }
+
+// Enterprise strategies where provider = connection name (not strategy name)
+const ENTERPRISE_STRATEGIES = new Set(["oidc", "samlp", "waad", "adfs"]);
+
+// Get provider name from a connection (Auth0 compatible)
+// For enterprise connections (oidc, samlp, etc.), provider = connection.name
+// For everything else (social, database, passwordless), provider = strategy name
+export function getProviderFromConnection(connection: Connection): string {
+  if (ENTERPRISE_STRATEGIES.has(connection.strategy)) {
+    return connection.name;
+  }
+  return connection.strategy;
+}

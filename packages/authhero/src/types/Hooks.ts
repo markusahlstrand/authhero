@@ -28,8 +28,6 @@ export type HookRequest = {
     cityName?: string;
     continentCode?: string;
     countryCode?: string;
-    countryCode3?: string;
-    countryName?: string;
     latitude?: number;
     longitude?: number;
     subdivisionCode?: string;
