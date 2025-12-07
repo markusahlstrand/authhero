@@ -1,5 +1,11 @@
 # authhero
 
+## 0.284.0
+
+### Minor Changes
+
+- 6952865: Handle undefined adapters
+
 ## 0.283.0
 
 ### Minor Changes
