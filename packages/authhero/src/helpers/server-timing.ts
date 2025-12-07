@@ -15,6 +15,11 @@ export function addTimingLogs(
 
   // Process each adapter
   for (const [adapterName, adapter] of Object.entries(data)) {
+    // Skip undefined optional adapters (e.g., geo, cache)
+    if (adapter === undefined || adapter === null) {
+      continue;
+    }
+
     const wrappedAdapter: Record<string, any> = {};
 
     // Process each method in the adapter
