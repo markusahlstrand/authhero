@@ -1,5 +1,17 @@
 # @authhero/cloudflare-adapter
 
+## 2.13.0
+
+### Minor Changes
+
+- e04bae4: Update the logging handle geoip correctly
+- 731c191: Fix paging issues with custom domains
+
+### Patch Changes
+
+- Updated dependencies [731c191]
+  - @authhero/kysely-adapter@10.61.0
+
 ## 2.12.0
 
 ### Minor Changes
