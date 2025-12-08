@@ -11,7 +11,6 @@ import wretch from "wretch";
 import { retry, dedupe } from "wretch/middlewares";
 import { CloudflareConfig } from "../types/CloudflareConfig";
 import {
-  customDomainListResponseSchema,
   customDomainResponseSchema,
   CustomDomainResult,
 } from "../types/CustomDomain";
@@ -147,37 +146,40 @@ export function createCustomDomainsAdapter(
     list: async (tenant_id: string) => {
       const customDomains = await config.customDomainAdapter.list(tenant_id);
 
-      const body = await getClient(config).get("/custom_hostnames").json();
+      // Fetch each custom domain from Cloudflare by ID
+      const results = await Promise.all(
+        customDomains.map(async (customDomain) => {
+          try {
+            const body = await getClient(config)
+              .get(
+                `/custom_hostnames/${encodeURIComponent(customDomain.custom_domain_id)}`,
+              )
+              .json();
 
-      const { result, errors, success } =
-        customDomainListResponseSchema.parse(body);
+            const { result, success } = customDomainResponseSchema.parse(body);
 
-      if (!success) {
-        throw new HTTPException(503, {
-          message: JSON.stringify(errors),
-        });
-      }
+            if (!success) {
+              return null;
+            }
 
-      return (
-        result
-          // Make sure the custom domain is available for this tenant
-          .filter((domain) =>
-            customDomains.find((d) => d.custom_domain_id === domain.id),
-          )
-          .filter(
-            (domain) =>
-              !(
-                config.enterprise &&
-                domain.custom_metadata?.tenant_id !== tenant_id
-              ),
-          )
-          .map((domain) =>
-            mapCustomDomainResponse({
-              ...customDomains.find((d) => d.custom_domain_id === domain.id)!,
-              ...domain,
-            }),
-          )
+            if (
+              config.enterprise &&
+              result.custom_metadata?.tenant_id !== tenant_id
+            ) {
+              return null;
+            }
+
+            return mapCustomDomainResponse({
+              ...customDomain,
+              ...result,
+            });
+          } catch {
+            return null;
+          }
+        }),
       );
+
+      return results.filter((r): r is CustomDomain => r !== null);
     },
     remove: async (tenant_id: string, domain_id: string) => {
       if (config.enterprise) {

@@ -9,7 +9,7 @@ export function create(db: Kysely<Database>) {
     params: CustomDomainInsert,
   ): Promise<CustomDomain> => {
     const customDomain: CustomDomain = {
-      custom_domain_id: nanoid(),
+      custom_domain_id: params.custom_domain_id || nanoid(),
       status: "pending",
       primary: false,
       ...params,
