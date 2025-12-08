@@ -9,8 +9,9 @@ export interface GeoInfo {
 
 export interface GeoAdapter {
   /**
-   * Get geo information from the current request
+   * Get geo information from request headers
+   * @param headers - Record of HTTP headers (lowercase keys)
    * @returns Geo information or null if not available
    */
-  getGeoInfo(): Promise<GeoInfo | null>;
+  getGeoInfo(headers: Record<string, string>): Promise<GeoInfo | null>;
 }

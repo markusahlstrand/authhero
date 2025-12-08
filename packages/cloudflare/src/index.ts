@@ -37,18 +37,14 @@ export default function createAdapters(
       }),
       ...(config.keyPrefix && { keyPrefix: config.keyPrefix }),
     }),
+    // Always create the geo adapter - it extracts location from Cloudflare headers
+    // passed at request time via getGeoInfo(headers)
+    geo: createCloudflareGeoAdapter(),
   };
 
   // Add R2 SQL logs adapter if configured
   if (config.r2SqlLogs) {
     adapters.logs = createR2SQLLogsAdapter(config.r2SqlLogs);
-  }
-
-  // Add geo adapter if getHeaders function is provided
-  if (config.getHeaders) {
-    adapters.geo = createCloudflareGeoAdapter({
-      getHeaders: config.getHeaders,
-    });
   }
 
   return adapters;

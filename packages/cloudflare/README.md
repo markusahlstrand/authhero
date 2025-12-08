@@ -440,69 +440,125 @@ The Cloudflare Geo adapter extracts geographic location information from Cloudfl
 
 ### Features
 
-- **Zero Latency**: Uses headers already provided by Cloudflare Workers
+- **Zero Latency**: Uses headers already provided by Cloudflare
 - **No API Calls**: No external services or databases required
-- **Comprehensive Data**: Includes country, city, coordinates, timezone, and continent
-- **Automatic**: Cloudflare populates headers automatically for every request
+- **Graceful Degradation**: Works with just country code or full location data
+- **Free**: All features available on Cloudflare's free plan
+
+### Cloudflare Setup
+
+The geo adapter requires specific Cloudflare settings to be enabled:
+
+#### 1. Enable IP Geolocation (Required)
+
+This provides the `cf-ipcountry` header with just the country code.
+
+1. Go to your Cloudflare dashboard
+2. Navigate to **Network** settings
+3. Enable **IP Geolocation**
+
+#### 2. Enable "Add visitor location headers" Managed Transform (Recommended)
+
+This provides full location data including city, coordinates, timezone, etc.
+
+1. Go to your Cloudflare dashboard
+2. Navigate to **Rules** > **Transform Rules** > **Managed Transforms**
+3. Enable **Add visitor location headers**
+
+This is a **free feature** available on all Cloudflare plans.
 
 ### Configuration
 
-The geo adapter is automatically created when you provide the `getHeaders` function:
+The geo adapter is automatically included when you create the Cloudflare adapters. Headers are passed at request time via `getGeoInfo(headers)`:
 
 ```typescript
+import createAdapters from "@authhero/cloudflare-adapter";
+
+// Create adapters once at startup
 const adapters = createAdapters({
   // ... other config
-  getHeaders: () => Object.fromEntries(request.headers),
 });
 
-// Access the geo adapter
-const geoInfo = await adapters.geo?.getGeoInfo();
+// The geo adapter is always available
+// Headers are passed when calling getGeoInfo
+const headers = Object.fromEntries(request.headers);
+const geoInfo = await adapters.geo.getGeoInfo(headers);
 ```
+
+When used with AuthHero, headers are automatically extracted from the Hono context in the logging helper.
 
 ### Cloudflare Headers Used
 
-The adapter reads these Cloudflare-provided headers:
+| Header           | Description               | Example               | Availability                         |
+| ---------------- | ------------------------- | --------------------- | ------------------------------------ |
+| `cf-ipcountry`   | 2-letter ISO country code | `US`                  | Always (with IP Geolocation enabled) |
+| `cf-ipcity`      | City name                 | `San Francisco`       | With Managed Transform               |
+| `cf-iplatitude`  | Latitude coordinate       | `37.7749`             | With Managed Transform               |
+| `cf-iplongitude` | Longitude coordinate      | `-122.4194`           | With Managed Transform               |
+| `cf-timezone`    | IANA timezone identifier  | `America/Los_Angeles` | With Managed Transform               |
+| `cf-ipcontinent` | 2-letter continent code   | `NA`                  | With Managed Transform               |
 
-| Header           | Description               | Example               |
-| ---------------- | ------------------------- | --------------------- |
-| `cf-ipcountry`   | 2-letter ISO country code | `US`                  |
-| `cf-ipcity`      | City name                 | `San Francisco`       |
-| `cf-iplatitude`  | Latitude coordinate       | `37.7749`             |
-| `cf-iplongitude` | Longitude coordinate      | `-122.4194`           |
-| `cf-timezone`    | IANA timezone identifier  | `America/Los_Angeles` |
-| `cf-ipcontinent` | 2-letter continent code   | `NA`                  |
+Additional headers available with Managed Transform (not currently mapped):
+
+- `cf-region`: Region name
+- `cf-region-code`: Region code
+- `cf-metro-code`: Metro code
+- `cf-postal-code`: Postal code
 
 ### Response Format
 
 ```typescript
 interface GeoInfo {
-  country_code: string; // "US"
-  city_name: string; // "San Francisco"
-  latitude: string; // "37.7749"
-  longitude: string; // "-122.4194"
-  time_zone: string; // "America/Los_Angeles"
-  continent_code: string; // "NA"
+  country_code: string; // "US" - always available
+  city_name: string; // "San Francisco" or "" if not available
+  latitude: string; // "37.7749" or "" if not available
+  longitude: string; // "-122.4194" or "" if not available
+  time_zone: string; // "America/Los_Angeles" or "" if not available
+  continent_code: string; // "NA" or "" if not available
+}
+```
+
+**With only IP Geolocation enabled:**
+
+```json
+{
+  "country_code": "US",
+  "city_name": "",
+  "latitude": "",
+  "longitude": "",
+  "time_zone": "",
+  "continent_code": ""
+}
+```
+
+**With "Add visitor location headers" Managed Transform enabled:**
+
+```json
+{
+  "country_code": "US",
+  "city_name": "San Francisco",
+  "latitude": "37.7749",
+  "longitude": "-122.4194",
+  "time_zone": "America/Los_Angeles",
+  "continent_code": "NA"
 }
 ```
 
 ### Integration with AuthHero
 
-When configured in AuthHero, the geo adapter automatically enriches authentication logs:
+When configured in AuthHero, the geo adapter automatically enriches authentication logs. The logging helper extracts headers from the Hono context automatically:
 
 ```typescript
-import { init } from "@authhero/authhero";
 import createAdapters from "@authhero/cloudflare-adapter";
 
 const cloudflareAdapters = createAdapters({
-  getHeaders: () => Object.fromEntries(request.headers),
   // ... other config
 });
 
-const authhero = init({
-  data: yourDatabaseAdapter,
+const dataAdapter = {
+  ...yourDatabaseAdapter,
   geo: cloudflareAdapters.geo, // Add geo adapter
-  // ... other config
-});
+};
 ```
 
 Logs will automatically include `location_info`:
@@ -524,7 +580,7 @@ Logs will automatically include `location_info`:
 
 ### Alternative: IP Geolocation Databases
 
-If you're not using Cloudflare Workers or need more detailed location data, you can implement a custom `GeoAdapter` using IP geolocation databases like MaxMind GeoIP2:
+If you're not using Cloudflare or need more detailed location data, you can implement a custom `GeoAdapter` using IP geolocation databases like MaxMind GeoIP2:
 
 ```typescript
 import maxmind from "maxmind";
@@ -542,8 +598,15 @@ class MaxMindGeoAdapter implements GeoAdapter {
     return new MaxMindGeoAdapter(reader);
   }
 
-  async getGeoInfo(): Promise<GeoInfo | null> {
-    const ip = this.getClientIP();
+  async getGeoInfo(headers: Record<string, string>): Promise<GeoInfo | null> {
+    // Extract IP from headers (e.g., x-forwarded-for, cf-connecting-ip)
+    const ip =
+      headers["cf-connecting-ip"] ||
+      headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      headers["x-real-ip"];
+
+    if (!ip) return null;
+
     const lookup = this.reader.get(ip);
 
     if (!lookup) return null;
