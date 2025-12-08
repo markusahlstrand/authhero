@@ -1,5 +1,11 @@
 # authhero
 
+## 0.285.0
+
+### Minor Changes
+
+- e04bae4: Update the logging handle geoip correctly
+
 ## 0.284.0
 
 ### Minor Changes

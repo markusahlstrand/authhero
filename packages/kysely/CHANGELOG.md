@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.61.0
+
+### Minor Changes
+
+- 731c191: Fix paging issues with custom domains
+
 ## 10.60.0
 
 ### Minor Changes
