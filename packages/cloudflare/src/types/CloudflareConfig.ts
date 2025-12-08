@@ -23,8 +23,4 @@ export interface CloudflareConfig {
    * R2 SQL logs adapter configuration (optional)
    */
   r2SqlLogs?: R2SQLLogsAdapterConfig;
-  /**
-   * Function to get request headers for geo information (optional)
-   */
-  getHeaders?: () => Record<string, string>;
 }

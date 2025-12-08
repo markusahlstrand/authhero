@@ -12,7 +12,7 @@ class MockGeoAdapter implements GeoAdapter {
     this.geoInfo = geoInfo;
   }
 
-  async getGeoInfo(): Promise<GeoInfo | null> {
+  async getGeoInfo(headers: Record<string, string>): Promise<GeoInfo | null> {
     return this.geoInfo;
   }
 }
@@ -21,6 +21,13 @@ describe("logging helper - geo functionality", () => {
   let ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
 
   beforeEach(() => {
+    // Create mock headers
+    const mockHeaders = new Headers({
+      host: "localhost",
+      "cf-ipcountry": "US",
+      "cf-ipcity": "New York",
+    });
+
     // Create a mock context with all required properties
     ctx = {
       env: {
@@ -46,6 +53,9 @@ describe("logging helper - geo functionality", () => {
         path: "/test",
         queries: () => ({}),
         header: (name: string) => (name === "host" ? "localhost" : undefined),
+        raw: {
+          headers: mockHeaders,
+        },
       },
       executionCtx: {
         waitUntil: () => {},

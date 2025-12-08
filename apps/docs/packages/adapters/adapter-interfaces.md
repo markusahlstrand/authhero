@@ -49,10 +49,11 @@ interface GeoInfo {
 
 interface GeoAdapter {
   /**
-   * Get geo information from the current request
+   * Get geo information from request headers
+   * @param headers - Record of HTTP headers (lowercase keys)
    * @returns Geo information or null if not available
    */
-  getGeoInfo(): Promise<GeoInfo | null>;
+  getGeoInfo(headers: Record<string, string>): Promise<GeoInfo | null>;
 }
 ```
 
@@ -67,17 +68,18 @@ Use headers provided by edge platforms like Cloudflare Workers, which automatica
 ```typescript
 import { createCloudflareGeoAdapter } from "@authhero/cloudflare-adapter";
 
-const geoAdapter = createCloudflareGeoAdapter({
-  getHeaders: () => ({
-    "cf-ipcountry": "US",
-    "cf-ipcity": "San Francisco",
-    "cf-iplatitude": "37.7749",
-    "cf-iplongitude": "-122.4194",
-    "cf-timezone": "America/Los_Angeles",
-    "cf-ipcontinent": "NA",
-  }),
-});
+// Create the adapter once
+const geoAdapter = createCloudflareGeoAdapter();
+
+// Pass headers at request time
+const headers = Object.fromEntries(request.headers);
+const geoInfo = await geoAdapter.getGeoInfo(headers);
 ```
+
+**Cloudflare Setup:**
+
+1. Enable **IP Geolocation** in Network settings (provides `cf-ipcountry`)
+2. Enable **"Add visitor location headers"** in Rules > Transform Rules > Managed Transforms (free feature, provides full location data)
 
 **Benefits:**
 
@@ -105,8 +107,14 @@ class MaxMindGeoAdapter implements GeoAdapter {
     return new MaxMindGeoAdapter(reader);
   }
 
-  async getGeoInfo(): Promise<GeoInfo | null> {
-    const ip = this.getClientIP();
+  async getGeoInfo(headers: Record<string, string>): Promise<GeoInfo | null> {
+    // Extract IP from headers
+    const ip = headers["cf-connecting-ip"] ||
+               headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+               headers["x-real-ip"];
+
+    if (!ip) return null;
+
     const lookup = this.reader.get(ip);
 
     if (!lookup) return null;

@@ -33,12 +33,21 @@ export async function logMessage(
   tenantId: string,
   params: LogParams,
 ): Promise<void> {
+  // Extract headers once, outside the promise, to ensure they're captured
+  // before the request context might be gone
+  const headers: Record<string, string> = {};
+  if (ctx.req.raw?.headers) {
+    ctx.req.raw.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
+  }
+
   const createLogPromise = async () => {
     // Get geo information if adapter is available
     let locationInfo: LogInsert["location_info"] = undefined;
     if (ctx.env.data.geo) {
       try {
-        const geoInfo = await ctx.env.data.geo.getGeoInfo();
+        const geoInfo = await ctx.env.data.geo.getGeoInfo(headers);
         locationInfo = geoInfo || undefined;
       } catch (error) {
         // Silently ignore geo lookup errors
