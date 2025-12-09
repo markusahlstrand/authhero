@@ -180,10 +180,11 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       }
 
       // Validate password against connection policy
+      // Use the user's connection to get the correct password policy
       const policy = await getPasswordPolicy(
         env.data,
         client.tenant.id,
-        "Username-Password-Authentication",
+        user.connection,
       );
 
       try {

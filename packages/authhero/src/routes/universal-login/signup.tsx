@@ -165,7 +165,12 @@ export const signupRoutes = new OpenAPIHono<{
           throw new HTTPException(400, { message: "Username required" });
         }
 
-        const connection = "Username-Password-Authentication";
+        // Find the password connection from the client's connections
+        const passwordConnection = client.connections.find(
+          (c) => c.strategy === "Username-Password-Authentication",
+        );
+        const connection =
+          passwordConnection?.name || "Username-Password-Authentication";
         ctx.set("connection", connection);
 
         if (loginParams.password !== loginParams["re-enter-password"]) {
@@ -209,7 +214,7 @@ export const signupRoutes = new OpenAPIHono<{
         const policy = await getPasswordPolicy(
           env.data,
           client.tenant.id,
-          "Username-Password-Authentication",
+          connection,
         );
 
         try {

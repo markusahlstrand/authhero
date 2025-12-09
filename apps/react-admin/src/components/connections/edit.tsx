@@ -87,6 +87,11 @@ function ConnectionTabbedFrom() {
 
           {["oauth2", "oidc"].includes(record?.strategy) && (
             <>
+              <TextInput
+                source="display_name"
+                label="Display Name"
+                fullWidth
+              />
               <SelectInput
                 source="response_type"
                 label="Response Type"
