@@ -13,7 +13,7 @@ import ErrorMessage from "./ErrorMessage";
 import SocialButton from "./SocialButton";
 import FormComponent from "./Form";
 import Button from "./Button";
-import { getSocialStrategy } from "../strategies";
+import { BUILTIN_STRATEGIES } from "../strategies";
 
 type Props = {
   error?: string;
@@ -36,19 +36,48 @@ const IdentifierPage: FC<Props> = ({
   isEmbedded,
   browserName,
 }) => {
-  const connections = client.connections.map(({ strategy }) => strategy);
+  const connectionStrategies = client.connections.map(
+    ({ strategy }) => strategy,
+  );
 
   // Determine which input fields to show based on available connections
   const showEmailInput =
-    connections.includes("email") ||
-    connections.includes("Username-Password-Authentication");
-  const showPhoneInput = connections.includes("sms");
+    connectionStrategies.includes("email") ||
+    connectionStrategies.includes("Username-Password-Authentication");
+  const showPhoneInput = connectionStrategies.includes("sms");
 
-  // Get all available social connections with their configs
-  const socialConnections = connections
-    .map((strategyName) => {
-      const strategy = getSocialStrategy(strategyName);
-      return strategy ? { name: strategyName, ...strategy } : null;
+  // Strategies that are handled by form inputs, not social/enterprise buttons
+  const formStrategies = new Set([
+    "email",
+    "sms",
+    "Username-Password-Authentication",
+    "auth0",
+  ]);
+
+  // Enterprise strategies where provider = connection name (not strategy name)
+  const enterpriseStrategies = new Set([
+    "oidc",
+    "oauth2",
+    "samlp",
+    "waad",
+    "adfs",
+  ]);
+
+  // Get all available social/enterprise connections with their configs
+  const socialConnections = client.connections
+    .filter((connection) => !formStrategies.has(connection.strategy))
+    .map((connection) => {
+      const strategy = BUILTIN_STRATEGIES[connection.strategy];
+      if (!strategy) return null;
+
+      // For enterprise strategies, use connection name as the display name
+      const isEnterprise = enterpriseStrategies.has(connection.strategy);
+      return {
+        ...strategy,
+        connectionName: connection.name,
+        displayName: isEnterprise ? connection.name : strategy.displayName,
+        iconUrl: connection.options.icon_url,
+      };
     })
     .filter((config): config is NonNullable<typeof config> => config !== null)
     .filter((config) => {
@@ -121,9 +150,7 @@ const IdentifierPage: FC<Props> = ({
           <div className="flex items-start gap-3">
             <span className="text-lg leading-none">⚠️</span>
             <div>
-              <strong>
-                {i18next.t("embedded_browser_detected")}
-              </strong>
+              <strong>{i18next.t("embedded_browser_detected")}</strong>
               <p className="mt-1 text-xs opacity-90">
                 {i18next.t("embedded_browser_warning", {
                   browserName: browserName || "app",
@@ -188,14 +215,17 @@ const IdentifierPage: FC<Props> = ({
             const Logo = config.logo;
             return (
               <SocialButton
-                key={config.name}
-                connection={config.name}
+                key={config.connectionName}
+                connection={config.connectionName}
                 text={i18next.t("continue_with", {
                   provider: config.displayName,
                 })}
                 canResize={true}
                 icon={
-                  <Logo className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0" />
+                  <Logo
+                    className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0"
+                    iconUrl={config.iconUrl}
+                  />
                 }
                 loginSession={loginSession}
               />

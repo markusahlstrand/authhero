@@ -18,7 +18,7 @@ import Button from "./ui/button";
 import Label from "./ui/label";
 import ErrorMessage from "./ErrorMessage";
 import AppLogo from "./AppLogo";
-import { getSocialStrategy } from "../strategies";
+import { BUILTIN_STRATEGIES } from "../strategies";
 
 type Props = {
   error?: string;
@@ -54,7 +54,7 @@ const IdentifierForm: FC<Props> = ({
   // Get all available social connections with their configs
   const socialConnections = connections
     .map((strategyName) => {
-      const strategy = getSocialStrategy(strategyName);
+      const strategy = BUILTIN_STRATEGIES[strategyName];
       return strategy ? { name: strategyName, ...strategy } : null;
     })
     .filter((config): config is NonNullable<typeof config> => config !== null)

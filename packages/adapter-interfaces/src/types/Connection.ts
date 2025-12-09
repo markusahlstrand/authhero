@@ -23,6 +23,7 @@ export const connectionOptionsSchema = z.object({
   from: z.string().optional(),
   twilio_sid: z.string().optional(),
   twilio_token: z.string().optional(),
+  icon_url: z.string().optional(),
 });
 
 export const connectionInsertSchema = z.object({

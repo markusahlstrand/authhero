@@ -23,6 +23,7 @@ export function ConnectionCreate() {
             { id: "microsoft", name: "Microsoft" },
             { id: "vipps", name: "Vipps" },
             { id: "oauth2", name: "OAuth2" },
+            { id: "oidc", name: "OpenID Connect" },
             { id: "Username-Password-Authentication", name: "Password" },
             { id: "sms", name: "SMS" },
             { id: "samlp", name: "SAML" },
