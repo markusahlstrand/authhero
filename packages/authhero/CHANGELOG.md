@@ -1,5 +1,11 @@
 # authhero
 
+## 0.286.0
+
+### Minor Changes
+
+- 65db836: Update logging to kysely
+
 ## 0.285.0
 
 ### Minor Changes

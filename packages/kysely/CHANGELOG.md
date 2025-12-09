@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.62.0
+
+### Minor Changes
+
+- 65db836: Update logging to kysely
+
 ## 10.61.0
 
 ### Minor Changes
