@@ -1,5 +1,11 @@
 # authhero
 
+## 0.288.0
+
+### Minor Changes
+
+- c51ab9b: Fetch settings from connection
+
 ## 0.287.0
 
 ### Minor Changes
