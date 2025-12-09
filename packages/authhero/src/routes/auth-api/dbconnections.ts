@@ -74,11 +74,18 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.client_id);
       ctx.set("tenant_id", client.tenant.id);
 
+      // Find the password connection from the client's connections to get the correct password policy
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const connectionName =
+        passwordConnection?.name || "Username-Password-Authentication";
+
       // Validate password against connection policy
       const policy = await getPasswordPolicy(
         ctx.env.data,
         client.tenant.id,
-        "Username-Password-Authentication",
+        connectionName,
       );
 
       try {
