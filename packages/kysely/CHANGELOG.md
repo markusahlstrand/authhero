@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 10.63.0
+
+### Minor Changes
+
+- c96d83b: Added dispaly name on connections
+
+### Patch Changes
+
+- Updated dependencies [b0c4421]
+- Updated dependencies [c96d83b]
+  - @authhero/adapter-interfaces@0.103.0
+
 ## 10.62.0
 
 ### Minor Changes
