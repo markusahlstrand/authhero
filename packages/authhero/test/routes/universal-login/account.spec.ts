@@ -24,7 +24,9 @@ describe("account", () => {
     // ---------------------------------
     // Request email change
     // ---------------------------------
-    const changeEmailResponse = await universalClient["account"]["change-email"].$post(
+    const changeEmailResponse = await universalClient["account"][
+      "change-email"
+    ].$post(
       {
         query: { state },
         form: {
@@ -83,7 +85,7 @@ describe("account", () => {
     expect(changeEmailPageResponse.status).toBe(200);
     const changeEmailPageContent = await changeEmailPageResponse.text();
     expect(changeEmailPageContent).toContain("new@example.com");
-    expect(changeEmailPageContent).toContain("Verifiera konto");
+    expect(changeEmailPageContent).toContain("Verify account");
 
     // ---------------------------------
     // Submit verification code
@@ -139,7 +141,7 @@ describe("account", () => {
     expect(confirmationPageResponse.status).toBe(200);
     const confirmationPageContent = await confirmationPageResponse.text();
     expect(confirmationPageContent).toContain("new@example.com");
-    expect(confirmationPageContent).toContain("Klart");
+    expect(confirmationPageContent).toContain("Success");
 
     // ---------------------------------
     // Verify email was updated and verified

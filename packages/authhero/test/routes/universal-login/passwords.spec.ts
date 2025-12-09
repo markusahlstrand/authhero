@@ -88,7 +88,7 @@ describe("passwords", () => {
     expect(enterInvalidPasswordPostResponse.status).toBe(400);
     const enterInvalidPasswordText =
       await enterInvalidPasswordPostResponse.text();
-    expect(enterInvalidPasswordText).toContain("Ogiltigt lösenord");
+    expect(enterInvalidPasswordText).toContain("Invalid password");
 
     // --------------------------------
     // enter password
@@ -601,29 +601,29 @@ describe("passwords", () => {
     }
 
     // Try to set a weak password (too short)
-    const weakPasswordResponse1 = await universalClient[
-      "reset-password"
-    ].$post({
-      query: { state: resetState, code: passwordResetCode },
-      form: {
-        password: "short",
-        "re-enter-password": "short",
+    const weakPasswordResponse1 = await universalClient["reset-password"].$post(
+      {
+        query: { state: resetState, code: passwordResetCode },
+        form: {
+          password: "short",
+          "re-enter-password": "short",
+        },
       },
-    });
+    );
     expect(weakPasswordResponse1.status).toBe(400);
     const weakPasswordText1 = await weakPasswordResponse1.text();
     expect(weakPasswordText1).toContain("at least 8 characters");
 
     // Try to set a password without uppercase
-    const weakPasswordResponse2 = await universalClient[
-      "reset-password"
-    ].$post({
-      query: { state: resetState, code: passwordResetCode },
-      form: {
-        password: "lowercase123!",
-        "re-enter-password": "lowercase123!",
+    const weakPasswordResponse2 = await universalClient["reset-password"].$post(
+      {
+        query: { state: resetState, code: passwordResetCode },
+        form: {
+          password: "lowercase123!",
+          "re-enter-password": "lowercase123!",
+        },
       },
-    });
+    );
     expect(weakPasswordResponse2.status).toBe(400);
     const weakPasswordText2 = await weakPasswordResponse2.text();
     expect(weakPasswordText2).toContain("uppercase letter");

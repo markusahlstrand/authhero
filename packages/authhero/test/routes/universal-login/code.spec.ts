@@ -62,7 +62,7 @@ describe("code", () => {
     expect(increctCodeResponse.status).toBe(400);
 
     const incorrectCodeBody = await increctCodeResponse.text();
-    expect(incorrectCodeBody).toContain("Ogiltig kod");
+    expect(incorrectCodeBody).toContain("Invalid code");
 
     // --------------------------------
     // enter correct code
