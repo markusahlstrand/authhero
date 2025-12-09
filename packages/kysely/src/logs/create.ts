@@ -15,10 +15,13 @@ export function createLog(db: Kysely<Database>) {
 
     const log_id = log.log_id || nanoid();
 
+    // Destructure to exclude location_info from the spread
+    const { location_info, ...logWithoutLocationInfo } = log;
+
     await db
       .insertInto("logs")
       .values({
-        ...log,
+        ...logWithoutLocationInfo,
         log_id,
         tenant_id,
         user_agent: truncatedUserAgent,
@@ -28,12 +31,12 @@ export function createLog(db: Kysely<Database>) {
         auth0_client: stringifyIfTruthy(log.auth0_client),
         details: stringifyIfTruthy(log.details)?.substring(0, 8192),
         // Extract location_info fields for separate columns
-        country_code: log.location_info?.country_code,
-        city_name: log.location_info?.city_name,
-        latitude: log.location_info?.latitude,
-        longitude: log.location_info?.longitude,
-        time_zone: log.location_info?.time_zone,
-        continent_code: log.location_info?.continent_code,
+        country_code: location_info?.country_code,
+        city_name: location_info?.city_name,
+        latitude: location_info?.latitude,
+        longitude: location_info?.longitude,
+        time_zone: location_info?.time_zone,
+        continent_code: location_info?.continent_code,
       })
       .execute();
 

@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { LogInsert, LogType } from "@authhero/adapter-interfaces";
 import { Variables, Bindings } from "../types";
 import { waitUntil } from "./wait-until";
+import { instanceToJson } from "../utils/instance-to-json";
 
 export type LogParams = {
   type: LogType;
@@ -33,18 +34,22 @@ export async function logMessage(
   tenantId: string,
   params: LogParams,
 ): Promise<void> {
-  // Extract headers once, outside the promise, to ensure they're captured
-  // before the request context might be gone
+  // Extract headers synchronously before any async operations
+  // Must create a plain object copy because the Headers object may not be
+  // accessible after the request context closes (e.g., in waitUntil)
+  // Lowercase all keys for consistent access
   const headers: Record<string, string> = {};
   if (ctx.req.raw?.headers) {
-    ctx.req.raw.headers.forEach((value, key) => {
+    const rawHeaders = instanceToJson(ctx.req.raw.headers);
+    for (const [key, value] of Object.entries(rawHeaders)) {
       headers[key.toLowerCase()] = value;
-    });
+    }
   }
 
   const createLogPromise = async () => {
     // Get geo information if adapter is available
     let locationInfo: LogInsert["location_info"] = undefined;
+
     if (ctx.env.data.geo) {
       try {
         const geoInfo = await ctx.env.data.geo.getGeoInfo(headers);
