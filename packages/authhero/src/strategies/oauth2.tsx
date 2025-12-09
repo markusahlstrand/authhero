@@ -118,8 +118,15 @@ export async function validateAuthorizationCodeAndGetUser(
   const user = await userResponse.json();
 
   // OAuth2 responses can vary, try to extract common fields
+  const sub = user.sub || user.id || user.user_id;
+  if (!sub) {
+    throw new Error(
+      "Unable to get user identifier: response missing sub, id, or user_id",
+    );
+  }
+
   return {
-    sub: user.sub || user.id || user.user_id,
+    sub,
     email: user.email,
     given_name: user.given_name || user.first_name,
     family_name: user.family_name || user.last_name,

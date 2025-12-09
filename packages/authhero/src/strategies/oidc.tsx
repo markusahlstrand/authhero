@@ -137,6 +137,12 @@ export async function validateAuthorizationCodeAndGetUser(
 
     const user = await userResponse.json();
 
+    if (!user.sub) {
+      throw new Error(
+        "Unable to get user identifier: userinfo response missing sub",
+      );
+    }
+
     return {
       sub: user.sub,
       email: user.email,

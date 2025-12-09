@@ -67,7 +67,7 @@ export function getStrategy(
 }
 
 // Enterprise strategies where provider = connection name (not strategy name)
-const ENTERPRISE_STRATEGIES = new Set([
+export const ENTERPRISE_STRATEGIES = new Set([
   "oidc",
   "samlp",
   "waad",

@@ -29,11 +29,15 @@ export const connectionOptionsSchema = z.object({
 export const connectionInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
+  display_name: z.string().optional(),
   strategy: z.string(),
   options: connectionOptionsSchema.default({}),
   enabled_clients: z.array(z.string()).default([]).optional(),
   response_type: z.custom<AuthorizationResponseType>().optional(),
   response_mode: z.custom<AuthorizationResponseMode>().optional(),
+  is_domain_connection: z.boolean().optional(),
+  show_as_button: z.boolean().optional(),
+  metadata: z.record(z.any()).optional(),
 });
 export type ConnectionInsert = z.infer<typeof connectionInsertSchema>;
 

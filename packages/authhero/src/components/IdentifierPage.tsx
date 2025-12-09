@@ -54,28 +54,20 @@ const IdentifierPage: FC<Props> = ({
     "auth0",
   ]);
 
-  // Enterprise strategies where provider = connection name (not strategy name)
-  const enterpriseStrategies = new Set([
-    "oidc",
-    "oauth2",
-    "samlp",
-    "waad",
-    "adfs",
-  ]);
-
   // Get all available social/enterprise connections with their configs
   const socialConnections = client.connections
     .filter((connection) => !formStrategies.has(connection.strategy))
+    .filter((connection) => connection.show_as_button !== false)
     .map((connection) => {
       const strategy = BUILTIN_STRATEGIES[connection.strategy];
       if (!strategy) return null;
 
-      // For enterprise strategies, use connection name as the display name
-      const isEnterprise = enterpriseStrategies.has(connection.strategy);
       return {
         ...strategy,
         connectionName: connection.name,
-        displayName: isEnterprise ? connection.name : strategy.displayName,
+        // Use display_name if set, otherwise fall back to strategy displayName
+        displayName:
+          connection.display_name || strategy.displayName || connection.name,
         iconUrl: connection.options.icon_url,
       };
     })

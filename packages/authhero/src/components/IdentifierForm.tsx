@@ -177,9 +177,7 @@ const IdentifierForm: FC<Props> = ({
           <div className="flex items-start gap-3">
             <span className="text-lg leading-none">⚠️</span>
             <div>
-              <strong>
-                {i18next.t("embedded_browser_do_you_keep_logging_in")}
-              </strong>
+              <strong>{i18next.t("embedded_browser_detected")}</strong>
               <p className="mt-1 text-xs opacity-90">
                 {i18next.t("embedded_browser_warning", {
                   browserName: browserName || "the app",
