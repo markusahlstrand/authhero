@@ -65,8 +65,6 @@ export function formatLogFromStorage(row: Record<string, any>): Log {
 
 export function createLog(config: R2SQLLogsAdapterConfig) {
   return async (tenantId: string, log: LogInsert): Promise<Log> => {
-    console.log("createLog called with config:", config);
-
     // Passthrough mode: Use base adapter first
     if (config.baseAdapter) {
       const baseLog = await config.baseAdapter.create(tenantId, log);
@@ -90,8 +88,6 @@ export function createLog(config: R2SQLLogsAdapterConfig) {
     };
 
     await sendToPipeline(config, tenantId, createdLog);
-
-    console.log("Log sent to Pipeline with ID:", id);
 
     return createdLog;
   };
@@ -148,7 +144,7 @@ async function sendToPipeline(
     // Pipeline binding mode (Workers)
     if (config.pipelineBinding) {
       // Pipeline.send() accepts data directly (no need for fetch)
-      await config.pipelineBinding.send(logData);
+      await config.pipelineBinding.send([logData]);
     }
     // HTTP endpoint mode
     else if (config.pipelineEndpoint) {
