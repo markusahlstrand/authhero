@@ -4,6 +4,7 @@ import Footer from "./Footer";
 import Icon from "./Icon";
 import { PropsWithChildren } from "hono/jsx";
 import { lighten } from "../utils/color";
+import i18next from "i18next";
 
 type LayoutProps = {
   title: string;
@@ -47,7 +48,7 @@ const Layout = ({
   };
 
   return (
-    <html lang="en">
+    <html lang={i18next.language || "en"}>
       <head>
         <title>{title}</title>
         <meta charset="UTF-8" />

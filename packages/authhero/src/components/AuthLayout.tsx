@@ -1,6 +1,7 @@
 import { Branding, Theme, LegacyClient } from "@authhero/adapter-interfaces";
 import { PropsWithChildren } from "hono/jsx";
 import cn from "classnames";
+import i18next from "i18next";
 
 type AuthLayoutProps = {
   title: string;
@@ -87,7 +88,7 @@ const AuthLayout = ({
   );
 
   return (
-    <html lang="en">
+    <html lang={i18next.language || "en"}>
       <head>
         <title>{title}</title>
         <meta charset="UTF-8" />
