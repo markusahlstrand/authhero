@@ -85,7 +85,7 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
-          {record?.strategy === "oauth2" && (
+          {["oauth2", "oidc"].includes(record?.strategy) && (
             <>
               <SelectInput
                 source="response_type"
@@ -121,6 +121,7 @@ function ConnectionTabbedFrom() {
                 label="Token Endpoint"
                 fullWidth
               />
+              <TextInput source="options.icon_url" label="Icon URL" fullWidth />
             </>
           )}
 

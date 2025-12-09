@@ -18,7 +18,7 @@ import Button from "./ui/button";
 import Label from "./ui/label";
 import ErrorMessage from "./ErrorMessage";
 import AppLogo from "./AppLogo";
-import { getSocialStrategy } from "../strategies";
+import { BUILTIN_STRATEGIES } from "../strategies";
 
 type Props = {
   error?: string;
@@ -54,7 +54,7 @@ const IdentifierForm: FC<Props> = ({
   // Get all available social connections with their configs
   const socialConnections = connections
     .map((strategyName) => {
-      const strategy = getSocialStrategy(strategyName);
+      const strategy = BUILTIN_STRATEGIES[strategyName];
       return strategy ? { name: strategyName, ...strategy } : null;
     })
     .filter((config): config is NonNullable<typeof config> => config !== null)
@@ -177,9 +177,7 @@ const IdentifierForm: FC<Props> = ({
           <div className="flex items-start gap-3">
             <span className="text-lg leading-none">⚠️</span>
             <div>
-              <strong>
-                {i18next.t("embedded_browser_do_you_keep_logging_in")}
-              </strong>
+              <strong>{i18next.t("embedded_browser_detected")}</strong>
               <p className="mt-1 text-xs opacity-90">
                 {i18next.t("embedded_browser_warning", {
                   browserName: browserName || "the app",
