@@ -1,5 +1,18 @@
 # authhero
 
+## 0.287.0
+
+### Minor Changes
+
+- b0c4421: Add oidc and icon_url
+- c96d83b: Added dispaly name on connections
+
+### Patch Changes
+
+- Updated dependencies [b0c4421]
+- Updated dependencies [c96d83b]
+  - @authhero/adapter-interfaces@0.103.0
+
 ## 0.286.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.103.0
+
+### Minor Changes
+
+- b0c4421: Add oidc and icon_url
+- c96d83b: Added dispaly name on connections
+
 ## 0.102.0
 
 ### Minor Changes
