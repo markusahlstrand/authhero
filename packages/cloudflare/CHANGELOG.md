@@ -1,5 +1,11 @@
 # @authhero/cloudflare-adapter
 
+## 2.14.0
+
+### Minor Changes
+
+- 521e436: Send batch of messages
+
 ## 2.13.1
 
 ### Patch Changes
