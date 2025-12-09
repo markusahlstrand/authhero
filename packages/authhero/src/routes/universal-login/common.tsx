@@ -86,7 +86,7 @@ export async function initJSXRoute(
       }
     });
 
-  await i18next.changeLanguage(loginSessionLanguage || "sv");
+  await i18next.changeLanguage(loginSessionLanguage || "en");
 
   return {
     theme,

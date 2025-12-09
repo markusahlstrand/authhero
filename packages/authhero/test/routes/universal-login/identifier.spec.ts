@@ -51,7 +51,7 @@ describe("login identifier page", () => {
     const invalidEmailBody = await invalidEmailResponse.text();
 
     // Check that the error message is displayed in the HTML
-    expect(invalidEmailBody).toContain("Ogiltig identifierare");
+    expect(invalidEmailBody).toContain("Invalid identifier");
 
     // Verify that it's still the identifier page (contains the form)
     expect(invalidEmailBody).toContain("username");
@@ -113,7 +113,7 @@ describe("login identifier page", () => {
       const invalidEmailBody = await invalidEmailResponse.text();
 
       // Check that the error message is displayed in the HTML
-      expect(invalidEmailBody).toContain("Ogiltig identifierare");
+      expect(invalidEmailBody).toContain("Invalid identifier");
 
       // Verify that it's still the identifier page (contains the form)
       expect(invalidEmailBody).toContain("username");
@@ -274,7 +274,7 @@ describe("login identifier page", () => {
     // Should return 400 with error message
     expect(blockedResponse.status).toBe(400);
     const body = await blockedResponse.text();
-    expect(body).toContain("Kontot existerar inte");
+    expect(body).toContain("User account does not exist");
   });
 
   it("should not call validateSignupEmail hook when user exists", async () => {
