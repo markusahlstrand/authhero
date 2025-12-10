@@ -4,6 +4,10 @@ import { initJSXRoute } from "./common";
 import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import {
+  resolveNextStepNode,
+  buildRouterContext,
+} from "../../hooks/formhooks";
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -170,14 +174,47 @@ export const formNodeRoutes = new OpenAPIHono<{
           throw new Error("Session expired");
         }
 
-        const result = await createFrontChannelAuthResponse(ctx, {
-          authParams: loginSession.authParams,
-          client,
-          user,
-          loginSession,
-          skipHooks: true,
+        // Determine the next node from this step
+        const nextNodeId = node.config?.next_node;
+
+        // If next_node is $ending or not set, complete the flow
+        if (!nextNodeId || nextNodeId === "$ending") {
+          const result = await createFrontChannelAuthResponse(ctx, {
+            authParams: loginSession.authParams,
+            client,
+            user,
+            loginSession,
+            skipHooks: true,
+          });
+          return result;
+        }
+
+        // Build context for router evaluation and resolve the next STEP node
+        const routerContext = buildRouterContext(user, loginSession);
+        const resolvedNextNodeId = resolveNextStepNode(
+          nextNodeId,
+          form.nodes || [],
+          routerContext,
+        );
+
+        // If resolved to $ending or null, complete the flow
+        if (!resolvedNextNodeId || resolvedNextNodeId === "$ending") {
+          const result = await createFrontChannelAuthResponse(ctx, {
+            authParams: loginSession.authParams,
+            client,
+            user,
+            loginSession,
+            skipHooks: true,
+          });
+          return result;
+        }
+
+        // Redirect to the next STEP node
+        const nextUrl = `/u/forms/${formId}/nodes/${resolvedNextNodeId}?state=${encodeURIComponent(state)}`;
+        return new Response(null, {
+          status: 302,
+          headers: { location: nextUrl },
         });
-        return result;
       } catch (err) {
         return ctx.html(
           <FormNodePage

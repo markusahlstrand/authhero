@@ -12,11 +12,7 @@ import {
   useNotify,
   useRefresh,
 } from "react-admin";
-import FlowEditor, {
-  FlowNodeData,
-  StartNode,
-  EndingNode,
-} from "./FlowEditor";
+import FlowEditor, { FlowNodeData, StartNode, EndingNode } from "./FlowEditor";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Box, Typography, useTheme } from "@mui/material";
 import * as React from "react";

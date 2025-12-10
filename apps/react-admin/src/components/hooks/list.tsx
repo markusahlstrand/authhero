@@ -5,7 +5,7 @@ export function HookList() {
   return (
     <List actions={<PostListActions />}>
       <Datagrid rowClick="edit" bulkActionButtons={false}>
-        <TextField source="id" />
+        <TextField source="hook_id" />
         <TextField source="trigger_id" />
         <TextField source="url" />
         <TextField source="form_id" label="Form" />

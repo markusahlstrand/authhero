@@ -300,7 +300,7 @@ export default (
         if (Array.isArray(res.json)) {
           return {
             data: res.json.map((item) => ({
-              id: item.custom_domain_id || item.id,
+              id: item.hook_id || item.custom_domain_id || item.id,
               ...item,
             })),
             total: res.json.length,
@@ -311,7 +311,7 @@ export default (
         return {
           data:
             res.json[resource]?.map((item: any) => ({
-              id: item.custom_domain_id || item.id,
+              id: item.hook_id || item.custom_domain_id || item.id,
               ...item,
             })) || [],
           total: res.json.total || res.json.length || 0,
@@ -422,7 +422,7 @@ export default (
         headers,
       }).then(({ json }) => ({
         data: {
-          id: json.id,
+          id: json.hook_id || json.id,
           ...json,
         },
       }));

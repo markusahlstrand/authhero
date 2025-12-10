@@ -16,7 +16,7 @@ import {
   addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Box, Typography, Alert, GlobalStyles } from "@mui/material";
+import { Box, Typography, Alert, GlobalStyles, Divider } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { useTheme } from "@mui/material/styles";
 
@@ -26,10 +26,28 @@ import NodeEditor from "./NodeEditor";
 // Type definitions
 export interface ComponentConfig {
   id: string;
-  type: "RICH_TEXT" | "LEGAL" | "NEXT_BUTTON";
+  type:
+    | "RICH_TEXT"
+    | "LEGAL"
+    | "NEXT_BUTTON"
+    | "TEXT"
+    | "NUMBER"
+    | "EMAIL"
+    | "PHONE"
+    | "DATETIME"
+    | "BOOLEAN"
+    | "DIVIDER";
+  category?: "BLOCK" | "FIELD";
+  label?: string;
+  required?: boolean;
+  sensitive?: boolean;
   config?: {
     content?: string;
     text?: string;
+    placeholder?: string;
+    multiline?: boolean;
+    min?: number;
+    max?: number;
   };
 }
 
@@ -245,6 +263,81 @@ const ComponentRenderer = React.memo(
             }}
           >
             {component.config?.text || "Continue"}
+          </Box>
+        );
+
+      case "DIVIDER":
+        return <Divider sx={{ my: 1 }} />;
+
+      case "TEXT":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              📝 {component.label || "Text Input"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
+          </Box>
+        );
+
+      case "NUMBER":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              🔢 {component.label || "Number Input"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
+          </Box>
+        );
+
+      case "EMAIL":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              ✉️ {component.label || "Email Input"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
+          </Box>
+        );
+
+      case "PHONE":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              📞 {component.label || "Phone Input"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
+          </Box>
+        );
+
+      case "DATETIME":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              📅 {component.label || "Date/Time Input"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
+          </Box>
+        );
+
+      case "BOOLEAN":
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              ☑️ {component.label || "Checkbox"}
+              {component.required && (
+                <span style={{ color: "#f44336" }}>*</span>
+              )}
+            </Typography>
           </Box>
         );
 
@@ -516,7 +609,10 @@ const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
           position: "relative",
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: "12px", color: "text.secondary" }}>
+        <Typography
+          variant="body2"
+          sx={{ fontSize: "12px", color: "text.secondary" }}
+        >
           Default
         </Typography>
         <Typography
@@ -761,7 +857,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           const rules = node.config?.rules || [];
           rules.forEach((rule) => {
             if (rule.next_node) {
-              const target = rule.next_node === "$ending" ? "end" : rule.next_node;
+              const target =
+                rule.next_node === "$ending" ? "end" : rule.next_node;
               const edgeId = `${node.id}-rule-${rule.id}-to-${target}`;
               const targetHandle = getTargetHandle(target, nodes);
 
@@ -782,7 +879,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
 
           // Create edge for fallback
           if (node.config?.fallback) {
-            const target = node.config.fallback === "$ending" ? "end" : node.config.fallback;
+            const target =
+              node.config.fallback === "$ending" ? "end" : node.config.fallback;
             const edgeId = `${node.id}-fallback-to-${target}`;
             const targetHandle = getTargetHandle(target, nodes);
 
@@ -795,7 +893,11 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               type: "smoothstep",
               animated: true,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: "#9c27b0", strokeWidth: 2, strokeDasharray: "5,5" },
+              style: {
+                stroke: "#9c27b0",
+                strokeWidth: 2,
+                strokeDasharray: "5,5",
+              },
               label: "Default",
             });
           }
@@ -803,7 +905,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           // Create edge to the next node for STEP and FLOW nodes
           if (node.config?.next_node) {
             const target =
-              node.config.next_node === "$ending" ? "end" : node.config.next_node;
+              node.config.next_node === "$ending"
+                ? "end"
+                : node.config.next_node;
             const edgeId = `${node.id}-to-${target}`;
 
             // Determine source and target handles
@@ -931,6 +1035,18 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     [onNodeUpdate],
   );
 
+  // Handle node drag stop - persist position to data
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const coordinates = {
+        x: Math.round(node.position.x),
+        y: Math.round(node.position.y),
+      };
+      onNodeUpdate?.(node.id, { coordinates });
+    },
+    [onNodeUpdate],
+  );
+
   // Find the selected node
   const selectedNode = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -970,7 +1086,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
       if (!connection.source || !connection.target) return;
 
       // Determine the target node id (map 'end' back to '$ending')
-      const targetNodeId = connection.target === "end" ? "$ending" : connection.target;
+      const targetNodeId =
+        connection.target === "end" ? "$ending" : connection.target;
 
       // Update the source node's next_node
       if (connection.source === "start") {
@@ -992,9 +1109,15 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               });
             } else if (connection.sourceHandle.startsWith("router-rule-")) {
               // Update a specific rule's next_node
-              const ruleId = connection.sourceHandle.replace("router-rule-", "");
-              const updatedRules = (sourceNode.config?.rules || []).map((rule: { id: string; next_node?: string }) =>
-                rule.id === ruleId ? { ...rule, next_node: targetNodeId } : rule
+              const ruleId = connection.sourceHandle.replace(
+                "router-rule-",
+                "",
+              );
+              const updatedRules = (sourceNode.config?.rules || []).map(
+                (rule: { id: string; next_node?: string }) =>
+                  rule.id === ruleId
+                    ? { ...rule, next_node: targetNodeId }
+                    : rule,
               );
               onNodeUpdate?.(connection.source, {
                 config: {
@@ -1192,6 +1315,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
+        onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={FLOW_CONFIG.fitViewOptions}
