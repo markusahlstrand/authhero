@@ -43,19 +43,40 @@ const IdentifierForm: FC<Props> = ({
   isEmbedded,
   browserName,
 }) => {
-  const connections = client.connections.map(({ strategy }) => strategy);
+  const connectionStrategies = client.connections.map(
+    ({ strategy }) => strategy,
+  );
 
   // Determine which input fields to show based on available connections
   const showEmailInput =
-    connections.includes("email") ||
-    connections.includes("Username-Password-Authentication");
-  const showPhoneInput = connections.includes("sms");
+    connectionStrategies.includes("email") ||
+    connectionStrategies.includes("Username-Password-Authentication");
+  const showPhoneInput = connectionStrategies.includes("sms");
 
-  // Get all available social connections with their configs
-  const socialConnections = connections
-    .map((strategyName) => {
-      const strategy = BUILTIN_STRATEGIES[strategyName];
-      return strategy ? { name: strategyName, ...strategy } : null;
+  // Strategies that are handled by form inputs, not social/enterprise buttons
+  const formStrategies = new Set([
+    "email",
+    "sms",
+    "Username-Password-Authentication",
+    "auth0",
+  ]);
+
+  // Get all available social/enterprise connections with their configs
+  const socialConnections = client.connections
+    .filter((connection) => !formStrategies.has(connection.strategy))
+    .filter((connection) => connection.show_as_button !== false)
+    .map((connection) => {
+      const strategy = BUILTIN_STRATEGIES[connection.strategy];
+      if (!strategy) return null;
+
+      return {
+        ...strategy,
+        connectionName: connection.name,
+        // Use display_name if set, otherwise fall back to strategy displayName
+        displayName:
+          connection.display_name || strategy.displayName || connection.name,
+        iconUrl: connection.options.icon_url,
+      };
     })
     .filter((config): config is NonNullable<typeof config> => config !== null)
     .filter((config) => {
@@ -274,8 +295,8 @@ const IdentifierForm: FC<Props> = ({
                       const Logo = config.logo;
                       return (
                         <a
-                          key={config.name}
-                          href={`/authorize/redirect?state=${loginSession.id}&connection=${config.name}`}
+                          key={config.connectionName}
+                          href={`/authorize/redirect?state=${loginSession.id}&connection=${config.connectionName}`}
                           className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 border bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-10 px-4 py-2 w-full sm:w-full short:flex-1"
                           style={{
                             borderColor: inputBorder,
@@ -283,7 +304,7 @@ const IdentifierForm: FC<Props> = ({
                             color: bodyText,
                           }}
                         >
-                          <Logo className="h-5 w-5" />
+                          <Logo className="h-5 w-5" iconUrl={config.iconUrl} />
                           <span className="sm:inline short:hidden">
                             {i18next.t(
                               "continue_with",

@@ -23,6 +23,7 @@ export type FormControl = z.infer<typeof formControlSchema>;
 export const formNodeComponentDefinition = z.discriminatedUnion("type", [
   z.object({
     id: z.string(),
+    category: z.literal("BLOCK").optional(),
     type: z.literal("RICH_TEXT"),
     config: z.object({
       content: z.string(),
@@ -32,6 +33,7 @@ export const formNodeComponentDefinition = z.discriminatedUnion("type", [
   }),
   z.object({
     id: z.string(),
+    category: z.literal("FIELD").optional(),
     type: z.literal("LEGAL"),
     config: z.object({
       text: z.string(),
@@ -43,6 +45,7 @@ export const formNodeComponentDefinition = z.discriminatedUnion("type", [
   }),
   z.object({
     id: z.string(),
+    category: z.literal("FIELD").optional(),
     type: z.literal("TEXT"),
     config: z.object({
       placeholder: z.string().optional(),
@@ -55,6 +58,7 @@ export const formNodeComponentDefinition = z.discriminatedUnion("type", [
   }),
   z.object({
     id: z.string(),
+    category: z.literal("BLOCK").optional(),
     type: z.literal("NEXT_BUTTON"),
     config: z.object({
       text: z.string().optional(),
@@ -99,7 +103,7 @@ export const formInsertSchema = z
             alias: z.string().min(1).max(150).optional(),
             config: z.object({
               flow_id: z.string().max(30),
-              next_node: z.string(),
+              next_node: z.string().optional(),
             }),
           }),
           // ROUTER node
@@ -117,7 +121,7 @@ export const formInsertSchema = z
                   next_node: z.string(),
                 }),
               ),
-              fallback: z.array(z.string()),
+              fallback: z.string(),
             }),
           }),
           // STEP node
@@ -128,7 +132,7 @@ export const formInsertSchema = z
             alias: z.string().min(1).max(150).optional(),
             config: z.object({
               components: z.array(formNodeComponentDefinition),
-              next_node: z.string(),
+              next_node: z.string().optional(),
             }),
           }),
         ]),
