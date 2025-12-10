@@ -1,19 +1,25 @@
-import { Kysely, sql } from "kysely";
+import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function listByConnection(db: Kysely<Database>) {
   return async (tenant_id: string, connection_id: string): Promise<string[]> => {
-    // Find all clients that have this connection_id in their connections array
-    // We need to search in the JSON array stored as a text field
+    // Fetch all clients for the tenant and filter in application code
+    // This is database-agnostic (works with SQLite, MySQL, PostgreSQL, etc.)
     const clients = await db
       .selectFrom("clients")
       .where("clients.tenant_id", "=", tenant_id)
-      .where(
-        sql<boolean>`JSON_CONTAINS(connections, JSON_QUOTE(${connection_id}))`,
-      )
-      .select("client_id")
+      .select(["client_id", "connections"])
       .execute();
 
-    return clients.map((c) => c.client_id);
+    // Filter clients that have this connection_id in their connections array
+    const matchingClientIds: string[] = [];
+    for (const client of clients) {
+      const connections: string[] = JSON.parse(client.connections || "[]");
+      if (connections.includes(connection_id)) {
+        matchingClientIds.push(client.client_id);
+      }
+    }
+
+    return matchingClientIds;
   };
 }

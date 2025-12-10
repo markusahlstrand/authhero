@@ -595,4 +595,165 @@ describe("ClientConnectionsAdapter", () => {
       ]);
     });
   });
+
+  describe("listByConnection", () => {
+    it("should return empty array when no clients use the connection", async () => {
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-1",
+      );
+
+      expect(clientIds).toEqual([]);
+    });
+
+    it("should return client IDs that use a specific connection", async () => {
+      // Set up clients with different connections
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+        "conn-2",
+      ]);
+      await adapter.clientConnections.updateByClient(tenantId, "client-2", [
+        "conn-2",
+        "conn-3",
+      ]);
+
+      // Check which clients use conn-2
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-2",
+      );
+
+      expect(clientIds.sort()).toEqual(["client-1", "client-2"].sort());
+    });
+
+    it("should return only clients with a specific connection", async () => {
+      // Set up multiple clients
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+        "conn-2",
+      ]);
+      await adapter.clientConnections.updateByClient(tenantId, "client-2", [
+        "conn-2",
+        "conn-3",
+      ]);
+
+      // Check which clients use conn-1 (only client-1)
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-1",
+      );
+
+      expect(clientIds).toEqual(["client-1"]);
+    });
+
+    it("should handle connection not used by any client", async () => {
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+      ]);
+
+      // Check for a connection that exists but isn't used
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-3",
+      );
+
+      expect(clientIds).toEqual([]);
+    });
+
+    it("should handle non-existent connection ID", async () => {
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+      ]);
+
+      // Check for a connection that doesn't exist
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "non-existent-connection",
+      );
+
+      expect(clientIds).toEqual([]);
+    });
+
+    it("should isolate by tenant", async () => {
+      // Create another tenant
+      const otherTenantId = "other-tenant";
+      await db
+        .insertInto("tenants")
+        .values({
+          id: otherTenantId,
+          friendly_name: "Other Tenant",
+          audience: "https://other.authhero.com/api/v2/",
+          sender_email: "other@authhero.com",
+          sender_name: "Other Sender",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      // Create client in other tenant
+      await db
+        .insertInto("clients")
+        .values({
+          tenant_id: otherTenantId,
+          client_id: "other-client",
+          name: "Other Client",
+          client_secret: "other-secret",
+          callbacks: "[]",
+          allowed_origins: "[]",
+          web_origins: "[]",
+          client_aliases: "[]",
+          allowed_clients: "[]",
+          connections: JSON.stringify(["conn-1"]),
+          allowed_logout_urls: "[]",
+          session_transfer: "{}",
+          oidc_logout: "{}",
+          grant_types: "[]",
+          jwt_configuration: "{}",
+          signing_keys: "[]",
+          encryption_key: "{}",
+          addons: "{}",
+          client_metadata: "{}",
+          mobile: "{}",
+          native_social_login: "{}",
+          refresh_token: "{}",
+          default_organization: "{}",
+          client_authentication_methods: "{}",
+          signed_request_object: "{}",
+          token_quota: "{}",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      // Set up client in test tenant
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+      ]);
+
+      // Should only return clients from the specified tenant
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-1",
+      );
+
+      expect(clientIds).toEqual(["client-1"]);
+      expect(clientIds).not.toContain("other-client");
+    });
+
+    it("should work correctly with clients having empty connections arrays", async () => {
+      // Client-1 has conn-1
+      await adapter.clientConnections.updateByClient(tenantId, "client-1", [
+        "conn-1",
+      ]);
+      // Client-2 has empty array
+      await adapter.clientConnections.updateByClient(tenantId, "client-2", []);
+
+      const clientIds = await adapter.clientConnections.listByConnection(
+        tenantId,
+        "conn-1",
+      );
+
+      expect(clientIds).toEqual(["client-1"]);
+    });
+  });
 });
