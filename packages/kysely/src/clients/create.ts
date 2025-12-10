@@ -51,6 +51,7 @@ export function create(db: Kysely<Database>) {
         web_origins: JSON.stringify(params.web_origins || []),
         client_aliases: JSON.stringify(params.client_aliases || []),
         allowed_clients: JSON.stringify(params.allowed_clients || []),
+        connections: JSON.stringify(params.connections || []),
         allowed_logout_urls: JSON.stringify(params.allowed_logout_urls || []),
         session_transfer: JSON.stringify(params.session_transfer || {}),
         oidc_logout: JSON.stringify(params.oidc_logout || {}),

@@ -4,16 +4,17 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 
 ## Overview
 
-| Feature                 | Auth0             | AuthHero                               |
-| ----------------------- | ----------------- | -------------------------------------- |
-| **Hosting**             | SaaS only         | Self-hosted or Edge                    |
-| **Pricing**             | Per-MAU pricing   | Free, open-source                      |
-| **Multi-tenancy**       | Enterprise plans  | Built-in, all plans                    |
-| **Database**            | Managed           | Your choice (SQL, etc.)                |
-| **Edge Deployment**     | Limited           | Full support (Workers, Edge Functions) |
-| **Source Code**         | Closed            | Open source (ISC License)              |
-| **Hooks System**        | Deprecated (2024) | Active & expanding                     |
-| **User Deletion Hooks** | ❌ Not available  | ✅ Pre & Post hooks                    |
+| Feature                      | Auth0             | AuthHero                               |
+| ---------------------------- | ----------------- | -------------------------------------- |
+| **Hosting**                  | SaaS only         | Self-hosted or Edge                    |
+| **Pricing**                  | Per-MAU pricing   | Free, open-source                      |
+| **Multi-tenancy**            | Enterprise plans  | Built-in, all plans                    |
+| **Database**                 | Managed           | Your choice (SQL, etc.)                |
+| **Edge Deployment**          | Limited           | Full support (Workers, Edge Functions) |
+| **Source Code**              | Closed            | Open source (ISC License)              |
+| **Hooks System**             | Deprecated (2024) | Active & expanding                     |
+| **User Deletion Hooks**      | ❌ Not available  | ✅ Pre & Post hooks                    |
+| **Connection Order Control** | ❌ Not available  | ✅ Configurable ordering               |
 
 ## Key Advantages
 
@@ -313,6 +314,40 @@ This data is automatically included in authentication logs when a `GeoAdapter` i
 2. **Geo Database**: Use MaxMind GeoIP2 or similar for IP-based lookups
 
 See the [Geo Adapter documentation](/packages/adapters/adapter-interfaces#geoadapter) for implementation details.
+
+### Connection Order Control
+
+**Auth0 Limitation**: Auth0 does not provide a way to control the order in which authentication connections appear on the universal login screen. The display order is determined by Auth0's internal logic, which has been a long-standing feature request from the community.
+
+**AuthHero Solution**: Provides explicit control over connection ordering through the client connections API:
+
+```bash
+# Set the order of connections for a client
+PATCH /api/v2/clients/{id}/connections
+Content-Type: application/json
+
+["con_google", "con_username_password", "con_github"]
+```
+
+The order in the array determines exactly how connections appear on the login screen:
+
+```typescript
+// Example: Prioritize social logins
+await managementClient.updateClientConnections(clientId, [
+  "con_google", // Shows first
+  "con_github", // Shows second
+  "con_username_password", // Shows last
+]);
+```
+
+**Benefits**:
+
+- **User Experience**: Place preferred login methods first
+- **Conversion Optimization**: Prioritize social logins for faster sign-up
+- **Branding**: Match connection order to your branding strategy
+- **A/B Testing**: Easily test different connection orderings
+
+This gives you fine-grained control over the authentication experience, addressing a feature that has been repeatedly requested in the Auth0 community but never implemented.
 
 ## Migration from Auth0
 

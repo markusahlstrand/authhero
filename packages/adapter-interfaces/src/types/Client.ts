@@ -89,6 +89,10 @@ export const clientInsertSchema = z.object({
     description:
       "List of allow clients and API ids that are allowed to make delegation requests. Empty means all all your clients are allowed.",
   }),
+  connections: z.array(z.string()).default([]).optional().openapi({
+    description:
+      "List of connection IDs enabled for this client. The order determines the display order on the login page.",
+  }),
   allowed_logout_urls: z.array(z.string()).default([]).optional().openapi({
     description:
       "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",

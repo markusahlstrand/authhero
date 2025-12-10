@@ -42,11 +42,25 @@ import {
   Chip,
   FormControlLabel,
   Checkbox,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Paper,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { authorizedHttpClient } from "../../authProvider";
+import {
+  getDomainFromStorage,
+  getSelectedDomainFromStorage,
+  buildUrlWithProtocol,
+} from "../../utils/domainUtils";
 
 const AddClientGrantButton = () => {
   const [open, setOpen] = useState(false);
@@ -732,8 +746,6 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
   };
 
   const updateFormData = (array: Array<{ key: string; value: string }>) => {
-    // Preserve existing fields managed by other inputs (like disable_sign_ups)
-    const preservedFields = ["disable_sign_ups", "email_validation"];
     const newObject: Record<string, any> = {};
     array.forEach((item) => {
       if (item.key && item.key.trim()) {
@@ -782,6 +794,363 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
       >
         Add Metadata
       </Button>
+    </Box>
+  );
+};
+
+interface Connection {
+  id: string;
+  name: string;
+  strategy: string;
+}
+
+// Helper to get API base URL
+const getApiBaseUrl = (): string => {
+  const selectedDomain = getSelectedDomainFromStorage();
+  const domains = getDomainFromStorage();
+  const domainConfig = domains.find((d) => d.url === selectedDomain);
+
+  if (domainConfig?.restApiUrl) {
+    return domainConfig.restApiUrl.replace(/\/$/, "");
+  }
+  return buildUrlWithProtocol(selectedDomain).replace(/\/$/, "");
+};
+
+// Helper to get tenant ID from URL
+const getTenantIdFromUrl = (): string | null => {
+  const urlPath = window.location.pathname;
+  const matches = urlPath.match(/\/([^/]+)\/clients/);
+  return matches && matches[1] ? matches[1] : null;
+};
+
+const ConnectionsTab = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [enabledConnections, setEnabledConnections] = useState<Connection[]>(
+    [],
+  );
+  const [availableConnections, setAvailableConnections] = useState<
+    Connection[]
+  >([]);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedConnection, setSelectedConnection] =
+    useState<Connection | null>(null);
+
+  const record = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+
+  const clientId = record?.id as string | undefined;
+  const tenantId = getTenantIdFromUrl();
+
+  const loadConnections = useCallback(async () => {
+    if (!clientId || !tenantId) return;
+
+    setLoading(true);
+    try {
+      // Fetch enabled connections from the new API endpoint
+      const baseUrl = getApiBaseUrl();
+      const response = await authorizedHttpClient(
+        `${baseUrl}/api/v2/clients/${clientId}/connections`,
+        {
+          method: "GET",
+          headers: {
+            "tenant-id": tenantId,
+          },
+        },
+      );
+
+      const result = response.json as {
+        enabled_connections: Array<{
+          connection_id: string;
+          connection?: Connection;
+        }>;
+      };
+
+      // Get enabled connections with their details
+      const enabled: Connection[] = result.enabled_connections
+        .filter((ec) => ec.connection)
+        .map((ec) => ({
+          id: ec.connection_id,
+          name: ec.connection!.name,
+          strategy: ec.connection!.strategy,
+        }));
+
+      // Fetch all connections to determine available ones
+      const { data: allConnections } = await dataProvider.getList<Connection>(
+        "connections",
+        {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        },
+      );
+
+      // Get available connections (ones not enabled)
+      const enabledIds = new Set(enabled.map((c) => c.id));
+      const available = allConnections.filter((c) => !enabledIds.has(c.id));
+
+      setEnabledConnections(enabled);
+      setAvailableConnections(available);
+    } catch (error) {
+      console.error("Error loading connections:", error);
+      notify("Error loading connections", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, tenantId, dataProvider, notify]);
+
+  useEffect(() => {
+    loadConnections();
+  }, [loadConnections]);
+
+  const updateClientConnections = async (
+    newConnectionIds: string[],
+  ): Promise<boolean> => {
+    if (!clientId || !tenantId) return false;
+
+    setSaving(true);
+    try {
+      const baseUrl = getApiBaseUrl();
+      await authorizedHttpClient(
+        `${baseUrl}/api/v2/clients/${clientId}/connections`,
+        {
+          method: "PATCH",
+          headers: {
+            "tenant-id": tenantId,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newConnectionIds),
+        },
+      );
+      return true;
+    } catch (error) {
+      console.error("Error updating client connections:", error);
+      notify("Error updating connections", { type: "error" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddConnection = async () => {
+    if (!selectedConnection || !clientId) return;
+
+    const newConnectionIds = [
+      ...enabledConnections.map((c) => c.id),
+      selectedConnection.id,
+    ];
+    const success = await updateClientConnections(newConnectionIds);
+
+    if (success) {
+      notify("Connection enabled for this client", { type: "success" });
+      setAddDialogOpen(false);
+      setSelectedConnection(null);
+
+      // Update local state optimistically
+      setEnabledConnections([...enabledConnections, selectedConnection]);
+      setAvailableConnections(
+        availableConnections.filter((c) => c.id !== selectedConnection.id),
+      );
+    }
+  };
+
+  const handleRemoveConnection = async (connection: Connection) => {
+    if (!clientId) return;
+
+    const newConnectionIds = enabledConnections
+      .filter((c) => c.id !== connection.id)
+      .map((c) => c.id);
+    const success = await updateClientConnections(newConnectionIds);
+
+    if (success) {
+      notify("Connection disabled for this client", { type: "success" });
+
+      // Update local state optimistically
+      setEnabledConnections(
+        enabledConnections.filter((c) => c.id !== connection.id),
+      );
+      setAvailableConnections([...availableConnections, connection]);
+    }
+  };
+
+  const handleMoveConnection = async (
+    index: number,
+    direction: "up" | "down",
+  ) => {
+    if (!clientId) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= enabledConnections.length) return;
+
+    // Create new order
+    const newOrder = [...enabledConnections];
+    const movedConnection = newOrder.splice(index, 1)[0];
+    if (!movedConnection) return;
+    newOrder.splice(newIndex, 0, movedConnection);
+
+    // Update local state optimistically
+    setEnabledConnections(newOrder);
+
+    // Update the client's connections array
+    const newConnectionIds = newOrder.map((c) => c.id);
+    const success = await updateClientConnections(newConnectionIds);
+
+    if (success) {
+      notify("Connection order updated", { type: "success" });
+    } else {
+      // Revert on failure
+      loadConnections();
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Typography variant="h6">Enabled Connections</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setAddDialogOpen(true)}
+          disabled={availableConnections.length === 0}
+        >
+          Add Connection
+        </Button>
+      </Box>
+
+      {enabledConnections.length === 0 ? (
+        <Typography color="text.secondary">
+          No connections enabled for this client. Click "Add Connection" to
+          enable one.
+        </Typography>
+      ) : (
+        <Paper variant="outlined">
+          <List>
+            {enabledConnections.map((connection, index) => (
+              <ListItem
+                key={connection.id}
+                divider={index < enabledConnections.length - 1}
+                sx={{
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+                  <DragIndicatorIcon color="disabled" />
+                </Box>
+                <ListItemText
+                  primary={connection.name}
+                  secondary={`Strategy: ${connection.strategy}`}
+                />
+                <ListItemSecondaryAction>
+                  <Tooltip title="Move up">
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleMoveConnection(index, "up")}
+                        disabled={index === 0 || saving}
+                      >
+                        <ArrowUpwardIcon />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Move down">
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleMoveConnection(index, "down")}
+                        disabled={
+                          index === enabledConnections.length - 1 || saving
+                        }
+                      >
+                        <ArrowDownwardIcon />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Remove connection">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemoveConnection(connection)}
+                      disabled={saving}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      )}
+
+      {/* Add Connection Dialog */}
+      <Dialog
+        open={addDialogOpen}
+        onClose={() => {
+          setAddDialogOpen(false);
+          setSelectedConnection(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Connection</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Select a connection to enable for this client
+          </Typography>
+          <Autocomplete
+            options={availableConnections}
+            getOptionLabel={(option) => `${option.name} (${option.strategy})`}
+            value={selectedConnection}
+            onChange={(_, value) => setSelectedConnection(value)}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderInput={(params) => (
+              <MuiTextField
+                {...params}
+                label="Connection"
+                variant="outlined"
+                fullWidth
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                <Box>
+                  <Typography variant="body2">{option.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Strategy: {option.strategy}
+                  </Typography>
+                </Box>
+              </li>
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setAddDialogOpen(false);
+              setSelectedConnection(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddConnection}
+            variant="contained"
+            disabled={!selectedConnection || saving}
+          >
+            {saving ? <CircularProgress size={20} /> : "Add Connection"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -899,6 +1268,9 @@ export function ClientEdit() {
               <RemoveClientGrantButton />
             </DatagridComponent>
           </ReferenceManyField>
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="Connections">
+          <ConnectionsTab />
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField

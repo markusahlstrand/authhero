@@ -40,6 +40,7 @@ export function list(db: Kysely<Database>) {
       web_origins: JSON.parse(result.web_origins),
       client_aliases: JSON.parse(result.client_aliases),
       allowed_clients: JSON.parse(result.allowed_clients),
+      connections: JSON.parse(result.connections || "[]"),
       allowed_logout_urls: JSON.parse(result.allowed_logout_urls),
       session_transfer: JSON.parse(result.session_transfer),
       oidc_logout: JSON.parse(result.oidc_logout),

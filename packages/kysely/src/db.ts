@@ -260,6 +260,7 @@ const sqlClientSchema = z.object({
   web_origins: z.string(),
   client_aliases: z.string(),
   allowed_clients: z.string(),
+  connections: z.string(),
   allowed_logout_urls: z.string(),
   session_transfer: z.string(),
   oidc_logout: z.string(),

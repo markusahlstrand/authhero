@@ -8,6 +8,7 @@ import { createPasswordAdapter } from "./passwords";
 import { createCodesAdapter } from "./codes";
 import { createConnectionsAdapter } from "./connections";
 import { createClientsAdapter } from "./clients";
+import { createClientConnectionsAdapter } from "./clientConnections";
 import { createClientGrantsAdapter } from "./clientGrants";
 import { createLegacyClientsAdapter } from "./legacy-clients";
 import { createKeysAdapter } from "./keys";
@@ -40,6 +41,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     branding: createBrandingAdapter(db),
     cleanup: createCleanup(db),
     clients: createClientsAdapter(db),
+    clientConnections: createClientConnectionsAdapter(db),
     clientGrants: createClientGrantsAdapter(db),
     legacyClients: createLegacyClientsAdapter(db),
     codes: createCodesAdapter(db),

@@ -156,19 +156,21 @@ const IdentifierPage: FC<Props> = ({
         {i18next.t("welcome")}
       </div>
       <div className="mb-8 text-gray-300">
-        {i18next.t(authMethodTemplateKey, {
-          authMethod: i18next
-            .t(authMethodKey, {
-              defaultValue:
-                showEmailInput && showPhoneInput
-                  ? "email or phone number"
-                  : showEmailInput
-                    ? "email address"
-                    : "phone number",
+        {showForm
+          ? i18next.t(authMethodTemplateKey, {
+              authMethod: i18next
+                .t(authMethodKey, {
+                  defaultValue:
+                    showEmailInput && showPhoneInput
+                      ? "email or phone number"
+                      : showEmailInput
+                        ? "email address"
+                        : "phone number",
+                })
+                .toLocaleLowerCase(),
+              defaultValue: "Sign in with your {{authMethod}}",
             })
-            .toLocaleLowerCase(),
-          defaultValue: "Sign in with your {{authMethod}}",
-        })}
+          : i18next.t("login_description_social_only", "Choose how to login")}
       </div>
       <div className="flex flex-1 flex-col justify-center">
         {showForm && (
@@ -178,7 +180,7 @@ const IdentifierPage: FC<Props> = ({
               name={inputName}
               placeholder={inputPlaceholder}
               className={cn(
-                "mb-2 w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 md:text-base",
+                "mb-2 w-full rounded-lg border bg-gray-100 px-4 py-5 text-base lowercase placeholder:normal-case placeholder:text-gray-300 dark:bg-gray-600 md:text-base",
                 {
                   "border-red": error,
                   "border-gray-100 dark:border-gray-500": !error,
