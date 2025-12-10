@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.105.0
+
+### Minor Changes
+
+- 40caf1a: Add support for different connections for different clients. And support sorting.
+
 ## 0.104.0
 
 ### Minor Changes

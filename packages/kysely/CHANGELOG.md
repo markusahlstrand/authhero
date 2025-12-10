@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.64.0
+
+### Minor Changes
+
+- 40caf1a: Add support for different connections for different clients. And support sorting.
+
+### Patch Changes
+
+- Updated dependencies [40caf1a]
+  - @authhero/adapter-interfaces@0.105.0
+
 ## 10.63.1
 
 ### Patch Changes
