@@ -3,6 +3,7 @@ import {
   clientSchema,
   clientInsertSchema,
   totalsSchema,
+  connectionSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -13,6 +14,19 @@ import { parseSort } from "../../utils/sort";
 const clientWithTotalsSchema = totalsSchema.extend({
   clients: z.array(clientSchema),
 });
+
+// Schema for client connections response
+const clientConnectionsResponseSchema = z.object({
+  enabled_connections: z.array(
+    z.object({
+      connection_id: z.string(),
+      connection: connectionSchema.optional(),
+    }),
+  ),
+});
+
+// Schema for updating client connections - ordered array of connection IDs
+const updateClientConnectionsSchema = z.array(z.string());
 
 export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
   // --------------------------------
@@ -261,5 +275,169 @@ export const clientRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
 
       return ctx.json(client, { status: 201 });
+    },
+  )
+  // --------------------------------
+  // GET /clients/:id/connections
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["clients"],
+      method: "get",
+      path: "/{id}/connections",
+      request: {
+        params: z.object({
+          id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: clientConnectionsResponseSchema,
+            },
+          },
+          description: "List of connections enabled for this client",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id } = ctx.req.valid("param");
+
+      const client = await ctx.env.data.clients.get(tenant_id, id);
+
+      if (!client) {
+        throw new HTTPException(404, { message: "Client not found" });
+      }
+
+      // If no connections are defined, return all available connections
+      const hasDefinedConnections =
+        client.connections && client.connections.length > 0;
+
+      let enabledConnections: Array<{
+        connection_id: string;
+        connection?: (typeof connectionSchema)["_output"];
+      }>;
+
+      if (hasDefinedConnections) {
+        // Fetch full connection details for each enabled connection
+        enabledConnections = await Promise.all(
+          client.connections!.map(async (connectionId) => {
+            const connection = await ctx.env.data.connections.get(
+              tenant_id,
+              connectionId,
+            );
+            return {
+              connection_id: connectionId,
+              connection: connection || undefined,
+            };
+          }),
+        );
+      } else {
+        // No connections defined - return all available connections
+        const { connections: allConnections } =
+          await ctx.env.data.connections.list(tenant_id, {});
+        enabledConnections = allConnections
+          .filter((connection) => connection.id)
+          .map((connection) => ({
+            connection_id: connection.id!,
+            connection,
+          }));
+      }
+
+      return ctx.json({ enabled_connections: enabledConnections });
+    },
+  )
+  // --------------------------------
+  // PATCH /clients/:id/connections
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["clients"],
+      method: "patch",
+      path: "/{id}/connections",
+      request: {
+        body: {
+          content: {
+            "application/json": {
+              schema: updateClientConnectionsSchema,
+            },
+          },
+        },
+        params: z.object({
+          id: z.string(),
+        }),
+        headers: z.object({
+          "tenant-id": z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: clientConnectionsResponseSchema,
+            },
+          },
+          description: "Updated list of connections for this client",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const { id } = ctx.req.valid("param");
+      const connectionIds = ctx.req.valid("json");
+
+      const client = await ctx.env.data.clients.get(tenant_id, id);
+
+      if (!client) {
+        throw new HTTPException(404, { message: "Client not found" });
+      }
+
+      // Validate all connection IDs exist and filter out invalid ones
+      const validConnectionIds: string[] = [];
+      for (const connectionId of connectionIds) {
+        const connection = await ctx.env.data.connections.get(
+          tenant_id,
+          connectionId,
+        );
+        if (connection) {
+          validConnectionIds.push(connectionId);
+        }
+      }
+
+      // Update the client with the new ordered connections array
+      await ctx.env.data.clients.update(tenant_id, id, {
+        connections: validConnectionIds,
+      });
+
+      // Fetch and return the updated connections
+      const enabledConnections = await Promise.all(
+        validConnectionIds.map(async (connectionId) => {
+          const connection = await ctx.env.data.connections.get(
+            tenant_id,
+            connectionId,
+          );
+          return {
+            connection_id: connectionId,
+            connection: connection || undefined,
+          };
+        }),
+      );
+
+      return ctx.json({ enabled_connections: enabledConnections });
     },
   );

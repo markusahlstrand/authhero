@@ -87,22 +87,29 @@ const IdentifierForm: FC<Props> = ({
       return true;
     });
 
+  // Check if any identifier input should be shown
+  const showIdentifierInput = showEmailInput || showPhoneInput;
+
   // Configure input placeholder based on available connections
   const authMethodKey =
     showEmailInput && showPhoneInput
       ? "email_or_phone_placeholder"
       : showEmailInput
         ? "email_placeholder"
-        : "phone_placeholder";
+        : showPhoneInput
+          ? "phone_placeholder"
+          : null;
 
-  const inputPlaceholder = i18next.t(
-    authMethodKey,
-    showEmailInput && showPhoneInput
-      ? "Email or Phone Number"
-      : showEmailInput
-        ? "Email Address"
-        : "Phone Number",
-  );
+  const inputPlaceholder = authMethodKey
+    ? i18next.t(
+        authMethodKey,
+        showEmailInput && showPhoneInput
+          ? "Email or Phone Number"
+          : showEmailInput
+            ? "Email Address"
+            : "Phone Number",
+      )
+    : "";
 
   // Extract theme and branding colors (theme overrides branding)
   const primaryColor =
@@ -219,77 +226,88 @@ const IdentifierForm: FC<Props> = ({
             {i18next.t("welcome", "Login")}
           </CardTitle>
           <CardDescription style={bodyStyle}>
-            {i18next.t("login_description_template", {
-              authMethod: i18next
-                .t(authMethodKey, {
+            {showIdentifierInput
+              ? i18next.t("login_description_template", {
+                  authMethod: i18next
+                    .t(authMethodKey!, {
+                      defaultValue:
+                        showEmailInput && showPhoneInput
+                          ? "email or phone number"
+                          : showEmailInput
+                            ? "email address"
+                            : "phone number",
+                    })
+                    .toLocaleLowerCase(),
                   defaultValue:
-                    showEmailInput && showPhoneInput
-                      ? "email or phone number"
-                      : showEmailInput
-                        ? "email address"
-                        : "phone number",
+                    "Enter your {{authMethod}} below to login to your account",
                 })
-                .toLocaleLowerCase(),
-              defaultValue:
-                "Enter your {{authMethod}} below to login to your account",
-            })}
+              : i18next.t(
+                  "login_description_social_only",
+                  "Choose how to login",
+                )}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form method="post">
             <div className="grid gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="username" style={bodyStyle}>
-                  {i18next.t(
-                    authMethodKey,
-                    showEmailInput && showPhoneInput
-                      ? "Email or Phone Number"
-                      : showEmailInput
-                        ? "Email"
-                        : "Phone Number",
-                  )}
-                </Label>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder={inputPlaceholder}
-                  required
-                  value={email || ""}
-                  error={!!error}
-                  className="border"
-                  style={inputStyle}
-                />
-                {error && <ErrorMessage>{error}</ErrorMessage>}
-              </div>
-              <Button
-                type="submit"
-                className="w-full transition-colors hover:brightness-90"
-                style={buttonStyle}
-              >
-                {i18next.t("continue", "Continue")}
-              </Button>
+              {showIdentifierInput && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="username" style={bodyStyle}>
+                      {i18next.t(
+                        authMethodKey!,
+                        showEmailInput && showPhoneInput
+                          ? "Email or Phone Number"
+                          : showEmailInput
+                            ? "Email"
+                            : "Phone Number",
+                      )}
+                    </Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      type="text"
+                      placeholder={inputPlaceholder}
+                      required
+                      value={email || ""}
+                      error={!!error}
+                      className="border lowercase"
+                      style={inputStyle}
+                    />
+                    {error && <ErrorMessage>{error}</ErrorMessage>}
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full transition-colors hover:brightness-90"
+                    style={buttonStyle}
+                  >
+                    {i18next.t("continue", "Continue")}
+                  </Button>
+                </>
+              )}
               {socialConnections.length > 0 && (
                 <>
-                  <div
-                    className="relative text-center"
-                    style={{
-                      color:
-                        theme?.colors?.input_labels_placeholders || "#6b7280",
-                      fontSize: `${bodySize}px`,
-                    }}
-                  >
+                  {showIdentifierInput && (
                     <div
-                      className="absolute left-0 right-0 top-1/2 border-b"
-                      style={{ borderColor: widgetBorder }}
-                    />
-                    <div
-                      className="relative inline-block px-2"
-                      style={{ backgroundColor: widgetBackground }}
+                      className="relative text-center"
+                      style={{
+                        color:
+                          theme?.colors?.input_labels_placeholders || "#6b7280",
+                        fontSize: `${bodySize}px`,
+                      }}
                     >
-                      {i18next.t("or", "Or")}
+                      <div
+                        className="absolute left-0 right-0 top-1/2 border-b"
+                        style={{ borderColor: widgetBorder }}
+                      />
+                      <div
+                        className="relative inline-block px-2"
+                        style={{ backgroundColor: widgetBackground }}
+                      >
+                        {i18next.t("or", "Or")}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="flex gap-4 sm:flex-col short:flex-row">
                     {socialConnections.map((config) => {
                       const Logo = config.logo;

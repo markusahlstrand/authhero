@@ -109,6 +109,7 @@ import * as o010_add_log_id_to_logs from "./2025-11-03T10:00:00_add_log_id_to_lo
 import * as o011_add_location_info_to_logs from "./2025-11-28T10:00:00_add_location_info_to_logs";
 import * as o012_add_password_history from "./2025-12-03T19:45:12_add_password_history";
 import * as o013_connection_display_name from "./2025-12-09T10:00:00_connection_display_name";
+import * as o014_client_connections from "./2025-12-12T10:00:00_client_connections";
 
 // These need to be in alphabetic order
 export default {
@@ -223,4 +224,5 @@ export default {
   o011_add_location_info_to_logs,
   o012_add_password_history,
   o013_connection_display_name,
+  o014_client_connections,
 };

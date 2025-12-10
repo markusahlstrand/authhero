@@ -496,6 +496,74 @@ Delete a client.
 
 **Endpoint:** `DELETE /api/v2/clients/{id}`
 
+#### Get Client Connections
+
+Get the list of connections enabled for a specific client.
+
+**Endpoint:** `GET /api/v2/clients/{id}/connections`
+
+**Response:**
+
+```json
+{
+  "enabled_connections": [
+    {
+      "connection_id": "con_123",
+      "connection": {
+        "id": "con_123",
+        "name": "Username-Password-Authentication",
+        "strategy": "auth0"
+      }
+    }
+  ]
+}
+```
+
+**Notes:**
+
+- If no connections are explicitly defined for the client, all available connections in the tenant are returned
+- The order of connections in the array determines the display order on the universal login screen
+
+#### Update Client Connections
+
+Update the list of connections enabled for a specific client. The order of connection IDs determines the display order on the universal login screen.
+
+**Endpoint:** `PATCH /api/v2/clients/{id}/connections`
+
+**Request Body:**
+
+```json
+["con_123", "con_456", "con_789"]
+```
+
+**Response:**
+
+```json
+{
+  "enabled_connections": [
+    {
+      "connection_id": "con_123",
+      "connection": { ... }
+    },
+    {
+      "connection_id": "con_456",
+      "connection": { ... }
+    },
+    {
+      "connection_id": "con_789",
+      "connection": { ... }
+    }
+  ]
+}
+```
+
+**Notes:**
+
+- Send an ordered array of connection IDs
+- The array completely replaces the existing connections list
+- Connection IDs that don't exist will be filtered out
+- **This endpoint supports explicit ordering of connections - a feature not available in Auth0** - allowing you to control the order in which authentication options appear on the login screen
+
 ### Connections
 
 Manage authentication connections.

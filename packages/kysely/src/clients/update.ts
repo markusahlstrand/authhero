@@ -40,6 +40,7 @@ export function update(db: Kysely<Database>) {
         "web_origins",
         "client_aliases",
         "allowed_clients",
+        "connections",
         "allowed_logout_urls",
         "session_transfer",
         "oidc_logout",

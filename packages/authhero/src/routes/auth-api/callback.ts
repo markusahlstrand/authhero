@@ -1,13 +1,24 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
 import { Bindings, Variables } from "../../types";
 import { connectionCallback } from "../../authentication-flows/connection";
 import { logMessage } from "../../helpers/logging";
+import { JSONHTTPException } from "../../errors/json-http-exception";
 
 import { getUniversalLoginUrl } from "../../variables";
+
+/**
+ * Check if the login session is a universal login flow by checking response_mode
+ */
+function isUniversalLoginFlow(responseMode?: string): boolean {
+  return responseMode === AuthorizationResponseMode.WEB_MESSAGE;
+}
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -133,16 +144,51 @@ export const callbackRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "Code is required" });
       }
 
-      const result = await connectionCallback(ctx, {
-        code,
-        state,
-      });
+      try {
+        const result = await connectionCallback(ctx, {
+          code,
+          state,
+        });
 
-      if (!(result instanceof Response)) {
-        throw new HTTPException(500, { message: "Internal server error" });
+        if (!(result instanceof Response)) {
+          throw new HTTPException(500, { message: "Internal server error" });
+        }
+
+        return result;
+      } catch (err) {
+        // Handle JSONHTTPException with 400 status (e.g., signup disabled)
+        // Only redirect to identifier page if this is a universal login flow
+        // 403 errors (state not found, session not found) should still be thrown as JSON errors
+        if (err instanceof JSONHTTPException && err.status === 400) {
+          // Check if this is a universal login flow by looking up the login session
+          const oauth2code = await ctx.env.data.codes.get(
+            ctx.var.tenant_id || "",
+            state,
+            "oauth2_state",
+          );
+          if (oauth2code) {
+            const loginSession = await ctx.env.data.loginSessions.get(
+              ctx.var.tenant_id,
+              oauth2code.login_id,
+            );
+            if (
+              loginSession &&
+              isUniversalLoginFlow(loginSession.authParams.response_mode)
+            ) {
+              let errorMessage = "access_denied";
+              try {
+                const body = JSON.parse(err.message);
+                errorMessage = body.message || errorMessage;
+              } catch {
+                // If message is not JSON, use it directly
+                errorMessage = err.message || errorMessage;
+              }
+              return returnError(ctx, state, "access_denied", errorMessage);
+            }
+          }
+        }
+        throw err;
       }
-
-      return result;
     },
   )
   // --------------------------------
@@ -221,15 +267,50 @@ export const callbackRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "Code is required" });
       }
 
-      const result = await connectionCallback(ctx, {
-        code,
-        state,
-      });
+      try {
+        const result = await connectionCallback(ctx, {
+          code,
+          state,
+        });
 
-      if (!(result instanceof Response)) {
-        throw new HTTPException(500, { message: "Internal server error" });
+        if (!(result instanceof Response)) {
+          throw new HTTPException(500, { message: "Internal server error" });
+        }
+
+        return result;
+      } catch (err) {
+        // Handle JSONHTTPException with 400 status (e.g., signup disabled)
+        // Only redirect to identifier page if this is a universal login flow
+        // 403 errors (state not found, session not found) should still be thrown as JSON errors
+        if (err instanceof JSONHTTPException && err.status === 400) {
+          // Check if this is a universal login flow by looking up the login session
+          const oauth2code = await ctx.env.data.codes.get(
+            ctx.var.tenant_id || "",
+            state,
+            "oauth2_state",
+          );
+          if (oauth2code) {
+            const loginSession = await ctx.env.data.loginSessions.get(
+              ctx.var.tenant_id,
+              oauth2code.login_id,
+            );
+            if (
+              loginSession &&
+              isUniversalLoginFlow(loginSession.authParams.response_mode)
+            ) {
+              let errorMessage = "access_denied";
+              try {
+                const body = JSON.parse(err.message);
+                errorMessage = body.message || errorMessage;
+              } catch {
+                // If message is not JSON, use it directly
+                errorMessage = err.message || errorMessage;
+              }
+              return returnError(ctx, state, "access_denied", errorMessage);
+            }
+          }
+        }
+        throw err;
       }
-
-      return result;
     },
   );
