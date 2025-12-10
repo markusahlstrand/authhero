@@ -1,5 +1,16 @@
 # authhero
 
+## 0.289.0
+
+### Minor Changes
+
+- 125dbb9: Flow updates
+
+### Patch Changes
+
+- Updated dependencies [125dbb9]
+  - @authhero/adapter-interfaces@0.104.0
+
 ## 0.288.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.104.0
+
+### Minor Changes
+
+- 125dbb9: Flow updates
+
 ## 0.103.0
 
 ### Minor Changes
