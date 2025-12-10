@@ -54,7 +54,7 @@ describe("forms - legal consent post-login flow", () => {
                     },
                   },
                 ],
-                next_node: "ending",
+                next_node: "$ending",
               },
             },
           ],

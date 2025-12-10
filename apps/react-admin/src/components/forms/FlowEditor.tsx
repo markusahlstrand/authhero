@@ -12,6 +12,8 @@ import {
   NodeTypes,
   Handle,
   Position,
+  Connection,
+  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Box, Typography, Alert, GlobalStyles } from "@mui/material";
@@ -31,15 +33,25 @@ export interface ComponentConfig {
   };
 }
 
+export interface RouterRule {
+  id: string;
+  alias?: string;
+  condition: any;
+  next_node: string;
+}
+
 export interface FlowNodeData {
   id: string;
-  type: "STEP" | "FLOW";
+  type: "STEP" | "FLOW" | "ROUTER";
   alias?: string;
   coordinates?: { x: number; y: number };
   config?: {
     next_node?: string;
     components?: ComponentConfig[];
     flow_id?: string;
+    // Router-specific config
+    rules?: RouterRule[];
+    fallback?: string;
   };
 }
 
@@ -74,6 +86,9 @@ interface CustomNodeData extends Record<string, unknown> {
   orphaned?: boolean;
   invalidConnection?: boolean;
   resumeFlow?: string;
+  // Router-specific data
+  rules?: RouterRule[];
+  fallback?: string;
 }
 
 // Constants moved outside component
@@ -108,6 +123,21 @@ const getNodePosition = (
   x: coordinates?.x ?? defaultX,
   y: coordinates?.y ?? defaultY,
 });
+
+// Helper to determine target handle based on node type
+const getTargetHandle = (target: string, nodes: FlowNodeData[]): string => {
+  if (target === "end") return "end-input";
+  const targetNode = nodes.find((n) => n.id === target);
+  if (!targetNode) return "step-input";
+  switch (targetNode.type) {
+    case "FLOW":
+      return "flow-input";
+    case "ROUTER":
+      return "router-input";
+    default:
+      return "step-input";
+  }
+};
 
 // Custom Node Components
 const StartNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
@@ -392,6 +422,120 @@ const FlowNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
   </Box>
 ));
 
+const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
+  const rules = data.rules || [];
+  const fallback = data.fallback;
+
+  return (
+    <Box sx={{ padding: "8px" }}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="router-input"
+        style={{ background: "#9c27b0" }}
+      />
+
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+          {data.label || "Router"}
+        </Typography>
+        <Box
+          component="span"
+          sx={{
+            width: 24,
+            height: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid #9c27b0",
+            borderRadius: "4px",
+            color: "#9c27b0",
+            fontSize: "14px",
+          }}
+          aria-label="Router indicator"
+        >
+          ⑂
+        </Box>
+      </Box>
+
+      {/* Rules */}
+      {rules.length > 0 && (
+        <Box sx={{ mt: 1 }}>
+          {rules.map((rule, index) => (
+            <Box
+              key={rule.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 0.5,
+                borderBottom: "1px solid #f0f0f0",
+                position: "relative",
+              }}
+            >
+              <Typography variant="body2" sx={{ fontSize: "12px" }}>
+                {rule.alias || `Rule ${index + 1}`}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: "text.secondary", fontSize: "10px" }}
+              >
+                → {rule.next_node === "$ending" ? "End" : rule.next_node}
+              </Typography>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={`router-rule-${rule.id}`}
+                style={{
+                  background: "#9c27b0",
+                  top: "auto",
+                  right: -8,
+                }}
+              />
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Fallback */}
+      <Box
+        sx={{
+          mt: 1,
+          pt: 1,
+          borderTop: "1px dashed #ddd",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          position: "relative",
+        }}
+      >
+        <Typography variant="body2" sx={{ fontSize: "12px", color: "text.secondary" }}>
+          Default
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ color: "text.secondary", fontSize: "10px" }}
+        >
+          → {fallback === "$ending" ? "End" : fallback || "Not set"}
+        </Typography>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="router-fallback"
+          style={{ background: "#9c27b0" }}
+        />
+      </Box>
+    </Box>
+  );
+});
+
 const EndNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
   <Box sx={{ padding: "8px" }}>
     <Handle
@@ -418,6 +562,7 @@ const nodeTypes: NodeTypes = {
   start: StartNodeComponent,
   step: StepNodeComponent,
   flow: FlowNodeComponent,
+  router: RouterNodeComponent,
   end: EndNodeComponent,
 };
 
@@ -468,6 +613,18 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         padding: "12px",
         color: theme.palette.text.primary,
         minWidth: "180px",
+        boxShadow: theme.shadows[1],
+      },
+      router: {
+        background: isDark ? theme.palette.grey[850] : "#faf8ff",
+        border: isDark
+          ? `1px solid ${theme.palette.divider}`
+          : "1px solid #e0e0e0",
+        borderRadius: "4px",
+        padding: "12px",
+        color: theme.palette.text.primary,
+        minWidth: "200px",
+        maxWidth: "280px",
         boxShadow: theme.shadows[1],
       },
       end: {
@@ -532,17 +689,12 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         // Create edge from start to its next node
         if (start.next_node) {
           let target = start.next_node;
-          let targetHandle = "step-input";
+          let targetHandle: string;
           if (start.next_node === "$ending") {
             target = "end";
             targetHandle = "end-input";
           } else {
-            // Determine if the target is a step or flow node
-            const targetNodeType = nodes.find(
-              (n) => n.id === start.next_node,
-            )?.type;
-            targetHandle =
-              targetNodeType === "FLOW" ? "flow-input" : "step-input";
+            targetHandle = getTargetHandle(target, nodes);
           }
 
           flowEdges.push({
@@ -569,7 +721,20 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           return;
         }
 
-        const nodeType = node.type === "FLOW" ? "flow" : "step";
+        // Determine node type for ReactFlow
+        let nodeType: string;
+        let nodeStyle: any;
+        if (node.type === "ROUTER") {
+          nodeType = "router";
+          nodeStyle = NODE_STYLES.router;
+        } else if (node.type === "FLOW") {
+          nodeType = "flow";
+          nodeStyle = NODE_STYLES.flow;
+        } else {
+          nodeType = "step";
+          nodeStyle = NODE_STYLES.step;
+        }
+
         const defaultX = 250 + index * 350;
 
         const flowNode: Node<CustomNodeData> = {
@@ -582,53 +747,96 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
             next: node.config?.next_node,
             components: node.config?.components || [],
             flowId: node.config?.flow_id,
+            // Router-specific data
+            rules: node.config?.rules || [],
+            fallback: node.config?.fallback,
           },
-          style: node.type === "STEP" ? NODE_STYLES.step : NODE_STYLES.flow,
+          style: nodeStyle,
         };
         flowNodes.push(flowNode);
 
-        // Create edge to the next node
-        if (node.config?.next_node) {
-          const target =
-            node.config.next_node === "$ending" ? "end" : node.config.next_node;
-          const edgeId = `${node.id}-to-${target}`;
+        // Handle edges based on node type
+        if (node.type === "ROUTER") {
+          // Create edges for each rule
+          const rules = node.config?.rules || [];
+          rules.forEach((rule) => {
+            if (rule.next_node) {
+              const target = rule.next_node === "$ending" ? "end" : rule.next_node;
+              const edgeId = `${node.id}-rule-${rule.id}-to-${target}`;
+              const targetHandle = getTargetHandle(target, nodes);
 
-          // Determine source and target handles
-          const sourceHandle =
-            node.type === "STEP" ? "step-output" : "flow-output";
-          let targetHandle = "end-input";
-          if (target !== "end") {
-            // Find the target node to determine its type for the correct handle
-            const targetNode = nodes.find((n) => n.id === target);
-            targetHandle =
-              targetNode?.type === "FLOW" ? "flow-input" : "step-input";
-          }
+              flowEdges.push({
+                id: edgeId,
+                source: node.id,
+                sourceHandle: `router-rule-${rule.id}`,
+                target: target,
+                targetHandle: targetHandle,
+                type: "smoothstep",
+                animated: true,
+                markerEnd: { type: MarkerType.ArrowClosed },
+                style: { stroke: "#9c27b0", strokeWidth: 2 },
+                label: rule.alias || undefined,
+              });
+            }
+          });
 
-          // Validate that target exists or will exist
-          const targetExists =
-            target === "end" ||
-            nodes.some((n) => n.id === target) ||
-            (start && start.next_node === target);
+          // Create edge for fallback
+          if (node.config?.fallback) {
+            const target = node.config.fallback === "$ending" ? "end" : node.config.fallback;
+            const edgeId = `${node.id}-fallback-to-${target}`;
+            const targetHandle = getTargetHandle(target, nodes);
 
-          if (targetExists || target === "end") {
             flowEdges.push({
               id: edgeId,
               source: node.id,
-              sourceHandle: sourceHandle,
+              sourceHandle: "router-fallback",
               target: target,
               targetHandle: targetHandle,
               type: "smoothstep",
               animated: true,
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-              },
-              style: { stroke: "#1976d2", strokeWidth: 2 },
-              label: node.config.next_node === "$ending" ? "End" : undefined,
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { stroke: "#9c27b0", strokeWidth: 2, strokeDasharray: "5,5" },
+              label: "Default",
             });
-          } else {
-            warnings.push(
-              `Target node ${target} not found for edge from ${node.id}`,
-            );
+          }
+        } else {
+          // Create edge to the next node for STEP and FLOW nodes
+          if (node.config?.next_node) {
+            const target =
+              node.config.next_node === "$ending" ? "end" : node.config.next_node;
+            const edgeId = `${node.id}-to-${target}`;
+
+            // Determine source and target handles
+            const sourceHandle =
+              node.type === "STEP" ? "step-output" : "flow-output";
+            const targetHandle = getTargetHandle(target, nodes);
+
+            // Validate that target exists or will exist
+            const targetExists =
+              target === "end" ||
+              nodes.some((n) => n.id === target) ||
+              (start && start.next_node === target);
+
+            if (targetExists || target === "end") {
+              flowEdges.push({
+                id: edgeId,
+                source: node.id,
+                sourceHandle: sourceHandle,
+                target: target,
+                targetHandle: targetHandle,
+                type: "smoothstep",
+                animated: true,
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                },
+                style: { stroke: "#1976d2", strokeWidth: 2 },
+                label: node.config.next_node === "$ending" ? "End" : undefined,
+              });
+            } else {
+              warnings.push(
+                `Target node ${target} not found for edge from ${node.id}`,
+              );
+            }
           }
         }
       });
@@ -756,16 +964,98 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
     );
   }
 
+  // Handle connecting nodes
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+
+      // Determine the target node id (map 'end' back to '$ending')
+      const targetNodeId = connection.target === "end" ? "$ending" : connection.target;
+
+      // Update the source node's next_node
+      if (connection.source === "start") {
+        // Update start node
+        onNodeUpdate?.("start", { next_node: targetNodeId });
+      } else {
+        // Find the source node to get its current config
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        if (sourceNode) {
+          // Check if this is a router connection
+          if (sourceNode.type === "ROUTER" && connection.sourceHandle) {
+            if (connection.sourceHandle === "router-fallback") {
+              // Update the fallback
+              onNodeUpdate?.(connection.source, {
+                config: {
+                  ...sourceNode.config,
+                  fallback: targetNodeId,
+                },
+              });
+            } else if (connection.sourceHandle.startsWith("router-rule-")) {
+              // Update a specific rule's next_node
+              const ruleId = connection.sourceHandle.replace("router-rule-", "");
+              const updatedRules = (sourceNode.config?.rules || []).map((rule: { id: string; next_node?: string }) =>
+                rule.id === ruleId ? { ...rule, next_node: targetNodeId } : rule
+              );
+              onNodeUpdate?.(connection.source, {
+                config: {
+                  ...sourceNode.config,
+                  rules: updatedRules,
+                },
+              });
+            }
+          } else {
+            // Standard STEP/FLOW node
+            onNodeUpdate?.(connection.source, {
+              config: {
+                ...sourceNode.config,
+                next_node: targetNodeId,
+              },
+            });
+          }
+        }
+      }
+
+      // Add the edge visually
+      const edgeStyle = connection.sourceHandle?.startsWith("router")
+        ? { stroke: "#9c27b0", strokeWidth: 2 }
+        : { stroke: "#1976d2", strokeWidth: 2 };
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...connection,
+            type: "smoothstep",
+            animated: true,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style: edgeStyle,
+          },
+          eds,
+        ),
+      );
+    },
+    [nodes, onNodeUpdate, setEdges],
+  );
+
   // Add Step handler
   const handleAddStep = useCallback(() => {
     // Generate a short random id (4 alphanumeric chars)
     const randomId = () => Math.random().toString(36).slice(2, 6);
     const stepId = `step_${randomId()}`;
     const nextButtonId = `next_button_${randomId()}`;
+
+    // Calculate position based on existing nodes
+    const existingPositions = flowNodes.map((n) => n.position);
+    const maxX = Math.max(...existingPositions.map((p) => p.x), 200);
+    const avgY =
+      existingPositions.length > 0
+        ? existingPositions.reduce((sum, p) => sum + p.y, 0) /
+          existingPositions.length
+        : 200;
+
     const newStep: FlowNodeData = {
       id: stepId,
       type: "STEP",
-      coordinates: { x: 620, y: -106 },
+      coordinates: { x: maxX + 200, y: avgY },
       alias: "New step",
       config: {
         components: [
@@ -778,7 +1068,73 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
       },
     };
     onNodeUpdate?.(stepId, newStep);
-  }, [onNodeUpdate]);
+  }, [onNodeUpdate, flowNodes]);
+
+  // Add Flow handler
+  const handleAddFlow = useCallback(() => {
+    // Generate a short random id (4 alphanumeric chars)
+    const randomId = () => Math.random().toString(36).slice(2, 6);
+    const flowId = `flow_${randomId()}`;
+
+    // Calculate position based on existing nodes
+    const existingPositions = flowNodes.map((n) => n.position);
+    const maxX = Math.max(...existingPositions.map((p) => p.x), 200);
+    const avgY =
+      existingPositions.length > 0
+        ? existingPositions.reduce((sum, p) => sum + p.y, 0) /
+          existingPositions.length
+        : 200;
+
+    const newFlow: FlowNodeData = {
+      id: flowId,
+      type: "FLOW",
+      coordinates: { x: maxX + 200, y: avgY },
+      alias: "New flow",
+      config: {
+        flow_id: "",
+      },
+    };
+    onNodeUpdate?.(flowId, newFlow);
+  }, [onNodeUpdate, flowNodes]);
+
+  // Add Router handler
+  const handleAddRouter = useCallback(() => {
+    // Generate a short random id (4 alphanumeric chars)
+    const randomId = () => Math.random().toString(36).slice(2, 6);
+    const routerId = `router_${randomId()}`;
+    const ruleId = `id_${Date.now()}`;
+
+    // Calculate position based on existing nodes
+    const existingPositions = flowNodes.map((n) => n.position);
+    const maxX = Math.max(...existingPositions.map((p) => p.x), 200);
+    const avgY =
+      existingPositions.length > 0
+        ? existingPositions.reduce((sum, p) => sum + p.y, 0) /
+          existingPositions.length
+        : 200;
+
+    const newRouter: FlowNodeData = {
+      id: routerId,
+      type: "ROUTER",
+      coordinates: { x: maxX + 200, y: avgY },
+      alias: "New router",
+      config: {
+        rules: [
+          {
+            id: ruleId,
+            alias: "Rule 1",
+            condition: {
+              operands: [],
+              operator: "AND",
+            },
+            next_node: "$ending",
+          },
+        ],
+        fallback: "$ending",
+      },
+    };
+    onNodeUpdate?.(routerId, newRouter);
+  }, [onNodeUpdate, flowNodes]);
 
   return (
     <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
@@ -834,6 +1190,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={handleConnect}
         onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
@@ -842,6 +1199,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         elementsSelectable={true}
         nodesDraggable={true}
+        nodesConnectable={true}
         minZoom={FLOW_CONFIG.minZoom}
         maxZoom={FLOW_CONFIG.maxZoom}
         attributionPosition="bottom-left"
@@ -968,7 +1326,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               outline: "none",
               transition: "background 0.2s, border 0.2s",
             }}
-            // onClick={handleAddRouter}
+            onClick={handleAddRouter}
           >
             Router
           </button>
@@ -986,7 +1344,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               outline: "none",
               transition: "background 0.2s, border 0.2s",
             }}
-            // onClick={handleAddFlow}
+            onClick={handleAddFlow}
           >
             Flow
           </button>

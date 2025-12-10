@@ -8,8 +8,15 @@ import {
   useRecordContext,
   TabbedForm,
   FormTab,
+  useUpdate,
+  useNotify,
+  useRefresh,
 } from "react-admin";
-import FlowEditor from "./FlowEditor";
+import FlowEditor, {
+  FlowNodeData,
+  StartNode,
+  EndingNode,
+} from "./FlowEditor";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Box, Typography, useTheme } from "@mui/material";
 import * as React from "react";
@@ -18,11 +25,72 @@ import { useSaveContext } from "react-admin";
 // A component to render the flow diagram
 const FlowDiagram = () => {
   const record = useRecordContext();
+  const [update] = useUpdate();
+  const notify = useNotify();
+  const refresh = useRefresh();
 
   // Allow rendering if there is a start or ending node, even if nodes is missing or empty
   if (!record || (!record.nodes && !record.start && !record.ending)) {
     return <div>No flow data available</div>;
   }
+
+  // Handle node updates from the FlowEditor
+  const handleNodeUpdate = (
+    nodeId: string,
+    updates: Partial<FlowNodeData> | Partial<StartNode> | Partial<EndingNode>,
+  ) => {
+    let updatedRecord = { ...record };
+
+    if (nodeId === "start") {
+      // Update the start node
+      updatedRecord.start = { ...record.start, ...updates };
+    } else if (nodeId === "end") {
+      // Update the ending node
+      updatedRecord.ending = { ...record.ending, ...updates };
+    } else {
+      // Check if this is a new node (has 'type' property in updates indicating full node data)
+      const isNewNode =
+        "type" in updates && (updates as FlowNodeData).type !== undefined;
+
+      if (isNewNode) {
+        // Adding a new node
+        const newNode = { id: nodeId, ...updates } as FlowNodeData;
+        updatedRecord.nodes = [...(record.nodes || []), newNode];
+      } else {
+        // Update an existing node
+        const nodeIndex = (record.nodes || []).findIndex(
+          (n: FlowNodeData) => n.id === nodeId,
+        );
+        if (nodeIndex >= 0) {
+          const existingNode = record.nodes[nodeIndex];
+          updatedRecord.nodes = [...record.nodes];
+          updatedRecord.nodes[nodeIndex] = {
+            ...existingNode,
+            ...updates,
+            config: {
+              ...existingNode.config,
+              ...(updates as Partial<FlowNodeData>).config,
+            },
+          };
+        }
+      }
+    }
+
+    // Save the updated record
+    update(
+      "forms",
+      { id: record.id, data: updatedRecord, previousData: record },
+      {
+        onSuccess: () => {
+          notify("Flow updated successfully", { type: "success" });
+          refresh();
+        },
+        onError: (error: any) => {
+          notify(`Error updating flow: ${error.message}`, { type: "error" });
+        },
+      },
+    );
+  };
 
   return (
     <Box
@@ -39,6 +107,7 @@ const FlowDiagram = () => {
           nodes={record.nodes || []}
           start={record.start}
           ending={record.ending}
+          onNodeUpdate={handleNodeUpdate}
         />
       </ReactFlowProvider>
     </Box>
@@ -55,6 +124,15 @@ const RawJsonEditor = () => {
   );
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
+
+  // Sync jsonValue with record when it changes (e.g., after flow diagram updates)
+  React.useEffect(() => {
+    if (record) {
+      setJsonValue(JSON.stringify(record, null, 2));
+      setError(null);
+      setSuccess(false);
+    }
+  }, [record]);
 
   if (!record) {
     return <div>No form data available</div>;
