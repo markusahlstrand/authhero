@@ -7,7 +7,7 @@ function stringifyIfTruthy<T>(value: T | undefined): string | undefined {
   return value ? JSON.stringify(value) : undefined;
 }
 
-const USER_AGENT_MAX_LENGTH = 1024;
+const USER_AGENT_MAX_LENGTH = 256;
 
 export function createLog(db: Kysely<Database>) {
   return async (tenant_id: string, log: LogInsert): Promise<Log> => {
