@@ -18,92 +18,80 @@ export const formControlSchema = z.object({
 export type FormControl = z.infer<typeof formControlSchema>;
 
 /**
+ * Base schema for all form node components
+ */
+const formNodeComponentBase = z.object({
+  id: z.string(),
+  order: z.number().optional(),
+  visible: z.boolean().optional().default(true),
+});
+
+/**
+ * Base schema for block components (non-input elements)
+ */
+const blockComponentBase = formNodeComponentBase.extend({
+  category: z.literal("BLOCK").optional(),
+});
+
+/**
+ * Base schema for field components (input elements)
+ */
+const fieldComponentBase = formNodeComponentBase.extend({
+  category: z.literal("FIELD").optional(),
+  required: z.boolean().optional(),
+  sensitive: z.boolean().optional(),
+});
+
+/**
  * Schema for form components (fields, text, buttons, etc)
  */
 export const formNodeComponentDefinition = z.discriminatedUnion("type", [
-  z.object({
-    id: z.string(),
-    category: z.literal("BLOCK").optional(),
+  blockComponentBase.extend({
     type: z.literal("RICH_TEXT"),
     config: z.object({
       content: z.string(),
     }),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("FIELD").optional(),
+  fieldComponentBase.omit({ sensitive: true }).extend({
     type: z.literal("LEGAL"),
     config: z.object({
       text: z.string(),
       html: z.boolean().optional(),
     }),
-    required: z.boolean().optional(),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("FIELD").optional(),
+  fieldComponentBase.extend({
     type: z.literal("TEXT"),
     config: z.object({
       placeholder: z.string().optional(),
       multiline: z.boolean().optional(),
     }),
-    required: z.boolean().optional(),
-    sensitive: z.boolean().optional(),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("BLOCK").optional(),
+  blockComponentBase.extend({
     type: z.literal("NEXT_BUTTON"),
     config: z.object({
       text: z.string().optional(),
     }),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("FIELD").optional(),
+  fieldComponentBase.extend({
     type: z.literal("EMAIL"),
     config: z.object({
       label: z.string().optional(),
       placeholder: z.string().optional(),
     }),
-    required: z.boolean().optional(),
-    sensitive: z.boolean().optional(),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("FIELD").optional(),
+  fieldComponentBase.extend({
     type: z.literal("NUMBER"),
     config: z.object({
       label: z.string().optional(),
       placeholder: z.string().optional(),
     }),
-    required: z.boolean().optional(),
-    sensitive: z.boolean().optional(),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
-  z.object({
-    id: z.string(),
-    category: z.literal("FIELD").optional(),
+  fieldComponentBase.extend({
     type: z.literal("PHONE"),
     config: z.object({
       label: z.string().optional(),
       placeholder: z.string().optional(),
     }),
-    required: z.boolean().optional(),
-    sensitive: z.boolean().optional(),
-    order: z.number().optional(),
-    visible: z.boolean().optional().default(true),
   }),
   // Add more component types as needed
 ]);

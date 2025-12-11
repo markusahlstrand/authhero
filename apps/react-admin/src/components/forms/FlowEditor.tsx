@@ -26,7 +26,14 @@ import NodeEditor from "./NodeEditor";
 // Type definitions
 export interface ComponentConfig {
   id: string;
-  type: "RICH_TEXT" | "LEGAL" | "NEXT_BUTTON" | "TEXT" | "EMAIL" | "NUMBER" | "PHONE";
+  type:
+    | "RICH_TEXT"
+    | "LEGAL"
+    | "NEXT_BUTTON"
+    | "TEXT"
+    | "EMAIL"
+    | "NUMBER"
+    | "PHONE";
   required?: boolean;
   config?: {
     content?: string;
@@ -485,7 +492,10 @@ const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
           position: "relative",
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: "12px", color: "text.secondary", pr: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{ fontSize: "12px", color: "text.secondary", pr: 2 }}
+        >
           Default
         </Typography>
         <Handle
@@ -724,7 +734,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           const rules = node.config?.rules || [];
           rules.forEach((rule) => {
             if (rule.next_node) {
-              const target = rule.next_node === "$ending" ? "end" : rule.next_node;
+              const target =
+                rule.next_node === "$ending" ? "end" : rule.next_node;
               const edgeId = `${node.id}-rule-${rule.id}-to-${target}`;
               const targetHandle = getTargetHandle(target, nodes);
 
@@ -745,7 +756,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
 
           // Create edge for fallback
           if (node.config?.fallback) {
-            const target = node.config.fallback === "$ending" ? "end" : node.config.fallback;
+            const target =
+              node.config.fallback === "$ending" ? "end" : node.config.fallback;
             const edgeId = `${node.id}-fallback-to-${target}`;
             const targetHandle = getTargetHandle(target, nodes);
 
@@ -758,7 +770,11 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               type: "smoothstep",
               animated: true,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: "#9c27b0", strokeWidth: 2, strokeDasharray: "5,5" },
+              style: {
+                stroke: "#9c27b0",
+                strokeWidth: 2,
+                strokeDasharray: "5,5",
+              },
               label: "Default",
             });
           }
@@ -766,7 +782,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
           // Create edge to the next node for STEP and FLOW nodes
           if (node.config?.next_node) {
             const target =
-              node.config.next_node === "$ending" ? "end" : node.config.next_node;
+              node.config.next_node === "$ending"
+                ? "end"
+                : node.config.next_node;
             const edgeId = `${node.id}-to-${target}`;
 
             // Determine source and target handles
@@ -933,7 +951,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
       if (!connection.source || !connection.target) return;
 
       // Determine the target node id (map 'end' back to '$ending')
-      const targetNodeId = connection.target === "end" ? "$ending" : connection.target;
+      const targetNodeId =
+        connection.target === "end" ? "$ending" : connection.target;
 
       // Update the source node's next_node
       if (connection.source === "start") {
@@ -955,9 +974,15 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
               });
             } else if (connection.sourceHandle.startsWith("router-rule-")) {
               // Update a specific rule's next_node
-              const ruleId = connection.sourceHandle.replace("router-rule-", "");
-              const updatedRules = (sourceNode.config?.rules || []).map((rule: RouterRule) =>
-                rule.id === ruleId ? { ...rule, next_node: targetNodeId } : rule
+              const ruleId = connection.sourceHandle.replace(
+                "router-rule-",
+                "",
+              );
+              const updatedRules = (sourceNode.config?.rules || []).map(
+                (rule: RouterRule) =>
+                  rule.id === ruleId
+                    ? { ...rule, next_node: targetNodeId }
+                    : rule,
               );
               onNodeUpdate?.(connection.source, {
                 config: {
