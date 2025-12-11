@@ -862,7 +862,7 @@ export async function postUserLoginHook(
   if (loginSession) {
     const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
     if (formHook && isFormHook(formHook)) {
-      return handleFormHook(ctx, formHook.form_id, loginSession);
+      return handleFormHook(ctx, formHook.form_id, loginSession, user);
     }
 
     // Handle page hook (redirect) if we have a login session
