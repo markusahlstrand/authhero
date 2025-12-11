@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.106.0
+
+### Minor Changes
+
+- f37644f: Update the node types for the forms
+
 ## 0.105.0
 
 ### Minor Changes
