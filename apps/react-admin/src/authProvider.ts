@@ -462,7 +462,12 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   } else {
     // For Auth0 login method, create a client for the current domain
     const currentAuth0Client = createAuth0Client(selectedDomain);
-    request = httpClient(currentAuth0Client)(url, options);
+    // Ensure headers is a Headers instance (ra-auth-auth0 expects this)
+    const normalizedOptions = {
+      ...options,
+      headers: new Headers(options.headers || {}),
+    };
+    request = httpClient(currentAuth0Client)(url, normalizedOptions);
   }
 
   // Handle cleanup when request is done

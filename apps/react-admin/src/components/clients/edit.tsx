@@ -1013,27 +1013,18 @@ const ConnectionsTab = () => {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-        <Typography variant="h6">Enabled Connections</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => setAddDialogOpen(true)}
-          disabled={availableConnections.length === 0}
-        >
-          Add Connection
-        </Button>
-      </Box>
+    <Box sx={{ width: "100%", maxWidth: 800 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Enabled Connections
+      </Typography>
 
       {enabledConnections.length === 0 ? (
-        <Typography color="text.secondary">
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
           No connections enabled for this client. Click "Add Connection" to
           enable one.
         </Typography>
       ) : (
-        <Paper variant="outlined">
+        <Paper variant="outlined" sx={{ mb: 2 }}>
           <List>
             {enabledConnections.map((connection, index) => (
               <ListItem
@@ -1091,6 +1082,16 @@ const ConnectionsTab = () => {
           </List>
         </Paper>
       )}
+
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={() => setAddDialogOpen(true)}
+        disabled={availableConnections.length === 0}
+      >
+        Add Connection
+      </Button>
 
       {/* Add Connection Dialog */}
       <Dialog

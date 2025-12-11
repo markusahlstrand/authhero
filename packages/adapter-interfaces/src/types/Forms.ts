@@ -66,6 +66,45 @@ export const formNodeComponentDefinition = z.discriminatedUnion("type", [
     order: z.number().optional(),
     visible: z.boolean().optional().default(true),
   }),
+  z.object({
+    id: z.string(),
+    category: z.literal("FIELD").optional(),
+    type: z.literal("EMAIL"),
+    config: z.object({
+      label: z.string().optional(),
+      placeholder: z.string().optional(),
+    }),
+    required: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+    order: z.number().optional(),
+    visible: z.boolean().optional().default(true),
+  }),
+  z.object({
+    id: z.string(),
+    category: z.literal("FIELD").optional(),
+    type: z.literal("NUMBER"),
+    config: z.object({
+      label: z.string().optional(),
+      placeholder: z.string().optional(),
+    }),
+    required: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+    order: z.number().optional(),
+    visible: z.boolean().optional().default(true),
+  }),
+  z.object({
+    id: z.string(),
+    category: z.literal("FIELD").optional(),
+    type: z.literal("PHONE"),
+    config: z.object({
+      label: z.string().optional(),
+      placeholder: z.string().optional(),
+    }),
+    required: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+    order: z.number().optional(),
+    visible: z.boolean().optional().default(true),
+  }),
   // Add more component types as needed
 ]);
 

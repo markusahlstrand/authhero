@@ -26,10 +26,13 @@ import NodeEditor from "./NodeEditor";
 // Type definitions
 export interface ComponentConfig {
   id: string;
-  type: "RICH_TEXT" | "LEGAL" | "NEXT_BUTTON";
+  type: "RICH_TEXT" | "LEGAL" | "NEXT_BUTTON" | "TEXT" | "EMAIL" | "NUMBER" | "PHONE";
+  required?: boolean;
   config?: {
     content?: string;
     text?: string;
+    label?: string;
+    placeholder?: string;
   };
 }
 
@@ -163,12 +166,6 @@ const StartNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
       >
         ▶
       </Box>
-      <Typography
-        variant="body2"
-        sx={{ color: (theme) => theme.palette.text.secondary }}
-      >
-        {data.next ? `Next: ${data.next}` : "No connection"}
-      </Typography>
     </Box>
     <Handle
       type="source"
@@ -339,17 +336,6 @@ const StepNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
       </Box>
     )}
 
-    {data.next && (
-      <Box sx={{ mt: 1, borderTop: "1px dashed #ddd", pt: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: (theme) => theme.palette.text.secondary }}
-        >
-          Next: {data.next === "$ending" ? "End" : data.next}
-        </Typography>
-      </Box>
-    )}
-
     <Handle
       type="source"
       position={Position.Right}
@@ -401,17 +387,6 @@ const FlowNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
         {data.flowId ? `Update ${data.flowId}` : "Update metadata"}
       </Typography>
     </Box>
-
-    {data.next && (
-      <Box sx={{ mt: 1, borderTop: "1px dashed #ddd", pt: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: (theme) => theme.palette.text.secondary }}
-        >
-          Next: {data.next === "$ending" ? "End" : data.next}
-        </Typography>
-      </Box>
-    )}
 
     <Handle
       type="source"
@@ -480,14 +455,8 @@ const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
                 position: "relative",
               }}
             >
-              <Typography variant="body2" sx={{ fontSize: "12px" }}>
+              <Typography variant="body2" sx={{ fontSize: "12px", pr: 2 }}>
                 {rule.alias || `Rule ${index + 1}`}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ color: "text.secondary", fontSize: "10px" }}
-              >
-                → {rule.next_node === "$ending" ? "End" : rule.next_node}
               </Typography>
               <Handle
                 type="source"
@@ -516,14 +485,8 @@ const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
           position: "relative",
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: "12px", color: "text.secondary" }}>
+        <Typography variant="body2" sx={{ fontSize: "12px", color: "text.secondary", pr: 2 }}>
           Default
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: "text.secondary", fontSize: "10px" }}
-        >
-          → {fallback === "$ending" ? "End" : fallback || "Not set"}
         </Typography>
         <Handle
           type="source"
@@ -593,7 +556,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         boxShadow: theme.shadows[1],
       },
       step: {
-        background: isDark ? theme.palette.grey[900] : "#ffffff",
+        background: isDark ? theme.palette.grey[800] : "#f5f5f5",
         border: isDark
           ? `1px solid ${theme.palette.divider}`
           : "1px solid #e0e0e0",
@@ -605,7 +568,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         boxShadow: theme.shadows[1],
       },
       flow: {
-        background: isDark ? theme.palette.grey[850] : "#f8f9fa",
+        background: isDark ? theme.palette.grey[800] : "#f5f5f5",
         border: isDark
           ? `1px solid ${theme.palette.divider}`
           : "1px solid #e0e0e0",
@@ -616,7 +579,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         boxShadow: theme.shadows[1],
       },
       router: {
-        background: isDark ? theme.palette.grey[850] : "#faf8ff",
+        background: isDark ? theme.palette.grey[800] : "#f5f5f5",
         border: isDark
           ? `1px solid ${theme.palette.divider}`
           : "1px solid #e0e0e0",
@@ -993,7 +956,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
             } else if (connection.sourceHandle.startsWith("router-rule-")) {
               // Update a specific rule's next_node
               const ruleId = connection.sourceHandle.replace("router-rule-", "");
-              const updatedRules = (sourceNode.config?.rules || []).map((rule: { id: string; next_node?: string }) =>
+              const updatedRules = (sourceNode.config?.rules || []).map((rule: RouterRule) =>
                 rule.id === ruleId ? { ...rule, next_node: targetNodeId } : rule
               );
               onNodeUpdate?.(connection.source, {
