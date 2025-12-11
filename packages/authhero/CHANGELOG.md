@@ -1,5 +1,11 @@
 # authhero
 
+## 0.291.0
+
+### Minor Changes
+
+- 5ed04e5: Add forms router support
+
 ## 0.290.1
 
 ### Patch Changes

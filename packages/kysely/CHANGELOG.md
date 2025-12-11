@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.65.0
+
+### Minor Changes
+
+- 5ed04e5: Limit the useragent to 256 to fit in the table
+
 ## 10.64.1
 
 ### Patch Changes
