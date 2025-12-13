@@ -63,12 +63,10 @@ export function createMainTenantAdapter(
             });
 
             // Merge connection options with fallback
-            mergedConnection.options = connectionOptionsSchema
-              .passthrough()
-              .parse({
-                ...(mainConnection.options || {}),
-                ...connection.options,
-              });
+            mergedConnection.options = connectionOptionsSchema.parse({
+              ...(mainConnection.options || {}),
+              ...connection.options,
+            });
 
             return mergedConnection;
           })
@@ -138,7 +136,7 @@ export function createMainTenantAdapter(
         });
 
         // Merge options with fallback
-        mergedConnection.options = connectionOptionsSchema.passthrough().parse({
+        mergedConnection.options = connectionOptionsSchema.parse({
           ...(mainConnection.options || {}),
           ...connection.options,
         });
@@ -172,12 +170,10 @@ export function createMainTenantAdapter(
           });
 
           // Merge options with fallback
-          mergedConnection.options = connectionOptionsSchema
-            .passthrough()
-            .parse({
-              ...(mainConnection.options || {}),
-              ...connection.options,
-            });
+          mergedConnection.options = connectionOptionsSchema.parse({
+            ...(mainConnection.options || {}),
+            ...connection.options,
+          });
 
           return mergedConnection;
         });

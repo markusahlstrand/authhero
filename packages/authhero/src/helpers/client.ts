@@ -47,8 +47,8 @@ export async function getClientWithDefaults(
           ...connection,
         });
 
-        // Add the passthrough to allow extra options
-        mergedConnection.options = connectionOptionsSchema.passthrough().parse({
+        // Merge connection options
+        mergedConnection.options = connectionOptionsSchema.parse({
           ...(defaultConnection.options || {}),
           ...connection.options,
         });
