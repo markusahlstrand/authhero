@@ -10,12 +10,23 @@ import {
   createR2SQLLogsAdapter,
   type R2SQLLogsAdapterConfig,
 } from "./r2-sql-logs";
+import {
+  createAnalyticsEngineLogsAdapter,
+  type AnalyticsEngineLogsAdapterConfig,
+  type AnalyticsEngineDataset,
+} from "./analytics-engine-logs";
 import { createCloudflareGeoAdapter } from "./geo";
 import { CloudflareConfig } from "./types/CloudflareConfig";
 
 // Re-export R2 SQL config type for convenience
 export type { R2SQLLogsAdapterConfig };
+// Re-export Analytics Engine config types for convenience
+export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset };
 export type { CloudflareConfig };
+
+// Re-export adapters for direct usage
+export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";
+export { createR2SQLLogsAdapter } from "./r2-sql-logs";
 
 export interface CloudflareAdapters {
   customDomains: CustomDomainsAdapter;
@@ -42,9 +53,12 @@ export default function createAdapters(
     geo: createCloudflareGeoAdapter(),
   };
 
-  // Add R2 SQL logs adapter if configured
+  // Add logs adapter if configured
+  // R2 SQL logs takes precedence if both are configured
   if (config.r2SqlLogs) {
     adapters.logs = createR2SQLLogsAdapter(config.r2SqlLogs);
+  } else if (config.analyticsEngineLogs) {
+    adapters.logs = createAnalyticsEngineLogsAdapter(config.analyticsEngineLogs);
   }
 
   return adapters;
