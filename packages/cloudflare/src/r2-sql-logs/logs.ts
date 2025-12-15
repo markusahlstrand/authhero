@@ -65,21 +65,6 @@ export function formatLogFromStorage(row: Record<string, any>): Log {
 
 export function createLog(config: R2SQLLogsAdapterConfig) {
   return async (tenantId: string, log: LogInsert): Promise<Log> => {
-    // Passthrough mode: Use base adapter first
-    if (config.baseAdapter) {
-      const baseLog = await config.baseAdapter.create(tenantId, log);
-
-      // Also send to Pipeline in the background (don't wait for it)
-      if (config.pipelineEndpoint || config.pipelineBinding) {
-        sendToPipeline(config, tenantId, baseLog).catch((error) => {
-          console.error("Failed to send log to Pipeline:", error);
-        });
-      }
-
-      return baseLog;
-    }
-
-    // Standard mode: Send to Pipeline and return
     const id = log.log_id || nanoid();
 
     const createdLog: Log = {
@@ -183,12 +168,7 @@ async function sendToPipeline(
 
 export function getLogs(config: R2SQLLogsAdapterConfig) {
   return async (tenantId: string, logId: string): Promise<Log | null> => {
-    // Passthrough mode: Use base adapter
-    if (config.baseAdapter) {
-      return config.baseAdapter.get(tenantId, logId);
-    }
-
-    // Standard mode: Query R2 SQL
+    // Query R2 SQL
     const namespace = config.namespace || "default";
     const tableName = config.tableName || "logs";
 

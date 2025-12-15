@@ -4,12 +4,14 @@ Cloudflare-specific adapters for AuthHero, providing integrations with Cloudflar
 
 ## Features
 
-This package provides four adapters:
+This package provides adapters for:
 
 - **Custom Domains** - Manage custom domains via Cloudflare API
 - **Cache** - Caching using Cloudflare's Cache API
 - **Geo** (optional) - Extract geographic information from Cloudflare request headers
-- **Logs** (optional) - Write authentication logs to Cloudflare R2 using Pipelines and query with R2 SQL
+- **Logs** (optional) - Two options for authentication logs:
+  - **Analytics Engine** - Low-latency writes with SQL querying (90-day retention)
+  - **R2 SQL + Pipelines** - Long-term storage with unlimited retention
 
 ## Installation
 
@@ -19,7 +21,42 @@ npm install @authhero/cloudflare-adapter
 
 ## Usage
 
-### HTTP Endpoint Mode (Default)
+### With Analytics Engine Logs (Recommended for Workers)
+
+```typescript
+import createAdapters from "@authhero/cloudflare-adapter";
+
+// In a Cloudflare Worker
+interface Env {
+  AUTH_LOGS: AnalyticsEngineDataset;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  ANALYTICS_ENGINE_API_TOKEN: string;
+}
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const adapters = createAdapters({
+      // Custom domains configuration
+      zoneId: "your-cloudflare-zone-id",
+      authKey: "your-cloudflare-api-key",
+      authEmail: "your-cloudflare-email",
+      customDomainAdapter: yourDatabaseCustomDomainsAdapter,
+
+      // Analytics Engine logs (low latency writes)
+      analyticsEngineLogs: {
+        analyticsEngineBinding: env.AUTH_LOGS,
+        accountId: env.CLOUDFLARE_ACCOUNT_ID,
+        apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+      },
+    });
+
+    const { customDomains, cache, geo, logs } = adapters;
+    // ...
+  },
+};
+```
+
+### With R2 SQL Logs (HTTP Endpoint Mode)
 
 ```typescript
 import createAdapters from "@authhero/cloudflare-adapter";
@@ -92,31 +129,42 @@ export default {
 
 ### Passthrough Mode (Multiple Destinations)
 
+Use the core `createPassthroughAdapter` utility to sync logs to multiple destinations:
+
 ```typescript
-import createAdapters from "@authhero/cloudflare-adapter";
-import { createOtherLogsAdapter } from "some-package";
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import createAdapters, {
+  createR2SQLLogsAdapter,
+  createAnalyticsEngineLogsAdapter,
+} from "@authhero/cloudflare-adapter";
 
-// Create a base logs adapter
-const baseAdapter = createOtherLogsAdapter();
+// Primary adapter (e.g., existing database)
+const databaseAdapter = createDatabaseLogsAdapter();
 
-const adapters = createAdapters({
-  zoneId: "your-cloudflare-zone-id",
-  authKey: "your-cloudflare-api-key",
-  authEmail: "your-cloudflare-email",
-  customDomainAdapter: yourDatabaseCustomDomainsAdapter,
-
-  // R2 SQL logs in passthrough mode - sends to both adapters
-  r2SqlLogs: {
-    baseAdapter,
-    pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
-    authToken: process.env.R2_SQL_AUTH_TOKEN,
-    warehouseName: process.env.R2_WAREHOUSE_NAME,
-  },
+// Cloudflare logs adapters for secondary syncing
+const r2SqlAdapter = createR2SQLLogsAdapter({
+  pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
+  authToken: process.env.R2_SQL_AUTH_TOKEN,
+  warehouseName: process.env.R2_WAREHOUSE_NAME,
 });
 
-// logs.create() will write to baseAdapter and Pipeline
-// logs.get() and logs.list() will read from baseAdapter
-const { logs } = adapters;
+const analyticsEngineAdapter = createAnalyticsEngineLogsAdapter({
+  analyticsEngineBinding: env.AUTH_LOGS,
+  accountId: env.CLOUDFLARE_ACCOUNT_ID,
+  apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+});
+
+// Create passthrough adapter - writes to primary and all secondaries
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    { adapter: { create: r2SqlAdapter.create } },
+    { adapter: { create: analyticsEngineAdapter.create } },
+  ],
+});
+
+// logsAdapter.create() writes to database, R2 SQL Pipeline, and Analytics Engine
+// logsAdapter.get() and logsAdapter.list() read from database only
 ```
 
 ## Adapters
@@ -334,45 +382,43 @@ export default {
 };
 ```
 
-**With Base Adapter (Passthrough Mode):**
-
-```typescript
-const baseAdapter = createKyselyLogsAdapter(db);
-
-const adapters = createAdapters({
-  // ... other config
-  r2SqlLogs: {
-    baseAdapter, // Logs written to base adapter first
-    pipelineBinding: env.AUTH_LOGS_STREAM, // Then sent to Pipeline in background
-    // authToken and warehouseName not needed when using baseAdapter
-  },
-});
-```
-
 The Pipeline binding uses the `.send()` method for direct data ingestion.
 
 ##### 3. Passthrough Mode (Wrap Another Adapter)
 
-Use this mode to send logs to both the R2 SQL Pipeline and another logs adapter:
+Use the core `createPassthroughAdapter` utility to send logs to both R2 SQL Pipeline and another logs adapter:
 
 ```typescript
-const baseAdapter = createSomeOtherLogsAdapter();
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createR2SQLLogsAdapter } from "@authhero/cloudflare-adapter";
 
-const { logs } = createAdapters({
-  r2SqlLogs: {
-    baseAdapter,
-    pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
-    authToken: env.R2_SQL_AUTH_TOKEN,
-    warehouseName: env.R2_WAREHOUSE_NAME,
-  },
+// Primary adapter (e.g., existing database)
+const databaseAdapter = createDatabaseLogsAdapter();
+
+// R2 SQL Pipeline adapter
+const r2SqlAdapter = createR2SQLLogsAdapter({
+  pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
+  authToken: env.R2_SQL_AUTH_TOKEN,
+  warehouseName: env.R2_WAREHOUSE_NAME,
+});
+
+// Create passthrough adapter
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    {
+      adapter: { create: r2SqlAdapter.create },
+      onError: (err) => console.error("R2 SQL sync failed:", err),
+    },
+  ],
 });
 ```
 
 In passthrough mode:
 
-- `create()` calls the base adapter first, then sends to the Pipeline in the background
-- `get()` and `list()` are delegated to the base adapter
-- Pipeline ingestion errors are logged but don't fail the operation
+- `create()` calls the primary adapter first, then sends to secondaries in the background
+- `get()` and `list()` read from the primary adapter only
+- Secondary errors are logged but don't fail the operation
 
 #### Methods
 
@@ -432,6 +478,202 @@ npx wrangler r2 sql query "your_warehouse" "
   WHERE tenant_id = 'tenant-123'
   GROUP BY type
 "
+```
+
+### Logs Adapter (Analytics Engine)
+
+Write authentication logs to Cloudflare Workers Analytics Engine for low-latency writes and SQL-based querying.
+
+#### Architecture
+
+This adapter uses Cloudflare's Workers Analytics Engine:
+
+- **Write**: Fire-and-forget writes using `writeDataPoint()` (no HTTP latency)
+- **Query**: SQL API for analyzing logs stored in Analytics Engine
+
+#### When to Use Analytics Engine vs R2 SQL
+
+| Feature        | Analytics Engine                 | R2 SQL + Pipelines            |
+| -------------- | -------------------------------- | ----------------------------- |
+| Write Latency  | ~0ms (fire-and-forget)           | ~50-100ms (HTTP)              |
+| Data Retention | 90 days (free), configurable     | Unlimited                     |
+| Query Language | SQL (ClickHouse-like)            | SQL (Iceberg)                 |
+| Best For       | Real-time analytics, recent logs | Long-term storage, compliance |
+| Pricing        | Free tier available              | Pay per storage + queries     |
+
+#### Prerequisites
+
+1. **Create an Analytics Engine Dataset**:
+
+Configure in `wrangler.toml`:
+
+```toml
+[[analytics_engine_datasets]]
+binding = "AUTH_LOGS"
+dataset = "authhero_logs"
+```
+
+2. **Create an API Token**:
+
+Create a Cloudflare API token with `Account Analytics: Read` permission for querying logs.
+
+#### Configuration
+
+```typescript
+interface AnalyticsEngineLogsAdapterConfig {
+  // Analytics Engine dataset binding (for Workers)
+  analyticsEngineBinding?: AnalyticsEngineDataset;
+
+  // Cloudflare account ID (required for SQL queries)
+  accountId: string;
+
+  // API token with Analytics Engine read permission
+  apiToken: string;
+
+  // Dataset name (default: "authhero_logs")
+  dataset?: string;
+
+  // HTTP timeout in ms (default: 30000)
+  timeout?: number;
+}
+```
+
+#### Usage
+
+```typescript
+import createAdapters, {
+  createAnalyticsEngineLogsAdapter,
+} from "@authhero/cloudflare-adapter";
+
+// Option 1: Use via createAdapters
+const adapters = createAdapters({
+  zoneId: "your-zone-id",
+  authKey: "your-api-key",
+  authEmail: "your-email",
+  customDomainAdapter: yourDbAdapter,
+
+  analyticsEngineLogs: {
+    analyticsEngineBinding: env.AUTH_LOGS,
+    accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+    dataset: "authhero_logs",
+  },
+});
+
+// Option 2: Use adapter directly
+const logsAdapter = createAnalyticsEngineLogsAdapter({
+  analyticsEngineBinding: env.AUTH_LOGS,
+  accountId: env.CLOUDFLARE_ACCOUNT_ID,
+  apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+});
+```
+
+#### Worker Example
+
+```typescript
+interface Env {
+  AUTH_LOGS: AnalyticsEngineDataset;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  ANALYTICS_ENGINE_API_TOKEN: string;
+}
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const { logs } = createAdapters({
+      // ... other config
+      analyticsEngineLogs: {
+        analyticsEngineBinding: env.AUTH_LOGS,
+        accountId: env.CLOUDFLARE_ACCOUNT_ID,
+        apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+      },
+    });
+
+    // Write a log (fire-and-forget, no await needed)
+    await logs.create("tenant-123", {
+      type: "s",
+      date: new Date().toISOString(),
+      ip: request.headers.get("cf-connecting-ip") || "",
+      user_agent: request.headers.get("user-agent") || "",
+      isMobile: false,
+      user_id: "user-456",
+      description: "User logged in",
+    });
+
+    // Query logs
+    const recentLogs = await logs.list("tenant-123", {
+      per_page: 50,
+      q: "type:s",
+    });
+
+    return new Response("OK");
+  },
+};
+```
+
+#### Passthrough Mode
+
+Use Analytics Engine alongside another logs adapter using the core `createPassthroughAdapter` utility:
+
+```typescript
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createAnalyticsEngineLogsAdapter } from "@authhero/cloudflare-adapter";
+
+// Primary adapter (e.g., database)
+const databaseAdapter = createDatabaseLogsAdapter();
+
+// Analytics Engine adapter for write syncing
+const analyticsEngineAdapter = createAnalyticsEngineLogsAdapter({
+  analyticsEngineBinding: env.AUTH_LOGS,
+  accountId: env.CLOUDFLARE_ACCOUNT_ID,
+  apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+});
+
+// Create passthrough adapter - writes to both, reads from primary
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    {
+      adapter: { create: analyticsEngineAdapter.create },
+      onError: (err) => console.error("Analytics sync failed:", err),
+    },
+  ],
+});
+
+// logs.create() writes to both adapters (database first, then Analytics Engine)
+// logs.get() and logs.list() read from database only
+```
+
+#### Data Schema
+
+Analytics Engine stores logs using blob and double fields:
+
+| Field     | Type   | Description                              |
+| --------- | ------ | ---------------------------------------- |
+| blob1     | string | log_id                                   |
+| blob2     | string | tenant_id                                |
+| blob3     | string | type (e.g., "s", "f")                    |
+| blob4     | string | date (ISO string)                        |
+| blob5     | string | description                              |
+| blob6     | string | ip                                       |
+| blob7     | string | user_agent                               |
+| blob8-18  | string | user_id, connection, client_id, etc.     |
+| blob19-20 | string | JSON stringified (details, auth0_client) |
+| double1   | number | isMobile (0 or 1)                        |
+| double2   | number | timestamp (epoch ms)                     |
+| index1    | string | tenant_id (for efficient filtering)      |
+
+#### Querying with SQL API
+
+```bash
+# List recent logs for a tenant
+curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d "SELECT * FROM authhero_logs WHERE index1 = 'tenant-123' ORDER BY timestamp DESC LIMIT 50"
+
+# Count logins by type
+curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d "SELECT blob3 as type, count() as count FROM authhero_logs WHERE index1 = 'tenant-123' GROUP BY blob3"
 ```
 
 ## Geo Adapter

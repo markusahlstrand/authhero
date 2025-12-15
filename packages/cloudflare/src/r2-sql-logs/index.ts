@@ -8,6 +8,11 @@ export type { R2SQLLogsAdapterConfig };
 /**
  * Create an R2 SQL logs adapter
  *
+ * This adapter uses Cloudflare R2 SQL and Pipelines for storing and querying logs.
+ *
+ * For passthrough mode (syncing writes to multiple destinations), use the core
+ * `createPassthroughAdapter` utility from `@authhero/adapter-interfaces` instead.
+ *
  * @param config Configuration for the R2 SQL adapter
  * @returns LogsDataAdapter instance
  *
@@ -36,42 +41,46 @@ export type { R2SQLLogsAdapterConfig };
  * });
  * ```
  *
- * @example Passthrough mode (wrap another adapter)
+ * @example Passthrough mode (use core utility)
  * ```typescript
- * const baseAdapter = createSomeOtherLogsAdapter();
- * const adapter = createR2SQLLogsAdapter({
- *   baseAdapter,
+ * import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+ * import { createR2SQLLogsAdapter } from "@authhero/cloudflare-adapter";
+ *
+ * const primaryAdapter = createDatabaseLogsAdapter();
+ * const r2SqlAdapter = createR2SQLLogsAdapter({
  *   pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
  *   authToken: process.env.R2_SQL_AUTH_TOKEN,
  *   warehouseName: process.env.R2_WAREHOUSE_NAME,
+ * });
+ *
+ * const logsAdapter = createPassthroughAdapter({
+ *   primary: primaryAdapter,
+ *   secondaries: [{ adapter: { create: r2SqlAdapter.create } }],
  * });
  * ```
  */
 export function createR2SQLLogsAdapter(
   config: R2SQLLogsAdapterConfig,
 ): LogsDataAdapter {
-  // Validate required config based on mode
-  const hasBaseAdapter = !!config.baseAdapter;
+  // Validate required config
   const hasPipelineEndpoint = !!config.pipelineEndpoint;
   const hasPipelineBinding = !!config.pipelineBinding;
 
-  // Need at least one of: baseAdapter, pipelineEndpoint, or pipelineBinding
-  if (!hasBaseAdapter && !hasPipelineEndpoint && !hasPipelineBinding) {
+  // Need at least one of: pipelineEndpoint or pipelineBinding
+  if (!hasPipelineEndpoint && !hasPipelineBinding) {
     throw new Error(
-      'R2 SQL logs adapter requires one of: "baseAdapter", "pipelineEndpoint", or "pipelineBinding"',
+      'R2 SQL logs adapter requires one of: "pipelineEndpoint" or "pipelineBinding"',
     );
   }
 
-  // If not using baseAdapter, need R2 SQL query credentials
-  if (!hasBaseAdapter) {
-    if (!config.authToken) {
-      throw new Error('R2 SQL logs adapter requires "authToken" configuration');
-    }
-    if (!config.warehouseName) {
-      throw new Error(
-        'R2 SQL logs adapter requires "warehouseName" configuration',
-      );
-    }
+  // Need R2 SQL query credentials
+  if (!config.authToken) {
+    throw new Error('R2 SQL logs adapter requires "authToken" configuration');
+  }
+  if (!config.warehouseName) {
+    throw new Error(
+      'R2 SQL logs adapter requires "warehouseName" configuration',
+    );
   }
 
   return {

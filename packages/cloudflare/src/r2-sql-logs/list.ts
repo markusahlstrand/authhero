@@ -59,12 +59,7 @@ export function listLogs(config: R2SQLLogsAdapterConfig) {
     tenantId: string,
     params: ListParams = {},
   ): Promise<ListLogsResponse> => {
-    // Passthrough mode: Use base adapter
-    if (config.baseAdapter) {
-      return config.baseAdapter.list(tenantId, params);
-    }
-
-    // Standard mode: Query R2 SQL
+    // Query R2 SQL
     const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
 
     const namespace = config.namespace || "default";
