@@ -38,16 +38,6 @@ export interface AnalyticsEngineLogsAdapterConfig {
   dataset?: string;
 
   /**
-   * Base logs adapter to wrap (passthrough mode)
-   * When provided, logs will be sent to both Analytics Engine and the base adapter
-   */
-  baseAdapter?: {
-    create: (tenantId: string, log: any) => Promise<any>;
-    get: (tenantId: string, logId: string) => Promise<any>;
-    list: (tenantId: string, params?: any) => Promise<any>;
-  };
-
-  /**
    * HTTP timeout in milliseconds for SQL API queries (default: 30000)
    */
   timeout?: number;

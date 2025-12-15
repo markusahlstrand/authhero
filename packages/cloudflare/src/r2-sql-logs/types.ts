@@ -15,16 +15,6 @@ export interface R2SQLLogsAdapterConfig {
   pipelineBinding?: { send: (data: any) => Promise<void> };
 
   /**
-   * Base logs adapter to wrap (passthrough mode)
-   * When provided, logs will be sent to both the Pipeline and the base adapter
-   */
-  baseAdapter?: {
-    create: (tenantId: string, log: any) => Promise<any>;
-    get: (tenantId: string, logId: string) => Promise<any>;
-    list: (tenantId: string, params?: any) => Promise<any>;
-  };
-
-  /**
    * Cloudflare account ID for R2 SQL API
    * Required for the official API endpoint
    * Can be passed via environment variable: CLOUDFLARE_ACCOUNT_ID

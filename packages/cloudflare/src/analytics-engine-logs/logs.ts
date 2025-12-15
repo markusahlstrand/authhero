@@ -78,19 +78,6 @@ export function formatLogFromStorage(row: Record<string, any>): Log {
 
 export function createLog(config: AnalyticsEngineLogsAdapterConfig) {
   return async (tenantId: string, log: LogInsert): Promise<Log> => {
-    // Passthrough mode: Use base adapter first
-    if (config.baseAdapter) {
-      const baseLog = await config.baseAdapter.create(tenantId, log);
-
-      // Also write to Analytics Engine (fire and forget)
-      if (config.analyticsEngineBinding) {
-        writeToAnalyticsEngine(config, tenantId, baseLog);
-      }
-
-      return baseLog;
-    }
-
-    // Standard mode: Write to Analytics Engine
     const id = log.log_id || nanoid();
 
     const createdLog: Log = {
@@ -169,12 +156,6 @@ function writeToAnalyticsEngine(
 
 export function getLogs(config: AnalyticsEngineLogsAdapterConfig) {
   return async (tenantId: string, logId: string): Promise<Log | null> => {
-    // Passthrough mode: Use base adapter
-    if (config.baseAdapter) {
-      return config.baseAdapter.get(tenantId, logId);
-    }
-
-    // Standard mode: Query Analytics Engine
     const dataset = config.dataset || "authhero_logs";
 
     const query = `

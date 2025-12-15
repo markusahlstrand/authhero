@@ -5,6 +5,11 @@ import {
   createAnalyticsEngineLogsAdapter,
   AnalyticsEngineDataset,
 } from "../src/analytics-engine-logs";
+import {
+  createPassthroughAdapter,
+  createWriteOnlyAdapter,
+  LogsDataAdapter,
+} from "@authhero/adapter-interfaces";
 
 // Mock Analytics Engine dataset binding
 const createMockBinding = (): AnalyticsEngineDataset & {
@@ -155,39 +160,112 @@ describe("Analytics Engine Logs Adapter", () => {
       expect(mockBinding.dataPoints[0]?.blobs?.[0]).toBe("custom-log-id");
       expect(mockBinding.dataPoints[0]?.doubles?.[0]).toBe(1); // isMobile = true
     });
+  });
 
-    it("should use base adapter in passthrough mode", async () => {
+  describe("passthrough with core utility", () => {
+    it("should sync writes to Analytics Engine using createPassthroughAdapter", async () => {
       const mockBinding = createMockBinding();
-      const mockBaseAdapter = {
+
+      // Primary adapter (e.g., R2 SQL or any other storage)
+      const mockPrimaryAdapter: LogsDataAdapter = {
         create: vi.fn().mockResolvedValue({
-          log_id: "base-log-id",
+          log_id: "primary-log-id",
           type: "s",
           date: "2024-01-15T10:00:00.000Z",
           isMobile: false,
         }),
-        get: vi.fn(),
-        list: vi.fn(),
+        get: vi.fn().mockResolvedValue({
+          log_id: "primary-log-id",
+          type: "s",
+          date: "2024-01-15T10:00:00.000Z",
+          isMobile: false,
+        }),
+        list: vi.fn().mockResolvedValue({
+          logs: [{ log_id: "primary-log-id", type: "s" }],
+          start: 0,
+          limit: 50,
+          length: 1,
+        }),
       };
 
-      const adapter = createAnalyticsEngineLogsAdapter({
+      // Analytics Engine adapter for write syncing
+      const analyticsEngineAdapter = createAnalyticsEngineLogsAdapter({
         analyticsEngineBinding: mockBinding,
-        baseAdapter: mockBaseAdapter,
         accountId: "test-account",
         apiToken: "test-token",
       });
 
-      const log = await adapter.create("tenant-1", {
+      // Create passthrough adapter using core utility
+      const passthroughAdapter = createPassthroughAdapter<LogsDataAdapter>({
+        primary: mockPrimaryAdapter,
+        secondaries: [
+          {
+            adapter: createWriteOnlyAdapter<LogsDataAdapter>({
+              create: analyticsEngineAdapter.create,
+            }),
+          },
+        ],
+      });
+
+      // Create a log - should write to both adapters
+      const log = await passthroughAdapter.create("tenant-1", {
         type: "s",
         date: "2024-01-15T10:00:00.000Z",
         isMobile: false,
       });
 
-      // Should return the base adapter's result
-      expect(log.log_id).toBe("base-log-id");
-      expect(mockBaseAdapter.create).toHaveBeenCalledTimes(1);
+      // Should return the primary adapter's result
+      expect(log.log_id).toBe("primary-log-id");
+      expect(mockPrimaryAdapter.create).toHaveBeenCalledTimes(1);
 
       // Should also write to Analytics Engine
       expect(mockBinding.writeDataPoint).toHaveBeenCalledTimes(1);
+    });
+
+    it("should read from primary adapter only", async () => {
+      const mockBinding = createMockBinding();
+
+      const mockPrimaryAdapter: LogsDataAdapter = {
+        create: vi.fn(),
+        get: vi.fn().mockResolvedValue({
+          log_id: "primary-log-id",
+          type: "s",
+          date: "2024-01-15T10:00:00.000Z",
+          isMobile: false,
+        }),
+        list: vi.fn().mockResolvedValue({
+          logs: [{ log_id: "primary-log-id", type: "s" }],
+          start: 0,
+          limit: 50,
+          length: 1,
+        }),
+      };
+
+      const analyticsEngineAdapter = createAnalyticsEngineLogsAdapter({
+        analyticsEngineBinding: mockBinding,
+        accountId: "test-account",
+        apiToken: "test-token",
+      });
+
+      const passthroughAdapter = createPassthroughAdapter<LogsDataAdapter>({
+        primary: mockPrimaryAdapter,
+        secondaries: [
+          {
+            adapter: createWriteOnlyAdapter<LogsDataAdapter>({
+              create: analyticsEngineAdapter.create,
+            }),
+          },
+        ],
+      });
+
+      // Read operations should only hit primary
+      const log = await passthroughAdapter.get("tenant-1", "primary-log-id");
+      expect(log?.log_id).toBe("primary-log-id");
+      expect(mockPrimaryAdapter.get).toHaveBeenCalledTimes(1);
+
+      const result = await passthroughAdapter.list("tenant-1", {});
+      expect(result.logs[0]?.log_id).toBe("primary-log-id");
+      expect(mockPrimaryAdapter.list).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -225,33 +303,6 @@ describe("Analytics Engine Logs Adapter", () => {
 
       expect(result.logs.length).toBe(1);
       expect(result.length).toBe(1);
-    });
-
-    it("should use base adapter in passthrough mode", async () => {
-      const mockBaseAdapter = {
-        create: vi.fn(),
-        get: vi.fn(),
-        list: vi.fn().mockResolvedValue({
-          logs: [{ log_id: "base-log", type: "s" }],
-          start: 0,
-          limit: 50,
-          length: 1,
-        }),
-      };
-
-      const adapter = createAnalyticsEngineLogsAdapter({
-        baseAdapter: mockBaseAdapter,
-        accountId: "test-account",
-        apiToken: "test-token",
-      });
-
-      const result = await adapter.list("tenant-1", {
-        page: 0,
-        per_page: 50,
-      });
-
-      expect(result.logs[0]?.log_id).toBe("base-log");
-      expect(mockBaseAdapter.list).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -292,28 +343,6 @@ describe("Analytics Engine Logs Adapter", () => {
       const log = await adapter.get("tenant-1", "non-existent");
 
       expect(log).toBeNull();
-    });
-
-    it("should use base adapter in passthrough mode", async () => {
-      const mockBaseAdapter = {
-        create: vi.fn(),
-        get: vi.fn().mockResolvedValue({
-          log_id: "base-log",
-          type: "f",
-        }),
-        list: vi.fn(),
-      };
-
-      const adapter = createAnalyticsEngineLogsAdapter({
-        baseAdapter: mockBaseAdapter,
-        accountId: "test-account",
-        apiToken: "test-token",
-      });
-
-      const log = await adapter.get("tenant-1", "base-log");
-
-      expect(log?.log_id).toBe("base-log");
-      expect(mockBaseAdapter.get).toHaveBeenCalledWith("tenant-1", "base-log");
     });
   });
 

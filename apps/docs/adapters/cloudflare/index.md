@@ -222,9 +222,6 @@ interface AnalyticsEngineLogsAdapterConfig {
   // Dataset name (default: "authhero_logs")
   dataset?: string;
 
-  // Base adapter for passthrough mode (optional)
-  baseAdapter?: LogsDataAdapter;
-
   // HTTP timeout in ms (default: 30000)
   timeout?: number;
 }
@@ -340,23 +337,35 @@ Analytics Engine stores logs using blob and double fields:
 
 ### Passthrough Mode
 
-Use Analytics Engine alongside another logs adapter:
+Use the core `createPassthroughAdapter` utility to sync logs to multiple destinations:
 
 ```typescript
-const baseAdapter = createDatabaseLogsAdapter();
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createAnalyticsEngineLogsAdapter } from "@authhero/cloudflare-adapter";
 
-const adapters = createAdapters({
-  // ... other config
-  analyticsEngineLogs: {
-    baseAdapter,
-    analyticsEngineBinding: env.AUTH_LOGS,
-    accountId: env.CLOUDFLARE_ACCOUNT_ID,
-    apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
-  },
+// Primary adapter (e.g., database)
+const databaseAdapter = createDatabaseLogsAdapter();
+
+// Analytics Engine adapter for write syncing
+const analyticsEngineAdapter = createAnalyticsEngineLogsAdapter({
+  analyticsEngineBinding: env.AUTH_LOGS,
+  accountId: env.CLOUDFLARE_ACCOUNT_ID,
+  apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
 });
 
-// logs.create() writes to both adapters
-// logs.get() and logs.list() read from baseAdapter
+// Create passthrough adapter - writes to both, reads from primary
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    {
+      adapter: { create: analyticsEngineAdapter.create },
+      onError: (err) => console.error("Analytics sync failed:", err),
+    },
+  ],
+});
+
+// logs.create() writes to both adapters (database first, then Analytics Engine)
+// logs.get() and logs.list() read from database only
 ```
 
 ### Analytics Example
@@ -563,77 +572,47 @@ export default {
 };
 ```
 
-**With Base Adapter (Passthrough Mode):**
-
-```typescript
-import { createKyselyAdapter } from "@authhero/kysely-adapter";
-
-const baseAdapter = createKyselyAdapter(db);
-
-export default {
-  async fetch(request: Request, env: Env) {
-    const adapters = createAdapters({
-      // ... other config
-      r2SqlLogs: {
-        baseAdapter: baseAdapter.logs, // Logs written to base adapter first
-        pipelineBinding: env.AUTH_LOGS_STREAM, // Then sent to Pipeline in background
-        // authToken and warehouseName not needed when using baseAdapter
-      },
-    });
-
-    const { logs } = adapters;
-    // Logs will be written to both DB and Pipeline
-  },
-};
-```
-
 The Pipeline binding uses the `.send()` method for direct data ingestion.
 
 #### 3. Passthrough Mode (Multiple Destinations)
 
-Use this mode to send logs to both the R2 SQL Pipeline and another logs adapter. This is useful when you want to maintain compatibility with an existing logging system while also ingesting into R2.
+Use the core `createPassthroughAdapter` utility to send logs to both R2 SQL Pipeline and another logs adapter:
 
 ```typescript
-{
-  baseAdapter: LogsDataAdapter;  // Base adapter to wrap
-  pipelineEndpoint?: string;     // Pipeline HTTP endpoint (optional if using binding)
-  pipelineBinding?: object;      // Pipeline service binding (optional if using endpoint)
-  authToken?: string;            // R2 SQL API token (optional when using baseAdapter)
-  warehouseName?: string;        // R2 warehouse name (optional when using baseAdapter)
-}
-```
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createR2SqlLogsAdapter } from "@authhero/cloudflare-adapter";
 
-**Example:**
+// Primary adapter (e.g., existing database)
+const databaseAdapter = createDatabaseLogsAdapter();
 
-```typescript
-import { createOtherLogsAdapter } from "some-package";
-
-const baseAdapter = createOtherLogsAdapter();
-
-const adapters = createAdapters({
-  zoneId: "your-zone-id",
-  authKey: "your-api-key",
-  authEmail: "your-email",
-  customDomainAdapter: yourDbAdapter,
-
-  r2SqlLogs: {
-    baseAdapter,
-    pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
-    // authToken and warehouseName not needed when using baseAdapter
-  },
+// R2 SQL Pipeline adapter
+const r2SqlAdapter = createR2SqlLogsAdapter({
+  pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
+  authToken: env.R2_SQL_AUTH_TOKEN,
+  warehouseName: env.R2_WAREHOUSE_NAME,
 });
 
-// logs.create() will write to both baseAdapter and Pipeline
-// logs.get() and logs.list() will read from baseAdapter
-const { logs } = adapters;
+// Create passthrough adapter
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    {
+      adapter: { create: r2SqlAdapter.create },
+      onError: (err) => console.error("R2 SQL sync failed:", err),
+    },
+  ],
+});
+
+// logs.create() writes to both adapters (primary first, then R2 SQL Pipeline)
+// logs.get() and logs.list() read from primary only
 ```
 
 **Passthrough Mode Behavior:**
 
-- `create()`: Calls the base adapter first, then sends to the Pipeline in the background (non-blocking)
-- `get()`: Delegated to the base adapter
-- `list()`: Delegated to the base adapter
-- Pipeline errors are logged but don't fail the operation
+- `create()`: Calls the primary adapter first, then syncs to secondaries in the background (non-blocking)
+- `get()`: Reads from the primary adapter only
+- `list()`: Reads from the primary adapter only
+- Secondary errors are logged but don't fail the operation
 
 ### Methods
 

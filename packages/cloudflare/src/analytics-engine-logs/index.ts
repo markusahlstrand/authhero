@@ -11,6 +11,9 @@ export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset } from ".
  * This adapter uses Cloudflare's Workers Analytics Engine for storing and querying logs.
  * It provides a simpler alternative to R2 SQL logs with lower latency for writes.
  *
+ * For passthrough mode (syncing writes to multiple destinations), use the core
+ * `createPassthroughAdapter` utility from `@authhero/adapter-interfaces` instead.
+ *
  * @param config Configuration for the Analytics Engine adapter
  * @returns LogsDataAdapter instance
  *
@@ -31,14 +34,21 @@ export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset } from ".
  * });
  * ```
  *
- * @example Passthrough mode (wrap another adapter)
+ * @example Passthrough mode (use core utility)
  * ```typescript
- * const baseAdapter = createSomeOtherLogsAdapter();
- * const adapter = createAnalyticsEngineLogsAdapter({
- *   baseAdapter,
+ * import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+ * import { createAnalyticsEngineLogsAdapter } from "@authhero/cloudflare-adapter";
+ *
+ * const primaryAdapter = createDatabaseLogsAdapter();
+ * const analyticsAdapter = createAnalyticsEngineLogsAdapter({
  *   analyticsEngineBinding: env.AUTH_LOGS,
  *   accountId: env.CLOUDFLARE_ACCOUNT_ID,
  *   apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+ * });
+ *
+ * const logsAdapter = createPassthroughAdapter({
+ *   primary: primaryAdapter,
+ *   secondaries: [{ adapter: { create: analyticsAdapter.create } }],
  * });
  * ```
  */
@@ -46,7 +56,7 @@ export function createAnalyticsEngineLogsAdapter(
   config: AnalyticsEngineLogsAdapterConfig,
 ): LogsDataAdapter {
   // Validate required config
-  if (!config.analyticsEngineBinding && !config.baseAdapter) {
+  if (!config.analyticsEngineBinding) {
     console.warn(
       "Analytics Engine: No binding configured. Logs will not be written to Analytics Engine.",
     );

@@ -97,12 +97,6 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     tenantId: string,
     params: ListParams = {},
   ): Promise<ListLogsResponse> => {
-    // Passthrough mode: Use base adapter
-    if (config.baseAdapter) {
-      return config.baseAdapter.list(tenantId, params);
-    }
-
-    // Standard mode: Query Analytics Engine
     const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
 
     const dataset = config.dataset || "authhero_logs";
