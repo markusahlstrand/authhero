@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.19.0
+
+### Minor Changes
+
+- 5c34a61: Add support for analytics engine
+- 0e906aa: Generalize the base adapter
+
 ## 1.18.0
 
 ### Minor Changes

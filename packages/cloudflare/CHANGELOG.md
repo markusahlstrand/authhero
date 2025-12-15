@@ -1,5 +1,18 @@
 # @authhero/cloudflare-adapter
 
+## 2.15.0
+
+### Minor Changes
+
+- 5c34a61: Add support for analytics engine
+- 0e906aa: Generalize the base adapter
+
+### Patch Changes
+
+- Updated dependencies [0e906aa]
+  - @authhero/adapter-interfaces@0.108.0
+  - @authhero/kysely-adapter@10.65.2
+
 ## 2.14.4
 
 ### Patch Changes

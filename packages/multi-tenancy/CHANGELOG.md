@@ -1,5 +1,13 @@
 # @authhero/multi-tenancy
 
+## 10.0.2
+
+### Patch Changes
+
+- Updated dependencies [0e906aa]
+  - @authhero/adapter-interfaces@0.108.0
+  - authhero@0.291.2
+
 ## 10.0.1
 
 ### Patch Changes

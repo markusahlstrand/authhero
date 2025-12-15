@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.108.0
+
+### Minor Changes
+
+- 0e906aa: Generalize the base adapter
+
 ## 0.107.0
 
 ### Minor Changes
