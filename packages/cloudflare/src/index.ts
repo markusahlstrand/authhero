@@ -58,7 +58,9 @@ export default function createAdapters(
   if (config.r2SqlLogs) {
     adapters.logs = createR2SQLLogsAdapter(config.r2SqlLogs);
   } else if (config.analyticsEngineLogs) {
-    adapters.logs = createAnalyticsEngineLogsAdapter(config.analyticsEngineLogs);
+    adapters.logs = createAnalyticsEngineLogsAdapter(
+      config.analyticsEngineLogs,
+    );
   }
 
   return adapters;

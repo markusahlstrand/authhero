@@ -1,4 +1,12 @@
-import { describe, expect, it, beforeAll, afterAll, vi, beforeEach } from "vitest";
+import {
+  describe,
+  expect,
+  it,
+  beforeAll,
+  afterAll,
+  vi,
+  beforeEach,
+} from "vitest";
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
 import {
@@ -34,28 +42,34 @@ const createMockBinding = (): AnalyticsEngineDataset & {
 };
 
 // Mock SQL API responses
+// Blob mapping:
+//   blob1: log_id, blob2: tenant_id, blob3: type, blob4: description,
+//   blob5: ip, blob6: user_agent, blob7: user_id, blob8: user_name,
+//   blob9: connection, blob10: connection_id, blob11: client_id, blob12: client_name,
+//   blob13: audience, blob14: scope, blob15: strategy, blob16: strategy_type,
+//   blob17: hostname, blob18: details (JSON), blob19: auth0_client (JSON), blob20: location_info (JSON)
 const mockLogs = [
   {
     blob1: "log-123",
     blob2: "tenant-1",
     blob3: "s",
-    blob4: "2024-01-15T10:00:00.000Z",
-    blob5: "User logged in",
-    blob6: "192.168.1.1",
-    blob7: "Mozilla/5.0",
-    blob8: "user-456",
-    blob9: "John Doe",
-    blob10: "Username-Password-Authentication",
-    blob11: "conn-789",
-    blob12: "client-abc",
-    blob13: "My App",
-    blob14: "https://api.example.com",
-    blob15: "openid profile",
-    blob16: "auth0",
-    blob17: "database",
-    blob18: "login.example.com",
-    blob19: "{}",
-    blob20: '{"name":"auth0.js","version":"9.0.0"}',
+    blob4: "User logged in",
+    blob5: "192.168.1.1",
+    blob6: "Mozilla/5.0",
+    blob7: "user-456",
+    blob8: "John Doe",
+    blob9: "Username-Password-Authentication",
+    blob10: "conn-789",
+    blob11: "client-abc",
+    blob12: "My App",
+    blob13: "https://api.example.com",
+    blob14: "openid profile",
+    blob15: "auth0",
+    blob16: "database",
+    blob17: "login.example.com",
+    blob18: "{}",
+    blob19: '{"name":"auth0.js","version":"9.0.0"}',
+    blob20: '{"country_code":"US","city_name":"New York"}',
     double1: 0,
     double2: 1705312800000,
     timestamp: "2024-01-15T10:00:00.000Z",
@@ -357,9 +371,9 @@ describe("Analytics Engine Logs Adapter", () => {
               data: [
                 {
                   ...mockLogs[0],
-                  blob19: '{"error":"invalid_grant"}',
-                  blob20: '{"name":"auth0.js","version":"9.0.0"}',
-                  blob21: '{"country_code":"US","city_name":"New York"}',
+                  blob18: '{"error":"invalid_grant"}',
+                  blob19: '{"name":"auth0.js","version":"9.0.0"}',
+                  blob20: '{"country_code":"US","city_name":"New York"}',
                 },
               ],
             });

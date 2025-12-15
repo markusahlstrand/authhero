@@ -9,7 +9,7 @@ export type { R2SQLLogsAdapterConfig };
  * Create an R2 SQL logs adapter
  *
  * This adapter uses Cloudflare R2 SQL and Pipelines for storing and querying logs.
- * 
+ *
  * For passthrough mode (syncing writes to multiple destinations), use the core
  * `createPassthroughAdapter` utility from `@authhero/adapter-interfaces` instead.
  *

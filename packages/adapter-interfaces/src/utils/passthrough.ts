@@ -141,12 +141,21 @@ export function createPassthroughAdapter<T extends object>(
             try {
               await secondaryMethod.apply(secondary.adapter, args);
             } catch (error) {
-              if (secondary.onError) {
-                secondary.onError(error as Error, prop, args);
-              } else {
+              // Wrap onError in try-catch to prevent unhandled rejections
+              try {
+                if (secondary.onError) {
+                  secondary.onError(error as Error, prop, args);
+                } else {
+                  console.error(
+                    `Passthrough adapter: secondary write failed for ${prop}:`,
+                    error,
+                  );
+                }
+              } catch (onErrorError) {
+                // If onError itself throws, log it but don't propagate
                 console.error(
-                  `Passthrough adapter: secondary write failed for ${prop}:`,
-                  error,
+                  `Passthrough adapter: onError handler threw for ${prop}:`,
+                  onErrorError,
                 );
               }
             }

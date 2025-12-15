@@ -182,13 +182,13 @@ This adapter uses Cloudflare's Workers Analytics Engine:
 
 ### When to Use Analytics Engine vs R2 SQL
 
-| Feature | Analytics Engine | R2 SQL + Pipelines |
-|---------|-----------------|-------------------|
-| Write Latency | ~0ms (fire-and-forget) | ~50-100ms (HTTP) |
-| Data Retention | 90 days (free), configurable | Unlimited |
-| Query Language | SQL (ClickHouse-like) | SQL (Iceberg) |
-| Best For | Real-time analytics, recent logs | Long-term storage, compliance |
-| Pricing | Free tier available | Pay per storage + queries |
+| Feature        | Analytics Engine                 | R2 SQL + Pipelines            |
+| -------------- | -------------------------------- | ----------------------------- |
+| Write Latency  | ~0ms (fire-and-forget)           | ~50-100ms (HTTP)              |
+| Data Retention | 90 days (free), configurable     | Unlimited                     |
+| Query Language | SQL (ClickHouse-like)            | SQL (Iceberg)                 |
+| Best For       | Real-time analytics, recent logs | Long-term storage, compliance |
+| Pricing        | Free tier available              | Pay per storage + queries     |
 
 ### Prerequisites
 
@@ -309,31 +309,31 @@ curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engin
 
 Analytics Engine stores logs using blob and double fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| blob1 | string | log_id |
-| blob2 | string | tenant_id |
-| blob3 | string | type (e.g., "s", "f") |
-| blob4 | string | date (ISO string) |
-| blob5 | string | description |
-| blob6 | string | ip |
-| blob7 | string | user_agent |
-| blob8 | string | user_id |
-| blob9 | string | user_name |
-| blob10 | string | connection |
-| blob11 | string | connection_id |
-| blob12 | string | client_id |
-| blob13 | string | client_name |
-| blob14 | string | audience |
-| blob15 | string | scope |
-| blob16 | string | strategy |
-| blob17 | string | strategy_type |
-| blob18 | string | hostname |
-| blob19 | string | details (JSON stringified) |
-| blob20 | string | auth0_client (JSON stringified) |
-| double1 | number | isMobile (0 or 1) |
-| double2 | number | timestamp (epoch ms) |
-| index1 | string | tenant_id (for efficient filtering) |
+| Field   | Type   | Description                         |
+| ------- | ------ | ----------------------------------- |
+| blob1   | string | log_id                              |
+| blob2   | string | tenant_id                           |
+| blob3   | string | type (e.g., "s", "f")               |
+| blob4   | string | date (ISO string)                   |
+| blob5   | string | description                         |
+| blob6   | string | ip                                  |
+| blob7   | string | user_agent                          |
+| blob8   | string | user_id                             |
+| blob9   | string | user_name                           |
+| blob10  | string | connection                          |
+| blob11  | string | connection_id                       |
+| blob12  | string | client_id                           |
+| blob13  | string | client_name                         |
+| blob14  | string | audience                            |
+| blob15  | string | scope                               |
+| blob16  | string | strategy                            |
+| blob17  | string | strategy_type                       |
+| blob18  | string | hostname                            |
+| blob19  | string | details (JSON stringified)          |
+| blob20  | string | auth0_client (JSON stringified)     |
+| double1 | number | isMobile (0 or 1)                   |
+| double2 | number | timestamp (epoch ms)                |
+| index1  | string | tenant_id (for efficient filtering) |
 
 ### Passthrough Mode
 
@@ -372,14 +372,14 @@ const logsAdapter = createPassthroughAdapter({
 
 ```typescript
 // Track login patterns
-async function analyzeLoginPatterns(tenantId: string) {
-  const logs = await logs.list(tenantId, {
+async function analyzeLoginPatterns(logsAdapter: LogsDataAdapter, tenantId: string) {
+  const result = await logsAdapter.list(tenantId, {
     per_page: 1000,
     q: "type:s", // Successful logins only
   });
 
   const loginsByHour = {};
-  logs.logs.forEach((log) => {
+  result.logs.forEach((log) => {
     const hour = new Date(log.date).getHours();
     loginsByHour[hour] = (loginsByHour[hour] || 0) + 1;
   });
@@ -580,13 +580,13 @@ Use the core `createPassthroughAdapter` utility to send logs to both R2 SQL Pipe
 
 ```typescript
 import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
-import { createR2SqlLogsAdapter } from "@authhero/cloudflare-adapter";
+import { createR2SQLLogsAdapter } from "@authhero/cloudflare-adapter";
 
 // Primary adapter (e.g., existing database)
 const databaseAdapter = createDatabaseLogsAdapter();
 
 // R2 SQL Pipeline adapter
-const r2SqlAdapter = createR2SqlLogsAdapter({
+const r2SqlAdapter = createR2SQLLogsAdapter({
   pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
   authToken: env.R2_SQL_AUTH_TOKEN,
   warehouseName: env.R2_WAREHOUSE_NAME,
@@ -694,14 +694,14 @@ npx wrangler r2 sql query "your_warehouse" "
 
 ```typescript
 // Track login patterns
-async function analyzeLoginPatterns(tenantId: string) {
-  const logs = await logs.list(tenantId, {
+async function analyzeLoginPatterns(logsAdapter: LogsDataAdapter, tenantId: string) {
+  const result = await logsAdapter.list(tenantId, {
     per_page: 1000,
     q: "type:s", // Successful logins only
   });
 
   const loginsByHour = {};
-  logs.logs.forEach((log) => {
+  result.logs.forEach((log) => {
     const hour = new Date(log.date).getHours();
     loginsByHour[hour] = (loginsByHour[hour] || 0) + 1;
   });
@@ -1002,6 +1002,7 @@ async function testR2SQLConnection(config: R2SQLLogsAdapterConfig) {
 - [AuthHero Adapter Interfaces](/adapters/interfaces/)
 
 The Cloudflare adapter provides a flexible and performant solution for managing custom domains, caching, and logging in AuthHero applications.
+
 - [R2 Data Catalog](https://developers.cloudflare.com/r2/data-catalog/)
 - [AuthHero Adapter Interfaces](/adapters/interfaces/)
 

@@ -134,7 +134,7 @@ Use the core `createPassthroughAdapter` utility to sync logs to multiple destina
 ```typescript
 import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
 import createAdapters, {
-  createR2SqlLogsAdapter,
+  createR2SQLLogsAdapter,
   createAnalyticsEngineLogsAdapter,
 } from "@authhero/cloudflare-adapter";
 
@@ -142,7 +142,7 @@ import createAdapters, {
 const databaseAdapter = createDatabaseLogsAdapter();
 
 // Cloudflare logs adapters for secondary syncing
-const r2SqlAdapter = createR2SqlLogsAdapter({
+const r2SqlAdapter = createR2SQLLogsAdapter({
   pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
   authToken: process.env.R2_SQL_AUTH_TOKEN,
   warehouseName: process.env.R2_WAREHOUSE_NAME,
@@ -390,13 +390,13 @@ Use the core `createPassthroughAdapter` utility to send logs to both R2 SQL Pipe
 
 ```typescript
 import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
-import { createR2SqlLogsAdapter } from "@authhero/cloudflare-adapter";
+import { createR2SQLLogsAdapter } from "@authhero/cloudflare-adapter";
 
 // Primary adapter (e.g., existing database)
 const databaseAdapter = createDatabaseLogsAdapter();
 
 // R2 SQL Pipeline adapter
-const r2SqlAdapter = createR2SqlLogsAdapter({
+const r2SqlAdapter = createR2SQLLogsAdapter({
   pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
   authToken: env.R2_SQL_AUTH_TOKEN,
   warehouseName: env.R2_WAREHOUSE_NAME,
@@ -493,13 +493,13 @@ This adapter uses Cloudflare's Workers Analytics Engine:
 
 #### When to Use Analytics Engine vs R2 SQL
 
-| Feature | Analytics Engine | R2 SQL + Pipelines |
-|---------|-----------------|-------------------|
-| Write Latency | ~0ms (fire-and-forget) | ~50-100ms (HTTP) |
-| Data Retention | 90 days (free), configurable | Unlimited |
-| Query Language | SQL (ClickHouse-like) | SQL (Iceberg) |
-| Best For | Real-time analytics, recent logs | Long-term storage, compliance |
-| Pricing | Free tier available | Pay per storage + queries |
+| Feature        | Analytics Engine                 | R2 SQL + Pipelines            |
+| -------------- | -------------------------------- | ----------------------------- |
+| Write Latency  | ~0ms (fire-and-forget)           | ~50-100ms (HTTP)              |
+| Data Retention | 90 days (free), configurable     | Unlimited                     |
+| Query Language | SQL (ClickHouse-like)            | SQL (Iceberg)                 |
+| Best For       | Real-time analytics, recent logs | Long-term storage, compliance |
+| Pricing        | Free tier available              | Pay per storage + queries     |
 
 #### Prerequisites
 
@@ -523,16 +523,16 @@ Create a Cloudflare API token with `Account Analytics: Read` permission for quer
 interface AnalyticsEngineLogsAdapterConfig {
   // Analytics Engine dataset binding (for Workers)
   analyticsEngineBinding?: AnalyticsEngineDataset;
-  
+
   // Cloudflare account ID (required for SQL queries)
   accountId: string;
-  
+
   // API token with Analytics Engine read permission
   apiToken: string;
-  
+
   // Dataset name (default: "authhero_logs")
   dataset?: string;
-  
+
   // HTTP timeout in ms (default: 30000)
   timeout?: number;
 }
@@ -541,7 +541,9 @@ interface AnalyticsEngineLogsAdapterConfig {
 #### Usage
 
 ```typescript
-import createAdapters, { createAnalyticsEngineLogsAdapter } from "@authhero/cloudflare-adapter";
+import createAdapters, {
+  createAnalyticsEngineLogsAdapter,
+} from "@authhero/cloudflare-adapter";
 
 // Option 1: Use via createAdapters
 const adapters = createAdapters({
@@ -549,7 +551,7 @@ const adapters = createAdapters({
   authKey: "your-api-key",
   authEmail: "your-email",
   customDomainAdapter: yourDbAdapter,
-  
+
   analyticsEngineLogs: {
     analyticsEngineBinding: env.AUTH_LOGS,
     accountId: env.CLOUDFLARE_ACCOUNT_ID,
@@ -585,7 +587,7 @@ export default {
         apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
       },
     });
-    
+
     // Write a log (fire-and-forget, no await needed)
     await logs.create("tenant-123", {
       type: "s",
@@ -596,13 +598,13 @@ export default {
       user_id: "user-456",
       description: "User logged in",
     });
-    
+
     // Query logs
     const recentLogs = await logs.list("tenant-123", {
       per_page: 50,
       q: "type:s",
     });
-    
+
     return new Response("OK");
   },
 };
@@ -645,20 +647,20 @@ const logsAdapter = createPassthroughAdapter({
 
 Analytics Engine stores logs using blob and double fields:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| blob1 | string | log_id |
-| blob2 | string | tenant_id |
-| blob3 | string | type (e.g., "s", "f") |
-| blob4 | string | date (ISO string) |
-| blob5 | string | description |
-| blob6 | string | ip |
-| blob7 | string | user_agent |
-| blob8-18 | string | user_id, connection, client_id, etc. |
+| Field     | Type   | Description                              |
+| --------- | ------ | ---------------------------------------- |
+| blob1     | string | log_id                                   |
+| blob2     | string | tenant_id                                |
+| blob3     | string | type (e.g., "s", "f")                    |
+| blob4     | string | date (ISO string)                        |
+| blob5     | string | description                              |
+| blob6     | string | ip                                       |
+| blob7     | string | user_agent                               |
+| blob8-18  | string | user_id, connection, client_id, etc.     |
 | blob19-20 | string | JSON stringified (details, auth0_client) |
-| double1 | number | isMobile (0 or 1) |
-| double2 | number | timestamp (epoch ms) |
-| index1 | string | tenant_id (for efficient filtering) |
+| double1   | number | isMobile (0 or 1)                        |
+| double2   | number | timestamp (epoch ms)                     |
+| index1    | string | tenant_id (for efficient filtering)      |
 
 #### Querying with SQL API
 

@@ -32,7 +32,10 @@ The `createPassthroughAdapter` utility allows you to sync write operations to mu
 #### Basic Usage
 
 ```typescript
-import { createPassthroughAdapter, LogsDataAdapter } from "@authhero/adapter-interfaces";
+import {
+  createPassthroughAdapter,
+  LogsDataAdapter,
+} from "@authhero/adapter-interfaces";
 
 // Primary adapter - all reads come from here, writes go here first
 const primaryAdapter = createDatabaseLogsAdapter();
@@ -85,7 +88,10 @@ interface PassthroughConfig<T> {
 Use `createWriteOnlyAdapter` to clearly indicate which methods a secondary implements:
 
 ```typescript
-import { createWriteOnlyAdapter, createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import {
+  createWriteOnlyAdapter,
+  createPassthroughAdapter,
+} from "@authhero/adapter-interfaces";
 
 const logsAdapter = createPassthroughAdapter({
   primary: databaseAdapter,
@@ -120,9 +126,7 @@ const logsAdapter = createPassthroughAdapter({
 ```typescript
 const cacheAdapter = createPassthroughAdapter({
   primary: redisCacheAdapter,
-  secondaries: [
-    { adapter: memcachedAdapter, blocking: true },
-  ],
+  secondaries: [{ adapter: memcachedAdapter, blocking: true }],
   syncMethods: ["set", "delete"],
 });
 ```

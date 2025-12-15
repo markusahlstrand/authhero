@@ -1,6 +1,10 @@
 import { ListParams, Log } from "@authhero/adapter-interfaces";
 import { AnalyticsEngineLogsAdapterConfig } from "./types";
-import { executeAnalyticsEngineQuery, escapeSQLString } from "./query";
+import {
+  executeAnalyticsEngineQuery,
+  escapeSQLString,
+  escapeSQLIdentifier,
+} from "./query";
 import { formatLogFromStorage } from "./logs";
 
 interface ListLogsResponse {
@@ -32,27 +36,27 @@ function parseLuceneFilter(q: string): Record<string, string> {
 
 /**
  * Map filter keys to Analytics Engine blob field names
+ * Note: date is stored in double2 (timestamp), not a blob
  */
 function mapFilterKeyToBlob(key: string): string | null {
   const mapping: Record<string, string> = {
     log_id: "blob1",
     tenant_id: "blob2",
     type: "blob3",
-    date: "blob4",
-    description: "blob5",
-    ip: "blob6",
-    user_agent: "blob7",
-    user_id: "blob8",
-    user_name: "blob9",
-    connection: "blob10",
-    connection_id: "blob11",
-    client_id: "blob12",
-    client_name: "blob13",
-    audience: "blob14",
-    scope: "blob15",
-    strategy: "blob16",
-    strategy_type: "blob17",
-    hostname: "blob18",
+    description: "blob4",
+    ip: "blob5",
+    user_agent: "blob6",
+    user_id: "blob7",
+    user_name: "blob8",
+    connection: "blob9",
+    connection_id: "blob10",
+    client_id: "blob11",
+    client_name: "blob12",
+    audience: "blob13",
+    scope: "blob14",
+    strategy: "blob15",
+    strategy_type: "blob16",
+    hostname: "blob17",
   };
 
   return mapping[key] || null;
@@ -103,9 +107,7 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
 
     // Build WHERE clause
     // Use index1 for efficient tenant filtering
-    const whereConditions: string[] = [
-      `index1 = ${escapeSQLString(tenantId)}`,
-    ];
+    const whereConditions: string[] = [`index1 = ${escapeSQLString(tenantId)}`];
 
     if (q) {
       const filters = parseLuceneFilter(q);
@@ -128,10 +130,9 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     const limitClause = `LIMIT ${per_page} OFFSET ${offset}`;
 
     // Execute main query
-    // Note: Analytics Engine dataset names should not have quotes around them
     const query = `
       SELECT *
-      FROM ${dataset}
+      FROM ${escapeSQLIdentifier(dataset)}
       WHERE ${whereClause}
       ${orderByClause}
       ${limitClause}
@@ -150,10 +151,9 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     }
 
     // Get total count
-    // Note: Analytics Engine may have limits on count queries
     const countQuery = `
       SELECT count() as count
-      FROM ${dataset}
+      FROM ${escapeSQLIdentifier(dataset)}
       WHERE ${whereClause}
     `;
 

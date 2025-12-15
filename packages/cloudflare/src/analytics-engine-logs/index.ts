@@ -3,7 +3,10 @@ import { AnalyticsEngineLogsAdapterConfig } from "./types";
 import { createLog, getLogs } from "./logs";
 import { listLogs } from "./list";
 
-export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset } from "./types";
+export type {
+  AnalyticsEngineLogsAdapterConfig,
+  AnalyticsEngineDataset,
+} from "./types";
 
 /**
  * Create an Analytics Engine logs adapter
