@@ -4,56 +4,27 @@ import {
   AuthorizationResponseType,
 } from "./AuthParams";
 
-/**
- * TypeScript interface for known connection options.
- * The actual schema uses z.record(z.any()) to allow flexibility
- * for different connection strategies.
- */
-export interface ConnectionOptions {
-  // OAuth/OIDC options
-  kid?: string;
-  team_id?: string;
-  realms?: string;
-  authentication_method?: string;
-  client_id?: string;
-  client_secret?: string;
-  app_secret?: string;
-  scope?: string;
-  authorization_endpoint?: string;
-  token_endpoint?: string;
-  userinfo_endpoint?: string;
-  jwks_uri?: string;
-  discovery_url?: string;
-  issuer?: string;
-  provider?: string;
-  // SMS options
-  from?: string;
-  twilio_sid?: string;
-  twilio_token?: string;
-  // UI options
-  icon_url?: string;
-  // Password policy options (for database connections)
-  passwordPolicy?: "none" | "low" | "fair" | "good" | "excellent";
-  password_complexity_options?: {
-    min_length?: number;
-  };
-  password_history?: {
-    enable?: boolean;
-    size?: number | null;
-  };
-  password_no_personal_info?: {
-    enable?: boolean;
-  };
-  password_dictionary?: {
-    enable?: boolean;
-    dictionary?: string[];
-  };
-  // Allow additional properties for different connection strategies
-  [key: string]: unknown;
-}
-
-// Use z.record for flexibility with different connection strategies
-export const connectionOptionsSchema = z.record(z.any());
+export const connectionOptionsSchema = z.object({
+  kid: z.string().optional(),
+  team_id: z.string().optional(),
+  realms: z.string().optional(),
+  authentication_method: z.string().optional(),
+  client_id: z.string().optional(),
+  client_secret: z.string().optional(),
+  app_secret: z.string().optional(),
+  scope: z.string().optional(),
+  authorization_endpoint: z.string().optional(),
+  token_endpoint: z.string().optional(),
+  userinfo_endpoint: z.string().optional(),
+  jwks_uri: z.string().optional(),
+  discovery_url: z.string().optional(),
+  issuer: z.string().optional(),
+  provider: z.string().optional(),
+  from: z.string().optional(),
+  twilio_sid: z.string().optional(),
+  twilio_token: z.string().optional(),
+  icon_url: z.string().optional(),
+});
 
 export const connectionInsertSchema = z.object({
   id: z.string().optional(),
