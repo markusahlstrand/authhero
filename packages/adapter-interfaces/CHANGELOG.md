@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.107.0
+
+### Minor Changes
+
+- 212f5c6: Update the connection schema for password strength
+
 ## 0.106.0
 
 ### Minor Changes
