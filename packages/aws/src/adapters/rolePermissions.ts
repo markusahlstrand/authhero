@@ -4,6 +4,7 @@ import {
   RolePermissionList,
   RolePermission,
   ListParams,
+  rolePermissionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { rolePermissionKeys } from "../keys";
@@ -24,7 +25,7 @@ interface RolePermissionItem extends DynamoDBBaseItem {
 
 function toRolePermission(item: RolePermissionItem): RolePermission {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as unknown as RolePermission;
+  return rolePermissionSchema.parse(removeNullProperties(rest));
 }
 
 export function createRolePermissionsAdapter(

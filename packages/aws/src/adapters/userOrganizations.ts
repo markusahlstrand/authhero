@@ -6,6 +6,8 @@ import {
   Organization,
   Totals,
   ListParams,
+  userOrganizationSchema,
+  organizationSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { userOrganizationKeys, organizationKeys } from "../keys";
@@ -14,7 +16,6 @@ import {
   putItem,
   deleteItem,
   queryWithPagination,
-  queryItems,
   updateItem,
   stripDynamoDBFields,
   removeNullProperties,
@@ -40,13 +41,13 @@ interface OrganizationItem extends DynamoDBBaseItem {
 
 function toUserOrganization(item: UserOrganizationItem): UserOrganization {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as UserOrganization;
+  return userOrganizationSchema.parse(removeNullProperties(rest));
 }
 
 function toOrganization(item: OrganizationItem): Organization {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     branding: item.branding ? JSON.parse(item.branding) : undefined,
     metadata: item.metadata ? JSON.parse(item.metadata) : undefined,
@@ -54,7 +55,9 @@ function toOrganization(item: OrganizationItem): Organization {
       ? JSON.parse(item.enabled_connections)
       : undefined,
     token_quota: item.token_quota ? JSON.parse(item.token_quota) : undefined,
-  }) as Organization;
+  });
+
+  return organizationSchema.parse(data);
 }
 
 export function createUserOrganizationsAdapter(
@@ -133,19 +136,20 @@ export function createUserOrganizationsAdapter(
       userId: string,
       params: ListParams = {},
     ): Promise<{ organizations: Organization[] } & Totals> {
-      // Query by user using GSI1
-      const { items } = await queryItems<UserOrganizationItem>(
+      // Query by user using GSI1 with pagination
+      const result = await queryWithPagination<UserOrganizationItem>(
         ctx,
         userOrganizationKeys.gsi1pk(tenantId, userId),
+        params,
         {
           indexName: "GSI1",
           skPrefix: "USER_ORG#",
         },
       );
 
-      // Fetch the actual organization details
+      // Fetch the actual organization details for the paginated results
       const organizations: Organization[] = [];
-      for (const userOrg of items) {
+      for (const userOrg of result.items) {
         const orgItem = await getItem<OrganizationItem>(
           ctx,
           organizationKeys.pk(tenantId),
@@ -158,9 +162,9 @@ export function createUserOrganizationsAdapter(
 
       return {
         organizations,
-        start: 0,
-        limit: params.per_page || 50,
-        length: organizations.length,
+        start: result.start,
+        limit: result.limit,
+        length: result.length,
       };
     },
 

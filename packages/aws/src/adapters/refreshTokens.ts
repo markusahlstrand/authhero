@@ -4,6 +4,7 @@ import {
   RefreshTokenInsert,
   ListRefreshTokenResponse,
   ListParams,
+  refreshTokenSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { refreshTokenKeys } from "../keys";
@@ -34,11 +35,13 @@ interface RefreshTokenItem extends DynamoDBBaseItem {
 function toRefreshToken(item: RefreshTokenItem): RefreshToken {
   const { tenant_id, device, resource_servers, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     device: JSON.parse(device),
     resource_servers: JSON.parse(resource_servers),
-  }) as RefreshToken;
+  });
+
+  return refreshTokenSchema.parse(data);
 }
 
 export function createRefreshTokensAdapter(

@@ -5,6 +5,7 @@ import {
   RoleInsert,
   ListRolesResponse,
   ListParams,
+  roleSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { roleKeys } from "../keys";
@@ -27,7 +28,7 @@ interface RoleItem extends DynamoDBBaseItem {
 
 function toRole(item: RoleItem): Role {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as Role;
+  return roleSchema.parse(removeNullProperties(rest));
 }
 
 export function createRolesAdapter(ctx: DynamoDBContext): RolesAdapter {

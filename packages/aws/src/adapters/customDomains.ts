@@ -4,6 +4,8 @@ import {
   CustomDomain,
   CustomDomainInsert,
   CustomDomainWithTenantId,
+  customDomainSchema,
+  customDomainWithTenantIdSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { customDomainKeys } from "../keys";
@@ -35,20 +37,28 @@ interface CustomDomainItem extends DynamoDBBaseItem {
 function toCustomDomain(item: CustomDomainItem): CustomDomain {
   const { tenant_id, verification, domain_metadata, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     verification: verification ? JSON.parse(verification) : undefined,
     domain_metadata: domain_metadata ? JSON.parse(domain_metadata) : undefined,
-  }) as CustomDomain;
+  });
+
+  return customDomainSchema.parse(data);
 }
 
 function toCustomDomainWithTenantId(
   item: CustomDomainItem,
 ): CustomDomainWithTenantId {
-  return {
-    ...toCustomDomain(item),
+  const { verification, domain_metadata, ...rest } = stripDynamoDBFields(item);
+
+  const data = removeNullProperties({
+    ...rest,
     tenant_id: item.tenant_id,
-  };
+    verification: verification ? JSON.parse(verification) : undefined,
+    domain_metadata: domain_metadata ? JSON.parse(domain_metadata) : undefined,
+  });
+
+  return customDomainWithTenantIdSchema.parse(data);
 }
 
 export function createCustomDomainsAdapter(

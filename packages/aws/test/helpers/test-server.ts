@@ -6,22 +6,37 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 
 const TABLE_NAME = "authhero-test";
 
-let server: ReturnType<typeof dynalite> | null = null;
-let client: DynamoDBClient | null = null;
-let docClient: DynamoDBDocumentClient | null = null;
-let port: number;
+interface TestServer {
+  server: ReturnType<typeof dynalite>;
+  client: DynamoDBClient;
+  docClient: DynamoDBDocumentClient;
+  port: number;
+}
 
-export async function getTestServer(): Promise<{ data: DataAdapters }> {
+let currentServer: TestServer | null = null;
+
+export async function getTestServer(): Promise<{
+  data: DataAdapters;
+  client: DynamoDBDocumentClient;
+  tableName: string;
+}> {
+  // Reuse existing server if available
+  if (currentServer) {
+    const data = createAdapters(currentServer.docClient, { tableName: TABLE_NAME });
+    return { data, client: currentServer.docClient, tableName: TABLE_NAME };
+  }
+
   // Generate random port to avoid conflicts in parallel tests
-  port = 4567 + Math.floor(Math.random() * 1000);
+  const port = 4567 + Math.floor(Math.random() * 10000);
 
-  server = dynalite({ createTableMs: 0 });
+  const server = dynalite({ createTableMs: 0 });
 
-  await new Promise<void>((resolve) => {
-    server!.listen(port, () => resolve());
+  await new Promise<void>((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(port, () => resolve());
   });
 
-  client = new DynamoDBClient({
+  const client = new DynamoDBClient({
     endpoint: `http://localhost:${port}`,
     region: "local",
     credentials: {
@@ -30,7 +45,7 @@ export async function getTestServer(): Promise<{ data: DataAdapters }> {
     },
   });
 
-  docClient = DynamoDBDocumentClient.from(client, {
+  const docClient = DynamoDBDocumentClient.from(client, {
     marshallOptions: {
       removeUndefinedValues: true,
     },
@@ -85,21 +100,19 @@ export async function getTestServer(): Promise<{ data: DataAdapters }> {
     }),
   );
 
+  currentServer = { server, client, docClient, port };
+
   const data = createAdapters(docClient, { tableName: TABLE_NAME });
 
-  return { data };
+  return { data, client: docClient, tableName: TABLE_NAME };
 }
 
 export async function teardownTestServer(): Promise<void> {
-  if (client) {
-    client.destroy();
-    client = null;
-  }
-  if (server) {
+  if (currentServer) {
+    currentServer.client.destroy();
     await new Promise<void>((resolve) => {
-      server!.close(() => resolve());
+      currentServer!.server.close(() => resolve());
     });
-    server = null;
+    currentServer = null;
   }
-  docClient = null;
 }

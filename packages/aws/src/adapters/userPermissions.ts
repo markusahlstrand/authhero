@@ -4,6 +4,7 @@ import {
   UserPermissionWithDetailsList,
   UserPermissionWithDetails,
   ListParams,
+  userPermissionWithDetailsSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { userPermissionKeys } from "../keys";
@@ -28,11 +29,13 @@ interface UserPermissionItem extends DynamoDBBaseItem {
 
 function toUserPermission(item: UserPermissionItem): UserPermissionWithDetails {
   const { tenant_id, sources, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     resource_server_name: item.resource_server_name || item.resource_server_identifier,
     sources: sources ? JSON.parse(sources) : undefined,
-  }) as unknown as UserPermissionWithDetails;
+  });
+
+  return userPermissionWithDetailsSchema.parse(data);
 }
 
 export function createUserPermissionsAdapter(

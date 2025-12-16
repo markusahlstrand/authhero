@@ -1,6 +1,7 @@
 import {
   PromptSettingsAdapter,
   PromptSetting,
+  promptSettingSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { promptSettingsKeys } from "../keys";
@@ -28,12 +29,14 @@ const defaultPromptSettings: PromptSetting = {
 
 function toPromptSettings(item: PromptSettingsItem): PromptSetting {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties({
+  const data = removeNullProperties({
     universal_login_experience: rest.universal_login_experience || "new",
     identifier_first: rest.identifier_first ?? false,
     password_first: rest.password_first ?? false,
     webauthn_platform_first_factor: rest.webauthn_platform_first_factor ?? false,
-  }) as PromptSetting;
+  });
+
+  return promptSettingSchema.parse(data);
 }
 
 export function createPromptSettingsAdapter(
@@ -49,6 +52,13 @@ export function createPromptSettingsAdapter(
       // Get existing settings to merge
       const existing = await this.get(tenantId);
 
+      // Fetch raw item to get created_at timestamp
+      const existingItem = await getItem<PromptSettingsItem>(
+        ctx,
+        promptSettingsKeys.pk(tenantId),
+        promptSettingsKeys.sk(),
+      );
+
       const item: PromptSettingsItem = {
         PK: promptSettingsKeys.pk(tenantId),
         SK: promptSettingsKeys.sk(),
@@ -63,7 +73,7 @@ export function createPromptSettingsAdapter(
         webauthn_platform_first_factor:
           promptSetting.webauthn_platform_first_factor ??
           existing.webauthn_platform_first_factor,
-        created_at: now,
+        created_at: existingItem?.created_at || now,
         updated_at: now,
       };
 

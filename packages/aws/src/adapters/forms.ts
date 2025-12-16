@@ -5,6 +5,7 @@ import {
   FormInsert,
   ListFormsResponse,
   ListParams,
+  formSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { formKeys } from "../keys";
@@ -34,7 +35,7 @@ interface FormItem extends DynamoDBBaseItem {
 function toForm(item: FormItem): Form {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     nodes: item.nodes ? JSON.parse(item.nodes) : undefined,
     start: item.start ? JSON.parse(item.start) : undefined,
@@ -43,7 +44,9 @@ function toForm(item: FormItem): Form {
     languages: item.languages ? JSON.parse(item.languages) : undefined,
     translations: item.translations ? JSON.parse(item.translations) : undefined,
     style: item.style ? JSON.parse(item.style) : undefined,
-  }) as Form;
+  });
+
+  return formSchema.parse(data);
 }
 
 export function createFormsAdapter(ctx: DynamoDBContext): FormsAdapter {

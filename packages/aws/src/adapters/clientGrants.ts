@@ -5,6 +5,7 @@ import {
   ClientGrantInsert,
   ListClientGrantsResponse,
   ListParams,
+  clientGrantSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { clientGrantKeys } from "../keys";
@@ -34,13 +35,15 @@ interface ClientGrantItem extends DynamoDBBaseItem {
 function toClientGrant(item: ClientGrantItem): ClientGrant {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     scope: item.scope ? JSON.parse(item.scope) : undefined,
     authorization_details_types: item.authorization_details_types
       ? JSON.parse(item.authorization_details_types)
       : undefined,
-  }) as ClientGrant;
+  });
+
+  return clientGrantSchema.parse(data);
 }
 
 export function createClientGrantsAdapter(

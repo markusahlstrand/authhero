@@ -3,6 +3,7 @@ import {
   ThemesAdapter,
   Theme,
   ThemeInsert,
+  themeSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { themeKeys } from "../keys";
@@ -29,7 +30,7 @@ interface ThemeItem extends DynamoDBBaseItem {
 function toTheme(item: ThemeItem): Theme {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     borders: item.borders ? JSON.parse(item.borders) : undefined,
     colors: item.colors ? JSON.parse(item.colors) : undefined,
@@ -38,7 +39,9 @@ function toTheme(item: ThemeItem): Theme {
       ? JSON.parse(item.page_background)
       : undefined,
     widget: item.widget ? JSON.parse(item.widget) : undefined,
-  }) as Theme;
+  });
+
+  return themeSchema.parse(data);
 }
 
 export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {

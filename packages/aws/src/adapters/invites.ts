@@ -5,6 +5,7 @@ import {
   InviteInsert,
   ListInvitesResponse,
   ListParams,
+  inviteSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { inviteKeys } from "../keys";
@@ -39,7 +40,7 @@ interface InviteItem extends DynamoDBBaseItem {
 function toInvite(item: InviteItem): Invite {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     inviter: item.inviter ? JSON.parse(item.inviter) : {},
     invitee: item.invitee ? JSON.parse(item.invitee) : {},
@@ -50,7 +51,9 @@ function toInvite(item: InviteItem): Invite {
       ? JSON.parse(item.user_metadata)
       : undefined,
     roles: item.roles ? JSON.parse(item.roles) : undefined,
-  }) as Invite;
+  });
+
+  return inviteSchema.parse(data);
 }
 
 export function createInvitesAdapter(ctx: DynamoDBContext): InvitesAdapter {

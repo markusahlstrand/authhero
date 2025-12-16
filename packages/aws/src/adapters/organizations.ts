@@ -5,6 +5,7 @@ import {
   OrganizationInsert,
   ListOrganizationsResponse,
   ListParams,
+  organizationSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { organizationKeys } from "../keys";
@@ -32,7 +33,7 @@ interface OrganizationItem extends DynamoDBBaseItem {
 function toOrganization(item: OrganizationItem): Organization {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     branding: item.branding ? JSON.parse(item.branding) : undefined,
     metadata: item.metadata ? JSON.parse(item.metadata) : undefined,
@@ -40,7 +41,9 @@ function toOrganization(item: OrganizationItem): Organization {
       ? JSON.parse(item.enabled_connections)
       : undefined,
     token_quota: item.token_quota ? JSON.parse(item.token_quota) : undefined,
-  }) as Organization;
+  });
+
+  return organizationSchema.parse(data);
 }
 
 export function createOrganizationsAdapter(

@@ -1,4 +1,9 @@
-import { KeysAdapter, SigningKey, ListParams } from "@authhero/adapter-interfaces";
+import {
+  KeysAdapter,
+  SigningKey,
+  ListParams,
+  signingKeySchema,
+} from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { keyKeys } from "../keys";
 import {
@@ -27,7 +32,7 @@ interface KeyItem extends DynamoDBBaseItem {
 }
 
 function toSigningKey(item: KeyItem): SigningKey {
-  return removeNullProperties(stripDynamoDBFields(item)) as SigningKey;
+  return signingKeySchema.parse(removeNullProperties(stripDynamoDBFields(item)));
 }
 
 export function createKeysAdapter(ctx: DynamoDBContext): KeysAdapter {

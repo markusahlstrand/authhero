@@ -5,6 +5,7 @@ import {
   ConnectionInsert,
   ListConnectionsResponse,
   ListParams,
+  connectionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { connectionKeys } from "../keys";
@@ -29,10 +30,12 @@ interface ConnectionItem extends DynamoDBBaseItem {
 function toConnection(item: ConnectionItem): Connection {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     options: item.options ? JSON.parse(item.options) : undefined,
-  }) as Connection;
+  });
+
+  return connectionSchema.parse(data);
 }
 
 export function createConnectionsAdapter(
@@ -112,6 +115,12 @@ export function createConnectionsAdapter(
 
       if (params.options !== undefined) {
         updates.options = JSON.stringify(params.options);
+      }
+
+      // Update GSI1 keys if name changes
+      if (params.name !== undefined) {
+        updates.GSI1PK = connectionKeys.gsi1pk(tenantId, params.name);
+        updates.GSI1SK = connectionKeys.gsi1sk();
       }
 
       // Remove id from updates

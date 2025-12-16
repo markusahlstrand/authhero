@@ -29,15 +29,18 @@ export async function getItem<T>(
 /**
  * Generic put operation for DynamoDB
  * @param dynamoItem - The DynamoDB item with PK, SK, etc.
+ * @param options - Optional settings including condition expression
  */
 export async function putItem(
   ctx: DynamoDBContext,
   dynamoItem: DynamoDBBaseItem,
+  options?: { conditionExpression?: string },
 ): Promise<void> {
   await ctx.client.send(
     new PutCommand({
       TableName: ctx.tableName,
       Item: dynamoItem as unknown as Record<string, unknown>,
+      ConditionExpression: options?.conditionExpression,
     }),
   );
 }

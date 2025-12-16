@@ -5,6 +5,7 @@ import {
   HookInsert,
   ListHooksResponse,
   ListParams,
+  hookSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { hookKeys } from "../keys";
@@ -31,7 +32,7 @@ interface HookItem extends DynamoDBBaseItem {
 
 function toHook(item: HookItem): Hook {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as Hook;
+  return hookSchema.parse(removeNullProperties(rest));
 }
 
 export function createHooksAdapter(ctx: DynamoDBContext): HooksAdapter {

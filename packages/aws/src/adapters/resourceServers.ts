@@ -5,6 +5,7 @@ import {
   ResourceServerInsert,
   ListResourceServersResponse,
   ListParams,
+  resourceServerSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { resourceServerKeys } from "../keys";
@@ -39,12 +40,14 @@ interface ResourceServerItem extends DynamoDBBaseItem {
 function toResourceServer(item: ResourceServerItem): ResourceServer {
   const { tenant_id, verification_key, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     verificationKey: verification_key,
     scopes: item.scopes ? JSON.parse(item.scopes) : undefined,
     options: item.options ? JSON.parse(item.options) : undefined,
-  }) as ResourceServer;
+  });
+
+  return resourceServerSchema.parse(data);
 }
 
 export function createResourceServersAdapter(

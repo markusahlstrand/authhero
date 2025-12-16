@@ -4,6 +4,7 @@ import {
   SessionInsert,
   ListSesssionsResponse,
   ListParams,
+  sessionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { sessionKeys } from "../keys";
@@ -35,11 +36,13 @@ interface SessionItem extends DynamoDBBaseItem {
 function toSession(item: SessionItem): Session {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     device: JSON.parse(item.device || "{}"),
     clients: JSON.parse(item.clients || "[]"),
-  }) as Session;
+  });
+
+  return sessionSchema.parse(data);
 }
 
 export function createSessionsAdapter(ctx: DynamoDBContext): SessionsAdapter {

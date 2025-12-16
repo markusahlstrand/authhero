@@ -6,6 +6,7 @@ import {
   ListUsersResponse,
   ListParams,
   parseUserId,
+  userSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { userKeys } from "../keys";
@@ -49,7 +50,7 @@ interface UserItem extends DynamoDBBaseItem {
 function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
   
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     app_metadata: JSON.parse(item.app_metadata || "{}"),
     user_metadata: JSON.parse(item.user_metadata || "{}"),
@@ -67,7 +68,9 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
         isSocial: u.is_social,
       })),
     ],
-  }) as User;
+  });
+
+  return userSchema.parse(data);
 }
 
 export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
@@ -117,7 +120,9 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
       (item as any).GSI2SK = userKeys.gsi2sk(userId);
 
       try {
-        await putItem(ctx, item);
+        await putItem(ctx, item, {
+          conditionExpression: "attribute_not_exists(PK)",
+        });
       } catch (err: any) {
         if (err.name === "ConditionalCheckFailedException") {
           throw new HTTPException(409, { message: "User already exists" });

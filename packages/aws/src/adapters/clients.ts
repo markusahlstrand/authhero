@@ -4,6 +4,7 @@ import {
   ClientInsert,
   Totals,
   ListParams,
+  clientSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { clientKeys } from "../keys";
@@ -73,7 +74,7 @@ interface ClientItem extends DynamoDBBaseItem {
 function toClient(item: ClientItem): Client {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     callbacks: item.callbacks ? JSON.parse(item.callbacks) : undefined,
     allowed_origins: item.allowed_origins ? JSON.parse(item.allowed_origins) : undefined,
@@ -101,7 +102,9 @@ function toClient(item: ClientItem): Client {
       ? JSON.parse(item.signed_request_object) 
       : undefined,
     token_quota: item.token_quota ? JSON.parse(item.token_quota) : undefined,
-  }) as Client;
+  });
+
+  return clientSchema.parse(data);
 }
 
 export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {

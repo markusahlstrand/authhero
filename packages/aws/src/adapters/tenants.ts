@@ -3,6 +3,7 @@ import {
   TenantsDataAdapter,
   Tenant,
   CreateTenantParams,
+  tenantSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { tenantKeys } from "../keys";
@@ -10,7 +11,7 @@ import {
   getItem,
   putItem,
   deleteItem,
-  queryItems,
+  queryWithPagination,
   updateItem,
   stripDynamoDBFields,
   removeNullProperties,
@@ -23,7 +24,7 @@ interface TenantItem extends DynamoDBBaseItem, Omit<Tenant, "created_at" | "upda
 
 function toTenant(item: TenantItem): Tenant {
   const stripped = stripDynamoDBFields(item);
-  return removeNullProperties(stripped) as Tenant;
+  return tenantSchema.parse(removeNullProperties(stripped));
 }
 
 export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
@@ -65,23 +66,28 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
     },
 
     async list(params = {}): Promise<{ tenants: Tenant[]; totals?: { start: number; limit: number; length: number } }> {
-      const { page = 0, per_page = 50, include_totals = false } = params;
+      const { include_totals = false } = params;
 
       // Query all tenants using GSI1 where all tenants share GSI1PK="TENANTS"
-      const { items } = await queryItems<TenantItem>(ctx, tenantKeys.gsi1pk(), {
-        indexName: "GSI1",
-        limit: per_page,
-      });
+      const result = await queryWithPagination<TenantItem>(
+        ctx,
+        tenantKeys.gsi1pk(),
+        params,
+        {
+          indexName: "GSI1",
+          skPrefix: "TENANT#",
+        },
+      );
 
-      const tenants = items.map(toTenant);
+      const tenants = result.items.map(toTenant);
 
       if (include_totals) {
         return {
           tenants,
           totals: {
-            start: page * per_page,
-            limit: per_page,
-            length: tenants.length,
+            start: result.start,
+            limit: result.limit,
+            length: result.length,
           },
         };
       }

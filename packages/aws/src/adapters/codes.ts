@@ -5,6 +5,7 @@ import {
   CodeType,
   ListCodesResponse,
   ListParams,
+  codeSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { codeKeys } from "../keys";
@@ -37,7 +38,7 @@ interface CodeItem extends DynamoDBBaseItem {
 
 function toCode(item: CodeItem): Code {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as Code;
+  return codeSchema.parse(removeNullProperties(rest));
 }
 
 export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
@@ -113,15 +114,15 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
     },
 
     async used(tenantId: string, codeId: string): Promise<boolean> {
-      // We need to find the code first to get its type
+      // Query using code_id prefix to find the code efficiently
       const { items } = await queryWithPagination<CodeItem>(
         ctx,
         codeKeys.pk(tenantId),
-        {},
-        { skPrefix: `CODE#` },
+        { per_page: 1 },
+        { skPrefix: codeKeys.skPrefixByCodeId(codeId) },
       );
 
-      const code = items.find((c) => c.code_id === codeId);
+      const code = items[0];
       if (!code) return false;
 
       return updateItem(
@@ -133,15 +134,15 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
     },
 
     async remove(tenantId: string, codeId: string): Promise<boolean> {
-      // We need to find the code first to get its type
+      // Query using code_id prefix to find the code efficiently
       const { items } = await queryWithPagination<CodeItem>(
         ctx,
         codeKeys.pk(tenantId),
-        {},
-        { skPrefix: `CODE#` },
+        { per_page: 1 },
+        { skPrefix: codeKeys.skPrefixByCodeId(codeId) },
       );
 
-      const code = items.find((c) => c.code_id === codeId);
+      const code = items[0];
       if (!code) return false;
 
       return deleteItem(

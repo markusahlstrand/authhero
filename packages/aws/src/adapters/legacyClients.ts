@@ -1,4 +1,8 @@
-import { LegacyClientsAdapter, LegacyClient } from "@authhero/adapter-interfaces";
+import {
+  LegacyClientsAdapter,
+  LegacyClient,
+  legacyClientSchema,
+} from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { legacyClientKeys } from "../keys";
 import { getItem, stripDynamoDBFields, removeNullProperties } from "../utils";
@@ -12,7 +16,9 @@ interface LegacyClientItem extends DynamoDBBaseItem {
 }
 
 function toLegacyClient(item: LegacyClientItem): LegacyClient {
-  return removeNullProperties(stripDynamoDBFields(item)) as unknown as LegacyClient;
+  return legacyClientSchema.parse(
+    removeNullProperties(stripDynamoDBFields(item)),
+  );
 }
 
 export function createLegacyClientsAdapter(

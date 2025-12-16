@@ -3,6 +3,7 @@ import {
   LoginSessionsAdapter,
   LoginSession,
   LoginSessionInsert,
+  loginSessionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { loginSessionKeys } from "../keys";
@@ -33,10 +34,12 @@ interface LoginSessionItem extends DynamoDBBaseItem {
 function toLoginSession(item: LoginSessionItem): LoginSession {
   const { tenant_id, authParams, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     authParams: JSON.parse(authParams),
-  }) as LoginSession;
+  });
+
+  return loginSessionSchema.parse(data);
 }
 
 export function createLoginSessionsAdapter(

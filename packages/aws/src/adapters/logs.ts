@@ -4,6 +4,7 @@ import {
   Log,
   LogInsert,
   ListParams,
+  logSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { logKeys } from "../keys";
@@ -49,7 +50,7 @@ interface LogItem extends DynamoDBBaseItem {
 function toLog(item: LogItem): Log {
   const { tenant_id, country_code, city_name, latitude, longitude, time_zone, continent_code, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     auth0_client: item.auth0_client ? JSON.parse(item.auth0_client) : undefined,
     details: item.details ? JSON.parse(item.details) : undefined,
@@ -63,7 +64,9 @@ function toLog(item: LogItem): Log {
           continent_code: continent_code!,
         }
       : undefined,
-  }) as Log;
+  });
+
+  return logSchema.parse(data);
 }
 
 export function createLogsAdapter(ctx: DynamoDBContext): LogsDataAdapter {

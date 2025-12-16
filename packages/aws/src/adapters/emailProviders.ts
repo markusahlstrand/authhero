@@ -1,6 +1,7 @@
 import {
   EmailProvidersAdapter,
   EmailProvider,
+  emailProviderSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { emailProviderKeys } from "../keys";
@@ -24,11 +25,13 @@ interface EmailProviderItem extends DynamoDBBaseItem {
 function toEmailProvider(item: EmailProviderItem): EmailProvider {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     credentials: item.credentials ? JSON.parse(item.credentials) : undefined,
     settings: item.settings ? JSON.parse(item.settings) : undefined,
-  }) as EmailProvider;
+  });
+
+  return emailProviderSchema.parse(data);
 }
 
 export function createEmailProvidersAdapter(

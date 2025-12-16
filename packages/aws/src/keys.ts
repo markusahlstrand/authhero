@@ -70,7 +70,9 @@ export const connectionKeys = {
 // Code keys
 export const codeKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
-  sk: (codeId: string, codeType: string) => `CODE#${codeType}#${codeId}`,
+  sk: (codeId: string, codeType: string) => `CODE#${codeId}#${codeType}`,
+  // For querying by code_id when code_type is unknown
+  skPrefixByCodeId: (codeId: string) => `CODE#${codeId}#`,
 };
 
 // Password keys

@@ -1,6 +1,7 @@
 import {
   ClientConnectionsAdapter,
   Connection,
+  connectionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { clientConnectionKeys, connectionKeys } from "../keys";
@@ -32,10 +33,12 @@ interface ConnectionItem extends DynamoDBBaseItem {
 function toConnection(item: ConnectionItem): Connection {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
-  return removeNullProperties({
+  const data = removeNullProperties({
     ...rest,
     options: item.options ? JSON.parse(item.options) : undefined,
-  }) as Connection;
+  });
+
+  return connectionSchema.parse(data);
 }
 
 export function createClientConnectionsAdapter(

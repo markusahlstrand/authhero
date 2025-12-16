@@ -3,6 +3,7 @@ import {
   PasswordsAdapter,
   Password,
   PasswordInsert,
+  passwordSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { passwordKeys } from "../keys";
@@ -25,7 +26,7 @@ interface PasswordItem extends DynamoDBBaseItem {
 
 function toPassword(item: PasswordItem): Password {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  return removeNullProperties(rest) as Password;
+  return passwordSchema.parse(removeNullProperties(rest));
 }
 
 export function createPasswordsAdapter(
