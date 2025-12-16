@@ -1,5 +1,11 @@
 # authhero
 
+## 0.292.0
+
+### Minor Changes
+
+- 973a72e: Clear invalid session cookies
+
 ## 0.291.2
 
 ### Patch Changes
