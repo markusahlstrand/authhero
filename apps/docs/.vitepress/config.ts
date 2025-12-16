@@ -123,7 +123,17 @@ export default withMermaid(
             { text: "Interfaces", link: "/adapters/interfaces/" },
             { text: "Kysely (SQL)", link: "/adapters/kysely/" },
             { text: "Drizzle (SQL)", link: "/adapters/drizzle/" },
-            { text: "Cloudflare", link: "/adapters/cloudflare/" },
+            { 
+              text: "Cloudflare", 
+              link: "/adapters/cloudflare/",
+              items: [
+                { text: "Overview", link: "/adapters/cloudflare/" },
+                { text: "Custom Domains", link: "/adapters/cloudflare/custom-domains" },
+                { text: "Cache", link: "/adapters/cloudflare/cache" },
+                { text: "Analytics Engine", link: "/adapters/cloudflare/analytics-engine" },
+                { text: "R2 SQL", link: "/adapters/cloudflare/r2-sql" },
+              ],
+            },
           ],
         },
         {
