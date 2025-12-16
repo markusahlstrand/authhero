@@ -13,6 +13,7 @@ import {
   getItem,
   putItem,
   deleteItem,
+  queryItems,
   queryWithPagination,
   updateItem,
   stripDynamoDBFields,
@@ -114,12 +115,14 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
     },
 
     async used(tenantId: string, codeId: string): Promise<boolean> {
-      // Query using code_id prefix to find the code efficiently
-      const { items } = await queryWithPagination<CodeItem>(
+      // Query using code_id prefix to find the code efficiently (O(1) lookup)
+      const { items } = await queryItems<CodeItem>(
         ctx,
         codeKeys.pk(tenantId),
-        { per_page: 1 },
-        { skPrefix: codeKeys.skPrefixByCodeId(codeId) },
+        {
+          skPrefix: codeKeys.skPrefixByCodeId(codeId),
+          limit: 1,
+        },
       );
 
       const code = items[0];
@@ -134,12 +137,14 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
     },
 
     async remove(tenantId: string, codeId: string): Promise<boolean> {
-      // Query using code_id prefix to find the code efficiently
-      const { items } = await queryWithPagination<CodeItem>(
+      // Query using code_id prefix to find the code efficiently (O(1) lookup)
+      const { items } = await queryItems<CodeItem>(
         ctx,
         codeKeys.pk(tenantId),
-        { per_page: 1 },
-        { skPrefix: codeKeys.skPrefixByCodeId(codeId) },
+        {
+          skPrefix: codeKeys.skPrefixByCodeId(codeId),
+          limit: 1,
+        },
       );
 
       const code = items[0];
