@@ -304,7 +304,10 @@ npx wrangler r2 sql query "your_warehouse" "
 
 ```typescript
 // Track login patterns
-async function analyzeLoginPatterns(logsAdapter: LogsDataAdapter, tenantId: string) {
+async function analyzeLoginPatterns(
+  logsAdapter: LogsDataAdapter,
+  tenantId: string,
+) {
   const result = await logsAdapter.list(tenantId, {
     per_page: 1000,
     q: "type:s", // Successful logins only

@@ -64,6 +64,7 @@ const { customDomains, cache, logs } = adapters;
 Manage custom domains through the Cloudflare API with automatic SSL certificate provisioning and DNS configuration.
 
 **Key Features:**
+
 - Automatic SSL certificate management
 - DNS configuration through Cloudflare API
 - Enterprise and non-enterprise mode support
@@ -76,6 +77,7 @@ Manage custom domains through the Cloudflare API with automatic SSL certificate 
 High-performance caching using Cloudflare's Cache API for fast data retrieval at the edge.
 
 **Key Features:**
+
 - Edge-based caching for minimal latency
 - Configurable TTL per cache entry
 - Key prefix support for namespacing
@@ -92,6 +94,7 @@ Choose between two logging solutions based on your needs:
 Best for real-time analytics and recent logs with near-zero write latency.
 
 **Key Features:**
+
 - Fire-and-forget writes (~0ms latency)
 - SQL-based querying
 - 90-day retention (configurable)
@@ -105,6 +108,7 @@ Best for real-time analytics and recent logs with near-zero write latency.
 Best for long-term storage and compliance requirements with unlimited retention.
 
 **Key Features:**
+
 - Unlimited retention period
 - Apache Iceberg format
 - Pipeline-based ingestion
@@ -207,7 +211,7 @@ try {
 } catch (error) {
   // Log error for debugging
   console.error("Failed to create domain:", error);
-  
+
   // Optionally log to your logs adapter
   if (logs) {
     await logs.create(tenantId, {
@@ -219,7 +223,7 @@ try {
       description: `Failed to create domain: ${error.message}`,
     });
   }
-  
+
   throw error;
 }
 ```
@@ -268,4 +272,3 @@ Choose the right logging solution for your use case:
 - [Set up Custom Domains →](./custom-domains)
 - [Configure Caching →](./cache)
 - [Choose a Logging Solution →](./analytics-engine) or [→](./r2-sql)
-

@@ -10,7 +10,7 @@
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^0.19.2",
     "@peculiar/x509": "^1.13.0",
-    "authhero": "^0.275.0",
+    "authhero": "0.291.1",
     "better-sqlite3": "^12.2.0",
     "hono": "^4.9.1",
     "hono-openapi-middlewares": "^1.0.11",

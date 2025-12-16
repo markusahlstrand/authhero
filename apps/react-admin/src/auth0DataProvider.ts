@@ -206,17 +206,25 @@ export default (
           idKey: "id",
         },
         logs: {
-          fetch: (client) =>
-            client.logs.list({
+          fetch: (client) => {
+            // Build the query string, combining search query and IP filter
+            let query = params.filter?.q || "";
+            if (params.filter?.ip) {
+              const ipQuery = `ip:${params.filter.ip}`;
+              query = query ? `${query} AND ${ipQuery}` : ipQuery;
+            }
+
+            return client.logs.list({
               page: page - 1,
               per_page: perPage,
-              q: params.filter?.q,
+              q: query || undefined,
               sort:
                 field && order
                   ? `${field}:${order === "DESC" ? "-1" : "1"}`
                   : undefined,
               include_totals: true,
-            }),
+            });
+          },
           resourceKey: "logs",
           idKey: "log_id",
         },

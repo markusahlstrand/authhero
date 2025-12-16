@@ -1,6 +1,36 @@
-import { Show, FunctionField, SimpleShowLayout, TextField } from "react-admin";
+import {
+  Show,
+  FunctionField,
+  SimpleShowLayout,
+  TextField,
+  ReferenceField,
+  useRecordContext,
+} from "react-admin";
 import { LogType, LogIcon } from "../logs";
 import { JsonOutput } from "../common/JsonOutput";
+import { Link } from "react-admin";
+
+const UserIdField = () => {
+  const record = useRecordContext();
+
+  if (!record?.user_id) return <>-</>;
+
+  return <Link to={`/users/${record.user_id}`}>{record.user_id}</Link>;
+};
+
+const IpAddressField = () => {
+  const record = useRecordContext();
+
+  if (!record?.ip) return <>-</>;
+
+  return (
+    <Link
+      to={`/logs?displayedFilters=%7B%22ip%22%3Atrue%7D&filter=%7B%22ip%22%3A%22${encodeURIComponent(record.ip)}%22%7D`}
+    >
+      {record.ip}
+    </Link>
+  );
+};
 
 export function LogShow() {
   return (
@@ -8,9 +38,9 @@ export function LogShow() {
       <SimpleShowLayout>
         <TextField source="id" />
         <TextField source="tenant_id" />
-        <TextField source="user_id" />
+        <FunctionField label="User ID" render={() => <UserIdField />} />
         <TextField source="user_name" />
-        <TextField source="ip" />
+        <FunctionField label="IP Address" render={() => <IpAddressField />} />
         <TextField source="description" />
         <TextField source="client_id" />
         <TextField source="client_name" />

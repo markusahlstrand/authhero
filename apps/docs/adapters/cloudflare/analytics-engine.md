@@ -48,7 +48,7 @@ To query logs via the SQL API, you need to create a Cloudflare API token:
 3. Select "Create Custom Token"
 4. Configure:
    - **Token name**: `Analytics Engine Read`
-   - **Permissions**: 
+   - **Permissions**:
      - Account → Analytics → Read
 5. Click "Continue to summary" then "Create Token"
 6. **Save the token value** - you won't be able to see it again
@@ -178,6 +178,7 @@ curl "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/analytics_engi
 ### Query Tips
 
 **Important Notes:**
+
 - Use `index1` for filtering by `tenant_id` - it's indexed for efficient queries
 - The dataset name in queries is what you defined in `wrangler.toml` (e.g., `authhero_logs` or `auth_logs`)
 - Results are returned as JSON
@@ -187,13 +188,13 @@ curl "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/analytics_engi
 
 ```sql
 -- Filter by time range
-SELECT * FROM authhero_logs 
-WHERE index1 = 'tenant-123' 
+SELECT * FROM authhero_logs
+WHERE index1 = 'tenant-123'
   AND timestamp >= NOW() - INTERVAL 1 DAY
 ORDER BY timestamp DESC;
 
 -- Aggregate by hour
-SELECT 
+SELECT
   toStartOfHour(timestamp) as hour,
   count() as login_count
 FROM authhero_logs
@@ -203,7 +204,7 @@ GROUP BY hour
 ORDER BY hour DESC;
 
 -- Failed login attempts by user
-SELECT 
+SELECT
   blob8 as user_id,
   blob9 as user_name,
   count() as failed_attempts
@@ -282,7 +283,10 @@ const logsAdapter = createPassthroughAdapter({
 
 ```typescript
 // Track login patterns
-async function analyzeLoginPatterns(logsAdapter: LogsDataAdapter, tenantId: string) {
+async function analyzeLoginPatterns(
+  logsAdapter: LogsDataAdapter,
+  tenantId: string,
+) {
   const result = await logsAdapter.list(tenantId, {
     per_page: 1000,
     q: "type:s", // Successful logins only
