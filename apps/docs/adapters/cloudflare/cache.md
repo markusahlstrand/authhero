@@ -155,7 +155,11 @@ async function getWithVersion<T>(key: string): Promise<T | null> {
   return cache.get<T>(versionedKey);
 }
 
-async function setWithVersion<T>(key: string, value: T, ttl?: number): Promise<void> {
+async function setWithVersion<T>(
+  key: string,
+  value: T,
+  ttl?: number,
+): Promise<void> {
   const version = (await cache.get<number>("cache:version")) || 0;
   const versionedKey = `${key}:v${version}`;
   await cache.set(versionedKey, value, ttl);

@@ -1,6 +1,7 @@
 {
   "name": "@authhero/react-admin",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "scripts": {
     "dev": "vite",
     "build": "pnpm install --no-frozen-lockfile && vite build",

@@ -12,6 +12,7 @@ import { DateAgo } from "../common";
 export function LogsList() {
   const postFilters = [
     <TextInput key="search" label="Search" source="q" alwaysOn />,
+    <TextInput key="ip" label="IP Address" source="ip" />,
   ];
 
   return (
