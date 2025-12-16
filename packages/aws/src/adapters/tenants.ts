@@ -16,7 +16,10 @@ import {
   removeNullProperties,
 } from "../utils";
 
-interface TenantItem extends DynamoDBBaseItem, Omit<Tenant, "created_at" | "updated_at"> {}
+interface TenantItem extends DynamoDBBaseItem, Omit<Tenant, "created_at" | "updated_at"> {
+  GSI1PK: string;
+  GSI1SK: string;
+}
 
 function toTenant(item: TenantItem): Tenant {
   const stripped = stripDynamoDBFields(item);
@@ -32,6 +35,8 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
       const item: TenantItem = {
         PK: tenantKeys.pk(id),
         SK: tenantKeys.sk(),
+        GSI1PK: tenantKeys.gsi1pk(),
+        GSI1SK: tenantKeys.gsi1sk(id),
         entityType: "TENANT",
         id,
         audience: params.audience,
@@ -60,13 +65,11 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
     },
 
     async list(params = {}): Promise<{ tenants: Tenant[]; totals?: { start: number; limit: number; length: number } }> {
-      // For tenants, we need to scan all tenants
-      // In a real implementation, you might want a GSI for this
       const { page = 0, per_page = 50, include_totals = false } = params;
 
-      // Query all tenants using a scan or a dedicated GSI
-      // For simplicity, we'll use a pattern where all tenants share a common prefix
-      const { items } = await queryItems<TenantItem>(ctx, "TENANT#", {
+      // Query all tenants using GSI1 where all tenants share GSI1PK="TENANTS"
+      const { items } = await queryItems<TenantItem>(ctx, tenantKeys.gsi1pk(), {
+        indexName: "GSI1",
         limit: per_page,
       });
 

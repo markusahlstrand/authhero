@@ -27,7 +27,8 @@
   },
   "scripts": {
     "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.19.10",
@@ -35,6 +36,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^24.10.0",
     "dts-bundle-generator": "^9.5.1",
+    "dynalite": "^3.2.2",
     "hono": "^4.10.4",
     "typescript": "^5.9.3",
     "vite": "^7.2.2",

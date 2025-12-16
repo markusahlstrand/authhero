@@ -6,6 +6,9 @@
 export const tenantKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
   sk: () => "TENANT",
+  // GSI1 for listing all tenants
+  gsi1pk: () => "TENANTS",
+  gsi1sk: (tenantId: string) => `TENANT#${tenantId}`,
 };
 
 // User keys
