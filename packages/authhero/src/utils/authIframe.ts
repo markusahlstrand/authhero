@@ -1,7 +1,20 @@
+import { Context } from "hono";
+import { Bindings, Variables } from "../types";
+
+/**
+ * Renders an iframe response for authentication flows.
+ * The Server-Timing header prevents Cloudflare from adding the beacon script
+ * which might interfere with Safari ITP.
+ */
 export default function renderAuthIframe(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   targetOrigin: string,
   response: string,
+  additionalHeaders?: Headers,
 ) {
+  const headers = new Headers(additionalHeaders);
+  headers.set("Server-Timing", "cf-nel=0; no-cloudflare-insights=1");
+
   const auth0Iframe = `<!DOCTYPE html>
   <html>
   
@@ -47,5 +60,5 @@ export default function renderAuthIframe(
   
   </html>`;
 
-  return auth0Iframe;
+  return ctx.html(auth0Iframe, { headers });
 }

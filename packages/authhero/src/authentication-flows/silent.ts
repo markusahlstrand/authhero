@@ -8,7 +8,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../helpers/logging";
 import { Bindings, Variables } from "../types";
-import { serializeAuthCookie } from "../utils/cookies";
+import { serializeAuthCookie, clearAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens, createCodeData } from "./common";
 import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
@@ -49,20 +49,31 @@ export async function silentAuth({
 
   // Helper function to handle login required scenarios
   async function handleLoginRequired(description: string = "Login required") {
-    logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_SILENT_AUTH,
-      description,
-    });
+    const headers = new Headers();
+    
+    // Only log and clear the session cookie if there was actually a session
+    if (session) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_SILENT_AUTH,
+        description,
+      });
 
-    return ctx.html(
-      renderAuthIframe(
-        originUrl,
-        JSON.stringify({
-          error: "login_required",
-          error_description: description,
-          state,
-        }),
-      ),
+      const clearCookie = clearAuthCookie(
+        client.tenant.id,
+        ctx.req.header("host"),
+      );
+      headers.set("set-cookie", clearCookie);
+    }
+
+    return renderAuthIframe(
+      ctx,
+      originUrl,
+      JSON.stringify({
+        error: "login_required",
+        error_description: description,
+        state,
+      }),
+      headers,
     );
   }
 
@@ -161,9 +172,6 @@ export async function silentAuth({
 
   // Set response headers
   const headers = new Headers();
-  // The following header is added to prevent Cloudflare from adding the beacon script to the file which might mess with Safari ITP
-  headers.set("Server-Timing", "cf-nel=0; no-cloudflare-insights=1");
-
   const cookie = serializeAuthCookie(
     client.tenant.id,
     session.id,
@@ -171,16 +179,13 @@ export async function silentAuth({
   );
   headers.set("set-cookie", cookie);
 
-  return ctx.html(
-    renderAuthIframe(
-      originUrl,
-      JSON.stringify({
-        ...tokenResponse,
-        state,
-      }),
-    ),
-    {
-      headers,
-    },
+  return renderAuthIframe(
+    ctx,
+    originUrl,
+    JSON.stringify({
+      ...tokenResponse,
+      state,
+    }),
+    headers,
   );
 }

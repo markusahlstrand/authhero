@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { AuthorizationResponseType, LogTypes } from "@authhero/adapter-interfaces";
 
 describe("silent", () => {
   it("should return a auth response for a valid silent auth session", async () => {
@@ -115,5 +115,130 @@ describe("silent", () => {
     expect(updatedSession.used_at).not.toEqual(session.used_at);
     // The session should now be linked to the new login session
     expect(updatedSession.login_session_id).toEqual(code?.login_id);
+  });
+
+  it("should clear session cookie when silent auth fails with expired session", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+      },
+    });
+
+    // Create an expired session
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() - 1000).toISOString(), // Expired
+      clients: ["clientId"],
+    });
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    expect(response.status).toEqual(200);
+    const body = await response.text();
+    expect(body).toContain("login_required");
+
+    // Verify that set-cookie header is present to clear the cookie
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toBeTruthy();
+    expect(setCookieHeader).toContain("tenantId-auth-token=");
+    expect(setCookieHeader).toContain("Max-Age=0");
+
+    // Verify that a FAILED_SILENT_AUTH log was created
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 10,
+      include_totals: true,
+    });
+    const failedLog = logs.find(
+      (log) => log.type === LogTypes.FAILED_SILENT_AUTH,
+    );
+    expect(failedLog).toBeDefined();
+  });
+
+  it("should not log FAILED_SILENT_AUTH when called without session cookie", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Get current log count
+    const logsBefore = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const failedLogsBefore = logsBefore.logs.filter(
+      (log) => log.type === LogTypes.FAILED_SILENT_AUTH,
+    );
+
+    // Call silent auth without any session cookie
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          // No cookie header
+        },
+      },
+    );
+
+    expect(response.status).toEqual(200);
+    const body = await response.text();
+    expect(body).toContain("login_required");
+
+    // Verify that NO set-cookie header is sent when there was no session
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toBeNull();
+
+    // Verify that NO new FAILED_SILENT_AUTH log was created
+    const logsAfter = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const failedLogsAfter = logsAfter.logs.filter(
+      (log) => log.type === LogTypes.FAILED_SILENT_AUTH,
+    );
+    expect(failedLogsAfter.length).toEqual(failedLogsBefore.length);
   });
 });
