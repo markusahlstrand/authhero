@@ -1,0 +1,38 @@
+name = "authhero-multitenant"
+main = "src/index.ts"
+compatibility_date = "2024-11-20"
+
+# Main D1 Database (stores tenant registry and main tenant data)
+# Run: wrangler d1 create authhero-main-db
+# Then update the database_id below:
+[[d1_databases]]
+binding = "MAIN_DB"
+database_name = "authhero-main-db"
+database_id = "local"
+
+# Analytics Engine for logs
+# Create in Cloudflare Dashboard: Workers & Pages > Analytics Engine
+[[analytics_engine_datasets]]
+binding = "AUTH_LOGS"
+dataset = "authhero_logs"
+
+# Environment variables
+# For local development, create a .dev.vars file with these values:
+# CLOUDFLARE_ACCOUNT_ID=your_account_id
+# CLOUDFLARE_API_TOKEN=your_api_token
+# ANALYTICS_ENGINE_API_TOKEN=your_analytics_token (optional)
+# MAIN_TENANT_ID=main
+# BASE_DOMAIN=auth.example.com (optional)
+
+[vars]
+MAIN_TENANT_ID = "main"
+# BASE_DOMAIN = "auth.example.com"
+
+# Optional: Enable observability
+[observability]
+enabled = true
+
+# Optional: Custom domain routing
+# routes = [
+#   { pattern = "*.auth.example.com", custom_domain = true }
+# ]

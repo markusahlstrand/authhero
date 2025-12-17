@@ -1,0 +1,21 @@
+name = "authhero-server"
+main = "src/index.ts"
+compatibility_date = "2024-11-20"
+
+# D1 Database binding
+# Run: wrangler d1 create authhero-db
+# Then uncomment and update the database_id below:
+# [[d1_databases]]
+# binding = "AUTH_DB"
+# database_name = "authhero-db"
+# database_id = "<YOUR_DATABASE_ID>"
+
+# For local development, you can use a local D1 database:
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "authhero-db"
+database_id = "local"
+
+# Optional: Enable observability
+# [observability]
+# enabled = true

@@ -4,7 +4,10 @@ import { initJSXRoute, usePasswordLogin } from "./common";
 import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
 import AuthLayout from "../../components/AuthLayout";
-import { getPrimaryUserByProvider } from "../../helpers/users";
+import {
+  getPrimaryUserByProvider,
+  getPrimaryUserByEmail,
+} from "../../helpers/users";
 import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
@@ -162,32 +165,37 @@ export const identifierRoutes = new OpenAPIHono<{
       // Note: country code not available in theme or branding schema yet
       const vendorCountryCode = undefined; // Could add to theme.widget or branding later
 
-      const { normalized: username, connectionType } =
-        getConnectionFromIdentifier(
-          params.username,
-          vendorCountryCode || countryCode,
-        );
+      const {
+        normalized: username,
+        connectionType,
+        provider,
+      } = getConnectionFromIdentifier(
+        params.username,
+        vendorCountryCode || countryCode,
+      );
 
-      // Get the user first to check app_metadata.strategy
+      // Look up user - for email use getPrimaryUserByEmail (finds any provider),
+      // for sms/username use getPrimaryUserByProvider
       const user = username
-        ? await getPrimaryUserByProvider({
-            userAdapter: env.data.users,
-            tenant_id: client.tenant.id,
-            username,
-            provider: connectionType,
-          })
+        ? connectionType === "email"
+          ? await getPrimaryUserByEmail({
+              userAdapter: env.data.users,
+              tenant_id: client.tenant.id,
+              email: username,
+            })
+          : await getPrimaryUserByProvider({
+              userAdapter: env.data.users,
+              tenant_id: client.tenant.id,
+              username,
+              provider,
+            })
         : null;
-
-      // Check if user has password strategy set, even if there's no password connection
-      const hasPasswordStrategy =
-        user?.app_metadata.strategy === "Username-Password-Authentication";
 
       // Allow connection if:
       // 1. There's a matching connection on the client, OR
-      // 2. User has password strategy and we're dealing with email connection
+      // 2. User already exists (can login regardless of how they signed up)
       const hasValidConnection =
-        client.connections.find((c) => c.strategy === connectionType) ||
-        (hasPasswordStrategy && connectionType === "email");
+        client.connections.find((c) => c.strategy === connectionType) || user;
 
       if (!hasValidConnection || !username) {
         if (useShadcn) {

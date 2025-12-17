@@ -16,6 +16,8 @@ export * from "./components";
 export * from "./styles";
 export * from "./adapters";
 export { waitUntil } from "./helpers/wait-until";
+export { seed } from "./seed";
+export type { SeedOptions, SeedResult } from "./seed";
 
 // Export SAML types and signers for configuration
 export type { SamlSigner } from "@authhero/saml/core";

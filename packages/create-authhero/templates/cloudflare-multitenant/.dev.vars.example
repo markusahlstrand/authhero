@@ -1,0 +1,9 @@
+# Cloudflare API credentials for multi-tenant database management
+CLOUDFLARE_ACCOUNT_ID=your_account_id_here
+CLOUDFLARE_API_TOKEN=your_api_token_here
+
+# Optional: Separate token for Analytics Engine (if different from main token)
+# ANALYTICS_ENGINE_API_TOKEN=your_analytics_token_here
+
+# Optional: Base domain for subdomain routing
+# BASE_DOMAIN=auth.example.com

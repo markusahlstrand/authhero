@@ -6,6 +6,8 @@ interface NormalizedResult {
   connectionType: ConnectionType;
   normalized: string | null;
   isValid: boolean;
+  /** The provider to use for user lookup. For email, this is "email" but password users use "auth2" */
+  provider: string;
 }
 
 export function getConnectionFromIdentifier(
@@ -21,6 +23,7 @@ export function getConnectionFromIdentifier(
       connectionType: "email",
       normalized: isValid ? normalized : null,
       isValid,
+      provider: "email",
     };
   } else if (/^\+?\d[\d\s\-().]*$/.test(username)) {
     const phoneNumber = parsePhoneNumberFromString(username, {
@@ -31,12 +34,14 @@ export function getConnectionFromIdentifier(
         connectionType: "sms",
         normalized: phoneNumber.number, // E.164 format
         isValid: true,
+        provider: "sms",
       };
     } else {
       return {
         connectionType: "sms",
         normalized: null,
         isValid: false,
+        provider: "sms",
       };
     }
   } else {
@@ -44,6 +49,7 @@ export function getConnectionFromIdentifier(
       connectionType: "username",
       normalized: username,
       isValid: true,
+      provider: "auth2",
     };
   }
 }
