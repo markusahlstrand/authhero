@@ -45,14 +45,11 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         "@hono/zod-openapi": "^0.19.0",
         "@hono/node-server": "latest",
         authhero: "latest",
-        bcryptjs: "^2.4.3",
         "better-sqlite3": "latest",
         hono: "^4.6.0",
         kysely: "latest",
-        nanoid: "^5.0.0",
       },
       devDependencies: {
-        "@types/bcryptjs": "^2.4.6",
         "@types/better-sqlite3": "^7.6.0",
         "@types/node": "^20.0.0",
         tsx: "^4.0.0",
@@ -145,12 +142,6 @@ function copyFiles(source: string, target: string): void {
   });
 }
 
-function hashPassword(password: string): string {
-  // Simple bcrypt-style placeholder - in real usage, the seed script will hash properly
-  // This is just for generating the seed file content
-  return `$2a$10$placeholder_hash_${Buffer.from(password).toString("base64")}`;
-}
-
 function generateSeedFileContent(
   setupType: SetupType,
   credentials: AdminCredentials,
@@ -158,11 +149,11 @@ function generateSeedFileContent(
   const { username, password } = credentials;
 
   if (setupType === "local") {
-    // TypeScript seed file for local setup - uses raw SQL for compatibility
-    return `import { SqliteDialect, Kysely, sql } from "kysely";
+    // TypeScript seed file for local setup - uses the seed function from authhero
+    return `import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
-import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
+import createAdapters from "@authhero/kysely-adapter";
+import { seed } from "authhero";
 
 async function main() {
   const dialect = new SqliteDialect({
@@ -170,217 +161,46 @@ async function main() {
   });
 
   const db = new Kysely<any>({ dialect });
+  const adapters = createAdapters(db);
 
-  const adminEmail = "${username}";
-  const adminPassword = "${password}";
-  const tenantId = "default";
-  const now = new Date().toISOString();
+  await seed(adapters, {
+    adminEmail: "${username}",
+    adminPassword: "${password}",
+  });
 
-  try {
-    // Check if tenant already exists
-    const existingTenant = await db
-      .selectFrom("tenants")
-      .selectAll()
-      .where("id", "=", tenantId)
-      .executeTakeFirst();
-
-    if (!existingTenant) {
-      console.log(\`Creating tenant "\${tenantId}"...\`);
-      await db
-        .insertInto("tenants")
-        .values({
-          id: tenantId,
-          friendly_name: "Default Tenant",
-          audience: "https://api.example.com",
-          sender_email: "noreply@example.com",
-          sender_name: "AuthHero",
-          created_at: now,
-          updated_at: now,
-        })
-        .execute();
-      console.log("✅ Tenant created");
-    } else {
-      console.log(\`Tenant "\${tenantId}" already exists, skipping...\`);
-    }
-
-    // Check if admin user already exists (users table has user_id, not id)
-    const existingUser = await db
-      .selectFrom("users")
-      .selectAll()
-      .where("tenant_id", "=", tenantId)
-      .where("email", "=", adminEmail)
-      .executeTakeFirst();
-
-    if (!existingUser) {
-      console.log(\`Creating admin user "\${adminEmail}"...\`);
-
-      const userId = \`auth2|\${nanoid()}\`;
-
-      // Create the admin user (note: user_id not id)
-      await db
-        .insertInto("users")
-        .values({
-          user_id: userId,
-          tenant_id: tenantId,
-          email: adminEmail,
-          email_verified: 1,
-          created_at: now,
-          updated_at: now,
-          connection: "Username-Password-Authentication",
-          provider: "auth2",
-          is_social: 0,
-          login_count: 0,
-          app_metadata: JSON.stringify({ strategy: "Username-Password-Authentication" }),
-        })
-        .execute();
-
-      // Hash the password and create password record
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      
-      // Try new password_history table first, fall back to passwords table
-      try {
-        await db
-          .insertInto("password_history")
-          .values({
-            id: nanoid(),
-            tenant_id: tenantId,
-            user_id: userId,
-            password: hashedPassword,
-            algorithm: "bcrypt",
-            is_current: 1,
-            created_at: now,
-            updated_at: now,
-          })
-          .execute();
-      } catch {
-        // Fall back to old passwords table schema
-        await db
-          .insertInto("passwords")
-          .values({
-            tenant_id: tenantId,
-            user_id: userId,
-            password: hashedPassword,
-            algorithm: "bcrypt",
-            created_at: now,
-            updated_at: now,
-          })
-          .execute();
-      }
-
-      console.log("✅ Admin user created");
-      console.log(\`   Email: \${adminEmail}\`);
-    } else {
-      console.log(\`Admin user "\${adminEmail}" already exists, skipping...\`);
-    }
-
-    // Create Username-Password-Authentication connection (for password login)
-    const existingConnection = await db
-      .selectFrom("connections")
-      .selectAll()
-      .where("tenant_id", "=", tenantId)
-      .where("name", "=", "Username-Password-Authentication")
-      .executeTakeFirst();
-
-    if (!existingConnection) {
-      console.log("Creating password connection...");
-      await db
-        .insertInto("connections")
-        .values({
-          id: nanoid(),
-          tenant_id: tenantId,
-          name: "Username-Password-Authentication",
-          strategy: "Username-Password-Authentication",
-          options: "{}",
-          created_at: now,
-          updated_at: now,
-        })
-        .execute();
-      console.log("✅ Password connection created");
-    } else {
-      console.log("Password connection already exists, skipping...");
-    }
-
-    // Create default client
-    const existingClient = await db
-      .selectFrom("clients")
-      .selectAll()
-      .where("tenant_id", "=", tenantId)
-      .where("client_id", "=", "default")
-      .executeTakeFirst();
-
-    if (!existingClient) {
-      console.log("Creating default client...");
-      await db
-        .insertInto("clients")
-        .values({
-          client_id: "default",
-          tenant_id: tenantId,
-          name: "Default Application",
-          callbacks: JSON.stringify(["https://manage.authhero.net/auth-callback"]),
-          allowed_origins: "[]",
-          web_origins: "[]",
-          client_aliases: "[]",
-          allowed_clients: "[]",
-          allowed_logout_urls: "[]",
-          session_transfer: "{}",
-          oidc_logout: "{}",
-          grant_types: JSON.stringify(["authorization_code", "refresh_token"]),
-          jwt_configuration: "{}",
-          signing_keys: "[]",
-          encryption_key: "{}",
-          addons: "{}",
-          client_metadata: "{}",
-          mobile: "{}",
-          native_social_login: "{}",
-          refresh_token: "{}",
-          default_organization: "{}",
-          client_authentication_methods: "{}",
-          signed_request_object: "{}",
-          token_quota: "{}",
-          connections: JSON.stringify(["Username-Password-Authentication"]),
-          created_at: now,
-          updated_at: now,
-        })
-        .execute();
-      console.log("✅ Default client created");
-      console.log("   Client ID: default");
-      console.log("   Callback URL: https://manage.authhero.net/auth-callback");
-    } else {
-      console.log("Default client already exists, skipping...");
-    }
-
-    console.log("\\n🎉 Seeding complete!");
-  } finally {
-    await db.destroy();
-  }
+  await db.destroy();
 }
 
 main().catch(console.error);
 `;
   } else {
     // SQL seed file for Cloudflare D1
+    // Note: For Cloudflare, we'll need a different approach since we can't run TypeScript directly
     const now = new Date().toISOString();
     const tenantId = "default";
-    const userId = `auth|${Date.now()}`;
-    const hashedPw = hashPassword(password);
 
     return `-- Seed file for AuthHero
 -- Admin user: ${username}
+-- 
+-- IMPORTANT: This SQL file creates the basic structure but the password
+-- cannot be properly hashed in SQL. After running this seed, you should
+-- use the management API or run a script to set the admin password.
 
 -- Create default tenant
-INSERT OR IGNORE INTO tenants (id, name, audience, sender_email, sender_name, created_at, updated_at)
+INSERT OR IGNORE INTO tenants (id, friendly_name, audience, sender_email, sender_name, created_at, updated_at)
 VALUES ('${tenantId}', 'Default Tenant', 'https://api.example.com', 'noreply@example.com', 'AuthHero', '${now}', '${now}');
 
--- Create admin user
--- Note: Password hash should be generated using bcrypt. This is a placeholder.
--- You should update the password hash after running migrations.
-INSERT OR IGNORE INTO users (id, tenant_id, email, email_verified, created_at, updated_at, is_social, login_count)
-VALUES ('${userId}', '${tenantId}', '${username}', 1, '${now}', '${now}', 0, 0);
+-- Create password connection
+INSERT OR IGNORE INTO connections (id, tenant_id, name, strategy, options, created_at, updated_at)
+VALUES ('conn_default', '${tenantId}', 'Username-Password-Authentication', 'Username-Password-Authentication', '{}', '${now}', '${now}');
 
--- Password placeholder - update this with a proper bcrypt hash
--- You can generate one using: npx bcrypt-cli hash "${password}"
-INSERT OR IGNORE INTO passwords (tenant_id, user_id, password, created_at, updated_at)
-VALUES ('${tenantId}', '${userId}', '${hashedPw}', '${now}', '${now}');
+-- Create default client
+INSERT OR IGNORE INTO clients (client_id, tenant_id, name, callbacks, allowed_origins, web_origins, connections, created_at, updated_at)
+VALUES ('default', '${tenantId}', 'Default Application', '["https://manage.authhero.net/auth-callback"]', '[]', '[]', '["Username-Password-Authentication"]', '${now}', '${now}');
+
+-- Note: Admin user and password should be created via the management API
+-- or using a TypeScript seed script with proper bcrypt hashing.
+-- Example command: curl -X POST http://localhost:3000/api/v2/users ...
 `;
   }
 }
@@ -559,7 +379,13 @@ program
         // For local setup, rebuild native modules (better-sqlite3)
         if (setupType === "local") {
           console.log("\n🔧 Building native modules...\n");
-          await runCommand("npm rebuild better-sqlite3", projectPath);
+          const rebuildCmd =
+            packageManager === "yarn"
+              ? "yarn rebuild better-sqlite3"
+              : packageManager === "bun"
+                ? "bun pm rebuild better-sqlite3"
+                : `${packageManager} rebuild better-sqlite3`;
+          await runCommand(rebuildCmd, projectPath);
         }
 
         console.log("\n✅ Dependencies installed successfully!\n");

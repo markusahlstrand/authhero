@@ -23,6 +23,14 @@ export interface SeedOptions {
    */
   audience?: string;
   /**
+   * The default client ID (defaults to "default")
+   */
+  clientId?: string;
+  /**
+   * Callback URLs for the default client
+   */
+  callbacks?: string[];
+  /**
    * Whether to log progress (defaults to true)
    */
   debug?: boolean;
@@ -32,11 +40,12 @@ export interface SeedResult {
   tenantId: string;
   userId: string;
   email: string;
+  clientId: string;
 }
 
 /**
  * Seed the AuthHero database with initial data.
- * Creates a default tenant and admin user.
+ * Creates a default tenant, admin user, password connection, and default client.
  *
  * @example
  * ```ts
@@ -61,6 +70,8 @@ export async function seed(
     tenantId = "default",
     tenantName = "Default Tenant",
     audience = "urn:default",
+    clientId = "default",
+    callbacks = ["https://manage.authhero.net/auth-callback"],
     debug = true,
   } = options;
 
@@ -125,6 +136,49 @@ export async function seed(
     }
   }
 
+  // Create Username-Password-Authentication connection
+  const existingConnections = await adapters.connections.list(tenantId);
+  const hasPasswordConnection = existingConnections.connections.some(
+    (c) => c.name === "Username-Password-Authentication",
+  );
+
+  if (!hasPasswordConnection) {
+    if (debug) {
+      console.log("Creating password connection...");
+    }
+    await adapters.connections.create(tenantId, {
+      name: "Username-Password-Authentication",
+      strategy: "Username-Password-Authentication",
+      options: {},
+    });
+    if (debug) {
+      console.log("✅ Password connection created");
+    }
+  } else if (debug) {
+    console.log("Password connection already exists, skipping...");
+  }
+
+  // Create default client
+  const existingClient = await adapters.clients.get(tenantId, clientId);
+  if (!existingClient) {
+    if (debug) {
+      console.log("Creating default client...");
+    }
+    await adapters.clients.create(tenantId, {
+      client_id: clientId,
+      name: "Default Application",
+      callbacks,
+      connections: ["Username-Password-Authentication"],
+    });
+    if (debug) {
+      console.log("✅ Default client created");
+      console.log(`   Client ID: ${clientId}`);
+      console.log(`   Callback URLs: ${callbacks.join(", ")}`);
+    }
+  } else if (debug) {
+    console.log("Default client already exists, skipping...");
+  }
+
   if (debug) {
     console.log("\n🎉 Seeding complete!");
   }
@@ -133,5 +187,6 @@ export async function seed(
     tenantId,
     userId,
     email: adminEmail,
+    clientId,
   };
 }

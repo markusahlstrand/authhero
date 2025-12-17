@@ -1,7 +1,7 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import createKyselyAdapters from "@authhero/kysely-adapter";
 import { D1Dialect } from "kysely-d1";
-import { Kysely } from "kysely";
+import { Kysely, SqliteQueryCompiler } from "kysely";
 import wretch from "wretch";
 
 interface TenantDatabase {
@@ -48,6 +48,7 @@ export function createDatabaseFactory(
       // For other tenants, connect via REST API
       const adapters = await createRestD1Adapters(
         tenantId,
+        mainKysely,
         accountId,
         apiToken,
       );
@@ -136,50 +137,31 @@ export function createDatabaseFactory(
  */
 async function createRestD1Adapters(
   tenantId: string,
+  mainKysely: Kysely<any>,
   accountId: string,
   apiToken: string,
 ): Promise<DataAdapters> {
-  // First, get the database ID for this tenant from the main database
-  // This would be stored when the tenant was provisioned
-  const databaseId = await getTenantDatabaseId(tenantId, accountId, apiToken);
+  // Get the database ID from the tenant_databases table
+  const mapping = await mainKysely
+    .selectFrom("tenant_databases")
+    .where("tenant_id", "=", tenantId)
+    .select("database_id")
+    .executeTakeFirst();
 
-  if (!databaseId) {
+  if (!mapping) {
     throw new Error(`No database found for tenant: ${tenantId}`);
   }
 
   // Create a REST-based D1 adapter
   // Note: This uses the Cloudflare D1 HTTP API
-  const restDialect = createRestD1Dialect(databaseId, accountId, apiToken);
+  const restDialect = createRestD1Dialect(
+    mapping.database_id,
+    accountId,
+    apiToken,
+  );
   const db = new Kysely<any>({ dialect: restDialect });
 
   return createKyselyAdapters(db);
-}
-
-/**
- * Get the database ID for a tenant
- */
-async function getTenantDatabaseId(
-  tenantId: string,
-  accountId: string,
-  apiToken: string,
-): Promise<string | null> {
-  // List all databases and find the one matching this tenant
-  const response = await wretch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`,
-  )
-    .auth(`Bearer ${apiToken}`)
-    .get()
-    .json<{ success: boolean; result: TenantDatabase[] }>();
-
-  if (!response.success) {
-    return null;
-  }
-
-  const tenantDb = response.result.find(
-    (db) => db.database_name === `authhero-tenant-${tenantId}`,
-  );
-
-  return tenantDb?.database_id ?? null;
 }
 
 /**
@@ -233,11 +215,6 @@ function createRestD1Dialect(
       getTables: async () => [],
       getMetadata: async () => ({ schemas: [], tables: [] }),
     }),
-    createQueryCompiler: () => ({
-      compileQuery: (node: any) => ({
-        sql: node.sql || "",
-        parameters: node.parameters || [],
-      }),
-    }),
+    createQueryCompiler: () => new SqliteQueryCompiler(),
   };
 }

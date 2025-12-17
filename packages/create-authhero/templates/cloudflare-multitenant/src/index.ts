@@ -66,6 +66,6 @@ export default {
       app = createApp(config, multiTenancyPlugin);
     }
 
-    return app.fetch(request, { env });
+    return app.fetch(request, env);
   },
 };

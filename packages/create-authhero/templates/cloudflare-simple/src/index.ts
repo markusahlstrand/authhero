@@ -22,6 +22,6 @@ export default {
       app = createApp(config);
     }
 
-    return app.fetch(request, { env });
+    return app.fetch(request, env);
   },
 };

@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+
 import { AnalyticsEngineDataset } from "@authhero/cloudflare-adapter";
 
 export interface Env {

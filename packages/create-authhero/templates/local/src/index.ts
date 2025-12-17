@@ -6,11 +6,25 @@ import createAdapters from "@authhero/kysely-adapter";
 import createApp from "./app";
 
 // Initialize SQLite database
-const dialect = new SqliteDialect({
-  database: new Database("db.sqlite"),
-});
+let db: Kysely<any>;
+try {
+  const dialect = new SqliteDialect({
+    database: new Database("db.sqlite"),
+  });
+  db = new Kysely<any>({ dialect });
+} catch (error) {
+  console.error("❌ Failed to initialize database:");
+  console.error(
+    error instanceof Error ? error.message : "Unknown error occurred",
+  );
+  console.error("\nPossible causes:");
+  console.error("  - File permissions issue");
+  console.error("  - Disk space is full");
+  console.error("  - Database file is corrupted");
+  console.error("\nTry running: npm run migrate");
+  process.exit(1);
+}
 
-const db = new Kysely<any>({ dialect });
 const dataAdapter = createAdapters(db);
 
 // Create the AuthHero app
