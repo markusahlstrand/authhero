@@ -1,13 +1,10 @@
-Sure! Here's a `README.md` file for your CLI package:
-
-````markdown
 # create-authhero
 
-`create-authhero` is a command-line tool for creating a new AuthHero project. It sets up a new project with the necessary configuration and template files, including SQLite templates.
+`create-authhero` is a command-line tool for creating a new AuthHero project. It supports three different setup types to match your deployment needs.
 
 ## Usage
 
-To create a new AuthHero project, run the following command:
+To create a new AuthHero project, run:
 
 ```sh
 npm create authhero <project-name>
@@ -15,44 +12,172 @@ npm create authhero <project-name>
 
 If you don't specify a project name, you will be prompted to enter one.
 
-### Example
+## Interactive Setup
+
+The CLI will guide you through:
+
+1. **Project name** - Name of your project directory
+2. **Setup type** - Choose between Local, Cloudflare Simple, or Cloudflare Multi-Tenant
+3. **Admin credentials** - Email and password for the initial admin user
+4. **Install dependencies** - Optionally install packages with your preferred package manager
+5. **Start server** - Optionally run migrations, seed the database, and start the dev server
+
+## Setup Types
+
+When you run the command, you'll be asked to choose from three setup types:
+
+### 1. Local (SQLite)
+
+**Best for:** Getting started, local development, small deployments
+
+- Uses SQLite database with `better-sqlite3`
+- Runs with Bun or Node.js
+- No external dependencies
+- Great for learning and prototyping
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts     # Server entry point
+│   ├── app.ts       # AuthHero configuration
+│   ├── migrate.ts   # Database migrations
+│   └── seed.ts      # Database seeding (generated)
+├── package.json
+└── tsconfig.json
+```
+
+**Quick Start:**
+
+```sh
+cd my-auth-project
+npm install
+npm run migrate
+npm run seed
+npm run dev
+```
+
+### 2. Cloudflare Simple (Single Tenant)
+
+**Best for:** Single-tenant deployments, simple production setups
+
+- Uses Cloudflare Workers with D1 database
+- Single tenant configuration
+- Edge deployment with low latency
+- Easy to deploy and manage
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts     # Worker entry point
+│   ├── app.ts       # AuthHero configuration
+│   └── types.ts     # TypeScript types
+├── wrangler.toml    # Cloudflare configuration
+├── seed.sql         # Database seeding (generated)
+├── package.json
+└── tsconfig.json
+```
+
+**Quick Start:**
+
+```sh
+cd my-auth-project
+npm install
+wrangler d1 create authhero-db
+# Update wrangler.toml with database_id
+npm run db:migrate
+npm run seed
+npm run dev
+```
+
+### 3. Cloudflare Multi-Tenant (Production)
+
+**Best for:** SaaS platforms, agencies, enterprise deployments
+
+- Production-grade multi-tenant architecture
+- Main D1 database bound to worker (low latency)
+- Per-tenant D1 databases created dynamically via REST API
+- Analytics Engine for centralized logging
+- Subdomain-based tenant routing (optional)
+- Organization-based access control
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts           # Worker entry point
+│   ├── app.ts             # AuthHero configuration
+│   ├── types.ts           # TypeScript types
+│   └── database-factory.ts # Multi-tenant DB factory
+├── wrangler.toml          # Cloudflare configuration
+├── .dev.vars.example      # Environment variables template
+├── seed.sql               # Database seeding (generated)
+├── package.json
+└── tsconfig.json
+```
+
+**Architecture:**
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │         Cloudflare Worker               │
+                    │                                         │
+                    │  ┌─────────────────────────────────┐   │
+                    │  │   Multi-Tenancy Plugin          │   │
+                    │  │   - Access Control              │   │
+                    │  │   - Subdomain Routing           │   │
+                    │  │   - Database Resolution         │   │
+                    │  └─────────────────────────────────┘   │
+                    └──────────────┼──────────────────────────┘
+                                   │
+          ┌────────────────────────┼────────────────────────┐
+          │                        │                        │
+          ▼                        ▼                        ▼
+   ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+   │   Main D1   │         │  Tenant D1  │         │  Analytics  │
+   │  Database   │         │  Databases  │         │   Engine    │
+   │  (Bound)    │         │  (via REST) │         │   (Logs)    │
+   └─────────────┘         └─────────────┘         └─────────────┘
+```
+
+**Quick Start:**
+
+```sh
+cd my-auth-project
+npm install
+wrangler d1 create authhero-main-db
+# Update wrangler.toml with database_id
+cp .dev.vars.example .dev.vars
+# Add your Cloudflare credentials to .dev.vars
+npm run db:migrate
+npm run seed
+npm run dev
+```
+
+## Example
 
 ```sh
 npm create authhero my-auth-project
 ```
 
-This will create a new directory named `my-auth-project` with the following structure:
+You'll be prompted to:
 
-```
-my-auth-project
-├── package.json
-└── src
-    └── ... (template files)
-```
+1. Choose a setup type
+2. Enter admin email and password
+3. Optionally install dependencies and start the server
 
-The generated project is a small wrapper around the [authhero](https://www.npmjs.com/package/authhero) npm library which makes it easy to keep up to date with the latest changes. All the files in the `src` directory are templates that you can modify to fit your needs.
+## Comparison
 
-### Options
+| Feature      | Local        | Cloudflare Simple | Cloudflare Multi-Tenant |
+| ------------ | ------------ | ----------------- | ----------------------- |
+| Database     | SQLite       | D1                | D1 (per-tenant)         |
+| Deployment   | Local/Server | Edge              | Edge                    |
+| Multi-tenant | ❌           | ❌                | ✅                      |
+| Logging      | Console      | Console           | Analytics Engine        |
+| Complexity   | Low          | Medium            | High                    |
+| Best For     | Development  | Simple Production | Enterprise/SaaS         |
 
-- `project-name` (optional): The name of the new project. If not provided, you will be prompted to enter it.
+## Documentation
 
-## Project Setup
-
-When you run the `create-authhero` command, you will be prompted to enter some additional information for your new project:
-
-- Project name
-
-These details will be included in the `package.json` file of your new project.
-
-## Development
-
-To contribute to this project, clone the repository and install the dependencies:
-
-```sh
-git clone https://github.com/markusahlstrand/authhero
-cd create-authhero
-npm install
-```
+For more information, visit [https://authhero.net/docs](https://authhero.net/docs)
 
 ## License
 
@@ -61,8 +186,3 @@ MIT
 ## Author
 
 Markus Ahlstrand
-
-## Acknowledgments
-
-- [Commander.js](https://github.com/tj/commander.js) - Command-line interfaces made easy
-- [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) - A collection of common interactive command line user interfaces

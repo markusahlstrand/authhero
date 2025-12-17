@@ -4,7 +4,10 @@ import { initJSXRoute, usePasswordLogin } from "./common";
 import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
 import AuthLayout from "../../components/AuthLayout";
-import { getPrimaryUserByProvider } from "../../helpers/users";
+import {
+  getPrimaryUserByProvider,
+  getPrimaryUserByEmail,
+} from "../../helpers/users";
 import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
@@ -168,26 +171,37 @@ export const identifierRoutes = new OpenAPIHono<{
           vendorCountryCode || countryCode,
         );
 
-      // Get the user first to check app_metadata.strategy
-      const user = username
-        ? await getPrimaryUserByProvider({
-            userAdapter: env.data.users,
-            tenant_id: client.tenant.id,
-            username,
-            provider: connectionType,
-          })
-        : null;
+      // For email identifiers, look up user by email (any provider)
+      // For SMS identifiers, look up by provider
+      const user =
+        username && connectionType === "email"
+          ? await getPrimaryUserByEmail({
+              userAdapter: env.data.users,
+              tenant_id: client.tenant.id,
+              email: username,
+            })
+          : username
+            ? await getPrimaryUserByProvider({
+                userAdapter: env.data.users,
+                tenant_id: client.tenant.id,
+                username,
+                provider: connectionType,
+              })
+            : null;
 
-      // Check if user has password strategy set, even if there's no password connection
-      const hasPasswordStrategy =
-        user?.app_metadata.strategy === "Username-Password-Authentication";
+      // Check if user has a valid login strategy (password, email, or sms)
+      const userStrategy = user?.app_metadata?.strategy;
+      const hasValidUserStrategy =
+        userStrategy === "Username-Password-Authentication" ||
+        userStrategy === "email" ||
+        userStrategy === "sms";
 
       // Allow connection if:
       // 1. There's a matching connection on the client, OR
-      // 2. User has password strategy and we're dealing with email connection
+      // 2. User exists with a valid login strategy (password, email, or sms)
       const hasValidConnection =
         client.connections.find((c) => c.strategy === connectionType) ||
-        (hasPasswordStrategy && connectionType === "email");
+        hasValidUserStrategy;
 
       if (!hasValidConnection || !username) {
         if (useShadcn) {
