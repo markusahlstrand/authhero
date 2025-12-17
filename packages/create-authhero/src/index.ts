@@ -142,12 +142,7 @@ function copyFiles(source: string, target: string): void {
   });
 }
 
-function generateSeedFileContent(
-  setupType: SetupType,
-  credentials: AdminCredentials,
-): string {
-  const { username, password } = credentials;
-
+function generateSeedFileContent(setupType: SetupType): string {
   if (setupType === "local") {
     // TypeScript seed file for local setup - uses the seed function from authhero
     return `import { SqliteDialect, Kysely } from "kysely";
@@ -156,6 +151,15 @@ import createAdapters from "@authhero/kysely-adapter";
 import { seed } from "authhero";
 
 async function main() {
+  const adminEmail = process.argv[2] || process.env.ADMIN_EMAIL;
+  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.error("Usage: npm run seed <email> <password>");
+    console.error("   or: ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed");
+    process.exit(1);
+  }
+
   const dialect = new SqliteDialect({
     database: new Database("db.sqlite"),
   });
@@ -164,8 +168,8 @@ async function main() {
   const adapters = createAdapters(db);
 
   await seed(adapters, {
-    adminEmail: "${username}",
-    adminPassword: "${password}",
+    adminEmail,
+    adminPassword,
   });
 
   await db.destroy();
@@ -180,7 +184,6 @@ main().catch(console.error);
     const tenantId = "default";
 
     return `-- Seed file for AuthHero
--- Admin user: ${username}
 -- 
 -- IMPORTANT: This SQL file creates the basic structure but the password
 -- cannot be properly hashed in SQL. After running this seed, you should
@@ -278,32 +281,6 @@ program
       },
     ]);
 
-    // Ask for admin credentials
-    const credentials = await inquirer.prompt<AdminCredentials>([
-      {
-        type: "input",
-        name: "username",
-        message: "Admin email:",
-        default: "admin@example.com",
-        validate: (input: string) => {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          return emailRegex.test(input) || "Please enter a valid email address";
-        },
-      },
-      {
-        type: "password",
-        name: "password",
-        message: "Admin password:",
-        mask: "*",
-        validate: (input: string) => {
-          if (input.length < 8) {
-            return "Password must be at least 8 characters";
-          }
-          return true;
-        },
-      },
-    ]);
-
     const config = setupConfigs[setupType as SetupType];
 
     // Create project directory
@@ -329,10 +306,7 @@ program
     }
 
     // Generate seed file
-    const seedContent = generateSeedFileContent(
-      setupType as SetupType,
-      credentials,
-    );
+    const seedContent = generateSeedFileContent(setupType as SetupType);
     const seedFileName = setupType === "local" ? "src/seed.ts" : "seed.sql";
     fs.writeFileSync(path.join(projectPath, seedFileName), seedContent);
 
@@ -403,10 +377,41 @@ program
           ]);
 
           if (shouldSetup) {
+            // Ask for admin credentials
+            const credentials = await inquirer.prompt<AdminCredentials>([
+              {
+                type: "input",
+                name: "username",
+                message: "Admin email:",
+                default: "admin@example.com",
+                validate: (input: string) => {
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  return (
+                    emailRegex.test(input) ||
+                    "Please enter a valid email address"
+                  );
+                },
+              },
+              {
+                type: "password",
+                name: "password",
+                message: "Admin password:",
+                mask: "*",
+                validate: (input: string) => {
+                  if (input.length < 8) {
+                    return "Password must be at least 8 characters";
+                  }
+                  return true;
+                },
+              },
+            ]);
+
             console.log("\n🔄 Running migrations...\n");
             await runCommand(`${packageManager} run migrate`, projectPath);
             console.log("\n🌱 Seeding database...\n");
-            await runCommand(`${packageManager} run seed`, projectPath);
+            // Pass credentials as arguments to the seed script
+            const seedCmd = `${packageManager} run seed -- "${credentials.username}" "${credentials.password}"`;
+            await runCommand(seedCmd, projectPath);
           }
         }
 
@@ -435,7 +440,7 @@ program
       if (setupType === "local") {
         console.log("  npm install");
         console.log("  npm run migrate");
-        console.log("  npm run seed");
+        console.log("  npm run seed -- <email> <password>");
         console.log("  npm run dev");
       } else {
         console.log("  npm install");
