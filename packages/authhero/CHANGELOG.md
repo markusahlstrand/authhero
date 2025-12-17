@@ -1,5 +1,11 @@
 # authhero
 
+## 0.293.0
+
+### Minor Changes
+
+- 85b58c4: Update the scripts and the logic in the identifier page
+
 ## 0.292.0
 
 ### Minor Changes

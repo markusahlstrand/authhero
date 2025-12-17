@@ -1,5 +1,12 @@
 # @authhero/multi-tenancy
 
+## 12.0.0
+
+### Patch Changes
+
+- Updated dependencies [85b58c4]
+  - authhero@0.293.0
+
 ## 11.0.0
 
 ### Patch Changes
