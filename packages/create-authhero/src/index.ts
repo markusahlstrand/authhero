@@ -228,6 +228,31 @@ function runCommand(command: string, cwd: string): Promise<void> {
   });
 }
 
+function runCommandWithEnv(
+  command: string,
+  cwd: string,
+  env: Record<string, string>,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, [], {
+      cwd,
+      shell: true,
+      stdio: "inherit",
+      env: { ...process.env, ...env },
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Command failed with exit code ${code}`));
+      }
+    });
+
+    child.on("error", reject);
+  });
+}
+
 program
   .version("1.0.0")
   .description("Create a new AuthHero project")
@@ -409,9 +434,15 @@ program
             console.log("\n🔄 Running migrations...\n");
             await runCommand(`${packageManager} run migrate`, projectPath);
             console.log("\n🌱 Seeding database...\n");
-            // Pass credentials as arguments to the seed script
-            const seedCmd = `${packageManager} run seed -- "${credentials.username}" "${credentials.password}"`;
-            await runCommand(seedCmd, projectPath);
+            // Pass credentials via environment variables to avoid shell injection
+            await runCommandWithEnv(
+              `${packageManager} run seed`,
+              projectPath,
+              {
+                ADMIN_EMAIL: credentials.username,
+                ADMIN_PASSWORD: credentials.password,
+              },
+            );
           }
         }
 
