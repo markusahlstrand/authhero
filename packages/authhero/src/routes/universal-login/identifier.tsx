@@ -165,43 +165,37 @@ export const identifierRoutes = new OpenAPIHono<{
       // Note: country code not available in theme or branding schema yet
       const vendorCountryCode = undefined; // Could add to theme.widget or branding later
 
-      const { normalized: username, connectionType } =
-        getConnectionFromIdentifier(
-          params.username,
-          vendorCountryCode || countryCode,
-        );
+      const {
+        normalized: username,
+        connectionType,
+        provider,
+      } = getConnectionFromIdentifier(
+        params.username,
+        vendorCountryCode || countryCode,
+      );
 
-      // For email identifiers, look up user by email (any provider)
-      // For SMS identifiers, look up by provider
-      const user =
-        username && connectionType === "email"
+      // Look up user - for email use getPrimaryUserByEmail (finds any provider),
+      // for sms/username use getPrimaryUserByProvider
+      const user = username
+        ? connectionType === "email"
           ? await getPrimaryUserByEmail({
               userAdapter: env.data.users,
               tenant_id: client.tenant.id,
               email: username,
             })
-          : username
-            ? await getPrimaryUserByProvider({
-                userAdapter: env.data.users,
-                tenant_id: client.tenant.id,
-                username,
-                provider: connectionType,
-              })
-            : null;
-
-      // Check if user has a valid login strategy (password, email, or sms)
-      const userStrategy = user?.app_metadata?.strategy;
-      const hasValidUserStrategy =
-        userStrategy === "Username-Password-Authentication" ||
-        userStrategy === "email" ||
-        userStrategy === "sms";
+          : await getPrimaryUserByProvider({
+              userAdapter: env.data.users,
+              tenant_id: client.tenant.id,
+              username,
+              provider,
+            })
+        : null;
 
       // Allow connection if:
       // 1. There's a matching connection on the client, OR
-      // 2. User exists with a valid login strategy (password, email, or sms)
+      // 2. User already exists (can login regardless of how they signed up)
       const hasValidConnection =
-        client.connections.find((c) => c.strategy === connectionType) ||
-        hasValidUserStrategy;
+        client.connections.find((c) => c.strategy === connectionType) || user;
 
       if (!hasValidConnection || !username) {
         if (useShadcn) {
