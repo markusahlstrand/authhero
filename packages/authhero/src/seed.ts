@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
+import { nanoid } from "nanoid";
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { createX509Certificate } from "./utils/encryption";
 
 export interface SeedOptions {
   /**
@@ -71,7 +73,10 @@ export async function seed(
     tenantName = "Default Tenant",
     audience = "urn:default",
     clientId = "default",
-    callbacks = ["https://manage.authhero.net/auth-callback"],
+    callbacks = [
+      "https://manage.authhero.net/auth-callback",
+      "https://localhost:5173/auth-callback",
+    ],
     debug = true,
   } = options;
 
@@ -95,6 +100,23 @@ export async function seed(
     console.log(`Tenant "${tenantId}" already exists, skipping...`);
   }
 
+  // Check if signing keys exist
+  const { signingKeys } = await adapters.keys.list({ q: "type:jwt_signing" });
+  if (signingKeys.length === 0) {
+    if (debug) {
+      console.log("Creating signing key...");
+    }
+    const signingKey = await createX509Certificate({
+      name: `CN=${tenantId}`,
+    });
+    await adapters.keys.create(signingKey);
+    if (debug) {
+      console.log("✅ Signing key created");
+    }
+  } else if (debug) {
+    console.log("Signing key already exists, skipping...");
+  }
+
   // Check if admin user already exists
   const existingUsers = await adapters.users.list(tenantId, {
     q: `email:${adminEmail}`,
@@ -109,6 +131,7 @@ export async function seed(
 
     // Create the admin user
     const user = await adapters.users.create(tenantId, {
+      user_id: `auth2|${nanoid()}`,
       email: adminEmail,
       email_verified: true,
       connection: "Username-Password-Authentication",

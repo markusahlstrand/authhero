@@ -376,15 +376,10 @@ program
         await runCommand(installCmd, projectPath);
 
         // For local setup, rebuild native modules (better-sqlite3)
+        // Always use npm rebuild as it's the most reliable for native modules
         if (setupType === "local") {
           console.log("\n🔧 Building native modules...\n");
-          const rebuildCmd =
-            packageManager === "yarn"
-              ? "yarn rebuild better-sqlite3"
-              : packageManager === "bun"
-                ? "bun pm rebuild better-sqlite3"
-                : `${packageManager} rebuild better-sqlite3`;
-          await runCommand(rebuildCmd, projectPath);
+          await runCommand("npm rebuild better-sqlite3", projectPath);
         }
 
         console.log("\n✅ Dependencies installed successfully!\n");
@@ -435,14 +430,10 @@ program
             await runCommand(`${packageManager} run migrate`, projectPath);
             console.log("\n🌱 Seeding database...\n");
             // Pass credentials via environment variables to avoid shell injection
-            await runCommandWithEnv(
-              `${packageManager} run seed`,
-              projectPath,
-              {
-                ADMIN_EMAIL: credentials.username,
-                ADMIN_PASSWORD: credentials.password,
-              },
-            );
+            await runCommandWithEnv(`${packageManager} run seed`, projectPath, {
+              ADMIN_EMAIL: credentials.username,
+              ADMIN_PASSWORD: credentials.password,
+            });
           }
         }
 

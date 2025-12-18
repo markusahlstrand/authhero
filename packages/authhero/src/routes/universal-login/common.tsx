@@ -146,14 +146,27 @@ export async function initJSXRouteWithSession(
   };
 }
 
-export async function usePasswordLogin(
+export type LoginStrategy = "password" | "email" | "sms";
+
+const STRATEGY_MAP: Record<string, LoginStrategy> = {
+  "Username-Password-Authentication": "password",
+  email: "email",
+  sms: "sms",
+};
+
+export async function getLoginStrategy(
   ctx: Context,
   client: LegacyClient,
   username: string,
+  connectionType: "email" | "sms" | "username",
   login_selection?: "password" | "code",
-) {
-  if (login_selection !== undefined) {
-    return login_selection === "password";
+): Promise<LoginStrategy> {
+  // Explicit user selection takes priority
+  if (login_selection === "password") {
+    return "password";
+  }
+  if (login_selection === "code") {
+    return connectionType === "sms" ? "sms" : "email";
   }
 
   // Get primary user for email
@@ -163,12 +176,34 @@ export async function usePasswordLogin(
     email: username,
   });
 
-  if (user?.app_metadata.strategy) {
-    return user.app_metadata.strategy === "Username-Password-Authentication";
+  // Check user's preferred login method (last used)
+  const userStrategy = user?.app_metadata?.strategy;
+  if (userStrategy && STRATEGY_MAP[userStrategy]) {
+    return STRATEGY_MAP[userStrategy];
   }
 
+  // Get available strategies from client connections
+  const availableStrategies = client.connections
+    .map((c) => STRATEGY_MAP[c.strategy])
+    .filter((s): s is LoginStrategy => s !== undefined);
+
+  // If only one option is available, use it
+  if (availableStrategies.length === 1 && availableStrategies[0]) {
+    return availableStrategies[0];
+  }
+
+  // Multiple options available, fall back to prompt settings
   const promptSettings = await ctx.env.data.promptSettings.get(
     client.tenant.id,
   );
-  return promptSettings.password_first;
+
+  if (
+    promptSettings.password_first &&
+    availableStrategies.includes("password")
+  ) {
+    return "password";
+  }
+
+  // Default to the connection type based on the identifier
+  return connectionType === "sms" ? "sms" : "email";
 }

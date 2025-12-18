@@ -25,7 +25,12 @@ export function UserCreate() {
         (c) => c.name === data.connection,
       );
       if (connectionData) {
-        data.provider = connectionData.strategy || "database";
+        // For Username-Password-Authentication connections, the provider should be "auth2"
+        if (connectionData.strategy === "Username-Password-Authentication") {
+          data.provider = "auth2";
+        } else {
+          data.provider = connectionData.strategy || "database";
+        }
       }
     }
     return data;
@@ -77,8 +82,26 @@ export function UserCreate() {
             if (
               connectionData.strategy === "email" ||
               connectionData.strategy === "auth2" ||
-              connectionData.name === "Username-Password-Authentication"
+              connectionData.strategy === "Username-Password-Authentication"
             ) {
+              // For password connections, also show password field
+              if (connectionData.strategy === "Username-Password-Authentication") {
+                return (
+                  <>
+                    <TextInput
+                      source="email"
+                      type="email"
+                      validate={[required()]}
+                    />
+                    <TextInput
+                      source="password"
+                      type="password"
+                      validate={[required()]}
+                      helperText="Password for the user account"
+                    />
+                  </>
+                );
+              }
               return (
                 <TextInput
                   source="email"

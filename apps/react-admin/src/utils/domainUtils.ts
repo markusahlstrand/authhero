@@ -137,21 +137,33 @@ export const formatDomain = (domain: string): string => {
 };
 
 /**
- * Constructs a full URL with appropriate protocol based on domain
- * - Uses http:// for localhost domains
- * - Uses https:// for all other domains
- * - Preserves existing protocol if already present
+ * Constructs a full URL with HTTPS protocol
+ * - If domain starts with "local.", connects to https://localhost:3000
+ * - Always uses https:// for all domains (including localhost with self-signed certs)
+ * - Preserves existing https:// protocol if already present
+ * - Converts http:// to https://
  */
 export const buildUrlWithProtocol = (domain: string): string => {
-  if (domain.startsWith("http")) {
-    // If it already has http/https, use it as is
-    return domain;
+  const trimmedDomain = domain.trim();
+
+  // Extract hostname without protocol for local. check
+  const hostnameOnly = trimmedDomain.replace(/^https?:\/\//, "");
+
+  // If hostname starts with "local.", redirect to local development server
+  if (hostnameOnly.startsWith("local.")) {
+    return "https://localhost:3000";
   }
 
-  if (domain.startsWith("localhost")) {
-    return `http://${domain}`;
+  // Check if it already has a protocol
+  if (trimmedDomain.startsWith("https://")) {
+    return trimmedDomain;
   }
 
-  // For all other domains, assume https
-  return `https://${domain}`;
+  // Convert http:// to https://
+  if (trimmedDomain.startsWith("http://")) {
+    return trimmedDomain.replace("http://", "https://");
+  }
+
+  // No protocol specified - add https://
+  return `https://${trimmedDomain}`;
 };

@@ -257,6 +257,131 @@ const UnlinkButton = () => {
   );
 };
 
+// Password change component for users with password connection
+const PasswordChangeSection = () => {
+  const [open, setOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const record = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+
+  // Check if the user has a password identity (Username-Password-Authentication connection)
+  const hasPasswordIdentity =
+    record?.connection === "Username-Password-Authentication" ||
+    record?.identities?.some(
+      (i: any) => i.connection === "Username-Password-Authentication",
+    );
+
+  if (!hasPasswordIdentity || !record) {
+    return null;
+  }
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleSave = async () => {
+    if (!newPassword) {
+      notify("Please enter a new password", { type: "warning" });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      notify("Passwords do not match", { type: "warning" });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      notify("Password must be at least 8 characters", { type: "warning" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await dataProvider.update("users", {
+        id: record.id,
+        data: {
+          password: newPassword,
+          connection: "Username-Password-Authentication",
+        },
+        previousData: record,
+      });
+      notify("Password updated successfully", { type: "success" });
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error updating password:", error);
+      notify("Error updating password", { type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Box sx={{ mt: 3, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+      <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+        Password
+      </Typography>
+      <Typography variant="body2" sx={{ mb: 2 }}>
+        This user has a password connection. You can update their password here.
+      </Typography>
+      <Button variant="contained" onClick={handleOpen}>
+        Change Password
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Enter a new password for this user.
+          </Typography>
+          <MuiTextField
+            label="New Password"
+            type="password"
+            fullWidth
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            sx={{ mb: 2, mt: 1 }}
+            autoComplete="new-password"
+          />
+          <MuiTextField
+            label="Confirm Password"
+            type="password"
+            fullWidth
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={confirmPassword !== "" && newPassword !== confirmPassword}
+            helperText={
+              confirmPassword !== "" && newPassword !== confirmPassword
+                ? "Passwords do not match"
+                : ""
+            }
+            autoComplete="new-password"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={saving || !newPassword || newPassword !== confirmPassword}
+          >
+            {saving ? <CircularProgress size={20} /> : "Save Password"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
 const AddPermissionButton = () => {
   const [open, setOpen] = useState(false);
   const [resourceServers, setResourceServers] = useState<any[]>([]);
@@ -1336,6 +1461,8 @@ export function UserEdit() {
           <LinkUserButton />
 
           <MetadataCard />
+
+          <PasswordChangeSection />
 
           <Labeled
             label={React.createElement(FieldTitle as any, {
