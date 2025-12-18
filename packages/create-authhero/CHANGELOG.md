@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.5.0
+
+### Minor Changes
+
+- ee4584d: Small update for getting local mode working smoothly
+
 ## 0.4.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.1.0
+
+### Minor Changes
+
+- ee4584d: Small update for getting local mode working smoothly
+
 ## 13.0.0
 
 ### Patch Changes
