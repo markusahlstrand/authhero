@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.16.0
+
+### Minor Changes
+
+- ee4584d: Small update for getting local mode working smoothly
+
+### Patch Changes
+
+- Updated dependencies [ee4584d]
+  - @authhero/kysely-adapter@10.66.0
+
 ## 2.15.0
 
 ### Minor Changes

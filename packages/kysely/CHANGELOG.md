@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.66.0
+
+### Minor Changes
+
+- ee4584d: Small update for getting local mode working smoothly
+
 ## 10.65.2
 
 ### Patch Changes
