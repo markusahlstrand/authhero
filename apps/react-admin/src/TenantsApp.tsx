@@ -1,9 +1,9 @@
-import { Admin, Resource, useNotify } from "react-admin";
+import { Admin, Resource } from "react-admin";
 import { getDataprovider } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@mui/material";
 import { DomainSelector } from "./components/DomainSelector";
 import { saveSelectedDomainToStorage } from "./utils/domainUtils";

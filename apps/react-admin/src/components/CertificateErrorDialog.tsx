@@ -24,7 +24,7 @@ export const CertificateErrorDialog: React.FC<CertificateErrorDialogProps> = ({
   onClose,
 }) => {
   const handleVisitServer = () => {
-    window.open(serverUrl, "_blank");
+    window.open(serverUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
