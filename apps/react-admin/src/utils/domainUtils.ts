@@ -138,12 +138,21 @@ export const formatDomain = (domain: string): string => {
 
 /**
  * Constructs a full URL with HTTPS protocol
+ * - If domain starts with "local.", connects to https://localhost:3000
  * - Always uses https:// for all domains (including localhost with self-signed certs)
  * - Preserves existing https:// protocol if already present
  * - Converts http:// to https://
  */
 export const buildUrlWithProtocol = (domain: string): string => {
   const trimmedDomain = domain.trim();
+
+  // Extract hostname without protocol for local. check
+  const hostnameOnly = trimmedDomain.replace(/^https?:\/\//, "");
+
+  // If hostname starts with "local.", redirect to local development server
+  if (hostnameOnly.startsWith("local.")) {
+    return "https://localhost:3000";
+  }
 
   // Check if it already has a protocol
   if (trimmedDomain.startsWith("https://")) {
