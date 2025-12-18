@@ -49,7 +49,6 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.19.10",
-    "authhero": "workspace:*",
     "hono": "^4.7.0"
   }
 }
