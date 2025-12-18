@@ -48,8 +48,8 @@
     "hono": "^4.6.8"
   },
   "dependencies": {
-    "@authhero/adapter-interfaces": "workspace:^",
-    "@authhero/kysely-adapter": "workspace:^",
+    "@authhero/adapter-interfaces": "workspace:*",
+    "@authhero/kysely-adapter": "workspace:*",
     "nanoid": "^5.1.6",
     "wretch": "^3.0.2"
   }

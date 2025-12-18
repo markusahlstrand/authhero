@@ -85,7 +85,9 @@ export function UserCreate() {
               connectionData.strategy === "Username-Password-Authentication"
             ) {
               // For password connections, also show password field
-              if (connectionData.strategy === "Username-Password-Authentication") {
+              if (
+                connectionData.strategy === "Username-Password-Authentication"
+              ) {
                 return (
                   <>
                     <TextInput

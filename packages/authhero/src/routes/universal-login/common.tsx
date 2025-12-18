@@ -4,7 +4,10 @@ import { getCookie } from "hono/cookie";
 import { getClientWithDefaults } from "../../helpers/client";
 import i18next from "i18next";
 import { LegacyClient } from "@authhero/adapter-interfaces";
-import { getPrimaryUserByEmail } from "../../helpers/users";
+import {
+  getPrimaryUserByEmail,
+  getPrimaryUserByProvider,
+} from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
@@ -169,12 +172,21 @@ export async function getLoginStrategy(
     return connectionType === "sms" ? "sms" : "email";
   }
 
-  // Get primary user for email
-  const user = await getPrimaryUserByEmail({
-    userAdapter: ctx.env.data.users,
-    tenant_id: client.tenant.id,
-    email: username,
-  });
+  // Look up user - for email use getPrimaryUserByEmail (finds any provider),
+  // for sms/username use getPrimaryUserByProvider
+  const user =
+    connectionType === "email"
+      ? await getPrimaryUserByEmail({
+          userAdapter: ctx.env.data.users,
+          tenant_id: client.tenant.id,
+          email: username,
+        })
+      : await getPrimaryUserByProvider({
+          userAdapter: ctx.env.data.users,
+          tenant_id: client.tenant.id,
+          username,
+          provider: connectionType === "sms" ? "sms" : "auth2",
+        });
 
   // Check user's preferred login method (last used)
   const userStrategy = user?.app_metadata?.strategy;
