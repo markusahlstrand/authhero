@@ -40,10 +40,11 @@ import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
 import StorageIcon from "@mui/icons-material/Storage";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { RoleCreate, RoleEdit, RoleList } from "./components/roles";
 import SecurityIcon from "@mui/icons-material/Security";
 import { SettingsList, SettingsEdit } from "./components/settings";
+import { CertificateErrorDialog } from "./components/CertificateErrorDialog";
 
 interface AppProps {
   tenantId: string;
@@ -52,6 +53,8 @@ interface AppProps {
 }
 
 export function App(props: AppProps) {
+  const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
+
   // Use a default domain for now - in the working project, domain selection might be handled differently
   const selectedDomain =
     props.initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "";
@@ -63,14 +66,38 @@ export function App(props: AppProps) {
   }, [selectedDomain, props.onAuthComplete]);
 
   // Memoize the data provider to prevent unnecessary re-creations
-  const dataProvider = useMemo(
-    () =>
-      getDataproviderForTenant(
-        props.tenantId,
-        selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
-      ),
-    [props.tenantId, selectedDomain],
-  );
+  // Wrap it to catch certificate errors
+  const dataProvider = useMemo(() => {
+    const baseProvider = getDataproviderForTenant(
+      props.tenantId,
+      selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+    );
+
+    // Wrap all methods to catch certificate errors
+    const wrappedProvider: typeof baseProvider = {} as typeof baseProvider;
+    for (const method of Object.keys(baseProvider) as Array<
+      keyof typeof baseProvider
+    >) {
+      const original = baseProvider[method];
+      if (typeof original === "function") {
+        (wrappedProvider as any)[method] = async (...args: any[]) => {
+          try {
+            return await (original as Function).apply(baseProvider, args);
+          } catch (error: any) {
+            if (error?.isCertificateError && error?.serverUrl) {
+              setCertErrorUrl(error.serverUrl);
+            }
+            throw error;
+          }
+        };
+      }
+    }
+    return wrappedProvider;
+  }, [props.tenantId, selectedDomain]);
+
+  const handleCloseCertError = () => {
+    setCertErrorUrl(null);
+  };
 
   // If no domain is selected, show a loading state
   if (!authProvider || !selectedDomain) {
@@ -78,100 +105,112 @@ export function App(props: AppProps) {
   }
 
   return (
-    <Admin
-      dataProvider={dataProvider}
-      authProvider={authProvider}
-      requireAuth={!!selectedDomain} // Only require auth when domain is selected
-      layout={tenantLayout}
-    >
-      <Resource
-        icon={DnsIcon}
-        name="clients"
-        list={ClientList}
-        edit={ClientEdit}
-        create={ClientCreate}
-        show={ShowGuesser}
+    <>
+      <CertificateErrorDialog
+        open={!!certErrorUrl}
+        serverUrl={certErrorUrl || ""}
+        onClose={handleCloseCertError}
       />
-      <Resource
-        icon={CloudQueue}
-        name="connections"
-        list={ConnectionsList}
-        create={ConnectionCreate}
-        edit={ConnectionEdit}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={Group}
-        name="users"
-        list={UsersList}
-        edit={UserEdit}
-        create={UserCreate}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={Layers}
-        name="custom-domains"
-        create={DomainCreate}
-        list={DomainList}
-        edit={DomainEdit}
-      />
-      <Resource
-        icon={WebhookIcon}
-        name="hooks"
-        create={HooksCreate}
-        list={HookList}
-        edit={HookEdit}
-      />
-      <Resource icon={HistoryIcon} name="logs" list={LogsList} show={LogShow} />
-      <Resource name="sessions" edit={SessionEdit} show={ShowGuesser} />
-      <Resource
-        icon={FormatAlignLeftIcon}
-        name="forms"
-        list={FormsList}
-        create={FormCreate}
-        edit={FormEdit}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={PaletteIcon}
-        name="branding"
-        options={{ hasSingle: true }}
-        list={BrandingList}
-        edit={BrandingEdit}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={StorageIcon}
-        name="resource-servers"
-        list={ResourceServerList}
-        create={ResourceServerCreate}
-        edit={ResourceServerEdit}
-        show={ShowGuesser}
-      />
-      <Resource name="permissions" />
-      <Resource
-        icon={SecurityIcon}
-        name="roles"
-        list={RoleList}
-        create={RoleCreate}
-        edit={RoleEdit}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={BusinessIcon}
-        name="organizations"
-        list={OrganizationList}
-        create={OrganizationCreate}
-        edit={OrganizationEdit}
-        show={ShowGuesser}
-      />
-      <Resource
-        icon={SettingsIcon}
-        name="settings"
-        list={SettingsList}
-        edit={SettingsEdit}
-        options={{ hasSingle: true }}
-      />
-    </Admin>
+      <Admin
+        dataProvider={dataProvider}
+        authProvider={authProvider}
+        requireAuth={!!selectedDomain} // Only require auth when domain is selected
+        layout={tenantLayout}
+      >
+        <Resource
+          icon={DnsIcon}
+          name="clients"
+          list={ClientList}
+          edit={ClientEdit}
+          create={ClientCreate}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={CloudQueue}
+          name="connections"
+          list={ConnectionsList}
+          create={ConnectionCreate}
+          edit={ConnectionEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={Group}
+          name="users"
+          list={UsersList}
+          edit={UserEdit}
+          create={UserCreate}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={Layers}
+          name="custom-domains"
+          create={DomainCreate}
+          list={DomainList}
+          edit={DomainEdit}
+        />
+        <Resource
+          icon={WebhookIcon}
+          name="hooks"
+          create={HooksCreate}
+          list={HookList}
+          edit={HookEdit}
+        />
+        <Resource
+          icon={HistoryIcon}
+          name="logs"
+          list={LogsList}
+          show={LogShow}
+        />
+        <Resource name="sessions" edit={SessionEdit} show={ShowGuesser} />
+        <Resource
+          icon={FormatAlignLeftIcon}
+          name="forms"
+          list={FormsList}
+          create={FormCreate}
+          edit={FormEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={PaletteIcon}
+          name="branding"
+          options={{ hasSingle: true }}
+          list={BrandingList}
+          edit={BrandingEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={StorageIcon}
+          name="resource-servers"
+          list={ResourceServerList}
+          create={ResourceServerCreate}
+          edit={ResourceServerEdit}
+          show={ShowGuesser}
+        />
+        <Resource name="permissions" />
+        <Resource
+          icon={SecurityIcon}
+          name="roles"
+          list={RoleList}
+          create={RoleCreate}
+          edit={RoleEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={BusinessIcon}
+          name="organizations"
+          list={OrganizationList}
+          create={OrganizationCreate}
+          edit={OrganizationEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={SettingsIcon}
+          name="settings"
+          list={SettingsList}
+          edit={SettingsEdit}
+          options={{ hasSingle: true }}
+        />
+      </Admin>
+    </>
   );
 }

@@ -30,11 +30,10 @@ export const createAuth0Client = (domain: string) => {
     return auth0ClientCache.get(domain)!;
   }
 
-  // Check if domain includes protocol
+  // Build full domain URL with HTTPS
   const fullDomain = buildUrlWithProtocol(domain);
 
-  // For external domains, we need to use different redirect settings
-  // This allows us to do a complete domain redirection rather than just path-based
+  // Get redirect URI from current app URL
   const currentUrl = new URL(window.location.href);
   const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
 
@@ -42,9 +41,9 @@ export const createAuth0Client = (domain: string) => {
     domain: fullDomain,
     clientId: getClientIdFromStorage(domain),
     cacheLocation: "localstorage",
+    useRefreshTokens: true,
     authorizationParams: {
       audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-      // Use the current app's URL as the redirect URI
       redirect_uri: redirectUri,
       scope: "openid profile email auth:read auth:write",
     },
@@ -134,7 +133,7 @@ export const createManagementClient = async (
 
   const token = await getToken(domainConfig, auth0Client);
 
-  // ManagementClient expects domain WITHOUT protocol and uses the API domain
+  // ManagementClient expects domain WITHOUT protocol (it adds https:// internally)
   const managementClient = new ManagementClient({
     domain: apiDomain,
     token,
@@ -458,6 +457,25 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
           headers: response.headers,
           body: text,
         };
+      })
+      .catch((error) => {
+        // Check for certificate errors (network failures when connecting to HTTPS with untrusted cert)
+        if (error.message === "Failed to fetch" || error.name === "TypeError") {
+          const urlObj = new URL(url);
+          if (
+            urlObj.hostname === "localhost" ||
+            urlObj.hostname === "127.0.0.1"
+          ) {
+            const certError = new Error(
+              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.\n\n` +
+                `Please visit ${urlObj.origin} in your browser and accept the security warning to trust the certificate, then refresh this page.`,
+            );
+            (certError as any).isCertificateError = true;
+            (certError as any).serverUrl = urlObj.origin;
+            throw certError;
+          }
+        }
+        throw error;
       });
   } else {
     // For Auth0 login method, create a client for the current domain
@@ -467,7 +485,27 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
       ...options,
       headers: new Headers(options.headers || {}),
     };
-    request = httpClient(currentAuth0Client)(url, normalizedOptions);
+    request = httpClient(currentAuth0Client)(url, normalizedOptions).catch(
+      (error) => {
+        // Check for certificate errors
+        if (error.message === "Failed to fetch" || error.name === "TypeError") {
+          const urlObj = new URL(url);
+          if (
+            urlObj.hostname === "localhost" ||
+            urlObj.hostname === "127.0.0.1"
+          ) {
+            const certError = new Error(
+              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.\n\n` +
+                `Please visit ${urlObj.origin} in your browser and accept the security warning to trust the certificate, then refresh this page.`,
+            );
+            (certError as any).isCertificateError = true;
+            (certError as any).serverUrl = urlObj.origin;
+            throw certError;
+          }
+        }
+        throw error;
+      },
+    );
   }
 
   // Handle cleanup when request is done

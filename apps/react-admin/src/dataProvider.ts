@@ -35,7 +35,7 @@ export function getDataprovider(auth0Domain?: string) {
       // Use the custom REST API URL if configured
       baseUrl = domainConfig.restApiUrl;
     } else {
-      // Otherwise use the auth domain with https
+      // Otherwise use the auth domain with HTTPS
       baseUrl = buildUrlWithProtocol(auth0Domain);
     }
   }
@@ -74,7 +74,7 @@ export function getDataproviderForTenant(
       // Use the custom REST API URL if configured
       apiUrl = domainConfig.restApiUrl;
     } else {
-      // Otherwise construct an API URL using the auth0Domain
+      // Otherwise construct an API URL using the auth0Domain with HTTPS
       apiUrl = buildUrlWithProtocol(auth0Domain);
     }
   } else {

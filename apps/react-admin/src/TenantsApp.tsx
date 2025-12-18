@@ -1,13 +1,14 @@
-import { Admin, Resource } from "react-admin";
+import { Admin, Resource, useNotify } from "react-admin";
 import { getDataprovider } from "./dataProvider";
 import { getAuthProvider } from "./authProvider";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@mui/material";
 import { DomainSelector } from "./components/DomainSelector";
 import { saveSelectedDomainToStorage } from "./utils/domainUtils";
 import { tenantsLayout } from "./components/TenantsLayout";
+import { CertificateErrorDialog } from "./components/CertificateErrorDialog";
 
 interface TenantsAppProps {
   initialDomain?: string;
@@ -22,6 +23,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
     initialDomain || "",
   );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
+  const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
 
   // Use useMemo to prevent recreating the auth provider on every render
   const authProvider = useMemo(
@@ -30,13 +32,33 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   );
 
   // Get the dataProvider with the selected domain - also memoize this
-  const dataProvider = useMemo(
-    () =>
-      getDataprovider(
-        selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
-      ),
-    [selectedDomain],
-  );
+  // Wrap it to catch certificate errors
+  const dataProvider = useMemo(() => {
+    const baseProvider = getDataprovider(
+      selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+    );
+
+    // Wrap all methods to catch certificate errors
+    const wrappedProvider: typeof baseProvider = {} as typeof baseProvider;
+    for (const method of Object.keys(baseProvider) as Array<
+      keyof typeof baseProvider
+    >) {
+      const original = baseProvider[method];
+      if (typeof original === "function") {
+        (wrappedProvider as any)[method] = async (...args: any[]) => {
+          try {
+            return await (original as Function).apply(baseProvider, args);
+          } catch (error: any) {
+            if (error?.isCertificateError && error?.serverUrl) {
+              setCertErrorUrl(error.serverUrl);
+            }
+            throw error;
+          }
+        };
+      }
+    }
+    return wrappedProvider;
+  }, [selectedDomain]);
 
   const openDomainManager = () => {
     setShowDomainDialog(true);
@@ -46,6 +68,10 @@ export function TenantsApp(props: TenantsAppProps = {}) {
     setSelectedDomain(domain);
     setShowDomainDialog(false);
     saveSelectedDomainToStorage(domain);
+  };
+
+  const handleCloseCertError = () => {
+    setCertErrorUrl(null);
   };
 
   // Create the domain selector button that will be passed to the AppBar
@@ -64,6 +90,12 @@ export function TenantsApp(props: TenantsAppProps = {}) {
       {showDomainDialog && (
         <DomainSelector onDomainSelected={handleDomainSelected} />
       )}
+
+      <CertificateErrorDialog
+        open={!!certErrorUrl}
+        serverUrl={certErrorUrl || ""}
+        onClose={handleCloseCertError}
+      />
 
       <Admin
         dataProvider={dataProvider}

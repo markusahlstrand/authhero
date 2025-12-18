@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { initJSXRoute, usePasswordLogin } from "./common";
+import { initJSXRoute, getLoginStrategy } from "./common";
 import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
 import AuthLayout from "../../components/AuthLayout";
@@ -299,14 +299,15 @@ export const identifierRoutes = new OpenAPIHono<{
         loginSession,
       );
 
-      if (
-        await usePasswordLogin(
-          ctx,
-          client,
-          params.username,
-          params.login_selection,
-        )
-      ) {
+      const loginStrategy = await getLoginStrategy(
+        ctx,
+        client,
+        params.username,
+        connectionType,
+        params.login_selection,
+      );
+
+      if (loginStrategy === "password") {
         return ctx.redirect(`/u/enter-password?state=${state}`);
       }
 
