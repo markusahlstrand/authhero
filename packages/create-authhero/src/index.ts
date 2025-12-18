@@ -199,7 +199,7 @@ VALUES ('conn_default', '${tenantId}', 'Username-Password-Authentication', 'User
 
 -- Create default client
 INSERT OR IGNORE INTO clients (client_id, tenant_id, name, callbacks, allowed_origins, web_origins, connections, created_at, updated_at)
-VALUES ('default', '${tenantId}', 'Default Application', '["https://manage.authhero.net/auth-callback"]', '[]', '[]', '["Username-Password-Authentication"]', '${now}', '${now}');
+VALUES ('default', '${tenantId}', 'Default Application', '["https://manage.authhero.net/auth-callback","https://local.authhero.net/auth-callback"]', '[]', '[]', '["Username-Password-Authentication"]', '${now}', '${now}');
 
 -- Note: Admin user and password should be created via the management API
 -- or using a TypeScript seed script with proper bcrypt hashing.

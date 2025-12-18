@@ -16,12 +16,7 @@ export function tenantLayout(props: TenantLayoutProps) {
   return (
     <Layout
       {...rest}
-      appBar={(appBarProps) => (
-        <TenantAppBar
-          {...appBarProps}
-          domainSelectorButton={props.appBarProps?.domainSelectorButton}
-        />
-      )}
+      appBar={TenantAppBar}
       sx={{ ...(isDefaultSettings && { backgroundColor: "red" }) }}
     >
       {children}

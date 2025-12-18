@@ -88,8 +88,8 @@ const app = createApp({
   dataAdapter,
   allowedOrigins: [
     "https://manage.authhero.net",
+    "https://local.authhero.net",
     "http://localhost:5173",
-    "https://localhost:5173",
   ],
 });
 
@@ -102,6 +102,7 @@ const { key, cert } = ensureCertificates();
 
 console.log(`🔐 AuthHero server running at https://localhost:${port}`);
 console.log(`📚 API documentation available at https://localhost:${port}/docs`);
+console.log(`🌐 Portal available at https://local.authhero.net`);
 
 serve({
   fetch: (request) => {

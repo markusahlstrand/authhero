@@ -3,12 +3,11 @@ import { Box } from "@mui/material";
 import { ReactNode } from "react";
 
 // Custom AppBar specifically for the Tenants management interface
-const TenantsListAppBar = ({ domainSelectorButton, ...rest }) => {
+const TenantsListAppBar = (props: any) => {
   return (
-    <AppBar {...rest}>
+    <AppBar {...props}>
       <TitlePortal />
       <Box flex={1} />
-      {domainSelectorButton}
     </AppBar>
   );
 };
@@ -22,15 +21,7 @@ export function tenantsLayout(props: TenantsLayoutProps) {
   const { domainSelectorButton, children, ...rest } = props;
 
   return (
-    <Layout
-      {...rest}
-      appBar={(appBarProps) => (
-        <TenantsListAppBar
-          {...appBarProps}
-          domainSelectorButton={domainSelectorButton}
-        />
-      )}
-    >
+    <Layout {...rest} appBar={TenantsListAppBar}>
       {children}
     </Layout>
   );
