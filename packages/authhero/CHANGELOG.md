@@ -1,5 +1,11 @@
 # authhero
 
+## 0.294.0
+
+### Minor Changes
+
+- 6929f98: Improve the create authhero for local
+
 ## 0.293.0
 
 ### Minor Changes
