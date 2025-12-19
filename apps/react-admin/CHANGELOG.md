@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.5.0
+
+### Minor Changes
+
+- 1bec131: Add stats endpoints and activity view
+
 ## 0.4.0
 
 ### Minor Changes

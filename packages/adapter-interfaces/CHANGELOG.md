@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.109.0
+
+### Minor Changes
+
+- 1bec131: Add stats endpoints and activity view
+
 ## 0.108.0
 
 ### Minor Changes
