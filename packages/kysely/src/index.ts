@@ -31,6 +31,7 @@ import { createUserRolesAdapter } from "./user-roles/adapter";
 import { createOrganizationsAdapter } from "./organizations";
 import { createUserOrganizationsAdapter } from "./user-organizations";
 import { createInvitesAdapter } from "./invites";
+import { createStatsAdapter } from "./stats";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -68,5 +69,6 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     users: createUsersAdapter(db),
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
+    stats: createStatsAdapter(db),
   };
 }

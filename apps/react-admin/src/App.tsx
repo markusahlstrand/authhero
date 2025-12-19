@@ -1,4 +1,5 @@
-import { Admin, Resource, ShowGuesser } from "react-admin";
+import { Admin, Resource, ShowGuesser, CustomRoutes } from "react-admin";
+import { Route } from "react-router-dom";
 import Group from "@mui/icons-material/Group";
 import CloudQueue from "@mui/icons-material/CloudQueue";
 import Layers from "@mui/icons-material/Layers";
@@ -45,6 +46,7 @@ import { RoleCreate, RoleEdit, RoleList } from "./components/roles";
 import SecurityIcon from "@mui/icons-material/Security";
 import { SettingsList, SettingsEdit } from "./components/settings";
 import { CertificateErrorDialog } from "./components/CertificateErrorDialog";
+import { ActivityDashboard } from "./components/activity";
 
 interface AppProps {
   tenantId: string;
@@ -116,7 +118,11 @@ export function App(props: AppProps) {
         authProvider={authProvider}
         requireAuth={!!selectedDomain} // Only require auth when domain is selected
         layout={tenantLayout}
+        dashboard={ActivityDashboard}
       >
+        <CustomRoutes>
+          <Route path="/activity" element={<ActivityDashboard />} />
+        </CustomRoutes>
         <Resource
           icon={DnsIcon}
           name="clients"
