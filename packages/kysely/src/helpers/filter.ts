@@ -9,25 +9,25 @@ export function luceneFilter<TB extends keyof Database>(
 ) {
   // Tokenize the query while respecting quoted strings
   const tokens: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
-  
+
   for (let i = 0; i < query.length; i++) {
     const char = query[i];
-    
+
     if (char === '"') {
       inQuotes = !inQuotes;
       current += char;
-    } else if (char === ' ' && !inQuotes) {
+    } else if (char === " " && !inQuotes) {
       if (current.trim()) {
         tokens.push(current.trim());
-        current = '';
+        current = "";
       }
     } else {
       current += char;
     }
   }
-  
+
   if (current.trim()) {
     tokens.push(current.trim());
   }
@@ -121,9 +121,17 @@ export function luceneFilter<TB extends keyof Database>(
     } else if (value) {
       const { ref } = db.dynamic;
       // Generic single-word search across specified columns
+      // Also check user_id if the search contains a pipe (e.g., "auth0|12345")
+      const columnsToSearch = value.includes("|")
+        ? [...searchableColumns, "user_id"]
+        : searchableColumns;
       qb = qb.where((eb) =>
         eb.or(
-          searchableColumns.map((col) => eb(ref(col), "like", `%${value}%`)),
+          columnsToSearch.map((col) =>
+            col === "user_id"
+              ? eb(ref(col), "=", value) // Exact match for user_id
+              : eb(ref(col), "like", `%${value}%`),
+          ),
         ),
       );
     }

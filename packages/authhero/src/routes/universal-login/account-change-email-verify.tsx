@@ -178,6 +178,25 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
               email_verified: true,
             });
 
+            // Also update all linked users' emails
+            const linkedUsers = await env.data.users.list(client.tenant.id, {
+              page: 0,
+              per_page: 100,
+              include_totals: false,
+              q: `linked_to:${user.user_id}`,
+            });
+
+            for (const linkedUser of linkedUsers.users) {
+              await env.data.users.update(
+                client.tenant.id,
+                linkedUser.user_id,
+                {
+                  email,
+                  email_verified: true,
+                },
+              );
+            }
+
             // Redirect to confirmation page
             return ctx.redirect(
               `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
