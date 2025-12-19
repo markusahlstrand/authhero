@@ -217,7 +217,7 @@ export default (
             return client.logs.list({
               page: page - 1,
               per_page: perPage,
-              q: query || undefined,
+              search: query || undefined,
               sort:
                 field && order
                   ? `${field}:${order === "DESC" ? "-1" : "1"}`
@@ -658,7 +658,7 @@ export default (
         const result = await managementClient.logs.list({
           page: page - 1,
           per_page: perPage,
-          q: `user_id:${params.id}`,
+          search: `user_id:${params.id}`,
           sort:
             field && order
               ? `${field}:${order === "DESC" ? "-1" : "1"}`

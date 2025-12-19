@@ -4,10 +4,17 @@ import {
   TextField,
   TextInput,
   FunctionField,
+  TopToolbar,
+  ExportButton,
 } from "react-admin";
-import { PostListActions } from "../listActions/PostListActions";
 import { LogType, LogIcon } from "../logs";
 import { DateAgo } from "../common";
+
+const LogListActions = () => (
+  <TopToolbar>
+    <ExportButton />
+  </TopToolbar>
+);
 
 export function LogsList() {
   const postFilters = [
@@ -17,7 +24,7 @@ export function LogsList() {
 
   return (
     <List
-      actions={<PostListActions create="false" />}
+      actions={<LogListActions />}
       filters={postFilters}
       sort={{ field: "date", order: "DESC" }}
     >

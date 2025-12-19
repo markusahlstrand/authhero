@@ -150,7 +150,7 @@ const getTargetHandle = (target: string, nodes: FlowNodeData[]): string => {
 };
 
 // Custom Node Components
-const StartNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
+const StartNodeComponent = React.memo(() => (
   <Box sx={{ padding: "8px" }}>
     <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
       Start
@@ -406,7 +406,6 @@ const FlowNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => (
 
 const RouterNodeComponent = React.memo(({ data }: { data: CustomNodeData }) => {
   const rules = data.rules || [];
-  const fallback = data.fallback;
 
   return (
     <Box sx={{ padding: "8px" }}>
