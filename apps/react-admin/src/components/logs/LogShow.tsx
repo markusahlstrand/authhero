@@ -3,7 +3,6 @@ import {
   FunctionField,
   SimpleShowLayout,
   TextField,
-  ReferenceField,
   useRecordContext,
 } from "react-admin";
 import { LogType, LogIcon } from "../logs";
