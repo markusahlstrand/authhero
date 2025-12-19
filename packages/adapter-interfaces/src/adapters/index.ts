@@ -29,6 +29,7 @@ import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
 import { InvitesAdapter } from "./Invites";
 import { GeoAdapter } from "./Geo";
+import { StatsAdapter } from "./Stats";
 
 export interface DataAdapters {
   branding: BrandingAdapter;
@@ -56,6 +57,7 @@ export interface DataAdapters {
   userPermissions: UserPermissionsAdapter;
   roles: RolesAdapter;
   sessions: SessionsAdapter;
+  stats?: StatsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
   users: UserDataAdapter;
@@ -76,3 +78,4 @@ export * from "./Organizations";
 export * from "./UserOrganizations";
 export * from "./Invites";
 export * from "./Geo";
+export * from "./Stats";

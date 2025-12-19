@@ -4,6 +4,7 @@ import { createLog, getLogs } from "./logs";
 import { listLogs } from "./list";
 
 export type { R2SQLLogsAdapterConfig };
+export { createR2SQLStatsAdapter } from "./stats";
 
 /**
  * Create an R2 SQL logs adapter

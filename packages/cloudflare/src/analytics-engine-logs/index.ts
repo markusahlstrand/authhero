@@ -8,6 +8,8 @@ export type {
   AnalyticsEngineDataset,
 } from "./types";
 
+export { createAnalyticsEngineStatsAdapter } from "./stats";
+
 /**
  * Create an Analytics Engine logs adapter
  *

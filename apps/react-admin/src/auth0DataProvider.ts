@@ -285,6 +285,31 @@ export default (
         );
       }
 
+      // Handle stats/daily endpoint
+      if (resourcePath === "stats/daily") {
+        const headers = createHeaders(tenantId);
+        const query: any = {};
+        if (params.filter?.from) query.from = params.filter.from;
+        if (params.filter?.to) query.to = params.filter.to;
+
+        const url = `${apiUrl}/api/v2/stats/daily${Object.keys(query).length ? `?${stringify(query)}` : ""}`;
+        try {
+          const res = await httpClient(url, { headers });
+          // Stats endpoint returns an array directly
+          const data = Array.isArray(res.json) ? res.json : [];
+          return {
+            data: data.map((item: any, index: number) => ({
+              id: item.date || index,
+              ...item,
+            })),
+            total: data.length,
+          };
+        } catch (error) {
+          console.error("Error fetching daily stats:", error);
+          return { data: [], total: 0 };
+        }
+      }
+
       // Use HTTP client for all other list operations
       const headers = createHeaders(tenantId);
 
@@ -382,6 +407,32 @@ export default (
             id: resource,
           },
         };
+      }
+
+      // Handle stats/active-users endpoint
+      if (resource === "stats/active-users") {
+        const headers = createHeaders(tenantId);
+        try {
+          const res = await httpClient(`${apiUrl}/api/v2/stats/active-users`, {
+            headers,
+          });
+          // API returns a number directly
+          const count = typeof res.json === "number" ? res.json : 0;
+          return {
+            data: {
+              id: "count",
+              count,
+            },
+          };
+        } catch (error) {
+          console.error("Error fetching active users:", error);
+          return {
+            data: {
+              id: "count",
+              count: 0,
+            },
+          };
+        }
       }
 
       // Special handling for tenants - fetch from list and find by ID

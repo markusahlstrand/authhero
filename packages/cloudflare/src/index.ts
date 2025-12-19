@@ -26,7 +26,9 @@ export type { CloudflareConfig };
 
 // Re-export adapters for direct usage
 export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";
+export { createAnalyticsEngineStatsAdapter } from "./analytics-engine-logs";
 export { createR2SQLLogsAdapter } from "./r2-sql-logs";
+export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 
 export interface CloudflareAdapters {
   customDomains: CustomDomainsAdapter;
