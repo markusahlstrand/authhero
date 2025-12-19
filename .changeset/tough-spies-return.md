@@ -2,4 +2,4 @@
 "create-authhero": minor
 ---
 
-Fix npm package for create authhero
+Fix npm package for create-authhero
