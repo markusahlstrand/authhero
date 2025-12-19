@@ -1,5 +1,18 @@
 # authhero
 
+## 0.296.0
+
+### Minor Changes
+
+- 49d5eb8: Handle email change of linked accounts
+- 49d5eb8: Handle disable signups in social flows
+- 1bec131: Add stats endpoints and activity view
+
+### Patch Changes
+
+- Updated dependencies [1bec131]
+  - @authhero/adapter-interfaces@0.109.0
+
 ## 0.295.0
 
 ### Minor Changes

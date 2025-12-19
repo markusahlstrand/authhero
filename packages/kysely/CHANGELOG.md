@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.67.0
+
+### Minor Changes
+
+- 1bec131: Add stats endpoints and activity view
+
+### Patch Changes
+
+- Updated dependencies [1bec131]
+  - @authhero/adapter-interfaces@0.109.0
+
 ## 10.66.0
 
 ### Minor Changes
