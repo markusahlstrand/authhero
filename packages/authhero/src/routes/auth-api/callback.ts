@@ -1,9 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import {
-  AuthorizationResponseMode,
-  LogTypes,
-} from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
 import { Bindings, Variables } from "../../types";
@@ -12,13 +9,6 @@ import { logMessage } from "../../helpers/logging";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 
 import { getUniversalLoginUrl } from "../../variables";
-
-/**
- * Check if the login session is a universal login flow by checking response_mode
- */
-function isUniversalLoginFlow(responseMode?: string): boolean {
-  return responseMode === AuthorizationResponseMode.WEB_MESSAGE;
-}
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -157,10 +147,10 @@ export const callbackRoutes = new OpenAPIHono<{
         return result;
       } catch (err) {
         // Handle JSONHTTPException with 400 status (e.g., signup disabled)
-        // Only redirect to identifier page if this is a universal login flow
+        // Redirect to identifier page for all social login flows
         // 403 errors (state not found, session not found) should still be thrown as JSON errors
         if (err instanceof JSONHTTPException && err.status === 400) {
-          // Check if this is a universal login flow by looking up the login session
+          // Look up the login session to redirect back
           const oauth2code = await ctx.env.data.codes.get(
             ctx.var.tenant_id || "",
             state,
@@ -171,10 +161,7 @@ export const callbackRoutes = new OpenAPIHono<{
               ctx.var.tenant_id,
               oauth2code.login_id,
             );
-            if (
-              loginSession &&
-              isUniversalLoginFlow(loginSession.authParams.response_mode)
-            ) {
+            if (loginSession) {
               let errorMessage = "access_denied";
               try {
                 const body = JSON.parse(err.message);
@@ -280,10 +267,10 @@ export const callbackRoutes = new OpenAPIHono<{
         return result;
       } catch (err) {
         // Handle JSONHTTPException with 400 status (e.g., signup disabled)
-        // Only redirect to identifier page if this is a universal login flow
+        // Redirect to identifier page for all social login flows
         // 403 errors (state not found, session not found) should still be thrown as JSON errors
         if (err instanceof JSONHTTPException && err.status === 400) {
-          // Check if this is a universal login flow by looking up the login session
+          // Look up the login session to redirect back
           const oauth2code = await ctx.env.data.codes.get(
             ctx.var.tenant_id || "",
             state,
@@ -294,10 +281,7 @@ export const callbackRoutes = new OpenAPIHono<{
               ctx.var.tenant_id,
               oauth2code.login_id,
             );
-            if (
-              loginSession &&
-              isUniversalLoginFlow(loginSession.authParams.response_mode)
-            ) {
+            if (loginSession) {
               let errorMessage = "access_denied";
               try {
                 const body = JSON.parse(err.message);

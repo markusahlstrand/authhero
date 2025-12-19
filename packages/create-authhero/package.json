@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "tsc && vite build",
+    "prepublishOnly": "pnpm build",
     "start": "pnpm build && node dist/create-authhero.js"
   },
   "devDependencies": {

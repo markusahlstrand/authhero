@@ -21,7 +21,7 @@ describe("callback", () => {
     expect(responseBody).toEqual({ message: "State not found" });
   });
 
-  it("should redirect to identifier page with error when signup is disabled for new social login user", async () => {
+  it("should redirect to identifier page with error when signup is disabled for new social login user (web_message response_mode)", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
@@ -71,6 +71,67 @@ describe("callback", () => {
     });
 
     // Should redirect to identifier page with error
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error("No location header");
+    }
+    const redirectUri = new URL(location);
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    expect(redirectUri.searchParams.get("error")).toEqual("access_denied");
+    expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
+  });
+
+  it("should redirect to identifier page with error when signup is disabled for new social login user (query response_mode)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Update the client to disable signups
+    await env.data.clients.update("tenantId", "clientId", {
+      client_metadata: {
+        disable_sign_ups: "true",
+      },
+    });
+
+    // Create a connection to test against
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_mode: AuthorizationResponseMode.QUERY,
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    // Try to callback with a new user email (signup disabled should block this)
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "newuser@example.com", // This email doesn't exist, so it would be a new signup
+      },
+    });
+
+    // Should redirect to identifier page with error (not return JSON)
     expect(response.status).toEqual(302);
     const location = response.headers.get("location");
     if (!location) {
