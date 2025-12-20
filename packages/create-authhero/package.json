@@ -5,14 +5,15 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "main": "dist/create-authhero.js",
   "bin": {
-    "create-authhero": "dist/create-authhero.js"
+    "create-authhero": "index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "index.js"
   ],
   "scripts": {
     "build": "tsc && vite build",
