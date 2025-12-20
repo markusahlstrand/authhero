@@ -130,6 +130,7 @@ export { createOrganizationsAdapter } from "./adapters/organizations";
 export { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 export { createInvitesAdapter } from "./adapters/invites";
 export { createLegacyClientsAdapter } from "./adapters/legacyClients";
+export { createFlowsAdapter } from "./adapters/flows";
 
 // Re-export utilities for custom implementations
 export * from "./keys";

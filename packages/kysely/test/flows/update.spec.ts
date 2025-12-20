@@ -18,13 +18,11 @@ describe("flows", () => {
         name: "Original Flow",
       });
 
-      const success = await data.flows.update("tenantId", flow.id, {
+      const updatedFlow = await data.flows.update("tenantId", flow.id, {
         name: "Updated Flow",
       });
 
-      expect(success).toBe(true);
-
-      const updatedFlow = await data.flows.get("tenantId", flow.id);
+      expect(updatedFlow).not.toBeNull();
       expect(updatedFlow).toMatchObject({
         id: flow.id,
         name: "Updated Flow",
@@ -46,7 +44,7 @@ describe("flows", () => {
         name: "Empty Flow",
       });
 
-      const success = await data.flows.update("tenantId", flow.id, {
+      const updatedFlow = await data.flows.update("tenantId", flow.id, {
         actions: [
           {
             id: "step-1",
@@ -59,9 +57,7 @@ describe("flows", () => {
         ],
       });
 
-      expect(success).toBe(true);
-
-      const updatedFlow = await data.flows.get("tenantId", flow.id);
+      expect(updatedFlow).not.toBeNull();
       expect(updatedFlow?.actions).toHaveLength(1);
       expect(updatedFlow?.actions[0]).toMatchObject({
         id: "step-1",
@@ -70,7 +66,7 @@ describe("flows", () => {
       });
     });
 
-    it("should return false when updating non-existent flow", async () => {
+    it("should return null when updating non-existent flow", async () => {
       const { data } = await getTestServer();
 
       await data.tenants.create({
@@ -81,11 +77,11 @@ describe("flows", () => {
         sender_name: "SenderName",
       });
 
-      const success = await data.flows.update("tenantId", "nonExistentFlow", {
+      const result = await data.flows.update("tenantId", "nonExistentFlow", {
         name: "Should Not Work",
       });
 
-      expect(success).toBe(false);
+      expect(result).toBeNull();
     });
 
     it("should replace action steps completely", async () => {
@@ -123,7 +119,7 @@ describe("flows", () => {
       });
 
       // Replace with different action
-      const success = await data.flows.update("tenantId", flow.id, {
+      const updatedFlow = await data.flows.update("tenantId", flow.id, {
         actions: [
           {
             id: "new-step-1",
@@ -137,9 +133,7 @@ describe("flows", () => {
         ],
       });
 
-      expect(success).toBe(true);
-
-      const updatedFlow = await data.flows.get("tenantId", flow.id);
+      expect(updatedFlow).not.toBeNull();
       expect(updatedFlow?.actions).toHaveLength(1);
       expect(updatedFlow?.actions[0]).toMatchObject({
         id: "new-step-1",

@@ -13,6 +13,6 @@ export interface FlowsAdapter {
     tenant_id: string,
     flow_id: string,
     flow: Partial<FlowInsert>,
-  ): Promise<boolean>;
+  ): Promise<Flow | null>;
   list(tenant_id: string, params?: ListParams): Promise<ListFlowsResponse>;
 }

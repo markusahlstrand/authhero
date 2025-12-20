@@ -29,9 +29,19 @@ interface FlowItem extends DynamoDBBaseItem {
 function toFlow(item: FlowItem): Flow {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
+  let actions: unknown[] = [];
+  if (item.actions) {
+    try {
+      actions = JSON.parse(item.actions);
+    } catch {
+      // If JSON parsing fails, default to empty array
+      console.error(`Failed to parse actions JSON for flow ${item.id}`);
+    }
+  }
+
   const data = removeNullProperties({
     ...rest,
-    actions: item.actions ? JSON.parse(item.actions) : [],
+    actions,
   });
 
   return flowSchema.parse(data);
@@ -95,7 +105,7 @@ export function createFlowsAdapter(ctx: DynamoDBContext): FlowsAdapter {
       tenantId: string,
       flowId: string,
       flow: Partial<FlowInsert>,
-    ): Promise<boolean> {
+    ): Promise<Flow | null> {
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
@@ -104,20 +114,21 @@ export function createFlowsAdapter(ctx: DynamoDBContext): FlowsAdapter {
       if (flow.actions !== undefined)
         updates.actions = JSON.stringify(flow.actions);
 
-      return updateItem(
+      const success = await updateItem(
         ctx,
         flowKeys.pk(tenantId),
         flowKeys.sk(flowId),
         updates,
       );
+
+      if (!success) return null;
+
+      // Fetch and return the updated flow
+      return this.get(tenantId, flowId);
     },
 
     async remove(tenantId: string, flowId: string): Promise<boolean> {
-      return deleteItem(
-        ctx,
-        flowKeys.pk(tenantId),
-        flowKeys.sk(flowId),
-      );
+      return deleteItem(ctx, flowKeys.pk(tenantId), flowKeys.sk(flowId));
     },
   };
 }

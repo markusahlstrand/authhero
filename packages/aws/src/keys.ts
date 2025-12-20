@@ -77,8 +77,7 @@ export const codeKeys = {
 
 // Password keys
 export const passwordKeys = {
-  pk: (tenantId: string, userId: string) =>
-    `TENANT#${tenantId}#USER#${userId}`,
+  pk: (tenantId: string, userId: string) => `TENANT#${tenantId}#USER#${userId}`,
   sk: (passwordId: string) => `PASSWORD#${passwordId}`,
   // For listing all passwords for a user
   skPrefix: () => "PASSWORD#",
@@ -122,8 +121,7 @@ export const logKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
   sk: (logId: string) => `LOG#${logId}`,
   // GSI1 for time-based queries
-  gsi1pk: (tenantId: string, date: string) =>
-    `TENANT#${tenantId}#LOG#${date}`,
+  gsi1pk: (tenantId: string, date: string) => `TENANT#${tenantId}#LOG#${date}`,
   gsi1sk: (logId: string) => `LOG#${logId}`,
 };
 
@@ -179,8 +177,7 @@ export const roleKeys = {
 
 // Role permission keys
 export const rolePermissionKeys = {
-  pk: (tenantId: string, roleId: string) =>
-    `TENANT#${tenantId}#ROLE#${roleId}`,
+  pk: (tenantId: string, roleId: string) => `TENANT#${tenantId}#ROLE#${roleId}`,
   sk: (resourceServerIdentifier: string, permissionName: string) =>
     `PERMISSION#${resourceServerIdentifier}#${permissionName}`,
   skPrefix: () => "PERMISSION#",

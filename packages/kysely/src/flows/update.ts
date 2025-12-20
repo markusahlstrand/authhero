@@ -1,5 +1,5 @@
 import { Kysely } from "kysely";
-import { FlowInsert } from "@authhero/adapter-interfaces";
+import { Flow, FlowInsert, flowSchema } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function update(db: Kysely<Database>) {
@@ -7,7 +7,7 @@ export function update(db: Kysely<Database>) {
     tenant_id: string,
     flow_id: string,
     flow: Partial<FlowInsert>,
-  ): Promise<boolean> => {
+  ): Promise<Flow | null> => {
     // Prepare the update object, converting complex types to JSON strings
     const updateData: Record<string, unknown> = {
       ...flow,
@@ -19,13 +19,28 @@ export function update(db: Kysely<Database>) {
       updateData.actions = JSON.stringify(flow.actions);
     }
 
-    const result = await db
+    const { numUpdatedRows } = await db
       .updateTable("flows")
       .set(updateData)
       .where("id", "=", flow_id)
       .where("tenant_id", "=", tenant_id)
-      .execute();
+      .executeTakeFirst();
 
-    return (result[0]?.numUpdatedRows ?? 0n) > 0n;
+    if (numUpdatedRows === 0n) return null;
+
+    // Fetch the updated flow
+    const result = await db
+      .selectFrom("flows")
+      .selectAll()
+      .where("id", "=", flow_id)
+      .where("tenant_id", "=", tenant_id)
+      .executeTakeFirst();
+
+    if (!result) return null;
+
+    return flowSchema.parse({
+      ...result,
+      actions: result.actions ? JSON.parse(result.actions) : [],
+    });
   };
 }

@@ -8,17 +8,7 @@ import { Database } from "../db";
 import { luceneFilter } from "../helpers/filter";
 import getCountAsInt from "../utils/getCountAsInt";
 import { removeNullProperties } from "../helpers/remove-nulls";
-
-function parseJsonColumn<T>(value: string | null | undefined, fallback: T): T {
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}
+import { parseJsonIfDefined } from "../helpers/parse";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -44,7 +34,7 @@ export function list(db: Kysely<Database>) {
     const flows = results.map((result) => {
       const flow = {
         ...result,
-        actions: parseJsonColumn(result.actions, []),
+        actions: parseJsonIfDefined(result.actions, []),
       };
       return flowSchema.parse(removeNullProperties(flow));
     });

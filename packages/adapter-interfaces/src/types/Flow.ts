@@ -37,7 +37,9 @@ export const emailVerificationRulesSchema = z.object({
   allowlist: z.array(z.string()).optional(),
 });
 
-export type EmailVerificationRules = z.infer<typeof emailVerificationRulesSchema>;
+export type EmailVerificationRules = z.infer<
+  typeof emailVerificationRulesSchema
+>;
 
 /**
  * AUTH0 UPDATE_USER action step
@@ -90,7 +92,7 @@ export type FlowActionStep = z.infer<typeof flowActionStepSchema>;
  * Schema for creating a flow
  */
 export const flowInsertSchema = z.object({
-  name: z.string().min(1).max(255).openapi({
+  name: z.string().min(1).max(150).openapi({
     description: "The name of the flow",
   }),
   // Actions is an array of action steps (Auth0 stores as JSON blob)

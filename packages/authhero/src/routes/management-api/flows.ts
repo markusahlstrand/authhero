@@ -8,7 +8,6 @@ import {
   totalsSchema,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
-import { generateFlowId } from "../../utils/entity-id";
 
 const flowsWithTotalsSchema = totalsSchema.extend({
   flows: z.array(flowSchema),
@@ -202,14 +201,7 @@ export const flowsRoutes = new OpenAPIHono<{
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      const result = await ctx.env.data.flows.update(tenant_id, id, body);
-      if (!result) {
-        throw new HTTPException(404, {
-          message: "Flow not found",
-        });
-      }
-
-      const flow = await ctx.env.data.flows.get(tenant_id, id);
+      const flow = await ctx.env.data.flows.update(tenant_id, id, body);
       if (!flow) {
         throw new HTTPException(404, {
           message: "Flow not found",
@@ -259,12 +251,7 @@ export const flowsRoutes = new OpenAPIHono<{
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const body = ctx.req.valid("json");
 
-      const flowData = {
-        ...body,
-        id: generateFlowId(),
-      };
-
-      const flow = await ctx.env.data.flows.create(tenant_id, flowData);
+      const flow = await ctx.env.data.flows.create(tenant_id, body);
       return ctx.json(flow, { status: 201 });
     },
   );

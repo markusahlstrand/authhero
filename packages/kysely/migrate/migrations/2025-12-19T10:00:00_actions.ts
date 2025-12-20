@@ -5,7 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .createTable("flows")
     .addColumn("id", "varchar(21)", (col) => col.primaryKey())
     .addColumn("tenant_id", "varchar(191)", (col) => col.notNull())
-    .addColumn("name", "varchar(255)", (col) => col.notNull())
+    .addColumn("name", "varchar(150)", (col) => col.notNull())
     .addColumn("actions", "text")
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addColumn("updated_at", "varchar(35)", (col) => col.notNull())

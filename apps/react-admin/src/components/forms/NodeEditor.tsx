@@ -803,13 +803,8 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   renderOption={(props, option) => (
                     <Box component="li" {...props}>
                       <Box>
-                        <Typography variant="body2">
-                          {option.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                        >
+                        <Typography variant="body2">{option.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">
                           {option.value}
                         </Typography>
                       </Box>
