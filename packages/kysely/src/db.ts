@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import {
+  flowSchema,
   brandingSchema,
   clientSchema,
   Code,
@@ -123,6 +124,13 @@ const sqlFormSchema = z.object({
   nodes: z.string().optional().default("[]"),
   start: z.string().optional().default("{}"),
   ending: z.string().optional().default("{}"),
+});
+
+const sqlFlowSchema = z.object({
+  ...flowSchema.shape,
+  tenant_id: z.string(),
+  // Store complex data as JSON strings
+  actions: z.string().optional().default("[]"),
 });
 
 const sqlLogSchema = z.object({
@@ -280,6 +288,7 @@ const sqlClientSchema = z.object({
 });
 
 export interface Database {
+  flows: z.infer<typeof sqlFlowSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
   clients: z.infer<typeof sqlClientSchema>;
   client_grants: z.infer<typeof sqlClientGrantSchema>;

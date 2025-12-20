@@ -13,6 +13,7 @@ export interface DynamoDBContext {
  * Entity types for single-table design
  */
 export type EntityType =
+  | "FLOW"
   | "TENANT"
   | "USER"
   | "SESSION"

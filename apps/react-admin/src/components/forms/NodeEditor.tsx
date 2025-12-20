@@ -24,6 +24,7 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
+  Autocomplete,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
@@ -43,6 +44,81 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
 import RichTextEditor from "./RichTextEditor";
+
+// Available fields for router condition rules
+// These are the user context fields that can be used in router conditions
+const ROUTER_FIELD_OPTIONS = [
+  {
+    value: "{{context.user.email}}",
+    label: "User Email",
+    description: "The user's email address",
+  },
+  {
+    value: "{{context.user.email_verified}}",
+    label: "Email Verified",
+    description: "Whether the user's email is verified (true/false)",
+  },
+  {
+    value: "{{context.user.name}}",
+    label: "Name",
+    description: "The user's full name",
+  },
+  {
+    value: "{{context.user.given_name}}",
+    label: "Given Name",
+    description: "The user's first/given name",
+  },
+  {
+    value: "{{context.user.family_name}}",
+    label: "Family Name",
+    description: "The user's last/family name",
+  },
+  {
+    value: "{{context.user.nickname}}",
+    label: "Nickname",
+    description: "The user's nickname",
+  },
+  {
+    value: "{{context.user.picture}}",
+    label: "Picture URL",
+    description: "URL to the user's profile picture",
+  },
+  {
+    value: "{{context.user.locale}}",
+    label: "Locale",
+    description: "The user's locale/language preference",
+  },
+  {
+    value: "{{context.user.username}}",
+    label: "Username",
+    description: "The user's username",
+  },
+  {
+    value: "{{context.user.phone_number}}",
+    label: "Phone Number",
+    description: "The user's phone number",
+  },
+  {
+    value: "{{context.user.connection}}",
+    label: "Connection",
+    description: "The authentication connection used",
+  },
+  {
+    value: "{{context.user.provider}}",
+    label: "Provider",
+    description: "The authentication provider (e.g., auth0, google)",
+  },
+  {
+    value: "{{context.user.is_social}}",
+    label: "Is Social",
+    description: "Whether the user logged in via social provider (true/false)",
+  },
+  {
+    value: "{{context.user.user_id}}",
+    label: "User ID",
+    description: "The unique user identifier",
+  },
+];
 
 import type {
   ComponentConfig,
@@ -700,18 +776,54 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   alignItems: "flex-start",
                 }}
               >
-                <TextField
-                  label="Field"
+                <Autocomplete
+                  freeSolo
+                  size="small"
+                  options={ROUTER_FIELD_OPTIONS}
+                  getOptionLabel={(option) =>
+                    typeof option === "string" ? option : option.value
+                  }
                   value={rule.condition?.field || ""}
-                  onChange={(e) =>
+                  onChange={(_, newValue) => {
+                    const fieldValue =
+                      typeof newValue === "string"
+                        ? newValue
+                        : newValue?.value || "";
                     handleRuleChange(rule.id, "condition", {
                       ...rule.condition,
-                      field: e.target.value,
-                    })
-                  }
-                  size="small"
-                  sx={{ flex: 1, minWidth: "100px" }}
-                  placeholder="e.g., role"
+                      field: fieldValue,
+                    });
+                  }}
+                  onInputChange={(_, inputValue) => {
+                    handleRuleChange(rule.id, "condition", {
+                      ...rule.condition,
+                      field: inputValue,
+                    });
+                  }}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props}>
+                      <Box>
+                        <Typography variant="body2">
+                          {option.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          {option.value}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Field"
+                      placeholder="Select or type a field"
+                      helperText="e.g., {{context.user.email}}"
+                    />
+                  )}
+                  sx={{ flex: 1, minWidth: "200px" }}
                 />
                 <FormControl size="small" sx={{ minWidth: "120px" }}>
                   <InputLabel id={`rule-operator-${rule.id}-label`}>

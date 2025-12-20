@@ -155,6 +155,12 @@ export const formKeys = {
   sk: (formId: string) => `FORM#${formId}`,
 };
 
+// Flow keys
+export const flowKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: (flowId: string) => `FLOW#${flowId}`,
+};
+
 // Resource server keys
 export const resourceServerKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,

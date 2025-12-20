@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { createUsersAdapter } from "./users";
+import { createFlowsAdapter } from "./flows";
 import { createTenantsAdapter } from "./tenants";
 import { createLogsAdapter } from "./logs";
 import { Database } from "./db";
@@ -49,6 +50,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     connections: createConnectionsAdapter(db),
     emailProviders: createEmailProvidersAdapter(db),
     customDomains: createCustomDomainsAdapter(db),
+    flows: createFlowsAdapter(db),
     forms: createFormsAdapter(db),
     hooks: createHooksAdapter(db),
     invites: createInvitesAdapter(db),

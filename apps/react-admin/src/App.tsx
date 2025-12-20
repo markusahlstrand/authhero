@@ -18,6 +18,7 @@ import {
 import { tenantLayout } from "./components/TenantLayout";
 import { UserCreate, UserEdit, UsersList } from "./components/users";
 import { FormCreate, FormEdit, FormsList } from "./components/forms";
+import { FlowCreate, FlowEdit, FlowsList } from "./components/flows";
 import {
   DomainCreate,
   DomainEdit,
@@ -41,6 +42,7 @@ import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
 import StorageIcon from "@mui/icons-material/Storage";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { useMemo, useState } from "react";
 import { RoleCreate, RoleEdit, RoleList } from "./components/roles";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -174,6 +176,14 @@ export function App(props: AppProps) {
           list={FormsList}
           create={FormCreate}
           edit={FormEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={AccountTreeIcon}
+          name="flows"
+          list={FlowsList}
+          create={FlowCreate}
+          edit={FlowEdit}
           show={ShowGuesser}
         />
         <Resource

@@ -3,6 +3,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import { DynamoDBConfig, DynamoDBContext } from "./types";
 
 // Import adapters
+import { createFlowsAdapter } from "./adapters/flows";
 import { createTenantsAdapter } from "./adapters/tenants";
 import { createUsersAdapter } from "./adapters/users";
 import { createSessionsAdapter } from "./adapters/sessions";
@@ -74,6 +75,7 @@ export default function createAdapters(
     connections: createConnectionsAdapter(ctx),
     customDomains: createCustomDomainsAdapter(ctx),
     emailProviders: createEmailProvidersAdapter(ctx),
+    flows: createFlowsAdapter(ctx),
     forms: createFormsAdapter(ctx),
     hooks: createHooksAdapter(ctx),
     invites: createInvitesAdapter(ctx),
