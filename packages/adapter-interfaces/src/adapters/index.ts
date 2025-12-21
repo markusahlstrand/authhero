@@ -1,3 +1,4 @@
+import { FlowsAdapter } from "./Flows";
 import { CacheAdapter } from "./Cache";
 import { ClientsAdapter } from "./Clients";
 import { ClientConnectionsAdapter } from "./ClientConnections";
@@ -42,6 +43,7 @@ export interface DataAdapters {
   connections: ConnectionsAdapter;
   customDomains: CustomDomainsAdapter;
   emailProviders: EmailProvidersAdapter;
+  flows: FlowsAdapter;
   forms: FormsAdapter;
   geo?: GeoAdapter;
   hooks: HooksAdapter;
@@ -66,6 +68,7 @@ export interface DataAdapters {
   userOrganizations: UserOrganizationsAdapter;
 }
 
+export * from "./Flows";
 export * from "./Cache";
 export * from "./Clients";
 export * from "./ClientConnections";

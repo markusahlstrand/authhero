@@ -17,22 +17,16 @@ export const statsRoutes = new OpenAPIHono<{
       path: "/daily",
       request: {
         query: z.object({
-          from: z
-            .string()
-            .optional()
-            .openapi({
-              description:
-                "Optional first day of the date range (inclusive) in YYYYMMDD format",
-              example: "20251120",
-            }),
-          to: z
-            .string()
-            .optional()
-            .openapi({
-              description:
-                "Optional last day of the date range (inclusive) in YYYYMMDD format",
-              example: "20251219",
-            }),
+          from: z.string().optional().openapi({
+            description:
+              "Optional first day of the date range (inclusive) in YYYYMMDD format",
+            example: "20251120",
+          }),
+          to: z.string().optional().openapi({
+            description:
+              "Optional last day of the date range (inclusive) in YYYYMMDD format",
+            example: "20251219",
+          }),
         }),
         headers: z.object({
           "tenant-id": z.string(),
@@ -40,7 +34,7 @@ export const statsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:stats"],
+          Bearer: ["auth:read"],
         },
       ],
       responses: {
@@ -87,7 +81,7 @@ export const statsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:stats"],
+          Bearer: ["auth:read"],
         },
       ],
       responses: {

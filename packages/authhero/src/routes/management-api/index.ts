@@ -24,6 +24,7 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
+import { flowsRoutes } from "./flows";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
@@ -119,6 +120,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/sessions", sessionsRoutes)
     .route("/refresh_tokens", refreshTokensRoutes)
     .route("/forms", formsRoutes)
+    .route("/flows", flowsRoutes)
     .route("/roles", roleRoutes)
     .route("/resource-servers", resourceServerRoutes)
     .route("/organizations", organizationRoutes)
