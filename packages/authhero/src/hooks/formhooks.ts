@@ -83,6 +83,20 @@ function evaluateCondition(
 }
 
 /**
+ * Action node type definition
+ */
+interface ActionNode {
+  id: string;
+  type: "ACTION";
+  config: {
+    action_type: "REDIRECT";
+    target: "change-email" | "account" | "custom";
+    custom_url?: string;
+    next_node: string;
+  };
+}
+
+/**
  * Router node type definition
  */
 interface RouterNode {
@@ -105,21 +119,60 @@ interface RouterNode {
 }
 
 /**
- * Resolves the first STEP node to display by following ROUTER nodes
+ * Result type for node resolution
  */
-function resolveStepNode(
+type ResolveNodeResult =
+  | { type: "step"; nodeId: string }
+  | { type: "redirect"; target: string; customUrl?: string }
+  | { type: "end" }
+  | null;
+
+/**
+ * Resolves the target redirect URL based on the target type
+ */
+function getRedirectUrl(
+  target: "change-email" | "account" | "custom",
+  customUrl: string | undefined,
+  state: string,
+): string {
+  switch (target) {
+    case "change-email":
+      return `/u/account/change-email?state=${encodeURIComponent(state)}`;
+    case "account":
+      return `/u/account?state=${encodeURIComponent(state)}`;
+    case "custom":
+      if (!customUrl) {
+        throw new HTTPException(400, {
+          message: "Custom URL is required for custom redirect target",
+        });
+      }
+      // Append state to custom URL
+      const url = new URL(customUrl, "http://placeholder");
+      url.searchParams.set("state", state);
+      return url.pathname + url.search;
+    default:
+      throw new HTTPException(400, {
+        message: `Unknown redirect target: ${target}`,
+      });
+  }
+}
+
+/**
+ * Resolves the first displayable node by following ROUTER and ACTION nodes
+ */
+function resolveNode(
   nodes: Node[],
   startNodeId: string,
   context: { user: User },
   maxDepth = 10,
-): string | null {
+): ResolveNodeResult {
   let currentNodeId = startNodeId;
   let depth = 0;
 
   while (depth < maxDepth) {
     // Check for ending
     if (currentNodeId === "$ending") {
-      return null;
+      return { type: "end" };
     }
 
     const node = nodes.find((n) => n.id === currentNodeId);
@@ -129,7 +182,23 @@ function resolveStepNode(
 
     // If it's a STEP node, we found our target
     if (node.type === "STEP") {
-      return node.id;
+      return { type: "step", nodeId: node.id };
+    }
+
+    // If it's an ACTION node with REDIRECT, return redirect info
+    if (node.type === "ACTION") {
+      const actionNode = node as unknown as ActionNode;
+      if (actionNode.config.action_type === "REDIRECT") {
+        return {
+          type: "redirect",
+          target: actionNode.config.target,
+          customUrl: actionNode.config.custom_url,
+        };
+      }
+      // For other action types, move to next node
+      currentNodeId = actionNode.config.next_node;
+      depth++;
+      continue;
     }
 
     // If it's a ROUTER node, evaluate its rules
@@ -198,12 +267,12 @@ export async function handleFormHook(
     throw new HTTPException(400, { message: "No start node found in form" });
   }
 
-  // If we have a user, resolve through any ROUTER nodes to find the actual STEP node
+  // If we have a user, resolve through ROUTER and ACTION nodes
   if (user && form.nodes) {
-    const resolvedNodeId = resolveStepNode(form.nodes, firstNodeId, { user });
+    const result = resolveNode(form.nodes, firstNodeId, { user });
 
-    // If resolution leads to $ending or no node, skip the form
-    if (!resolvedNodeId) {
+    // Handle different resolution results
+    if (!result || result.type === "end") {
       // No step node to display - this means the flow should end
       // Return a redirect that continues the auth flow without showing a form
       return new Response(null, {
@@ -214,7 +283,21 @@ export async function handleFormHook(
       });
     }
 
-    firstNodeId = resolvedNodeId;
+    if (result.type === "redirect") {
+      // ACTION node with REDIRECT - redirect to the target
+      const redirectUrl = getRedirectUrl(
+        result.target as "change-email" | "account" | "custom",
+        result.customUrl,
+        loginSession.id,
+      );
+      return new Response(null, {
+        status: 302,
+        headers: { location: redirectUrl },
+      });
+    }
+
+    // result.type === "step" - continue with form display
+    firstNodeId = result.nodeId;
   }
 
   // If loginSession is provided, pass state as a query param if available

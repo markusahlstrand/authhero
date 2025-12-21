@@ -186,6 +186,31 @@ export const flowNodeSchema = z.object({
   }),
 });
 
+// Action node schema for zod - handles redirect and other actions
+export const actionNodeSchema = z.object({
+  id: z.string(),
+  type: z.literal(NodeType.ACTION),
+  coordinates: coordinatesSchema,
+  alias: z.string().optional(),
+  config: z
+    .object({
+      action_type: z.enum(["REDIRECT"]).openapi({
+        description: "The type of action to perform",
+      }),
+      target: z.enum(["change-email", "account", "custom"]).openapi({
+        description: "The predefined target to redirect to",
+      }),
+      custom_url: z.string().optional().openapi({
+        description: "Custom URL when target is 'custom'",
+      }),
+      next_node: z.string().openapi({
+        description:
+          "The next node to navigate to after action (for non-redirect actions)",
+      }),
+    })
+    .passthrough(),
+});
+
 // Generic node schema for zod
 export const genericNodeSchema = z
   .object({
@@ -199,6 +224,7 @@ export const genericNodeSchema = z
 export const nodeSchema = z.union([
   stepNodeSchema,
   flowNodeSchema,
+  actionNodeSchema,
   genericNodeSchema,
 ]);
 
@@ -207,6 +233,9 @@ export type StepNode = z.infer<typeof stepNodeSchema>;
 
 // TypeScript type for FlowNode inferred from Zod schema
 export type FlowNode = z.infer<typeof flowNodeSchema>;
+
+// TypeScript type for ActionNode inferred from Zod schema
+export type ActionNode = z.infer<typeof actionNodeSchema>;
 
 // TypeScript type for GenericNode inferred from Zod schema
 export type GenericNode = z.infer<typeof genericNodeSchema>;

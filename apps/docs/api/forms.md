@@ -179,6 +179,56 @@ Conditionally routes to different nodes based on rules:
 }
 ```
 
+### ACTION Node
+
+Performs an action such as redirecting the user. This is particularly useful for conditional redirects based on user attributes:
+
+```typescript
+{
+  "id": "redirect-to-email-change",
+  "type": "ACTION",
+  "coordinates": { "x": 500, "y": 300 },
+  "alias": "Redirect to Change Email",
+  "config": {
+    "action_type": "REDIRECT",
+    "target": "change-email",
+    "next_node": "$ending"
+  }
+}
+```
+
+**Redirect Targets:**
+
+- `change-email`: Redirects to the change email page
+- `account`: Redirects to the account settings page
+- `custom`: Redirects to a custom URL (requires `custom_url` parameter)
+
+**Example with custom URL:**
+
+```typescript
+{
+  "id": "redirect-to-onboarding",
+  "type": "ACTION",
+  "config": {
+    "action_type": "REDIRECT",
+    "target": "custom",
+    "custom_url": "/onboarding/welcome",
+    "next_node": "$ending"
+  }
+}
+```
+
+**State Preservation:**
+
+When an ACTION node with REDIRECT is executed, the authentication state (`loginSession.id`) is automatically appended to the redirect URL. This ensures users can continue their authentication flow after completing the redirected action.
+
+**Common Use Cases:**
+
+1. **Force Email Updates**: Redirect users with email addresses matching certain patterns to the change-email page
+2. **Conditional Onboarding**: Direct new users to onboarding flows
+3. **Profile Completion**: Redirect users with incomplete profiles
+4. **Custom Consent**: Direct users to custom consent pages
+
 ## Client-Side Behavior
 
 Forms in AuthHero include built-in client-side validations:
@@ -211,6 +261,84 @@ Forms can be accessed and managed through the following API endpoints:
 - `DELETE /api/v2/forms/{id}` - Delete a form
 
 For full API details, see the [endpoints documentation](./endpoints.md).
+
+## Combining Forms with Flows
+
+Forms can work together with flows by using ACTION nodes to trigger redirects or other actions. For example, you can create a form that checks user attributes and conditionally redirects them:
+
+```json
+{
+  "name": "Email Validation Form",
+  "nodes": [
+    {
+      "id": "start-router",
+      "type": "ROUTER",
+      "coordinates": { "x": 100, "y": 100 },
+      "alias": "Check Email Domain",
+      "config": {
+        "rules": [
+          {
+            "id": "old-email-rule",
+            "alias": "Old Company Email",
+            "condition": {
+              "operator": "ends_with",
+              "field": "{{context.user.email}}",
+              "value": "@oldcompany.com"
+            },
+            "next_node": "redirect-action"
+          }
+        ],
+        "fallback": "continue-step"
+      }
+    },
+    {
+      "id": "redirect-action",
+      "type": "ACTION",
+      "coordinates": { "x": 200, "y": 150 },
+      "alias": "Redirect to Change Email",
+      "config": {
+        "action_type": "REDIRECT",
+        "target": "change-email",
+        "next_node": "$ending"
+      }
+    },
+    {
+      "id": "continue-step",
+      "type": "STEP",
+      "coordinates": { "x": 200, "y": 250 },
+      "alias": "Welcome Screen",
+      "config": {
+        "components": [
+          {
+            "id": "welcome",
+            "type": "RICH_TEXT",
+            "config": {
+              "content": "<h2>Welcome!</h2>"
+            }
+          },
+          {
+            "id": "continue-btn",
+            "type": "NEXT_BUTTON",
+            "config": { "text": "Continue" }
+          }
+        ],
+        "next_node": "$ending"
+      }
+    }
+  ],
+  "start": { "next_node": "start-router" },
+  "ending": { "resume_flow": true }
+}
+```
+
+In this example:
+
+1. The form starts with a ROUTER that checks the user's email
+2. If the email ends with `@oldcompany.com`, it routes to an ACTION node
+3. The ACTION node redirects to the change-email page (with state preserved)
+4. Otherwise, it shows a welcome screen
+
+See the [Flows documentation](./flows.md) for more details on flows and actions.
 
 ## Form Design Best Practices
 

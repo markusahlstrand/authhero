@@ -17,6 +17,7 @@ import { Typography, Box } from "@mui/material";
 const ACTION_TYPE_CHOICES = [
   { id: "AUTH0", name: "Auth0" },
   { id: "EMAIL", name: "Email" },
+  { id: "REDIRECT", name: "Redirect" },
 ];
 
 const AUTH0_ACTION_CHOICES = [
@@ -28,6 +29,16 @@ const AUTH0_ACTION_CHOICES = [
 ];
 
 const EMAIL_ACTION_CHOICES = [{ id: "VERIFY_EMAIL", name: "Verify Email" }];
+
+const REDIRECT_ACTION_CHOICES = [
+  { id: "REDIRECT_USER", name: "Redirect User" },
+];
+
+const REDIRECT_TARGET_CHOICES = [
+  { id: "change-email", name: "Change Email" },
+  { id: "account", name: "Account Settings" },
+  { id: "custom", name: "Custom URL" },
+];
 
 export const FlowEdit = () => {
   return (
@@ -82,6 +93,35 @@ export const FlowEdit = () => {
                       choices={EMAIL_ACTION_CHOICES}
                       validate={[required()]}
                     />
+                  );
+                }
+
+                if (scopedFormData?.type === "REDIRECT") {
+                  return (
+                    <>
+                      <SelectInput
+                        source={getSource("action")}
+                        label="Action"
+                        choices={REDIRECT_ACTION_CHOICES}
+                        validate={[required()]}
+                      />
+                      <SelectInput
+                        source={getSource("params.target")}
+                        label="Target"
+                        choices={REDIRECT_TARGET_CHOICES}
+                        validate={[required()]}
+                        helperText="Select where to redirect the user"
+                      />
+                      {scopedFormData?.params?.target === "custom" && (
+                        <TextInput
+                          source={getSource("params.custom_url")}
+                          label="Custom URL"
+                          validate={[required()]}
+                          helperText="Enter the full URL to redirect to"
+                          fullWidth
+                        />
+                      )}
+                    </>
                   );
                 }
 
