@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.7.0
+
+### Minor Changes
+
+- 56541fe: Fix create authhero
+
 ## 0.6.0
 
 ### Minor Changes
