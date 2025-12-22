@@ -1,10 +1,20 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { cors } from "hono/cors";
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 
 export default function createApp(config: AuthHeroConfig) {
   const { app } = init(config);
+
+  // Enable CORS for all origins in development
+  app.use("*", cors({
+    origin: (origin) => origin || "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "Auth0-Client"],
+    exposeHeaders: ["Content-Length"],
+    credentials: true,
+  }));
 
   app
     .onError((err, ctx) => {

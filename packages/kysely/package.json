@@ -27,7 +27,11 @@
   },
   "scripts": {
     "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "export-sql": "npx tsx scripts/export-sql.ts",
+    "export-sql:d1": "npx tsx scripts/export-sql.ts --d1",
+    "export-sql:combined": "npx tsx scripts/export-sql.ts --split",
+    "export-sql:squash": "npx tsx scripts/export-sql.ts --squash"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.19.2",
