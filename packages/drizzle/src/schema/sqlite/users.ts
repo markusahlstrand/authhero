@@ -40,22 +40,11 @@ export const users = sqliteTable("users", {
 
 export const passwords = sqliteTable("passwords", {
   id: text("id", { length: 21 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 }).notNull(),
+  tenant_id: text("tenant_id", { length: 255 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
   user_id: text("user_id", { length: 255 }).notNull(),
   created_at: text("created_at", { length: 255 }).notNull(),
   updated_at: text("updated_at", { length: 255 }).notNull(),
   password: text("password", { length: 255 }).notNull(),
   algorithm: text("algorithm", { length: 16 }).notNull().default("bcrypt"),
-  is_current: integer("is_current").notNull().default(1),
-});
-
-export const passwordHistory = sqliteTable("password_history", {
-  id: text("id", { length: 21 }).primaryKey(),
-  user_id: text("user_id", { length: 191 }).notNull(),
-  tenant_id: text("tenant_id", { length: 191 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  password: text("password", { length: 255 }).notNull(),
-  algorithm: text("algorithm", { length: 255 }).notNull().default("bcrypt"),
-  created_at: text("created_at", { length: 35 }).notNull(),
-  updated_at: text("updated_at", { length: 35 }).notNull(),
   is_current: integer("is_current").notNull().default(1),
 });
