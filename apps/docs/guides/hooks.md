@@ -121,6 +121,299 @@ When a user is deleted:
    - **Asynchronous**: Errors are logged but don't prevent deletion
    - **Can modify**: Cannot modify user (already deleted)
 
+## Entity Hooks
+
+In addition to user lifecycle hooks, AuthHero provides entity hooks that allow you to execute custom logic when management entities (roles, connections, resource servers, and role permissions) are created, updated, deleted, or modified.
+
+### Overview
+
+Entity hooks work at the data adapter layer, ensuring they fire regardless of which code path calls the adapter (REST API, internal code, etc.). This is similar to how caching works in AuthHero.
+
+Available entity types:
+- **Roles**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
+- **Connections**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
+- **Resource Servers**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
+- **Role Permissions**: `beforeAssign`, `afterAssign`, `beforeRemove`, `afterRemove`
+
+### Configuration
+
+Entity hooks are configured during AuthHero initialization:
+
+```typescript
+const authhero = new AuthHero({
+  // ... other config
+  entityHooks: {
+    roles: {
+      beforeCreate: async (context, insert) => {
+        console.log(`Creating role: ${insert.name}`);
+        // Validate or modify the insert data
+        return insert;
+      },
+      afterCreate: async (context, entity) => {
+        console.log(`Role created: ${entity.name} (${entity.id})`);
+        // Perform post-creation tasks (e.g., audit logging)
+      },
+      beforeUpdate: async (context, id, update) => {
+        console.log(`Updating role ${id}`);
+        // Validate or modify the update data
+        return update;
+      },
+      afterUpdate: async (context, entity) => {
+        console.log(`Role updated: ${entity.name}`);
+      },
+      beforeDelete: async (context, id) => {
+        console.log(`Deleting role ${id}`);
+        // Validate deletion or cleanup
+      },
+      afterDelete: async (context, id) => {
+        console.log(`Role deleted: ${id}`);
+        // Perform post-deletion cleanup
+      },
+    },
+    connections: {
+      beforeCreate: async (context, insert) => {
+        // Validate connection settings
+        return insert;
+      },
+      afterCreate: async (context, entity) => {
+        // Sync to external systems
+      },
+      // ... other hooks
+    },
+    resourceServers: {
+      beforeCreate: async (context, insert) => {
+        // Validate resource server configuration
+        return insert;
+      },
+      afterCreate: async (context, entity) => {
+        // Initialize default permissions
+      },
+      // ... other hooks
+    },
+    rolePermissions: {
+      beforeAssign: async (context, roleId, permissions) => {
+        console.log(`Assigning permissions to role ${roleId}`);
+        // Validate permissions before assignment
+        return permissions;
+      },
+      afterAssign: async (context, roleId, permissions) => {
+        console.log(`Permissions assigned to role ${roleId}`);
+        // Sync role security to external systems (e.g., resource servers)
+      },
+      beforeRemove: async (context, roleId, permissionIds) => {
+        console.log(`Removing permissions from role ${roleId}`);
+        // Validate permission removal
+        return permissionIds;
+      },
+      afterRemove: async (context, roleId, permissionIds) => {
+        console.log(`Permissions removed from role ${roleId}`);
+        // Update external systems
+      },
+    },
+  },
+});
+```
+
+### Hook Context
+
+All entity hooks receive a context object with the tenant information:
+
+```typescript
+interface EntityHookContext {
+  tenantId: string;
+}
+```
+
+### Hook Signatures
+
+#### CRUD Entity Hooks (Roles, Connections, Resource Servers)
+
+```typescript
+interface EntityHooks<TEntity, TInsert, TUpdate> {
+  beforeCreate?: (
+    context: EntityHookContext,
+    insert: TInsert
+  ) => Promise<TInsert>;
+  
+  afterCreate?: (
+    context: EntityHookContext,
+    entity: TEntity
+  ) => Promise<void>;
+  
+  beforeUpdate?: (
+    context: EntityHookContext,
+    id: string,
+    update: TUpdate
+  ) => Promise<TUpdate>;
+  
+  afterUpdate?: (
+    context: EntityHookContext,
+    entity: TEntity
+  ) => Promise<void>;
+  
+  beforeDelete?: (
+    context: EntityHookContext,
+    id: string
+  ) => Promise<void>;
+  
+  afterDelete?: (
+    context: EntityHookContext,
+    id: string
+  ) => Promise<void>;
+}
+```
+
+#### Role Permission Hooks
+
+```typescript
+interface RolePermissionHooks {
+  beforeAssign?: (
+    context: EntityHookContext,
+    roleId: string,
+    permissions: Array<{ permission_name: string; resource_server_identifier: string }>
+  ) => Promise<Array<{ permission_name: string; resource_server_identifier: string }>>;
+  
+  afterAssign?: (
+    context: EntityHookContext,
+    roleId: string,
+    permissions: Array<{ permission_name: string; resource_server_identifier: string }>
+  ) => Promise<void>;
+  
+  beforeRemove?: (
+    context: EntityHookContext,
+    roleId: string,
+    permissionIds: string[]
+  ) => Promise<string[]>;
+  
+  afterRemove?: (
+    context: EntityHookContext,
+    roleId: string,
+    permissionIds: string[]
+  ) => Promise<void>;
+}
+```
+
+### Use Cases
+
+#### Sync Role Permissions to Resource Servers
+
+```typescript
+rolePermissions: {
+  afterAssign: async (context, roleId, permissions) => {
+    // Get role details
+    const role = await dataAdapter.roles.get(context.tenantId, roleId);
+    
+    // For each unique resource server, sync the role's permissions
+    const resourceServers = new Set(
+      permissions.map(p => p.resource_server_identifier)
+    );
+    
+    for (const identifier of resourceServers) {
+      const rolePermissions = permissions
+        .filter(p => p.resource_server_identifier === identifier)
+        .map(p => p.permission_name);
+      
+      // Sync to external resource server
+      await fetch(`https://${identifier}/api/roles/${role.name}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: rolePermissions })
+      });
+    }
+  },
+  afterRemove: async (context, roleId, permissionIds) => {
+    // Similar logic to remove permissions from resource servers
+  }
+}
+```
+
+#### Audit Logging for Role Changes
+
+```typescript
+roles: {
+  afterCreate: async (context, entity) => {
+    await auditLog.log({
+      tenantId: context.tenantId,
+      action: 'role.created',
+      resourceType: 'role',
+      resourceId: entity.id,
+      details: { name: entity.name, description: entity.description }
+    });
+  },
+  afterUpdate: async (context, entity) => {
+    await auditLog.log({
+      tenantId: context.tenantId,
+      action: 'role.updated',
+      resourceType: 'role',
+      resourceId: entity.id,
+      details: { name: entity.name }
+    });
+  },
+  afterDelete: async (context, id) => {
+    await auditLog.log({
+      tenantId: context.tenantId,
+      action: 'role.deleted',
+      resourceType: 'role',
+      resourceId: id
+    });
+  }
+}
+```
+
+#### Validate Connection Settings
+
+```typescript
+connections: {
+  beforeCreate: async (context, insert) => {
+    // Validate required fields based on connection type
+    if (insert.strategy === 'auth0' && !insert.options?.client_id) {
+      throw new Error('Auth0 connections require a client_id');
+    }
+    return insert;
+  },
+  beforeUpdate: async (context, id, update) => {
+    // Ensure critical settings aren't removed
+    if (update.enabled_clients !== undefined && update.enabled_clients.length === 0) {
+      throw new Error('Connection must have at least one enabled client');
+    }
+    return update;
+  }
+}
+```
+
+#### Initialize Default Permissions for Resource Servers
+
+```typescript
+resourceServers: {
+  afterCreate: async (context, entity) => {
+    // Create default permissions for new resource server
+    const defaultPermissions = [
+      { value: 'read:all', description: 'Read all resources' },
+      { value: 'write:all', description: 'Write all resources' },
+      { value: 'delete:all', description: 'Delete all resources' }
+    ];
+    
+    for (const permission of defaultPermissions) {
+      await dataAdapter.permissions.create(context.tenantId, {
+        resource_server_id: entity.id,
+        ...permission
+      });
+    }
+  }
+}
+```
+
+### Differences from User Lifecycle Hooks
+
+| Aspect | User Lifecycle Hooks | Entity Hooks |
+|--------|---------------------|--------------|
+| **Purpose** | Control authentication and user management flows | Manage configuration entities (roles, connections, etc.) |
+| **Layer** | Application layer (routes, authentication flow) | Data adapter layer |
+| **Synchronous** | Mixed (some block flow, some are async) | All `before*` hooks can modify data, `after*` hooks are for side effects |
+| **Can Modify** | Limited (via API methods like `api.user.setUserMetadata()`) | `before*` hooks return modified data directly |
+| **Blocking** | Some hooks can deny operations (e.g., `api.deny()`, `api.cancel()`) | Throw errors in `before*` hooks to block operations |
+| **Webhooks** | Supported | Not supported (code-based only) |
+
 ## Hook Types
 
 ### Code-Based Hooks

@@ -22,6 +22,7 @@ import { addTimingLogs } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
+import { addEntityHooks } from "../../helpers/entity-hooks-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
 import { flowsRoutes } from "./flows";
@@ -67,7 +68,7 @@ export default function create(config: AuthHeroConfig) {
   registerComponent(app);
 
   app.use(async (ctx, next) => {
-    // First add data hooks
+    // First add data hooks (for user operations)
     const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
 
     // Management API always uses request-scoped caching for data freshness
@@ -93,15 +94,29 @@ export default function create(config: AuthHeroConfig) {
       cache: cacheAdapter,
     });
 
-    // Finally wrap with timing logs
+    // Store cached data initially - entity hooks will be added after tenant is known
     ctx.env.data = addTimingLogs(ctx, cachedData);
+
+    // Store config for entity hooks (to be applied after tenant middleware)
+    ctx.env.entityHooks = config.entityHooks;
+
     return next();
   });
 
   app
     .use(clientInfoMiddleware)
     .use(tenantMiddleware)
-    .use(createAuthMiddleware(app));
+    .use(createAuthMiddleware(app))
+    // Add entity hooks after tenant is known
+    .use(async (ctx, next) => {
+      if (config.entityHooks && ctx.var.tenant_id) {
+        ctx.env.data = addEntityHooks(ctx.env.data, {
+          tenantId: ctx.var.tenant_id,
+          entityHooks: config.entityHooks,
+        });
+      }
+      return next();
+    });
 
   const managementApp = app
     .route("/branding", brandingRoutes)

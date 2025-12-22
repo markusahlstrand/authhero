@@ -16,6 +16,7 @@ export * from "./components";
 export * from "./styles";
 export * from "./adapters";
 export { waitUntil } from "./helpers/wait-until";
+export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
 

@@ -15,6 +15,7 @@ import {
   OnExecutePreUserDeletion,
   OnExecutePostUserDeletion,
   OnExecuteValidateSignupEmail,
+  EntityHooksConfig,
 } from "../../src";
 import { getCertificate } from "./token";
 import { Bindings } from "../../src/types";
@@ -35,6 +36,7 @@ type getEnvParams = {
     onExecutePostUserDeletion?: OnExecutePostUserDeletion;
     onExecuteValidateSignupEmail?: OnExecuteValidateSignupEmail;
   };
+  entityHooks?: EntityHooksConfig;
 };
 
 export type TestServer = {
@@ -170,7 +172,10 @@ export async function getTestServer(
     DEFAULT_CLIENT_ID: "clientId",
   };
 
-  const apps = init({ dataAdapter: data });
+  const apps = init({
+    dataAdapter: data,
+    entityHooks: args.entityHooks,
+  });
   return {
     ...apps,
     env,

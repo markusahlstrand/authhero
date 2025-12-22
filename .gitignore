@@ -134,6 +134,10 @@ auth-server
 .DS_Store
 db.sqlite
 
+# D1 generated SQL migrations
+packages/kysely/migrations
+packages/kysely/sql-migrations
+
 # VitePress build artifacts
 .vitepress/cache
 .vitepress/dist
