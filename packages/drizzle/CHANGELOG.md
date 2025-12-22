@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.6.0
+
+### Minor Changes
+
+- 02567cd: Make create authhero work with d1 locally
+
+### Patch Changes
+
+- Updated dependencies [906337d]
+  - @authhero/adapter-interfaces@0.111.0
+
 ## 0.5.2
 
 ### Patch Changes

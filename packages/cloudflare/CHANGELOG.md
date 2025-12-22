@@ -1,5 +1,14 @@
 # @authhero/cloudflare-adapter
 
+## 2.17.2
+
+### Patch Changes
+
+- Updated dependencies [02567cd]
+- Updated dependencies [906337d]
+  - @authhero/kysely-adapter@10.69.0
+  - @authhero/adapter-interfaces@0.111.0
+
 ## 2.17.1
 
 ### Patch Changes
