@@ -149,6 +149,7 @@ export default withMermaid(
             { text: "Endpoints", link: "/api/endpoints" },
             { text: "Error Codes", link: "/api/error-codes" },
             { text: "Forms", link: "/api/forms" },
+            { text: "Flows", link: "/api/flows" },
           ],
         },
         {

@@ -3,9 +3,9 @@ import { baseEntitySchema } from "./BaseEntity";
 
 /**
  * Flow action types supported by the system (Auth0 compatible)
- * For now we support AUTH0 and EMAIL types
+ * For now we support AUTH0, EMAIL, and REDIRECT types
  */
-export const FlowActionTypeEnum = z.enum(["AUTH0", "EMAIL"]);
+export const FlowActionTypeEnum = z.enum(["AUTH0", "EMAIL", "REDIRECT"]);
 
 export type FlowActionType = z.infer<typeof FlowActionTypeEnum>;
 
@@ -79,11 +79,42 @@ export const emailVerifyActionSchema = z.object({
 export type EmailVerifyAction = z.infer<typeof emailVerifyActionSchema>;
 
 /**
+ * Pre-defined redirect targets
+ */
+export const RedirectTargetEnum = z.enum(["change-email", "account", "custom"]);
+
+export type RedirectTarget = z.infer<typeof RedirectTargetEnum>;
+
+/**
+ * REDIRECT action step - redirects user to a predefined or custom URL
+ */
+export const redirectActionSchema = z.object({
+  id: z.string(),
+  alias: z.string().max(100).optional(),
+  type: z.literal("REDIRECT"),
+  action: z.literal("REDIRECT_USER"),
+  allow_failure: z.boolean().optional(),
+  mask_output: z.boolean().optional(),
+  params: z.object({
+    target: RedirectTargetEnum.openapi({
+      description:
+        "The predefined target to redirect to, or 'custom' for a custom URL",
+    }),
+    custom_url: z.string().optional().openapi({
+      description: "Custom URL to redirect to when target is 'custom'",
+    }),
+  }),
+});
+
+export type RedirectAction = z.infer<typeof redirectActionSchema>;
+
+/**
  * Union of all supported action steps
  */
 export const flowActionStepSchema = z.union([
   auth0UpdateUserActionSchema,
   emailVerifyActionSchema,
+  redirectActionSchema,
 ]);
 
 export type FlowActionStep = z.infer<typeof flowActionStepSchema>;

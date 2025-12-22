@@ -15,6 +15,7 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 | **Hooks System**             | Deprecated (2024) | Active & expanding                     |
 | **User Deletion Hooks**      | ❌ Not available  | ✅ Pre & Post hooks                    |
 | **Connection Order Control** | ❌ Not available  | ✅ Configurable ordering               |
+| **Flow Redirect Actions**    | ❌ Not available  | ✅ Built-in redirect support           |
 
 ## Key Advantages
 
@@ -348,6 +349,68 @@ await managementClient.updateClientConnections(clientId, [
 - **A/B Testing**: Easily test different connection orderings
 
 This gives you fine-grained control over the authentication experience, addressing a feature that has been repeatedly requested in the Auth0 community but never implemented.
+
+### Flow Redirect Actions
+
+**Auth0 Limitation**: While Auth0 Actions can modify authentication flows, they don't provide a straightforward way to redirect users to custom pages during authentication while preserving the authentication state. This makes it difficult to:
+
+- Force users to update their email addresses
+- Require profile completion before authentication
+- Show custom consent pages conditionally
+- Redirect to onboarding flows based on user attributes
+
+**AuthHero Solution**: Provides REDIRECT actions in forms and flows that can conditionally redirect users while automatically preserving the authentication state:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "check-email",
+      "type": "ROUTER",
+      "config": {
+        "rules": [
+          {
+            "id": "legacy-email-rule",
+            "condition": {
+              "operator": "ends_with",
+              "field": "{{context.user.email}}",
+              "value": "@oldcompany.com"
+            },
+            "next_node": "redirect-to-change-email"
+          }
+        ],
+        "fallback": "continue-auth"
+      }
+    },
+    {
+      "id": "redirect-to-change-email",
+      "type": "ACTION",
+      "config": {
+        "action_type": "REDIRECT",
+        "target": "change-email",
+        "next_node": "$ending"
+      }
+    }
+  ]
+}
+```
+
+**Key Features:**
+
+- **State Preservation**: Authentication state is automatically appended to redirect URLs
+- **Pre-defined Targets**: Common targets like `change-email` and `account` are built-in
+- **Custom URLs**: Support for redirecting to any custom page
+- **Conditional Logic**: Combine with ROUTER nodes to redirect based on user attributes
+- **Seamless Flow**: Users can complete the redirected action and continue authentication
+
+**Benefits:**
+
+- **User Experience**: Guide users through required steps naturally
+- **Security**: Force email verification or profile updates when needed
+- **Compliance**: Ensure users complete required consent or profile information
+- **Flexibility**: Easy to configure without writing custom code
+
+See the [Flows documentation](/api/flows#redirect-actions) for implementation details.
 
 ## Migration from Auth0
 
