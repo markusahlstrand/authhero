@@ -165,7 +165,7 @@ export const forms = sqliteTable(
   {
     id: text("id", { length: 255 }).primaryKey(),
     name: text("name", { length: 255 }).notNull(),
-    tenant_id: text("tenant_id", { length: 255 }).notNull(),
+    tenant_id: text("tenant_id", { length: 255 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
     messages: text("messages", { length: 255 }),
     languages: text("languages", { length: 255 }),
     translations: text("translations", { length: 4096 }),
@@ -183,7 +183,7 @@ export const flows = sqliteTable(
   "flows",
   {
     id: text("id", { length: 21 }).primaryKey(),
-    tenant_id: text("tenant_id", { length: 191 }).notNull(),
+    tenant_id: text("tenant_id", { length: 191 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
     name: text("name", { length: 150 }).notNull(),
     actions: text("actions"),
     created_at: text("created_at", { length: 35 }).notNull(),
