@@ -11,6 +11,7 @@ import {
   OnExecuteValidateSignupEmail,
   OnExecuteValidateRegistrationUsername,
 } from "./Hooks";
+import { EntityHooksConfig } from "./AuthHeroConfig";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
 import { smsService } from "./SMSService";
@@ -41,6 +42,13 @@ export type Bindings = {
     onExecuteValidateSignupEmail?: OnExecuteValidateSignupEmail;
     onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;
   };
+
+  /**
+   * Entity CRUD hooks for when resources are created/updated/deleted.
+   * Use these to implement cross-tenant sync, audit logging, webhooks, etc.
+   */
+  entityHooks?: EntityHooksConfig;
+
   emailProviders?: { [key: string]: EmailService };
   smsProviders?: { [key: string]: smsService };
 

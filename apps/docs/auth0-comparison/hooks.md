@@ -20,6 +20,7 @@ For comprehensive documentation on hooks including lifecycle, configuration, pay
 | **Post-User Deletion**     | ❌ Not available          | ✅ **AuthHero-only** |
 | **Credentials Exchange**   | ✅                        | ✅                   |
 | **Form Rendering**         | ❌                        | ✅ **AuthHero-only** |
+| **Entity Hooks**           | ❌ Not available          | ✅ **AuthHero-only** |
 | **URL Webhooks**           | ✅                        | ✅                   |
 
 ::: tip AuthHero Exclusive Features
@@ -29,6 +30,7 @@ AuthHero provides several hooks not available in Auth0:
 - **Pre/Post User Deletion**: Full control over user deletion lifecycle
 - **Form Rendering**: Present custom forms directly in authentication flow
 - **Pre-User Update**: Validate and modify all user updates
+- **Entity Hooks**: Lifecycle hooks for roles, connections, resource servers, and role permissions
   :::
 
 ## Supported Trigger IDs
@@ -69,10 +71,11 @@ AuthHero supports multiple hook types:
 2. **URL Hooks (Webhooks)**: HTTP endpoints called at trigger points
 3. **Form Hooks**: Render custom forms in the authentication flow
 4. **Page Hooks**: Redirect to custom pages with permission checks
+5. **Entity Hooks**: Lifecycle hooks for management entities (roles, connections, etc.)
 
-Auth0 Actions primarily focus on code-based actions with limited webhook support.
+Auth0 Actions primarily focus on code-based actions with limited webhook support and no entity-level hooks.
 
-### Synchronous vs. Asynchronous
+### User Lifecycle Hooks: Synchronous vs. Asynchronous
 
 | Hook Type                       | Execution | Can Block Flow |
 | ------------------------------- | --------- | -------------- |
@@ -88,6 +91,30 @@ Auth0 Actions primarily focus on code-based actions with limited webhook support
 
 See the [Hook Execution Order](../guides/hooks.md#hook-execution-order-summary) section for complete lifecycle details.
 
+### Entity Hooks
+
+AuthHero provides entity hooks for managing configuration entities at the data adapter layer. These hooks are **not available in Auth0**.
+
+**Supported Entities:**
+- **Roles**: Create, update, delete lifecycle hooks
+- **Connections**: Create, update, delete lifecycle hooks  
+- **Resource Servers**: Create, update, delete lifecycle hooks
+- **Role Permissions**: Assign and remove hooks for permission management
+
+**Key Features:**
+- Execute at the data adapter layer (not REST layer)
+- `before*` hooks can modify or validate data
+- `after*` hooks for side effects (audit logging, syncing to external systems)
+- Throwing errors in `before*` hooks blocks the operation
+
+**Use Cases:**
+- Sync role permissions to external resource servers
+- Audit logging for entity changes
+- Validate entity configurations before save
+- Initialize default settings for new entities
+
+See the [Entity Hooks Guide](../guides/hooks.md#entity-hooks) for detailed documentation and examples.
+
 ## Configuration Methods
 
 ### Via Code (Initialization)
@@ -101,7 +128,23 @@ const authhero = new AuthHero({
     onExecutePostLogin: async (event, api) => {
       // Handle post-login
     },
-    // ... other hooks
+    // ... other user lifecycle hooks
+  },
+  entityHooks: {
+    roles: {
+      beforeCreate: async (context, insert) => {
+        // Validate or modify before creation
+        return insert;
+      },
+      afterCreate: async (context, entity) => {
+        // Post-creation tasks
+      },
+    },
+    rolePermissions: {
+      afterAssign: async (context, roleId, permissions) => {
+        // Sync to external systems
+      },
+    },
   },
 });
 ````

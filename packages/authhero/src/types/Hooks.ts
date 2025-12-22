@@ -1,12 +1,126 @@
 import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
+  DataAdapters,
   LegacyClient,
+  RolePermissionInsert,
   User,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { Bindings } from "./Bindings";
 import { Variables } from "./Variables";
+
+// ============================================================================
+// Entity CRUD Hooks
+// ============================================================================
+
+/**
+ * Context passed to all entity hooks
+ */
+export interface EntityHookContext {
+  /** The tenant where the operation occurred */
+  tenantId: string;
+  /** Data adapters for the current tenant */
+  adapters: DataAdapters;
+}
+
+/**
+ * CRUD hooks for any entity type.
+ *
+ * Use these hooks to implement cross-tenant synchronization,
+ * audit logging, webhooks, or any other side effects.
+ *
+ * @example
+ * ```typescript
+ * const roleHooks: EntityHooks<Role, RoleInsert> = {
+ *   afterCreate: async (ctx, role) => {
+ *     // Propagate to other tenants
+ *     await syncToChildTenants(ctx, role);
+ *   },
+ *   afterUpdate: async (ctx, id, role) => {
+ *     // Log the update
+ *     await auditLog('role_updated', { id, tenantId: ctx.tenantId });
+ *   },
+ * };
+ * ```
+ */
+export interface EntityHooks<TEntity, TInsert, TUpdate = Partial<TInsert>> {
+  /** Called before an entity is created */
+  beforeCreate?: (ctx: EntityHookContext, data: TInsert) => Promise<TInsert>;
+
+  /** Called after an entity is created */
+  afterCreate?: (ctx: EntityHookContext, entity: TEntity) => Promise<void>;
+
+  /** Called before an entity is updated */
+  beforeUpdate?: (
+    ctx: EntityHookContext,
+    id: string,
+    data: TUpdate,
+  ) => Promise<TUpdate>;
+
+  /** Called after an entity is updated */
+  afterUpdate?: (
+    ctx: EntityHookContext,
+    id: string,
+    entity: TEntity,
+  ) => Promise<void>;
+
+  /** Called before an entity is deleted */
+  beforeDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
+
+  /** Called after an entity is deleted */
+  afterDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
+}
+
+/**
+ * Hooks for role permission assignment operations.
+ *
+ * Role permissions use assign/remove operations rather than typical CRUD,
+ * so they have a specialized hook interface.
+ *
+ * @example
+ * ```typescript
+ * const rolePermissionHooks: RolePermissionHooks = {
+ *   afterAssign: async (ctx, roleId, permissions) => {
+ *     // Sync permissions to child tenants
+ *     await syncPermissionsToChildTenants(ctx, roleId, permissions);
+ *   },
+ * };
+ * ```
+ */
+export interface RolePermissionHooks {
+  /** Called before permissions are assigned to a role */
+  beforeAssign?: (
+    ctx: EntityHookContext,
+    roleId: string,
+    permissions: RolePermissionInsert[],
+  ) => Promise<RolePermissionInsert[]>;
+
+  /** Called after permissions are assigned to a role */
+  afterAssign?: (
+    ctx: EntityHookContext,
+    roleId: string,
+    permissions: RolePermissionInsert[],
+  ) => Promise<void>;
+
+  /** Called before permissions are removed from a role */
+  beforeRemove?: (
+    ctx: EntityHookContext,
+    roleId: string,
+    permissions: Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[],
+  ) => Promise<Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[]>;
+
+  /** Called after permissions are removed from a role */
+  afterRemove?: (
+    ctx: EntityHookContext,
+    roleId: string,
+    permissions: Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[],
+  ) => Promise<void>;
+}
+
+// ============================================================================
+// Auth0-style Action Hooks
+// ============================================================================
 
 export type Transaction = {
   id?: string; // Transaction ID - unique identifier for the transaction

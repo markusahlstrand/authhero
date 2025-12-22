@@ -171,11 +171,9 @@ export const connectionRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { id } = ctx.req.valid("param");
+      const tenantId = ctx.var.tenant_id;
 
-      const result = await ctx.env.data.connections.remove(
-        ctx.var.tenant_id,
-        id,
-      );
+      const result = await ctx.env.data.connections.remove(tenantId, id);
       if (!result) {
         throw new HTTPException(404, {
           message: "Connection not found",
@@ -227,22 +225,16 @@ export const connectionRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
+      const tenantId = ctx.var.tenant_id;
 
-      const result = await ctx.env.data.connections.update(
-        ctx.var.tenant_id,
-        id,
-        body,
-      );
+      const result = await ctx.env.data.connections.update(tenantId, id, body);
       if (!result) {
         throw new HTTPException(404, {
           message: "Connection not found",
         });
       }
 
-      const connection = await ctx.env.data.connections.get(
-        ctx.var.tenant_id,
-        id,
-      );
+      const connection = await ctx.env.data.connections.get(tenantId, id);
 
       if (!connection) {
         throw new HTTPException(404, {
@@ -291,16 +283,15 @@ export const connectionRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const body = ctx.req.valid("json");
+      const tenantId = ctx.var.tenant_id;
 
-      const connectionData = {
+      // Generate ID if not provided
+      const connectionId = body.id || generateConnectionId();
+
+      const connection = await ctx.env.data.connections.create(tenantId, {
         ...body,
-        id: body.id || generateConnectionId(),
-      };
-
-      const connection = await ctx.env.data.connections.create(
-        ctx.var.tenant_id,
-        connectionData,
-      );
+        id: connectionId,
+      });
 
       return ctx.json(connection, { status: 201 });
     },
