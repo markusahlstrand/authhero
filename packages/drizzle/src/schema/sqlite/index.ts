@@ -1,9 +1,9 @@
 /**
  * AuthHero SQLite/D1 Schema for Drizzle ORM
- * 
+ *
  * This schema is designed to match the Kysely schema used at runtime.
  * Use drizzle-kit to generate migrations for D1.
- * 
+ *
  * Usage:
  *   pnpm drizzle-kit generate:sqlite
  */
@@ -32,6 +32,3 @@ export * from "./branding";
 
 // Logs
 export * from "./logs";
-
-// Legacy tables (for migration compatibility)
-export * from "./legacy";
