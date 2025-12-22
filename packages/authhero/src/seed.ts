@@ -75,7 +75,9 @@ export async function seed(
     clientId = "default",
     callbacks = [
       "https://manage.authhero.net/auth-callback",
+      "https://local.authhero.net/auth-callback",
       "https://localhost:5173/auth-callback",
+      "https://localhost:3000/auth-callback",
     ],
     debug = true,
   } = options;

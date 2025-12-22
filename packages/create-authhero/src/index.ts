@@ -9,6 +9,20 @@ import { spawn } from "child_process";
 const program = new Command();
 
 type SetupType = "local" | "cloudflare-simple" | "cloudflare-multitenant";
+type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
+
+interface CliOptions {
+  template?: SetupType;
+  email?: string;
+  password?: string;
+  packageManager?: PackageManager;
+  skipInstall?: boolean;
+  skipMigrate?: boolean;
+  skipSeed?: boolean;
+  skipStart?: boolean;
+  remote?: boolean;
+  yes?: boolean;
+}
 
 interface SetupConfig {
   name: string;
@@ -67,11 +81,17 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        dev: "wrangler dev",
+        "dev:local": "wrangler dev --port 3000 --local-protocol https",
+        "dev:remote": "wrangler dev --port 3000 --local-protocol https --remote",
+        dev: "wrangler dev --port 3000 --local-protocol https",
         deploy: "wrangler deploy",
-        "db:migrate": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:prod": "wrangler d1 migrations apply AUTH_DB --remote",
-        seed: "wrangler d1 execute AUTH_DB --local --file=seed.sql",
+        "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        migrate: "wrangler d1 migrations apply AUTH_DB --local",
+        "db:generate": "drizzle-kit generate",
+        "seed:local": "node seed-helper.js",
+        "seed:remote": "node seed-helper.js '' '' remote",
+        seed: "node seed-helper.js",
       },
       dependencies: {
         "@authhero/kysely-adapter": "latest",
@@ -84,11 +104,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       },
       devDependencies: {
         "@cloudflare/workers-types": "^4.0.0",
+        "drizzle-kit": "^0.31.0",
+        "drizzle-orm": "^0.44.0",
         typescript: "^5.5.0",
         wrangler: "^3.0.0",
       },
     }),
-    seedFile: "seed.sql",
+    seedFile: "seed.ts",
   },
   "cloudflare-multitenant": {
     name: "Cloudflare Multi-Tenant (Production)",
@@ -257,21 +279,47 @@ program
   .version("1.0.0")
   .description("Create a new AuthHero project")
   .argument("[project-name]", "name of the project")
-  .action(async (projectName) => {
+  .option(
+    "-t, --template <type>",
+    "template type: local, cloudflare-simple, or cloudflare-multitenant",
+  )
+  .option("-e, --email <email>", "admin email address")
+  .option("-p, --password <password>", "admin password (min 8 characters)")
+  .option(
+    "--package-manager <pm>",
+    "package manager to use: npm, yarn, pnpm, or bun",
+  )
+  .option("--skip-install", "skip installing dependencies")
+  .option("--skip-migrate", "skip running database migrations")
+  .option("--skip-seed", "skip seeding the database")
+  .option("--skip-start", "skip starting the development server")
+  .option("--remote", "use remote mode for cloudflare-simple (production D1)")
+  .option("-y, --yes", "skip all prompts and use defaults/provided options")
+  .action(async (projectNameArg, options: CliOptions) => {
+    // Only be fully non-interactive when --yes is explicitly passed
+    const isNonInteractive = options.yes === true;
+    
     console.log("\n🔐 Welcome to AuthHero!\n");
 
+    let projectName = projectNameArg;
+
     if (!projectName) {
-      const answers = await inquirer.prompt([
-        {
-          type: "input",
-          name: "projectName",
-          message: "Project name:",
-          default: "auth-server",
-          validate: (input: string) =>
-            input !== "" || "Project name cannot be empty",
-        },
-      ]);
-      projectName = answers.projectName;
+      if (isNonInteractive) {
+        projectName = "auth-server";
+        console.log(`Using default project name: ${projectName}`);
+      } else {
+        const answers = await inquirer.prompt([
+          {
+            type: "input",
+            name: "projectName",
+            message: "Project name:",
+            default: "auth-server",
+            validate: (input: string) =>
+              input !== "" || "Project name cannot be empty",
+          },
+        ]);
+        projectName = answers.projectName;
+      }
     }
 
     const projectPath = path.join(process.cwd(), projectName);
@@ -281,32 +329,45 @@ program
       process.exit(1);
     }
 
-    const { setupType } = await inquirer.prompt([
-      {
-        type: "list",
-        name: "setupType",
-        message: "Select your setup type:",
-        choices: [
-          {
-            name: `${setupConfigs.local.name}\n     ${setupConfigs.local.description}`,
-            value: "local",
-            short: setupConfigs.local.name,
-          },
-          {
-            name: `${setupConfigs["cloudflare-simple"].name}\n     ${setupConfigs["cloudflare-simple"].description}`,
-            value: "cloudflare-simple",
-            short: setupConfigs["cloudflare-simple"].name,
-          },
-          {
-            name: `${setupConfigs["cloudflare-multitenant"].name}\n     ${setupConfigs["cloudflare-multitenant"].description}`,
-            value: "cloudflare-multitenant",
-            short: setupConfigs["cloudflare-multitenant"].name,
-          },
-        ],
-      },
-    ]);
+    // Validate template option if provided
+    let setupType: SetupType;
+    if (options.template) {
+      if (!["local", "cloudflare-simple", "cloudflare-multitenant"].includes(options.template)) {
+        console.error(`❌ Invalid template: ${options.template}`);
+        console.error("Valid options: local, cloudflare-simple, cloudflare-multitenant");
+        process.exit(1);
+      }
+      setupType = options.template;
+      console.log(`Using template: ${setupConfigs[setupType].name}`);
+    } else {
+      const answer = await inquirer.prompt([
+        {
+          type: "list",
+          name: "setupType",
+          message: "Select your setup type:",
+          choices: [
+            {
+              name: `${setupConfigs.local.name}\n     ${setupConfigs.local.description}`,
+              value: "local",
+              short: setupConfigs.local.name,
+            },
+            {
+              name: `${setupConfigs["cloudflare-simple"].name}\n     ${setupConfigs["cloudflare-simple"].description}`,
+              value: "cloudflare-simple",
+              short: setupConfigs["cloudflare-simple"].name,
+            },
+            {
+              name: `${setupConfigs["cloudflare-multitenant"].name}\n     ${setupConfigs["cloudflare-multitenant"].description}`,
+              value: "cloudflare-multitenant",
+              short: setupConfigs["cloudflare-multitenant"].name,
+            },
+          ],
+        },
+      ]);
+      setupType = answer.setupType;
+    }
 
-    const config = setupConfigs[setupType as SetupType];
+    const config = setupConfigs[setupType];
 
     // Create project directory
     fs.mkdirSync(projectPath, { recursive: true });
@@ -330,40 +391,65 @@ program
       process.exit(1);
     }
 
-    // Generate seed file
-    const seedContent = generateSeedFileContent(setupType as SetupType);
-    const seedFileName = setupType === "local" ? "src/seed.ts" : "seed.sql";
-    fs.writeFileSync(path.join(projectPath, seedFileName), seedContent);
+    // Generate seed file for local and multitenant setups
+    // cloudflare-simple already has seed.ts in the template
+    if (setupType === "local" || setupType === "cloudflare-multitenant") {
+      const seedContent = generateSeedFileContent(setupType as SetupType);
+      const seedFileName = setupType === "local" ? "src/seed.ts" : "seed.sql";
+      fs.writeFileSync(path.join(projectPath, seedFileName), seedContent);
+    }
 
     console.log(
       `\n✅ Project "${projectName}" has been created with ${config.name} setup!\n`,
     );
 
-    // Ask about installing packages and starting server
-    const { shouldInstall } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "shouldInstall",
-        message: "Would you like to install dependencies now?",
-        default: true,
-      },
-    ]);
-
-    if (shouldInstall) {
-      const { packageManager } = await inquirer.prompt([
+    // Determine if we should install
+    let shouldInstall: boolean;
+    if (options.skipInstall) {
+      shouldInstall = false;
+    } else if (isNonInteractive) {
+      shouldInstall = true;
+    } else {
+      const answer = await inquirer.prompt([
         {
-          type: "list",
-          name: "packageManager",
-          message: "Which package manager would you like to use?",
-          choices: [
-            { name: "npm", value: "npm" },
-            { name: "yarn", value: "yarn" },
-            { name: "pnpm", value: "pnpm" },
-            { name: "bun", value: "bun" },
-          ],
-          default: "npm",
+          type: "confirm",
+          name: "shouldInstall",
+          message: "Would you like to install dependencies now?",
+          default: true,
         },
       ]);
+      shouldInstall = answer.shouldInstall;
+    }
+
+    if (shouldInstall) {
+      // Determine package manager
+      let packageManager: PackageManager;
+      if (options.packageManager) {
+        if (!["npm", "yarn", "pnpm", "bun"].includes(options.packageManager)) {
+          console.error(`❌ Invalid package manager: ${options.packageManager}`);
+          console.error("Valid options: npm, yarn, pnpm, bun");
+          process.exit(1);
+        }
+        packageManager = options.packageManager;
+      } else if (isNonInteractive) {
+        packageManager = "npm";
+      } else {
+        const answer = await inquirer.prompt([
+          {
+            type: "list",
+            name: "packageManager",
+            message: "Which package manager would you like to use?",
+            choices: [
+              { name: "npm", value: "npm" },
+              { name: "yarn", value: "yarn" },
+              { name: "pnpm", value: "pnpm" },
+              { name: "bun", value: "bun" },
+            ],
+            default: "npm",
+          },
+        ]);
+        packageManager = answer.packageManager;
+      }
 
       console.log(`\n📦 Installing dependencies with ${packageManager}...\n`);
 
@@ -384,74 +470,187 @@ program
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // For local setup, run migrations and seed
-        if (setupType === "local") {
-          const { shouldSetup } = await inquirer.prompt([
-            {
-              type: "confirm",
-              name: "shouldSetup",
-              message:
-                "Would you like to run migrations and seed the database?",
-              default: true,
-            },
-          ]);
+        // Track the mode for cloudflare-simple setups
+        let mode: "local" | "remote" = options.remote ? "remote" : "local";
 
-          if (shouldSetup) {
-            // Ask for admin credentials
-            const credentials = await inquirer.prompt<AdminCredentials>([
+        // For local and cloudflare-simple setups, run migrations and seed
+        if (setupType === "local" || setupType === "cloudflare-simple") {
+          // For cloudflare-simple, ask if they want to use local or remote mode
+          if (setupType === "cloudflare-simple" && !isNonInteractive && !options.remote) {
+            const modeAnswer = await inquirer.prompt([
               {
-                type: "input",
-                name: "username",
-                message: "Admin email:",
-                default: "admin@example.com",
-                validate: (input: string) => {
-                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                  return (
-                    emailRegex.test(input) ||
-                    "Please enter a valid email address"
-                  );
-                },
-              },
-              {
-                type: "password",
-                name: "password",
-                message: "Admin password:",
-                mask: "*",
-                validate: (input: string) => {
-                  if (input.length < 8) {
-                    return "Password must be at least 8 characters";
-                  }
-                  return true;
-                },
+                type: "list",
+                name: "mode",
+                message: "Would you like to run in local mode or remote mode?",
+                choices: [
+                  {
+                    name: "Local (using local D1 database)",
+                    value: "local",
+                    short: "Local",
+                  },
+                  {
+                    name: "Remote (using production D1 database)",
+                    value: "remote",
+                    short: "Remote",
+                  },
+                ],
+                default: "local",
               },
             ]);
+            mode = modeAnswer.mode;
+          }
 
-            console.log("\n🔄 Running migrations...\n");
-            await runCommand(`${packageManager} run migrate`, projectPath);
-            console.log("\n🌱 Seeding database...\n");
-            // Pass credentials via environment variables to avoid shell injection
-            await runCommandWithEnv(`${packageManager} run seed`, projectPath, {
-              ADMIN_EMAIL: credentials.username,
-              ADMIN_PASSWORD: credentials.password,
-            });
+          // Determine if we should run migrations and seed
+          let shouldSetup: boolean;
+          if (options.skipMigrate && options.skipSeed) {
+            shouldSetup = false;
+          } else if (isNonInteractive) {
+            shouldSetup = !options.skipMigrate || !options.skipSeed;
+          } else {
+            const answer = await inquirer.prompt([
+              {
+                type: "confirm",
+                name: "shouldSetup",
+                message:
+                  "Would you like to run migrations and seed the database?",
+                default: true,
+              },
+            ]);
+            shouldSetup = answer.shouldSetup;
+          }
+
+          if (shouldSetup) {
+            // Get admin credentials
+            let credentials: AdminCredentials;
+            if (options.email && options.password) {
+              // Validate provided credentials
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(options.email)) {
+                console.error("❌ Invalid email address provided");
+                process.exit(1);
+              }
+              if (options.password.length < 8) {
+                console.error("❌ Password must be at least 8 characters");
+                process.exit(1);
+              }
+              credentials = {
+                username: options.email,
+                password: options.password,
+              };
+              console.log(`Using admin email: ${options.email}`);
+            } else {
+              credentials = await inquirer.prompt<AdminCredentials>([
+                {
+                  type: "input",
+                  name: "username",
+                  message: "Admin email:",
+                  default: "admin@example.com",
+                  validate: (input: string) => {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return (
+                      emailRegex.test(input) ||
+                      "Please enter a valid email address"
+                    );
+                  },
+                },
+                {
+                  type: "password",
+                  name: "password",
+                  message: "Admin password:",
+                  mask: "*",
+                  validate: (input: string) => {
+                    if (input.length < 8) {
+                      return "Password must be at least 8 characters";
+                    }
+                    return true;
+                  },
+                },
+              ]);
+            }
+
+            // Run migrations unless skipped
+            if (!options.skipMigrate) {
+              console.log("\n🔄 Running migrations...\n");
+              const migrateCmd =
+                setupType === "cloudflare-simple" && mode === "remote"
+                  ? `${packageManager} run db:migrate:remote`
+                  : `${packageManager} run migrate`;
+              await runCommand(migrateCmd, projectPath);
+            }
+
+            // Seed unless skipped
+            if (!options.skipSeed) {
+              console.log("\n🌱 Seeding database...\n");
+              if (setupType === "local") {
+                // Pass credentials via environment variables to avoid shell injection
+                await runCommandWithEnv(
+                  `${packageManager} run seed`,
+                  projectPath,
+                  {
+                    ADMIN_EMAIL: credentials.username,
+                    ADMIN_PASSWORD: credentials.password,
+                  },
+                );
+              } else {
+                // For cloudflare-simple, use the seed helper with environment variables
+                const seedCmd =
+                  mode === "remote"
+                    ? `${packageManager} run seed:remote`
+                    : `${packageManager} run seed:local`;
+
+                await runCommandWithEnv(seedCmd, projectPath, {
+                  ADMIN_EMAIL: credentials.username,
+                  ADMIN_PASSWORD: credentials.password,
+                });
+              }
+            }
           }
         }
 
-        const { shouldStart } = await inquirer.prompt([
-          {
-            type: "confirm",
-            name: "shouldStart",
-            message: "Would you like to start the development server?",
-            default: true,
-          },
-        ]);
+        // Determine if we should start the dev server
+        let shouldStart: boolean;
+        if (options.skipStart) {
+          shouldStart = false;
+        } else if (isNonInteractive) {
+          shouldStart = false; // Don't auto-start in non-interactive mode
+        } else {
+          const answer = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "shouldStart",
+              message: "Would you like to start the development server?",
+              default: true,
+            },
+          ]);
+          shouldStart = answer.shouldStart;
+        }
 
         if (shouldStart) {
-          console.log("\n🚀 Starting development server...\n");
-          await runCommand(`${packageManager} run dev`, projectPath);
+          console.log("\n🚀 Starting development server on https://localhost:3000 ...\n");
+          const devCmd =
+            setupType === "cloudflare-simple" && mode === "remote"
+              ? `${packageManager} run dev:remote`
+              : `${packageManager} run dev`;
+          await runCommand(devCmd, projectPath);
+        }
+
+        // Success message for non-interactive mode
+        if (isNonInteractive && !shouldStart) {
+          console.log("\n✅ Setup complete!");
+          console.log(`\nTo start the development server:`);
+          console.log(`  cd ${projectName}`);
+          if (setupType === "cloudflare-simple" && mode === "remote") {
+            console.log(`  npm run dev:remote`);
+          } else {
+            console.log(`  npm run dev`);
+          }
+          if (setupType === "cloudflare-simple") {
+            console.log(`\nServer will be available at: https://localhost:3000`);
+          }
         }
       } catch (error) {
         console.error("\n❌ An error occurred:", error);
+        process.exit(1);
       }
     }
 
@@ -462,8 +661,20 @@ program
       if (setupType === "local") {
         console.log("  npm install");
         console.log("  npm run migrate");
-        console.log("  npm run seed -- <email> <password>");
+        console.log(
+          "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+        );
         console.log("  npm run dev");
+      } else if (setupType === "cloudflare-simple") {
+        console.log("  npm install");
+        console.log(
+          "  npm run migrate  # or npm run db:migrate:remote for production",
+        );
+        console.log(
+          "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+        );
+        console.log("  npm run dev  # or npm run dev:remote for production");
+        console.log("\nServer will be available at: https://localhost:3000");
       } else {
         console.log("  npm install");
         console.log("  npm run db:migrate");
