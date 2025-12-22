@@ -1,5 +1,12 @@
-import { DataAdapters, RolePermissionInsert } from "@authhero/adapter-interfaces";
-import { EntityHookContext } from "../types/Hooks";
+import {
+  DataAdapters,
+  RolePermissionInsert,
+} from "@authhero/adapter-interfaces";
+import {
+  EntityHookContext,
+  EntityHooks,
+  RolePermissionHooks,
+} from "../types/Hooks";
 import { EntityHooksConfig } from "../types/AuthHeroConfig";
 
 /**
