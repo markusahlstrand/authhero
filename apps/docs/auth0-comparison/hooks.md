@@ -97,7 +97,7 @@ AuthHero provides entity hooks for managing configuration entities at the data a
 
 **Supported Entities:**
 - **Roles**: Create, update, delete lifecycle hooks
-- **Connections**: Create, update, delete lifecycle hooks  
+- **Connections**: Create, update, delete lifecycle hooks
 - **Resource Servers**: Create, update, delete lifecycle hooks
 - **Role Permissions**: Assign and remove hooks for permission management
 

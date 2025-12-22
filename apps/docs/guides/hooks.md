@@ -130,6 +130,7 @@ In addition to user lifecycle hooks, AuthHero provides entity hooks that allow y
 Entity hooks work at the data adapter layer, ensuring they fire regardless of which code path calls the adapter (REST API, internal code, etc.). This is similar to how caching works in AuthHero.
 
 Available entity types:
+
 - **Roles**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
 - **Connections**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
 - **Resource Servers**: `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`
@@ -232,34 +233,22 @@ interface EntityHookContext {
 interface EntityHooks<TEntity, TInsert, TUpdate> {
   beforeCreate?: (
     context: EntityHookContext,
-    insert: TInsert
+    insert: TInsert,
   ) => Promise<TInsert>;
-  
-  afterCreate?: (
-    context: EntityHookContext,
-    entity: TEntity
-  ) => Promise<void>;
-  
+
+  afterCreate?: (context: EntityHookContext, entity: TEntity) => Promise<void>;
+
   beforeUpdate?: (
     context: EntityHookContext,
     id: string,
-    update: TUpdate
+    update: TUpdate,
   ) => Promise<TUpdate>;
-  
-  afterUpdate?: (
-    context: EntityHookContext,
-    entity: TEntity
-  ) => Promise<void>;
-  
-  beforeDelete?: (
-    context: EntityHookContext,
-    id: string
-  ) => Promise<void>;
-  
-  afterDelete?: (
-    context: EntityHookContext,
-    id: string
-  ) => Promise<void>;
+
+  afterUpdate?: (context: EntityHookContext, entity: TEntity) => Promise<void>;
+
+  beforeDelete?: (context: EntityHookContext, id: string) => Promise<void>;
+
+  afterDelete?: (context: EntityHookContext, id: string) => Promise<void>;
 }
 ```
 
@@ -270,25 +259,33 @@ interface RolePermissionHooks {
   beforeAssign?: (
     context: EntityHookContext,
     roleId: string,
-    permissions: Array<{ permission_name: string; resource_server_identifier: string }>
-  ) => Promise<Array<{ permission_name: string; resource_server_identifier: string }>>;
-  
+    permissions: Array<{
+      permission_name: string;
+      resource_server_identifier: string;
+    }>,
+  ) => Promise<
+    Array<{ permission_name: string; resource_server_identifier: string }>
+  >;
+
   afterAssign?: (
     context: EntityHookContext,
     roleId: string,
-    permissions: Array<{ permission_name: string; resource_server_identifier: string }>
+    permissions: Array<{
+      permission_name: string;
+      resource_server_identifier: string;
+    }>,
   ) => Promise<void>;
-  
+
   beforeRemove?: (
     context: EntityHookContext,
     roleId: string,
-    permissionIds: string[]
+    permissionIds: string[],
   ) => Promise<string[]>;
-  
+
   afterRemove?: (
     context: EntityHookContext,
     roleId: string,
-    permissionIds: string[]
+    permissionIds: string[],
   ) => Promise<void>;
 }
 ```
@@ -302,17 +299,17 @@ rolePermissions: {
   afterAssign: async (context, roleId, permissions) => {
     // Get role details
     const role = await dataAdapter.roles.get(context.tenantId, roleId);
-    
+
     // For each unique resource server, sync the role's permissions
     const resourceServers = new Set(
       permissions.map(p => p.resource_server_identifier)
     );
-    
+
     for (const identifier of resourceServers) {
       const rolePermissions = permissions
         .filter(p => p.resource_server_identifier === identifier)
         .map(p => p.permission_name);
-      
+
       // Sync to external resource server
       await fetch(`https://${identifier}/api/roles/${role.name}`, {
         method: 'PUT',
@@ -388,31 +385,31 @@ resourceServers: {
   afterCreate: async (context, entity) => {
     // Create default permissions for new resource server
     const defaultPermissions = [
-      { value: 'read:all', description: 'Read all resources' },
-      { value: 'write:all', description: 'Write all resources' },
-      { value: 'delete:all', description: 'Delete all resources' }
+      { value: "read:all", description: "Read all resources" },
+      { value: "write:all", description: "Write all resources" },
+      { value: "delete:all", description: "Delete all resources" },
     ];
-    
+
     for (const permission of defaultPermissions) {
       await dataAdapter.permissions.create(context.tenantId, {
         resource_server_id: entity.id,
-        ...permission
+        ...permission,
       });
     }
-  }
+  };
 }
 ```
 
 ### Differences from User Lifecycle Hooks
 
-| Aspect | User Lifecycle Hooks | Entity Hooks |
-|--------|---------------------|--------------|
-| **Purpose** | Control authentication and user management flows | Manage configuration entities (roles, connections, etc.) |
-| **Layer** | Application layer (routes, authentication flow) | Data adapter layer |
-| **Synchronous** | Mixed (some block flow, some are async) | All `before*` hooks can modify data, `after*` hooks are for side effects |
-| **Can Modify** | Limited (via API methods like `api.user.setUserMetadata()`) | `before*` hooks return modified data directly |
-| **Blocking** | Some hooks can deny operations (e.g., `api.deny()`, `api.cancel()`) | Throw errors in `before*` hooks to block operations |
-| **Webhooks** | Supported | Not supported (code-based only) |
+| Aspect          | User Lifecycle Hooks                                                | Entity Hooks                                                             |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Purpose**     | Control authentication and user management flows                    | Manage configuration entities (roles, connections, etc.)                 |
+| **Layer**       | Application layer (routes, authentication flow)                     | Data adapter layer                                                       |
+| **Synchronous** | Mixed (some block flow, some are async)                             | All `before*` hooks can modify data, `after*` hooks are for side effects |
+| **Can Modify**  | Limited (via API methods like `api.user.setUserMetadata()`)         | `before*` hooks return modified data directly                            |
+| **Blocking**    | Some hooks can deny operations (e.g., `api.deny()`, `api.cancel()`) | Throw errors in `before*` hooks to block operations                      |
+| **Webhooks**    | Supported                                                           | Not supported (code-based only)                                          |
 
 ## Hook Types
 

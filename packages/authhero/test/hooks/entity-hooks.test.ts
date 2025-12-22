@@ -319,28 +319,29 @@ describe("Entity Hooks", () => {
       const role = (await roleResponse.json()) as Role;
 
       // Assign permissions to the role
-      const assignResponse = await managementClient.roles[":id"].permissions
-        .$post(
-          {
-            param: { id: role.id },
-            json: {
-              permissions: [
-                {
-                  resource_server_identifier: "https://api.example.com",
-                  permission_name: "read:data",
-                },
-              ],
-            },
-            header: {
-              "tenant-id": "tenantId",
-            },
+      const assignResponse = await managementClient.roles[
+        ":id"
+      ].permissions.$post(
+        {
+          param: { id: role.id },
+          json: {
+            permissions: [
+              {
+                resource_server_identifier: "https://api.example.com",
+                permission_name: "read:data",
+              },
+            ],
           },
-          {
-            headers: {
-              authorization: `Bearer ${token}`,
-            },
+          header: {
+            "tenant-id": "tenantId",
           },
-        );
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       expect(assignResponse.status).toBe(201);
 
@@ -442,28 +443,29 @@ describe("Entity Hooks", () => {
       );
 
       // Remove permissions from the role
-      const removeResponse = await managementClient.roles[":id"].permissions
-        .$delete(
-          {
-            param: { id: role.id },
-            json: {
-              permissions: [
-                {
-                  resource_server_identifier: "https://api2.example.com",
-                  permission_name: "write:data",
-                },
-              ],
-            },
-            header: {
-              "tenant-id": "tenantId",
-            },
+      const removeResponse = await managementClient.roles[
+        ":id"
+      ].permissions.$delete(
+        {
+          param: { id: role.id },
+          json: {
+            permissions: [
+              {
+                resource_server_identifier: "https://api2.example.com",
+                permission_name: "write:data",
+              },
+            ],
           },
-          {
-            headers: {
-              authorization: `Bearer ${token}`,
-            },
+          header: {
+            "tenant-id": "tenantId",
           },
-        );
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       expect(removeResponse.status).toBe(200);
 

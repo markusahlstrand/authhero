@@ -107,14 +107,25 @@ export interface RolePermissionHooks {
   beforeRemove?: (
     ctx: EntityHookContext,
     roleId: string,
-    permissions: Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[],
-  ) => Promise<Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[]>;
+    permissions: Pick<
+      RolePermissionInsert,
+      "resource_server_identifier" | "permission_name"
+    >[],
+  ) => Promise<
+    Pick<
+      RolePermissionInsert,
+      "resource_server_identifier" | "permission_name"
+    >[]
+  >;
 
   /** Called after permissions are removed from a role */
   afterRemove?: (
     ctx: EntityHookContext,
     roleId: string,
-    permissions: Pick<RolePermissionInsert, "resource_server_identifier" | "permission_name">[],
+    permissions: Pick<
+      RolePermissionInsert,
+      "resource_server_identifier" | "permission_name"
+    >[],
   ) => Promise<void>;
 }
 

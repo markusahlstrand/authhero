@@ -1,28 +1,13 @@
 import {
   DataAdapters,
-  Connection,
-  ConnectionInsert,
-  ResourceServer,
-  ResourceServerInsert,
-  Role,
-  RoleInsert,
   RolePermissionInsert,
 } from "@authhero/adapter-interfaces";
 import {
-  EntityHooks,
   EntityHookContext,
+  EntityHooks,
   RolePermissionHooks,
 } from "../types/Hooks";
-
-/**
- * Configuration for entity hooks wrapper
- */
-export interface EntityHooksConfig {
-  resourceServers?: EntityHooks<ResourceServer, ResourceServerInsert>;
-  roles?: EntityHooks<Role, RoleInsert>;
-  rolePermissions?: RolePermissionHooks;
-  connections?: EntityHooks<Connection, ConnectionInsert>;
-}
+import { EntityHooksConfig } from "../types/AuthHeroConfig";
 
 /**
  * Options for the entity hooks wrapper
