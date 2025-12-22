@@ -3,7 +3,7 @@ import { tenants } from "./tenants";
 
 export const sessions = sqliteTable("sessions", {
   id: text("id", { length: 21 }).notNull(),
-  tenant_id: text("tenant_id", { length: 191 }).notNull(),
+  tenant_id: text("tenant_id", { length: 191 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
   user_id: text("user_id", { length: 255 }),
   created_at: text("created_at", { length: 35 }).notNull(),
   updated_at: text("updated_at", { length: 35 }).notNull(),
@@ -23,7 +23,7 @@ export const sessions = sqliteTable("sessions", {
 
 export const refreshTokens = sqliteTable("refresh_tokens", {
   id: text("id", { length: 21 }).notNull(),
-  tenant_id: text("tenant_id", { length: 255 }).notNull(),
+  tenant_id: text("tenant_id", { length: 255 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
   client_id: text("client_id", { length: 191 }).notNull(),
   session_id: text("session_id", { length: 21 }).notNull(),
   user_id: text("user_id", { length: 255 }),
@@ -40,7 +40,7 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
 
 export const loginSessions = sqliteTable("login_sessions", {
   id: text("id", { length: 21 }).notNull(),
-  tenant_id: text("tenant_id", { length: 255 }).notNull(),
+  tenant_id: text("tenant_id", { length: 255 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
   session_id: text("session_id", { length: 21 }),
   csrf_token: text("csrf_token", { length: 21 }).notNull(),
   authParams_client_id: text("authParams_client_id", { length: 191 }).notNull(),
