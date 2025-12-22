@@ -223,11 +223,11 @@ All actions support these common parameters:
 
 Many action parameters support template variables using the `{{variable}}` syntax:
 
-- `{{user.email}}`: User's email address
-- `{{user.user_id}}`: User's unique ID
-- `{{user.name}}`: User's display name
-- `{{user.app_metadata.field}}`: Custom app metadata fields
-- `{{user.user_metadata.field}}`: Custom user metadata fields
+- <code v-pre>{{user.email}}</code>: User's email address
+- <code v-pre>{{user.user_id}}</code>: User's unique ID
+- <code v-pre>{{user.name}}</code>: User's display name
+- <code v-pre>{{user.app_metadata.field}}</code>: Custom app metadata fields
+- <code v-pre>{{user.user_metadata.field}}</code>: Custom user metadata fields
 
 ## Flow Execution
 
