@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.7.0
+
+### Minor Changes
+
+- 100b1bd: Patch the redirect action for flows
+
 ## 0.6.0
 
 ### Minor Changes

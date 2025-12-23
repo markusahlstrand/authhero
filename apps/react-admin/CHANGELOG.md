@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.9.0
+
+### Minor Changes
+
+- 100b1bd: Patch the redirect action for flows
+
 ## 0.8.0
 
 ### Minor Changes

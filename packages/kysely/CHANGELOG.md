@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.70.0
+
+### Minor Changes
+
+- 100b1bd: Patch the redirect action for flows
+
 ## 10.69.0
 
 ### Minor Changes

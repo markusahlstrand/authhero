@@ -1,5 +1,11 @@
 # authhero
 
+## 0.300.0
+
+### Minor Changes
+
+- 100b1bd: Patch the redirect action for flows
+
 ## 0.299.0
 
 ### Minor Changes
