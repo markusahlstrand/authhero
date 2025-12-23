@@ -77,20 +77,27 @@ export const FlowEdit = () => {
             // Add action type for REDIRECT
             if (transformed.type === "REDIRECT") {
               transformed.action = "REDIRECT_USER";
-              // Ensure params.target is set with default
-              if (
-                !transformed.params ||
-                !(transformed.params as Record<string, unknown>).target
-              ) {
-                transformed.params = {
-                  target:
-                    (transformed.params as Record<string, unknown>)?.target ||
-                    (transformed.redirect_target as string) ||
-                    "change-email",
-                };
+              // Build params with target and optional custom_url
+              const target =
+                (transformed.params as Record<string, unknown>)?.target ||
+                (transformed.redirect_target as string) ||
+                "change-email";
+              const params: Record<string, unknown> = { target };
+
+              // Include custom_url when target is "custom"
+              if (target === "custom") {
+                const customUrl =
+                  (transformed.params as Record<string, unknown>)?.custom_url ||
+                  (transformed.redirect_custom_url as string);
+                if (customUrl) {
+                  params.custom_url = customUrl;
+                }
               }
-              // Clean up temporary field
+
+              transformed.params = params;
+              // Clean up temporary fields
               delete transformed.redirect_target;
+              delete transformed.redirect_custom_url;
             }
 
             // Auto-generate ID if not provided (Auth0-style)
