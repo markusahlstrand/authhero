@@ -2,9 +2,9 @@
 
 A production-grade multi-tenant AuthHero authentication server using Cloudflare Workers with:
 
-- Per-tenant D1 databases (dynamically created via REST API)
-- Analytics Engine for centralized logging
-- Subdomain-based tenant routing (optional)
+- Multi-tenant support with tenant isolation at the data level
+- Multiple tenants in a single D1 database
+- Easy setup similar to single-tenant
 
 ## Architecture
 
@@ -14,33 +14,19 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                     │                                         │
                     │  ┌─────────────────────────────────┐   │
                     │  │      AuthHero Multi-Tenant      │   │
-                    │  └─────────────────────────────────┘   │
-                    │              │                          │
-                    │              ▼                          │
-                    │  ┌─────────────────────────────────┐   │
-                    │  │   Multi-Tenancy Plugin          │   │
-                    │  │   - Access Control              │   │
-                    │  │   - Subdomain Routing           │   │
-                    │  │   - Database Resolution         │   │
+                    │  │   - Multiple tenants per DB     │   │
+                    │  │   - Tenant isolation via API    │   │
                     │  └─────────────────────────────────┘   │
                     │              │                          │
                     └──────────────┼──────────────────────────┘
                                    │
-          ┌────────────────────────┼────────────────────────┐
-          │                        │                        │
-          ▼                        ▼                        ▼
-   ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-   │   Main D1   │         │  Tenant D1  │         │  Analytics  │
-   │  Database   │         │  Databases  │         │   Engine    │
-   │  (Bound)    │         │  (via REST) │         │   (Logs)    │
-   └─────────────┘         └─────────────┘         └─────────────┘
+                                   ▼
+                          ┌─────────────┐
+                          │     D1      │
+                          │  Database   │
+                          │ (All Tenants)│
+                          └─────────────┘
 ```
-
-## Prerequisites
-
-- [Cloudflare Account](https://dash.cloudflare.com/sign-up) with Workers Paid plan
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
-- Cloudflare API Token with D1 and Workers permissions
 
 ## Getting Started
 
@@ -50,96 +36,76 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
    npm install
    ```
 
-2. Create the main D1 database:
+2. Run local database migrations:
 
    ```bash
-   wrangler d1 create authhero-main-db
+   npm run migrate
    ```
 
-3. Update `wrangler.toml` with your database ID.
-
-4. Create `.dev.vars` from the example:
+3. Seed the database with an admin user:
 
    ```bash
-   cp .dev.vars.example .dev.vars
+   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
    ```
 
-5. Update `.dev.vars` with your Cloudflare credentials.
-
-6. Run local database migrations:
-
-   ```bash
-   npm run db:migrate
-   ```
-
-7. Start the development server:
+4. Start the development server:
    ```bash
    npm run dev
    ```
 
-## Cloudflare API Token
+The server will be available at `https://localhost:3000`.
 
-Create an API token with the following permissions:
+## Production Deployment
 
-- **Account** > D1 > Edit
-- **Account** > Workers Analytics Engine > Edit
-- **Zone** > Workers Routes > Edit (if using custom domains)
+1. Create a D1 database:
 
-## Multi-Tenant Features
+   ```bash
+   wrangler d1 create authhero-db
+   ```
 
-### Per-Tenant Database Isolation
+2. Update `wrangler.toml` with your database ID.
 
-Each tenant gets its own D1 database, created dynamically when the tenant is provisioned:
+3. Run migrations on production:
 
-- Main tenant uses the bound D1 database (low latency)
-- Other tenants use D1 databases via REST API
+   ```bash
+   npm run db:migrate:remote
+   ```
 
-### Access Control
+4. Seed the production database:
 
-- Users authenticate against the main tenant
-- Organization membership grants access to specific tenants
-- Tokens with `org` claim can access the matching tenant
+   ```bash
+   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
+   ```
 
-### Subdomain Routing (Optional)
-
-Enable subdomain routing to route requests based on subdomain:
-
-- `tenant1.auth.example.com` → tenant1
-- `tenant2.auth.example.com` → tenant2
-
-Configure in `wrangler.toml`:
-
-```toml
-[vars]
-BASE_DOMAIN = "auth.example.com"
-```
-
-### Analytics Engine Logs
-
-All authentication events are logged to Analytics Engine for:
-
-- Centralized logging across all tenants
-- Real-time analytics
-- Low-latency writes
-
-## Deployment
-
-1. Deploy to Cloudflare:
-
+5. Deploy:
    ```bash
    npm run deploy
    ```
 
-2. Run production migrations:
+## Multi-Tenant Features
 
-   ```bash
-   npm run db:migrate:prod
-   ```
+### Shared Database Model
 
-3. Set production secrets:
-   ```bash
-   wrangler secret put CLOUDFLARE_API_TOKEN
-   ```
+All tenants share a single D1 database, with data isolation enforced at the application level. This is simpler to manage and suitable for most use cases.
+
+### Creating Additional Tenants
+
+You can create additional tenants using the Management API:
+
+```bash
+# Get an access token first
+TOKEN=$(curl -s https://your-server/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=default \
+  -d client_secret=your-secret \
+  -d audience=https://your-server/api/v2/ | jq -r '.access_token')
+
+# Create a new tenant
+curl -X POST https://your-server/api/v2/tenants \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "tenant2", "name": "Tenant 2"}'
+```
 
 ## Project Structure
 
@@ -147,12 +113,25 @@ All authentication events are logged to Analytics Engine for:
 ├── src/
 │   ├── index.ts           # Worker entry point
 │   ├── app.ts             # AuthHero app configuration
+│   ├── seed.ts            # Database seeding worker
 │   ├── types.ts           # TypeScript type definitions
-│   └── database-factory.ts # Multi-tenant database factory
+│   └── db/
+│       └── schema.ts      # Drizzle schema for migrations
+├── migrations/            # Database migrations
 ├── wrangler.toml          # Cloudflare Worker configuration
-├── .dev.vars.example      # Example environment variables
+├── drizzle.config.ts      # Drizzle configuration
+├── seed-helper.js         # Helper script to run seeds
 └── package.json
 ```
+
+## Database Schema Changes
+
+To make schema changes:
+
+1. Edit `src/db/schema.ts`
+2. Generate migrations: `npm run db:generate`
+3. Apply locally: `npm run migrate`
+4. Apply to production: `npm run db:migrate:remote`
 
 ## API Documentation
 
@@ -175,3 +154,173 @@ curl https://your-worker.workers.dev/management/tenants \
 ```
 
 For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
+
+## Optional Features
+
+### Analytics Engine (Centralized Logging)
+
+Cloudflare Analytics Engine provides centralized logging for your authentication events. To enable:
+
+#### Via Cloudflare Dashboard:
+
+1. Go to **Workers & Pages** > **Analytics Engine**
+2. Click **Create a dataset**
+3. Name it `authhero_logs`
+4. Copy the dataset name for your wrangler.toml
+
+#### Via Wrangler CLI:
+
+```bash
+# There's no CLI command to create Analytics Engine datasets yet
+# You must use the Cloudflare Dashboard
+```
+
+#### Configuration Steps:
+
+1. **Create `.dev.vars` file** for local development:
+
+   ```env
+   CLOUDFLARE_ACCOUNT_ID=your_account_id
+   CLOUDFLARE_API_TOKEN=your_api_token
+   # Optional: separate token for Analytics Engine
+   ANALYTICS_ENGINE_API_TOKEN=your_analytics_token
+   ```
+
+2. **Update `wrangler.toml`** - uncomment the Analytics Engine section:
+
+   ```toml
+   [[analytics_engine_datasets]]
+   binding = "AUTH_LOGS"
+   dataset = "authhero_logs"
+   ```
+
+3. **Update `src/types.ts`** - uncomment the Analytics Engine types:
+
+   ```typescript
+   import { AnalyticsEngineDataset } from "@authhero/cloudflare-adapter";
+
+   export interface Env {
+     AUTH_DB: D1Database;
+     AUTH_LOGS: AnalyticsEngineDataset;
+     CLOUDFLARE_ACCOUNT_ID: string;
+     CLOUDFLARE_API_TOKEN: string;
+     ANALYTICS_ENGINE_API_TOKEN?: string;
+   }
+   ```
+
+4. **Update `src/index.ts`** - uncomment the Cloudflare adapter code:
+
+   ```typescript
+   import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+   // ... in the fetch handler:
+   const cloudflareAdapters = createCloudflareAdapters({
+     accountId: env.CLOUDFLARE_ACCOUNT_ID,
+     apiToken: env.CLOUDFLARE_API_TOKEN,
+     analyticsEngineLogs: {
+       analyticsEngineBinding: env.AUTH_LOGS,
+       accountId: env.CLOUDFLARE_ACCOUNT_ID,
+       apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
+       dataset: "authhero_logs",
+     },
+   });
+   // ... spread into config:
+   const config: AuthHeroConfig = {
+     dataAdapter,
+     ...cloudflareAdapters,
+   };
+   ```
+
+5. **Install the package**:
+
+   ```bash
+   npm install @authhero/cloudflare-adapter
+   ```
+
+6. **Set secrets for production**:
+   ```bash
+   wrangler secret put CLOUDFLARE_ACCOUNT_ID
+   wrangler secret put CLOUDFLARE_API_TOKEN
+   # Optional:
+   wrangler secret put ANALYTICS_ENGINE_API_TOKEN
+   ```
+
+### Rate Limiting
+
+Cloudflare Rate Limiting helps protect your authentication endpoints from abuse. **Requires Workers Paid plan ($5/month)**.
+
+#### Via Cloudflare Dashboard:
+
+Rate limiting bindings are configured in `wrangler.toml`, not in the Dashboard.
+
+#### Configuration Steps:
+
+1. **Ensure you have a Workers Paid plan** - Rate limiting is not available on the free tier.
+
+2. **Update `wrangler.toml`** - uncomment the Rate Limiting section:
+
+   ```toml
+   [[unsafe.bindings]]
+   name = "RATE_LIMITER"
+   type = "ratelimit"
+   namespace_id = "1001"  # Unique namespace ID for this limiter
+   simple = { limit = 100, period = 60 }  # 100 requests per 60 seconds
+   ```
+
+3. **Update `src/types.ts`** - add the RateLimiter type:
+
+   ```typescript
+   export interface Env {
+     AUTH_DB: D1Database;
+     RATE_LIMITER: RateLimiter;
+   }
+   ```
+
+4. **Add rate limiting logic in `src/index.ts`**:
+
+   ```typescript
+   export default {
+     async fetch(request: Request, env: Env): Promise<Response> {
+       // Get client IP for rate limiting
+       const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+
+       // Check rate limit
+       const { success } = await env.RATE_LIMITER.limit({ key: clientIp });
+       if (!success) {
+         return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+           status: 429,
+           headers: { "Content-Type": "application/json" },
+         });
+       }
+
+       // ... rest of the handler
+     },
+   };
+   ```
+
+#### Rate Limit Configuration Options:
+
+| Option         | Description                        | Example  |
+| -------------- | ---------------------------------- | -------- |
+| `limit`        | Max requests allowed               | `100`    |
+| `period`       | Time window in seconds             | `60`     |
+| `namespace_id` | Unique ID (string) for the limiter | `"1001"` |
+
+#### Advanced Rate Limiting:
+
+For more granular control, you can rate limit by:
+
+- **Tenant ID**: `{ key: tenantId }`
+- **User ID**: `{ key: userId }`
+- **Endpoint + IP**: `{ key: \`\${pathname}:\${clientIp}\` }`
+
+```typescript
+// Rate limit login attempts more strictly
+if (url.pathname.includes("/oauth/token")) {
+  const { success } = await env.LOGIN_RATE_LIMITER.limit({
+    key: `login:${clientIp}`,
+  });
+  if (!success) {
+    return new Response("Too many login attempts", { status: 429 });
+  }
+}
+```

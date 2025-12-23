@@ -33,6 +33,10 @@ export interface SeedOptions {
    */
   callbacks?: string[];
   /**
+   * Allowed logout URLs for the default client
+   */
+  allowedLogoutUrls?: string[];
+  /**
    * Whether to log progress (defaults to true)
    */
   debug?: boolean;
@@ -78,6 +82,12 @@ export async function seed(
       "https://local.authhero.net/auth-callback",
       "https://localhost:5173/auth-callback",
       "https://localhost:3000/auth-callback",
+    ],
+    allowedLogoutUrls = [
+      "https://manage.authhero.net",
+      "https://local.authhero.net",
+      "https://localhost:5173",
+      "https://localhost:3000",
     ],
     debug = true,
   } = options;
@@ -193,12 +203,14 @@ export async function seed(
       client_id: clientId,
       name: "Default Application",
       callbacks,
+      allowed_logout_urls: allowedLogoutUrls,
       connections: ["Username-Password-Authentication"],
     });
     if (debug) {
       console.log("✅ Default client created");
       console.log(`   Client ID: ${clientId}`);
       console.log(`   Callback URLs: ${callbacks.join(", ")}`);
+      console.log(`   Allowed Logout URLs: ${allowedLogoutUrls.join(", ")}`);
     }
   } else if (debug) {
     console.log("Default client already exists, skipping...");

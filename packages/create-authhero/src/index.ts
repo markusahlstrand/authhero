@@ -82,7 +82,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       type: "module",
       scripts: {
         "dev:local": "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote": "wrangler dev --port 3000 --local-protocol https --remote",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote",
         dev: "wrangler dev --port 3000 --local-protocol https",
         deploy: "wrangler deploy",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
@@ -115,38 +116,44 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
   "cloudflare-multitenant": {
     name: "Cloudflare Multi-Tenant (Production)",
     description:
-      "Production-grade multi-tenant setup with per-tenant D1 databases and Analytics Engine",
+      "Production-grade multi-tenant setup with D1 database and tenant management",
     templateDir: "cloudflare-multitenant",
     packageJson: (projectName) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
       scripts: {
-        dev: "wrangler dev",
+        "dev:local": "wrangler dev --port 3000 --local-protocol https",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote",
+        dev: "wrangler dev --port 3000 --local-protocol https",
         deploy: "wrangler deploy",
-        "db:migrate": "wrangler d1 migrations apply MAIN_DB --local",
-        "db:migrate:prod": "wrangler d1 migrations apply MAIN_DB --remote",
-        seed: "wrangler d1 execute MAIN_DB --local --file=seed.sql",
+        "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        migrate: "wrangler d1 migrations apply AUTH_DB --local",
+        "db:generate": "drizzle-kit generate",
+        "seed:local": "node seed-helper.js",
+        "seed:remote": "node seed-helper.js '' '' remote",
+        seed: "node seed-helper.js",
       },
       dependencies: {
-        "@authhero/cloudflare-adapter": "latest",
         "@authhero/kysely-adapter": "latest",
-        "@authhero/multi-tenancy": "latest",
         "@hono/swagger-ui": "^0.5.0",
-        "@hono/zod-openapi": "^0.19.10",
+        "@hono/zod-openapi": "^0.19.0",
         authhero: "latest",
         hono: "^4.6.0",
         kysely: "latest",
         "kysely-d1": "latest",
-        wretch: "^3.0.0",
       },
       devDependencies: {
         "@cloudflare/workers-types": "^4.0.0",
+        "drizzle-kit": "^0.31.0",
+        "drizzle-orm": "^0.44.0",
         typescript: "^5.5.0",
         wrangler: "^3.0.0",
       },
     }),
-    seedFile: "seed.sql",
+    seedFile: "seed.ts",
   },
 };
 
@@ -164,10 +171,9 @@ function copyFiles(source: string, target: string): void {
   });
 }
 
-function generateSeedFileContent(setupType: SetupType): string {
-  if (setupType === "local") {
-    // TypeScript seed file for local setup - uses the seed function from authhero
-    return `import { SqliteDialect, Kysely } from "kysely";
+function generateSeedFileContent(): string {
+  // TypeScript seed file for local setup - uses the seed function from authhero
+  return `import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
 import createAdapters from "@authhero/kysely-adapter";
 import { seed } from "authhero";
@@ -199,35 +205,6 @@ async function main() {
 
 main().catch(console.error);
 `;
-  } else {
-    // SQL seed file for Cloudflare D1
-    // Note: For Cloudflare, we'll need a different approach since we can't run TypeScript directly
-    const now = new Date().toISOString();
-    const tenantId = "default";
-
-    return `-- Seed file for AuthHero
--- 
--- IMPORTANT: This SQL file creates the basic structure but the password
--- cannot be properly hashed in SQL. After running this seed, you should
--- use the management API or run a script to set the admin password.
-
--- Create default tenant
-INSERT OR IGNORE INTO tenants (id, friendly_name, audience, sender_email, sender_name, created_at, updated_at)
-VALUES ('${tenantId}', 'Default Tenant', 'https://api.example.com', 'noreply@example.com', 'AuthHero', '${now}', '${now}');
-
--- Create password connection
-INSERT OR IGNORE INTO connections (id, tenant_id, name, strategy, options, created_at, updated_at)
-VALUES ('conn_default', '${tenantId}', 'Username-Password-Authentication', 'Username-Password-Authentication', '{}', '${now}', '${now}');
-
--- Create default client
-INSERT OR IGNORE INTO clients (client_id, tenant_id, name, callbacks, allowed_origins, web_origins, connections, created_at, updated_at)
-VALUES ('default', '${tenantId}', 'Default Application', '["https://manage.authhero.net/auth-callback","https://local.authhero.net/auth-callback"]', '[]', '[]', '["Username-Password-Authentication"]', '${now}', '${now}');
-
--- Note: Admin user and password should be created via the management API
--- or using a TypeScript seed script with proper bcrypt hashing.
--- Example command: curl -X POST http://localhost:3000/api/v2/users ...
-`;
-  }
 }
 
 function runCommand(command: string, cwd: string): Promise<void> {
@@ -298,7 +275,7 @@ program
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
     const isNonInteractive = options.yes === true;
-    
+
     console.log("\n🔐 Welcome to AuthHero!\n");
 
     let projectName = projectNameArg;
@@ -332,9 +309,15 @@ program
     // Validate template option if provided
     let setupType: SetupType;
     if (options.template) {
-      if (!["local", "cloudflare-simple", "cloudflare-multitenant"].includes(options.template)) {
+      if (
+        !["local", "cloudflare-simple", "cloudflare-multitenant"].includes(
+          options.template,
+        )
+      ) {
         console.error(`❌ Invalid template: ${options.template}`);
-        console.error("Valid options: local, cloudflare-simple, cloudflare-multitenant");
+        console.error(
+          "Valid options: local, cloudflare-simple, cloudflare-multitenant",
+        );
         process.exit(1);
       }
       setupType = options.template;
@@ -391,11 +374,11 @@ program
       process.exit(1);
     }
 
-    // Generate seed file for local and multitenant setups
-    // cloudflare-simple already has seed.ts in the template
-    if (setupType === "local" || setupType === "cloudflare-multitenant") {
-      const seedContent = generateSeedFileContent(setupType as SetupType);
-      const seedFileName = setupType === "local" ? "src/seed.ts" : "seed.sql";
+    // Generate seed file for local setup only
+    // cloudflare-simple and cloudflare-multitenant have seed.ts in the template
+    if (setupType === "local") {
+      const seedContent = generateSeedFileContent();
+      const seedFileName = "src/seed.ts";
       fs.writeFileSync(path.join(projectPath, seedFileName), seedContent);
     }
 
@@ -426,7 +409,9 @@ program
       let packageManager: PackageManager;
       if (options.packageManager) {
         if (!["npm", "yarn", "pnpm", "bun"].includes(options.packageManager)) {
-          console.error(`❌ Invalid package manager: ${options.packageManager}`);
+          console.error(
+            `❌ Invalid package manager: ${options.packageManager}`,
+          );
           console.error("Valid options: npm, yarn, pnpm, bun");
           process.exit(1);
         }
@@ -470,13 +455,22 @@ program
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // Track the mode for cloudflare-simple setups
+        // Track the mode for cloudflare setups
         let mode: "local" | "remote" = options.remote ? "remote" : "local";
 
-        // For local and cloudflare-simple setups, run migrations and seed
-        if (setupType === "local" || setupType === "cloudflare-simple") {
-          // For cloudflare-simple, ask if they want to use local or remote mode
-          if (setupType === "cloudflare-simple" && !isNonInteractive && !options.remote) {
+        // For local and cloudflare setups, run migrations and seed
+        if (
+          setupType === "local" ||
+          setupType === "cloudflare-simple" ||
+          setupType === "cloudflare-multitenant"
+        ) {
+          // For cloudflare setups, ask if they want to use local or remote mode
+          if (
+            (setupType === "cloudflare-simple" ||
+              setupType === "cloudflare-multitenant") &&
+            !isNonInteractive &&
+            !options.remote
+          ) {
             const modeAnswer = await inquirer.prompt([
               {
                 type: "list",
@@ -572,7 +566,9 @@ program
             if (!options.skipMigrate) {
               console.log("\n🔄 Running migrations...\n");
               const migrateCmd =
-                setupType === "cloudflare-simple" && mode === "remote"
+                (setupType === "cloudflare-simple" ||
+                  setupType === "cloudflare-multitenant") &&
+                mode === "remote"
                   ? `${packageManager} run db:migrate:remote`
                   : `${packageManager} run migrate`;
               await runCommand(migrateCmd, projectPath);
@@ -592,7 +588,7 @@ program
                   },
                 );
               } else {
-                // For cloudflare-simple, use the seed helper with environment variables
+                // For cloudflare setups, use the seed helper with environment variables
                 const seedCmd =
                   mode === "remote"
                     ? `${packageManager} run seed:remote`
@@ -626,9 +622,13 @@ program
         }
 
         if (shouldStart) {
-          console.log("\n🚀 Starting development server on https://localhost:3000 ...\n");
+          console.log(
+            "\n🚀 Starting development server on https://localhost:3000 ...\n",
+          );
           const devCmd =
-            setupType === "cloudflare-simple" && mode === "remote"
+            (setupType === "cloudflare-simple" ||
+              setupType === "cloudflare-multitenant") &&
+            mode === "remote"
               ? `${packageManager} run dev:remote`
               : `${packageManager} run dev`;
           await runCommand(devCmd, projectPath);
@@ -639,13 +639,22 @@ program
           console.log("\n✅ Setup complete!");
           console.log(`\nTo start the development server:`);
           console.log(`  cd ${projectName}`);
-          if (setupType === "cloudflare-simple" && mode === "remote") {
+          if (
+            (setupType === "cloudflare-simple" ||
+              setupType === "cloudflare-multitenant") &&
+            mode === "remote"
+          ) {
             console.log(`  npm run dev:remote`);
           } else {
             console.log(`  npm run dev`);
           }
-          if (setupType === "cloudflare-simple") {
-            console.log(`\nServer will be available at: https://localhost:3000`);
+          if (
+            setupType === "cloudflare-simple" ||
+            setupType === "cloudflare-multitenant"
+          ) {
+            console.log(
+              `\nServer will be available at: https://localhost:3000`,
+            );
           }
         }
       } catch (error) {
@@ -665,7 +674,10 @@ program
           "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
         );
         console.log("  npm run dev");
-      } else if (setupType === "cloudflare-simple") {
+      } else if (
+        setupType === "cloudflare-simple" ||
+        setupType === "cloudflare-multitenant"
+      ) {
         console.log("  npm install");
         console.log(
           "  npm run migrate  # or npm run db:migrate:remote for production",
@@ -675,11 +687,6 @@ program
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
         console.log("\nServer will be available at: https://localhost:3000");
-      } else {
-        console.log("  npm install");
-        console.log("  npm run db:migrate");
-        console.log("  npm run seed");
-        console.log("  npm run dev");
       }
 
       console.log("\nFor more information, visit: https://authhero.net/docs\n");

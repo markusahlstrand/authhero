@@ -172,3 +172,140 @@ routes = [
 ```
 
 For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
+
+## Optional Features
+
+### Analytics Engine (Centralized Logging)
+
+Cloudflare Analytics Engine provides centralized logging for your authentication events. To enable:
+
+#### Via Cloudflare Dashboard:
+
+1. Go to **Workers & Pages** > **Analytics Engine**
+2. Click **Create a dataset**
+3. Name it `authhero_logs`
+4. Copy the dataset name for your wrangler.toml
+
+#### Configuration Steps:
+
+1. **Create `.dev.vars` file** for local development:
+
+   ```env
+   CLOUDFLARE_ACCOUNT_ID=your_account_id
+   CLOUDFLARE_API_TOKEN=your_api_token
+   # Optional: separate token for Analytics Engine
+   ANALYTICS_ENGINE_API_TOKEN=your_analytics_token
+   ```
+
+2. **Update `wrangler.toml`** - uncomment the Analytics Engine section:
+
+   ```toml
+   [[analytics_engine_datasets]]
+   binding = "AUTH_LOGS"
+   dataset = "authhero_logs"
+   ```
+
+3. **Update `src/types.ts`** - uncomment the Analytics Engine types:
+
+   ```typescript
+   import { AnalyticsEngineDataset } from "@authhero/cloudflare-adapter";
+
+   export interface Env {
+     AUTH_DB: D1Database;
+     AUTH_LOGS: AnalyticsEngineDataset;
+     CLOUDFLARE_ACCOUNT_ID: string;
+     CLOUDFLARE_API_TOKEN: string;
+     ANALYTICS_ENGINE_API_TOKEN?: string;
+   }
+   ```
+
+4. **Update `src/index.ts`** - uncomment the Cloudflare adapter code:
+
+   ```typescript
+   import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+   // ... in the fetch handler:
+   const cloudflareAdapters = createCloudflareAdapters({
+     accountId: env.CLOUDFLARE_ACCOUNT_ID,
+     apiToken: env.CLOUDFLARE_API_TOKEN,
+     analyticsEngineLogs: {
+       analyticsEngineBinding: env.AUTH_LOGS,
+       accountId: env.CLOUDFLARE_ACCOUNT_ID,
+       apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
+       dataset: "authhero_logs",
+     },
+   });
+   // ... spread into config:
+   const config: AuthHeroConfig = {
+     dataAdapter,
+     ...cloudflareAdapters,
+   };
+   ```
+
+5. **Install the package**:
+
+   ```bash
+   npm install @authhero/cloudflare-adapter
+   ```
+
+6. **Set secrets for production**:
+   ```bash
+   wrangler secret put CLOUDFLARE_ACCOUNT_ID
+   wrangler secret put CLOUDFLARE_API_TOKEN
+   ```
+
+### Rate Limiting
+
+Cloudflare Rate Limiting helps protect your authentication endpoints from abuse. **Requires Workers Paid plan ($5/month)**.
+
+#### Configuration Steps:
+
+1. **Ensure you have a Workers Paid plan** - Rate limiting is not available on the free tier.
+
+2. **Update `wrangler.toml`** - uncomment the Rate Limiting section:
+
+   ```toml
+   [[unsafe.bindings]]
+   name = "RATE_LIMITER"
+   type = "ratelimit"
+   namespace_id = "1001"  # Unique namespace ID for this limiter
+   simple = { limit = 100, period = 60 }  # 100 requests per 60 seconds
+   ```
+
+3. **Update `src/types.ts`** - add the RateLimiter type:
+
+   ```typescript
+   export interface Env {
+     AUTH_DB: D1Database;
+     RATE_LIMITER: RateLimiter;
+   }
+   ```
+
+4. **Add rate limiting logic in `src/index.ts`**:
+
+   ```typescript
+   export default {
+     async fetch(request: Request, env: Env): Promise<Response> {
+       // Get client IP for rate limiting
+       const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+
+       // Check rate limit
+       const { success } = await env.RATE_LIMITER.limit({ key: clientIp });
+       if (!success) {
+         return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+           status: 429,
+           headers: { "Content-Type": "application/json" },
+         });
+       }
+
+       // ... rest of the handler
+     },
+   };
+   ```
+
+#### Rate Limit Configuration Options:
+
+| Option         | Description                        | Example  |
+| -------------- | ---------------------------------- | -------- |
+| `limit`        | Max requests allowed               | `100`    |
+| `period`       | Time window in seconds             | `60`     |
+| `namespace_id` | Unique ID (string) for the limiter | `"1001"` |
