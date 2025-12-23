@@ -13,7 +13,8 @@
   },
   "version": "0.6.0",
   "files": [
-    "dist"
+    "dist",
+    "src/schema"
   ],
   "main": "dist/drizzle.cjs",
   "module": "dist/drizzle.mjs",
@@ -23,6 +24,10 @@
       "require": "./dist/drizzle.cjs",
       "import": "./dist/drizzle.mjs",
       "types": "./dist/drizzle.d.ts"
+    },
+    "./schema/sqlite": {
+      "import": "./src/schema/sqlite/index.ts",
+      "types": "./src/schema/sqlite/index.ts"
     }
   },
   "scripts": {

@@ -9,7 +9,7 @@ import { tenants } from "./tenants";
 import { connections } from "./connections";
 
 export const branding = sqliteTable("branding", {
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .primaryKey()
     .references(() => tenants.id, { onDelete: "cascade" }),
   logo_url: text("logo_url", { length: 512 }),
@@ -29,7 +29,7 @@ export const branding = sqliteTable("branding", {
 export const themes = sqliteTable(
   "themes",
   {
-    tenant_id: text("tenant_id", { length: 255 })
+    tenant_id: text("tenant_id", { length: 191 })
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     themeId: text("themeId", { length: 255 }).notNull(),
@@ -165,7 +165,9 @@ export const forms = sqliteTable(
   {
     id: text("id", { length: 255 }).primaryKey(),
     name: text("name", { length: 255 }).notNull(),
-    tenant_id: text("tenant_id", { length: 255 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
     messages: text("messages", { length: 255 }),
     languages: text("languages", { length: 255 }),
     translations: text("translations", { length: 4096 }),
@@ -182,8 +184,10 @@ export const forms = sqliteTable(
 export const flows = sqliteTable(
   "flows",
   {
-    id: text("id", { length: 21 }).primaryKey(),
-    tenant_id: text("tenant_id", { length: 191 }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    id: text("id", { length: 24 }).primaryKey(),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
     name: text("name", { length: 150 }).notNull(),
     actions: text("actions"),
     created_at: text("created_at", { length: 35 }).notNull(),
@@ -193,7 +197,7 @@ export const flows = sqliteTable(
 );
 
 export const promptSettings = sqliteTable("prompt_settings", {
-  tenant_id: text("tenant_id", { length: 64 }).primaryKey(),
+  tenant_id: text("tenant_id", { length: 191 }).primaryKey(),
   universal_login_experience: text("universal_login_experience", { length: 16 })
     .notNull()
     .default("new"),
@@ -211,7 +215,7 @@ export const promptSettings = sqliteTable("prompt_settings", {
 });
 
 export const emailProviders = sqliteTable("email_providers", {
-  tenant_id: text("tenant_id", { length: 255 }).primaryKey(),
+  tenant_id: text("tenant_id", { length: 191 }).primaryKey(),
   name: text("name", { length: 255 }).notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull(),
   default_from_address: text("default_from_address", { length: 255 }),
@@ -223,7 +227,7 @@ export const emailProviders = sqliteTable("email_providers", {
 
 export const hooks = sqliteTable("hooks", {
   hook_id: text("hook_id", { length: 255 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   url: text("url", { length: 512 }).notNull(),
@@ -241,7 +245,7 @@ export const hooks = sqliteTable("hooks", {
 
 export const keys = sqliteTable("keys", {
   kid: text("kid", { length: 255 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 }).references(() => tenants.id, {
+  tenant_id: text("tenant_id", { length: 191 }).references(() => tenants.id, {
     onDelete: "cascade",
   }),
   created_at: text("created_at", { length: 35 }).notNull(),

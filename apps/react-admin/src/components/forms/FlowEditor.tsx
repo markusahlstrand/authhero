@@ -75,10 +75,16 @@ export interface EndingNode {
   coordinates?: { x: number; y: number };
 }
 
+export interface FlowChoice {
+  id: string;
+  name: string;
+}
+
 export interface FlowEditorProps {
   nodes: FlowNodeData[];
   start?: StartNode;
   ending?: EndingNode;
+  flows?: FlowChoice[];
   onNodeSelect?: (nodeId: string) => void;
   onNodeUpdate?: (
     nodeId: string,
@@ -543,6 +549,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   nodes = [],
   start,
   ending,
+  flows,
   onNodeSelect,
   onNodeUpdate,
   onError,
@@ -1345,6 +1352,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         nodes={nodes}
         start={start}
         ending={ending}
+        flows={flows}
         onClose={handleCloseEditor}
         onNodeUpdate={handleNodeUpdate}
       />

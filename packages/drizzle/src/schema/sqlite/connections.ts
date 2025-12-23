@@ -5,7 +5,7 @@ export const connections = sqliteTable(
   "connections",
   {
     id: text("id", { length: 255 }).primaryKey(),
-    tenant_id: text("tenant_id", { length: 255 })
+    tenant_id: text("tenant_id", { length: 191 })
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     name: text("name", { length: 255 }).notNull(),
@@ -25,7 +25,7 @@ export const connections = sqliteTable(
 
 export const customDomains = sqliteTable("custom_domains", {
   custom_domain_id: text("custom_domain_id", { length: 256 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   domain: text("domain", { length: 255 }).notNull(),
@@ -43,7 +43,7 @@ export const customDomains = sqliteTable("custom_domains", {
 
 export const domains = sqliteTable("domains", {
   id: text("id", { length: 255 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   domain: text("domain", { length: 255 }).notNull(),

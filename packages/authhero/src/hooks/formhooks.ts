@@ -119,6 +119,37 @@ interface RouterNode {
 }
 
 /**
+ * Flow node type definition
+ */
+interface FlowNodeDef {
+  id: string;
+  type: "FLOW";
+  config: {
+    flow_id: string;
+    next_node?: string;
+  };
+}
+
+/**
+ * Flow action type used during resolution
+ */
+interface FlowAction {
+  type: string;
+  action?: string;
+  params?: {
+    target?: "change-email" | "account" | "custom";
+    custom_url?: string;
+  };
+}
+
+/**
+ * Flow fetcher function type for async flow resolution
+ */
+export type FlowFetcher = (flowId: string) => Promise<{
+  actions?: FlowAction[];
+} | null>;
+
+/**
  * Result type for node resolution
  */
 type ResolveNodeResult =
@@ -130,7 +161,7 @@ type ResolveNodeResult =
 /**
  * Resolves the target redirect URL based on the target type
  */
-function getRedirectUrl(
+export function getRedirectUrl(
   target: "change-email" | "account" | "custom",
   customUrl: string | undefined,
   state: string,
@@ -158,14 +189,15 @@ function getRedirectUrl(
 }
 
 /**
- * Resolves the first displayable node by following ROUTER and ACTION nodes
+ * Resolves the first displayable node by following ROUTER, ACTION, and FLOW nodes
  */
-function resolveNode(
+export async function resolveNode(
   nodes: Node[],
   startNodeId: string,
   context: { user: User },
+  flowFetcher?: FlowFetcher,
   maxDepth = 10,
-): ResolveNodeResult {
+): Promise<ResolveNodeResult> {
   let currentNodeId = startNodeId;
   let depth = 0;
 
@@ -228,6 +260,40 @@ function resolveNode(
       continue;
     }
 
+    // If it's a FLOW node, fetch the referenced flow and execute its actions
+    if (node.type === "FLOW") {
+      const flowNode = node as unknown as FlowNodeDef;
+      if (flowFetcher && flowNode.config.flow_id) {
+        const flow = await flowFetcher(flowNode.config.flow_id);
+        if (flow && flow.actions && flow.actions.length > 0) {
+          // Process flow actions - look for REDIRECT_USER action
+          for (const action of flow.actions) {
+            if (
+              action.type === "REDIRECT" &&
+              action.action === "REDIRECT_USER"
+            ) {
+              const target = action.params?.target;
+              if (target) {
+                return {
+                  type: "redirect",
+                  target,
+                  customUrl: action.params?.custom_url,
+                };
+              }
+            }
+          }
+        }
+      }
+      // If no redirect action found or flow not found, continue to next node
+      if (flowNode.config.next_node) {
+        currentNodeId = flowNode.config.next_node;
+        depth++;
+        continue;
+      }
+      // No next_node configured, treat as end
+      return { type: "end" };
+    }
+
     // Unknown node type
     return null;
   }
@@ -267,9 +333,43 @@ export async function handleFormHook(
     throw new HTTPException(400, { message: "No start node found in form" });
   }
 
-  // If we have a user, resolve through ROUTER and ACTION nodes
+  // If we have a user, resolve through ROUTER, ACTION, and FLOW nodes
   if (user && form.nodes) {
-    const result = resolveNode(form.nodes, firstNodeId, { user });
+    // Create a flow fetcher that uses the data adapter
+    const flowFetcher: FlowFetcher = async (flowId: string) => {
+      const flow = await data.flows.get(tenant_id, flowId);
+      if (!flow) return null;
+      // Map the flow actions to the expected FlowAction interface
+      return {
+        actions: flow.actions?.map((action) => ({
+          type: action.type,
+          action: action.action,
+          params:
+            "params" in action &&
+            action.params &&
+            typeof action.params === "object" &&
+            "target" in action.params
+              ? {
+                  target: action.params.target as
+                    | "change-email"
+                    | "account"
+                    | "custom",
+                  custom_url:
+                    "custom_url" in action.params
+                      ? action.params.custom_url
+                      : undefined,
+                }
+              : undefined,
+        })),
+      };
+    };
+
+    const result = await resolveNode(
+      form.nodes,
+      firstNodeId,
+      { user },
+      flowFetcher,
+    );
 
     // Handle different resolution results
     if (!result || result.type === "end") {
@@ -284,7 +384,7 @@ export async function handleFormHook(
     }
 
     if (result.type === "redirect") {
-      // ACTION node with REDIRECT - redirect to the target
+      // ACTION or FLOW node with REDIRECT - redirect to the target
       const redirectUrl = getRedirectUrl(
         result.target as "change-email" | "account" | "custom",
         result.customUrl,

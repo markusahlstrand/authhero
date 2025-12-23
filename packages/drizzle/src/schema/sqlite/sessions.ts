@@ -139,7 +139,7 @@ export const codes = sqliteTable(
 );
 
 export const authenticationCodes = sqliteTable("authentication_codes", {
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   code: text("code", { length: 255 }).primaryKey(),
