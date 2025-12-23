@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.8.0
+
+### Minor Changes
+
+- 9e34783: Sync resource servers for multi tenancy setup
+
 ## 0.7.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.2.0
+
+### Minor Changes
+
+- 9e34783: Sync resource servers for multi tenancy setup
+
 ## 13.1.3
 
 ### Patch Changes
