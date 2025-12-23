@@ -2,37 +2,49 @@ name = "authhero-multitenant"
 main = "src/index.ts"
 compatibility_date = "2024-11-20"
 
-# Main D1 Database (stores tenant registry and main tenant data)
-# Run: wrangler d1 create authhero-main-db
-# Then update the database_id below:
+# D1 Database binding
+# Run: wrangler d1 create authhero-db
+# Then uncomment and update the database_id below:
+# [[d1_databases]]
+# binding = "AUTH_DB"
+# database_name = "authhero-db"
+# database_id = "<YOUR_DATABASE_ID>"
+# migrations_dir = "migrations"
+
+# For local development, you can use a local D1 database:
 [[d1_databases]]
-binding = "MAIN_DB"
-database_name = "authhero-main-db"
+binding = "AUTH_DB"
+database_name = "authhero-db"
 database_id = "local"
+migrations_dir = "migrations"
 
-# Analytics Engine for logs
-# Create in Cloudflare Dashboard: Workers & Pages > Analytics Engine
-[[analytics_engine_datasets]]
-binding = "AUTH_LOGS"
-dataset = "authhero_logs"
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Analytics Engine for centralized logging
+# ════════════════════════════════════════════════════════════════════════════
+# To enable Analytics Engine:
+# 1. Create dataset in Cloudflare Dashboard: Workers & Pages > Analytics Engine
+# 2. Uncomment the binding below
+# 3. Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to .dev.vars
+# 4. Uncomment the Analytics Engine code in src/index.ts
+#
+# [[analytics_engine_datasets]]
+# binding = "AUTH_LOGS"
+# dataset = "authhero_logs"
 
-# Environment variables
-# For local development, create a .dev.vars file with these values:
-# CLOUDFLARE_ACCOUNT_ID=your_account_id
-# CLOUDFLARE_API_TOKEN=your_api_token
-# ANALYTICS_ENGINE_API_TOKEN=your_analytics_token (optional)
-# MAIN_TENANT_ID=main
-# BASE_DOMAIN=auth.example.com (optional)
-
-[vars]
-MAIN_TENANT_ID = "main"
-# BASE_DOMAIN = "auth.example.com"
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Rate Limiting
+# ════════════════════════════════════════════════════════════════════════════
+# To enable Rate Limiting:
+# 1. Rate limiting is available on Workers Paid plan ($5/month)
+# 2. Uncomment the binding below
+# 3. Implement rate limiting logic in src/index.ts
+#
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"  # Unique namespace ID for this limiter
+# simple = { limit = 100, period = 60 }  # 100 requests per 60 seconds
 
 # Optional: Enable observability
-[observability]
-enabled = true
-
-# Optional: Custom domain routing
-# routes = [
-#   { pattern = "*.auth.example.com", custom_domain = true }
-# ]
+# [observability]
+# enabled = true

@@ -4,12 +4,14 @@ import { z } from "zod";
 import {
   tenantInsertSchema,
   auth0QuerySchema,
+  CreateTenantParams,
 } from "@authhero/adapter-interfaces";
 import {
   MultiTenancyBindings,
   MultiTenancyVariables,
   MultiTenancyConfig,
   MultiTenancyHooks,
+  TenantHookContext,
 } from "../types";
 
 /**
@@ -110,14 +112,27 @@ export function createTenantsRouter(
         }
       }
 
-      const body = tenantInsertSchema.parse(await ctx.req.json());
+      let body: CreateTenantParams = tenantInsertSchema.parse(
+        await ctx.req.json(),
+      );
+
+      // Create hook context
+      const hookCtx: TenantHookContext = {
+        adapters: ctx.env.data,
+        ctx,
+      };
+
+      // Call beforeCreate hook
+      if (hooks.tenants?.beforeCreate) {
+        body = await hooks.tenants.beforeCreate(hookCtx, body);
+      }
 
       // Create the tenant
       const tenant = await ctx.env.data.tenants.create(body);
 
-      // Run post-creation hooks (org creation, db provisioning, etc.)
-      if (hooks.onTenantCreated) {
-        await hooks.onTenantCreated(ctx, tenant);
+      // Call afterCreate hook
+      if (hooks.tenants?.afterCreate) {
+        await hooks.tenants.afterCreate(hookCtx, tenant);
       }
 
       return ctx.json(tenant, 201);
@@ -163,13 +178,25 @@ export function createTenantsRouter(
     const body = tenantInsertSchema.partial().parse(await ctx.req.json());
 
     // Strip protected fields
-    const { id: _, ...updates } = body as { id?: string };
+    const { id: _, ...rawUpdates } = body as { id?: string };
 
     const existingTenant = await ctx.env.data.tenants.get(id);
     if (!existingTenant) {
       throw new HTTPException(404, {
         message: "Tenant not found",
       });
+    }
+
+    // Create hook context
+    const hookCtx: TenantHookContext = {
+      adapters: ctx.env.data,
+      ctx,
+    };
+
+    // Call beforeUpdate hook
+    let updates = rawUpdates;
+    if (hooks.tenants?.beforeUpdate) {
+      updates = await hooks.tenants.beforeUpdate(hookCtx, id, rawUpdates);
     }
 
     await ctx.env.data.tenants.update(id, updates);
@@ -179,6 +206,11 @@ export function createTenantsRouter(
       throw new HTTPException(404, {
         message: "Tenant not found after update",
       });
+    }
+
+    // Call afterUpdate hook
+    if (hooks.tenants?.afterUpdate) {
+      await hooks.tenants.afterUpdate(hookCtx, updatedTenant);
     }
 
     return ctx.json(updatedTenant);
@@ -217,12 +249,23 @@ export function createTenantsRouter(
       });
     }
 
-    // Run pre-deletion hooks (org removal, db deprovisioning, etc.)
-    if (hooks.onTenantDeleting) {
-      await hooks.onTenantDeleting(ctx, id);
+    // Create hook context
+    const hookCtx: TenantHookContext = {
+      adapters: ctx.env.data,
+      ctx,
+    };
+
+    // Call beforeDelete hook
+    if (hooks.tenants?.beforeDelete) {
+      await hooks.tenants.beforeDelete(hookCtx, id);
     }
 
     await ctx.env.data.tenants.remove(id);
+
+    // Call afterDelete hook
+    if (hooks.tenants?.afterDelete) {
+      await hooks.tenants.afterDelete(hookCtx, id);
+    }
 
     return ctx.body(null, 204);
   });

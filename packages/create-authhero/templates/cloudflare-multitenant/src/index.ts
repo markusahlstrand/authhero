@@ -1,71 +1,77 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { D1Dialect } from "kysely-d1";
 import { Kysely } from "kysely";
-import createKyselyAdapters from "@authhero/kysely-adapter";
-import createCloudflareAdapters from "@authhero/cloudflare-adapter";
-import { createMultiTenancyPlugin } from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
 import createApp from "./app";
 import { Env } from "./types";
-import { AuthHeroConfig, Bindings, Variables } from "authhero";
-import { createDatabaseFactory } from "./database-factory";
+import { AuthHeroConfig } from "authhero";
 
-let app: OpenAPIHono<{ Bindings: Bindings; Variables: Variables }> | undefined;
+// ──────────────────────────────────────────────────────────────────────────────
+// OPTIONAL: Uncomment to enable Cloudflare adapters (Analytics Engine, etc.)
+// ──────────────────────────────────────────────────────────────────────────────
+// import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (!app) {
-      // Create main database adapters
-      const mainDialect = new D1Dialect({ database: env.MAIN_DB });
-      const mainDb = new Kysely<any>({ dialect: mainDialect });
-      const mainDataAdapter = createKyselyAdapters(mainDb);
+    const url = new URL(request.url);
+    const issuer = `${url.protocol}//${url.host}/`;
 
-      // Create database factory for multi-tenant database isolation
-      const databaseFactory = createDatabaseFactory(
-        env.MAIN_DB,
-        env.CLOUDFLARE_ACCOUNT_ID,
-        env.CLOUDFLARE_API_TOKEN,
-        env.MAIN_TENANT_ID,
-      );
+    // Get the origin from the request for dynamic CORS
+    const origin = request.headers.get("Origin") || "";
 
-      // Create Cloudflare-specific adapters (cache, custom domains, geo)
-      const cloudflareAdapters = createCloudflareAdapters({
-        accountId: env.CLOUDFLARE_ACCOUNT_ID,
-        apiToken: env.CLOUDFLARE_API_TOKEN,
-        // Analytics Engine for logs
-        analyticsEngineLogs: {
-          analyticsEngineBinding: env.AUTH_LOGS,
-          accountId: env.CLOUDFLARE_ACCOUNT_ID,
-          apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
-          dataset: "authhero_logs",
-        },
-      });
+    const dialect = new D1Dialect({ database: env.AUTH_DB });
+    const db = new Kysely<any>({ dialect });
+    const dataAdapter = createAdapters(db);
 
-      // Create multi-tenancy plugin
-      const multiTenancyPlugin = createMultiTenancyPlugin({
-        accessControl: {
-          mainTenantId: env.MAIN_TENANT_ID,
-          defaultPermissions: ["tenant:admin", "tenant:read", "tenant:write"],
-        },
-        subdomainRouting: env.BASE_DOMAIN
-          ? {
-              baseDomain: env.BASE_DOMAIN,
-            }
-          : undefined,
-        databaseIsolation: {
-          getAdapters: databaseFactory.getAdapters,
-          onProvision: databaseFactory.provision,
-          onDeprovision: databaseFactory.deprovision,
-        },
-      });
+    // ────────────────────────────────────────────────────────────────────────
+    // OPTIONAL: Cloudflare Analytics Engine for centralized logging
+    // Uncomment to enable:
+    // ────────────────────────────────────────────────────────────────────────
+    // const cloudflareAdapters = createCloudflareAdapters({
+    //   accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    //   apiToken: env.CLOUDFLARE_API_TOKEN,
+    //   analyticsEngineLogs: {
+    //     analyticsEngineBinding: env.AUTH_LOGS,
+    //     accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    //     apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
+    //     dataset: "authhero_logs",
+    //   },
+    // });
 
-      const config: AuthHeroConfig = {
-        dataAdapter: mainDataAdapter,
-        ...cloudflareAdapters,
-      };
+    // ────────────────────────────────────────────────────────────────────────
+    // OPTIONAL: Rate Limiting
+    // Uncomment to enable rate limiting on authentication endpoints:
+    // ────────────────────────────────────────────────────────────────────────
+    // const { success } = await env.RATE_LIMITER.limit({ key: clientIp });
+    // if (!success) {
+    //   return new Response("Rate limit exceeded", { status: 429 });
+    // }
 
-      app = createApp(config, multiTenancyPlugin);
-    }
+    const config: AuthHeroConfig = {
+      dataAdapter,
+      // ──────────────────────────────────────────────────────────────────────
+      // OPTIONAL: Spread Cloudflare adapters to enable Analytics Engine logging
+      // Uncomment when using createCloudflareAdapters above:
+      // ──────────────────────────────────────────────────────────────────────
+      // ...cloudflareAdapters,
 
-    return app.fetch(request, env);
+      // Allow CORS for the Management API from admin UIs
+      allowedOrigins: [
+        "http://localhost:5173",
+        "https://localhost:3000",
+        "https://manage.authhero.net",
+        "https://local.authhero.net",
+        origin,
+      ].filter(Boolean),
+    };
+
+    const app = createApp(config);
+
+    // Pass the issuer via env bindings
+    const envWithIssuer = {
+      ...env,
+      ISSUER: issuer,
+    };
+
+    return app.fetch(request, envWithIssuer);
   },
 };

@@ -1,26 +1,10 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { AuthHeroConfig, init } from "authhero";
-import { AuthHeroPlugin } from "@authhero/multi-tenancy";
 import { swaggerUI } from "@hono/swagger-ui";
 
-export default function createApp(
-  config: AuthHeroConfig,
-  multiTenancyPlugin: AuthHeroPlugin,
-) {
+export default function createApp(config: AuthHeroConfig) {
   const { app } = init(config);
-
-  // Apply multi-tenancy middleware
-  if (multiTenancyPlugin.middleware) {
-    app.use("*", multiTenancyPlugin.middleware);
-  }
-
-  // Mount multi-tenancy routes
-  if (multiTenancyPlugin.routes) {
-    for (const route of multiTenancyPlugin.routes) {
-      app.route(route.path, route.handler);
-    }
-  }
 
   app
     .onError((err, ctx) => {
@@ -33,15 +17,12 @@ export default function createApp(
     .get("/", async (ctx: Context) => {
       return ctx.json({
         name: "AuthHero Multi-Tenant Server",
+        version: "1.0.0",
         status: "running",
+        docs: "/docs",
       });
     })
     .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
-
-  // Call onRegister if defined
-  if (multiTenancyPlugin.onRegister) {
-    multiTenancyPlugin.onRegister(app);
-  }
 
   return app;
 }

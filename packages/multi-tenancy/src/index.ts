@@ -21,10 +21,17 @@ export {
   createAccessControlHooks,
   createDatabaseHooks,
   createProvisioningHooks,
+  createResourceServerSyncHooks,
+  createTenantResourceServerSyncHooks,
 } from "./hooks";
 
 export { validateTenantAccess } from "./hooks/access-control";
 export type { DatabaseFactory } from "./hooks/database";
+export type {
+  ResourceServerSyncConfig,
+  ResourceServerEntityHooks,
+  TenantResourceServerSyncConfig,
+} from "./hooks/resource-server-sync";
 
 // Re-export routes
 export { createTenantsRouter } from "./routes";
@@ -81,8 +88,7 @@ export function createMultiTenancyHooks(
   return {
     ...accessHooks,
     ...dbHooks,
-    onTenantCreated: provisioningHooks.onTenantCreated,
-    onTenantDeleting: provisioningHooks.onTenantDeleting,
+    tenants: provisioningHooks,
   };
 }
 

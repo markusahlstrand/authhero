@@ -18,8 +18,3 @@
 
 # Optional: Separate token for Analytics Engine (if different from main token)
 # ANALYTICS_ENGINE_API_TOKEN=your_analytics_token_here
-
-# ============================================================================
-# OPTIONAL: Other Configuration
-# ============================================================================
-# BASE_DOMAIN=auth.example.com

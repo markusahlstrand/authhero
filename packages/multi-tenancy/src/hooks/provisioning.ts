@@ -1,8 +1,8 @@
 import { Tenant } from "@authhero/adapter-interfaces";
 import {
   MultiTenancyConfig,
-  MultiTenancyContext,
-  MultiTenancyHooks,
+  TenantEntityHooks,
+  TenantHookContext,
 } from "../types";
 
 /**
@@ -14,20 +14,17 @@ import {
  * - Cleaning up organizations and databases when tenants are deleted
  *
  * @param config - Multi-tenancy configuration
- * @returns Hooks for tenant lifecycle events
+ * @returns Tenant entity hooks for lifecycle events
  */
 export function createProvisioningHooks(
   config: MultiTenancyConfig,
-): Pick<MultiTenancyHooks, "onTenantCreated" | "onTenantDeleting"> {
+): TenantEntityHooks {
   return {
-    async onTenantCreated(
-      ctx: MultiTenancyContext,
-      tenant: Tenant,
-    ): Promise<void> {
+    async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
       const { accessControl, databaseIsolation, settingsInheritance } = config;
 
       // 1. Create organization on main tenant for access control
-      if (accessControl) {
+      if (accessControl && ctx.ctx) {
         await createOrganizationForTenant(ctx, tenant, accessControl);
       }
 
@@ -37,28 +34,25 @@ export function createProvisioningHooks(
       }
 
       // 3. Apply inherited settings if configured
-      if (settingsInheritance?.inheritFromMain !== false) {
+      if (settingsInheritance?.inheritFromMain !== false && ctx.ctx) {
         await applyInheritedSettings(ctx, tenant, config);
       }
     },
 
-    async onTenantDeleting(
-      ctx: MultiTenancyContext,
-      tenantId: string,
-    ): Promise<void> {
+    async beforeDelete(ctx: TenantHookContext, tenantId: string): Promise<void> {
       const { accessControl, databaseIsolation } = config;
 
       // 1. Remove organization from main tenant
       if (accessControl) {
         try {
           // Find the organization by name (which matches tenant ID)
-          const orgs = await ctx.env.data.organizations.list(
+          const orgs = await ctx.adapters.organizations.list(
             accessControl.mainTenantId,
           );
           const org = orgs.organizations.find((o) => o.name === tenantId);
 
           if (org) {
-            await ctx.env.data.organizations.remove(
+            await ctx.adapters.organizations.remove(
               accessControl.mainTenantId,
               org.id,
             );
@@ -90,14 +84,14 @@ export function createProvisioningHooks(
  * Creates an organization on the main tenant for a new tenant.
  */
 async function createOrganizationForTenant(
-  ctx: MultiTenancyContext,
+  ctx: TenantHookContext,
   tenant: Tenant,
   accessControl: NonNullable<MultiTenancyConfig["accessControl"]>,
 ): Promise<void> {
   const { mainTenantId, defaultPermissions, defaultRoles } = accessControl;
 
   // Create organization with tenant ID as the organization ID and name
-  await ctx.env.data.organizations.create(mainTenantId, {
+  await ctx.adapters.organizations.create(mainTenantId, {
     id: tenant.id,
     name: tenant.id,
     display_name: tenant.friendly_name || tenant.id,
@@ -126,7 +120,7 @@ async function createOrganizationForTenant(
  * Applies inherited settings from the main tenant to a new tenant.
  */
 async function applyInheritedSettings(
-  ctx: MultiTenancyContext,
+  ctx: TenantHookContext,
   tenant: Tenant,
   config: MultiTenancyConfig,
 ): Promise<void> {
@@ -137,7 +131,7 @@ async function applyInheritedSettings(
   }
 
   // Get main tenant settings
-  const mainTenant = await ctx.env.data.tenants.get(accessControl.mainTenantId);
+  const mainTenant = await ctx.adapters.tenants.get(accessControl.mainTenantId);
   if (!mainTenant) {
     return;
   }
@@ -189,6 +183,6 @@ async function applyInheritedSettings(
 
   // Update tenant with inherited settings
   if (Object.keys(inheritedSettings).length > 0) {
-    await ctx.env.data.tenants.update(tenant.id, inheritedSettings);
+    await ctx.adapters.tenants.update(tenant.id, inheritedSettings);
   }
 }

@@ -7,8 +7,14 @@ import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 
+// Check if running on local.authhero.net - if so, auto-connect to localhost:3000
+const isLocalDevelopment = window.location.hostname.startsWith("local.");
+const LOCAL_DOMAIN = "localhost:3000";
+
 function Root() {
-  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(
+    isLocalDevelopment ? LOCAL_DOMAIN : null,
+  );
   const currentPath = location.pathname;
   const isAuthCallback = currentPath === "/auth-callback";
   const isRootPath = currentPath === "/";
@@ -18,8 +24,12 @@ function Root() {
     currentPath.startsWith("/tenants/create") ||
     currentPath === "/tenants/";
 
-  // Load domain from cookies on component mount
+  // Load domain from cookies on component mount (skip for local development)
   useEffect(() => {
+    if (isLocalDevelopment) {
+      // For local development, always use localhost:3000
+      return;
+    }
     const savedDomain = getSelectedDomainFromStorage();
     if (savedDomain) {
       setSelectedDomain(savedDomain);
@@ -38,13 +48,20 @@ function Root() {
   }
 
   // Show domain selector on root path or if no domain is selected
-  if (isRootPath || !selectedDomain) {
+  // Skip for local development - redirect to /tenants instead
+  if (!isLocalDevelopment && (isRootPath || !selectedDomain)) {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
         disableCloseOnRootPath={isRootPath}
       />
     );
+  }
+
+  // For local development on root path, redirect to /tenants
+  if (isLocalDevelopment && isRootPath) {
+    window.location.href = "/tenants";
+    return null;
   }
 
   // Handle tenants management routes without basename
@@ -72,7 +89,12 @@ function Root() {
     );
   }
 
-  // Fallback to domain selector
+  // Fallback to domain selector (or redirect for local development)
+  if (isLocalDevelopment) {
+    window.location.href = "/tenants";
+    return null;
+  }
+
   return (
     <DomainSelector
       onDomainSelected={(domain) => setSelectedDomain(domain)}

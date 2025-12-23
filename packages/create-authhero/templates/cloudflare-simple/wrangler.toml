@@ -18,6 +18,33 @@ database_name = "authhero-db"
 database_id = "local"
 migrations_dir = "migrations"
 
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Analytics Engine for centralized logging
+# ════════════════════════════════════════════════════════════════════════════
+# To enable Analytics Engine:
+# 1. Create dataset in Cloudflare Dashboard: Workers & Pages > Analytics Engine
+# 2. Uncomment the binding below
+# 3. Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to .dev.vars
+# 4. Uncomment the Analytics Engine code in src/index.ts
+#
+# [[analytics_engine_datasets]]
+# binding = "AUTH_LOGS"
+# dataset = "authhero_logs"
+
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Rate Limiting
+# ════════════════════════════════════════════════════════════════════════════
+# To enable Rate Limiting:
+# 1. Rate limiting is available on Workers Paid plan ($5/month)
+# 2. Uncomment the binding below
+# 3. Implement rate limiting logic in src/index.ts
+#
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"  # Unique namespace ID for this limiter
+# simple = { limit = 100, period = 60 }  # 100 requests per 60 seconds
+
 # Optional: Enable observability
 # [observability]
 # enabled = true

@@ -1,4 +1,4 @@
-import { DataAdapters, Tenant } from "@authhero/adapter-interfaces";
+import { CreateTenantParams, DataAdapters, Tenant } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 
 /**
@@ -216,6 +216,69 @@ export interface MultiTenancyConfig {
   subdomainRouting?: SubdomainRoutingConfig;
 }
 
+// ============================================================================
+// Tenant Entity Hooks (consistent with EntityHooks pattern in authhero)
+// ============================================================================
+
+/**
+ * Context passed to tenant entity hooks.
+ * Similar to EntityHookContext in authhero, but without tenantId
+ * since tenants are the top-level entity.
+ */
+export interface TenantHookContext {
+  /** Data adapters for database operations */
+  adapters: DataAdapters;
+  /** The Hono request context (optional, not available in all scenarios) */
+  ctx?: MultiTenancyContext;
+}
+
+/**
+ * CRUD hooks for tenant lifecycle events.
+ *
+ * This follows the same pattern as EntityHooks in authhero core,
+ * providing before/after hooks for create, update, and delete operations.
+ *
+ * @example
+ * ```typescript
+ * const tenantHooks: TenantEntityHooks = {
+ *   afterCreate: async (ctx, tenant) => {
+ *     // Copy resource servers from main tenant
+ *     await syncResourceServersToNewTenant(ctx, tenant);
+ *   },
+ *   beforeDelete: async (ctx, tenantId) => {
+ *     // Clean up tenant resources
+ *     await cleanupTenantResources(ctx, tenantId);
+ *   },
+ * };
+ * ```
+ */
+export interface TenantEntityHooks {
+  /** Called before a tenant is created. Can modify the input data. */
+  beforeCreate?: (
+    ctx: TenantHookContext,
+    data: CreateTenantParams,
+  ) => Promise<CreateTenantParams>;
+
+  /** Called after a tenant is created */
+  afterCreate?: (ctx: TenantHookContext, tenant: Tenant) => Promise<void>;
+
+  /** Called before a tenant is updated. Can modify the update data. */
+  beforeUpdate?: (
+    ctx: TenantHookContext,
+    tenantId: string,
+    data: Partial<Tenant>,
+  ) => Promise<Partial<Tenant>>;
+
+  /** Called after a tenant is updated */
+  afterUpdate?: (ctx: TenantHookContext, tenant: Tenant) => Promise<void>;
+
+  /** Called before a tenant is deleted */
+  beforeDelete?: (ctx: TenantHookContext, tenantId: string) => Promise<void>;
+
+  /** Called after a tenant is deleted */
+  afterDelete?: (ctx: TenantHookContext, tenantId: string) => Promise<void>;
+}
+
 /**
  * Hooks interface for multi-tenancy events.
  * These hooks are called during tenant lifecycle events.
@@ -235,25 +298,15 @@ export interface MultiTenancyHooks {
   ) => Promise<boolean>;
 
   /**
-   * Called after a new tenant is created.
-   * Use for creating organizations, provisioning databases, etc.
+   * Entity hooks for tenant CRUD operations.
+   * Follows the same pattern as EntityHooks in authhero core.
    *
-   * @param ctx - The Hono context
-   * @param tenant - The newly created tenant
+   * Use these for:
+   * - Syncing resource servers to new tenants (afterCreate)
+   * - Cleaning up resources before deletion (beforeDelete)
+   * - Audit logging
    */
-  onTenantCreated?: (ctx: MultiTenancyContext, tenant: Tenant) => Promise<void>;
-
-  /**
-   * Called before a tenant is deleted.
-   * Use for cleanup, organization removal, database deprovisioning, etc.
-   *
-   * @param ctx - The Hono context
-   * @param tenantId - The ID of the tenant being deleted
-   */
-  onTenantDeleting?: (
-    ctx: MultiTenancyContext,
-    tenantId: string,
-  ) => Promise<void>;
+  tenants?: TenantEntityHooks;
 
   /**
    * Resolve data adapters for a specific tenant.
