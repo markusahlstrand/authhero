@@ -1,5 +1,11 @@
 # authhero
 
+## 0.299.0
+
+### Minor Changes
+
+- 9e34783: Sync resource servers for multi tenancy setup
+
 ## 0.298.0
 
 ### Minor Changes
