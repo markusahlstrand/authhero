@@ -123,6 +123,7 @@ const ROUTER_FIELD_OPTIONS = [
 import type {
   ComponentConfig,
   FlowNodeData,
+  FlowChoice,
   RouterRule,
   StartNode,
   EndingNode,
@@ -134,6 +135,7 @@ interface NodeEditorProps {
   nodes: FlowNodeData[];
   start?: StartNode;
   ending?: EndingNode;
+  flows?: FlowChoice[];
   onClose: () => void;
   onNodeUpdate: (
     nodeId: string,
@@ -170,6 +172,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   nodes,
   start,
   ending,
+  flows,
   onClose,
   onNodeUpdate,
 }) => {
@@ -662,15 +665,26 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
   const renderFlowNodeEditor = () => (
     <Box>
-      <TextField
-        fullWidth
-        label="Flow ID"
-        name="flow_id"
-        value={formData.flow_id || ""}
-        onChange={handleInputChange}
-        margin="normal"
-        helperText="ID of the flow to update"
-      />
+      <FormControl fullWidth margin="normal">
+        <InputLabel id="flow-id-label">Flow</InputLabel>
+        <Select
+          labelId="flow-id-label"
+          name="flow_id"
+          value={formData.flow_id || ""}
+          onChange={handleInputChange}
+          label="Flow"
+        >
+          <MenuItem value="">
+            <em>None</em>
+          </MenuItem>
+          {flows?.map((flow) => (
+            <MenuItem key={flow.id} value={flow.id}>
+              {flow.name} ({flow.id})
+            </MenuItem>
+          ))}
+        </Select>
+        <FormHelperText>Select the flow to execute</FormHelperText>
+      </FormControl>
     </Box>
   );
 

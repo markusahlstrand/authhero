@@ -72,7 +72,7 @@ export const users = sqliteTable(
 
 export const passwords = sqliteTable("passwords", {
   id: text("id", { length: 21 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 255 })
+  tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
   user_id: text("user_id", { length: 255 }).notNull(),

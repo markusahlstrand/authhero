@@ -11,6 +11,7 @@ import {
   useUpdate,
   useNotify,
   useRefresh,
+  useGetList,
 } from "react-admin";
 import FlowEditor, {
   FlowNodeData,
@@ -28,6 +29,12 @@ const FlowDiagram = () => {
   const [update] = useUpdate();
   const notify = useNotify();
   const refresh = useRefresh();
+
+  // Fetch flows for dropdown selection
+  const { data: flows } = useGetList("flows", {
+    pagination: { page: 1, perPage: 100 },
+    sort: { field: "name", order: "ASC" },
+  });
 
   // Allow rendering if there is a start or ending node, even if nodes is missing or empty
   if (!record || (!record.nodes && !record.start && !record.ending)) {
@@ -107,6 +114,7 @@ const FlowDiagram = () => {
           nodes={record.nodes || []}
           start={record.start}
           ending={record.ending}
+          flows={flows?.map((f) => ({ id: f.id, name: f.name })) || []}
           onNodeUpdate={handleNodeUpdate}
         />
       </ReactFlowProvider>

@@ -4,6 +4,7 @@ import { initJSXRoute } from "./common";
 import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import { resolveNode, getRedirectUrl, FlowFetcher } from "../../hooks/formhooks";
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -170,6 +171,59 @@ export const formNodeRoutes = new OpenAPIHono<{
           throw new Error("Session expired");
         }
 
+        // Check if there's a next_node in the STEP config
+        const nextNodeId = node.config?.next_node;
+        if (nextNodeId && form.nodes) {
+          // Create a flow fetcher for async flow resolution
+          const flowFetcher: FlowFetcher = async (flowId: string) => {
+            const flow = await ctx.env.data.flows.get(client.tenant.id, flowId);
+            if (!flow) return null;
+            return {
+              actions: flow.actions?.map((action) => ({
+                type: action.type,
+                action: action.action,
+                params: "params" in action && action.params && typeof action.params === "object" && "target" in action.params
+                  ? {
+                      target: action.params.target as "change-email" | "account" | "custom",
+                      custom_url: "custom_url" in action.params ? action.params.custom_url : undefined,
+                    }
+                  : undefined,
+              })),
+            };
+          };
+
+          // Resolve the next node (could be FLOW, ROUTER, ACTION, or another STEP)
+          const resolveResult = await resolveNode(form.nodes, nextNodeId, { user }, flowFetcher);
+
+          if (resolveResult) {
+            if (resolveResult.type === "redirect") {
+              // FLOW or ACTION node with REDIRECT - redirect to the target
+              const redirectUrl = getRedirectUrl(
+                resolveResult.target as "change-email" | "account" | "custom",
+                resolveResult.customUrl,
+                state,
+              );
+              return new Response(null, {
+                status: 302,
+                headers: { location: redirectUrl },
+              });
+            }
+
+            if (resolveResult.type === "step") {
+              // Another STEP node - redirect to it
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u/forms/${formId}/nodes/${resolveResult.nodeId}?state=${encodeURIComponent(state)}`,
+                },
+              });
+            }
+
+            // type === "end" - fall through to complete the auth flow
+          }
+        }
+
+        // No next_node or reached end - complete the auth flow
         const result = await createFrontChannelAuthResponse(ctx, {
           authParams: loginSession.authParams,
           client,
