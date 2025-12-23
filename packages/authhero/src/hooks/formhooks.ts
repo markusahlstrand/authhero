@@ -268,7 +268,10 @@ export async function resolveNode(
         if (flow && flow.actions && flow.actions.length > 0) {
           // Process flow actions - look for REDIRECT_USER action
           for (const action of flow.actions) {
-            if (action.type === "REDIRECT" && action.action === "REDIRECT_USER") {
+            if (
+              action.type === "REDIRECT" &&
+              action.action === "REDIRECT_USER"
+            ) {
               const target = action.params?.target;
               if (target) {
                 return {
@@ -341,17 +344,32 @@ export async function handleFormHook(
         actions: flow.actions?.map((action) => ({
           type: action.type,
           action: action.action,
-          params: "params" in action && action.params && typeof action.params === "object" && "target" in action.params
-            ? {
-                target: action.params.target as "change-email" | "account" | "custom",
-                custom_url: "custom_url" in action.params ? action.params.custom_url : undefined,
-              }
-            : undefined,
+          params:
+            "params" in action &&
+            action.params &&
+            typeof action.params === "object" &&
+            "target" in action.params
+              ? {
+                  target: action.params.target as
+                    | "change-email"
+                    | "account"
+                    | "custom",
+                  custom_url:
+                    "custom_url" in action.params
+                      ? action.params.custom_url
+                      : undefined,
+                }
+              : undefined,
         })),
       };
     };
 
-    const result = await resolveNode(form.nodes, firstNodeId, { user }, flowFetcher);
+    const result = await resolveNode(
+      form.nodes,
+      firstNodeId,
+      { user },
+      flowFetcher,
+    );
 
     // Handle different resolution results
     if (!result || result.type === "end") {

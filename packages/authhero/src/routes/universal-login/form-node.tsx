@@ -4,7 +4,11 @@ import { initJSXRoute } from "./common";
 import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
-import { resolveNode, getRedirectUrl, FlowFetcher } from "../../hooks/formhooks";
+import {
+  resolveNode,
+  getRedirectUrl,
+  FlowFetcher,
+} from "../../hooks/formhooks";
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -182,18 +186,33 @@ export const formNodeRoutes = new OpenAPIHono<{
               actions: flow.actions?.map((action) => ({
                 type: action.type,
                 action: action.action,
-                params: "params" in action && action.params && typeof action.params === "object" && "target" in action.params
-                  ? {
-                      target: action.params.target as "change-email" | "account" | "custom",
-                      custom_url: "custom_url" in action.params ? action.params.custom_url : undefined,
-                    }
-                  : undefined,
+                params:
+                  "params" in action &&
+                  action.params &&
+                  typeof action.params === "object" &&
+                  "target" in action.params
+                    ? {
+                        target: action.params.target as
+                          | "change-email"
+                          | "account"
+                          | "custom",
+                        custom_url:
+                          "custom_url" in action.params
+                            ? action.params.custom_url
+                            : undefined,
+                      }
+                    : undefined,
               })),
             };
           };
 
           // Resolve the next node (could be FLOW, ROUTER, ACTION, or another STEP)
-          const resolveResult = await resolveNode(form.nodes, nextNodeId, { user }, flowFetcher);
+          const resolveResult = await resolveNode(
+            form.nodes,
+            nextNodeId,
+            { user },
+            flowFetcher,
+          );
 
           if (resolveResult) {
             if (resolveResult.type === "redirect") {

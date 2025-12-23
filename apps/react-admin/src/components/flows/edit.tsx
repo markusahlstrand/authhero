@@ -55,7 +55,7 @@ const generateActionId = (type: string, action?: string) => {
     return `verify_email_address_${suffix}`;
   }
   if (type === "AUTH0") {
-    const actionName = (action || "action").toLowerCase().replace(/_/g, "_");
+    const actionName = (action || "action").toLowerCase();
     return `${actionName}_${suffix}`;
   }
 
@@ -68,43 +68,41 @@ export const FlowEdit = () => {
       transform={(data: Record<string, unknown>) => {
         // Transform actions to include required fields
         if (data.actions && Array.isArray(data.actions)) {
-          data.actions = data.actions.map(
-            (action: Record<string, unknown>) => {
-              const transformed = { ...action };
+          data.actions = data.actions.map((action: Record<string, unknown>) => {
+            const transformed = { ...action };
 
-              // Remove any nested actions array (form bug workaround)
-              delete transformed.actions;
+            // Remove any nested actions array (form bug workaround)
+            delete transformed.actions;
 
-              // Add action type for REDIRECT
-              if (transformed.type === "REDIRECT") {
-                transformed.action = "REDIRECT_USER";
-                // Ensure params.target is set with default
-                if (
-                  !transformed.params ||
-                  !(transformed.params as Record<string, unknown>).target
-                ) {
-                  transformed.params = {
-                    target:
-                      (transformed.params as Record<string, unknown>)?.target ||
-                      (transformed.redirect_target as string) ||
-                      "change-email",
-                  };
-                }
-                // Clean up temporary field
-                delete transformed.redirect_target;
+            // Add action type for REDIRECT
+            if (transformed.type === "REDIRECT") {
+              transformed.action = "REDIRECT_USER";
+              // Ensure params.target is set with default
+              if (
+                !transformed.params ||
+                !(transformed.params as Record<string, unknown>).target
+              ) {
+                transformed.params = {
+                  target:
+                    (transformed.params as Record<string, unknown>)?.target ||
+                    (transformed.redirect_target as string) ||
+                    "change-email",
+                };
               }
+              // Clean up temporary field
+              delete transformed.redirect_target;
+            }
 
-              // Auto-generate ID if not provided (Auth0-style)
-              if (!transformed.id) {
-                transformed.id = generateActionId(
-                  transformed.type as string,
-                  transformed.action as string | undefined,
-                );
-              }
+            // Auto-generate ID if not provided (Auth0-style)
+            if (!transformed.id) {
+              transformed.id = generateActionId(
+                transformed.type as string,
+                transformed.action as string | undefined,
+              );
+            }
 
-              return transformed;
-            },
-          );
+            return transformed;
+          });
         }
         return data;
       }}

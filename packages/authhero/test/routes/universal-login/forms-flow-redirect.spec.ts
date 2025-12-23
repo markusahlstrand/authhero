@@ -126,10 +126,12 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
     if (!state) throw new Error("No state found");
 
     // Login with email code flow
-    const enterEmailPostResponse = await universalClient.login.identifier.$post({
-      query: { state },
-      form: { username: "test-flow@example.com" },
-    });
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
+        query: { state },
+        form: { username: "test-flow@example.com" },
+      },
+    );
     expect(enterEmailPostResponse.status).toBe(302);
 
     // Enter the verification code
@@ -143,10 +145,14 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
     const enterCodeLocation = enterCodePostResponse.headers.get("location");
 
     // Should redirect to the form step
-    expect(enterCodeLocation).toBe(`/u/forms/${form.id}/nodes/step_consent?state=${state}`);
+    expect(enterCodeLocation).toBe(
+      `/u/forms/${form.id}/nodes/step_consent?state=${state}`,
+    );
 
     // Now access the form step
-    const formStepGet = await universalClient["forms"][form.id]["nodes"].step_consent.$get({
+    const formStepGet = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_consent.$get({
       query: { state },
     });
     expect(formStepGet.status).toBe(200);
@@ -155,7 +161,9 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
     expect(html).toContain("Continue to update your email");
 
     // Submit the form (no LEGAL fields, so no required fields)
-    const formStepPost = await universalClient["forms"][form.id]["nodes"].step_consent.$post({
+    const formStepPost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_consent.$post({
       query: { state },
       form: {},
     });
@@ -216,7 +224,9 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
                   {
                     id: "text",
                     type: "RICH_TEXT",
-                    config: { content: "<p>Click continue to manage your account.</p>" },
+                    config: {
+                      content: "<p>Click continue to manage your account.</p>",
+                    },
                   },
                   {
                     id: "btn",
@@ -271,7 +281,9 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
       },
     });
     expect(authorizeResponse.status).toBe(302);
-    const universalUrl = new URL(`https://example.com${authorizeResponse.headers.get("location")}`);
+    const universalUrl = new URL(
+      `https://example.com${authorizeResponse.headers.get("location")}`,
+    );
     const state = universalUrl.searchParams.get("state")!;
 
     await universalClient.login.identifier.$post({
@@ -288,10 +300,14 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
 
     // Should be directed to the form step
     const enterCodeLocation = enterCodePostResponse.headers.get("location");
-    expect(enterCodeLocation).toBe(`/u/forms/${form.id}/nodes/step_info?state=${state}`);
+    expect(enterCodeLocation).toBe(
+      `/u/forms/${form.id}/nodes/step_info?state=${state}`,
+    );
 
     // Submit the form
-    const formStepPost = await universalClient["forms"][form.id]["nodes"].step_info.$post({
+    const formStepPost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_info.$post({
       query: { state },
       form: {},
     });
