@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.111.0
+
+### Minor Changes
+
+- 906337d: Add flows support
+
 ## 0.110.0
 
 ### Minor Changes

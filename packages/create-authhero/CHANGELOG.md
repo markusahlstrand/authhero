@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.8.0
+
+### Minor Changes
+
+- 02567cd: Make create authhero work with d1 locally
+
 ## 0.7.0
 
 ### Minor Changes

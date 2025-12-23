@@ -1,5 +1,13 @@
 # @authhero/docs
 
+## 1.20.0
+
+### Minor Changes
+
+- 02567cd: Make create authhero work with d1 locally
+- 906337d: Add flows support
+- f3f96df: Add support for entity hooks
+
 ## 1.19.0
 
 ### Minor Changes

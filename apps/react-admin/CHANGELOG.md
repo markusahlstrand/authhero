@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.7.0
+
+### Minor Changes
+
+- 906337d: Add flows support
+
 ## 0.6.0
 
 ### Minor Changes
