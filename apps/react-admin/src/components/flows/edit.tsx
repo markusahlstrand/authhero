@@ -61,7 +61,7 @@ const generateActionId = (type: string, action?: string) => {
 
   return `action_${suffix}`;
 };
-git;
+
 // Parse function to extract params into form fields when loading
 const parseFlowData = (data: Record<string, unknown>) => {
   if (data.actions && Array.isArray(data.actions)) {
