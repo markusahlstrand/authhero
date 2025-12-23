@@ -1,4 +1,8 @@
-import { CreateTenantParams, DataAdapters, Tenant } from "@authhero/adapter-interfaces";
+import {
+  CreateTenantParams,
+  DataAdapters,
+  Tenant,
+} from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 
 /**

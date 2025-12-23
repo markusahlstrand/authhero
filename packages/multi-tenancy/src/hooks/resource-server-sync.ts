@@ -216,7 +216,11 @@ export function createResourceServerSyncHooks(
           const adapters = await getAdapters(tenantId);
 
           // Find by identifier first to get the ID
-          const existing = await findByIdentifier(adapters, tenantId, identifier);
+          const existing = await findByIdentifier(
+            adapters,
+            tenantId,
+            identifier,
+          );
 
           if (existing && existing.id) {
             await adapters.resourceServers.remove(tenantId, existing.id);

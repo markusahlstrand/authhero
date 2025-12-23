@@ -39,7 +39,10 @@ export function createProvisioningHooks(
       }
     },
 
-    async beforeDelete(ctx: TenantHookContext, tenantId: string): Promise<void> {
+    async beforeDelete(
+      ctx: TenantHookContext,
+      tenantId: string,
+    ): Promise<void> {
       const { accessControl, databaseIsolation } = config;
 
       // 1. Remove organization from main tenant

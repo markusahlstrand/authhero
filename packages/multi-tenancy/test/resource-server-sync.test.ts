@@ -373,7 +373,9 @@ describe("Resource Server Sync Hooks", () => {
     });
 
     it("should handle errors gracefully and continue syncing to other tenants", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       // Create a failing adapters mock
       const failingAdapters = {
