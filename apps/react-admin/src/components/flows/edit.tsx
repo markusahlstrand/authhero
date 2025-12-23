@@ -61,10 +61,38 @@ const generateActionId = (type: string, action?: string) => {
 
   return `action_${suffix}`;
 };
+git;
+// Parse function to extract params into form fields when loading
+const parseFlowData = (data: Record<string, unknown>) => {
+  if (data.actions && Array.isArray(data.actions)) {
+    data.actions = data.actions.map((action: Record<string, unknown>) => {
+      const parsed = { ...action };
+
+      // Extract REDIRECT params into form fields
+      if (parsed.type === "REDIRECT" && parsed.params) {
+        const params = parsed.params as Record<string, unknown>;
+        if (params.target) {
+          parsed.redirect_target = params.target;
+        }
+        if (params.custom_url) {
+          parsed.redirect_custom_url = params.custom_url;
+        }
+      }
+
+      return parsed;
+    });
+  }
+  return data;
+};
 
 export const FlowEdit = () => {
   return (
     <Edit
+      queryOptions={{
+        select: (data) => ({
+          data: parseFlowData(data.data as Record<string, unknown>),
+        }),
+      }}
       transform={(data: Record<string, unknown>) => {
         // Transform actions to include required fields
         if (data.actions && Array.isArray(data.actions)) {
@@ -78,17 +106,18 @@ export const FlowEdit = () => {
             if (transformed.type === "REDIRECT") {
               transformed.action = "REDIRECT_USER";
               // Build params with target and optional custom_url
+              // Prioritize form fields over existing params (user edits should take effect)
               const target =
-                (transformed.params as Record<string, unknown>)?.target ||
                 (transformed.redirect_target as string) ||
+                (transformed.params as Record<string, unknown>)?.target ||
                 "change-email";
               const params: Record<string, unknown> = { target };
 
               // Include custom_url when target is "custom"
               if (target === "custom") {
                 const customUrl =
-                  (transformed.params as Record<string, unknown>)?.custom_url ||
-                  (transformed.redirect_custom_url as string);
+                  (transformed.redirect_custom_url as string) ||
+                  (transformed.params as Record<string, unknown>)?.custom_url;
                 if (customUrl) {
                   params.custom_url = customUrl;
                 }
