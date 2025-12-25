@@ -4,10 +4,7 @@
     "baseUrl": ".",
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ESNext", "DOM"],
-    "paths": {
-      "authhero": ["../authhero/dist/authhero.d.ts"]
-    }
+    "lib": ["ESNext", "DOM"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
