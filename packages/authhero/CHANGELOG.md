@@ -1,5 +1,11 @@
 # authhero
 
+## 0.301.0
+
+### Minor Changes
+
+- e87ab70: Move tenants crud to multi-tenancy package
+
 ## 0.300.0
 
 ### Minor Changes
