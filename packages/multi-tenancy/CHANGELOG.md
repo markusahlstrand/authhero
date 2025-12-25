@@ -1,5 +1,19 @@
 # @authhero/multi-tenancy
 
+## 13.4.0
+
+### Minor Changes
+
+- 283daf2: Refactor multi-tenancy package
+- ae8553a: Add is_system to all adapters
+
+### Patch Changes
+
+- Updated dependencies [283daf2]
+- Updated dependencies [ae8553a]
+  - authhero@0.302.0
+  - @authhero/adapter-interfaces@0.112.0
+
 ## 13.3.0
 
 ### Minor Changes

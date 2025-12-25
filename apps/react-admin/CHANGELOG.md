@@ -1,5 +1,12 @@
 # @authhero/react-admin
 
+## 0.10.0
+
+### Minor Changes
+
+- 283daf2: Refactor multi-tenancy package
+- ae8553a: Add is_system to all adapters
+
 ## 0.9.0
 
 ### Minor Changes

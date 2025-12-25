@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.112.0
+
+### Minor Changes
+
+- ae8553a: Add is_system to all adapters
+
 ## 0.111.0
 
 ### Minor Changes
