@@ -10,7 +10,11 @@ import {
 // Main tenant ID - the tenant that manages all other tenants
 const MAIN_TENANT_ID = "main";
 
-export default function createApp(config: Omit<MultiTenantAuthHeroConfig, "mainTenantId"> & { dataAdapter: DataAdapters }) {
+export default function createApp(
+  config: Omit<MultiTenantAuthHeroConfig, "mainTenantId"> & {
+    dataAdapter: DataAdapters;
+  },
+) {
   const { app } = init({
     ...config,
     mainTenantId: MAIN_TENANT_ID,

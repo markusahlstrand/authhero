@@ -17,8 +17,10 @@ export function get(db: Kysely<Database>) {
     if (!row) return null;
 
     const dbRow = row as RoleDbRow;
+    const { synced, ...rest } = dbRow;
     const role: Role = {
-      ...dbRow,
+      ...rest,
+      synced: synced ? true : undefined,
     };
 
     return role;

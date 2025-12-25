@@ -4,6 +4,7 @@ import {
   ResourceServerInsert,
 } from "@authhero/adapter-interfaces";
 import { TenantEntityHooks, TenantHookContext } from "../types";
+import { fetchAll } from "../utils/fetchAll";
 
 /**
  * Configuration for resource server synchronization
@@ -158,6 +159,9 @@ export function createResourceServerSyncHooks(
                 options: resourceServer.options,
               };
 
+          // Add synced flag to mark this as synced from main tenant
+          const dataWithSynced = { ...dataToSync, synced: true };
+
           if (operation === "create") {
             // Check if already exists (by identifier)
             const existing = await findByIdentifier(
@@ -171,11 +175,11 @@ export function createResourceServerSyncHooks(
               await adapters.resourceServers.update(
                 tenantId,
                 existing.id,
-                dataToSync,
+                dataWithSynced,
               );
             } else {
               // Create new
-              await adapters.resourceServers.create(tenantId, dataToSync);
+              await adapters.resourceServers.create(tenantId, dataWithSynced);
             }
           } else {
             // Update - find by identifier first to get the ID
@@ -189,7 +193,7 @@ export function createResourceServerSyncHooks(
               await adapters.resourceServers.update(
                 tenantId,
                 existing.id,
-                dataToSync,
+                dataWithSynced,
               );
             }
           }
@@ -373,16 +377,19 @@ export function createTenantResourceServerSyncHooks(
         const mainAdapters = await getMainTenantAdapters();
         const targetAdapters = await getAdapters(tenant.id);
 
-        // Get all resource servers from main tenant
-        const result = await mainAdapters.resourceServers.list(mainTenantId, {
-          per_page: 100, // Adjust if you expect more resource servers
-        });
+        // Get all resource servers from main tenant using pagination
+        const allResourceServers = await fetchAll<ResourceServer>(
+          (params) => mainAdapters.resourceServers.list(mainTenantId, params),
+          "resource_servers",
+          { cursorField: "id", pageSize: 100 },
+        );
 
         // Sync each resource server to the new tenant
         await Promise.all(
-          result.resource_servers
-            .filter((rs) => shouldSync(rs))
-            .map(async (resourceServer) => {
+          allResourceServers
+            .filter((rs) => shouldSync(rs as ResourceServer))
+            .map(async (rs) => {
+              const resourceServer = rs as ResourceServer;
               try {
                 const dataToSync: ResourceServerInsert = transformForSync
                   ? transformForSync(resourceServer, tenant.id)
@@ -402,10 +409,11 @@ export function createTenantResourceServerSyncHooks(
                       options: resourceServer.options,
                     };
 
-                await targetAdapters.resourceServers.create(
-                  tenant.id,
-                  dataToSync,
-                );
+                // Add synced flag to mark this as synced from main tenant
+                await targetAdapters.resourceServers.create(tenant.id, {
+                  ...dataToSync,
+                  synced: true,
+                });
               } catch (error) {
                 console.error(
                   `Failed to sync resource server "${resourceServer.identifier}" to new tenant "${tenant.id}":`,

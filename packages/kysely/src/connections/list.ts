@@ -27,12 +27,14 @@ export function list(db: Kysely<Database>) {
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const dbConnections = await filteredQuery.selectAll().execute();
-    const connections: Connection[] = dbConnections.map((connection) =>
-      removeNullProperties({
-        ...connection,
+    const connections: Connection[] = dbConnections.map((connection) => {
+      const { synced, ...rest } = connection;
+      return removeNullProperties({
+        ...rest,
+        synced: synced ? true : undefined,
         options: JSON.parse(connection.options),
-      }),
-    );
+      });
+    });
 
     if (!include_totals) {
       return {

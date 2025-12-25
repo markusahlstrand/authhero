@@ -58,6 +58,7 @@ export function list(db: Kysely<Database>) {
         options,
         skip_consent_for_verifiable_first_party_clients,
         allow_offline_access,
+        synced,
         ...rest
       } = dbRow;
 
@@ -68,6 +69,7 @@ export function list(db: Kysely<Database>) {
         skip_consent_for_verifiable_first_party_clients:
           !!skip_consent_for_verifiable_first_party_clients,
         allow_offline_access: !!allow_offline_access,
+        synced: synced ? true : undefined,
         // Convert verification_key back to verificationKey for API
         verificationKey: verification_key,
       };

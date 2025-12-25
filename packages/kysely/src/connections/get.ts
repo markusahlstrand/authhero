@@ -19,8 +19,11 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
+    const { synced, ...rest } = connection;
+
     return removeNullProperties({
-      ...connection,
+      ...rest,
+      synced: synced ? true : undefined,
       options: JSON.parse(connection.options),
     });
   };

@@ -1,8 +1,5 @@
 import { Hono } from "hono";
-import {
-  init as initAuthHero,
-  AuthHeroConfig,
-} from "authhero";
+import { init as initAuthHero, AuthHeroConfig } from "authhero";
 import {
   MultiTenancyConfig,
   MultiTenancyHooks,
@@ -15,15 +12,25 @@ import {
   createProvisioningHooks,
 } from "./hooks";
 import { createTenantsRouter } from "./routes";
-import { createMultiTenancyMiddleware } from "./middleware";
+import {
+  createMultiTenancyMiddleware,
+  createProtectSyncedMiddleware,
+} from "./middleware";
 import {
   createResourceServerSyncHooks,
   createTenantResourceServerSyncHooks,
 } from "./hooks/resource-server-sync";
+import { fetchAll } from "./utils/fetchAll";
 
 // Re-export essential types and functions from authhero
 export { seed } from "authhero";
-export type { AuthHeroConfig, DataAdapters, Tenant, CreateTenantParams, ResourceServer } from "authhero";
+export type {
+  AuthHeroConfig,
+  DataAdapters,
+  Tenant,
+  CreateTenantParams,
+  ResourceServer,
+} from "authhero";
 
 // Re-export all types
 export * from "./types";
@@ -54,7 +61,12 @@ export {
   createAccessControlMiddleware,
   createSubdomainMiddleware,
   createDatabaseMiddleware,
+  createProtectSyncedMiddleware,
 } from "./middleware";
+
+// Re-export utils
+export { fetchAll } from "./utils/fetchAll";
+export type { FetchAllOptions } from "./utils/fetchAll";
 
 // Re-export plugin
 export { createMultiTenancyPlugin } from "./plugin";
@@ -190,7 +202,8 @@ export function setupMultiTenancy(config: MultiTenancyConfig) {
 /**
  * Configuration for multi-tenant AuthHero initialization.
  */
-export interface MultiTenantAuthHeroConfig extends Omit<AuthHeroConfig, "entityHooks"> {
+export interface MultiTenantAuthHeroConfig
+  extends Omit<AuthHeroConfig, "entityHooks"> {
   /**
    * The main tenant ID that manages all other tenants.
    * This tenant can create, update, and delete other tenants.
@@ -274,15 +287,23 @@ export function init(config: MultiTenantAuthHeroConfig) {
   const multiTenancyHooks = createMultiTenancyHooks(multiTenancyConfig);
 
   // Create resource server sync hooks if enabled
-  let resourceServerHooks: ReturnType<typeof createResourceServerSyncHooks> | undefined;
-  let tenantResourceServerHooks: ReturnType<typeof createTenantResourceServerSyncHooks> | undefined;
+  let resourceServerHooks:
+    | ReturnType<typeof createResourceServerSyncHooks>
+    | undefined;
+  let tenantResourceServerHooks:
+    | ReturnType<typeof createTenantResourceServerSyncHooks>
+    | undefined;
 
   if (syncResourceServers) {
     resourceServerHooks = createResourceServerSyncHooks({
       mainTenantId,
       getChildTenantIds: async () => {
-        const result = await config.dataAdapter.tenants.list({ per_page: 100 });
-        return result.tenants
+        const allTenants = await fetchAll<{ id: string }>(
+          (params) => config.dataAdapter.tenants.list(params),
+          "tenants",
+          { cursorField: "id", pageSize: 100 },
+        );
+        return allTenants
           .filter((t) => t.id !== mainTenantId)
           .map((t) => t.id);
       },
@@ -303,11 +324,18 @@ export function init(config: MultiTenantAuthHeroConfig) {
       ? {
           ...configEntityHooks?.resourceServers,
           afterCreate: async (ctx, entity) => {
-            await configEntityHooks?.resourceServers?.afterCreate?.(ctx, entity);
+            await configEntityHooks?.resourceServers?.afterCreate?.(
+              ctx,
+              entity,
+            );
             await resourceServerHooks?.afterCreate?.(ctx, entity);
           },
           afterUpdate: async (ctx, id, entity) => {
-            await configEntityHooks?.resourceServers?.afterUpdate?.(ctx, id, entity);
+            await configEntityHooks?.resourceServers?.afterUpdate?.(
+              ctx,
+              id,
+              entity,
+            );
             await resourceServerHooks?.afterUpdate?.(ctx, id, entity);
           },
           afterDelete: async (ctx, id) => {
@@ -335,9 +363,16 @@ export function init(config: MultiTenantAuthHeroConfig) {
 
   const { app, managementApp, ...rest } = authHeroResult;
 
+  // Add middleware to protect synced resources from modification
+  // This must be added before routes so it can intercept write operations
+  app.use("/api/v2/*", createProtectSyncedMiddleware());
+
   // Create the tenant CRUD router
-  const tenantsRouter = createTenantsRouter(multiTenancyConfig, multiTenancyHooks);
-  
+  const tenantsRouter = createTenantsRouter(
+    multiTenancyConfig,
+    multiTenancyHooks,
+  );
+
   // Mount tenant CRUD routes directly on the main app at /api/v2/tenants
   // This adds routes like GET /, POST /, GET /:id, etc.
   // The authhero's /tenants/settings route is already mounted via managementApp

@@ -32,6 +32,7 @@ export function create(db: Kysely<Database>) {
       options,
       skip_consent_for_verifiable_first_party_clients,
       allow_offline_access,
+      synced,
       ...rest
     } = resourceServer;
 
@@ -43,6 +44,7 @@ export function create(db: Kysely<Database>) {
       skip_consent_for_verifiable_first_party_clients:
         skip_consent_for_verifiable_first_party_clients ? 1 : 0,
       allow_offline_access: allow_offline_access ? 1 : 0,
+      synced: synced ? 1 : 0,
       verification_key: verificationKey,
       created_at: now,
       updated_at: now,

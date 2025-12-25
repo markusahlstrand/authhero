@@ -8,9 +8,12 @@ export function create(db: Kysely<Database>) {
     tenant_id: string,
     params: ConnectionInsert,
   ): Promise<Connection> => {
-    const connection = {
-      id: params.id || generateConnectionId(),
-      ...params,
+    const { synced, ...rest } = params;
+
+    const connection: Connection = {
+      id: rest.id || generateConnectionId(),
+      ...rest,
+      synced,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -19,6 +22,7 @@ export function create(db: Kysely<Database>) {
       .insertInto("connections")
       .values({
         ...connection,
+        synced: synced ? 1 : 0,
         // The connection options will have many different properties depending on the strategy
         options: JSON.stringify(connection.options || {}),
         tenant_id,

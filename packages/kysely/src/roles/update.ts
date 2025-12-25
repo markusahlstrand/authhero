@@ -11,8 +11,11 @@ export function update(db: Kysely<Database>) {
     roleId: string,
     params: Partial<Role>,
   ): Promise<boolean> => {
+    const { synced, ...rest } = params;
+
     const updates: RoleDbUpdate = {
-      ...params,
+      ...rest,
+      synced: synced !== undefined ? (synced ? 1 : 0) : undefined,
       updated_at: new Date().toISOString(),
     };
 
