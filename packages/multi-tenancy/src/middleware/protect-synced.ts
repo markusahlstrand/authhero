@@ -3,29 +3,29 @@ import { HTTPException } from "hono/http-exception";
 import type { DataAdapters } from "@authhero/adapter-interfaces";
 
 /**
- * Bindings for the protect synced middleware
+ * Bindings for the protect system middleware
  */
-interface ProtectSyncedBindings {
+interface ProtectSystemBindings {
   data: DataAdapters;
 }
 
 /**
  * Variables expected to be set by earlier middleware
  */
-interface ProtectSyncedVariables {
+interface ProtectSystemVariables {
   tenant_id?: string;
 }
 
 /**
- * Entity types that support the synced field
+ * Entity types that support the is_system field
  */
-type SyncedEntityType = "resource_server" | "role" | "connection";
+type SystemEntityType = "resource_server" | "role" | "connection";
 
 /**
  * Information about an entity parsed from the request path
  */
 interface EntityInfo {
-  type: SyncedEntityType;
+  type: SystemEntityType;
   id: string;
 }
 
@@ -36,7 +36,7 @@ interface EntityInfo {
  * @returns Entity information or null if not a recognized entity path
  */
 function parseEntityFromPath(path: string): EntityInfo | null {
-  const patterns: { pattern: RegExp; type: SyncedEntityType }[] = [
+  const patterns: { pattern: RegExp; type: SystemEntityType }[] = [
     {
       pattern: /\/api\/v2\/resource-servers\/([^/]+)$/,
       type: "resource_server",
@@ -56,14 +56,14 @@ function parseEntityFromPath(path: string): EntityInfo | null {
 }
 
 /**
- * Check if an entity is synced from the main tenant
+ * Check if an entity is a system entity from the main tenant
  *
  * @param adapters - Data adapters
  * @param tenantId - The tenant ID
  * @param entityInfo - Entity type and ID
- * @returns true if the entity is synced
+ * @returns true if the entity is a system entity
  */
-async function isSynced(
+async function isSystemEntity(
   adapters: DataAdapters,
   tenantId: string,
   entityInfo: EntityInfo,
@@ -72,21 +72,21 @@ async function isSynced(
     switch (entityInfo.type) {
       case "resource_server": {
         const rs = await adapters.resourceServers.get(tenantId, entityInfo.id);
-        return rs?.synced === true;
+        return rs?.is_system === true;
       }
       case "role": {
         const role = await adapters.roles.get(tenantId, entityInfo.id);
-        return role?.synced === true;
+        return role?.is_system === true;
       }
       case "connection": {
         const conn = await adapters.connections.get(tenantId, entityInfo.id);
-        return conn?.synced === true;
+        return conn?.is_system === true;
       }
       default:
         return false;
     }
   } catch {
-    // If we can't fetch the entity, assume it's not synced
+    // If we can't fetch the entity, assume it's not a system entity
     return false;
   }
 }
@@ -97,8 +97,8 @@ async function isSynced(
  * @param type - The entity type
  * @returns Human-readable name
  */
-function getEntityTypeName(type: SyncedEntityType): string {
-  const names: Record<SyncedEntityType, string> = {
+function getEntityTypeName(type: SystemEntityType): string {
+  const names: Record<SystemEntityType, string> = {
     resource_server: "resource server",
     role: "role",
     connection: "connection",
@@ -107,13 +107,13 @@ function getEntityTypeName(type: SyncedEntityType): string {
 }
 
 /**
- * Creates middleware to protect synced resources from modification.
+ * Creates middleware to protect system resources from modification.
  *
  * This middleware intercepts write operations (PATCH, PUT, DELETE) on
- * entities that have been synced from the main tenant and returns a 403
+ * entities that are marked as system entities from the main tenant and returns a 403
  * error if modification is attempted.
  *
- * Synced resources can only be modified in the main tenant, and changes
+ * System resources can only be modified in the main tenant, and changes
  * will be propagated to child tenants automatically.
  *
  * @returns Hono middleware handler
@@ -127,8 +127,8 @@ function getEntityTypeName(type: SyncedEntityType): string {
  * ```
  */
 export function createProtectSyncedMiddleware(): MiddlewareHandler<{
-  Bindings: ProtectSyncedBindings;
-  Variables: ProtectSyncedVariables;
+  Bindings: ProtectSystemBindings;
+  Variables: ProtectSystemVariables;
 }> {
   return async (ctx, next) => {
     // Only check write operations
@@ -151,10 +151,10 @@ export function createProtectSyncedMiddleware(): MiddlewareHandler<{
       return next();
     }
 
-    const synced = await isSynced(ctx.env.data, tenantId, entityInfo);
-    if (synced) {
+    const isSystem = await isSystemEntity(ctx.env.data, tenantId, entityInfo);
+    if (isSystem) {
       throw new HTTPException(403, {
-        message: `This ${getEntityTypeName(entityInfo.type)} is synced from the main tenant and cannot be modified. Make changes in the main tenant instead.`,
+        message: `This ${getEntityTypeName(entityInfo.type)} is a system resource and cannot be modified. Make changes in the main tenant instead.`,
       });
     }
 

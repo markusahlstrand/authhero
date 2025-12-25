@@ -8,7 +8,7 @@ export const roleInsertSchema = z.object({
   description: z.string().max(255).optional().openapi({
     description: "The description of the role",
   }),
-  synced: z.boolean().optional(),
+  is_system: z.boolean().optional(),
 });
 
 export const roleSchema = z.object({

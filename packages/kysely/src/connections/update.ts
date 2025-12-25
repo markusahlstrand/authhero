@@ -8,11 +8,11 @@ export function update(db: Kysely<Database>) {
     connection_id: string,
     connection: Partial<ConnectionInsert>,
   ): Promise<boolean> => {
-    const { synced, ...rest } = connection;
+    const { is_system, ...rest } = connection;
 
     const sqlConnection = {
       ...rest,
-      synced: synced !== undefined ? (synced ? 1 : 0) : undefined,
+      is_system: is_system !== undefined ? (is_system ? 1 : 0) : undefined,
       updated_at: new Date().toISOString(),
     };
 

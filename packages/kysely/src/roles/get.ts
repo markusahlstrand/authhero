@@ -17,10 +17,10 @@ export function get(db: Kysely<Database>) {
     if (!row) return null;
 
     const dbRow = row as RoleDbRow;
-    const { synced, ...rest } = dbRow;
+    const { is_system, ...rest } = dbRow;
     const role: Role = {
       ...rest,
-      synced: synced ? true : undefined,
+      is_system: is_system ? true : undefined,
     };
 
     return role;

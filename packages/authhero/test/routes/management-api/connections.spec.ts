@@ -45,7 +45,7 @@ describe("connections", () => {
       options: {
         team_id: "teamId",
       },
-      synced: false,
+      is_system: false,
     });
     expect(created_at).toBeTypeOf("string");
     expect(updated_at).toBeTypeOf("string");

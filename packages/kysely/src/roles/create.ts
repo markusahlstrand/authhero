@@ -9,18 +9,18 @@ type RoleDbInsert = z.infer<typeof sqlRoleSchema>;
 export function create(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: RoleInsert & { synced?: boolean },
+    params: RoleInsert & { is_system?: boolean },
   ): Promise<Role> => {
     const now = new Date().toISOString();
     const id = nanoid();
 
-    const { synced, ...rest } = params;
+    const { is_system, ...rest } = params;
 
     const dbRole: RoleDbInsert = {
       id,
       ...rest,
       tenant_id: tenantId,
-      synced: synced ? 1 : 0,
+      is_system: is_system ? 1 : 0,
       created_at: now,
       updated_at: now,
     };
@@ -30,7 +30,7 @@ export function create(db: Kysely<Database>) {
     const role: Role = {
       id,
       ...rest,
-      synced: synced ?? false,
+      is_system: is_system ?? false,
       created_at: now,
       updated_at: now,
     };

@@ -43,7 +43,7 @@ describe("roles", () => {
     expect(rest).toEqual({
       name: "test-role",
       description: "A test role for CRUD operations",
-      synced: false,
+      is_system: false,
     });
     expect(created_at).toBeTypeOf("string");
     expect(updated_at).toBeTypeOf("string");

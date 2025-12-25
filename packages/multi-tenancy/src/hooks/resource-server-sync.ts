@@ -159,8 +159,8 @@ export function createResourceServerSyncHooks(
                 options: resourceServer.options,
               };
 
-          // Add synced flag to mark this as synced from main tenant
-          const dataWithSynced = { ...dataToSync, synced: true };
+          // Add is_system flag to mark this as synced from main tenant
+          const dataWithIsSystem = { ...dataToSync, is_system: true };
 
           if (operation === "create") {
             // Check if already exists (by identifier)
@@ -175,11 +175,11 @@ export function createResourceServerSyncHooks(
               await adapters.resourceServers.update(
                 tenantId,
                 existing.id,
-                dataWithSynced,
+                dataWithIsSystem,
               );
             } else {
               // Create new
-              await adapters.resourceServers.create(tenantId, dataWithSynced);
+              await adapters.resourceServers.create(tenantId, dataWithIsSystem);
             }
           } else {
             // Update - find by identifier first to get the ID
@@ -193,7 +193,7 @@ export function createResourceServerSyncHooks(
               await adapters.resourceServers.update(
                 tenantId,
                 existing.id,
-                dataWithSynced,
+                dataWithIsSystem,
               );
             }
           }
@@ -409,10 +409,10 @@ export function createTenantResourceServerSyncHooks(
                       options: resourceServer.options,
                     };
 
-                // Add synced flag to mark this as synced from main tenant
+                // Add is_system flag to mark this as synced from main tenant
                 await targetAdapters.resourceServers.create(tenant.id, {
                   ...dataToSync,
-                  synced: true,
+                  is_system: true,
                 });
               } catch (error) {
                 console.error(

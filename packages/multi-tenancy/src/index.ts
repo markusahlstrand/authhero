@@ -415,7 +415,7 @@ export function init(config: MultiTenantAuthHeroConfig) {
     Variables: MultiTenancyVariables;
   }>();
 
-  // Add middleware to protect synced resources from modification
+  // Add middleware to protect system resources from modification
   // This MUST be added before routes so it can intercept write operations
   app.use("/api/v2/*", createProtectSyncedMiddleware());
 

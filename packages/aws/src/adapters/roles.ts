@@ -24,6 +24,7 @@ interface RoleItem extends DynamoDBBaseItem {
   tenant_id: string;
   name: string;
   description?: string;
+  is_system?: boolean;
 }
 
 function toRole(item: RoleItem): Role {
@@ -45,6 +46,7 @@ export function createRolesAdapter(ctx: DynamoDBContext): RolesAdapter {
         id,
         name: role.name,
         description: role.description,
+        is_system: role.is_system ?? false,
         created_at: now,
         updated_at: now,
       };
