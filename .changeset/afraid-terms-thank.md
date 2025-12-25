@@ -5,4 +5,4 @@
 "@authhero/react-admin": minor
 ---
 
-Refactor multi-tenenacy package
+Refactor multi-tenancy package
