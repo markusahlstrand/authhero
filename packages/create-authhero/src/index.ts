@@ -138,6 +138,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       },
       dependencies: {
         "@authhero/kysely-adapter": "latest",
+        "@authhero/multi-tenancy": "latest",
         "@hono/swagger-ui": "^0.5.0",
         "@hono/zod-openapi": "^0.19.0",
         authhero: "latest",
