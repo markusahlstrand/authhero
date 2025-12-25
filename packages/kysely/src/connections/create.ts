@@ -13,7 +13,7 @@ export function create(db: Kysely<Database>) {
     const connection: Connection = {
       id: rest.id || generateConnectionId(),
       ...rest,
-      synced,
+      synced: synced ?? false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

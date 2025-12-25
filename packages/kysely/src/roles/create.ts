@@ -30,7 +30,7 @@ export function create(db: Kysely<Database>) {
     const role: Role = {
       id,
       ...rest,
-      synced,
+      synced: synced ?? false,
       created_at: now,
       updated_at: now,
     };

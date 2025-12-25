@@ -305,15 +305,50 @@ export function init(config: MultiTenantAuthHeroConfig) {
         );
         return allTenants.filter((t) => t.id !== mainTenantId).map((t) => t.id);
       },
-      getAdapters: async () => config.dataAdapter,
+      getAdapters: async (_tenantId: string) => config.dataAdapter,
     });
 
     tenantResourceServerHooks = createTenantResourceServerSyncHooks({
       mainTenantId,
       getMainTenantAdapters: async () => config.dataAdapter,
-      getAdapters: async () => config.dataAdapter,
+      getAdapters: async (_tenantId: string) => config.dataAdapter,
     });
   }
+
+  // Helper to chain hooks with error handling - ensures both hooks execute
+  // even if the first one throws, then re-throws any errors that occurred
+  const chainHooks = async <T extends unknown[]>(
+    hook1: ((...args: T) => Promise<void>) | undefined,
+    hook2: ((...args: T) => Promise<void>) | undefined,
+    ...args: T
+  ): Promise<void> => {
+    const errors: Error[] = [];
+
+    if (hook1) {
+      try {
+        await hook1(...args);
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
+
+    if (hook2) {
+      try {
+        await hook2(...args);
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
+
+    if (errors.length === 1) {
+      throw errors[0];
+    } else if (errors.length > 1) {
+      throw new AggregateError(
+        errors,
+        `Multiple hook errors: ${errors.map((e) => e.message).join("; ")}`,
+      );
+    }
+  };
 
   // Merge entity hooks
   const mergedEntityHooks: AuthHeroConfig["entityHooks"] = {
@@ -322,23 +357,29 @@ export function init(config: MultiTenantAuthHeroConfig) {
       ? {
           ...configEntityHooks?.resourceServers,
           afterCreate: async (ctx, entity) => {
-            await configEntityHooks?.resourceServers?.afterCreate?.(
+            await chainHooks(
+              configEntityHooks?.resourceServers?.afterCreate,
+              resourceServerHooks?.afterCreate,
               ctx,
               entity,
             );
-            await resourceServerHooks?.afterCreate?.(ctx, entity);
           },
           afterUpdate: async (ctx, id, entity) => {
-            await configEntityHooks?.resourceServers?.afterUpdate?.(
+            await chainHooks(
+              configEntityHooks?.resourceServers?.afterUpdate,
+              resourceServerHooks?.afterUpdate,
               ctx,
               id,
               entity,
             );
-            await resourceServerHooks?.afterUpdate?.(ctx, id, entity);
           },
           afterDelete: async (ctx, id) => {
-            await configEntityHooks?.resourceServers?.afterDelete?.(ctx, id);
-            await resourceServerHooks?.afterDelete?.(ctx, id);
+            await chainHooks(
+              configEntityHooks?.resourceServers?.afterDelete,
+              resourceServerHooks?.afterDelete,
+              ctx,
+              id,
+            );
           },
         }
       : configEntityHooks?.resourceServers,
@@ -346,8 +387,12 @@ export function init(config: MultiTenantAuthHeroConfig) {
       ? {
           ...configEntityHooks?.tenants,
           afterCreate: async (ctx, entity) => {
-            await configEntityHooks?.tenants?.afterCreate?.(ctx, entity);
-            await tenantResourceServerHooks?.afterCreate?.(ctx, entity);
+            await chainHooks(
+              configEntityHooks?.tenants?.afterCreate,
+              tenantResourceServerHooks?.afterCreate,
+              ctx,
+              entity,
+            );
           },
         }
       : configEntityHooks?.tenants,
@@ -359,11 +404,23 @@ export function init(config: MultiTenantAuthHeroConfig) {
     entityHooks: mergedEntityHooks,
   });
 
-  const { app, managementApp, ...rest } = authHeroResult;
+  const { app: authHeroApp, managementApp, ...rest } = authHeroResult;
+
+  // Create a wrapper app to ensure middleware is registered before routes
+  // In Hono, middleware only applies to routes defined AFTER the middleware is registered.
+  // Since initAuthHero() already mounts routes internally, we need a wrapper app
+  // where we can register middleware first, then mount the authHero routes.
+  const app = new Hono<{
+    Bindings: MultiTenancyBindings;
+    Variables: MultiTenancyVariables;
+  }>();
 
   // Add middleware to protect synced resources from modification
-  // This must be added before routes so it can intercept write operations
+  // This MUST be added before routes so it can intercept write operations
   app.use("/api/v2/*", createProtectSyncedMiddleware());
+
+  // Mount all authHero routes on the wrapper app
+  app.route("/", authHeroApp);
 
   // Create the tenant CRUD router
   const tenantsRouter = createTenantsRouter(
