@@ -30,7 +30,7 @@ export function create(db: Kysely<Database>) {
     const role: Role = {
       id,
       ...rest,
-      is_system: is_system ?? false,
+      is_system: is_system ? true : undefined,
       created_at: now,
       updated_at: now,
     };

@@ -29,11 +29,12 @@ interface ConnectionItem extends DynamoDBBaseItem {
 }
 
 function toConnection(item: ConnectionItem): Connection {
-  const { tenant_id, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, is_system, ...rest } = stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,
     options: item.options ? JSON.parse(item.options) : undefined,
+    is_system: is_system ? true : undefined,
   });
 
   return connectionSchema.parse(data);

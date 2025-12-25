@@ -39,13 +39,15 @@ interface ResourceServerItem extends DynamoDBBaseItem {
 }
 
 function toResourceServer(item: ResourceServerItem): ResourceServer {
-  const { tenant_id, verification_key, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, verification_key, is_system, ...rest } =
+    stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,
     verificationKey: verification_key,
     scopes: item.scopes ? JSON.parse(item.scopes) : undefined,
     options: item.options ? JSON.parse(item.options) : undefined,
+    is_system: is_system ? true : undefined,
   });
 
   return resourceServerSchema.parse(data);

@@ -4,6 +4,10 @@ const config = {
       filePath: "./src/index.ts",
       outFile: "./dist/multi-tenancy.d.ts",
       noCheck: true,
+      libraries: {
+        inlinedLibraries: ["@authhero/adapter-interfaces"],
+        allowedTypesLibraries: ["authhero", "libphonenumber-js"],
+      },
     },
   ],
 };
