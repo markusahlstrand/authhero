@@ -43,8 +43,8 @@ jobs:
           pnpm kysely build
           pnpm drizzle build
           pnpm cloudflare build
-          pnpm multi-tenancy build
           pnpm authhero build
+          pnpm multi-tenancy build
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
