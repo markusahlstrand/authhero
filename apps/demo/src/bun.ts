@@ -38,14 +38,14 @@ if (signingKeys.length === 0) {
   await dataAdapter.keys.create(signingKey);
 
   await dataAdapter.tenants.create({
-    id: "default",
-    name: "Default Tenant",
+    id: "main",
+    name: "Main Tenant",
     audience: "https://example.com",
     sender_email: "login@example.com",
     sender_name: "SenderName",
   });
 
-  await dataAdapter.clients.create("default", {
+  await dataAdapter.clients.create("main", {
     client_id: "default",
     client_secret: "clientSecret",
     name: "Default Client",
@@ -54,7 +54,7 @@ if (signingKeys.length === 0) {
     web_origins: ["https://localhost:5173"],
   });
 
-  await dataAdapter.emailProviders.create("default", {
+  await dataAdapter.emailProviders.create("main", {
     name: "mock-email",
     enabled: true,
     credentials: {
@@ -62,19 +62,19 @@ if (signingKeys.length === 0) {
     },
   });
 
-  await dataAdapter.connections.create("default", {
+  await dataAdapter.connections.create("main", {
     strategy: "email",
     name: "Email",
     options: {},
   });
 
-  await dataAdapter.connections.create("default", {
+  await dataAdapter.connections.create("main", {
     strategy: "Username-Password-Authentication",
     name: "Username-Password",
     options: {},
   });
 
-  await dataAdapter.users.create("default", {
+  await dataAdapter.users.create("main", {
     email: "admin@example.com",
     email_verified: true,
     name: "Test User",
@@ -86,7 +86,7 @@ if (signingKeys.length === 0) {
     user_id: "authhero|admin",
   });
 
-  await dataAdapter.passwords.create("default", {
+  await dataAdapter.passwords.create("main", {
     user_id: "authhero|admin",
     password: await bcryptjs.hash("admin", 10),
     algorithm: "bcrypt",

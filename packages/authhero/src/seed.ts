@@ -13,11 +13,11 @@ export interface SeedOptions {
    */
   adminPassword: string;
   /**
-   * The tenant ID to create (defaults to "default")
+   * The tenant ID to create (defaults to "main")
    */
   tenantId?: string;
   /**
-   * The tenant name (defaults to "Default Tenant")
+   * The tenant name (defaults to "Main Tenant")
    */
   tenantName?: string;
   /**
@@ -73,9 +73,9 @@ export async function seed(
   const {
     adminEmail,
     adminPassword,
-    tenantId = "default",
-    tenantName = "Default Tenant",
-    audience = "urn:default",
+    tenantId = "main",
+    tenantName = "Main Tenant",
+    audience = "urn:main",
     clientId = "default",
     callbacks = [
       "https://manage.authhero.net/auth-callback",
