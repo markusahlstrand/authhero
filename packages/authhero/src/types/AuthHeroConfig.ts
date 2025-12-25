@@ -1,11 +1,13 @@
 import {
   Connection,
   ConnectionInsert,
+  CreateTenantParams,
   DataAdapters,
   ResourceServer,
   ResourceServerInsert,
   Role,
   RoleInsert,
+  Tenant,
 } from "@authhero/adapter-interfaces";
 import type { RolePermissionHooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
@@ -29,6 +31,7 @@ export interface EntityHooksConfig {
   roles?: EntityHooks<Role, RoleInsert>;
   rolePermissions?: RolePermissionHooks;
   connections?: EntityHooks<Connection, ConnectionInsert>;
+  tenants?: EntityHooks<Tenant, CreateTenantParams>;
 }
 
 export interface AuthHeroConfig {

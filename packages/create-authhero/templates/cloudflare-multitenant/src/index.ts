@@ -3,7 +3,7 @@ import { Kysely } from "kysely";
 import createAdapters from "@authhero/kysely-adapter";
 import createApp from "./app";
 import { Env } from "./types";
-import { AuthHeroConfig } from "authhero";
+import { AuthHeroConfig } from "@authhero/multi-tenancy";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // OPTIONAL: Uncomment to enable Cloudflare adapters (Analytics Engine, etc.)

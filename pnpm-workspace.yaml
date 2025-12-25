@@ -1,5 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/create-authhero/auth-server
+  - packages/create-authhero/templates/*
 onlyBuiltDependencies:
   - better-sqlite3

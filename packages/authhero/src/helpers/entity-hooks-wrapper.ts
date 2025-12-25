@@ -197,6 +197,81 @@ function wrapRolePermissionsAdapter(
 }
 
 /**
+ * Wraps the tenants adapter with entity hooks.
+ * Tenants have a different signature than other entity adapters
+ * (they don't take tenantId as first param since they ARE the top-level entities).
+ */
+function wrapTenantsAdapter(
+  adapter: DataAdapters["tenants"],
+  hooks: EntityHooksConfig["tenants"],
+  context: EntityHookContext,
+): DataAdapters["tenants"] {
+  if (!hooks) {
+    return adapter;
+  }
+
+  return {
+    ...adapter,
+
+    create: async (data) => {
+      let processedData = data;
+
+      // Call beforeCreate hook
+      if (hooks.beforeCreate) {
+        processedData = await hooks.beforeCreate(context, data);
+      }
+
+      // Perform the actual create
+      const entity = await adapter.create(processedData);
+
+      // Call afterCreate hook
+      if (hooks.afterCreate) {
+        await hooks.afterCreate(context, entity);
+      }
+
+      return entity;
+    },
+
+    update: async (id, data) => {
+      let processedData = data;
+
+      // Call beforeUpdate hook
+      if (hooks.beforeUpdate) {
+        processedData = await hooks.beforeUpdate(context, id, data);
+      }
+
+      // Perform the actual update
+      await adapter.update(id, processedData);
+
+      // Get the updated entity for afterUpdate hook
+      if (hooks.afterUpdate) {
+        const entity = await adapter.get(id);
+        if (entity) {
+          await hooks.afterUpdate(context, id, entity);
+        }
+      }
+    },
+
+    remove: async (id) => {
+      // Call beforeDelete hook
+      if (hooks.beforeDelete) {
+        await hooks.beforeDelete(context, id);
+      }
+
+      // Perform the actual delete
+      const result = await adapter.remove(id);
+
+      // Call afterDelete hook
+      if (hooks.afterDelete && result) {
+        await hooks.afterDelete(context, id);
+      }
+
+      return result;
+    },
+  };
+}
+
+/**
  * Adds entity hooks to data adapters.
  * This wraps each entity adapter's CRUD methods to call the configured hooks.
  *
@@ -261,5 +336,8 @@ export function addEntityHooks(
       entityHooks.rolePermissions,
       context,
     ),
+
+    // Wrap tenants adapter
+    tenants: wrapTenantsAdapter(data.tenants, entityHooks.tenants, context),
   };
 }

@@ -1,7 +1,7 @@
 import { D1Dialect } from "kysely-d1";
 import { Kysely } from "kysely";
 import createAdapters from "@authhero/kysely-adapter";
-import { seed } from "authhero";
+import { seed } from "@authhero/multi-tenancy";
 
 interface Env {
   AUTH_DB: D1Database;
