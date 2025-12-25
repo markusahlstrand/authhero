@@ -1,5 +1,16 @@
 # @authhero/demo
 
+## 0.24.0
+
+### Minor Changes
+
+- e87ab70: Move tenants crud to multi-tenancy package
+
+### Patch Changes
+
+- Updated dependencies [e87ab70]
+  - authhero@0.301.0
+
 ## 0.23.8
 
 ### Patch Changes

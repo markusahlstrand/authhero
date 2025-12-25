@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.3.0
+
+### Minor Changes
+
+- e87ab70: Move tenants crud to multi-tenancy package
+
 ## 13.2.0
 
 ### Minor Changes
