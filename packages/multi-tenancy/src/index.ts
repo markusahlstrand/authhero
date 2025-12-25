@@ -303,9 +303,7 @@ export function init(config: MultiTenantAuthHeroConfig) {
           "tenants",
           { cursorField: "id", pageSize: 100 },
         );
-        return allTenants
-          .filter((t) => t.id !== mainTenantId)
-          .map((t) => t.id);
+        return allTenants.filter((t) => t.id !== mainTenantId).map((t) => t.id);
       },
       getAdapters: async () => config.dataAdapter,
     });

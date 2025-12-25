@@ -1,6 +1,10 @@
 import { Kysely } from "kysely";
 import { Database, sqlRoleSchema } from "../db";
-import { ListParams, ListRolesResponse, Role } from "@authhero/adapter-interfaces";
+import {
+  ListParams,
+  ListRolesResponse,
+  Role,
+} from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
 import { z } from "@hono/zod-openapi";
@@ -23,7 +27,7 @@ export function list(db: Kysely<Database>) {
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    
+
     const roles: Role[] = rows.map((row) => {
       const dbRow = row as RoleDbRow;
       const { synced, ...rest } = dbRow;

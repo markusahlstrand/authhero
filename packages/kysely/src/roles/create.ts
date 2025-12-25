@@ -7,7 +7,10 @@ import { nanoid } from "nanoid";
 type RoleDbInsert = z.infer<typeof sqlRoleSchema>;
 
 export function create(db: Kysely<Database>) {
-  return async (tenantId: string, params: RoleInsert & { synced?: boolean }): Promise<Role> => {
+  return async (
+    tenantId: string,
+    params: RoleInsert & { synced?: boolean },
+  ): Promise<Role> => {
     const now = new Date().toISOString();
     const id = nanoid();
 

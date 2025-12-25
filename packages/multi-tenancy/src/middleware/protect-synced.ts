@@ -37,7 +37,10 @@ interface EntityInfo {
  */
 function parseEntityFromPath(path: string): EntityInfo | null {
   const patterns: { pattern: RegExp; type: SyncedEntityType }[] = [
-    { pattern: /\/api\/v2\/resource-servers\/([^/]+)$/, type: "resource_server" },
+    {
+      pattern: /\/api\/v2\/resource-servers\/([^/]+)$/,
+      type: "resource_server",
+    },
     { pattern: /\/api\/v2\/roles\/([^/]+)$/, type: "role" },
     { pattern: /\/api\/v2\/connections\/([^/]+)$/, type: "connection" },
   ];
