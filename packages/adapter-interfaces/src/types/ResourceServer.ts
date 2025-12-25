@@ -33,6 +33,7 @@ export const resourceServerInsertSchema = z.object({
   allow_offline_access: z.boolean().optional(),
   verificationKey: z.string().optional(),
   options: resourceServerOptionsSchema.optional(),
+  is_system: z.boolean().optional(),
 });
 export type ResourceServerInsert = z.input<typeof resourceServerInsertSchema>;
 

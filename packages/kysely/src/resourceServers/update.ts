@@ -18,6 +18,7 @@ export function update(db: Kysely<Database>) {
       options,
       skip_consent_for_verifiable_first_party_clients,
       allow_offline_access,
+      is_system,
       ...rest
     } = params;
 
@@ -60,6 +61,9 @@ export function update(db: Kysely<Database>) {
     }
     if (allow_offline_access !== undefined) {
       updates.allow_offline_access = allow_offline_access ? 1 : 0;
+    }
+    if (is_system !== undefined) {
+      updates.is_system = is_system ? 1 : 0;
     }
 
     const result = await db

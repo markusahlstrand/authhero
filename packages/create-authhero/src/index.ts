@@ -141,7 +141,6 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         "@authhero/multi-tenancy": "latest",
         "@hono/swagger-ui": "^0.5.0",
         "@hono/zod-openapi": "^0.19.0",
-        authhero: "latest",
         hono: "^4.6.0",
         kysely: "latest",
         "kysely-d1": "latest",
@@ -418,7 +417,7 @@ program
         }
         packageManager = options.packageManager;
       } else if (isNonInteractive) {
-        packageManager = "npm";
+        packageManager = "pnpm";
       } else {
         const answer = await inquirer.prompt([
           {
@@ -426,12 +425,12 @@ program
             name: "packageManager",
             message: "Which package manager would you like to use?",
             choices: [
+              { name: "pnpm", value: "pnpm" },
               { name: "npm", value: "npm" },
               { name: "yarn", value: "yarn" },
-              { name: "pnpm", value: "pnpm" },
               { name: "bun", value: "bun" },
             ],
-            default: "npm",
+            default: "pnpm",
           },
         ]);
         packageManager = answer.packageManager;

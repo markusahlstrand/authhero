@@ -111,6 +111,7 @@ import * as o012_add_password_history from "./2025-12-03T19:45:12_add_password_h
 import * as o013_connection_display_name from "./2025-12-09T10:00:00_connection_display_name";
 import * as o014_client_connections from "./2025-12-12T10:00:00_client_connections";
 import * as o015_flows from "./2025-12-19T10:00:00_actions";
+import * as o016_add_is_system_column from "./2025-12-20T10:00:00_add_is_system_column";
 
 // These need to be in alphabetic order
 export default {
@@ -227,4 +228,5 @@ export default {
   o013_connection_display_name,
   o014_client_connections,
   o015_flows,
+  o016_add_is_system_column,
 };

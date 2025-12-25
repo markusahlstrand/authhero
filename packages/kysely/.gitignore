@@ -1,3 +1,2 @@
 # Generated SQL migrations (use export-sql scripts to regenerate)
-migrations/
 sql-migrations/

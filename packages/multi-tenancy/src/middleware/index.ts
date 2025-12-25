@@ -248,3 +248,6 @@ export function createMultiTenancyMiddleware(
     return next();
   };
 }
+
+// Re-export protect system middleware
+export { createProtectSyncedMiddleware } from "./protect-synced";

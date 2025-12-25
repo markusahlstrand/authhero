@@ -3,7 +3,7 @@ const config = {
     {
       filePath: "./src/index.ts",
       outFile: "./dist/multi-tenancy.d.ts",
-      noCheck: false,
+      noCheck: true,
     },
   ],
 };

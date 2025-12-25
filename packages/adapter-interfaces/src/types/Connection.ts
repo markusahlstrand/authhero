@@ -38,6 +38,7 @@ export const connectionInsertSchema = z.object({
   is_domain_connection: z.boolean().optional(),
   show_as_button: z.boolean().optional(),
   metadata: z.record(z.any()).optional(),
+  is_system: z.boolean().optional(),
 });
 export type ConnectionInsert = z.infer<typeof connectionInsertSchema>;
 

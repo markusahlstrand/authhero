@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
+    "authhero": "workspace:*",
     "zod": "^3.24.0"
   },
   "peerDependencies": {

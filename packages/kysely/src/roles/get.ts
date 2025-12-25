@@ -17,8 +17,10 @@ export function get(db: Kysely<Database>) {
     if (!row) return null;
 
     const dbRow = row as RoleDbRow;
+    const { is_system, ...rest } = dbRow;
     const role: Role = {
-      ...dbRow,
+      ...rest,
+      is_system: is_system ? true : undefined,
     };
 
     return role;

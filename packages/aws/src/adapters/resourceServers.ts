@@ -35,6 +35,7 @@ interface ResourceServerItem extends DynamoDBBaseItem {
   scopes?: string; // JSON array string
   options?: string; // JSON string
   verification_key?: string;
+  is_system?: boolean;
 }
 
 function toResourceServer(item: ResourceServerItem): ResourceServer {
@@ -83,6 +84,7 @@ export function createResourceServersAdapter(
         scopes: params.scopes ? JSON.stringify(params.scopes) : undefined,
         options: params.options ? JSON.stringify(params.options) : undefined,
         verification_key: params.verificationKey,
+        is_system: params.is_system ?? false,
         created_at: now,
         updated_at: now,
       };

@@ -18,6 +18,7 @@ export const connections = sqliteTable(
     display_name: text("display_name", { length: 255 }),
     is_domain_connection: integer("is_domain_connection"),
     show_as_button: integer("show_as_button"),
+    is_system: integer("is_system").notNull().default(0),
     metadata: text("metadata", { length: 4096 }),
   },
   (table) => [index("connections_tenant_id_index").on(table.tenant_id)],

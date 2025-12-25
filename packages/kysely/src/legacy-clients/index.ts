@@ -51,14 +51,16 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
           !!client.require_pushed_authorization_requests,
         require_proof_of_possession: !!client.require_proof_of_possession,
         // Parse JSON string fields back to objects/arrays
-        connections: connections.map((connection) =>
-          connectionSchema.parse(
+        connections: connections.map((connection) => {
+          const { is_system, ...rest } = connection;
+          return connectionSchema.parse(
             removeNullProperties({
-              ...connection,
+              ...rest,
+              is_system: is_system ? true : undefined,
               options: connection.options ? JSON.parse(connection.options) : {},
             }),
-          ),
-        ),
+          );
+        }),
         addons: client.addons ? JSON.parse(client.addons) : {},
         callbacks: client.callbacks ? JSON.parse(client.callbacks) : [],
         allowed_origins: client.allowed_origins
