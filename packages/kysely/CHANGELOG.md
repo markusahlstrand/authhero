@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.71.0
+
+### Minor Changes
+
+- ae8553a: Add is_system to all adapters
+
+### Patch Changes
+
+- Updated dependencies [ae8553a]
+  - @authhero/adapter-interfaces@0.112.0
+
 ## 10.70.0
 
 ### Minor Changes
