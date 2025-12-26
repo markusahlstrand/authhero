@@ -1,5 +1,11 @@
 # authhero
 
+## 0.303.0
+
+### Minor Changes
+
+- b778aed: Seed mananagement roles and create organizations
+
 ## 0.302.0
 
 ### Minor Changes
