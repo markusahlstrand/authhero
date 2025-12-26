@@ -457,6 +457,7 @@ const ManageMemberRolesButton = ({ record }: { record: any }) => {
   const handleSaveRoles = async () => {
     if (!organizationId || !record?.user_id) return;
 
+    setLoading(true);
     try {
       // Get current roles to determine what to add/remove
       const currentResponse = await dataProvider.getList(
@@ -500,6 +501,8 @@ const ManageMemberRolesButton = ({ record }: { record: any }) => {
       handleClose();
     } catch (error) {
       notify("Error updating member roles", { type: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 

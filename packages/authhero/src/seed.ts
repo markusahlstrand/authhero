@@ -111,7 +111,10 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Create Shields", value: "create:shields" },
   { description: "Update Shields", value: "update:shields" },
   { description: "Delete Shields", value: "delete:shields" },
-  { description: "Read Anomaly Detection Blocks", value: "read:anomaly_blocks" },
+  {
+    description: "Read Anomaly Detection Blocks",
+    value: "read:anomaly_blocks",
+  },
   {
     description: "Delete Anomaly Detection Blocks",
     value: "delete:anomaly_blocks",
@@ -125,7 +128,10 @@ export const MANAGEMENT_API_SCOPES = [
     value: "read:guardian_factors",
   },
   { description: "Update Guardian factors", value: "update:guardian_factors" },
-  { description: "Read Guardian enrollments", value: "read:guardian_enrollments" },
+  {
+    description: "Read Guardian enrollments",
+    value: "read:guardian_enrollments",
+  },
   {
     description: "Delete Guardian enrollments",
     value: "delete:guardian_enrollments",
@@ -151,7 +157,10 @@ export const MANAGEMENT_API_SCOPES = [
     description: "Delete custom domains configurations",
     value: "delete:custom_domains",
   },
-  { description: "Configure new custom domains", value: "create:custom_domains" },
+  {
+    description: "Configure new custom domains",
+    value: "create:custom_domains",
+  },
   {
     description: "Update custom domain configurations",
     value: "update:custom_domains",
@@ -190,8 +199,14 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Update role members", value: "delete:role_members" },
   { description: "Read entitlements", value: "read:entitlements" },
   { description: "Read attack protection", value: "read:attack_protection" },
-  { description: "Update attack protection", value: "update:attack_protection" },
-  { description: "Read organization summary", value: "read:organizations_summary" },
+  {
+    description: "Update attack protection",
+    value: "update:attack_protection",
+  },
+  {
+    description: "Read organization summary",
+    value: "read:organizations_summary",
+  },
   {
     description: "Create Authentication Methods",
     value: "create:authentication_methods",
@@ -345,8 +360,14 @@ export const MANAGEMENT_API_SCOPES = [
     description: "Delete Self Service Profiles",
     value: "delete:self_service_profiles",
   },
-  { description: "Create SSO Access Tickets", value: "create:sso_access_tickets" },
-  { description: "Delete SSO Access Tickets", value: "delete:sso_access_tickets" },
+  {
+    description: "Create SSO Access Tickets",
+    value: "create:sso_access_tickets",
+  },
+  {
+    description: "Delete SSO Access Tickets",
+    value: "delete:sso_access_tickets",
+  },
   { description: "Read Forms", value: "read:forms" },
   { description: "Update Forms", value: "update:forms" },
   { description: "Delete Forms", value: "delete:forms" },
@@ -374,7 +395,10 @@ export const MANAGEMENT_API_SCOPES = [
   },
   { description: "Read Flows Executions", value: "read:flows_executions" },
   { description: "Delete Flows Executions", value: "delete:flows_executions" },
-  { description: "Read Connections Options", value: "read:connections_options" },
+  {
+    description: "Read Connections Options",
+    value: "read:connections_options",
+  },
   {
     description: "Update Connections Options",
     value: "update:connections_options",
@@ -451,13 +475,22 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Create event streams", value: "create:event_streams" },
   { description: "Delete event streams", value: "delete:event_streams" },
   { description: "Update event streams", value: "update:event_streams" },
-  { description: "Read event stream deliveries", value: "read:event_deliveries" },
+  {
+    description: "Read event stream deliveries",
+    value: "read:event_deliveries",
+  },
   {
     description: "Redeliver event(s) to an event stream",
     value: "update:event_deliveries",
   },
-  { description: "Create Connection Profiles", value: "create:connection_profiles" },
-  { description: "Read Connection Profiles", value: "read:connection_profiles" },
+  {
+    description: "Create Connection Profiles",
+    value: "create:connection_profiles",
+  },
+  {
+    description: "Read Connection Profiles",
+    value: "read:connection_profiles",
+  },
   {
     description: "Update Connection Profiles",
     value: "update:connection_profiles",
@@ -498,8 +531,14 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Update connection keys", value: "update:connections_keys" },
   { description: "Create connection keys", value: "create:connections_keys" },
   // Simplified auth scopes used by management API endpoints
-  { description: "Read access to authentication resources", value: "auth:read" },
-  { description: "Write access to authentication resources", value: "auth:write" },
+  {
+    description: "Read access to authentication resources",
+    value: "auth:read",
+  },
+  {
+    description: "Write access to authentication resources",
+    value: "auth:write",
+  },
 ];
 
 export interface SeedOptions {
@@ -725,7 +764,6 @@ export async function seed(
     if (debug) {
       console.log("✅ Default client created");
       console.log(`   Client ID: ${clientId}`);
-      console.log(`   Client Secret: ${clientSecret}`);
       console.log(`   Callback URLs: ${callbacks.join(", ")}`);
       console.log(`   Allowed Logout URLs: ${allowedLogoutUrls.join(", ")}`);
     }
@@ -815,14 +853,28 @@ export async function seed(
     if (issuer) {
       const managementApiIdentifier = `${issuer}api/v2/`;
       const adminPermissions = [
-        { role_id: adminRole.id, resource_server_identifier: managementApiIdentifier, permission_name: "auth:read" },
-        { role_id: adminRole.id, resource_server_identifier: managementApiIdentifier, permission_name: "auth:write" },
+        {
+          role_id: adminRole.id,
+          resource_server_identifier: managementApiIdentifier,
+          permission_name: "auth:read",
+        },
+        {
+          role_id: adminRole.id,
+          resource_server_identifier: managementApiIdentifier,
+          permission_name: "auth:write",
+        },
       ];
-      await adapters.rolePermissions.assign(tenantId, adminRole.id, adminPermissions);
+      await adapters.rolePermissions.assign(
+        tenantId,
+        adminRole.id,
+        adminPermissions,
+      );
     }
 
     if (debug) {
-      console.log("✅ Admin role created with auth:read and auth:write permissions");
+      console.log(
+        "✅ Admin role created with auth:read and auth:write permissions",
+      );
     }
   } else if (debug) {
     console.log(`Admin role "${adminRoleName}" already exists, skipping...`);
@@ -830,14 +882,20 @@ export async function seed(
 
   // Add admin user to the organization
   const existingMembership =
-    await adapters.userOrganizations.listUserOrganizations(tenantId, userId, {});
+    await adapters.userOrganizations.listUserOrganizations(
+      tenantId,
+      userId,
+      {},
+    );
   const isAlreadyMember = existingMembership.organizations.some(
     (org) => org.id === organization.id,
   );
 
   if (!isAlreadyMember) {
     if (debug) {
-      console.log(`Adding admin user to organization "${organization.name}"...`);
+      console.log(
+        `Adding admin user to organization "${organization.name}"...`,
+      );
     }
     await adapters.userOrganizations.create(tenantId, {
       user_id: userId,
@@ -851,14 +909,26 @@ export async function seed(
   }
 
   // Assign admin role to the user in the organization
-  const existingUserRoles = await adapters.userRoles.list(tenantId, userId, undefined, organization.id);
+  const existingUserRoles = await adapters.userRoles.list(
+    tenantId,
+    userId,
+    undefined,
+    organization.id,
+  );
   const hasAdminRole = existingUserRoles.some((r) => r.id === adminRole!.id);
 
   if (!hasAdminRole) {
     if (debug) {
-      console.log(`Assigning admin role to user in organization "${organization.name}"...`);
+      console.log(
+        `Assigning admin role to user in organization "${organization.name}"...`,
+      );
     }
-    await adapters.userRoles.create(tenantId, userId, adminRole.id, organization.id);
+    await adapters.userRoles.create(
+      tenantId,
+      userId,
+      adminRole.id,
+      organization.id,
+    );
     if (debug) {
       console.log("✅ Admin role assigned to user");
     }

@@ -629,9 +629,6 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
  */
 export const createOrganizationHttpClient = (organizationId: string) => {
   return (url: string, options: HttpOptions = {}) => {
-    console.log(
-      `[OrgHttpClient] Request for org=${organizationId}, url=${url}`,
-    );
     const requestKey = `${organizationId}:${url}-${JSON.stringify(options)}`;
 
     // If there's already a pending request for this URL and options, return it
@@ -704,9 +701,6 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       )
     ) {
       // For token/client_credentials, use the standard token (no org scoping)
-      console.log(
-        `[OrgHttpClient] Using token/client_credentials for org=${organizationId}`,
-      );
       request = getToken(domainConfig)
         .catch((error) => {
           throw new Error(
@@ -765,9 +759,6 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         });
     } else {
       // For OAuth login, use an organization-specific client with isolated cache
-      console.log(
-        `[OrgHttpClient] Using OAuth login for org=${organizationId}, domain=${selectedDomain}`,
-      );
       const orgAuth0Client = createAuth0ClientForOrg(
         selectedDomain,
         organizationId,
@@ -788,17 +779,9 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         })
         .catch(async (error) => {
           // If silent token acquisition fails, we need to redirect to login with org
-          console.log(
-            `[OrgHttpClient] Silent token acquisition failed for org ${organizationId}:`,
-            error.message,
-          );
-
           // Get the base auth0 client to get the user's email for login hint
           const baseClient = createAuth0Client(selectedDomain);
           const user = await baseClient.getUser().catch(() => null);
-          console.log(
-            `[OrgHttpClient] Redirecting to login for org=${organizationId}, user=${user?.email}`,
-          );
 
           // Redirect to login with organization
           await orgAuth0Client.loginWithRedirect({

@@ -97,7 +97,7 @@ export function createOrganizationsAdapter(
         const result = await queryWithPagination<OrganizationItem>(
           ctx,
           organizationKeys.gsi1pk(tenantId, id),
-          { page: 0, perPage: 1 },
+          { page: 0, per_page: 1 },
           { indexName: "GSI1", skPrefix: "ORGANIZATION" },
         );
         item = result.items[0] || null;

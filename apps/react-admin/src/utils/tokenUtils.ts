@@ -97,7 +97,7 @@ export function clearOrganizationTokenCache(): void {
   // Clear all org-cached tokens from localStorage
   const keysToRemove = Object.keys(window.localStorage).filter(
     (key) =>
-      key.startsWith("@@auth0spajs@@") && key.includes(":org_"),
+      key.startsWith(CACHE_KEY_PREFIX) && key.match(/:[^:]+$/),
   );
   keysToRemove.forEach((key) => localStorage.removeItem(key));
 }
