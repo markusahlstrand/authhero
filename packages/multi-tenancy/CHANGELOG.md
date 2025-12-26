@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.6.0
+
+### Minor Changes
+
+- 1c36752: Use org tokens for tenants in admin
+
+### Patch Changes
+
+- Updated dependencies [1c36752]
+  - authhero@0.304.0
+
 ## 13.5.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.72.0
+
+### Minor Changes
+
+- 1c36752: Use org tokens for tenants in admin
+
 ## 10.71.0
 
 ### Minor Changes

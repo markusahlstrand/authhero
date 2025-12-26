@@ -1,5 +1,11 @@
 # authhero
 
+## 0.304.0
+
+### Minor Changes
+
+- 1c36752: Use org tokens for tenants in admin
+
 ## 0.303.0
 
 ### Minor Changes

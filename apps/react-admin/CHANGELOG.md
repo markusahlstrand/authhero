@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.11.0
+
+### Minor Changes
+
+- 1c36752: Use org tokens for tenants in admin
+
 ## 0.10.0
 
 ### Minor Changes
