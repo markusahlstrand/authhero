@@ -81,8 +81,8 @@ export function createTenantsRouter(
       if (include_totals) {
         return ctx.json({
           tenants: filteredTenants,
-          start: result.start,
-          limit: result.limit,
+          start: result.totals?.start ?? 0,
+          limit: result.totals?.limit ?? per_page,
           length: filteredTenants.length,
         });
       }
