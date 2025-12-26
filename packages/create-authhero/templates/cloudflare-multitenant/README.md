@@ -114,24 +114,23 @@ curl -X POST https://your-server/api/v2/tenants \
 │   ├── index.ts           # Worker entry point
 │   ├── app.ts             # AuthHero app configuration
 │   ├── seed.ts            # Database seeding worker
-│   ├── types.ts           # TypeScript type definitions
-│   └── db/
-│       └── schema.ts      # Drizzle schema for migrations
-├── migrations/            # Database migrations
+│   └── types.ts           # TypeScript type definitions
 ├── wrangler.toml          # Cloudflare Worker configuration
-├── drizzle.config.ts      # Drizzle configuration
+├── drizzle.config.ts      # Drizzle configuration (reference only)
 ├── seed-helper.js         # Helper script to run seeds
 └── package.json
 ```
 
-## Database Schema Changes
+## Database Migrations
 
-To make schema changes:
+Database migrations are pre-generated and shipped with the `@authhero/drizzle` package. The schema is managed by AuthHero to ensure compatibility with future updates.
 
-1. Edit `src/db/schema.ts`
-2. Generate migrations: `npm run db:generate`
-3. Apply locally: `npm run migrate`
-4. Apply to production: `npm run db:migrate:remote`
+To apply migrations:
+
+- **Local development**: `npm run migrate`
+- **Production**: `npm run db:migrate:remote`
+
+> ⚠️ **Note**: Do not run `drizzle-kit generate`. The `drizzle.config.ts` file is provided for reference only.
 
 ## API Documentation
 

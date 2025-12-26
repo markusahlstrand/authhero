@@ -9,14 +9,14 @@ compatibility_date = "2024-11-20"
 # binding = "AUTH_DB"
 # database_name = "authhero-db"
 # database_id = "<YOUR_DATABASE_ID>"
-# migrations_dir = "migrations"
+# migrations_dir = "node_modules/@authhero/drizzle/drizzle"
 
 # For local development, you can use a local D1 database:
 [[d1_databases]]
 binding = "AUTH_DB"
 database_name = "authhero-db"
 database_id = "local"
-migrations_dir = "migrations"
+migrations_dir = "node_modules/@authhero/drizzle/drizzle"
 
 # ════════════════════════════════════════════════════════════════════════════
 # OPTIONAL: Analytics Engine for centralized logging
