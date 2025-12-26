@@ -17,7 +17,7 @@ export * from "./styles";
 export * from "./adapters";
 export { waitUntil } from "./helpers/wait-until";
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
-export { seed } from "./seed";
+export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
 
 // Export SAML types and signers for configuration

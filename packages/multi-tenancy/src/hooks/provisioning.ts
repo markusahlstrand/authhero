@@ -1,4 +1,5 @@
 import { Tenant } from "@authhero/adapter-interfaces";
+import { MANAGEMENT_API_SCOPES } from "authhero";
 import {
   MultiTenancyConfig,
   TenantEntityHooks,
@@ -85,13 +86,22 @@ export function createProvisioningHooks(
 
 /**
  * Creates an organization on the main tenant for a new tenant.
+ * Also creates/assigns the admin role and adds the creator to the organization.
  */
 async function createOrganizationForTenant(
   ctx: TenantHookContext,
   tenant: Tenant,
   accessControl: NonNullable<MultiTenancyConfig["accessControl"]>,
 ): Promise<void> {
-  const { mainTenantId, defaultPermissions, defaultRoles } = accessControl;
+  const {
+    mainTenantId,
+    defaultPermissions,
+    defaultRoles,
+    issuer,
+    adminRoleName = "Tenant Admin",
+    adminRoleDescription = "Full access to all tenant management operations",
+    addCreatorToOrganization = true,
+  } = accessControl;
 
   // Create organization with tenant ID as the organization ID and name
   await ctx.adapters.organizations.create(mainTenantId, {
@@ -99,6 +109,47 @@ async function createOrganizationForTenant(
     name: tenant.id,
     display_name: tenant.friendly_name || tenant.id,
   });
+
+  // Get or create the admin role if issuer is provided
+  let adminRoleId: string | null = null;
+  if (issuer) {
+    adminRoleId = await getOrCreateAdminRole(
+      ctx,
+      mainTenantId,
+      issuer,
+      adminRoleName,
+      adminRoleDescription,
+    );
+  }
+
+  // Add the creator to the organization and assign the admin role
+  if (addCreatorToOrganization && ctx.ctx) {
+    const user = ctx.ctx.var.user;
+    if (user?.sub) {
+      try {
+        // Add user to the organization
+        await ctx.adapters.userOrganizations.create(mainTenantId, {
+          user_id: user.sub,
+          organization_id: tenant.id,
+        });
+
+        // Assign admin role to the user for this organization if we have one
+        if (adminRoleId) {
+          await ctx.adapters.userRoles.create(
+            mainTenantId,
+            user.sub,
+            adminRoleId,
+            tenant.id, // organizationId
+          );
+        }
+      } catch (error) {
+        console.warn(
+          `Failed to add creator ${user.sub} to organization ${tenant.id}:`,
+          error,
+        );
+      }
+    }
+  }
 
   // Assign default roles if configured
   if (defaultRoles && defaultRoles.length > 0) {
@@ -117,6 +168,46 @@ async function createOrganizationForTenant(
       `Would grant permissions ${defaultPermissions.join(", ")} to organization ${tenant.id}`,
     );
   }
+}
+
+/**
+ * Gets or creates the admin role with all Management API permissions.
+ * Returns the role ID.
+ */
+async function getOrCreateAdminRole(
+  ctx: TenantHookContext,
+  mainTenantId: string,
+  issuer: string,
+  roleName: string,
+  roleDescription: string,
+): Promise<string> {
+  // Check if the role already exists
+  const existingRoles = await ctx.adapters.roles.list(mainTenantId, {});
+  const existingRole = existingRoles.roles.find((r) => r.name === roleName);
+
+  if (existingRole) {
+    return existingRole.id;
+  }
+
+  // Create the admin role
+  const role = await ctx.adapters.roles.create(mainTenantId, {
+    name: roleName,
+    description: roleDescription,
+  });
+
+  // Assign all Management API permissions to the role
+  const managementApiIdentifier = `${issuer}api/v2/`;
+
+  // Convert MANAGEMENT_API_SCOPES to the format expected by rolePermissions.assign
+  const permissions = MANAGEMENT_API_SCOPES.map((scope) => ({
+    role_id: role.id,
+    resource_server_identifier: managementApiIdentifier,
+    permission_name: scope.value,
+  }));
+
+  await ctx.adapters.rolePermissions.assign(mainTenantId, role.id, permissions);
+
+  return role.id;
 }
 
 /**

@@ -67,6 +67,34 @@ export interface AccessControlConfig {
    * These roles should exist on the main tenant.
    */
   defaultRoles?: string[];
+
+  /**
+   * The issuer URL used to construct the Management API identifier.
+   * If provided, a "Tenant Admin" role will be created with all Management API
+   * permissions, and the user creating a new tenant will be assigned this role.
+   * @example "https://auth.example.com/"
+   */
+  issuer?: string;
+
+  /**
+   * The name of the admin role to create/use for tenant administrators.
+   * This role will have full Management API permissions.
+   * @default "Tenant Admin"
+   */
+  adminRoleName?: string;
+
+  /**
+   * Description for the admin role.
+   * @default "Full access to all tenant management operations"
+   */
+  adminRoleDescription?: string;
+
+  /**
+   * If true, the user creating a tenant will be added to the organization
+   * and assigned the admin role.
+   * @default true
+   */
+  addCreatorToOrganization?: boolean;
 }
 
 /**

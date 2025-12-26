@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "965350cb-ce88-433f-8186-3ec80422061c",
+  "id": "2e08570c-9165-450c-898f-ebfcbc10cf32",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -2305,6 +2305,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "is_system": {
+          "name": "is_system",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "metadata": {
           "name": "metadata",
           "type": "text(4096)",
@@ -2960,6 +2968,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "is_system": {
+          "name": "is_system",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "created_at": {
           "name": "created_at",
           "type": "text(35)",
@@ -3092,6 +3108,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "is_system": {
+          "name": "is_system",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
