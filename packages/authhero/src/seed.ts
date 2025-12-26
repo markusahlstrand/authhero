@@ -1,7 +1,8 @@
-import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createX509Certificate } from "./utils/encryption";
+import { userIdGenerate } from "./utils/user-id";
+import { nanoid } from "nanoid";
+import bcrypt from "bcryptjs";
 
 /**
  * Management API scopes for the AuthHero Management API
@@ -496,6 +497,9 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Read connection keys", value: "read:connections_keys" },
   { description: "Update connection keys", value: "update:connections_keys" },
   { description: "Create connection keys", value: "create:connections_keys" },
+  // Simplified auth scopes used by management API endpoints
+  { description: "Read access to authentication resources", value: "auth:read" },
+  { description: "Write access to authentication resources", value: "auth:write" },
 ];
 
 export interface SeedOptions {
@@ -546,6 +550,7 @@ export interface SeedResult {
   userId: string;
   email: string;
   clientId: string;
+  clientSecret: string;
 }
 
 /**
@@ -605,6 +610,10 @@ export async function seed(
       sender_email: "noreply@example.com",
       sender_name: "AuthHero",
     });
+    // Allow organization name to be used in authentication API (e.g., organization: "main" instead of "org_xxx")
+    await adapters.tenants.update(tenantId, {
+      allow_organization_name_in_authentication_api: true,
+    });
     if (debug) {
       console.log("✅ Tenant created");
     }
@@ -642,16 +651,16 @@ export async function seed(
     }
 
     // Create the admin user
-    const user = await adapters.users.create(tenantId, {
-      user_id: `auth2|${nanoid()}`,
+    userId = `auth2|${userIdGenerate()}`;
+    await adapters.users.create(tenantId, {
+      user_id: userId,
       email: adminEmail,
       email_verified: true,
       connection: "Username-Password-Authentication",
       provider: "auth2",
     });
-    userId = user.user_id;
 
-    // Hash the password and create password record
+    // Hash and store password
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     await adapters.passwords.create(tenantId, {
       user_id: userId,
@@ -695,25 +704,37 @@ export async function seed(
 
   // Create default client
   const existingClient = await adapters.clients.get(tenantId, clientId);
+  let clientSecret: string;
+
   if (!existingClient) {
     if (debug) {
       console.log("Creating default client...");
     }
+
+    // Generate client secret (same pattern as management API route)
+    clientSecret = nanoid();
     await adapters.clients.create(tenantId, {
       client_id: clientId,
+      client_secret: clientSecret,
       name: "Default Application",
       callbacks,
       allowed_logout_urls: allowedLogoutUrls,
       connections: ["Username-Password-Authentication"],
     });
+
     if (debug) {
       console.log("✅ Default client created");
       console.log(`   Client ID: ${clientId}`);
+      console.log(`   Client Secret: ${clientSecret}`);
       console.log(`   Callback URLs: ${callbacks.join(", ")}`);
       console.log(`   Allowed Logout URLs: ${allowedLogoutUrls.join(", ")}`);
     }
-  } else if (debug) {
-    console.log("Default client already exists, skipping...");
+  } else {
+    // Use existing client's secret
+    clientSecret = existingClient.client_secret || "";
+    if (debug) {
+      console.log("Default client already exists, skipping...");
+    }
   }
 
   // Create Management API resource server if issuer is provided
@@ -734,7 +755,7 @@ export async function seed(
       await adapters.resourceServers.create(tenantId, {
         name: "Authhero Management API",
         identifier: managementApiIdentifier,
-        allow_offline_access: false,
+        allow_offline_access: true,
         skip_consent_for_verifiable_first_party_clients: false,
         token_lifetime: 86400,
         token_lifetime_for_web: 7200,
@@ -751,6 +772,100 @@ export async function seed(
     }
   }
 
+  // Create organization with tenant_id as the name (for org-scoped token support)
+  // The ID is a generated random string like Auth0's org_xxx pattern
+  // Users can authenticate with organization: "main" (the name) when
+  // allow_organization_name_in_authentication_api is enabled on the tenant
+  const { organizations: existingOrgs } = await adapters.organizations.list(
+    tenantId,
+    { q: `name:${tenantId}` },
+  );
+  let organization = existingOrgs[0];
+  if (!organization) {
+    if (debug) {
+      console.log(`Creating organization "${tenantId}"...`);
+    }
+    organization = await adapters.organizations.create(tenantId, {
+      id: `org_${nanoid()}`,
+      name: tenantId,
+      display_name: tenantName,
+    });
+    if (debug) {
+      console.log("✅ Organization created");
+    }
+  } else if (debug) {
+    console.log(`Organization "${tenantId}" already exists, skipping...`);
+  }
+
+  // Create admin role with auth:read and auth:write permissions
+  const adminRoleName = "Tenant Admin";
+  const existingRoles = await adapters.roles.list(tenantId, {});
+  let adminRole = existingRoles.roles.find((r) => r.name === adminRoleName);
+
+  if (!adminRole) {
+    if (debug) {
+      console.log(`Creating admin role "${adminRoleName}"...`);
+    }
+    adminRole = await adapters.roles.create(tenantId, {
+      name: adminRoleName,
+      description: "Full access to tenant management operations",
+    });
+
+    // Assign auth:read and auth:write permissions to the role if we have a management API
+    if (issuer) {
+      const managementApiIdentifier = `${issuer}api/v2/`;
+      const adminPermissions = [
+        { role_id: adminRole.id, resource_server_identifier: managementApiIdentifier, permission_name: "auth:read" },
+        { role_id: adminRole.id, resource_server_identifier: managementApiIdentifier, permission_name: "auth:write" },
+      ];
+      await adapters.rolePermissions.assign(tenantId, adminRole.id, adminPermissions);
+    }
+
+    if (debug) {
+      console.log("✅ Admin role created with auth:read and auth:write permissions");
+    }
+  } else if (debug) {
+    console.log(`Admin role "${adminRoleName}" already exists, skipping...`);
+  }
+
+  // Add admin user to the organization
+  const existingMembership =
+    await adapters.userOrganizations.listUserOrganizations(tenantId, userId, {});
+  const isAlreadyMember = existingMembership.organizations.some(
+    (org) => org.id === organization.id,
+  );
+
+  if (!isAlreadyMember) {
+    if (debug) {
+      console.log(`Adding admin user to organization "${organization.name}"...`);
+    }
+    await adapters.userOrganizations.create(tenantId, {
+      user_id: userId,
+      organization_id: organization.id,
+    });
+    if (debug) {
+      console.log("✅ Admin user added to organization");
+    }
+  } else if (debug) {
+    console.log("Admin user already in organization, skipping...");
+  }
+
+  // Assign admin role to the user in the organization
+  const existingUserRoles = await adapters.userRoles.list(tenantId, userId, undefined, organization.id);
+  const hasAdminRole = existingUserRoles.some((r) => r.id === adminRole!.id);
+
+  if (!hasAdminRole) {
+    if (debug) {
+      console.log(`Assigning admin role to user in organization "${organization.name}"...`);
+    }
+    await adapters.userRoles.create(tenantId, userId, adminRole.id, organization.id);
+    if (debug) {
+      console.log("✅ Admin role assigned to user");
+    }
+  } else if (debug) {
+    console.log("Admin user already has admin role, skipping...");
+  }
+
   if (debug) {
     console.log("\n🎉 Seeding complete!");
   }
@@ -760,5 +875,6 @@ export async function seed(
     userId,
     email: adminEmail,
     clientId,
+    clientSecret,
   };
 }

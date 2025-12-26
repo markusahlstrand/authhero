@@ -1,5 +1,8 @@
 import { UpdateParams, withLifecycleCallbacks } from "react-admin";
-import { authorizedHttpClient } from "./authProvider";
+import {
+  authorizedHttpClient,
+  createOrganizationHttpClient,
+} from "./authProvider";
 import auth0DataProvider from "./auth0DataProvider";
 import {
   getDomainFromStorage,
@@ -85,10 +88,14 @@ export function getDataproviderForTenant(
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
 
-  // Create the auth0Provider with the API URL, tenant ID, and domain
+  // Create an organization-scoped HTTP client for this tenant
+  // This ensures the user has the correct permissions for accessing tenant resources
+  const organizationHttpClient = createOrganizationHttpClient(tenantId);
+
+  // Create the auth0Provider with the API URL, tenant ID, domain, and org-scoped client
   const auth0Provider = auth0DataProvider(
     apiUrl,
-    authorizedHttpClient,
+    organizationHttpClient,
     tenantId,
     auth0Domain,
   );

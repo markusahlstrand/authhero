@@ -1,5 +1,57 @@
 import { DomainConfig } from "./domainUtils";
-import { Auth0Client } from "@auth0/auth0-spa-js";
+import {
+  Auth0Client,
+  ICache,
+  Cacheable,
+  MaybePromise,
+} from "@auth0/auth0-spa-js";
+
+// Import the CACHE_KEY_PREFIX constant for consistency with the Auth0 SDK
+const CACHE_KEY_PREFIX = "@@auth0spajs@@";
+
+/**
+ * Custom cache provider that wraps localStorage and adds organization isolation.
+ * This ensures that tokens and auth state are kept separate between organizations.
+ * Based on the original LocalStorageCache implementation from auth0-spa-js.
+ */
+export class OrgCache implements ICache {
+  private orgId: string;
+
+  constructor(orgId: string) {
+    this.orgId = orgId;
+  }
+
+  public set<T = Cacheable>(key: string, entry: T) {
+    const orgKey = `${key}:${this.orgId}`;
+    localStorage.setItem(orgKey, JSON.stringify(entry));
+  }
+
+  public get<T = Cacheable>(key: string): MaybePromise<T | undefined> {
+    const orgKey = `${key}:${this.orgId}`;
+    const json = window.localStorage.getItem(orgKey);
+
+    if (!json) return;
+
+    try {
+      const payload = JSON.parse(json) as T;
+      return payload;
+    } catch (e) {
+      return;
+    }
+  }
+
+  public remove(key: string) {
+    const orgKey = `${key}:${this.orgId}`;
+    localStorage.removeItem(orgKey);
+  }
+
+  public allKeys() {
+    const orgSuffix = `:${this.orgId}`;
+    return Object.keys(window.localStorage).filter(
+      (key) => key.startsWith(CACHE_KEY_PREFIX) && key.endsWith(orgSuffix),
+    );
+  }
+}
 
 async function fetchTokenWithClientCredentials(
   domain: string,
@@ -37,6 +89,24 @@ async function fetchTokenWithClientCredentials(
   return data.access_token;
 }
 
+/**
+ * Clear the organization token cache (e.g., on logout).
+ * This clears all organization-specific localStorage entries.
+ */
+export function clearOrganizationTokenCache(): void {
+  // Clear all org-cached tokens from localStorage
+  const keysToRemove = Object.keys(window.localStorage).filter(
+    (key) =>
+      key.startsWith("@@auth0spajs@@") && key.includes(":org_"),
+  );
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+}
+
+/**
+ * Get a token for the given domain configuration.
+ * For OAuth login, this gets a token WITHOUT organization scope.
+ * Use createAuth0ClientForOrg for organization-scoped tokens.
+ */
 export default async function getToken(
   domainConfig: DomainConfig,
   auth0Client?: Auth0Client,
@@ -57,7 +127,7 @@ export default async function getToken(
     );
     return token;
   } else if (domainConfig.connectionMethod === "login" && auth0Client) {
-    // If using OAuth login, get token from auth0Client
+    // Get a regular token WITHOUT organization scope
     try {
       const token = await auth0Client.getTokenSilently();
       return token;

@@ -36,25 +36,61 @@ export function createTenantsRouter(
   }>();
 
   // --------------------------------
-  // GET /tenants - List all tenants
+  // GET /tenants - List tenants the user has access to
   // --------------------------------
   app.get("/", async (ctx) => {
-    // Validate access to main tenant
-    if (config.accessControl) {
-      const canAccess = await hooks.onTenantAccessValidation?.(
-        ctx,
-        config.accessControl.mainTenantId,
-      );
-      if (canAccess === false) {
-        throw new HTTPException(403, {
-          message: "Access denied to tenant management",
-        });
-      }
-    }
-
     const query = auth0QuerySchema.parse(ctx.req.query());
     const { page, per_page, include_totals, q } = query;
 
+    // Get the current user from context
+    const user = ctx.var.user;
+
+    // If access control is enabled, filter tenants based on user's organization memberships
+    if (config.accessControl && user?.sub) {
+      const mainTenantId = config.accessControl.mainTenantId;
+
+      // Get all organizations the user belongs to on the main tenant
+      const userOrgs =
+        await ctx.env.data.userOrganizations.listUserOrganizations(
+          mainTenantId,
+          user.sub,
+          {},
+        );
+
+      // The organization IDs correspond to tenant IDs the user can access
+      const accessibleTenantIds = userOrgs.organizations.map((org) => org.id);
+
+      // Always include the main tenant if the user is authenticated
+      if (!accessibleTenantIds.includes(mainTenantId)) {
+        accessibleTenantIds.push(mainTenantId);
+      }
+
+      // Get all tenants and filter to only those the user has access to
+      const result = await ctx.env.data.tenants.list({
+        page,
+        per_page,
+        include_totals,
+        q,
+      });
+
+      // Filter tenants to only those the user has access to
+      const filteredTenants = result.tenants.filter((tenant) =>
+        accessibleTenantIds.includes(tenant.id),
+      );
+
+      if (include_totals) {
+        return ctx.json({
+          tenants: filteredTenants,
+          start: result.start,
+          limit: result.limit,
+          length: filteredTenants.length,
+        });
+      }
+
+      return ctx.json(filteredTenants);
+    }
+
+    // If no access control, return all tenants (for backward compatibility)
     const result = await ctx.env.data.tenants.list({
       page,
       per_page,
@@ -75,12 +111,34 @@ export function createTenantsRouter(
   app.get("/:id", async (ctx) => {
     const id = ctx.req.param("id");
 
-    // Validate access
-    const canAccess = await hooks.onTenantAccessValidation?.(ctx, id);
-    if (canAccess === false) {
-      throw new HTTPException(403, {
-        message: "Access denied to this tenant",
-      });
+    // Validate access via organization membership
+    if (config.accessControl) {
+      const user = ctx.var.user;
+      const mainTenantId = config.accessControl.mainTenantId;
+
+      // Main tenant is accessible to any authenticated user
+      if (id !== mainTenantId) {
+        if (!user?.sub) {
+          throw new HTTPException(401, {
+            message: "Authentication required",
+          });
+        }
+
+        // Check if user is a member of the organization for this tenant
+        const userOrgs =
+          await ctx.env.data.userOrganizations.listUserOrganizations(
+            mainTenantId,
+            user.sub,
+            {},
+          );
+
+        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        if (!hasAccess) {
+          throw new HTTPException(403, {
+            message: "Access denied to this tenant",
+          });
+        }
+      }
     }
 
     const tenant = await ctx.env.data.tenants.get(id);
@@ -97,19 +155,17 @@ export function createTenantsRouter(
   // --------------------------------
   // POST /tenants - Create a tenant
   // --------------------------------
+  // Any authenticated user can create a tenant. The user will be automatically
+  // added to the organization for that tenant with admin permissions via the
+  // afterCreate hook in provisioning.ts
   app.post("/", async (ctx) => {
     try {
-      // Validate access to main tenant for creating new tenants
-      if (config.accessControl) {
-        const canAccess = await hooks.onTenantAccessValidation?.(
-          ctx,
-          config.accessControl.mainTenantId,
-        );
-        if (canAccess === false) {
-          throw new HTTPException(403, {
-            message: "Access denied to create tenants",
-          });
-        }
+      // Ensure user is authenticated
+      const user = ctx.var.user;
+      if (!user?.sub) {
+        throw new HTTPException(401, {
+          message: "Authentication required to create tenants",
+        });
       }
 
       let body: CreateTenantParams = tenantInsertSchema.parse(
@@ -167,12 +223,34 @@ export function createTenantsRouter(
   app.patch("/:id", async (ctx) => {
     const id = ctx.req.param("id");
 
-    // Validate access
-    const canAccess = await hooks.onTenantAccessValidation?.(ctx, id);
-    if (canAccess === false) {
-      throw new HTTPException(403, {
-        message: "Access denied to update this tenant",
-      });
+    // Validate access via organization membership
+    if (config.accessControl) {
+      const user = ctx.var.user;
+      if (!user?.sub) {
+        throw new HTTPException(401, {
+          message: "Authentication required to update tenants",
+        });
+      }
+
+      const mainTenantId = config.accessControl.mainTenantId;
+
+      // Check if user is a member of the organization for this tenant
+      // (unless it's the main tenant, which has different access rules)
+      if (id !== mainTenantId) {
+        const userOrgs =
+          await ctx.env.data.userOrganizations.listUserOrganizations(
+            mainTenantId,
+            user.sub,
+            {},
+          );
+
+        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        if (!hasAccess) {
+          throw new HTTPException(403, {
+            message: "Access denied to update this tenant",
+          });
+        }
+      }
     }
 
     const body = tenantInsertSchema.partial().parse(await ctx.req.json());
@@ -229,15 +307,29 @@ export function createTenantsRouter(
       });
     }
 
-    // Validate access to main tenant for deleting tenants
+    // Validate the user has access to this tenant via organization membership
     if (config.accessControl) {
-      const canAccess = await hooks.onTenantAccessValidation?.(
-        ctx,
-        config.accessControl.mainTenantId,
-      );
-      if (canAccess === false) {
+      const user = ctx.var.user;
+      if (!user?.sub) {
+        throw new HTTPException(401, {
+          message: "Authentication required to delete tenants",
+        });
+      }
+
+      const mainTenantId = config.accessControl.mainTenantId;
+
+      // Check if user is a member of the organization for this tenant
+      const userOrgs =
+        await ctx.env.data.userOrganizations.listUserOrganizations(
+          mainTenantId,
+          user.sub,
+          {},
+        );
+
+      const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+      if (!hasAccess) {
         throw new HTTPException(403, {
-          message: "Access denied to delete tenants",
+          message: "Access denied to delete this tenant",
         });
       }
     }

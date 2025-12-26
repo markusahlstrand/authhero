@@ -9,11 +9,12 @@ import { setupMultiTenancy } from "../src/index";
 describe("Multi-Tenancy", () => {
   let app: Hono<{
     Bindings: { data: ReturnType<typeof createAdapters> };
-    Variables: { tenant_id: string };
+    Variables: { tenant_id: string; user?: { sub: string; tenant_id: string } };
   }>;
   let db: Kysely<Database>;
   let adapters: ReturnType<typeof createAdapters>;
   let env: { data: ReturnType<typeof createAdapters> };
+  const testUserId = "auth0|test-user-123";
 
   beforeEach(async () => {
     // Create in-memory SQLite database
@@ -40,6 +41,17 @@ describe("Multi-Tenancy", () => {
       sender_name: "Main Tenant",
     });
 
+    // Create a test user on the main tenant
+    await adapters.users.create("main", {
+      user_id: testUserId,
+      email: "test@example.com",
+      email_verified: true,
+      connection: "Username-Password-Authentication",
+      provider: "auth0",
+      is_social: false,
+      login_count: 0,
+    });
+
     // Setup multi-tenancy with access control for organization creation
     const multiTenancy = setupMultiTenancy({
       accessControl: {
@@ -52,12 +64,16 @@ describe("Multi-Tenancy", () => {
     // Create Hono app with proper typing
     app = new Hono<{
       Bindings: { data: typeof adapters };
-      Variables: { tenant_id: string };
+      Variables: {
+        tenant_id: string;
+        user?: { sub: string; tenant_id: string };
+      };
     }>();
 
-    // Set tenant_id variable in context
+    // Set tenant_id and user variables in context (simulating authenticated user)
     app.use("*", async (c, next) => {
       c.set("tenant_id", "main");
+      c.set("user", { sub: testUserId, tenant_id: "main" });
       await next();
     });
 
@@ -129,6 +145,26 @@ describe("Multi-Tenancy", () => {
       sender_name: "Tenant 2",
     });
 
+    // Create organizations and add user to them
+    await adapters.organizations.create("main", {
+      id: "tenant1",
+      name: "tenant1",
+      display_name: "Tenant 1",
+    });
+    await adapters.organizations.create("main", {
+      id: "tenant2",
+      name: "tenant2",
+      display_name: "Tenant 2",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "tenant1",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "tenant2",
+    });
+
     const response = await app.request("/management/tenants", {}, env);
     expect(response.status).toBe(200);
 
@@ -140,6 +176,53 @@ describe("Multi-Tenancy", () => {
     expect(data.map((t: any) => t.id)).toContain("tenant2");
   });
 
+  it("should only list tenants the user has access to", async () => {
+    // Create test tenants
+    await adapters.tenants.create({
+      id: "accessible-tenant",
+      friendly_name: "Accessible Tenant",
+      audience: "https://accessible.example.com",
+      sender_email: "support@accessible.com",
+      sender_name: "Accessible",
+    });
+
+    await adapters.tenants.create({
+      id: "inaccessible-tenant",
+      friendly_name: "Inaccessible Tenant",
+      audience: "https://inaccessible.example.com",
+      sender_email: "support@inaccessible.com",
+      sender_name: "Inaccessible",
+    });
+
+    // Only create organization and membership for accessible tenant
+    await adapters.organizations.create("main", {
+      id: "accessible-tenant",
+      name: "accessible-tenant",
+      display_name: "Accessible Tenant",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "accessible-tenant",
+    });
+
+    // Create organization for inaccessible tenant but don't add user
+    await adapters.organizations.create("main", {
+      id: "inaccessible-tenant",
+      name: "inaccessible-tenant",
+      display_name: "Inaccessible Tenant",
+    });
+
+    const response = await app.request("/management/tenants", {}, env);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data).toHaveLength(2); // main + accessible-tenant only
+    expect(data.map((t: any) => t.id)).toContain("main");
+    expect(data.map((t: any) => t.id)).toContain("accessible-tenant");
+    expect(data.map((t: any) => t.id)).not.toContain("inaccessible-tenant");
+  });
+
   it("should get a specific tenant", async () => {
     // Create test tenant
     await adapters.tenants.create({
@@ -148,6 +231,17 @@ describe("Multi-Tenancy", () => {
       audience: "https://test.example.com",
       sender_email: "support@test.com",
       sender_name: "Test",
+    });
+
+    // Create organization and add user to it
+    await adapters.organizations.create("main", {
+      id: "test-tenant",
+      name: "test-tenant",
+      display_name: "Test Tenant",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "test-tenant",
     });
 
     const response = await app.request(
@@ -170,6 +264,17 @@ describe("Multi-Tenancy", () => {
       audience: "https://update.example.com",
       sender_email: "support@update.com",
       sender_name: "Original",
+    });
+
+    // Create organization and add user to it
+    await adapters.organizations.create("main", {
+      id: "update-tenant",
+      name: "update-tenant",
+      display_name: "Original Name",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "update-tenant",
     });
 
     const response = await app.request(
@@ -207,10 +312,15 @@ describe("Multi-Tenancy", () => {
       sender_name: "Delete",
     });
 
-    // Create organization for the tenant
+    // Create organization for the tenant and add user to it
     await adapters.organizations.create("main", {
+      id: "delete-tenant",
       name: "delete-tenant",
       display_name: "Delete Me",
+    });
+    await adapters.userOrganizations.create("main", {
+      user_id: testUserId,
+      organization_id: "delete-tenant",
     });
 
     const response = await app.request(
@@ -264,13 +374,23 @@ describe("Multi-Tenancy", () => {
     expect(orgTestOrg?.display_name).toBe("Org Test Corp");
   });
 
-  it("should return 404 for non-existent tenant", async () => {
+  it("should return 403 for tenant user has no access to", async () => {
+    // Create a tenant but don't add user to its organization
+    await adapters.tenants.create({
+      id: "no-access-tenant",
+      friendly_name: "No Access",
+      audience: "https://noaccess.example.com",
+      sender_email: "support@noaccess.com",
+      sender_name: "No Access",
+    });
+
     const response = await app.request(
-      "/management/tenants/non-existent",
+      "/management/tenants/no-access-tenant",
       {},
       env,
     );
-    expect(response.status).toBe(404);
+    // Should return 403 because user is not a member of the organization
+    expect(response.status).toBe(403);
   });
 
   it("should validate required fields when creating tenant", async () => {

@@ -85,11 +85,23 @@ export function createOrganizationsAdapter(
     },
 
     async get(tenantId: string, id: string): Promise<Organization | null> {
-      const item = await getItem<OrganizationItem>(
+      // First try to find by ID
+      let item = await getItem<OrganizationItem>(
         ctx,
         organizationKeys.pk(tenantId),
         organizationKeys.sk(id),
       );
+
+      // If not found by ID, try to find by name using GSI1
+      if (!item) {
+        const result = await queryWithPagination<OrganizationItem>(
+          ctx,
+          organizationKeys.gsi1pk(tenantId, id),
+          { page: 0, perPage: 1 },
+          { indexName: "GSI1", skPrefix: "ORGANIZATION" },
+        );
+        item = result.items[0] || null;
+      }
 
       if (!item) return null;
 

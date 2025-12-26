@@ -9,14 +9,29 @@ import {
   required,
   NumberInput,
   FormDataConsumer,
+  useRecordContext,
 } from "react-admin";
-import { Stack } from "@mui/material";
+import { Stack, Alert } from "@mui/material";
+
+function SystemEntityAlert() {
+  const record = useRecordContext();
+  if (!record?.is_system) return null;
+
+  return (
+    <Alert severity="info" sx={{ mb: 2 }}>
+      This Resource Server represents a system entity and cannot be modified or
+      deleted. You can still authorize applications to consume this resource
+      server.
+    </Alert>
+  );
+}
 
 export function ResourceServerEdit() {
   return (
     <Edit>
       <TabbedForm>
         <TabbedForm.Tab label="Details">
+          <SystemEntityAlert />
           <Stack spacing={2}>
             <TextInput source="name" validate={[required()]} />
             <TextInput

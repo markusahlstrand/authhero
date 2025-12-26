@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CircularProgress, Box, Typography, Alert } from "@mui/material";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
-import { createAuth0Client } from "./authProvider";
+import { createAuth0Client, createAuth0ClientForOrg } from "./authProvider";
 
 interface AuthCallbackProps {
   onAuthComplete?: () => void;
@@ -55,19 +55,53 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
           return;
         }
 
-        // Get the auth0 client for the selected domain
-        const auth0 = createAuth0Client(selectedDomain);
-
         // Mark that we've processed this callback to prevent duplicate processing
         callbackProcessedRef.current = true;
 
+        // First, try with the non-org client to handle the callback
+        // The Auth0 SDK will extract the token, and we can then check if it has org_id
+        const auth0 = createAuth0Client(selectedDomain);
+
         // Process the redirect callback
         // This is critical - it extracts the auth info from the URL and stores it
-        await auth0.handleRedirectCallback();
+        const result = await auth0.handleRedirectCallback();
+
+        // Get the return URL from appState, defaulting to /tenants
+        const returnTo = result?.appState?.returnTo || "/tenants";
+
+        // Check if the token has an organization by decoding the ID token
+        // If returnTo is a tenant path (not /tenants), we need to also cache for that org
+        const pathSegments = returnTo.split("/").filter(Boolean);
+        const possibleOrgId = pathSegments[0];
+
+        // If it looks like a tenant path (not 'tenants' itself), create an org client
+        // to ensure the token is also cached in the org-specific cache
+        if (possibleOrgId && possibleOrgId !== "tenants") {
+          try {
+            // Get the token from the non-org client and check if it has org_id
+            const token = await auth0.getIdTokenClaims();
+            if (token?.org_id === possibleOrgId) {
+              // Create the org client - this will also cache the token in the org-specific cache
+              const orgAuth0 = createAuth0ClientForOrg(
+                selectedDomain,
+                possibleOrgId,
+              );
+              // Try to get a token to populate the org cache
+              await orgAuth0.getTokenSilently().catch(() => {
+                // It's ok if this fails - the main callback was processed
+                console.log(
+                  `[AuthCallback] Org token caching for ${possibleOrgId} deferred`,
+                );
+              });
+            }
+          } catch {
+            // Non-critical - continue with navigation
+          }
+        }
 
         // We're being redirected back from the authentication provider
-        // Force redirect to the main application
-        forceNavigate("/tenants");
+        // Navigate to the original URL or /tenants
+        forceNavigate(returnTo);
       } catch (err) {
         // Only set error for real errors, not for "already processed" errors
         if (err instanceof Error) {
