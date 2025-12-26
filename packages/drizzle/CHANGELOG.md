@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.10.0
+
+### Minor Changes
+
+- 3dcc620: Use migrations from drizzle
+
 ## 0.9.0
 
 ### Minor Changes
