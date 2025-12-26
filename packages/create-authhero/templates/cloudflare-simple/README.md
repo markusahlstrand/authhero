@@ -75,8 +75,6 @@ A single-tenant AuthHero authentication server using Cloudflare Workers and D1.
 - `npm run db:migrate:remote` - Run migrations on remote database
 - `npm run seed:local` - Seed local database with admin user
 - `npm run seed:remote` - Seed remote database with admin user
-- `npm run db:generate` - Generate new migration from schema changes
-- `npm run db:push` - Push schema changes directly to database (development only)
 
 ## Deployment
 
@@ -100,16 +98,12 @@ A single-tenant AuthHero authentication server using Cloudflare Workers and D1.
 ## Project Structure
 
 ```
-├── migrations/
-│   └── 0000_init.sql     # Initial database schema migration
 ├── src/
-│   ├── db/
-│   │   └── schema.ts     # Drizzle schema (for migration generation)
 │   ├── index.ts          # Worker entry point
 │   ├── app.ts            # AuthHero app configuration
 │   ├── seed.ts           # Database seeding worker
 │   └── types.ts          # TypeScript type definitions
-├── drizzle.config.ts     # Drizzle Kit configuration
+├── drizzle.config.ts     # Drizzle configuration (reference only)
 ├── seed-helper.js        # Helper script for automated seeding
 ├── wrangler.toml         # Cloudflare Worker configuration
 └── package.json
@@ -117,45 +111,14 @@ A single-tenant AuthHero authentication server using Cloudflare Workers and D1.
 
 ## Database Migrations
 
-This project uses [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview) for generating database migrations from schema changes.
+Database migrations are pre-generated and shipped with the `@authhero/drizzle` package. The schema is managed by AuthHero to ensure compatibility with future updates.
 
-### Schema-Driven Migrations
+To apply migrations:
 
-The database schema is defined in `src/db/schema.ts` using Drizzle ORM. When you need to make schema changes:
+- **Local development**: `npm run migrate` or `npm run db:migrate:local`
+- **Production**: `npm run db:migrate:remote`
 
-1. **Modify the schema** (if customizing beyond the default AuthHero schema)
-
-2. **Generate a new migration:**
-
-   ```bash
-   npm run db:generate
-   ```
-
-   This creates a new SQL migration file in the `migrations/` directory.
-
-3. **Apply the migration locally:**
-
-   ```bash
-   npm run db:migrate:local
-   ```
-
-4. **Apply to production:**
-   ```bash
-   npm run db:migrate:remote
-   ```
-
-### Migration Architecture
-
-- **Drizzle ORM**: Defines the database schema in TypeScript
-- **drizzle-kit**: Generates SQL migrations by comparing schema to database state
-- **Kysely**: Used at runtime for executing queries (via @authhero/kysely-adapter)
-
-This approach gives you:
-
-- Type-safe schema definitions
-- Incremental migrations (only changes are migrated)
-- Full control over migration SQL
-- Compatibility with Cloudflare D1
+> ⚠️ **Note**: Do not run `drizzle-kit generate`. The `drizzle.config.ts` file is provided for reference only.
 
 ## API Documentation
 
