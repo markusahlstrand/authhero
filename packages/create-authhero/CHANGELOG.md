@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.13.0
+
+### Minor Changes
+
+- b778aed: Seed mananagement roles and create organizations
+
 ## 0.12.0
 
 ### Minor Changes

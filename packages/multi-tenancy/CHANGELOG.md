@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.5.0
+
+### Minor Changes
+
+- b778aed: Seed mananagement roles and create organizations
+
+### Patch Changes
+
+- Updated dependencies [b778aed]
+  - authhero@0.303.0
+
 ## 13.4.0
 
 ### Minor Changes
