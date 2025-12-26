@@ -14,7 +14,7 @@ import {
   useRecordContext,
   useRedirect,
 } from "react-admin";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -34,9 +34,15 @@ import {
   Checkbox,
   Chip,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  OutlinedInput,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import { useParams } from "react-router-dom";
 
 const AddOrganizationMemberButton = () => {
@@ -401,6 +407,227 @@ const RemoveMemberButton = ({ record }: { record: any }) => {
   );
 };
 
+const ManageMemberRolesButton = ({ record }: { record: any }) => {
+  const [open, setOpen] = useState(false);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [memberRoles, setMemberRoles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { id: organizationId } = useParams();
+
+  const handleOpen = async () => {
+    setOpen(true);
+    setLoading(true);
+    try {
+      // Fetch all available roles
+      const { data: allRoles } = await dataProvider.getList("roles", {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+      setRoles(allRoles);
+
+      // Fetch member's current roles in this organization
+      if (organizationId && record?.user_id) {
+        const response = await dataProvider.getList(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          {
+            pagination: { page: 1, perPage: 100 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        setMemberRoles(response.data.map((r: any) => r.id));
+      }
+    } catch (error) {
+      notify("Error loading roles", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setMemberRoles([]);
+    setRoles([]);
+  };
+
+  const handleSaveRoles = async () => {
+    if (!organizationId || !record?.user_id) return;
+
+    setLoading(true);
+    try {
+      // Get current roles to determine what to add/remove
+      const currentResponse = await dataProvider.getList(
+        `organizations/${organizationId}/members/${record.user_id}/roles`,
+        {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: "name", order: "ASC" },
+          filter: {},
+        },
+      );
+      const currentRoleIds = currentResponse.data.map((r: any) => r.id);
+
+      const rolesToAdd = memberRoles.filter((r) => !currentRoleIds.includes(r));
+      const rolesToRemove = currentRoleIds.filter(
+        (r: string) => !memberRoles.includes(r),
+      );
+
+      // Add new roles
+      if (rolesToAdd.length > 0) {
+        await dataProvider.create(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          {
+            data: { roles: rolesToAdd },
+          },
+        );
+      }
+
+      // Remove old roles
+      if (rolesToRemove.length > 0) {
+        await dataProvider.delete(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          {
+            id: "",
+            previousData: { roles: rolesToRemove },
+          },
+        );
+      }
+
+      notify("Member roles updated successfully", { type: "success" });
+      refresh();
+      handleClose();
+    } catch (error) {
+      notify("Error updating member roles", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <IconButton
+        onClick={handleOpen}
+        color="primary"
+        size="small"
+        title="Manage roles"
+      >
+        <EditIcon />
+      </IconButton>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Manage Roles for {record?.email || record?.user_id}
+        </DialogTitle>
+        <DialogContent>
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                Select roles to assign to this member in this organization.
+              </DialogContentText>
+
+              <FormControl fullWidth>
+                <InputLabel id="member-roles-label">Roles</InputLabel>
+                <Select
+                  labelId="member-roles-label"
+                  multiple
+                  value={memberRoles}
+                  onChange={(e) => setMemberRoles(e.target.value as string[])}
+                  input={<OutlinedInput label="Roles" />}
+                  renderValue={(selected) => (
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                      {selected.map((roleId) => {
+                        const role = roles.find((r) => r.id === roleId);
+                        return (
+                          <Chip
+                            key={roleId}
+                            label={role?.name || roleId}
+                            size="small"
+                          />
+                        );
+                      })}
+                    </Stack>
+                  )}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role.id} value={role.id}>
+                      <Checkbox checked={memberRoles.includes(role.id)} />
+                      <ListItemText
+                        primary={role.name}
+                        secondary={role.description}
+                      />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSaveRoles} variant="contained" disabled={loading}>
+            Save Roles
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+const MemberRolesDisplay = ({ record }: { record: any }) => {
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const dataProvider = useDataProvider();
+  const { id: organizationId } = useParams();
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (!organizationId || !record?.user_id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const response = await dataProvider.getList(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          {
+            pagination: { page: 1, perPage: 100 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        setRoles(response.data);
+      } catch (error) {
+        console.error("Error fetching member roles:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRoles();
+  }, [dataProvider, organizationId, record?.user_id]);
+
+  if (loading) {
+    return <CircularProgress size={16} />;
+  }
+
+  if (roles.length === 0) {
+    return <Typography color="text.secondary">No roles</Typography>;
+  }
+
+  return (
+    <Stack direction="row" spacing={0.5} flexWrap="wrap">
+      {roles.map((role) => (
+        <Chip key={role.id} label={role.name} size="small" variant="outlined" />
+      ))}
+    </Stack>
+  );
+};
+
 const OrganizationGeneralTab = () => (
   <Box>
     <TextInput source="name" validate={[required()]} fullWidth />
@@ -457,8 +684,17 @@ const OrganizationMembersTab = () => {
           />
           <TextField source="email" label="Email" />
           <FunctionField
+            label="Roles"
+            render={(record) => <MemberRolesDisplay record={record} />}
+          />
+          <FunctionField
             label="Actions"
-            render={(record) => <RemoveMemberButton record={record} />}
+            render={(record) => (
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                <ManageMemberRolesButton record={record} />
+                <RemoveMemberButton record={record} />
+              </Box>
+            )}
           />
         </Datagrid>
       </ReferenceManyField>

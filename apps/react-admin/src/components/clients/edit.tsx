@@ -746,7 +746,20 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
   };
 
   const updateFormData = (array: Array<{ key: string; value: string }>) => {
+    // Fields managed by other inputs (BooleanInput, SelectInput, etc.)
+    const preservedFields = ["disable_sign_ups", "email_validation"];
+
+    // Start with preserved fields from current value
     const newObject: Record<string, any> = {};
+    if (value && typeof value === "object") {
+      preservedFields.forEach((field) => {
+        if (field in value) {
+          newObject[field] = value[field];
+        }
+      });
+    }
+
+    // Add the metadata array values
     array.forEach((item) => {
       if (item.key && item.key.trim()) {
         newObject[item.key.trim()] = item.value;
@@ -1157,8 +1170,34 @@ const ConnectionsTab = () => {
 };
 
 export function ClientEdit() {
+  // Transform data before submission to ensure client_metadata values are strings
+  const transformClientData = (data: Record<string, unknown>) => {
+    const transformed = { ...data };
+
+    // Ensure client_metadata values are strings (Auth0 requirement)
+    if (
+      transformed.client_metadata &&
+      typeof transformed.client_metadata === "object"
+    ) {
+      const metadata = transformed.client_metadata as Record<string, unknown>;
+      const stringifiedMetadata: Record<string, string> = {};
+
+      for (const [key, value] of Object.entries(metadata)) {
+        if (typeof value === "boolean") {
+          stringifiedMetadata[key] = value ? "true" : "false";
+        } else if (value !== null && value !== undefined) {
+          stringifiedMetadata[key] = String(value);
+        }
+      }
+
+      transformed.client_metadata = stringifiedMetadata;
+    }
+
+    return transformed;
+  };
+
   return (
-    <Edit>
+    <Edit transform={transformClientData}>
       <SimpleShowLayout>
         <TextField source="name" />
         <TextField source="id" />

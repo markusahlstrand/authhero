@@ -1,6 +1,8 @@
-import { AppBar, TitlePortal, useDataProvider } from "react-admin";
-import { useEffect, useState } from "react";
+import { AppBar, TitlePortal } from "react-admin";
+import { useEffect, useState, useMemo } from "react";
 import { Link, Box } from "@mui/material";
+import { getDataprovider } from "../dataProvider";
+import { getDomainFromStorage } from "../utils/domainUtils";
 
 type TenantResponse = {
   audience: string;
@@ -26,12 +28,25 @@ export function TenantAppBar(props: TenantAppBarProps) {
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const tenantId = pathSegments[0];
   const [tenant, setTenant] = useState<TenantResponse>();
-  const dataProvider = useDataProvider();
+
+  // Get the selected domain from storage or environment
+  const selectedDomain = useMemo(() => {
+    const domains = getDomainFromStorage();
+    const selected = domains.find((d) => d.isSelected);
+    return selected?.url || import.meta.env.VITE_AUTH0_DOMAIN || "";
+  }, []);
+
+  // Use the non-org data provider for fetching tenants list
+  // This is necessary because tenants list requires a non-org token
+  const tenantsDataProvider = useMemo(
+    () => getDataprovider(selectedDomain),
+    [selectedDomain],
+  );
 
   useEffect(() => {
-    // Use the dataProvider to fetch tenants list and find the matching one
-    // This ensures we use the correct API URL configured in the app
-    dataProvider
+    // Use the non-org dataProvider to fetch tenants list
+    // The tenants endpoint requires non-org scoped tokens
+    tenantsDataProvider
       .getList("tenants", {
         pagination: { page: 1, perPage: 100 },
         sort: { field: "id", order: "ASC" },
@@ -59,7 +74,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
           name: tenantId,
         } as TenantResponse);
       });
-  }, [tenantId, dataProvider]);
+  }, [tenantId, tenantsDataProvider]);
 
   const isDefaultSettings = tenantId === "DEFAULT_SETTINGS";
 

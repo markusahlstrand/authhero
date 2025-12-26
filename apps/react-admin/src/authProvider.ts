@@ -1,4 +1,4 @@
-import { Auth0AuthProvider, httpClient } from "ra-auth-auth0";
+import { Auth0AuthProvider } from "ra-auth-auth0";
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import { ManagementClient } from "auth0";
 import {
@@ -7,7 +7,10 @@ import {
   getDomainFromStorage,
   buildUrlWithProtocol,
 } from "./utils/domainUtils";
-import getToken from "./utils/tokenUtils";
+import getToken, {
+  clearOrganizationTokenCache,
+  OrgCache,
+} from "./utils/tokenUtils";
 
 // Track auth requests globally
 let authRequestInProgress = false;
@@ -17,13 +20,16 @@ const AUTH_REQUEST_DEBOUNCE_MS = 1000; // Debounce time between auth requests
 // Store active sessions by domain
 const activeSessions = new Map<string, boolean>();
 
-// Cache for auth0 clients
+// Cache for auth0 clients (domain only, no org)
 const auth0ClientCache = new Map<string, Auth0Client>();
+
+// Cache for organization-specific auth0 clients (domain:orgId)
+const auth0OrgClientCache = new Map<string, Auth0Client>();
 
 // Cache for management clients
 const managementClientCache = new Map<string, ManagementClient>();
 
-// Create a function to get Auth0Client with the specified domain
+// Create a function to get Auth0Client with the specified domain (no organization)
 export const createAuth0Client = (domain: string) => {
   // Check cache first to avoid creating multiple clients for the same domain
   if (auth0ClientCache.has(domain)) {
@@ -37,13 +43,17 @@ export const createAuth0Client = (domain: string) => {
   const currentUrl = new URL(window.location.href);
   const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
 
+  // Use explicit audience or fallback to the domain's API
+  const audience =
+    import.meta.env.VITE_AUTH0_AUDIENCE || `https://${domain}/api/v2/`;
+
   const auth0Client = new Auth0Client({
     domain: fullDomain,
     clientId: getClientIdFromStorage(domain),
     cacheLocation: "localstorage",
     useRefreshTokens: true,
     authorizationParams: {
-      audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      audience,
       redirect_uri: redirectUri,
       scope: "openid profile email auth:read auth:write",
     },
@@ -101,6 +111,52 @@ export const createAuth0Client = (domain: string) => {
   return auth0Client;
 };
 
+/**
+ * Create an Auth0Client for a specific organization with isolated cache.
+ * This ensures tokens for different organizations don't interfere with each other.
+ */
+export const createAuth0ClientForOrg = (
+  domain: string,
+  organizationId: string,
+) => {
+  const cacheKey = `${domain}:${organizationId}`;
+
+  // Check cache first
+  if (auth0OrgClientCache.has(cacheKey)) {
+    return auth0OrgClientCache.get(cacheKey)!;
+  }
+
+  // Build full domain URL with HTTPS
+  const fullDomain = buildUrlWithProtocol(domain);
+
+  // Get redirect URI from current app URL
+  const currentUrl = new URL(window.location.href);
+  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
+
+  // Use explicit audience or fallback to the domain's API
+  const audience =
+    import.meta.env.VITE_AUTH0_AUDIENCE || `https://${domain}/api/v2/`;
+
+  const auth0Client = new Auth0Client({
+    domain: fullDomain,
+    clientId: getClientIdFromStorage(domain),
+    useRefreshTokens: true,
+    // Use organization-specific cache to isolate tokens
+    // Note: Don't use cacheLocation when providing a custom cache
+    cache: new OrgCache(organizationId),
+    authorizationParams: {
+      audience,
+      redirect_uri: redirectUri,
+      scope: "openid profile email auth:read auth:write offline_access",
+      organization: organizationId,
+    },
+  });
+
+  // Store in cache
+  auth0OrgClientCache.set(cacheKey, auth0Client);
+  return auth0Client;
+};
+
 // Create a Management API client
 export const createManagementClient = async (
   apiDomain: string,
@@ -149,6 +205,7 @@ export const createManagementClient = async (
 // but callers typically only have access to the OAuth domain
 export const clearManagementClientCache = () => {
   managementClientCache.clear();
+  clearOrganizationTokenCache();
 };
 
 // Create a function to get the auth provider with the specified domain
@@ -478,16 +535,62 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
         throw error;
       });
   } else {
-    // For Auth0 login method, create a client for the current domain
+    // For Auth0 login method, get a token WITHOUT organization scope
+    // This ensures we don't accidentally use an org-scoped token when listing tenants
     const currentAuth0Client = createAuth0Client(selectedDomain);
-    // Ensure headers is a Headers instance (ra-auth-auth0 expects this)
-    const normalizedOptions = {
-      ...options,
-      headers: new Headers(options.headers || {}),
-    };
-    request = httpClient(currentAuth0Client)(url, normalizedOptions).catch(
-      (error) => {
-        // Check for certificate errors
+    request = getToken(domainConfig, currentAuth0Client)
+      .catch((error) => {
+        throw new Error(
+          `Authentication failed: ${error.message}. Please log in again.`,
+        );
+      })
+      .then((token) => {
+        const headersObj = new Headers();
+        headersObj.set("Authorization", `Bearer ${token}`);
+        const method = (options.method || "GET").toUpperCase();
+        if (method === "POST" || method === "PATCH") {
+          headersObj.set("content-type", "application/json");
+        }
+        return fetch(url, { ...options, headers: headersObj });
+      })
+      .then(async (response) => {
+        if (response.status < 200 || response.status >= 300) {
+          const text = await response.text();
+
+          // Check for 401 with "Bad audience" message on /v2/tenants endpoint
+          if (
+            response.status === 401 &&
+            text.includes("Bad audience") &&
+            url.includes("/v2/tenants")
+          ) {
+            console.warn(
+              "Auth0 server detected without multi-tenant support. Navigating to Auth0 page",
+            );
+            pendingRequests.delete(requestKey);
+            window.history.pushState({}, "", "/auth0");
+            window.dispatchEvent(new PopStateEvent("popstate"));
+            throw new Error("Navigating to Auth0 configuration");
+          }
+
+          throw new Error(text || response.statusText);
+        }
+
+        const text = await response.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch (e) {
+          json = text;
+        }
+
+        return {
+          json,
+          status: response.status,
+          headers: response.headers,
+          body: text,
+        };
+      })
+      .catch((error) => {
         if (error.message === "Failed to fetch" || error.name === "TypeError") {
           const urlObj = new URL(url);
           if (
@@ -495,8 +598,7 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
             urlObj.hostname === "127.0.0.1"
           ) {
             const certError = new Error(
-              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.\n\n` +
-                `Please visit ${urlObj.origin} in your browser and accept the security warning to trust the certificate, then refresh this page.`,
+              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.`,
             );
             (certError as any).isCertificateError = true;
             (certError as any).serverUrl = urlObj.origin;
@@ -504,8 +606,7 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
           }
         }
         throw error;
-      },
-    );
+      });
   }
 
   // Handle cleanup when request is done
@@ -516,6 +617,247 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   // Cache the request
   pendingRequests.set(requestKey, request);
   return request;
+};
+
+/**
+ * Creates an HTTP client that uses organization-scoped tokens.
+ * This is used when accessing tenant-specific resources to ensure
+ * the user has the correct permissions for that tenant.
+ *
+ * @param organizationId - The organization/tenant ID to scope tokens to
+ * @returns An HTTP client function that uses organization-scoped tokens
+ */
+export const createOrganizationHttpClient = (organizationId: string) => {
+  return (url: string, options: HttpOptions = {}) => {
+    const requestKey = `${organizationId}:${url}-${JSON.stringify(options)}`;
+
+    // If there's already a pending request for this URL and options, return it
+    if (pendingRequests.has(requestKey)) {
+      return pendingRequests.get(requestKey)!;
+    }
+
+    // Prevent API calls while on the auth callback page
+    if (window.location.pathname === "/auth-callback") {
+      return Promise.reject({
+        json: {
+          message: "Authentication in progress. Please wait...",
+        },
+        status: 401,
+        headers: new Headers(),
+        body: JSON.stringify({ message: "Authentication in progress" }),
+      });
+    }
+
+    // Check if we're using token-based auth or client credentials
+    const domains = getDomainFromStorage();
+    const selectedDomain = getSelectedDomainFromStorage();
+    const domainConfig = domains.find((d) => d.url === selectedDomain);
+
+    // If using login method and auth request is in progress, delay the request
+    if (
+      domainConfig?.connectionMethod === "login" &&
+      (authRequestInProgress || activeSessions.has(selectedDomain))
+    ) {
+      const delayedRequest = new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (!authRequestInProgress && !activeSessions.has(selectedDomain)) {
+            clearInterval(checkInterval);
+            createOrganizationHttpClient(organizationId)(url, options)
+              .then(resolve)
+              .catch(reject);
+          }
+        }, 100);
+
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error("Authentication timeout"));
+        }, 30000);
+      });
+
+      pendingRequests.set(requestKey, delayedRequest);
+      delayedRequest.finally(() => {
+        pendingRequests.delete(requestKey);
+      });
+
+      return delayedRequest;
+    }
+
+    if (!domainConfig) {
+      return Promise.reject({
+        json: {
+          message:
+            "No domain configuration found. Please select a domain and configure authentication.",
+        },
+        status: 401,
+        headers: new Headers(),
+        body: JSON.stringify({ message: "No domain configuration found" }),
+      });
+    }
+
+    let request;
+    if (
+      ["token", "client_credentials"].includes(
+        domainConfig.connectionMethod || "",
+      )
+    ) {
+      // For token/client_credentials, use the standard token (no org scoping)
+      request = getToken(domainConfig)
+        .catch((error) => {
+          throw new Error(
+            `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
+          );
+        })
+        .then((token) => {
+          const headersObj = new Headers();
+          headersObj.set("Authorization", `Bearer ${token}`);
+          const method = (options.method || "GET").toUpperCase();
+          if (method === "POST" || method === "PATCH") {
+            headersObj.set("content-type", "application/json");
+          }
+          return fetch(url, { ...options, headers: headersObj });
+        })
+        .then(async (response) => {
+          if (response.status < 200 || response.status >= 300) {
+            const text = await response.text();
+            throw new Error(text || response.statusText);
+          }
+
+          const text = await response.text();
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            json = text;
+          }
+
+          return {
+            json,
+            status: response.status,
+            headers: response.headers,
+            body: text,
+          };
+        })
+        .catch((error) => {
+          if (
+            error.message === "Failed to fetch" ||
+            error.name === "TypeError"
+          ) {
+            const urlObj = new URL(url);
+            if (
+              urlObj.hostname === "localhost" ||
+              urlObj.hostname === "127.0.0.1"
+            ) {
+              const certError = new Error(
+                `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.`,
+              );
+              (certError as any).isCertificateError = true;
+              (certError as any).serverUrl = urlObj.origin;
+              throw certError;
+            }
+          }
+          throw error;
+        });
+    } else {
+      // For OAuth login, use an organization-specific client with isolated cache
+      const orgAuth0Client = createAuth0ClientForOrg(
+        selectedDomain,
+        organizationId,
+      );
+
+      // Get the audience for token requests
+      const audience =
+        import.meta.env.VITE_AUTH0_AUDIENCE ||
+        `https://${selectedDomain}/api/v2/`;
+
+      // First, check if we have a valid session for this organization
+      request = orgAuth0Client
+        .getTokenSilently({
+          authorizationParams: {
+            audience,
+            organization: organizationId,
+          },
+        })
+        .catch(async (error) => {
+          // If silent token acquisition fails, we need to redirect to login with org
+          // Get the base auth0 client to get the user's email for login hint
+          const baseClient = createAuth0Client(selectedDomain);
+          const user = await baseClient.getUser().catch(() => null);
+
+          // Redirect to login with organization
+          await orgAuth0Client.loginWithRedirect({
+            authorizationParams: {
+              organization: organizationId,
+              login_hint: user?.email,
+            },
+            appState: {
+              returnTo: window.location.pathname,
+            },
+          });
+
+          // This won't be reached as loginWithRedirect redirects the page
+          throw new Error(
+            `Redirecting to login for organization ${organizationId}`,
+          );
+        })
+        .then((token) => {
+          const headersObj = new Headers();
+          headersObj.set("Authorization", `Bearer ${token}`);
+          const method = (options.method || "GET").toUpperCase();
+          if (method === "POST" || method === "PATCH") {
+            headersObj.set("content-type", "application/json");
+          }
+          return fetch(url, { ...options, headers: headersObj });
+        })
+        .then(async (response) => {
+          if (response.status < 200 || response.status >= 300) {
+            const text = await response.text();
+            throw new Error(text || response.statusText);
+          }
+
+          const text = await response.text();
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            json = text;
+          }
+
+          return {
+            json,
+            status: response.status,
+            headers: response.headers,
+            body: text,
+          };
+        })
+        .catch((error) => {
+          if (
+            error.message === "Failed to fetch" ||
+            error.name === "TypeError"
+          ) {
+            const urlObj = new URL(url);
+            if (
+              urlObj.hostname === "localhost" ||
+              urlObj.hostname === "127.0.0.1"
+            ) {
+              const certError = new Error(
+                `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.`,
+              );
+              (certError as any).isCertificateError = true;
+              (certError as any).serverUrl = urlObj.origin;
+              throw certError;
+            }
+          }
+          throw error;
+        });
+    }
+
+    request.finally(() => {
+      pendingRequests.delete(requestKey);
+    });
+
+    pendingRequests.set(requestKey, request);
+    return request;
+  };
 };
 
 export { authProvider, authorizedHttpClient };

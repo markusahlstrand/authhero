@@ -5,12 +5,24 @@ import { removeNullProperties } from "../helpers/remove-nulls";
 
 export function get(db: Kysely<Database>) {
   return async (tenantId: string, id: string): Promise<Organization | null> => {
-    const result = await db
+    // First try to find by ID
+    let result = await db
       .selectFrom("organizations")
       .selectAll()
       .where("tenant_id", "=", tenantId)
       .where("id", "=", id)
       .executeTakeFirst();
+
+    // If not found by ID, try to find by name
+    // This supports Auth0's behavior where organization can be specified by name
+    if (!result) {
+      result = await db
+        .selectFrom("organizations")
+        .selectAll()
+        .where("tenant_id", "=", tenantId)
+        .where("name", "=", id)
+        .executeTakeFirst();
+    }
 
     if (!result) {
       return null;

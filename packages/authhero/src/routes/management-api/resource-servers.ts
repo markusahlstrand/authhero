@@ -154,12 +154,24 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { id } = ctx.req.valid("param");
 
-      const result = await ctx.env.data.resourceServers.remove(tenant_id, id);
-      if (!result) {
+      const resourceServer = await ctx.env.data.resourceServers.get(
+        tenant_id,
+        id,
+      );
+
+      if (!resourceServer) {
         throw new HTTPException(404, {
           message: "Resource server not found",
         });
       }
+
+      if (resourceServer.is_system) {
+        throw new HTTPException(403, {
+          message: "System entities cannot be deleted",
+        });
+      }
+
+      await ctx.env.data.resourceServers.remove(tenant_id, id);
 
       return ctx.text("OK");
     },
@@ -208,16 +220,24 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      const result = await ctx.env.data.resourceServers.update(
+      const existingResourceServer = await ctx.env.data.resourceServers.get(
         tenant_id,
         id,
-        body,
       );
-      if (!result) {
+
+      if (!existingResourceServer) {
         throw new HTTPException(404, {
           message: "Resource server not found",
         });
       }
+
+      if (existingResourceServer.is_system) {
+        throw new HTTPException(403, {
+          message: "System entities cannot be modified",
+        });
+      }
+
+      await ctx.env.data.resourceServers.update(tenant_id, id, body);
 
       const resourceServer = await ctx.env.data.resourceServers.get(
         tenant_id,
