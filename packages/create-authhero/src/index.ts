@@ -95,6 +95,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         seed: "node seed-helper.js",
       },
       dependencies: {
+        "@authhero/drizzle": "latest",
         "@authhero/kysely-adapter": "latest",
         "@hono/swagger-ui": "^0.5.0",
         "@hono/zod-openapi": "^0.19.0",
@@ -137,6 +138,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         seed: "node seed-helper.js",
       },
       dependencies: {
+        "@authhero/drizzle": "latest",
         "@authhero/kysely-adapter": "latest",
         "@authhero/multi-tenancy": "latest",
         "@hono/swagger-ui": "^0.5.0",
