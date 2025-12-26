@@ -3,7 +3,11 @@ pnpm kysely build
 pnpm saml build
 pnpm authhero build
 pnpm cloudflare build
+pnpm multi-tenancy build
+pnpm aws-adapter build
 
 pnpm kysely test
 pnpm saml test
 pnpm authhero test
+pnpm aws-adapter test
+pnpm multi-tenancy test

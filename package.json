@@ -14,6 +14,7 @@
     "create-authhero": "pnpm --filter create-authhero",
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "cloudflare": "pnpm --filter @authhero/cloudflare-adapter",
+    "aws-adapter": "pnpm --filter @authhero/aws-adapter",
     "drizzle": "pnpm --filter @authhero/drizzle-adapter",
     "kysely": "pnpm --filter @authhero/kysely-adapter",
     "demo": "pnpm --filter @authhero/demo",
