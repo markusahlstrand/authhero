@@ -23,7 +23,7 @@ import {
 import { fetchAll } from "./utils/fetchAll";
 
 // Re-export essential types and functions from authhero
-export { seed } from "authhero";
+export { seed, MANAGEMENT_API_SCOPES } from "authhero";
 export type {
   AuthHeroConfig,
   DataAdapters,

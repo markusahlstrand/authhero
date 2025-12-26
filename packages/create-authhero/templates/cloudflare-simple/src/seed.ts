@@ -12,6 +12,8 @@ export default {
     const url = new URL(request.url);
     const adminEmail = url.searchParams.get("email");
     const adminPassword = url.searchParams.get("password");
+    // Compute issuer from the request URL (for Management API identifier)
+    const issuer = `${url.protocol}//${url.host}/`;
 
     if (!adminEmail || !adminPassword) {
       return new Response(
@@ -34,6 +36,7 @@ export default {
       const result = await seed(adapters, {
         adminEmail,
         adminPassword,
+        issuer,
       });
 
       return new Response(

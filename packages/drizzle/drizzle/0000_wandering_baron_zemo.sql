@@ -329,6 +329,7 @@ CREATE TABLE `connections` (
 	`display_name` text(255),
 	`is_domain_connection` integer,
 	`show_as_button` integer,
+	`is_system` integer DEFAULT 0 NOT NULL,
 	`metadata` text(4096),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -428,6 +429,7 @@ CREATE TABLE `resource_servers` (
 	`allow_offline_access` integer,
 	`verification_key` text(4096),
 	`options` text(4096),
+	`is_system` integer DEFAULT 0 NOT NULL,
 	`created_at` text(35) NOT NULL,
 	`updated_at` text(35) NOT NULL,
 	PRIMARY KEY(`tenant_id`, `id`)
@@ -449,6 +451,7 @@ CREATE TABLE `roles` (
 	`tenant_id` text(191) NOT NULL,
 	`name` text(50) NOT NULL,
 	`description` text(255),
+	`is_system` integer DEFAULT 0 NOT NULL,
 	`created_at` text(35) NOT NULL,
 	`updated_at` text(35) NOT NULL,
 	PRIMARY KEY(`tenant_id`, `id`)
