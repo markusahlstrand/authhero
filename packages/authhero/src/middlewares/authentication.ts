@@ -205,13 +205,21 @@ export function createAuthMiddleware(
           const orgId = tokenPayload.org_id;
           const orgName = tokenPayload.org_name;
 
+          // Set org_name and organization_id on context for downstream use (e.g., access control)
+          if (orgName) {
+            ctx.set("org_name", orgName);
+          }
+          if (orgId) {
+            ctx.set("organization_id", orgId);
+          }
+
           // For tenant list/create endpoints (relativePath === "/tenants" or starts with "/tenants")
           // we don't require org_id
           const isTenantManagementEndpoint =
             relativePath === "/tenants" || relativePath.startsWith("/tenants/");
 
           if (!isTenantManagementEndpoint) {
-            // For other endpoints, org_id or org_name is required and must match current tenant
+            // For other endpoints, org_id or org_name is required
             // org_name takes precedence when matching with tenant ID (for multi-tenancy)
             const orgIdentifier = orgName || orgId;
             if (!orgIdentifier) {
@@ -220,7 +228,13 @@ export function createAuthMiddleware(
                   "Management tokens require org_id or org_name claim for accessing tenant resources",
               });
             }
-            if (orgIdentifier !== currentTenantId) {
+
+            // If tenant_id is not set by tenant middleware (no header, subdomain, or custom domain),
+            // derive it from the token's org_name/org_id
+            if (!currentTenantId) {
+              ctx.set("tenant_id", orgIdentifier);
+            } else if (orgIdentifier !== currentTenantId) {
+              // If tenant_id was explicitly set, it must match the token's org
               throw new JSONHTTPException(403, {
                 message: `Token organization '${orgIdentifier}' does not match tenant '${currentTenantId}'`,
               });

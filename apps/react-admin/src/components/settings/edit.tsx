@@ -127,6 +127,11 @@ export function SettingsEdit() {
         <TabbedForm.Tab label="Feature Flags">
           <Stack spacing={2}>
             <BooleanInput
+              source="allow_organization_name_in_authentication_api"
+              label="Allow Organization Name in Authentication API"
+              helperText="Allow using organization names (instead of IDs) in the /authorize endpoint and include org_name claim in tokens"
+            />
+            <BooleanInput
               source="flags.allow_legacy_delegation_grant_types"
               label="Allow Legacy Delegation Grant Types"
             />

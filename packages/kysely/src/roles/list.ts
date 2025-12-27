@@ -30,7 +30,7 @@ export function list(db: Kysely<Database>) {
 
     const roles: Role[] = rows.map((row) => {
       const dbRow = row as RoleDbRow;
-      const { is_system, ...rest } = dbRow;
+      const { is_system, tenant_id, ...rest } = dbRow;
       return {
         ...rest,
         is_system: is_system ? true : undefined,

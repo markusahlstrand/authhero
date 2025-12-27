@@ -11,3 +11,10 @@ export {
   type ResourceServerEntityHooks,
   type TenantResourceServerSyncConfig,
 } from "./resource-server-sync";
+export {
+  createRoleSyncHooks,
+  createTenantRoleSyncHooks,
+  type RoleSyncConfig,
+  type RoleEntityHooks,
+  type TenantRoleSyncConfig,
+} from "./role-sync";

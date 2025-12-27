@@ -57,8 +57,11 @@ export function createTenantsRouter(
           {},
         );
 
-      // The organization IDs correspond to tenant IDs the user can access
-      const accessibleTenantIds = userOrgs.organizations.map((org) => org.id);
+      // The organization names correspond to tenant IDs the user can access
+      // (organization name is set to tenant ID when creating tenant organizations)
+      const accessibleTenantIds = userOrgs.organizations.map(
+        (org) => org.name,
+      );
 
       // Always include the main tenant if the user is authenticated
       if (!accessibleTenantIds.includes(mainTenantId)) {
@@ -132,7 +135,7 @@ export function createTenantsRouter(
             {},
           );
 
-        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        const hasAccess = userOrgs.organizations.some((org) => org.name === id);
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to this tenant",
@@ -244,7 +247,7 @@ export function createTenantsRouter(
             {},
           );
 
-        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        const hasAccess = userOrgs.organizations.some((org) => org.name === id);
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to update this tenant",
@@ -326,7 +329,7 @@ export function createTenantsRouter(
           {},
         );
 
-      const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+      const hasAccess = userOrgs.organizations.some((org) => org.name === id);
       if (!hasAccess) {
         throw new HTTPException(403, {
           message: "Access denied to delete this tenant",

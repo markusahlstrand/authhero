@@ -15,6 +15,9 @@ export type Variables = {
   host?: string;
   // This is set by auth middleware
   user?: { sub: string; tenant_id: string };
+  // Organization claims from token (set by auth middleware)
+  organization_id?: string;
+  org_name?: string;
   // This is used by the hooks
   loginSession?: LoginSession;
   // Client info from middleware
