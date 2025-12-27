@@ -35,16 +35,16 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     // Create env object (simulating Cloudflare Workers environment)
     env = { data: adapters };
 
-    // Create main tenant
+    // Create control plane tenant
     await adapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
-      sender_name: "Main Tenant",
+      sender_name: "Control Plane",
     });
 
-    // Create the Management API resource server on the main tenant
+    // Create the Management API resource server on the control plane
     await adapters.resourceServers.create("main", {
       name: "Authhero Management API",
       identifier: MANAGEMENT_API_IDENTIFIER,
@@ -56,7 +56,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
       scopes: MANAGEMENT_API_SCOPES,
     });
 
-    // Create a test user on the main tenant
+    // Create a test user on the control plane
     await adapters.users.create("main", {
       user_id: TEST_USER_ID,
       email: "testuser@example.com",
@@ -68,7 +68,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     // Setup multi-tenancy with access control and issuer for admin role creation
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         requireOrganizationMatch: false,
         issuer: TEST_ISSUER,
         adminRoleName: "Tenant Admin",
@@ -128,7 +128,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     const data = await response.json();
     expect(data.id).toBe("new-tenant");
 
-    // Verify organization was created on main tenant
+    // Verify organization was created on control plane
     const orgs = await adapters.organizations.list("main");
     const newTenantOrg = orgs.organizations.find(
       (org) => org.name === "new-tenant",
@@ -170,7 +170,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     expect(response.status).toBe(201);
 
-    // Verify the Tenant Admin role was created on main tenant
+    // Verify the Tenant Admin role was created on control plane
     const roles = await adapters.roles.list("main", {});
     const adminRole = roles.roles.find((r) => r.name === "Tenant Admin");
     expect(adminRole).toBeDefined();
@@ -303,8 +303,12 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     // Verify user has the admin role in both organizations
     const orgs = await adapters.organizations.list("main");
-    const tenantOneOrg = orgs.organizations.find((o) => o.name === "tenant-one");
-    const tenantTwoOrg = orgs.organizations.find((o) => o.name === "tenant-two");
+    const tenantOneOrg = orgs.organizations.find(
+      (o) => o.name === "tenant-one",
+    );
+    const tenantTwoOrg = orgs.organizations.find(
+      (o) => o.name === "tenant-two",
+    );
 
     const adminRole = adminRoles[0]!;
 
@@ -384,16 +388,16 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     // Create env object
     env = { data: adapters };
 
-    // Create main tenant
+    // Create control plane tenant
     await adapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
-      sender_name: "Main Tenant",
+      sender_name: "Control Plane",
     });
 
-    // Create a test user on the main tenant
+    // Create a test user on the control plane
     await adapters.users.create("main", {
       user_id: TEST_USER_ID,
       email: "testuser@example.com",
@@ -405,7 +409,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     // Setup multi-tenancy WITHOUT issuer (no admin role will be created)
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         requireOrganizationMatch: false,
         // Note: no issuer provided, so no admin role will be created
         addCreatorToOrganization: true,
@@ -508,16 +512,16 @@ describe("Tenant Provisioning with addCreatorToOrganization disabled", () => {
     // Create env object
     env = { data: adapters };
 
-    // Create main tenant
+    // Create control plane tenant
     await adapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
-      sender_name: "Main Tenant",
+      sender_name: "Control Plane",
     });
 
-    // Create a test user on the main tenant
+    // Create a test user on the control plane
     await adapters.users.create("main", {
       user_id: TEST_USER_ID,
       email: "testuser@example.com",
@@ -529,7 +533,7 @@ describe("Tenant Provisioning with addCreatorToOrganization disabled", () => {
     // Setup multi-tenancy with addCreatorToOrganization disabled
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         requireOrganizationMatch: false,
         issuer: "https://auth.example.com/",
         addCreatorToOrganization: false, // Explicitly disabled

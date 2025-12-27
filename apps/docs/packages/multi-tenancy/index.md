@@ -6,11 +6,12 @@ Multi-tenancy support for AuthHero with organization-based access control, per-t
 
 This package provides a complete multi-tenancy solution for AuthHero-based authentication systems. It enables you to:
 
-- **Manage multiple tenants** from a single "main" tenant
+- **Manage multiple tenants** from a central control plane
 - **Control access** using organization-based tokens
 - **Isolate data** with per-tenant databases (D1, Turso, or custom)
 - **Route requests** via subdomains
-- **Inherit settings** from the main tenant to child tenants
+- **Sync entities** from control plane to child tenants
+- **Inherit settings** from the control plane to child tenants
 
 ## Installation
 
@@ -29,7 +30,7 @@ import { setupMultiTenancy } from "@authhero/multi-tenancy";
 // Setup multi-tenancy
 const multiTenancy = setupMultiTenancy({
   accessControl: {
-    mainTenantId: "main",
+    controlPlaneTenantId: "main",
     defaultPermissions: ["tenant:admin"],
   },
 });
@@ -49,30 +50,32 @@ app.route(
 
 ## Documentation
 
+- [Control Plane Architecture](./control-plane.md) - Control plane concept, entity sync, and API access methods
 - [Architecture](./architecture.md) - Organization-tenant model and token-based access
 - [Database Isolation](./database-isolation.md) - Per-tenant databases with D1, Turso, or custom
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Creating, managing, and deleting tenants
-- [Settings Inheritance](./settings-inheritance.md) - Inherit configuration from main tenant
+- [Settings Inheritance](./settings-inheritance.md) - Inherit configuration from control plane
 - [Subdomain Routing](./subdomain-routing.md) - Route requests based on subdomains
 - [API Reference](./api-reference.md) - Complete API documentation
 - [Migration Guide](./migration.md) - Moving from single to multi-tenant
 
 ## Key Concepts
 
-### Organization-Tenant Model
+### Control Plane Architecture
 
-The multi-tenancy system uses organizations on a "main" tenant to represent and control access to child tenants:
+The multi-tenancy system uses a **control plane** architecture where a central tenant manages all other tenants:
 
-- **Main Tenant**: The management tenant that controls all other tenants
-- **Organizations**: Each organization on the main tenant maps to a child tenant
+- **Control Plane**: The central management tenant that controls all other tenants
+- **Organizations**: Each organization on the control plane maps to a child tenant
 - **Child Tenants**: Independent tenants with their own users, applications, and configuration
+- **Entity Synchronization**: Resource servers and roles from the control plane are synced to all child tenants
 
 ### Token-Based Access Control
 
-Access to tenants is controlled via the `org_id` claim in JWT tokens:
+Access to tenants is controlled via the `org_name` or `organization_id` claim in JWT tokens:
 
-- **No `org_id`**: Access to main tenant only
-- **With `org_id`**: Access to the tenant matching the organization ID
+- **No org claim**: Access to control plane only
+- **With org claim**: Access to the tenant matching the organization
 
 ### Silent Authentication Flow
 

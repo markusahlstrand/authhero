@@ -1,14 +1,16 @@
 # Architecture
 
-The multi-tenancy package uses an organization-based model to manage access to multiple tenants from a single main tenant.
+The multi-tenancy package uses an organization-based model to manage access to multiple tenants from a central control plane.
+
+> **Note**: For detailed information about the control plane architecture, entity synchronization, and API access methods, see the [Control Plane Architecture](./control-plane.md) guide.
 
 ## Organization-Tenant Relationship
 
-The system uses organizations on a "main" tenant to represent and control access to child tenants:
+The system uses organizations on the control plane to represent and control access to child tenants:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        MAIN TENANT                               │
+│                     CONTROL PLANE (main)                         │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
 │  │ Organization │  │ Organization │  │ Organization │           │
@@ -30,22 +32,22 @@ The system uses organizations on a "main" tenant to represent and control access
 
 **Key concepts:**
 
-1. **Main Tenant**: The management tenant that controls all other tenants
-2. **Organizations**: Each organization on the main tenant corresponds to a child tenant
+1. **Control Plane**: The central management tenant that controls all other tenants
+2. **Organizations**: Each organization on the control plane corresponds to a child tenant
 3. **Child Tenants**: Independent tenants with their own users, applications, and configuration
 
 ## Token-Based Access Control
 
-Access to tenants is controlled via the `org_id` claim in JWT tokens:
+Access to tenants is controlled via the `org_name` or `organization_id` claim in JWT tokens:
 
-| Token Type        | `org_id` Claim | Access                 |
-| ----------------- | -------------- | ---------------------- |
-| No organization   | `undefined`    | Main tenant only       |
-| With organization | `"acme"`       | Tenant matching org_id |
+| Token Type        | Org Claim      | Access                    |
+| ----------------- | -------------- | ------------------------- |
+| No organization   | `undefined`    | Control plane only        |
+| With organization | `"acme"`       | Tenant matching org claim |
 
 ### Token Examples
 
-**Token without org_id** - can only access main tenant:
+**Token without organization** - can only access control plane:
 
 ```json
 {
@@ -54,13 +56,23 @@ Access to tenants is controlled via the `org_id` claim in JWT tokens:
 }
 ```
 
-**Token with org_id** - can access the matching tenant:
+**Token with org_name** - can access the matching tenant:
 
 ```json
 {
   "sub": "user_123",
   "aud": "https://api.example.com",
-  "org_id": "acme"
+  "org_name": "acme"
+}
+```
+
+**Token with organization_id** - also works (org.name is checked):
+
+```json
+{
+  "sub": "user_123",
+  "aud": "https://api.example.com",
+  "organization_id": "org_abc123"
 }
 ```
 
@@ -69,10 +81,10 @@ Access to tenants is controlled via the `org_id` claim in JWT tokens:
 To switch between tenants, use **silent authentication** with a different organization:
 
 ```typescript
-// 1. User is logged into main tenant (no org)
-const mainTenantToken = await getToken();
+// 1. User is logged into control plane (no org)
+const controlPlaneToken = await getToken();
 
-// 2. To access "acme" tenant, request a new token with org_id
+// 2. To access "acme" tenant, request a new token with org_name
 const acmeTenantToken = await auth.getTokenSilently({
   organization: "acme", // Request token for acme org
 });
@@ -92,18 +104,18 @@ const response = await fetch("https://acme.auth.example.com/api/users", {
 │                     SILENT AUTHENTICATION FLOW                       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│  1. User logged into Main Tenant                                    │
+│  1. User logged into Control Plane                                 │
 │     Token: { sub: "user_123" }                                      │
 │                                                                      │
 │  2. Request token for "acme" organization (silent auth)             │
 │     └─> GET /authorize?organization=acme&prompt=none                │
 │                                                                      │
 │  3. Auth server validates:                                          │
-│     - User is member of "acme" organization on main tenant          │
+│     - User is member of "acme" organization on control plane        │
 │     - User has appropriate permissions                              │
 │                                                                      │
 │  4. Returns new token                                               │
-│     Token: { sub: "user_123", org_id: "acme" }                      │
+│     Token: { sub: "user_123", org_name: "acme" }                    │
 │                                                                      │
 │  5. Use token to access "acme" tenant API                           │
 │     └─> GET https://acme.auth.example.com/api/users                 │
@@ -151,7 +163,7 @@ function TenantManager() {
   const { getAccessTokenSilently } = useAuth0();
   const [tenants, setTenants] = useState([]);
 
-  // Fetch tenants using main tenant token (no org)
+  // Fetch tenants using control plane token (no org)
   const fetchTenants = async () => {
     const token = await getAccessTokenSilently();
     const response = await fetch("/management/tenants", {
@@ -193,7 +205,7 @@ function TenantManager() {
 
 ### Organization Membership
 
-- Users must be members of an organization on the main tenant to access the corresponding child tenant
+- Users must be members of an organization on the control plane to access the corresponding child tenant
 - Membership is validated during token issuance
 - Removing a user from an organization immediately revokes their access to the tenant
 
@@ -206,11 +218,12 @@ function TenantManager() {
 ### Token Validation
 
 - Tokens are validated on every request
-- The `org_id` claim must match the requested tenant
-- Tokens without `org_id` can only access the main tenant
+- The `org_name` or `organization_id` claim must match the requested tenant
+- Tokens without org claim can only access the control plane
 
 ## Next Steps
 
+- [Control Plane Architecture](./control-plane.md) - Deep dive into control plane, entity sync, and API access
 - [Database Isolation](./database-isolation.md) - Learn about per-tenant databases
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Managing tenant creation and deletion
 - [API Reference](./api-reference.md) - Complete API documentation

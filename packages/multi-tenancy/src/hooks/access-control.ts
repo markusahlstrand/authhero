@@ -8,7 +8,7 @@ import {
  * Creates hooks for organization-based tenant access control.
  *
  * This implements the following access model:
- * - Main tenant: Accessible without an organization claim
+ * - Control plane: Accessible without an organization claim
  * - Child tenants: Require an organization claim matching the tenant ID
  *   - org_name (organization name) takes precedence and should match tenant ID
  *   - org_id (organization ID) is checked as fallback
@@ -19,16 +19,16 @@ import {
 export function createAccessControlHooks(
   config: AccessControlConfig,
 ): Pick<MultiTenancyHooks, "onTenantAccessValidation"> {
-  const { mainTenantId, requireOrganizationMatch = true } = config;
+  const { controlPlaneTenantId, requireOrganizationMatch = true } = config;
 
   return {
     async onTenantAccessValidation(
       ctx: MultiTenancyContext,
       targetTenantId: string,
     ): Promise<boolean> {
-      // Main tenant access - no organization required
-      if (targetTenantId === mainTenantId) {
-        // For main tenant, we allow access without org claim
+      // Control plane access - no organization required
+      if (targetTenantId === controlPlaneTenantId) {
+        // For the control plane, we allow access without org claim
         // The user just needs to be authenticated
         return true;
       }
@@ -64,17 +64,17 @@ export function createAccessControlHooks(
  * @param organizationId - The organization ID from the token (may be undefined)
  * @param orgName - The organization name from the token (may be undefined, takes precedence)
  * @param targetTenantId - The tenant ID being accessed
- * @param mainTenantId - The main/management tenant ID
+ * @param controlPlaneTenantId - The control plane/management tenant ID
  * @returns true if access is allowed
  */
 export function validateTenantAccess(
   organizationId: string | undefined,
   targetTenantId: string,
-  mainTenantId: string,
+  controlPlaneTenantId: string,
   orgName?: string,
 ): boolean {
-  // Main tenant is always accessible (for management operations)
-  if (targetTenantId === mainTenantId) {
+  // Control plane is always accessible (for management operations)
+  if (targetTenantId === controlPlaneTenantId) {
     return true;
   }
 

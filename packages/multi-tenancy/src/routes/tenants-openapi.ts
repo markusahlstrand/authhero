@@ -76,13 +76,13 @@ export function createTenantsOpenAPIRouter(
 
       // If access control is enabled, filter tenants based on user's organization memberships
       if (config.accessControl && user?.sub) {
-        const mainTenantId = config.accessControl.mainTenantId;
+        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
-        // Get all organizations the user belongs to on the main tenant
+        // Get all organizations the user belongs to on the control plane
         const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
             ctx.env.data.userOrganizations.listUserOrganizations(
-              mainTenantId,
+              controlPlaneTenantId,
               user.sub,
               params,
             ),
@@ -93,9 +93,9 @@ export function createTenantsOpenAPIRouter(
         // (organization name is set to tenant ID when creating tenant organizations)
         const accessibleTenantIds = userOrgs.map((org) => org.name);
 
-        // Always include the main tenant if the user is authenticated
-        if (!accessibleTenantIds.includes(mainTenantId)) {
-          accessibleTenantIds.push(mainTenantId);
+        // Always include the control plane if the user is authenticated
+        if (!accessibleTenantIds.includes(controlPlaneTenantId)) {
+          accessibleTenantIds.push(controlPlaneTenantId);
         }
 
         // Get all tenants and filter to only those the user has access to
@@ -182,10 +182,10 @@ export function createTenantsOpenAPIRouter(
       // Validate access via organization membership
       if (config.accessControl) {
         const user = ctx.var.user;
-        const mainTenantId = config.accessControl.mainTenantId;
+        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
-        // Main tenant is accessible to any authenticated user
-        if (id !== mainTenantId) {
+        // Control plane is accessible to any authenticated user
+        if (id !== controlPlaneTenantId) {
           if (!user?.sub) {
             throw new HTTPException(401, {
               message: "Authentication required",
@@ -196,7 +196,7 @@ export function createTenantsOpenAPIRouter(
           const userOrgs = await fetchAll<{ id: string; name: string }>(
             (params) =>
               ctx.env.data.userOrganizations.listUserOrganizations(
-                mainTenantId,
+                controlPlaneTenantId,
                 user.sub,
                 params,
               ),
@@ -342,7 +342,7 @@ export function createTenantsOpenAPIRouter(
       // Validate access via organization membership
       if (config.accessControl) {
         const user = ctx.var.user;
-        const mainTenantId = config.accessControl.mainTenantId;
+        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
         if (!user?.sub) {
           throw new HTTPException(401, {
@@ -350,13 +350,13 @@ export function createTenantsOpenAPIRouter(
           });
         }
 
-        // Main tenant can only be updated by users who have access to it
+        // Control plane can only be updated by users who have access to it
         // For child tenants, check organization membership
-        if (id !== mainTenantId) {
+        if (id !== controlPlaneTenantId) {
           const userOrgs = await fetchAll<{ id: string; name: string }>(
             (params) =>
               ctx.env.data.userOrganizations.listUserOrganizations(
-                mainTenantId,
+                controlPlaneTenantId,
                 user.sub,
                 params,
               ),
@@ -441,7 +441,7 @@ export function createTenantsOpenAPIRouter(
           description: "Tenant deleted",
         },
         403: {
-          description: "Access denied or cannot delete main tenant",
+          description: "Access denied or cannot delete the control plane",
         },
         404: {
           description: "Tenant not found",
@@ -451,10 +451,10 @@ export function createTenantsOpenAPIRouter(
     async (ctx) => {
       const { id } = ctx.req.valid("param");
 
-      // Validate access and prevent deleting main tenant
+      // Validate access and prevent deleting the control plane
       if (config.accessControl) {
         const user = ctx.var.user;
-        const mainTenantId = config.accessControl.mainTenantId;
+        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
         if (!user?.sub) {
           throw new HTTPException(401, {
@@ -462,10 +462,10 @@ export function createTenantsOpenAPIRouter(
           });
         }
 
-        // Cannot delete the main tenant
-        if (id === mainTenantId) {
+        // Cannot delete the control plane
+        if (id === controlPlaneTenantId) {
           throw new HTTPException(403, {
-            message: "Cannot delete the main tenant",
+            message: "Cannot delete the control plane",
           });
         }
 
@@ -473,7 +473,7 @@ export function createTenantsOpenAPIRouter(
         const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
             ctx.env.data.userOrganizations.listUserOrganizations(
-              mainTenantId,
+              controlPlaneTenantId,
               user.sub,
               params,
             ),

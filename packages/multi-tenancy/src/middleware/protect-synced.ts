@@ -56,7 +56,7 @@ function parseEntityFromPath(path: string): EntityInfo | null {
 }
 
 /**
- * Check if an entity is a system entity from the main tenant
+ * Check if an entity is a system entity from the control plane
  *
  * @param adapters - Data adapters
  * @param tenantId - The tenant ID
@@ -110,10 +110,10 @@ function getEntityTypeName(type: SystemEntityType): string {
  * Creates middleware to protect system resources from modification.
  *
  * This middleware intercepts write operations (PATCH, PUT, DELETE) on
- * entities that are marked as system entities from the main tenant and returns a 403
+ * entities that are marked as system entities from the control plane and returns a 403
  * error if modification is attempted.
  *
- * System resources can only be modified in the main tenant, and changes
+ * System resources can only be modified in the control plane, and changes
  * will be propagated to child tenants automatically.
  *
  * @returns Hono middleware handler
@@ -154,7 +154,7 @@ export function createProtectSyncedMiddleware(): MiddlewareHandler<{
     const isSystem = await isSystemEntity(ctx.env.data, tenantId, entityInfo);
     if (isSystem) {
       throw new HTTPException(403, {
-        message: `This ${getEntityTypeName(entityInfo.type)} is a system resource and cannot be modified. Make changes in the main tenant instead.`,
+        message: `This ${getEntityTypeName(entityInfo.type)} is a system resource and cannot be modified. Make changes in the control plane instead.`,
       });
     }
 

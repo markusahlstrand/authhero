@@ -68,7 +68,7 @@ describe("Role Sync Hooks", () => {
     // Create tenants in their respective databases
     await mainAdapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://main.example.com",
       sender_email: "admin@main.example.com",
       sender_name: "Main",
@@ -92,14 +92,14 @@ describe("Role Sync Hooks", () => {
   });
 
   describe("createRoleSyncHooks", () => {
-    it("should sync a new role from main tenant to all child tenants", async () => {
+    it("should sync a new role from control plane to all child tenants", async () => {
       const hooks = createRoleSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
 
-      // Create a role on the main tenant
+      // Create a role on the control plane
       const role = await mainAdapters.roles.create("main", {
         name: "Admin",
         description: "Administrator role",
@@ -127,7 +127,7 @@ describe("Role Sync Hooks", () => {
 
     it("should not sync roles created on child tenants", async () => {
       const hooks = createRoleSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -156,9 +156,9 @@ describe("Role Sync Hooks", () => {
       expect(tenant2Role).toBeNull();
     });
 
-    it("should sync role updates from main tenant", async () => {
+    it("should sync role updates from control plane", async () => {
       const hooks = createRoleSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -190,17 +190,25 @@ describe("Role Sync Hooks", () => {
       );
 
       // Verify updates were synced to tenant1
-      const tenant1Role = await findByName(tenant1Adapters, "tenant1", "Editor");
+      const tenant1Role = await findByName(
+        tenant1Adapters,
+        "tenant1",
+        "Editor",
+      );
       expect(tenant1Role?.description).toBe("Can edit and publish content");
 
       // Verify updates were synced to tenant2
-      const tenant2Role = await findByName(tenant2Adapters, "tenant2", "Editor");
+      const tenant2Role = await findByName(
+        tenant2Adapters,
+        "tenant2",
+        "Editor",
+      );
       expect(tenant2Role?.description).toBe("Can edit and publish content");
     });
 
     it("should use shouldSync filter", async () => {
       const hooks = createRoleSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
         shouldSync: (role) => role.name.startsWith("Public"),
@@ -246,8 +254,8 @@ describe("Role Sync Hooks", () => {
   });
 
   describe("createTenantRoleSyncHooks", () => {
-    it("should copy all roles from main tenant to a newly created tenant", async () => {
-      // Create some roles on the main tenant
+    it("should copy all roles from control plane to a newly created tenant", async () => {
+      // Create some roles on the control plane
       await mainAdapters.roles.create("main", {
         name: "Admin",
         description: "Administrator role",
@@ -276,8 +284,8 @@ describe("Role Sync Hooks", () => {
 
       // Create the tenant hooks
       const tenantHooks = createTenantRoleSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async (tenantId) => {
           if (tenantId === "new-tenant") return newTenantAdapters;
           return adaptersMap.get(tenantId)!;
@@ -310,7 +318,7 @@ describe("Role Sync Hooks", () => {
       expect(newTenantUserRole?.description).toBe("Regular user role");
     });
 
-    it("should not copy roles when creating the main tenant itself", async () => {
+    it("should not copy roles when creating the control plane itself", async () => {
       // Create roles on main
       await mainAdapters.roles.create("main", {
         name: "Admin",
@@ -318,8 +326,8 @@ describe("Role Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantRoleSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
 
@@ -327,7 +335,7 @@ describe("Role Sync Hooks", () => {
       const mockCtx: TenantHookContext = { adapters: mainAdapters };
       await tenantHooks.afterCreate!(mockCtx, { id: "main" });
 
-      // Main tenant should still only have its original role
+      // Control plane should still only have its original role
       const mainRoles = await mainAdapters.roles.list("main", {});
       expect(mainRoles.roles).toHaveLength(1);
     });
@@ -360,8 +368,8 @@ describe("Role Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantRoleSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => newTenantAdapters,
         shouldSync: (role) => role.name.startsWith("Public"),
         syncPermissions: false,
@@ -390,7 +398,7 @@ describe("Role Sync Hooks", () => {
       // Create a role on main
       await mainAdapters.roles.create("main", {
         name: "Admin",
-        description: "Main tenant admin",
+        description: "Control plane admin",
       });
 
       // Create a new database for the new tenant
@@ -409,8 +417,8 @@ describe("Role Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantRoleSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => newTenantAdapters,
         transformForSync: (role, tenantId) => ({
           name: role.name,
@@ -428,7 +436,7 @@ describe("Role Sync Hooks", () => {
         "Admin",
       );
       expect(newRole?.description).toBe(
-        "Main tenant admin (synced to new-tenant)",
+        "Control plane admin (synced to new-tenant)",
       );
     });
 
@@ -489,8 +497,8 @@ describe("Role Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantRoleSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => newTenantAdapters,
         syncPermissions: true, // Enable permission sync
       });
@@ -513,7 +521,9 @@ describe("Role Sync Hooks", () => {
           newRole.id,
         );
         expect(permissions).toHaveLength(2);
-        expect(permissions.map((p) => p.permission_name)).toContain("read:data");
+        expect(permissions.map((p) => p.permission_name)).toContain(
+          "read:data",
+        );
         expect(permissions.map((p) => p.permission_name)).toContain(
           "write:data",
         );

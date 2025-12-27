@@ -65,7 +65,7 @@ export interface AuthHeroPlugin {
  *   plugins: [
  *     createMultiTenancyPlugin({
  *       accessControl: {
- *         mainTenantId: "main",
+ *         controlPlaneTenantId: "main",
  *         defaultPermissions: ["tenant:admin"],
  *       },
  *       subdomainRouting: {
@@ -103,7 +103,7 @@ export function createMultiTenancyPlugin(
       console.log("Multi-tenancy plugin registered");
       if (config.accessControl) {
         console.log(
-          `  - Access control enabled (main tenant: ${config.accessControl.mainTenantId})`,
+          `  - Access control enabled (control plane: ${config.accessControl.controlPlaneTenantId})`,
         );
       }
       if (config.subdomainRouting) {

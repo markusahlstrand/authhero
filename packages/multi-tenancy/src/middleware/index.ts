@@ -13,7 +13,7 @@ import { validateTenantAccess } from "../hooks/access-control";
  * This middleware checks that the token's organization claim matches
  * the target tenant ID, implementing the access control model where:
  *
- * - Main tenant: Accessible without an organization claim
+ * - Control plane: Accessible without an organization claim
  * - Child tenants: Require an organization claim matching the tenant ID
  *
  * @param config - Multi-tenancy configuration
@@ -25,7 +25,7 @@ import { validateTenantAccess } from "../hooks/access-control";
  *
  * const middleware = createAccessControlMiddleware({
  *   accessControl: {
- *     mainTenantId: "main",
+ *     controlPlaneTenantId: "main",
  *   },
  * });
  *
@@ -56,7 +56,7 @@ export function createAccessControlMiddleware(
     const hasAccess = validateTenantAccess(
       organizationId,
       targetTenantId,
-      config.accessControl.mainTenantId,
+      config.accessControl.controlPlaneTenantId,
     );
 
     if (!hasAccess) {
@@ -73,7 +73,7 @@ export function createAccessControlMiddleware(
  * Creates middleware for resolving tenants from subdomains.
  *
  * This middleware extracts the subdomain from the request host and
- * resolves it to a tenant ID using organizations on the main tenant.
+ * resolves it to a tenant ID using organizations on the control plane.
  *
  * @param config - Multi-tenancy configuration
  * @returns Hono middleware handler
@@ -88,7 +88,7 @@ export function createAccessControlMiddleware(
  *     reservedSubdomains: ["www", "api", "admin"],
  *   },
  *   accessControl: {
- *     mainTenantId: "main",
+ *     controlPlaneTenantId: "main",
  *   },
  * });
  *
@@ -129,9 +129,9 @@ export function createSubdomainMiddleware(
     }
 
     if (!subdomain) {
-      // No subdomain, use main tenant
+      // No subdomain, use control plane
       if (config.accessControl) {
-        ctx.set("tenant_id", config.accessControl.mainTenantId);
+        ctx.set("tenant_id", config.accessControl.controlPlaneTenantId);
       }
       return next();
     }
@@ -144,11 +144,11 @@ export function createSubdomainMiddleware(
       tenantId = await resolveSubdomain(subdomain);
     } else if (config.subdomainRouting.useOrganizations !== false) {
       // Use organization-based resolution
-      // Look up organization on main tenant with matching ID
+      // Look up organization on the control plane with matching ID
       if (config.accessControl) {
         try {
           const org = await ctx.env.data.organizations.get(
-            config.accessControl.mainTenantId,
+            config.accessControl.controlPlaneTenantId,
             subdomain,
           );
           if (org) {
