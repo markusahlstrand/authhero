@@ -136,14 +136,12 @@ export async function getOrganizationToken(
 
   // For token-based auth, we can't add org_id dynamically
   // The token must already have the correct org_id claim
-  if (domainConfig.connectionMethod === "token" && domainConfig.token) {
+  if (domainConfig.connectionMethod === "token") {
     // Static tokens cannot have dynamic org_id - this is a limitation
-    // Users should switch to client_credentials for multi-tenant access
-    console.warn(
+    throw new Error(
       "Token-based auth cannot provide organization-scoped tokens. " +
-        "Consider using client_credentials method for multi-tenant access.",
+        "Use client_credentials or login authentication method for multi-tenant access.",
     );
-    return domainConfig.token;
   }
 
   // For login method, organization-scoped tokens are handled separately
