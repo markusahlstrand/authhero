@@ -11,7 +11,7 @@ import {
  *
  * This handles:
  * - Setting the correct audience for new tenants (urn:authhero:tenant:{id})
- * - Creating organizations on the main tenant when a new tenant is created
+ * - Creating organizations on the control plane when a new tenant is created
  * - Provisioning databases for new tenants
  * - Cleaning up organizations and databases when tenants are deleted
  *
@@ -40,7 +40,7 @@ export function createProvisioningHooks(
     async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
       const { accessControl, databaseIsolation, settingsInheritance } = config;
 
-      // 1. Create organization on main tenant for access control
+      // 1. Create organization on control plane for access control
       if (accessControl && ctx.ctx) {
         await createOrganizationForTenant(ctx, tenant, accessControl);
       }
@@ -51,7 +51,7 @@ export function createProvisioningHooks(
       }
 
       // 3. Apply inherited settings if configured
-      if (settingsInheritance?.inheritFromMain !== false && ctx.ctx) {
+      if (settingsInheritance?.inheritFromControlPlane !== false && ctx.ctx) {
         await applyInheritedSettings(ctx, tenant, config);
       }
     },
@@ -62,18 +62,18 @@ export function createProvisioningHooks(
     ): Promise<void> {
       const { accessControl, databaseIsolation } = config;
 
-      // 1. Remove organization from main tenant
+      // 1. Remove organization from control plane
       if (accessControl) {
         try {
           // Find the organization by name (which matches tenant ID)
           const orgs = await ctx.adapters.organizations.list(
-            accessControl.mainTenantId,
+            accessControl.controlPlaneTenantId,
           );
           const org = orgs.organizations.find((o) => o.name === tenantId);
 
           if (org) {
             await ctx.adapters.organizations.remove(
-              accessControl.mainTenantId,
+              accessControl.controlPlaneTenantId,
               org.id,
             );
           }
@@ -101,7 +101,7 @@ export function createProvisioningHooks(
 }
 
 /**
- * Creates an organization on the main tenant for a new tenant.
+ * Creates an organization on the control plane for a new tenant.
  * Also creates/assigns the admin role and adds the creator to the organization.
  */
 async function createOrganizationForTenant(
@@ -110,7 +110,7 @@ async function createOrganizationForTenant(
   accessControl: NonNullable<MultiTenancyConfig["accessControl"]>,
 ): Promise<void> {
   const {
-    mainTenantId,
+    controlPlaneTenantId,
     defaultPermissions,
     defaultRoles,
     issuer,
@@ -122,17 +122,20 @@ async function createOrganizationForTenant(
   // Create organization with tenant ID as the name (let the adapter generate the ID)
   // The org name is used for access control - tokens include org_name which matches tenant ID
   // when allow_organization_name_in_authentication_api is enabled on the tenant
-  const organization = await ctx.adapters.organizations.create(mainTenantId, {
-    name: tenant.id,
-    display_name: tenant.friendly_name || tenant.id,
-  });
+  const organization = await ctx.adapters.organizations.create(
+    controlPlaneTenantId,
+    {
+      name: tenant.id,
+      display_name: tenant.friendly_name || tenant.id,
+    },
+  );
 
   // Get or create the admin role if issuer is provided
   let adminRoleId: string | null = null;
   if (issuer) {
     adminRoleId = await getOrCreateAdminRole(
       ctx,
-      mainTenantId,
+      controlPlaneTenantId,
       issuer,
       adminRoleName,
       adminRoleDescription,
@@ -145,7 +148,7 @@ async function createOrganizationForTenant(
     if (user?.sub) {
       try {
         // Add user to the organization
-        await ctx.adapters.userOrganizations.create(mainTenantId, {
+        await ctx.adapters.userOrganizations.create(controlPlaneTenantId, {
           user_id: user.sub,
           organization_id: organization.id,
         });
@@ -153,7 +156,7 @@ async function createOrganizationForTenant(
         // Assign admin role to the user for this organization if we have one
         if (adminRoleId) {
           await ctx.adapters.userRoles.create(
-            mainTenantId,
+            controlPlaneTenantId,
             user.sub,
             adminRoleId,
             organization.id, // organizationId
@@ -193,13 +196,13 @@ async function createOrganizationForTenant(
  */
 async function getOrCreateAdminRole(
   ctx: TenantHookContext,
-  mainTenantId: string,
+  controlPlaneTenantId: string,
   issuer: string,
   roleName: string,
   roleDescription: string,
 ): Promise<string> {
   // Check if the role already exists
-  const existingRoles = await ctx.adapters.roles.list(mainTenantId, {});
+  const existingRoles = await ctx.adapters.roles.list(controlPlaneTenantId, {});
   const existingRole = existingRoles.roles.find((r) => r.name === roleName);
 
   if (existingRole) {
@@ -207,7 +210,7 @@ async function getOrCreateAdminRole(
   }
 
   // Create the admin role
-  const role = await ctx.adapters.roles.create(mainTenantId, {
+  const role = await ctx.adapters.roles.create(controlPlaneTenantId, {
     name: roleName,
     description: roleDescription,
   });
@@ -222,13 +225,17 @@ async function getOrCreateAdminRole(
     permission_name: scope.value,
   }));
 
-  await ctx.adapters.rolePermissions.assign(mainTenantId, role.id, permissions);
+  await ctx.adapters.rolePermissions.assign(
+    controlPlaneTenantId,
+    role.id,
+    permissions,
+  );
 
   return role.id;
 }
 
 /**
- * Applies inherited settings from the main tenant to a new tenant.
+ * Applies inherited settings from the control plane to a new tenant.
  */
 async function applyInheritedSettings(
   ctx: TenantHookContext,
@@ -241,14 +248,16 @@ async function applyInheritedSettings(
     return;
   }
 
-  // Get main tenant settings
-  const mainTenant = await ctx.adapters.tenants.get(accessControl.mainTenantId);
-  if (!mainTenant) {
+  // Get control plane settings
+  const controlPlane = await ctx.adapters.tenants.get(
+    accessControl.controlPlaneTenantId,
+  );
+  if (!controlPlane) {
     return;
   }
 
   // Determine which settings to inherit
-  let inheritedSettings: Partial<Tenant> = { ...mainTenant };
+  let inheritedSettings: Partial<Tenant> = { ...controlPlane };
 
   // Remove system fields that should never be inherited
   const systemFields: (keyof Tenant)[] = [
@@ -270,8 +279,8 @@ async function applyInheritedSettings(
   if (settingsInheritance?.inheritedKeys) {
     const filtered: Partial<Tenant> = {};
     for (const key of settingsInheritance.inheritedKeys) {
-      if (key in mainTenant && !systemFields.includes(key)) {
-        (filtered as Record<string, unknown>)[key] = mainTenant[key];
+      if (key in controlPlane && !systemFields.includes(key)) {
+        (filtered as Record<string, unknown>)[key] = controlPlane[key];
       }
     }
     inheritedSettings = filtered;

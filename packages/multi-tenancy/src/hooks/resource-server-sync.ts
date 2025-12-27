@@ -11,13 +11,13 @@ import { fetchAll } from "../utils/fetchAll";
  */
 export interface ResourceServerSyncConfig {
   /**
-   * The main tenant ID from which resource servers are synced
+   * The control plane tenant ID from which resource servers are synced
    */
-  mainTenantId: string;
+  controlPlaneTenantId: string;
 
   /**
    * Function to get the list of all tenant IDs to sync to.
-   * Called when a resource server is created/updated/deleted on the main tenant.
+   * Called when a resource server is created/updated/deleted on the control plane.
    */
   getChildTenantIds: () => Promise<string[]>;
 
@@ -69,9 +69,9 @@ export interface ResourceServerEntityHooks {
 }
 
 /**
- * Creates entity hooks for syncing resource servers from the main tenant to all child tenants.
+ * Creates entity hooks for syncing resource servers from the control plane to all child tenants.
  *
- * When a resource server is created, updated, or deleted on the main tenant,
+ * When a resource server is created, updated, or deleted on the control plane,
  * the change is automatically propagated to all child tenants.
  *
  * @param config - Resource server sync configuration
@@ -82,7 +82,7 @@ export interface ResourceServerEntityHooks {
  * import { createResourceServerSyncHooks } from "@authhero/multi-tenancy";
  *
  * const resourceServerHooks = createResourceServerSyncHooks({
- *   mainTenantId: "main",
+ *   controlPlaneTenantId: "main",
  *   getChildTenantIds: async () => {
  *     const tenants = await db.tenants.list();
  *     return tenants.filter(t => t.id !== "main").map(t => t.id);
@@ -105,7 +105,7 @@ export function createResourceServerSyncHooks(
   config: ResourceServerSyncConfig,
 ): ResourceServerEntityHooks {
   const {
-    mainTenantId,
+    controlPlaneTenantId,
     getChildTenantIds,
     getAdapters,
     shouldSync = () => true,
@@ -159,7 +159,7 @@ export function createResourceServerSyncHooks(
                 options: resourceServer.options,
               };
 
-          // Add is_system flag to mark this as synced from main tenant
+          // Add is_system flag to mark this as synced from control plane
           const dataWithIsSystem = { ...dataToSync, is_system: true };
 
           if (operation === "create") {
@@ -245,8 +245,8 @@ export function createResourceServerSyncHooks(
       ctx: EntityHookContext,
       resourceServer: ResourceServer,
     ) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -263,8 +263,8 @@ export function createResourceServerSyncHooks(
       _id: string,
       resourceServer: ResourceServer,
     ) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -277,8 +277,8 @@ export function createResourceServerSyncHooks(
     },
 
     afterDelete: async (ctx: EntityHookContext, id: string) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -293,15 +293,15 @@ export function createResourceServerSyncHooks(
  */
 export interface TenantResourceServerSyncConfig {
   /**
-   * The main tenant ID from which resource servers are copied
+   * The control plane tenant ID from which resource servers are copied
    */
-  mainTenantId: string;
+  controlPlaneTenantId: string;
 
   /**
-   * Function to get adapters for the main tenant.
+   * Function to get adapters for the control plane.
    * Used to read existing resource servers.
    */
-  getMainTenantAdapters: () => Promise<DataAdapters>;
+  getControlPlaneAdapters: () => Promise<DataAdapters>;
 
   /**
    * Function to get adapters for the new tenant.
@@ -327,7 +327,7 @@ export interface TenantResourceServerSyncConfig {
 }
 
 /**
- * Creates a tenant afterCreate hook that copies all resource servers from the main tenant
+ * Creates a tenant afterCreate hook that copies all resource servers from the control plane
  * to a newly created tenant.
  *
  * This should be used with the MultiTenancyHooks.tenants.afterCreate hook.
@@ -340,8 +340,8 @@ export interface TenantResourceServerSyncConfig {
  * import { createTenantResourceServerSyncHooks } from "@authhero/multi-tenancy";
  *
  * const resourceServerSyncHooks = createTenantResourceServerSyncHooks({
- *   mainTenantId: "main",
- *   getMainTenantAdapters: async () => mainAdapters,
+ *   controlPlaneTenantId: "main",
+ *   getControlPlaneAdapters: async () => controlPlaneAdapters,
  *   getAdapters: async (tenantId) => createAdaptersForTenant(tenantId),
  * });
  *
@@ -356,8 +356,8 @@ export function createTenantResourceServerSyncHooks(
   config: TenantResourceServerSyncConfig,
 ): TenantEntityHooks {
   const {
-    mainTenantId,
-    getMainTenantAdapters,
+    controlPlaneTenantId,
+    getControlPlaneAdapters,
     getAdapters,
     shouldSync = () => true,
     transformForSync,
@@ -368,18 +368,22 @@ export function createTenantResourceServerSyncHooks(
       _ctx: TenantHookContext,
       tenant: { id: string },
     ): Promise<void> {
-      // Don't sync to the main tenant itself
-      if (tenant.id === mainTenantId) {
+      // Don't sync to the control plane itself
+      if (tenant.id === controlPlaneTenantId) {
         return;
       }
 
       try {
-        const mainAdapters = await getMainTenantAdapters();
+        const controlPlaneAdapters = await getControlPlaneAdapters();
         const targetAdapters = await getAdapters(tenant.id);
 
-        // Get all resource servers from main tenant using pagination
+        // Get all resource servers from control plane using pagination
         const allResourceServers = await fetchAll<ResourceServer>(
-          (params) => mainAdapters.resourceServers.list(mainTenantId, params),
+          (params) =>
+            controlPlaneAdapters.resourceServers.list(
+              controlPlaneTenantId,
+              params,
+            ),
           "resource_servers",
           { cursorField: "id", pageSize: 100 },
         );
@@ -409,7 +413,7 @@ export function createTenantResourceServerSyncHooks(
                       options: resourceServer.options,
                     };
 
-                // Add is_system flag to mark this as synced from main tenant
+                // Add is_system flag to mark this as synced from control plane
                 await targetAdapters.resourceServers.create(tenant.id, {
                   ...dataToSync,
                   is_system: true,

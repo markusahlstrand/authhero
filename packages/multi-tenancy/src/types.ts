@@ -36,36 +36,36 @@ export type MultiTenancyContext = Context<{
  * Configuration for organization-based tenant access control.
  *
  * This enables a model where:
- * - A "main" tenant manages all other tenants
- * - Organizations on the main tenant correspond to child tenants
+ * - A "control plane" tenant manages all other tenants
+ * - Organizations on the control plane correspond to child tenants
  * - Tokens with an org claim can access the matching tenant
- * - Tokens without an org claim can only access the main tenant
+ * - Tokens without an org claim can only access the control plane
  */
 export interface AccessControlConfig {
   /**
-   * The main/management tenant ID.
-   * This is the "master" tenant that manages all other tenants.
+   * The control plane tenant ID.
+   * This is the tenant that manages all other tenants.
    * Tokens without an organization claim can access this tenant.
    */
-  mainTenantId: string;
+  controlPlaneTenantId: string;
 
   /**
    * If true, tokens must have an organization claim matching the target tenant ID
-   * (except for main tenant access where no org is required).
+   * (except for control plane access where no org is required).
    * @default true
    */
   requireOrganizationMatch?: boolean;
 
   /**
    * Permissions to automatically grant when creating an organization
-   * for a new tenant on the main tenant.
+   * for a new tenant on the control plane.
    * @example ["tenant:admin", "tenant:read", "tenant:write"]
    */
   defaultPermissions?: string[];
 
   /**
    * Roles to automatically assign to the organization when created.
-   * These roles should exist on the main tenant.
+   * These roles should exist on the control plane.
    */
   defaultRoles?: string[];
 
@@ -151,19 +151,19 @@ export interface DatabaseIsolationConfig {
 /**
  * Configuration for tenant settings inheritance.
  *
- * This enables child tenants to inherit default settings from the main tenant,
+ * This enables child tenants to inherit default settings from the control plane,
  * reducing configuration overhead and ensuring consistency.
  */
 export interface SettingsInheritanceConfig {
   /**
-   * If true, new tenants will inherit settings from the main tenant
+   * If true, new tenants will inherit settings from the control plane
    * as their default configuration.
    * @default true
    */
-  inheritFromMain?: boolean;
+  inheritFromControlPlane?: boolean;
 
   /**
-   * Specific settings keys to inherit from the main tenant.
+   * Specific settings keys to inherit from the control plane.
    * If not provided, all settings are inherited.
    */
   inheritedKeys?: (keyof Tenant)[];
@@ -178,7 +178,7 @@ export interface SettingsInheritanceConfig {
    * Custom function to transform inherited settings before applying.
    */
   transformSettings?: (
-    mainTenantSettings: Partial<Tenant>,
+    controlPlaneSettings: Partial<Tenant>,
     newTenantId: string,
   ) => Partial<Tenant>;
 }
@@ -187,7 +187,7 @@ export interface SettingsInheritanceConfig {
  * Configuration for subdomain-based tenant routing.
  *
  * This enables using subdomains to route requests to different tenants,
- * where the subdomain matches an organization ID on the main tenant.
+ * where the subdomain matches an organization ID on the control plane.
  */
 export interface SubdomainRoutingConfig {
   /**
@@ -198,7 +198,7 @@ export interface SubdomainRoutingConfig {
 
   /**
    * If true, use organizations to resolve subdomains to tenants.
-   * The subdomain will be matched against organization IDs on the main tenant.
+   * The subdomain will be matched against organization IDs on the control plane.
    * @default true
    */
   useOrganizations?: boolean;
@@ -223,13 +223,13 @@ export interface SubdomainRoutingConfig {
  *
  * - **accessControl**: Organization-based tenant access validation
  * - **databaseIsolation**: Per-tenant database instances
- * - **settingsInheritance**: Inherit settings from main tenant
+ * - **settingsInheritance**: Inherit settings from control plane
  * - **subdomainRouting**: Route requests via subdomains
  */
 export interface MultiTenancyConfig {
   /**
    * Organization-based access control configuration.
-   * Links organizations on the main tenant to tenant access.
+   * Links organizations on the control plane to tenant access.
    */
   accessControl?: AccessControlConfig;
 
@@ -275,7 +275,7 @@ export interface TenantHookContext {
  * ```typescript
  * const tenantHooks: TenantEntityHooks = {
  *   afterCreate: async (ctx, tenant) => {
- *     // Copy resource servers from main tenant
+ *     // Copy resource servers from the control plane
  *     await syncResourceServersToNewTenant(ctx, tenant);
  *   },
  *   beforeDelete: async (ctx, tenantId) => {

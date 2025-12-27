@@ -32,16 +32,16 @@ describe("Multi-Tenancy", () => {
     // Create env object (simulating Cloudflare Workers environment)
     env = { data: adapters };
 
-    // Create main tenant
+    // Create control plane tenant
     await adapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
-      sender_name: "Main Tenant",
+      sender_name: "Control Plane",
     });
 
-    // Create a test user on the main tenant
+    // Create a test user on the control plane
     await adapters.users.create("main", {
       user_id: testUserId,
       email: "test@example.com",
@@ -55,7 +55,7 @@ describe("Multi-Tenancy", () => {
     // Setup multi-tenancy with access control for organization creation
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         requireOrganizationMatch: false, // Disable strict organization matching for tests
         defaultPermissions: ["tenant:admin"],
       },
@@ -120,7 +120,7 @@ describe("Multi-Tenancy", () => {
     expect(acmeTenant).toBeDefined();
     expect(acmeTenant?.friendly_name).toBe("Acme Corporation");
 
-    // Verify organization was created on main tenant
+    // Verify organization was created on control plane
     const orgs = await adapters.organizations.list("main");
     const acmeOrg = orgs.organizations.find((org) => org.name === "acme");
     expect(acmeOrg).toBeDefined();
@@ -364,7 +364,7 @@ describe("Multi-Tenancy", () => {
 
     expect(response.status).toBe(201);
 
-    // Verify organization was created on main tenant
+    // Verify organization was created on control plane
     const orgs = await adapters.organizations.list("main");
     const orgTestOrg = orgs.organizations.find(
       (org) => org.name === "org-test",

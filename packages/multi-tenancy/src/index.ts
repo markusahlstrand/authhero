@@ -102,7 +102,7 @@ export type { AuthHeroPlugin } from "./plugin";
  *
  * const hooks = createMultiTenancyHooks({
  *   accessControl: {
- *     mainTenantId: "main",
+ *     controlPlaneTenantId: "main",
  *     defaultPermissions: ["tenant:admin"],
  *   },
  *   databaseIsolation: {
@@ -149,7 +149,7 @@ export function createMultiTenancyHooks(
  *
  * const multiTenancyApp = createMultiTenancy({
  *   accessControl: {
- *     mainTenantId: "main",
+ *     controlPlaneTenantId: "main",
  *   },
  * });
  *
@@ -186,7 +186,7 @@ export function createMultiTenancy(config: MultiTenancyConfig) {
  *
  * const multiTenancy = setupMultiTenancy({
  *   accessControl: {
- *     mainTenantId: "main",
+ *     controlPlaneTenantId: "main",
  *   },
  *   subdomainRouting: {
  *     baseDomain: "auth.example.com",
@@ -220,23 +220,23 @@ export function setupMultiTenancy(config: MultiTenancyConfig) {
 export interface MultiTenantAuthHeroConfig
   extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
   /**
-   * The main tenant ID that manages all other tenants.
+   * The control plane tenant ID that manages all other tenants.
    * This tenant can create, update, and delete other tenants.
    * @default "main"
    */
-  mainTenantId?: string;
+  controlPlaneTenantId?: string;
 
   /**
-   * Whether to sync resource servers from the main tenant to child tenants.
-   * When enabled, resource servers created on the main tenant are automatically
+   * Whether to sync resource servers from the control plane to child tenants.
+   * When enabled, resource servers created on the control plane are automatically
    * copied to all other tenants.
    * @default true
    */
   syncResourceServers?: boolean;
 
   /**
-   * Whether to sync roles from the main tenant to child tenants.
-   * When enabled, roles created on the main tenant are automatically
+   * Whether to sync roles from the control plane to child tenants.
+   * When enabled, roles created on the control plane are automatically
    * copied to all other tenants (including their permissions).
    * @default true
    */
@@ -248,7 +248,7 @@ export interface MultiTenantAuthHeroConfig
   multiTenancy?: Omit<MultiTenancyConfig, "accessControl"> & {
     accessControl?: Omit<
       NonNullable<MultiTenancyConfig["accessControl"]>,
-      "mainTenantId"
+      "controlPlaneTenantId"
     >;
   };
 
@@ -270,7 +270,7 @@ export interface MultiTenantAuthHeroConfig
  *
  * This wraps the standard AuthHero `init()` function and adds:
  * - Tenant CRUD routes (list, create, update, delete) at /api/v2/tenants
- * - Resource server synchronization from main tenant to child tenants
+ * - Resource server synchronization from control plane to child tenants
  * - Tenant creation hooks to copy resource servers to new tenants
  *
  * @param config - Multi-tenant AuthHero configuration
@@ -285,7 +285,7 @@ export interface MultiTenantAuthHeroConfig
  *
  * const { app } = init({
  *   dataAdapter,
- *   mainTenantId: "main",
+ *   controlPlaneTenantId: "main",
  *   syncResourceServers: true,
  * });
  *
@@ -294,7 +294,7 @@ export interface MultiTenantAuthHeroConfig
  */
 export function init(config: MultiTenantAuthHeroConfig) {
   const {
-    mainTenantId = "main",
+    controlPlaneTenantId = "main",
     syncResourceServers = true,
     syncRoles = true,
     multiTenancy: multiTenancyOptions,
@@ -306,7 +306,7 @@ export function init(config: MultiTenantAuthHeroConfig) {
   const multiTenancyConfig: MultiTenancyConfig = {
     ...multiTenancyOptions,
     accessControl: {
-      mainTenantId,
+      controlPlaneTenantId,
       requireOrganizationMatch: false,
       defaultPermissions: ["tenant:admin"],
       ...multiTenancyOptions?.accessControl,
@@ -326,21 +326,23 @@ export function init(config: MultiTenantAuthHeroConfig) {
 
   if (syncResourceServers) {
     resourceServerHooks = createResourceServerSyncHooks({
-      mainTenantId,
+      controlPlaneTenantId,
       getChildTenantIds: async () => {
         const allTenants = await fetchAll<{ id: string }>(
           (params) => config.dataAdapter.tenants.list(params),
           "tenants",
           { cursorField: "id", pageSize: 100 },
         );
-        return allTenants.filter((t) => t.id !== mainTenantId).map((t) => t.id);
+        return allTenants
+          .filter((t) => t.id !== controlPlaneTenantId)
+          .map((t) => t.id);
       },
       getAdapters: async (_tenantId: string) => config.dataAdapter,
     });
 
     tenantResourceServerHooks = createTenantResourceServerSyncHooks({
-      mainTenantId,
-      getMainTenantAdapters: async () => config.dataAdapter,
+      controlPlaneTenantId,
+      getControlPlaneAdapters: async () => config.dataAdapter,
       getAdapters: async (_tenantId: string) => config.dataAdapter,
     });
   }
@@ -351,21 +353,23 @@ export function init(config: MultiTenantAuthHeroConfig) {
 
   if (syncRoles) {
     roleHooks = createRoleSyncHooks({
-      mainTenantId,
+      controlPlaneTenantId,
       getChildTenantIds: async () => {
         const allTenants = await fetchAll<{ id: string }>(
           (params) => config.dataAdapter.tenants.list(params),
           "tenants",
           { cursorField: "id", pageSize: 100 },
         );
-        return allTenants.filter((t) => t.id !== mainTenantId).map((t) => t.id);
+        return allTenants
+          .filter((t) => t.id !== controlPlaneTenantId)
+          .map((t) => t.id);
       },
       getAdapters: async (_tenantId: string) => config.dataAdapter,
     });
 
     tenantRoleHooks = createTenantRoleSyncHooks({
-      mainTenantId,
-      getMainTenantAdapters: async () => config.dataAdapter,
+      controlPlaneTenantId,
+      getControlPlaneAdapters: async () => config.dataAdapter,
       getAdapters: async (_tenantId: string) => config.dataAdapter,
       syncPermissions: true,
     });

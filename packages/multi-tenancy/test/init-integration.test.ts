@@ -49,7 +49,7 @@ describe("Tenant Sync Hooks Integration", () => {
   let adapters: ReturnType<typeof createAdapters>;
   let env: { data: ReturnType<typeof createAdapters> };
   const testUserId = "auth0|test-user-123";
-  const mainTenantId = "main";
+  const controlPlaneTenantId = "main";
 
   beforeEach(async () => {
     // Create in-memory SQLite database
@@ -67,17 +67,17 @@ describe("Tenant Sync Hooks Integration", () => {
     // Create env object (simulating Cloudflare Workers environment)
     env = { data: adapters };
 
-    // Create main tenant
+    // Create control plane tenant
     await adapters.tenants.create({
-      id: mainTenantId,
-      friendly_name: "Main Tenant",
+      id: controlPlaneTenantId,
+      friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
-      sender_name: "Main Tenant",
+      sender_name: "Control Plane",
     });
 
-    // Create a test user on the main tenant
-    await adapters.users.create(mainTenantId, {
+    // Create a test user on the control plane
+    await adapters.users.create(controlPlaneTenantId, {
       user_id: testUserId,
       email: "test@example.com",
       email_verified: true,
@@ -97,21 +97,25 @@ describe("Tenant Sync Hooks Integration", () => {
     syncRoles?: boolean;
     syncPermissions?: boolean;
   }) {
-    const { syncResourceServers = true, syncRoles = true, syncPermissions = true } = options;
+    const {
+      syncResourceServers = true,
+      syncRoles = true,
+      syncPermissions = true,
+    } = options;
 
     // Create the sync hooks
     const tenantResourceServerHooks = syncResourceServers
       ? createTenantResourceServerSyncHooks({
-          mainTenantId,
-          getMainTenantAdapters: async () => adapters,
+          controlPlaneTenantId,
+          getControlPlaneAdapters: async () => adapters,
           getAdapters: async (_tenantId: string) => adapters,
         })
       : undefined;
 
     const tenantRoleHooks = syncRoles
       ? createTenantRoleSyncHooks({
-          mainTenantId,
-          getMainTenantAdapters: async () => adapters,
+          controlPlaneTenantId,
+          getControlPlaneAdapters: async () => adapters,
           getAdapters: async (_tenantId: string) => adapters,
           syncPermissions,
         })
@@ -120,7 +124,7 @@ describe("Tenant Sync Hooks Integration", () => {
     // Setup base multi-tenancy
     const multiTenancyConfig: MultiTenancyConfig = {
       accessControl: {
-        mainTenantId,
+        controlPlaneTenantId,
         requireOrganizationMatch: false,
         defaultPermissions: ["tenant:admin"],
       },
@@ -160,8 +164,8 @@ describe("Tenant Sync Hooks Integration", () => {
 
     // Set tenant_id and user variables in context (simulating authenticated user)
     app.use("*", async (c, next) => {
-      c.set("tenant_id", mainTenantId);
-      c.set("user", { sub: testUserId, tenant_id: mainTenantId });
+      c.set("tenant_id", controlPlaneTenantId);
+      c.set("user", { sub: testUserId, tenant_id: controlPlaneTenantId });
       await next();
     });
 
@@ -169,15 +173,18 @@ describe("Tenant Sync Hooks Integration", () => {
     app.use("*", multiTenancy.middleware);
 
     // Create router for tenant routes with combined hooks
-    const tenantsRouter = createTenantsRouter(multiTenancyConfig, combinedHooks);
+    const tenantsRouter = createTenantsRouter(
+      multiTenancyConfig,
+      combinedHooks,
+    );
     app.route("/management/tenants", tenantsRouter);
 
     return app;
   }
 
   it("should sync resource servers and roles when creating a new tenant", async () => {
-    // Create resource servers on main tenant
-    await adapters.resourceServers.create(mainTenantId, {
+    // Create resource servers on control plane
+    await adapters.resourceServers.create(controlPlaneTenantId, {
       name: "API Server",
       identifier: "https://api.example.com",
       scopes: [
@@ -186,18 +193,18 @@ describe("Tenant Sync Hooks Integration", () => {
       ],
     });
 
-    await adapters.resourceServers.create(mainTenantId, {
+    await adapters.resourceServers.create(controlPlaneTenantId, {
       name: "Auth Server",
       identifier: "https://auth.example.com",
     });
 
-    // Create roles on main tenant
-    await adapters.roles.create(mainTenantId, {
+    // Create roles on control plane
+    await adapters.roles.create(controlPlaneTenantId, {
       name: "Admin",
       description: "Administrator role",
     });
 
-    await adapters.roles.create(mainTenantId, {
+    await adapters.roles.create(controlPlaneTenantId, {
       name: "User",
       description: "Regular user role",
     });
@@ -266,14 +273,14 @@ describe("Tenant Sync Hooks Integration", () => {
   });
 
   it("should not sync when sync is disabled", async () => {
-    // Create resource servers on main tenant
-    await adapters.resourceServers.create(mainTenantId, {
+    // Create resource servers on control plane
+    await adapters.resourceServers.create(controlPlaneTenantId, {
       name: "API Server",
       identifier: "https://api.example.com",
     });
 
-    // Create roles on main tenant
-    await adapters.roles.create(mainTenantId, {
+    // Create roles on control plane
+    await adapters.roles.create(controlPlaneTenantId, {
       name: "Admin",
       description: "Administrator role",
     });
@@ -319,8 +326,8 @@ describe("Tenant Sync Hooks Integration", () => {
   });
 
   it("should sync role permissions when creating a new tenant", async () => {
-    // Create a resource server with scopes on main tenant
-    await adapters.resourceServers.create(mainTenantId, {
+    // Create a resource server with scopes on control plane
+    await adapters.resourceServers.create(controlPlaneTenantId, {
       name: "API Server",
       identifier: "https://api.example.com",
       scopes: [
@@ -329,14 +336,14 @@ describe("Tenant Sync Hooks Integration", () => {
       ],
     });
 
-    // Create a role with permissions on main tenant
-    const adminRole = await adapters.roles.create(mainTenantId, {
+    // Create a role with permissions on control plane
+    const adminRole = await adapters.roles.create(controlPlaneTenantId, {
       name: "Admin",
       description: "Administrator role",
     });
 
     // Assign permissions to the role
-    await adapters.rolePermissions.assign(mainTenantId, adminRole.id, [
+    await adapters.rolePermissions.assign(controlPlaneTenantId, adminRole.id, [
       {
         role_id: adminRole.id,
         resource_server_identifier: "https://api.example.com",

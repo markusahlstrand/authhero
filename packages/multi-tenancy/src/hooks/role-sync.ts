@@ -1,8 +1,4 @@
-import {
-  DataAdapters,
-  Role,
-  RoleInsert,
-} from "@authhero/adapter-interfaces";
+import { DataAdapters, Role, RoleInsert } from "@authhero/adapter-interfaces";
 import { TenantEntityHooks, TenantHookContext } from "../types";
 import { fetchAll } from "../utils/fetchAll";
 
@@ -11,13 +7,13 @@ import { fetchAll } from "../utils/fetchAll";
  */
 export interface RoleSyncConfig {
   /**
-   * The main tenant ID from which roles are synced
+   * The control plane tenant ID from which roles are synced
    */
-  mainTenantId: string;
+  controlPlaneTenantId: string;
 
   /**
    * Function to get the list of all tenant IDs to sync to.
-   * Called when a role is created/updated/deleted on the main tenant.
+   * Called when a role is created/updated/deleted on the control plane.
    */
   getChildTenantIds: () => Promise<string[]>;
 
@@ -63,9 +59,9 @@ export interface RoleEntityHooks {
 }
 
 /**
- * Creates entity hooks for syncing roles from the main tenant to all child tenants.
+ * Creates entity hooks for syncing roles from the control plane to all child tenants.
  *
- * When a role is created, updated, or deleted on the main tenant,
+ * When a role is created, updated, or deleted on the control plane,
  * the change is automatically propagated to all child tenants.
  *
  * @param config - Role sync configuration
@@ -76,7 +72,7 @@ export interface RoleEntityHooks {
  * import { createRoleSyncHooks } from "@authhero/multi-tenancy";
  *
  * const roleHooks = createRoleSyncHooks({
- *   mainTenantId: "main",
+ *   controlPlaneTenantId: "main",
  *   getChildTenantIds: async () => {
  *     const tenants = await db.tenants.list();
  *     return tenants.filter(t => t.id !== "main").map(t => t.id);
@@ -97,7 +93,7 @@ export interface RoleEntityHooks {
  */
 export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
   const {
-    mainTenantId,
+    controlPlaneTenantId,
     getChildTenantIds,
     getAdapters,
     shouldSync = () => true,
@@ -141,7 +137,7 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
                 description: role.description,
               };
 
-          // Add is_system flag to mark this as synced from main tenant
+          // Add is_system flag to mark this as synced from control plane
           const dataWithIsSystem = { ...dataToSync, is_system: true };
 
           if (operation === "create") {
@@ -150,7 +146,11 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
 
             if (existing && existing.id) {
               // Update existing using its ID
-              await adapters.roles.update(tenantId, existing.id, dataWithIsSystem);
+              await adapters.roles.update(
+                tenantId,
+                existing.id,
+                dataWithIsSystem,
+              );
             } else {
               // Create new
               await adapters.roles.create(tenantId, dataWithIsSystem);
@@ -160,7 +160,11 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
             const existing = await findByName(adapters, tenantId, role.name);
 
             if (existing && existing.id) {
-              await adapters.roles.update(tenantId, existing.id, dataWithIsSystem);
+              await adapters.roles.update(
+                tenantId,
+                existing.id,
+                dataWithIsSystem,
+              );
             }
           }
         } catch (error) {
@@ -176,8 +180,8 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
 
   return {
     afterCreate: async (ctx: EntityHookContext, role: Role) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -190,8 +194,8 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
     },
 
     afterUpdate: async (ctx: EntityHookContext, _id: string, role: Role) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -204,8 +208,8 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
     },
 
     afterDelete: async (ctx: EntityHookContext, id: string) => {
-      // Only sync if this is from the main tenant
-      if (ctx.tenantId !== mainTenantId) {
+      // Only sync if this is from the control plane
+      if (ctx.tenantId !== controlPlaneTenantId) {
         return;
       }
 
@@ -215,7 +219,7 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
       // This is a limitation - we need to store the mapping somewhere
       // For now, we'll just log and skip
       console.warn(
-        `Role ${id} was deleted from main tenant. Child tenant roles with matching names should be deleted manually or implement role name tracking.`,
+        `Role ${id} was deleted from control plane. Child tenant roles with matching names should be deleted manually or implement role name tracking.`,
       );
     },
   };
@@ -226,15 +230,15 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
  */
 export interface TenantRoleSyncConfig {
   /**
-   * The main tenant ID from which roles are copied
+   * The control plane tenant ID from which roles are copied
    */
-  mainTenantId: string;
+  controlPlaneTenantId: string;
 
   /**
-   * Function to get adapters for the main tenant.
+   * Function to get adapters for the control plane.
    * Used to read existing roles.
    */
-  getMainTenantAdapters: () => Promise<DataAdapters>;
+  getControlPlaneAdapters: () => Promise<DataAdapters>;
 
   /**
    * Function to get adapters for the new tenant.
@@ -263,7 +267,7 @@ export interface TenantRoleSyncConfig {
 }
 
 /**
- * Creates a tenant afterCreate hook that copies all roles from the main tenant
+ * Creates a tenant afterCreate hook that copies all roles from the control plane
  * to a newly created tenant.
  *
  * This should be used with the MultiTenancyHooks.tenants.afterCreate hook.
@@ -276,8 +280,8 @@ export interface TenantRoleSyncConfig {
  * import { createTenantRoleSyncHooks } from "@authhero/multi-tenancy";
  *
  * const roleSyncHooks = createTenantRoleSyncHooks({
- *   mainTenantId: "main",
- *   getMainTenantAdapters: async () => mainAdapters,
+ *   controlPlaneTenantId: "main",
+ *   getControlPlaneAdapters: async () => controlPlaneAdapters,
  *   getAdapters: async (tenantId) => createAdaptersForTenant(tenantId),
  * });
  *
@@ -292,8 +296,8 @@ export function createTenantRoleSyncHooks(
   config: TenantRoleSyncConfig,
 ): TenantEntityHooks {
   const {
-    mainTenantId,
-    getMainTenantAdapters,
+    controlPlaneTenantId,
+    getControlPlaneAdapters,
     getAdapters,
     shouldSync = () => true,
     transformForSync,
@@ -305,23 +309,24 @@ export function createTenantRoleSyncHooks(
       _ctx: TenantHookContext,
       tenant: { id: string },
     ): Promise<void> {
-      // Don't sync to the main tenant itself
-      if (tenant.id === mainTenantId) {
+      // Don't sync to the control plane itself
+      if (tenant.id === controlPlaneTenantId) {
         return;
       }
 
       try {
-        const mainAdapters = await getMainTenantAdapters();
+        const controlPlaneAdapters = await getControlPlaneAdapters();
         const targetAdapters = await getAdapters(tenant.id);
 
-        // Get all roles from main tenant using pagination
+        // Get all roles from control plane using pagination
         const allRoles = await fetchAll<Role>(
-          (params) => mainAdapters.roles.list(mainTenantId, params),
+          (params) =>
+            controlPlaneAdapters.roles.list(controlPlaneTenantId, params),
           "roles",
           { cursorField: "id", pageSize: 100 },
         );
 
-        // Create a mapping of main tenant role IDs to new tenant role IDs
+        // Create a mapping of control plane role IDs to new tenant role IDs
         const roleIdMapping = new Map<string, string>();
 
         // Sync each role to the new tenant
@@ -338,7 +343,7 @@ export function createTenantRoleSyncHooks(
                       description: role.description,
                     };
 
-                // Add is_system flag to mark this as synced from main tenant
+                // Add is_system flag to mark this as synced from control plane
                 const newRole = await targetAdapters.roles.create(tenant.id, {
                   ...dataToSync,
                   is_system: true,
@@ -357,15 +362,16 @@ export function createTenantRoleSyncHooks(
 
         // Sync role permissions if enabled
         if (syncPermissions) {
-          for (const [mainRoleId, newRoleId] of roleIdMapping) {
+          for (const [controlPlaneRoleId, newRoleId] of roleIdMapping) {
             try {
-              // Get permissions for the role from main tenant
+              // Get permissions for the role from control plane
               // Note: rolePermissions.list returns an array directly, not wrapped in an object
-              const permissions = await mainAdapters.rolePermissions.list(
-                mainTenantId,
-                mainRoleId,
-                {},
-              );
+              const permissions =
+                await controlPlaneAdapters.rolePermissions.list(
+                  controlPlaneTenantId,
+                  controlPlaneRoleId,
+                  {},
+                );
 
               if (permissions.length > 0) {
                 // Assign permissions to the new role

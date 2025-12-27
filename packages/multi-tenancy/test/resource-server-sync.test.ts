@@ -68,7 +68,7 @@ describe("Resource Server Sync Hooks", () => {
     // Create tenants in their respective databases
     await mainAdapters.tenants.create({
       id: "main",
-      friendly_name: "Main Tenant",
+      friendly_name: "Control Plane",
       audience: "https://main.example.com",
       sender_email: "admin@main.example.com",
       sender_name: "Main",
@@ -92,14 +92,14 @@ describe("Resource Server Sync Hooks", () => {
   });
 
   describe("createResourceServerSyncHooks", () => {
-    it("should sync a new resource server from main tenant to all child tenants", async () => {
+    it("should sync a new resource server from control plane to all child tenants", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
 
-      // Create a resource server on the main tenant
+      // Create a resource server on the control plane
       const resourceServer = await mainAdapters.resourceServers.create("main", {
         name: "My API",
         identifier: "https://api.example.com",
@@ -141,7 +141,7 @@ describe("Resource Server Sync Hooks", () => {
 
     it("should not sync resource servers created on child tenants", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -177,9 +177,9 @@ describe("Resource Server Sync Hooks", () => {
       expect(tenant2RS).toBeNull();
     });
 
-    it("should sync resource server updates from main tenant", async () => {
+    it("should sync resource server updates from control plane", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -238,9 +238,9 @@ describe("Resource Server Sync Hooks", () => {
       expect(tenant2RS?.token_lifetime).toBe(7200);
     });
 
-    it("should sync resource server deletions from main tenant", async () => {
+    it("should sync resource server deletions from control plane", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -292,7 +292,7 @@ describe("Resource Server Sync Hooks", () => {
 
     it("should use shouldSync filter to skip certain resource servers", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
         // Only sync resource servers with identifiers starting with "https://api."
@@ -339,7 +339,7 @@ describe("Resource Server Sync Hooks", () => {
 
     it("should use transformForSync to modify resource servers before syncing", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
         transformForSync: (rs, targetTenantId) => ({
@@ -387,7 +387,7 @@ describe("Resource Server Sync Hooks", () => {
       } as unknown as DataAdapters;
 
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1", "tenant2"],
         getAdapters: async (tenantId) => {
           if (tenantId === "tenant1") return failingAdapters;
@@ -422,7 +422,7 @@ describe("Resource Server Sync Hooks", () => {
 
     it("should update existing resource server if it already exists on create", async () => {
       const hooks = createResourceServerSyncHooks({
-        mainTenantId: "main",
+        controlPlaneTenantId: "main",
         getChildTenantIds: async () => ["tenant1"],
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
@@ -458,8 +458,8 @@ describe("Resource Server Sync Hooks", () => {
   });
 
   describe("createTenantResourceServerSyncHooks", () => {
-    it("should copy all resource servers from main tenant to a newly created tenant", async () => {
-      // Create some resource servers on the main tenant
+    it("should copy all resource servers from control plane to a newly created tenant", async () => {
+      // Create some resource servers on the control plane
       await mainAdapters.resourceServers.create("main", {
         name: "API Server",
         identifier: "https://api.example.com",
@@ -494,8 +494,8 @@ describe("Resource Server Sync Hooks", () => {
 
       // Create the tenant hooks
       const tenantHooks = createTenantResourceServerSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async (tenantId) => {
           if (tenantId === "new-tenant") return newTenantAdapters;
           return adaptersMap.get(tenantId)!;
@@ -527,7 +527,7 @@ describe("Resource Server Sync Hooks", () => {
       expect(newTenantInternalRS?.token_lifetime).toBe(7200);
     });
 
-    it("should not copy resource servers when creating the main tenant itself", async () => {
+    it("should not copy resource servers when creating the control plane itself", async () => {
       // Create resource servers on main
       await mainAdapters.resourceServers.create("main", {
         name: "API Server",
@@ -535,8 +535,8 @@ describe("Resource Server Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantResourceServerSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
       });
 
@@ -544,7 +544,7 @@ describe("Resource Server Sync Hooks", () => {
       const mockCtx: TenantHookContext = { adapters: mainAdapters };
       await tenantHooks.afterCreate!(mockCtx, { id: "main" });
 
-      // Main tenant should still only have its original resource server
+      // Control plane should still only have its original resource server
       const mainRS = await mainAdapters.resourceServers.list("main", {});
       expect(mainRS.resource_servers).toHaveLength(1);
     });
@@ -577,8 +577,8 @@ describe("Resource Server Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantResourceServerSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => newTenantAdapters,
         // Only sync public APIs
         shouldSync: (rs) => rs.identifier.startsWith("https://api."),
@@ -626,8 +626,8 @@ describe("Resource Server Sync Hooks", () => {
       });
 
       const tenantHooks = createTenantResourceServerSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => newTenantAdapters,
         transformForSync: (rs, tenantId) => ({
           name: `${rs.name} (${tenantId})`,
@@ -667,8 +667,8 @@ describe("Resource Server Sync Hooks", () => {
       } as unknown as DataAdapters;
 
       const tenantHooks = createTenantResourceServerSyncHooks({
-        mainTenantId: "main",
-        getMainTenantAdapters: async () => mainAdapters,
+        controlPlaneTenantId: "main",
+        getControlPlaneAdapters: async () => mainAdapters,
         getAdapters: async () => failingAdapters,
       });
 
