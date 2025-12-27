@@ -20,6 +20,16 @@ export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
 
+// Export middlewares for use by multi-tenancy and other packages
+export {
+  createAuthMiddleware,
+  MANAGEMENT_API_AUDIENCE,
+  getTenantAudience,
+  extractTenantIdFromAudience,
+} from "./middlewares/authentication";
+export { tenantMiddleware } from "./middlewares/tenant";
+export { clientInfoMiddleware } from "./middlewares/client-info";
+
 // Export SAML types and signers for configuration
 export type { SamlSigner } from "@authhero/saml/core";
 export { HttpSamlSigner } from "@authhero/saml/core";

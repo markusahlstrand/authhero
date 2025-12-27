@@ -559,9 +559,17 @@ export interface SeedOptions {
    */
   tenantName?: string;
   /**
-   * The audience URL for the tenant
+   * The audience URL for the tenant.
+   * For the main/management tenant, defaults to `urn:authhero:management`.
+   * For child tenants, use `getTenantAudience(tenantId)` to generate `urn:authhero:tenant:{tenantId}`.
    */
   audience?: string;
+  /**
+   * Whether this is the main/management tenant.
+   * If true, the audience will default to `urn:authhero:management`.
+   * @default true
+   */
+  isMainTenant?: boolean;
   /**
    * The default client ID (defaults to "default")
    */
@@ -618,23 +626,32 @@ export async function seed(
     adminPassword,
     tenantId = "main",
     tenantName = "Main Tenant",
-    audience = "urn:main",
+    isMainTenant = true,
     clientId = "default",
     callbacks = [
       "https://manage.authhero.net/auth-callback",
       "https://local.authhero.net/auth-callback",
-      "https://localhost:5173/auth-callback",
+      "http://localhost:5173/auth-callback",
       "https://localhost:3000/auth-callback",
     ],
     allowedLogoutUrls = [
       "https://manage.authhero.net",
       "https://local.authhero.net",
-      "https://localhost:5173",
+      "http://localhost:5173",
       "https://localhost:3000",
     ],
     debug = true,
     issuer,
   } = options;
+
+  // Determine the audience based on tenant type
+  // Main tenant uses urn:authhero:management for cross-tenant management
+  // Child tenants use urn:authhero:tenant:{tenantId} for tenant-specific access
+  const audience =
+    options.audience ||
+    (isMainTenant
+      ? "urn:authhero:management"
+      : `urn:authhero:tenant:${tenantId}`);
 
   // Check if tenant already exists
   const existingTenant = await adapters.tenants.get(tenantId);
@@ -649,10 +666,16 @@ export async function seed(
       sender_email: "noreply@example.com",
       sender_name: "AuthHero",
     });
-    // Allow organization name to be used in authentication API (e.g., organization: "main" instead of "org_xxx")
-    await adapters.tenants.update(tenantId, {
-      allow_organization_name_in_authentication_api: true,
-    });
+
+    // Enable allow_organization_name_in_authentication_api for main tenant
+    // This includes org_name in tokens, which is needed for multi-tenancy
+    // where org_name should match tenant_id
+    if (isMainTenant) {
+      await adapters.tenants.update(tenantId, {
+        allow_organization_name_in_authentication_api: true,
+      });
+    }
+
     if (debug) {
       console.log("✅ Tenant created");
     }

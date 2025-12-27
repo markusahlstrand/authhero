@@ -6,9 +6,11 @@ import {
   getClientIdFromStorage,
   getDomainFromStorage,
   buildUrlWithProtocol,
+  formatDomain,
 } from "./utils/domainUtils";
 import getToken, {
   clearOrganizationTokenCache,
+  getOrganizationToken,
   OrgCache,
 } from "./utils/tokenUtils";
 
@@ -43,15 +45,16 @@ export const createAuth0Client = (domain: string) => {
   const currentUrl = new URL(window.location.href);
   const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
 
-  // Use explicit audience or fallback to the domain's API
+  // Use the management API audience for cross-tenant operations
+  // This allows the admin UI to manage tenants and their resources
   const audience =
-    import.meta.env.VITE_AUTH0_AUDIENCE || `https://${domain}/api/v2/`;
+    import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
   const auth0Client = new Auth0Client({
     domain: fullDomain,
     clientId: getClientIdFromStorage(domain),
     cacheLocation: "localstorage",
-    useRefreshTokens: true,
+    useRefreshTokens: false,
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
@@ -133,21 +136,22 @@ export const createAuth0ClientForOrg = (
   const currentUrl = new URL(window.location.href);
   const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
 
-  // Use explicit audience or fallback to the domain's API
+  // Use the management API audience for cross-tenant operations
+  // The org_id claim in the token determines which tenant's resources are accessed
   const audience =
-    import.meta.env.VITE_AUTH0_AUDIENCE || `https://${domain}/api/v2/`;
+    import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
   const auth0Client = new Auth0Client({
     domain: fullDomain,
     clientId: getClientIdFromStorage(domain),
-    useRefreshTokens: true,
+    useRefreshTokens: false,
     // Use organization-specific cache to isolate tokens
     // Note: Don't use cacheLocation when providing a custom cache
     cache: new OrgCache(organizationId),
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
-      scope: "openid profile email auth:read auth:write offline_access",
+      scope: "openid profile email auth:read auth:write",
       organization: organizationId,
     },
   });
@@ -171,9 +175,9 @@ export const createManagementClient = async (
   }
 
   // Use oauthDomain for finding credentials, fallback to apiDomain
-  const domainForAuth = oauthDomain || apiDomain;
+  const domainForAuth = formatDomain(oauthDomain || apiDomain);
   const domains = getDomainFromStorage();
-  const domainConfig = domains.find((d) => d.url === domainForAuth);
+  const domainConfig = domains.find((d) => formatDomain(d.url) === domainForAuth);
 
   if (!domainConfig) {
     throw new Error(
@@ -181,13 +185,33 @@ export const createManagementClient = async (
     );
   }
 
-  // Get auth0Client if using login method
-  let auth0Client: Auth0Client | undefined;
-  if (domainConfig.connectionMethod === "login") {
-    auth0Client = createAuth0Client(domainForAuth);
-  }
+  let token: string;
 
-  const token = await getToken(domainConfig, auth0Client);
+  if (tenantId) {
+    // When accessing tenant-specific resources, use org-scoped token
+    if (domainConfig.connectionMethod === "login") {
+      // For OAuth login, use organization-scoped client
+      const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, tenantId);
+      const audience =
+        import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+      token = await orgAuth0Client.getTokenSilently({
+        authorizationParams: {
+          audience,
+          organization: tenantId,
+        },
+      });
+    } else {
+      // For token/client_credentials, use getOrganizationToken
+      token = await getOrganizationToken(domainConfig, tenantId);
+    }
+  } else {
+    // No tenantId - get non-org-scoped token for tenant management endpoints
+    let auth0Client: Auth0Client | undefined;
+    if (domainConfig.connectionMethod === "login") {
+      auth0Client = createAuth0Client(domainForAuth);
+    }
+    token = await getToken(domainConfig, auth0Client);
+  }
 
   // ManagementClient expects domain WITHOUT protocol (it adds https:// internally)
   const managementClient = new ManagementClient({
@@ -215,7 +239,8 @@ export const getAuthProvider = (
 ) => {
   // Get domain config to check connection method
   const domains = getDomainFromStorage();
-  const domainConfig = domains.find((d) => d.url === domain);
+  const formattedDomain = formatDomain(domain);
+  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedDomain);
 
   // If using token auth or client credentials, create a simple auth provider that uses the token
   if (
@@ -389,17 +414,18 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   // Check if we're using token-based auth or client credentials
   const domains = getDomainFromStorage();
   const selectedDomain = getSelectedDomainFromStorage();
-  const domainConfig = domains.find((d) => d.url === selectedDomain);
+  const formattedSelectedDomain = formatDomain(selectedDomain);
+  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedSelectedDomain);
 
   // If using login method and auth request is in progress, delay the request
   if (
     domainConfig?.connectionMethod === "login" &&
-    (authRequestInProgress || activeSessions.has(selectedDomain))
+    (authRequestInProgress || activeSessions.has(formattedSelectedDomain))
   ) {
     // Return a promise that waits for auth to complete
     const delayedRequest = new Promise((resolve, reject) => {
       const checkInterval = setInterval(() => {
-        if (!authRequestInProgress && !activeSessions.has(selectedDomain)) {
+        if (!authRequestInProgress && !activeSessions.has(formattedSelectedDomain)) {
           clearInterval(checkInterval);
           // Retry the request now that auth is complete
           authorizedHttpClient(url, options).then(resolve).catch(reject);
@@ -651,16 +677,17 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     // Check if we're using token-based auth or client credentials
     const domains = getDomainFromStorage();
     const selectedDomain = getSelectedDomainFromStorage();
-    const domainConfig = domains.find((d) => d.url === selectedDomain);
+    const formattedSelectedDomain = formatDomain(selectedDomain);
+    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedSelectedDomain);
 
     // If using login method and auth request is in progress, delay the request
     if (
       domainConfig?.connectionMethod === "login" &&
-      (authRequestInProgress || activeSessions.has(selectedDomain))
+      (authRequestInProgress || activeSessions.has(formattedSelectedDomain))
     ) {
       const delayedRequest = new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
-          if (!authRequestInProgress && !activeSessions.has(selectedDomain)) {
+          if (!authRequestInProgress && !activeSessions.has(formattedSelectedDomain)) {
             clearInterval(checkInterval);
             createOrganizationHttpClient(organizationId)(url, options)
               .then(resolve)
@@ -700,8 +727,12 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         domainConfig.connectionMethod || "",
       )
     ) {
-      // For token/client_credentials, use the standard token (no org scoping)
-      request = getToken(domainConfig)
+      // For token/client_credentials, use organization-scoped token
+      // This includes the org_id claim for accessing tenant-specific resources
+      console.log(
+        `[createOrganizationHttpClient] Using ${domainConfig.connectionMethod} method for org ${organizationId}`,
+      );
+      request = getOrganizationToken(domainConfig, organizationId)
         .catch((error) => {
           throw new Error(
             `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
@@ -759,15 +790,18 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         });
     } else {
       // For OAuth login, use an organization-specific client with isolated cache
+      console.log(
+        `[createOrganizationHttpClient] Using login method for org ${organizationId}`,
+      );
       const orgAuth0Client = createAuth0ClientForOrg(
         selectedDomain,
         organizationId,
       );
 
-      // Get the audience for token requests
+      // Use the management API audience for cross-tenant operations
+      // The org_id in the token will determine which tenant's resources are being accessed
       const audience =
-        import.meta.env.VITE_AUTH0_AUDIENCE ||
-        `https://${selectedDomain}/api/v2/`;
+        import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
       // First, check if we have a valid session for this organization
       request = orgAuth0Client

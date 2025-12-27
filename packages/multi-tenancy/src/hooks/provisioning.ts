@@ -1,5 +1,5 @@
-import { Tenant } from "@authhero/adapter-interfaces";
-import { MANAGEMENT_API_SCOPES } from "authhero";
+import { CreateTenantParams, Tenant } from "@authhero/adapter-interfaces";
+import { MANAGEMENT_API_SCOPES, getTenantAudience } from "authhero";
 import {
   MultiTenancyConfig,
   TenantEntityHooks,
@@ -10,6 +10,7 @@ import {
  * Creates hooks for tenant provisioning and deprovisioning.
  *
  * This handles:
+ * - Setting the correct audience for new tenants (urn:authhero:tenant:{id})
  * - Creating organizations on the main tenant when a new tenant is created
  * - Provisioning databases for new tenants
  * - Cleaning up organizations and databases when tenants are deleted
@@ -21,6 +22,21 @@ export function createProvisioningHooks(
   config: MultiTenancyConfig,
 ): TenantEntityHooks {
   return {
+    async beforeCreate(
+      _ctx: TenantHookContext,
+      params: CreateTenantParams,
+    ): Promise<CreateTenantParams> {
+      // Set the audience to the tenant-specific URN if not already set
+      // This ensures child tenants use urn:authhero:tenant:{id} as their audience
+      if (!params.audience && params.id) {
+        return {
+          ...params,
+          audience: getTenantAudience(params.id),
+        };
+      }
+      return params;
+    },
+
     async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
       const { accessControl, databaseIsolation, settingsInheritance } = config;
 

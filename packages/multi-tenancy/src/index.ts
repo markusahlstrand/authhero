@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { init as initAuthHero, AuthHeroConfig } from "authhero";
+import {
+  init as initAuthHero,
+  AuthHeroConfig,
+  ManagementApiExtension,
+} from "authhero";
 import {
   MultiTenancyConfig,
   MultiTenancyHooks,
@@ -11,7 +15,7 @@ import {
   createDatabaseHooks,
   createProvisioningHooks,
 } from "./hooks";
-import { createTenantsRouter } from "./routes";
+import { createTenantsRouter, createTenantsOpenAPIRouter } from "./routes";
 import {
   createMultiTenancyMiddleware,
   createProtectSyncedMiddleware,
@@ -203,7 +207,7 @@ export function setupMultiTenancy(config: MultiTenancyConfig) {
  * Configuration for multi-tenant AuthHero initialization.
  */
 export interface MultiTenantAuthHeroConfig
-  extends Omit<AuthHeroConfig, "entityHooks"> {
+  extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
   /**
    * The main tenant ID that manages all other tenants.
    * This tenant can create, update, and delete other tenants.
@@ -234,6 +238,12 @@ export interface MultiTenantAuthHeroConfig
    * Resource server and tenant hooks will be merged with the sync hooks.
    */
   entityHooks?: AuthHeroConfig["entityHooks"];
+
+  /**
+   * Additional routes to mount on the management API.
+   * Note: The tenant CRUD routes are automatically added by multi-tenancy.
+   */
+  managementApiExtensions?: ManagementApiExtension[];
 }
 
 /**
@@ -398,10 +408,22 @@ export function init(config: MultiTenantAuthHeroConfig) {
       : configEntityHooks?.tenants,
   };
 
-  // Initialize AuthHero with merged config
+  // Create the OpenAPI tenant routes
+  const tenantsOpenAPIRouter = createTenantsOpenAPIRouter(
+    multiTenancyConfig,
+    multiTenancyHooks,
+  );
+
+  // Initialize AuthHero with merged config, including tenant route extensions
   const authHeroResult = initAuthHero({
     ...authHeroConfig,
     entityHooks: mergedEntityHooks,
+    // Register tenant routes via the extension mechanism
+    // This ensures they go through the full middleware chain (caching, tenant, auth, entity hooks)
+    managementApiExtensions: [
+      ...(authHeroConfig.managementApiExtensions || []),
+      { path: "/tenants", router: tenantsOpenAPIRouter },
+    ],
   });
 
   const { app: authHeroApp, managementApp, ...rest } = authHeroResult;
@@ -421,17 +443,6 @@ export function init(config: MultiTenantAuthHeroConfig) {
 
   // Mount all authHero routes on the wrapper app
   app.route("/", authHeroApp);
-
-  // Create the tenant CRUD router
-  const tenantsRouter = createTenantsRouter(
-    multiTenancyConfig,
-    multiTenancyHooks,
-  );
-
-  // Mount tenant CRUD routes directly on the main app at /api/v2/tenants
-  // This adds routes like GET /, POST /, GET /:id, etc.
-  // The authhero's /tenants/settings route is already mounted via managementApp
-  app.route("/api/v2/tenants", tenantsRouter);
 
   return {
     app,

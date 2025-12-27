@@ -141,6 +141,14 @@ export default function create(config: AuthHeroConfig) {
     .route("/organizations", organizationRoutes)
     .route("/stats", statsRoutes);
 
+  // Mount any additional route extensions from config
+  // These go through the full middleware chain (caching, tenant, auth, entity hooks)
+  if (config.managementApiExtensions) {
+    for (const extension of config.managementApiExtensions) {
+      managementApp.route(extension.path, extension.router);
+    }
+  }
+
   managementApp.doc("/spec", {
     openapi: "3.0.0",
     info: {

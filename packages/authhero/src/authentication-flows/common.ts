@@ -88,7 +88,7 @@ export async function createAuthTokens(
     });
   }
 
-  const accessTokenPayload = {
+  const accessTokenPayload: Record<string, unknown> = {
     aud: audience,
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
@@ -97,6 +97,11 @@ export async function createAuthTokens(
     sid: session_id,
     act: impersonatingUser ? { sub: impersonatingUser.user_id } : undefined, // RFC 8693 act claim for impersonation
     org_id: organization ? organization.id : undefined,
+    // Include org_name in access token if tenant has allow_organization_name_in_authentication_api enabled
+    org_name:
+      organization && client.tenant.allow_organization_name_in_authentication_api
+        ? organization.name
+        : undefined,
     permissions,
   };
 

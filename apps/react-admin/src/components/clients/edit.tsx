@@ -60,6 +60,7 @@ import {
   getDomainFromStorage,
   getSelectedDomainFromStorage,
   buildUrlWithProtocol,
+  formatDomain,
 } from "../../utils/domainUtils";
 
 const AddClientGrantButton = () => {
@@ -821,7 +822,8 @@ interface Connection {
 const getApiBaseUrl = (): string => {
   const selectedDomain = getSelectedDomainFromStorage();
   const domains = getDomainFromStorage();
-  const domainConfig = domains.find((d) => d.url === selectedDomain);
+  const formattedDomain = formatDomain(selectedDomain);
+  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedDomain);
 
   if (domainConfig?.restApiUrl) {
     return domainConfig.restApiUrl.replace(/\/$/, "");
