@@ -177,7 +177,9 @@ export const createManagementClient = async (
   // Use oauthDomain for finding credentials, fallback to apiDomain
   const domainForAuth = formatDomain(oauthDomain || apiDomain);
   const domains = getDomainFromStorage();
-  const domainConfig = domains.find((d) => formatDomain(d.url) === domainForAuth);
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === domainForAuth,
+  );
 
   if (!domainConfig) {
     throw new Error(
@@ -240,7 +242,9 @@ export const getAuthProvider = (
   // Get domain config to check connection method
   const domains = getDomainFromStorage();
   const formattedDomain = formatDomain(domain);
-  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedDomain);
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === formattedDomain,
+  );
 
   // If using token auth or client credentials, create a simple auth provider that uses the token
   if (
@@ -415,7 +419,9 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   const domains = getDomainFromStorage();
   const selectedDomain = getSelectedDomainFromStorage();
   const formattedSelectedDomain = formatDomain(selectedDomain);
-  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedSelectedDomain);
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === formattedSelectedDomain,
+  );
 
   // If using login method and auth request is in progress, delay the request
   if (
@@ -425,7 +431,10 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
     // Return a promise that waits for auth to complete
     const delayedRequest = new Promise((resolve, reject) => {
       const checkInterval = setInterval(() => {
-        if (!authRequestInProgress && !activeSessions.has(formattedSelectedDomain)) {
+        if (
+          !authRequestInProgress &&
+          !activeSessions.has(formattedSelectedDomain)
+        ) {
           clearInterval(checkInterval);
           // Retry the request now that auth is complete
           authorizedHttpClient(url, options).then(resolve).catch(reject);
@@ -678,7 +687,9 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     const domains = getDomainFromStorage();
     const selectedDomain = getSelectedDomainFromStorage();
     const formattedSelectedDomain = formatDomain(selectedDomain);
-    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedSelectedDomain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedSelectedDomain,
+    );
 
     // If using login method and auth request is in progress, delay the request
     if (
@@ -687,7 +698,10 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     ) {
       const delayedRequest = new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
-          if (!authRequestInProgress && !activeSessions.has(formattedSelectedDomain)) {
+          if (
+            !authRequestInProgress &&
+            !activeSessions.has(formattedSelectedDomain)
+          ) {
             clearInterval(checkInterval);
             createOrganizationHttpClient(organizationId)(url, options)
               .then(resolve)
@@ -729,9 +743,6 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     ) {
       // For token/client_credentials, use organization-scoped token
       // This includes the org_id claim for accessing tenant-specific resources
-      console.log(
-        `[createOrganizationHttpClient] Using ${domainConfig.connectionMethod} method for org ${organizationId}`,
-      );
       request = getOrganizationToken(domainConfig, organizationId)
         .catch((error) => {
           throw new Error(
@@ -790,9 +801,6 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         });
     } else {
       // For OAuth login, use an organization-specific client with isolated cache
-      console.log(
-        `[createOrganizationHttpClient] Using login method for org ${organizationId}`,
-      );
       const orgAuth0Client = createAuth0ClientForOrg(
         selectedDomain,
         organizationId,

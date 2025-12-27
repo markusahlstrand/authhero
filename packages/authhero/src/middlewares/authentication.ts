@@ -52,9 +52,7 @@ export function getTenantAudience(tenantId: string): string {
  * @param audience - The audience URN
  * @returns The tenant ID if it's a tenant audience, null otherwise
  */
-export function extractTenantIdFromAudience(
-  audience: string,
-): string | null {
+export function extractTenantIdFromAudience(audience: string): string | null {
   const prefix = "urn:authhero:tenant:";
   if (audience.startsWith(prefix)) {
     return audience.slice(prefix.length);
@@ -210,8 +208,7 @@ export function createAuthMiddleware(
           // For tenant list/create endpoints (relativePath === "/tenants" or starts with "/tenants")
           // we don't require org_id
           const isTenantManagementEndpoint =
-            relativePath === "/tenants" ||
-            relativePath.startsWith("/tenants/");
+            relativePath === "/tenants" || relativePath.startsWith("/tenants/");
 
           if (!isTenantManagementEndpoint) {
             // For other endpoints, org_id or org_name is required and must match current tenant

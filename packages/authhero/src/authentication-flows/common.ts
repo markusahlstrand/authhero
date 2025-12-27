@@ -99,7 +99,8 @@ export async function createAuthTokens(
     org_id: organization ? organization.id : undefined,
     // Include org_name in access token if tenant has allow_organization_name_in_authentication_api enabled
     org_name:
-      organization && client.tenant.allow_organization_name_in_authentication_api
+      organization &&
+      client.tenant.allow_organization_name_in_authentication_api
         ? organization.name
         : undefined,
     permissions,
