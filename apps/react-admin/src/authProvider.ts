@@ -751,6 +751,15 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         })
         .then((token) => {
           const headersObj = new Headers();
+          // Merge any headers passed in options
+          if (options.headers) {
+            const incomingHeaders = options.headers instanceof Headers 
+              ? options.headers 
+              : new Headers(options.headers as HeadersInit);
+            incomingHeaders.forEach((value, key) => {
+              headersObj.set(key, value);
+            });
+          }
           headersObj.set("Authorization", `Bearer ${token}`);
           const method = (options.method || "GET").toUpperCase();
           if (method === "POST" || method === "PATCH") {
@@ -843,6 +852,15 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         })
         .then((token) => {
           const headersObj = new Headers();
+          // Merge any headers passed in options
+          if (options.headers) {
+            const incomingHeaders = options.headers instanceof Headers 
+              ? options.headers 
+              : new Headers(options.headers as HeadersInit);
+            incomingHeaders.forEach((value, key) => {
+              headersObj.set(key, value);
+            });
+          }
           headersObj.set("Authorization", `Bearer ${token}`);
           const method = (options.method || "GET").toUpperCase();
           if (method === "POST" || method === "PATCH") {

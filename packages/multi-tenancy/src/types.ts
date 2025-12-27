@@ -19,6 +19,7 @@ export interface MultiTenancyBindings {
 export interface MultiTenancyVariables {
   tenant_id: string;
   organization_id?: string;
+  org_name?: string;
   user?: { sub: string; tenant_id: string };
   [key: string]: unknown;
 }

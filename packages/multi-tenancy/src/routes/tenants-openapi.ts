@@ -79,7 +79,7 @@ export function createTenantsOpenAPIRouter(
         const mainTenantId = config.accessControl.mainTenantId;
 
         // Get all organizations the user belongs to on the main tenant
-        const userOrgs = await fetchAll<{ id: string }>(
+        const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
             ctx.env.data.userOrganizations.listUserOrganizations(
               mainTenantId,
@@ -89,8 +89,9 @@ export function createTenantsOpenAPIRouter(
           "organizations",
         );
 
-        // The organization IDs correspond to tenant IDs the user can access
-        const accessibleTenantIds = userOrgs.map((org) => org.id);
+        // The organization names correspond to tenant IDs the user can access
+        // (organization name is set to tenant ID when creating tenant organizations)
+        const accessibleTenantIds = userOrgs.map((org) => org.name);
 
         // Always include the main tenant if the user is authenticated
         if (!accessibleTenantIds.includes(mainTenantId)) {
@@ -192,7 +193,7 @@ export function createTenantsOpenAPIRouter(
           }
 
           // Check if user is a member of the organization for this tenant
-          const userOrgs = await fetchAll<{ id: string }>(
+          const userOrgs = await fetchAll<{ id: string; name: string }>(
             (params) =>
               ctx.env.data.userOrganizations.listUserOrganizations(
                 mainTenantId,
@@ -202,7 +203,7 @@ export function createTenantsOpenAPIRouter(
             "organizations",
           );
 
-          const hasAccess = userOrgs.some((org) => org.id === id);
+          const hasAccess = userOrgs.some((org) => org.name === id);
           if (!hasAccess) {
             throw new HTTPException(403, {
               message: "Access denied to this tenant",
@@ -352,7 +353,7 @@ export function createTenantsOpenAPIRouter(
         // Main tenant can only be updated by users who have access to it
         // For child tenants, check organization membership
         if (id !== mainTenantId) {
-          const userOrgs = await fetchAll<{ id: string }>(
+          const userOrgs = await fetchAll<{ id: string; name: string }>(
             (params) =>
               ctx.env.data.userOrganizations.listUserOrganizations(
                 mainTenantId,
@@ -362,7 +363,7 @@ export function createTenantsOpenAPIRouter(
             "organizations",
           );
 
-          const hasAccess = userOrgs.some((org) => org.id === id);
+          const hasAccess = userOrgs.some((org) => org.name === id);
           if (!hasAccess) {
             throw new HTTPException(403, {
               message: "Access denied to this tenant",
@@ -469,7 +470,7 @@ export function createTenantsOpenAPIRouter(
         }
 
         // Check organization membership
-        const userOrgs = await fetchAll<{ id: string }>(
+        const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
             ctx.env.data.userOrganizations.listUserOrganizations(
               mainTenantId,
@@ -479,7 +480,7 @@ export function createTenantsOpenAPIRouter(
           "organizations",
         );
 
-        const hasAccess = userOrgs.some((org) => org.id === id);
+        const hasAccess = userOrgs.some((org) => org.name === id);
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to this tenant",

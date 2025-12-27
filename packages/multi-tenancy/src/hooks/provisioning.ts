@@ -119,9 +119,10 @@ async function createOrganizationForTenant(
     addCreatorToOrganization = true,
   } = accessControl;
 
-  // Create organization with tenant ID as the organization ID and name
-  await ctx.adapters.organizations.create(mainTenantId, {
-    id: tenant.id,
+  // Create organization with tenant ID as the name (let the adapter generate the ID)
+  // The org name is used for access control - tokens include org_name which matches tenant ID
+  // when allow_organization_name_in_authentication_api is enabled on the tenant
+  const organization = await ctx.adapters.organizations.create(mainTenantId, {
     name: tenant.id,
     display_name: tenant.friendly_name || tenant.id,
   });
@@ -146,7 +147,7 @@ async function createOrganizationForTenant(
         // Add user to the organization
         await ctx.adapters.userOrganizations.create(mainTenantId, {
           user_id: user.sub,
-          organization_id: tenant.id,
+          organization_id: organization.id,
         });
 
         // Assign admin role to the user for this organization if we have one
@@ -155,12 +156,12 @@ async function createOrganizationForTenant(
             mainTenantId,
             user.sub,
             adminRoleId,
-            tenant.id, // organizationId
+            organization.id, // organizationId
           );
         }
       } catch (error) {
         console.warn(
-          `Failed to add creator ${user.sub} to organization ${tenant.id}:`,
+          `Failed to add creator ${user.sub} to organization ${organization.id}:`,
           error,
         );
       }
@@ -172,7 +173,7 @@ async function createOrganizationForTenant(
     // Note: Role assignment would require additional API calls
     // This is a placeholder for the actual implementation
     console.log(
-      `Would assign roles ${defaultRoles.join(", ")} to organization ${tenant.id}`,
+      `Would assign roles ${defaultRoles.join(", ")} to organization ${organization.id}`,
     );
   }
 
@@ -181,7 +182,7 @@ async function createOrganizationForTenant(
     // Note: Permission assignment would require additional API calls
     // This is a placeholder for the actual implementation
     console.log(
-      `Would grant permissions ${defaultPermissions.join(", ")} to organization ${tenant.id}`,
+      `Would grant permissions ${defaultPermissions.join(", ")} to organization ${organization.id}`,
     );
   }
 }

@@ -29,7 +29,7 @@ export const roleRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -80,7 +80,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -121,7 +121,7 @@ export const roleRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -169,7 +169,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -224,7 +224,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -264,7 +264,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         query: querySchema,
       },
@@ -327,7 +327,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -406,7 +406,7 @@ export const roleRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
