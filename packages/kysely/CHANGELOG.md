@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 10.73.0
+
+### Minor Changes
+
+- 0f8e4e8: Change from main to control plane
+- 3a180df: Fix organization names for main tenant
+
 ## 10.72.0
 
 ### Minor Changes

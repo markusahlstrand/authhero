@@ -1,5 +1,12 @@
 # @authhero/react-admin
 
+## 0.13.0
+
+### Minor Changes
+
+- 0f8e4e8: Change from main to control plane
+- 3a180df: Fix organization names for main tenant
+
 ## 0.12.0
 
 ### Minor Changes
