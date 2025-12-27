@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.21.0
+
+### Minor Changes
+
+- 0f8e4e8: Change from main to control plane
+
 ## 1.20.0
 
 ### Minor Changes

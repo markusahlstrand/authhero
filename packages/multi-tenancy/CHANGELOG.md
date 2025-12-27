@@ -1,5 +1,18 @@
 # @authhero/multi-tenancy
 
+## 13.8.0
+
+### Minor Changes
+
+- 0f8e4e8: Change from main to control plane
+- 3a180df: Fix organization names for main tenant
+
+### Patch Changes
+
+- Updated dependencies [0f8e4e8]
+- Updated dependencies [3a180df]
+  - authhero@0.306.0
+
 ## 13.7.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # authhero
 
+## 0.306.0
+
+### Minor Changes
+
+- 0f8e4e8: Change from main to control plane
+- 3a180df: Fix organization names for main tenant
+
 ## 0.305.0
 
 ### Minor Changes
