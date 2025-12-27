@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.12.0
+
+### Minor Changes
+
+- aba8ef9: Handle org tokens for the main tenant
+
 ## 0.11.0
 
 ### Minor Changes

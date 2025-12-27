@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.7.0
+
+### Minor Changes
+
+- aba8ef9: Handle org tokens for the main tenant
+
+### Patch Changes
+
+- Updated dependencies [aba8ef9]
+  - authhero@0.305.0
+
 ## 13.6.0
 
 ### Minor Changes
