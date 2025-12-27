@@ -11,6 +11,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import type { RolePermissionHooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 import {
   EntityHooks,
   OnExecuteCredentialsExchange,
@@ -34,6 +35,24 @@ export interface EntityHooksConfig {
   tenants?: EntityHooks<Tenant, CreateTenantParams>;
 }
 
+/**
+ * Route extension for the management API.
+ *
+ * Allows registering additional OpenAPI routes that go through the full
+ * middleware chain (caching, tenant resolution, auth, entity hooks).
+ */
+export interface ManagementApiExtension {
+  /** The path prefix for the routes (e.g., "/tenants") */
+  path: string;
+  /**
+   * The OpenAPI router to mount at the path.
+   * Use `any` to allow routers with extended Bindings/Variables types
+   * (e.g., from multi-tenancy package).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  router: OpenAPIHono<any, any, any>;
+}
+
 export interface AuthHeroConfig {
   dataAdapter: DataAdapters;
   allowedOrigins?: string[];
@@ -55,4 +74,30 @@ export interface AuthHeroConfig {
    * Use these to implement cross-tenant sync, audit logging, webhooks, etc.
    */
   entityHooks?: EntityHooksConfig;
+
+  /**
+   * Additional routes to mount on the management API.
+   *
+   * These routes go through the full middleware chain:
+   * - CORS
+   * - Data hooks & caching
+   * - Client info extraction
+   * - Tenant resolution
+   * - Authentication (reads OpenAPI security definitions)
+   * - Entity hooks
+   *
+   * @example
+   * ```typescript
+   * import { init } from "authhero";
+   * import { createTenantsOpenAPIRouter } from "@authhero/multi-tenancy";
+   *
+   * const { app } = init({
+   *   dataAdapter,
+   *   managementApiExtensions: [
+   *     { path: "/tenants", router: createTenantsOpenAPIRouter(config, hooks) }
+   *   ]
+   * });
+   * ```
+   */
+  managementApiExtensions?: ManagementApiExtension[];
 }

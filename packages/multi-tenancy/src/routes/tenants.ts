@@ -42,7 +42,7 @@ export function createTenantsRouter(
     const query = auth0QuerySchema.parse(ctx.req.query());
     const { page, per_page, include_totals, q } = query;
 
-    // Get the current user from context
+    // Get the current user from context (set by authhero's auth middleware)
     const user = ctx.var.user;
 
     // If access control is enabled, filter tenants based on user's organization memberships

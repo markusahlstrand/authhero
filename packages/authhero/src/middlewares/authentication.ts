@@ -21,13 +21,43 @@ type JwksKey = z.infer<typeof JwksKeySchema>;
 interface JwtPayload {
   sub: string;
   iss: string;
-  aud: string[];
+  aud: string | string[];
   iat: number;
   exp: number;
   scope: string;
   permissions?: string[];
   azp?: string;
   tenant_id?: string;
+  org_id?: string;
+  org_name?: string;
+}
+
+/**
+ * Management API audience for cross-tenant operations.
+ * Used when managing tenants from the main tenant with org-scoped tokens.
+ */
+export const MANAGEMENT_API_AUDIENCE = "urn:authhero:management";
+
+/**
+ * Generates the audience URN for a specific tenant.
+ * @param tenantId - The tenant ID
+ * @returns The audience URN in the format `urn:authhero:tenant:{tenantId}`
+ */
+export function getTenantAudience(tenantId: string): string {
+  return `urn:authhero:tenant:${tenantId}`;
+}
+
+/**
+ * Extracts the tenant ID from a tenant-specific audience URN.
+ * @param audience - The audience URN
+ * @returns The tenant ID if it's a tenant audience, null otherwise
+ */
+export function extractTenantIdFromAudience(audience: string): string | null {
+  const prefix = "urn:authhero:tenant:";
+  if (audience.startsWith(prefix)) {
+    return audience.slice(prefix.length);
+  }
+  return null;
 }
 
 async function getJwks(bindings: Bindings) {
@@ -90,13 +120,6 @@ function convertRouteSyntax(route: string) {
   return route.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, "{$1}");
 }
 
-function getAbsoluteDefinitionPath(basePath: string, definitionPath: string) {
-  if (definitionPath.startsWith(basePath)) {
-    return definitionPath;
-  }
-  return basePath + definitionPath;
-}
-
 /**
  * This registeres the authentication middleware. As it needs to read the OpenAPI definition, it needs to have a reference to the app.
  * @param app
@@ -121,15 +144,17 @@ export function createAuthMiddleware(
     // we can directly use the matched route path to find the definition
     const matchedPath = convertRouteSyntax(matchedRoute.path);
 
-    const basePath =
-      "basePath" in matchedRoute && typeof matchedRoute.basePath === "string"
-        ? matchedRoute.basePath
-        : "";
+    // Extract the path relative to /api/v2 for matching against OpenAPI definitions
+    // The registry stores paths without the /api/v2 prefix
+    const apiPrefix = "/api/v2";
+    const relativePath = matchedPath.startsWith(apiPrefix)
+      ? matchedPath.slice(apiPrefix.length) || "/"
+      : matchedPath;
 
     const definition = app.openAPIRegistry.definitions.find(
       (def) =>
         "route" in def &&
-        getAbsoluteDefinitionPath(basePath, def.route.path) === matchedPath &&
+        def.route.path === relativePath &&
         def.route.method.toUpperCase() === ctx.req.method.toUpperCase(),
     );
 
@@ -155,10 +180,69 @@ export function createAuthMiddleware(
         ctx.set("user_id", tokenPayload.sub);
         ctx.set("user", tokenPayload);
 
-        // Set tenant_id from token if not already set by tenant middleware
-        // This is important for endpoints like /userinfo that don't have tenant context in the URL
-        if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
-          ctx.set("tenant_id", tokenPayload.tenant_id);
+        // Determine the tenant from token audience
+        const audiences = Array.isArray(tokenPayload.aud)
+          ? tokenPayload.aud
+          : [tokenPayload.aud];
+
+        // Check if this is a management token (urn:authhero:management)
+        const isManagementToken = audiences.includes(MANAGEMENT_API_AUDIENCE);
+
+        // Check if this is a tenant-specific token (urn:authhero:tenant:{id})
+        const tenantAudience = audiences.find((aud) =>
+          aud.startsWith("urn:authhero:tenant:"),
+        );
+        const audienceTenantId = tenantAudience
+          ? extractTenantIdFromAudience(tenantAudience)
+          : null;
+
+        // Get the current tenant from context (set by tenant middleware)
+        const currentTenantId = ctx.var.tenant_id;
+
+        if (isManagementToken) {
+          // Management tokens require org_id or org_name for non-tenant-list operations
+          // The org_id/org_name specifies which tenant's resources to access
+          const orgId = tokenPayload.org_id;
+          const orgName = tokenPayload.org_name;
+
+          // For tenant list/create endpoints (relativePath === "/tenants" or starts with "/tenants")
+          // we don't require org_id
+          const isTenantManagementEndpoint =
+            relativePath === "/tenants" || relativePath.startsWith("/tenants/");
+
+          if (!isTenantManagementEndpoint) {
+            // For other endpoints, org_id or org_name is required and must match current tenant
+            // org_name takes precedence when matching with tenant ID (for multi-tenancy)
+            const orgIdentifier = orgName || orgId;
+            if (!orgIdentifier) {
+              throw new JSONHTTPException(403, {
+                message:
+                  "Management tokens require org_id or org_name claim for accessing tenant resources",
+              });
+            }
+            if (orgIdentifier !== currentTenantId) {
+              throw new JSONHTTPException(403, {
+                message: `Token organization '${orgIdentifier}' does not match tenant '${currentTenantId}'`,
+              });
+            }
+          }
+        } else if (audienceTenantId) {
+          // Tenant-specific tokens can only access their own tenant's resources
+          if (audienceTenantId !== currentTenantId) {
+            throw new JSONHTTPException(403, {
+              message: `Token audience is for tenant '${audienceTenantId}' but request is for tenant '${currentTenantId}'`,
+            });
+          }
+          // Set tenant_id from audience if not already set
+          if (!ctx.var.tenant_id) {
+            ctx.set("tenant_id", audienceTenantId);
+          }
+        } else {
+          // Legacy tokens without the new audience format
+          // Fall back to setting tenant_id from token if present
+          if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
+            ctx.set("tenant_id", tokenPayload.tenant_id);
+          }
         }
 
         const permissions = tokenPayload.permissions || [];

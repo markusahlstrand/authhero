@@ -7,6 +7,7 @@ import auth0DataProvider from "./auth0DataProvider";
 import {
   getDomainFromStorage,
   buildUrlWithProtocol,
+  formatDomain,
 } from "./utils/domainUtils";
 
 async function removeExtraFields(params: UpdateParams) {
@@ -32,7 +33,8 @@ export function getDataprovider(auth0Domain?: string) {
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
-    const domainConfig = domains.find((d) => d.url === auth0Domain);
+    const formattedAuth0Domain = formatDomain(auth0Domain);
+    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured
@@ -70,8 +72,8 @@ export function getDataproviderForTenant(
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
-
-    const domainConfig = domains.find((d) => d.url === auth0Domain);
+    const formattedAuth0Domain = formatDomain(auth0Domain);
+    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured
