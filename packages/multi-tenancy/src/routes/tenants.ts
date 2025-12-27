@@ -135,7 +135,7 @@ export function createTenantsRouter(
             {},
           );
 
-        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        const hasAccess = userOrgs.organizations.some((org) => org.name === id);
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to this tenant",
@@ -247,7 +247,7 @@ export function createTenantsRouter(
             {},
           );
 
-        const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+        const hasAccess = userOrgs.organizations.some((org) => org.name === id);
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to update this tenant",
@@ -329,7 +329,7 @@ export function createTenantsRouter(
           {},
         );
 
-      const hasAccess = userOrgs.organizations.some((org) => org.id === id);
+      const hasAccess = userOrgs.organizations.some((org) => org.name === id);
       if (!hasAccess) {
         throw new HTTPException(403, {
           message: "Access denied to delete this tenant",

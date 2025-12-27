@@ -753,9 +753,10 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           const headersObj = new Headers();
           // Merge any headers passed in options
           if (options.headers) {
-            const incomingHeaders = options.headers instanceof Headers 
-              ? options.headers 
-              : new Headers(options.headers as HeadersInit);
+            const incomingHeaders =
+              options.headers instanceof Headers
+                ? options.headers
+                : new Headers(options.headers as HeadersInit);
             incomingHeaders.forEach((value, key) => {
               headersObj.set(key, value);
             });
@@ -854,9 +855,10 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           const headersObj = new Headers();
           // Merge any headers passed in options
           if (options.headers) {
-            const incomingHeaders = options.headers instanceof Headers 
-              ? options.headers 
-              : new Headers(options.headers as HeadersInit);
+            const incomingHeaders =
+              options.headers instanceof Headers
+                ? options.headers
+                : new Headers(options.headers as HeadersInit);
             incomingHeaders.forEach((value, key) => {
               headersObj.set(key, value);
             });
