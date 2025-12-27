@@ -1,5 +1,11 @@
 # authhero
 
+## 0.305.0
+
+### Minor Changes
+
+- aba8ef9: Handle org tokens for the main tenant
+
 ## 0.304.0
 
 ### Minor Changes
