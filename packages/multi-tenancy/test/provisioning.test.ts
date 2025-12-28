@@ -37,7 +37,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     // Create control plane tenant
     await adapters.tenants.create({
-      id: "main",
+      id: "control_plane",
       friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
@@ -45,9 +45,9 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     });
 
     // Create the Management API resource server on the control plane
-    await adapters.resourceServers.create("main", {
+    await adapters.resourceServers.create("control_plane", {
       name: "Authhero Management API",
-      identifier: MANAGEMENT_API_IDENTIFIER,
+      identifier: "urn:authhero:management",
       allow_offline_access: false,
       skip_consent_for_verifiable_first_party_clients: false,
       token_lifetime: 86400,
@@ -57,7 +57,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     });
 
     // Create a test user on the control plane
-    await adapters.users.create("main", {
+    await adapters.users.create("control_plane", {
       user_id: TEST_USER_ID,
       email: "testuser@example.com",
       email_verified: true,
@@ -68,7 +68,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     // Setup multi-tenancy with access control and issuer for admin role creation
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        controlPlaneTenantId: "main",
+        controlPlaneTenantId: "control_plane",
         requireOrganizationMatch: false,
         issuer: TEST_ISSUER,
         adminRoleName: "Tenant Admin",
@@ -88,11 +88,11 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     // Set tenant_id and user variables in context (simulating authenticated user)
     app.use("*", async (c, next) => {
-      c.set("tenant_id", "main");
+      c.set("tenant_id", "control_plane");
       // Simulate an authenticated user
       c.set("user", {
         sub: TEST_USER_ID,
-        tenant_id: "main",
+        tenant_id: "control_plane",
       });
       await next();
     });
@@ -129,7 +129,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(data.id).toBe("new-tenant");
 
     // Verify organization was created on control plane
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const newTenantOrg = orgs.organizations.find(
       (org) => org.name === "new-tenant",
     );
@@ -137,7 +137,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(newTenantOrg?.display_name).toBe("New Tenant");
 
     // Verify the creator user was added to the organization
-    const userOrgs = await adapters.userOrganizations.list("main", {
+    const userOrgs = await adapters.userOrganizations.list("control_plane", {
       q: `organization_id:${newTenantOrg!.id}`,
     });
     const userOrgMembership = userOrgs.userOrganizations.find(
@@ -171,7 +171,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(response.status).toBe(201);
 
     // Verify the Tenant Admin role was created on control plane
-    const roles = await adapters.roles.list("main", {});
+    const roles = await adapters.roles.list("control_plane", {});
     const adminRole = roles.roles.find((r) => r.name === "Tenant Admin");
     expect(adminRole).toBeDefined();
     expect(adminRole?.description).toBe(
@@ -180,7 +180,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     // Verify the role has Management API permissions
     const rolePermissions = await adapters.rolePermissions.list(
-      "main",
+      "control_plane",
       adminRole!.id,
     );
     expect(rolePermissions.length).toBeGreaterThan(0);
@@ -196,7 +196,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
 
     // Verify permissions are for the Management API
     const allPermissionsForManagementApi = rolePermissions.every(
-      (p) => p.resource_server_identifier === MANAGEMENT_API_IDENTIFIER,
+      (p) => p.resource_server_identifier === "urn:authhero:management",
     );
     expect(allPermissionsForManagementApi).toBe(true);
   });
@@ -224,20 +224,20 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(response.status).toBe(201);
 
     // Get the organization that was created
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const testOrg = orgs.organizations.find(
       (org) => org.name === "role-assignment-test",
     );
     expect(testOrg).toBeDefined();
 
     // Get the admin role
-    const roles = await adapters.roles.list("main", {});
+    const roles = await adapters.roles.list("control_plane", {});
     const adminRole = roles.roles.find((r) => r.name === "Tenant Admin");
     expect(adminRole).toBeDefined();
 
     // Verify the user has the admin role for this organization
     const userRoles = await adapters.userRoles.list(
-      "main",
+      "control_plane",
       TEST_USER_ID,
       {},
       testOrg!.id,
@@ -288,13 +288,13 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(response2.status).toBe(201);
 
     // Verify only one Tenant Admin role exists
-    const roles = await adapters.roles.list("main", {});
+    const roles = await adapters.roles.list("control_plane", {});
     const adminRoles = roles.roles.filter((r) => r.name === "Tenant Admin");
     expect(adminRoles).toHaveLength(1);
 
     // Verify user is a member of both organizations
     const userOrgs = await adapters.userOrganizations.listUserOrganizations(
-      "main",
+      "control_plane",
       TEST_USER_ID,
     );
     const orgNames = userOrgs.organizations.map((o) => o.name);
@@ -302,7 +302,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(orgNames).toContain("tenant-two");
 
     // Verify user has the admin role in both organizations
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const tenantOneOrg = orgs.organizations.find(
       (o) => o.name === "tenant-one",
     );
@@ -313,7 +313,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     const adminRole = adminRoles[0]!;
 
     const rolesInTenantOne = await adapters.userRoles.list(
-      "main",
+      "control_plane",
       TEST_USER_ID,
       {},
       tenantOneOrg!.id,
@@ -321,7 +321,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(rolesInTenantOne.some((r) => r.id === adminRole.id)).toBe(true);
 
     const rolesInTenantTwo = await adapters.userRoles.list(
-      "main",
+      "control_plane",
       TEST_USER_ID,
       {},
       tenantTwoOrg!.id,
@@ -351,7 +351,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
     expect(response.status).toBe(201);
 
     // Verify organization has the tenant's friendly_name as display_name
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const org = orgs.organizations.find(
       (org) => org.name === "display-name-test",
     );
@@ -390,7 +390,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
 
     // Create control plane tenant
     await adapters.tenants.create({
-      id: "main",
+      id: "control_plane",
       friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
@@ -398,7 +398,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     });
 
     // Create a test user on the control plane
-    await adapters.users.create("main", {
+    await adapters.users.create("control_plane", {
       user_id: TEST_USER_ID,
       email: "testuser@example.com",
       email_verified: true,
@@ -409,7 +409,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     // Setup multi-tenancy WITHOUT issuer (no admin role will be created)
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        controlPlaneTenantId: "main",
+        controlPlaneTenantId: "control_plane",
         requireOrganizationMatch: false,
         // Note: no issuer provided, so no admin role will be created
         addCreatorToOrganization: true,
@@ -427,10 +427,10 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
 
     // Set tenant_id and user variables
     app.use("*", async (c, next) => {
-      c.set("tenant_id", "main");
+      c.set("tenant_id", "control_plane");
       c.set("user", {
         sub: TEST_USER_ID,
-        tenant_id: "main",
+        tenant_id: "control_plane",
       });
       await next();
     });
@@ -465,12 +465,12 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     expect(response.status).toBe(201);
 
     // Verify organization was created
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const org = orgs.organizations.find((org) => org.name === "no-role-tenant");
     expect(org).toBeDefined();
 
     // Verify user was added to organization
-    const userOrgs = await adapters.userOrganizations.list("main", {
+    const userOrgs = await adapters.userOrganizations.list("control_plane", {
       q: `organization_id:${org!.id}`,
     });
     const userMembership = userOrgs.userOrganizations.find(
@@ -479,7 +479,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
     expect(userMembership).toBeDefined();
 
     // Verify NO admin role was created (since no issuer was provided)
-    const roles = await adapters.roles.list("main", {});
+    const roles = await adapters.roles.list("control_plane", {});
     const adminRoles = roles.roles.filter((r) => r.name === "Tenant Admin");
     expect(adminRoles).toHaveLength(0);
   });

@@ -22,7 +22,7 @@ export const promptsRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:prompts", "auth:read"],
         },
       ],
       responses: {
@@ -71,7 +71,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:prompts", "auth:write"],
         },
       ],
       responses: {

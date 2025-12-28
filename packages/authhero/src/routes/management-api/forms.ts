@@ -30,7 +30,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:forms", "auth:read"],
         },
       ],
       responses: {
@@ -84,7 +84,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:forms", "auth:read"],
         },
       ],
       responses: {
@@ -126,7 +126,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:forms", "auth:write"],
         },
       ],
       responses: {
@@ -172,7 +172,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:forms", "auth:write"],
         },
       ],
       responses: {
@@ -227,7 +227,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:forms", "auth:write"],
         },
       ],
       responses: {

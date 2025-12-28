@@ -28,7 +28,7 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:custom-domains", "auth:read"],
         },
       ],
       responses: {
@@ -67,7 +67,7 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:custom-domains", "auth:read"],
         },
       ],
       responses: {
@@ -114,7 +114,7 @@ export const customDomainRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -164,7 +164,7 @@ export const customDomainRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -225,7 +225,7 @@ export const customDomainRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -268,7 +268,7 @@ export const customDomainRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:custom-domains", "auth:write"],
         },
       ],
       responses: {

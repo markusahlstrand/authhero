@@ -31,7 +31,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:resource-servers", "auth:read"],
         },
       ],
       responses: {
@@ -93,7 +93,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:resource-servers", "auth:read"],
         },
       ],
       responses: {
@@ -141,7 +141,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:resource-servers", "auth:write"],
         },
       ],
       responses: {
@@ -201,7 +201,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:resource-servers", "auth:write"],
         },
       ],
       responses: {
@@ -275,7 +275,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:resource-servers", "auth:write"],
         },
       ],
       responses: {

@@ -90,7 +90,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:client-grants", "auth:read"],
         },
       ],
       responses: {
@@ -184,7 +184,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:client-grants", "auth:read"],
         },
       ],
       responses: {
@@ -231,7 +231,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:client-grants", "auth:write"],
         },
       ],
       responses: {
@@ -279,7 +279,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:client-grants", "auth:write"],
         },
       ],
       responses: {
@@ -348,7 +348,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:client-grants", "auth:write"],
         },
       ],
       responses: {

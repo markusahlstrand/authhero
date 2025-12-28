@@ -35,7 +35,7 @@ export const hooksRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:hooks", "auth:read"],
         },
       ],
       responses: {
@@ -90,7 +90,7 @@ export const hooksRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:hooks", "auth:write"],
         },
       ],
       responses: {
@@ -149,7 +149,7 @@ export const hooksRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:hooks", "auth:write"],
         },
       ],
       responses: {
@@ -199,7 +199,7 @@ export const hooksRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:hooks", "auth:read"],
         },
       ],
       responses: {
@@ -247,7 +247,7 @@ export const hooksRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["delete:hooks", "auth:write"],
         },
       ],
       responses: {

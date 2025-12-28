@@ -53,7 +53,7 @@ export const connectionRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -113,7 +113,7 @@ export const connectionRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -160,7 +160,7 @@ export const connectionRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:connections", "auth:write"],
         },
       ],
       responses: {
@@ -208,7 +208,7 @@ export const connectionRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:connections", "auth:write"],
         },
       ],
       responses: {
@@ -267,7 +267,7 @@ export const connectionRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:connections", "auth:write"],
         },
       ],
       responses: {
@@ -314,7 +314,7 @@ export const connectionRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -384,7 +384,7 @@ export const connectionRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:connections", "auth:write"],
         },
       ],
       responses: {

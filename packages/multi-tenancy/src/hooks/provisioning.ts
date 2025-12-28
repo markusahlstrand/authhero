@@ -1,5 +1,9 @@
 import { CreateTenantParams, Tenant } from "@authhero/adapter-interfaces";
-import { MANAGEMENT_API_SCOPES, getTenantAudience } from "authhero";
+import {
+  MANAGEMENT_API_SCOPES,
+  MANAGEMENT_API_AUDIENCE,
+  getTenantAudience,
+} from "authhero";
 import {
   MultiTenancyConfig,
   TenantEntityHooks,
@@ -130,17 +134,15 @@ async function createOrganizationForTenant(
     },
   );
 
-  // Get or create the admin role if issuer is provided
-  let adminRoleId: string | null = null;
-  if (issuer) {
-    adminRoleId = await getOrCreateAdminRole(
-      ctx,
-      controlPlaneTenantId,
-      issuer,
-      adminRoleName,
-      adminRoleDescription,
-    );
-  }
+  // Get or create the admin role (only if issuer is provided)
+  const adminRoleId = issuer
+    ? await getOrCreateAdminRole(
+        ctx,
+        controlPlaneTenantId,
+        adminRoleName,
+        adminRoleDescription,
+      )
+    : null;
 
   // Add the creator to the organization and assign the admin role
   if (addCreatorToOrganization && ctx.ctx) {
@@ -197,7 +199,6 @@ async function createOrganizationForTenant(
 async function getOrCreateAdminRole(
   ctx: TenantHookContext,
   controlPlaneTenantId: string,
-  issuer: string,
   roleName: string,
   roleDescription: string,
 ): Promise<string> {
@@ -216,7 +217,8 @@ async function getOrCreateAdminRole(
   });
 
   // Assign all Management API permissions to the role
-  const managementApiIdentifier = `${issuer}api/v2/`;
+  // Use the standard management API audience as the identifier
+  const managementApiIdentifier = MANAGEMENT_API_AUDIENCE;
 
   // Convert MANAGEMENT_API_SCOPES to the format expected by rolePermissions.assign
   const permissions = MANAGEMENT_API_SCOPES.map((scope) => ({

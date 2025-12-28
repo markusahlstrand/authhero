@@ -22,7 +22,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:keys", "auth:read"],
         },
       ],
       responses: {
@@ -68,7 +68,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:keys", "auth:read"],
         },
       ],
       responses: {
@@ -111,7 +111,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:keys", "auth:write"],
         },
       ],
       responses: {
@@ -157,7 +157,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:keys", "auth:write"],
         },
       ],
       responses: {

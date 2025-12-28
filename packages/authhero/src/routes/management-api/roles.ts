@@ -34,7 +34,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:roles", "auth:read"],
         },
       ],
       responses: {
@@ -54,7 +54,9 @@ export const roleRoutes = new OpenAPIHono<{
 
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       const result = await ctx.env.data.roles.list(tenantId, {
@@ -90,7 +92,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:roles", "auth:read"],
         },
       ],
       responses: {
@@ -109,7 +111,9 @@ export const roleRoutes = new OpenAPIHono<{
 
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       const role = await ctx.env.data.roles.get(tenantId, id);
@@ -143,7 +147,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:roles", "auth:write"],
         },
       ],
       responses: {
@@ -161,7 +165,9 @@ export const roleRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       const role = await ctx.env.data.roles.create(tenantId, body);
@@ -194,7 +200,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:roles", "auth:write"],
         },
       ],
       responses: {
@@ -213,7 +219,9 @@ export const roleRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       const updated = await ctx.env.data.roles.update(tenantId, id, body);
@@ -245,7 +253,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:roles", "auth:write"],
         },
       ],
       responses: {
@@ -258,7 +266,9 @@ export const roleRoutes = new OpenAPIHono<{
       const { id } = ctx.req.valid("param");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       const deleted = await ctx.env.data.roles.remove(tenantId, id);
@@ -289,7 +299,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:roles", "auth:read"],
         },
       ],
       responses: {
@@ -310,7 +320,9 @@ export const roleRoutes = new OpenAPIHono<{
 
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       // Check if role exists first
@@ -370,7 +382,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:roles", "auth:write"],
         },
       ],
       responses: {
@@ -384,7 +396,9 @@ export const roleRoutes = new OpenAPIHono<{
       const { permissions } = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       // Check if role exists first
@@ -452,7 +466,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:roles", "auth:write"],
         },
       ],
       responses: {
@@ -466,7 +480,9 @@ export const roleRoutes = new OpenAPIHono<{
       const { permissions } = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
-        throw new HTTPException(400, { message: "tenant-id header is required" });
+        throw new HTTPException(400, {
+          message: "tenant-id header is required",
+        });
       }
 
       // Check if role exists first

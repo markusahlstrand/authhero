@@ -61,11 +61,6 @@ export function createTenantsRouter(
       // (organization name is set to tenant ID when creating tenant organizations)
       const accessibleTenantIds = userOrgs.organizations.map((org) => org.name);
 
-      // Always include the control plane if the user is authenticated
-      if (!accessibleTenantIds.includes(controlPlaneTenantId)) {
-        accessibleTenantIds.push(controlPlaneTenantId);
-      }
-
       // Get all tenants and filter to only those the user has access to
       const result = await ctx.env.data.tenants.list({
         page,

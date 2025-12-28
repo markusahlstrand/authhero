@@ -507,11 +507,11 @@ importers:
   packages/create-authhero/auth-server:
     dependencies:
       '@authhero/drizzle':
-        specifier: latest
-        version: 0.10.0(@cloudflare/workers-types@4.20251225.0)(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)
+        specifier: workspace:*
+        version: link:../../drizzle
       '@authhero/kysely-adapter':
-        specifier: latest
-        version: 10.72.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))
+        specifier: workspace:*
+        version: link:../../kysely
       '@authhero/multi-tenancy':
         specifier: workspace:*
         version: link:../../multi-tenancy
@@ -806,22 +806,6 @@ packages:
 
   '@auth0/auth0-spa-js@2.11.0':
     resolution: {integrity: sha512-MZuUkB6cYAWm2uswWhEj8aMS7sw6zx8cs5YyPbrHCF+MlScLgfOkUnGe0tbnv7592xQ6M2h4lB66WyemFQEmPA==}
-
-  '@authhero/adapter-interfaces@0.112.0':
-    resolution: {integrity: sha512-a1Id+OLMzGUD0n+pvMw6uzzxM3u/nHX6vdgD4Em/LyDegRtqC8TI3akP9b1HZcotgpsiE1GKjd6vpnO1Lo/wNw==}
-    peerDependencies:
-      '@hono/zod-openapi': ^0.19.2
-
-  '@authhero/drizzle@0.10.0':
-    resolution: {integrity: sha512-If7/CcR7ByvrJblt2ZgN7V8L5wBjqjEDUHxkAfBlTwmjfuA7XKsMon7sHptVrwGJpwzhEnP2RzkoJgQzmgo3BQ==}
-
-  '@authhero/kysely-adapter@10.72.0':
-    resolution: {integrity: sha512-jYkFmjp4gRAB/G+Plss64BLcXOzqlQLrmifk2pTBRq/HtK67nVy4cRKWfKNBMjtbWUFdyTviJKQRPaP+HF3L0g==}
-    peerDependencies:
-      '@hono/zod-openapi': ^0.19.2
-      hono: ^4.6.8
-      kysely-bun-sqlite: ^0.3.2
-      kysely-planetscale: ^1.5.0
 
   '@aws-crypto/sha256-browser@5.2.0':
     resolution: {integrity: sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==}
@@ -8467,57 +8451,6 @@ snapshots:
       dpop: 2.1.1
       es-cookie: 1.3.2
 
-  '@authhero/adapter-interfaces@0.112.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
-    dependencies:
-      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      nanoid: 5.1.6
-
-  '@authhero/drizzle@0.10.0(@cloudflare/workers-types@4.20251225.0)(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)':
-    dependencies:
-      '@authhero/adapter-interfaces': 0.112.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      drizzle-orm: 0.44.7(@cloudflare/workers-types@4.20251225.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cloudflare/workers-types'
-      - '@electric-sql/pglite'
-      - '@hono/zod-openapi'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/api'
-      - '@planetscale/database'
-      - '@prisma/client'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - better-sqlite3
-      - bun-types
-      - expo-sqlite
-      - gel
-      - knex
-      - kysely
-      - mysql2
-      - pg
-      - postgres
-      - prisma
-      - sql.js
-      - sqlite3
-
-  '@authhero/kysely-adapter@10.72.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))':
-    dependencies:
-      '@authhero/adapter-interfaces': 0.112.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      hono: 4.11.1
-      kysely: 0.27.6
-      kysely-bun-sqlite: 0.4.0(kysely@0.28.9)
-      kysely-planetscale: 1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9)
-      nanoid: 5.1.6
-
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
       '@aws-crypto/sha256-js': 5.2.0
@@ -14204,12 +14137,6 @@ snapshots:
       '@planetscale/database': 1.19.0
       date-fns: 3.6.0
       kysely: 0.27.6
-
-  kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9):
-    dependencies:
-      '@planetscale/database': 1.19.0
-      date-fns: 3.6.0
-      kysely: 0.28.9
 
   kysely@0.27.6: {}
 
