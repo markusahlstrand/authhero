@@ -1,5 +1,12 @@
 # @authhero/react-admin
 
+## 0.14.0
+
+### Minor Changes
+
+- 63f9c89: Remove requirement for password users to have verified emails
+- 63f9c89: Fix the listing of logs for a user
+
 ## 0.13.0
 
 ### Minor Changes
