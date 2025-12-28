@@ -1,5 +1,11 @@
 # authhero
 
+## 0.307.0
+
+### Minor Changes
+
+- 63f9c89: Remove requirement for password users to have verified emails
+
 ## 0.306.0
 
 ### Minor Changes
