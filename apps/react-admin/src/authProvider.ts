@@ -196,12 +196,35 @@ export const createManagementClient = async (
       const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, tenantId);
       const audience =
         import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
-      token = await orgAuth0Client.getTokenSilently({
-        authorizationParams: {
-          audience,
-          organization: tenantId,
-        },
-      });
+      try {
+        token = await orgAuth0Client.getTokenSilently({
+          authorizationParams: {
+            audience,
+            organization: tenantId,
+          },
+        });
+      } catch (error) {
+        // If silent token acquisition fails, redirect to login with org
+        // Get the base auth0 client to get the user's email for login hint
+        const baseClient = createAuth0Client(domainForAuth);
+        const user = await baseClient.getUser().catch(() => null);
+
+        // Redirect to login with organization
+        await orgAuth0Client.loginWithRedirect({
+          authorizationParams: {
+            organization: tenantId,
+            login_hint: user?.email,
+          },
+          appState: {
+            returnTo: window.location.pathname,
+          },
+        });
+
+        // This won't be reached as loginWithRedirect redirects the page
+        throw new Error(
+          `Redirecting to login for organization ${tenantId}`,
+        );
+      }
     } else {
       // For token/client_credentials, use getOrganizationToken
       token = await getOrganizationToken(domainConfig, tenantId);
@@ -829,7 +852,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
             organization: organizationId,
           },
         })
-        .catch(async (error) => {
+        .catch(async (_error) => {
           // If silent token acquisition fails, we need to redirect to login with org
           // Get the base auth0 client to get the user's email for login hint
           const baseClient = createAuth0Client(selectedDomain);

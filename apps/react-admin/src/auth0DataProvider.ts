@@ -205,29 +205,7 @@ export default (
           resourceKey: "organizations",
           idKey: "id",
         },
-        logs: {
-          fetch: (client) => {
-            // Build the query string, combining search query and IP filter
-            let query = params.filter?.q || "";
-            if (params.filter?.ip) {
-              const ipQuery = `ip:${params.filter.ip}`;
-              query = query ? `${query} AND ${ipQuery}` : ipQuery;
-            }
-
-            return client.logs.list({
-              page: page - 1,
-              per_page: perPage,
-              q: query || undefined,
-              sort:
-                field && order
-                  ? `${field}:${order === "DESC" ? "-1" : "1"}`
-                  : undefined,
-              include_totals: true,
-            });
-          },
-          resourceKey: "logs",
-          idKey: "log_id",
-        },
+        // Logs removed from SDK handlers - using HTTP directly for full control
         rules: {
           fetch: (client) => client.rules.list(),
           resourceKey: "rules",
@@ -257,9 +235,9 @@ export default (
         },
       };
 
-      // Handle SDK resources
+      // Handle SDK resources (only for top-level resources, not nested paths like users/{id}/roles)
       const handler = sdkHandlers[resource];
-      if (handler) {
+      if (handler && !resourcePath.includes("/")) {
         const result = await handler.fetch(managementClient);
         const { data, total } = normalizeSDKResponse(
           result,
@@ -283,6 +261,35 @@ export default (
         return fetchSingleton(resource, () =>
           managementClient.tenants.settings.get(),
         );
+      }
+
+      // Handle logs with direct HTTP for full control over query params
+      if (resource === "logs") {
+        const headers = createHeaders(tenantId);
+        const query: any = {
+          include_totals: true,
+          page: page - 1,
+          per_page: perPage,
+          sort:
+            field && order
+              ? `${field}:${order === "DESC" ? "-1" : "1"}`
+              : undefined,
+          ...params.filter, // Pass all filter params directly (q, from, etc.)
+        };
+        const url = `${apiUrl}/api/v2/logs?${stringify(query)}`;
+
+        const res = await httpClient(url, { headers });
+        const response = res.json;
+        const logsData = response.logs || response || [];
+        const logsArray = Array.isArray(logsData) ? logsData : [];
+
+        return {
+          data: logsArray.map((log: any) => ({
+            id: log.log_id || log.id,
+            ...log,
+          })),
+          total: response.total || logsArray.length,
+        };
       }
 
       // Handle stats/daily endpoint
@@ -704,9 +711,10 @@ export default (
         };
       }
 
-      // Logs filtered by user_id
+      // Logs filtered by user_id - use direct HTTP for full control
       if (resource === "logs" && params.target === "user_id") {
-        const result = await managementClient.logs.list({
+        const headers = createHeaders(tenantId);
+        const query = {
           page: page - 1,
           per_page: perPage,
           q: `user_id:${params.id}`,
@@ -715,12 +723,21 @@ export default (
               ? `${field}:${order === "DESC" ? "-1" : "1"}`
               : undefined,
           include_totals: true,
-        });
+          ...params.filter, // Allow additional filters to be passed through
+        };
+        const url = `${apiUrl}/api/v2/logs?${stringify(query)}`;
 
-        const normalized = normalizeSDKResponse(result, "logs");
+        const res = await httpClient(url, { headers });
+        const response = res.json;
+        const logsData = response.logs || response || [];
+        const logsArray = Array.isArray(logsData) ? logsData : [];
+
         return {
-          data: normalized.data.map((log: any) => ({ id: log.log_id, ...log })),
-          total: normalized.total,
+          data: logsArray.map((log: any) => ({
+            id: log.log_id || log.id,
+            ...log,
+          })),
+          total: response.total || logsArray.length,
         };
       }
 

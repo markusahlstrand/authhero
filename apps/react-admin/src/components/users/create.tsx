@@ -6,6 +6,7 @@ import {
   SelectInput,
   useGetList,
   FormDataConsumer,
+  BooleanInput,
 } from "react-admin";
 import { useState } from "react";
 
@@ -100,6 +101,11 @@ export function UserCreate() {
                       type="password"
                       validate={[required()]}
                       helperText="Password for the user account"
+                    />
+                    <BooleanInput
+                      source="email_verified"
+                      label="Email Verified"
+                      defaultValue={false}
                     />
                   </>
                 );
