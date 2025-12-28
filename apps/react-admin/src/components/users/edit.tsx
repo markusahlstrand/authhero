@@ -12,6 +12,7 @@ import {
   TextInput,
   FunctionField,
   BooleanField,
+  BooleanInput,
   ArrayField,
   SimpleShowLayout,
   useNotify,
@@ -1444,6 +1445,7 @@ export function UserEdit() {
             >
               <TextField source="connection" />
             </Labeled>
+            <BooleanInput source="email_verified" label="Email Verified" />
           </Stack>
           <TextInput source="picture" />
           <ArrayField source="identities">

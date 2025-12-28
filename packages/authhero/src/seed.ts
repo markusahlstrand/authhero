@@ -625,7 +625,7 @@ export async function seed(
     adminEmail,
     adminPassword,
     tenantId = "main",
-    tenantName = "Main Tenant",
+    tenantName = "Control Plane",
     isMainTenant = true,
     clientId = "default",
     callbacks = [
@@ -872,21 +872,14 @@ export async function seed(
       description: "Full access to tenant management operations",
     });
 
-    // Assign auth:read and auth:write permissions to the role if we have a management API
+    // Assign all management API permissions to the admin role
     if (issuer) {
       const managementApiIdentifier = `${issuer}api/v2/`;
-      const adminPermissions = [
-        {
-          role_id: adminRole.id,
-          resource_server_identifier: managementApiIdentifier,
-          permission_name: "auth:read",
-        },
-        {
-          role_id: adminRole.id,
-          resource_server_identifier: managementApiIdentifier,
-          permission_name: "auth:write",
-        },
-      ];
+      const adminPermissions = MANAGEMENT_API_SCOPES.map((scope) => ({
+        role_id: adminRole!.id,
+        resource_server_identifier: managementApiIdentifier,
+        permission_name: scope.value,
+      }));
       await adapters.rolePermissions.assign(
         tenantId,
         adminRole.id,
@@ -896,7 +889,7 @@ export async function seed(
 
     if (debug) {
       console.log(
-        "✅ Admin role created with auth:read and auth:write permissions",
+        `✅ Admin role created with ${MANAGEMENT_API_SCOPES.length} permissions`,
       );
     }
   } else if (debug) {

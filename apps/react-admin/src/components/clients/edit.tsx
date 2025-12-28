@@ -55,7 +55,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import { authorizedHttpClient } from "../../authProvider";
+import { createOrganizationHttpClient } from "../../authProvider";
 import {
   getDomainFromStorage,
   getSelectedDomainFromStorage,
@@ -864,8 +864,10 @@ const ConnectionsTab = () => {
     setLoading(true);
     try {
       // Fetch enabled connections from the new API endpoint
+      // Use organization-scoped HTTP client to ensure proper org_id in token
       const baseUrl = getApiBaseUrl();
-      const response = await authorizedHttpClient(
+      const orgHttpClient = createOrganizationHttpClient(tenantId);
+      const response = await orgHttpClient(
         `${baseUrl}/api/v2/clients/${clientId}/connections`,
         {
           method: "GET",
@@ -926,8 +928,10 @@ const ConnectionsTab = () => {
 
     setSaving(true);
     try {
+      // Use organization-scoped HTTP client to ensure proper org_id in token
       const baseUrl = getApiBaseUrl();
-      await authorizedHttpClient(
+      const orgHttpClient = createOrganizationHttpClient(tenantId);
+      await orgHttpClient(
         `${baseUrl}/api/v2/clients/${clientId}/connections`,
         {
           method: "PATCH",
