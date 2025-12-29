@@ -20,7 +20,7 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -65,7 +65,7 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -105,7 +105,7 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [

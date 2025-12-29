@@ -47,7 +47,7 @@ export const userRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -151,7 +151,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -202,7 +202,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -254,7 +254,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -401,7 +401,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -602,7 +602,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}/identities",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -689,7 +689,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}/identities/{provider}/{linked_user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -741,7 +741,7 @@ export const userRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -798,7 +798,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         query: querySchema,
       },
@@ -860,7 +860,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -938,7 +938,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -1142,7 +1142,7 @@ export const userRoutes = new OpenAPIHono<{
         }),
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [{ Bearer: ["read:users", "auth:read"] }],
@@ -1207,7 +1207,7 @@ export const userRoutes = new OpenAPIHono<{
           organization_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [{ Bearer: ["update:users", "auth:write"] }],

@@ -10,7 +10,7 @@ export type UserRoleInsert = z.infer<typeof userRoleInsertSchema>;
 
 export const userRoleSchema = z.object({
   ...userRoleInsertSchema.shape,
-  tenant_id: z.string(),
+  tenant_id: z.string().optional().optional(),
   created_at: z.string().optional(),
 });
 export type UserRole = z.infer<typeof userRoleSchema>;

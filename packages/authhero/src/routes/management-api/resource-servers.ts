@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
 import {
@@ -13,7 +13,10 @@ const resourceServersWithTotalsSchema = totalsSchema.extend({
   resource_servers: z.array(resourceServerSchema),
 });
 
-export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const resourceServerRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/resource-servers
   // --------------------------------
@@ -25,7 +28,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -49,7 +52,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
 
       const {
         page,
@@ -87,7 +90,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -108,7 +111,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const resourceServer = await ctx.env.data.resourceServers.get(
@@ -136,7 +139,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -151,7 +154,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const resourceServer = await ctx.env.data.resourceServers.get(
@@ -196,7 +199,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -216,7 +219,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -270,7 +273,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -290,7 +293,7 @@ export const resourceServerRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
       const resourceServer = await ctx.env.data.resourceServers.create(

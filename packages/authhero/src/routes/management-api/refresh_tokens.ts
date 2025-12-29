@@ -20,7 +20,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -68,7 +68,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [

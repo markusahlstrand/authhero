@@ -18,7 +18,7 @@ export const brandingRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -57,7 +57,7 @@ export const brandingRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {

@@ -17,7 +17,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -58,7 +58,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -100,7 +100,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {

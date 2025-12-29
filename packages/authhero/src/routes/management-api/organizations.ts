@@ -147,7 +147,7 @@ export const organizationRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -170,7 +170,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
@@ -202,7 +202,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -222,7 +222,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const organization = await ctx.env.data.organizations.get(tenant_id, id);
@@ -247,7 +247,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -262,7 +262,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.organizations.remove(tenant_id, id);
@@ -293,7 +293,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -313,7 +313,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -353,7 +353,7 @@ export const organizationRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -373,7 +373,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
       const organizationData = {
@@ -403,7 +403,7 @@ export const organizationRoutes = new OpenAPIHono<{
         }),
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -427,7 +427,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { page, per_page, include_totals, sort } = ctx.req.valid("query");
 
@@ -498,7 +498,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -520,7 +520,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
 
@@ -569,7 +569,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -591,7 +591,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
 
@@ -631,7 +631,7 @@ export const organizationRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         query: querySchema,
       },
@@ -652,7 +652,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
 
       // First verify organization exists
@@ -695,7 +695,7 @@ export const organizationRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -721,7 +721,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
 
@@ -781,7 +781,7 @@ export const organizationRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -807,7 +807,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
 
@@ -857,7 +857,7 @@ export const organizationRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         query: querySchema,
       },
@@ -878,7 +878,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { page, per_page, sort, q } = ctx.req.valid("query");
 
@@ -920,7 +920,7 @@ export const organizationRoutes = new OpenAPIHono<{
         }),
         query: invitationsQuerySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -943,7 +943,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const { page, per_page, include_totals, fields, include_fields, sort } =
         ctx.req.valid("query");
@@ -1033,7 +1033,7 @@ export const organizationRoutes = new OpenAPIHono<{
           }),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -1056,7 +1056,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
       const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
@@ -1091,7 +1091,7 @@ export const organizationRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -1111,7 +1111,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -1159,7 +1159,7 @@ export const organizationRoutes = new OpenAPIHono<{
           }),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -1177,7 +1177,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
       // Verify the invitation exists and belongs to the organization

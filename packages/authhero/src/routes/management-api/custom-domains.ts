@@ -22,7 +22,7 @@ export const customDomainRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -61,7 +61,7 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -109,7 +109,7 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -159,7 +159,7 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -220,7 +220,7 @@ export const customDomainRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -263,7 +263,7 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [

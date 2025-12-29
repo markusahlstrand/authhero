@@ -18,7 +18,7 @@ export const tenantRoutes = new OpenAPIHono<{
       path: "/settings",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -59,7 +59,7 @@ export const tenantRoutes = new OpenAPIHono<{
       path: "/settings",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {

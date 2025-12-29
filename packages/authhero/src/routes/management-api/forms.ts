@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
 import {
@@ -13,7 +13,10 @@ const formsWithTotalsSchema = totalsSchema.extend({
   forms: z.array(formSchema),
 });
 
-export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const formsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/forms
   // --------------------------------
@@ -25,7 +28,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -45,7 +48,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const {
         page,
         per_page,
@@ -79,7 +82,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -99,7 +102,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const form = await ctx.env.data.forms.get(tenant_id, id);
       if (!form) {
@@ -121,7 +124,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -136,7 +139,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const result = await ctx.env.data.forms.remove(tenant_id, id);
       if (!result) {
@@ -167,7 +170,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -187,7 +190,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
       const result = await ctx.env.data.forms.update(tenant_id, id, body);
@@ -222,7 +225,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -242,7 +245,7 @@ export const formsRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
       const form = await ctx.env.data.forms.create(tenant_id, body);
       return ctx.json(form, { status: 201 });

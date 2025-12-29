@@ -48,7 +48,16 @@ interface LogItem extends DynamoDBBaseItem {
 }
 
 function toLog(item: LogItem): Log {
-  const { tenant_id, country_code, city_name, latitude, longitude, time_zone, continent_code, ...rest } = stripDynamoDBFields(item);
+  const {
+    tenant_id,
+    country_code,
+    city_name,
+    latitude,
+    longitude,
+    time_zone,
+    continent_code,
+    ...rest
+  } = stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,

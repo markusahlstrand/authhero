@@ -20,13 +20,13 @@ export const usersByEmailRoutes = new OpenAPIHono<{
           email: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["read:users-by-email", "auth:read"],
+          Bearer: ["read:users", "auth:read"],
         },
       ],
       responses: {
@@ -41,9 +41,12 @@ export const usersByEmailRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
       const { email } = ctx.req.valid("query");
-      const users = await getUsersByEmail(ctx.env.data.users, tenant_id, email);
+      const users = await getUsersByEmail(
+        ctx.env.data.users,
+        ctx.var.tenant_id,
+        email,
+      );
 
       const primarySqlUsers = users.filter((user) => !user.linked_to);
 

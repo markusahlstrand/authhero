@@ -24,7 +24,7 @@ export const logRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -72,7 +72,7 @@ export const logRoutes = new OpenAPIHono<{
       path: "/{id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           id: z.string(),

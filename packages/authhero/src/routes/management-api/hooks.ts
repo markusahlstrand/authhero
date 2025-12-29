@@ -29,7 +29,7 @@ export const hooksRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
@@ -78,7 +78,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -130,7 +130,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),
@@ -190,7 +190,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),
@@ -238,7 +238,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),

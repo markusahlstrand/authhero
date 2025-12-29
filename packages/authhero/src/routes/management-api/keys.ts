@@ -17,7 +17,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       path: "/signing",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -60,7 +60,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       path: "/signing/{kid}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           kid: z.string(),
@@ -106,7 +106,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       path: "/signing/rotate",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -149,7 +149,7 @@ export const keyRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       path: "/signing/{kid}/revoke",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           kid: z.string(),

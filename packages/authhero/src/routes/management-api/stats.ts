@@ -29,7 +29,7 @@ export const statsRoutes = new OpenAPIHono<{
           }),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
@@ -76,7 +76,7 @@ export const statsRoutes = new OpenAPIHono<{
       path: "/active-users",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
