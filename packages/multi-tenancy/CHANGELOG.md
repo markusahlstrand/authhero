@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.9.0
+
+### Minor Changes
+
+- bbe5492: Add real scopes
+
+### Patch Changes
+
+- Updated dependencies [bbe5492]
+  - authhero@0.308.0
+
 ## 13.8.1
 
 ### Patch Changes
