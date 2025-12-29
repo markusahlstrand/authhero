@@ -16,13 +16,13 @@ export const promptsRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:prompts", "auth:read"],
         },
       ],
       responses: {
@@ -59,7 +59,7 @@ export const promptsRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -71,7 +71,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:prompts", "auth:write"],
         },
       ],
       responses: {

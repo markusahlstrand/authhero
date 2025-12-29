@@ -161,8 +161,9 @@ export function createAuthMiddleware(
     if (definition && "route" in definition) {
       const requiredPermissions = definition.route.security?.[0]?.Bearer;
 
-      // Bail if not Bearer is defined
-      if (!requiredPermissions?.length) {
+      // Bail if Bearer is not defined in security (undefined means no auth required)
+      // Note: Bearer: [] means "authentication required but no specific scopes"
+      if (requiredPermissions === undefined) {
         return await next();
       }
 
@@ -259,8 +260,15 @@ export function createAuthMiddleware(
           }
         }
 
-        const permissions = tokenPayload.permissions || [];
-        const scopes = tokenPayload.scope?.split(" ") || [];
+        const permissions = Array.isArray(tokenPayload.permissions)
+          ? tokenPayload.permissions
+          : [];
+        const scopes =
+          typeof tokenPayload.scope === "string"
+            ? tokenPayload.scope.split(" ")
+            : Array.isArray(tokenPayload.scope)
+              ? tokenPayload.scope
+              : [];
 
         if (
           requiredPermissions.length &&

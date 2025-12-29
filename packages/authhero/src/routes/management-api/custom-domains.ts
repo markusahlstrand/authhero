@@ -22,13 +22,13 @@ export const customDomainRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:custom-domains", "auth:read"],
         },
       ],
       responses: {
@@ -61,13 +61,13 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:custom-domains", "auth:read"],
         },
       ],
       responses: {
@@ -109,12 +109,12 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -159,12 +159,12 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -220,12 +220,12 @@ export const customDomainRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:custom-domains", "auth:write"],
         },
       ],
       responses: {
@@ -263,12 +263,12 @@ export const customDomainRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:custom-domains", "auth:write"],
         },
       ],
       responses: {

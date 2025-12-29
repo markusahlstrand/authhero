@@ -47,13 +47,13 @@ export const userRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:users", "auth:read"],
         },
       ],
       responses: {
@@ -151,7 +151,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -160,7 +160,7 @@ export const userRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:users", "auth:read"],
         },
       ],
       responses: {
@@ -202,7 +202,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -210,7 +210,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:users", "auth:write"],
         },
       ],
       responses: {
@@ -254,7 +254,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -269,7 +269,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:users", "auth:write"],
         },
       ],
       responses: {
@@ -401,7 +401,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -422,7 +422,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:users", "auth:write"],
         },
       ],
       responses: {
@@ -602,7 +602,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}/identities",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -689,7 +689,7 @@ export const userRoutes = new OpenAPIHono<{
       path: "/{user_id}/identities/{provider}/{linked_user_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -741,7 +741,7 @@ export const userRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           user_id: z.string(),
@@ -750,7 +750,7 @@ export const userRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:users", "auth:read"],
         },
       ],
       responses: {
@@ -798,13 +798,13 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         query: querySchema,
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:users", "auth:read"],
         },
       ],
       responses: {
@@ -860,7 +860,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -879,7 +879,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:users", "auth:write"],
         },
       ],
       responses: {
@@ -938,7 +938,7 @@ export const userRoutes = new OpenAPIHono<{
           user_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -957,7 +957,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:users", "auth:write"],
         },
       ],
       responses: {
@@ -1008,7 +1008,7 @@ export const userRoutes = new OpenAPIHono<{
         params: z.object({ user_id: z.string() }),
         headers: z.object({ "tenant-id": z.string() }),
       },
-      security: [{ Bearer: ["auth:read"] }],
+      security: [{ Bearer: ["read:users", "auth:read"] }],
       responses: {
         200: {
           content: { "application/json": { schema: roleListSchema } },
@@ -1050,7 +1050,7 @@ export const userRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["auth:write"] }],
+      security: [{ Bearer: ["update:users", "auth:write"] }],
       responses: { 201: { description: "Roles assigned to user" } },
     }),
     async (ctx) => {
@@ -1100,7 +1100,7 @@ export const userRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["auth:write"] }],
+      security: [{ Bearer: ["update:users", "auth:write"] }],
       responses: { 200: { description: "Roles removed from user" } },
     }),
     async (ctx) => {
@@ -1142,10 +1142,10 @@ export const userRoutes = new OpenAPIHono<{
         }),
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
-      security: [{ Bearer: ["auth:read"] }],
+      security: [{ Bearer: ["read:users", "auth:read"] }],
       responses: {
         200: {
           content: {
@@ -1207,10 +1207,10 @@ export const userRoutes = new OpenAPIHono<{
           organization_id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
-      security: [{ Bearer: ["auth:write"] }],
+      security: [{ Bearer: ["update:users", "auth:write"] }],
       responses: {
         200: {
           description: "User removed from organization successfully",

@@ -47,13 +47,13 @@ export const connectionRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -107,13 +107,13 @@ export const connectionRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -155,12 +155,12 @@ export const connectionRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:connections", "auth:write"],
         },
       ],
       responses: {
@@ -203,12 +203,12 @@ export const connectionRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:connections", "auth:write"],
         },
       ],
       responses: {
@@ -262,12 +262,12 @@ export const connectionRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:connections", "auth:write"],
         },
       ],
       responses: {
@@ -309,12 +309,12 @@ export const connectionRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:connections", "auth:read"],
         },
       ],
       responses: {
@@ -379,12 +379,12 @@ export const connectionRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:connections", "auth:write"],
         },
       ],
       responses: {

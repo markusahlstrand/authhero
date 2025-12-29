@@ -35,7 +35,7 @@ import { setupMultiTenancy } from "@authhero/multi-tenancy";
 
 const multiTenancy = setupMultiTenancy({
   accessControl: {
-    mainTenantId: "main",
+    controlPlaneTenantId: "control_plane",
     defaultPermissions: ["tenant:admin"],
   },
 });

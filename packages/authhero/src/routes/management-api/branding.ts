@@ -18,12 +18,12 @@ export const brandingRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:branding", "auth:read"],
         },
       ],
       responses: {
@@ -57,7 +57,7 @@ export const brandingRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -69,7 +69,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:branding", "auth:write"],
         },
       ],
       responses: {

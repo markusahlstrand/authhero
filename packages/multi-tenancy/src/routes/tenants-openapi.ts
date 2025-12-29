@@ -48,7 +48,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: [],
         },
       ],
       responses: {
@@ -92,11 +92,6 @@ export function createTenantsOpenAPIRouter(
         // The organization names correspond to tenant IDs the user can access
         // (organization name is set to tenant ID when creating tenant organizations)
         const accessibleTenantIds = userOrgs.map((org) => org.name);
-
-        // Always include the control plane if the user is authenticated
-        if (!accessibleTenantIds.includes(controlPlaneTenantId)) {
-          accessibleTenantIds.push(controlPlaneTenantId);
-        }
 
         // Get all tenants and filter to only those the user has access to
         const result = await ctx.env.data.tenants.list({
@@ -159,7 +154,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: [],
         },
       ],
       responses: {
@@ -243,7 +238,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: [],
         },
       ],
       responses: {
@@ -316,7 +311,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:tenants"],
         },
       ],
       responses: {
@@ -433,7 +428,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:tenants"],
         },
       ],
       responses: {

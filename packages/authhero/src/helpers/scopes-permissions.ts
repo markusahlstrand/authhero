@@ -294,6 +294,7 @@ export async function calculateScopesAndPermissions(
       tenantId,
       role.id,
     );
+
     permissions.forEach((permission) => {
       if (permission.resource_server_identifier === audience) {
         rolePermissions.push(permission.permission_name);
@@ -344,7 +345,11 @@ export async function calculateScopesAndPermissions(
       definedScopes.includes(scope) && userPermissionsList.includes(scope),
   );
   const allAllowedScopes = [
-    ...new Set([...defaultOidcScopes, ...resourceServerScopes, ...undefinedScopes]),
+    ...new Set([
+      ...defaultOidcScopes,
+      ...resourceServerScopes,
+      ...undefinedScopes,
+    ]),
   ];
 
   return { scopes: allAllowedScopes, permissions: allowedPermissions };

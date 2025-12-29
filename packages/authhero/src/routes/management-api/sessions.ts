@@ -20,13 +20,13 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:sessions", "auth:read"],
         },
       ],
       responses: {
@@ -65,12 +65,12 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:sessions", "auth:write"],
         },
       ],
       responses: {
@@ -105,12 +105,12 @@ export const sessionsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:sessions", "auth:write"],
         },
       ],
       responses: {

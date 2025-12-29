@@ -29,13 +29,13 @@ export const hooksRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:hooks", "auth:read"],
         },
       ],
       responses: {
@@ -78,7 +78,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -90,7 +90,7 @@ export const hooksRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:hooks", "auth:write"],
         },
       ],
       responses: {
@@ -130,7 +130,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),
@@ -149,7 +149,7 @@ export const hooksRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:hooks", "auth:write"],
         },
       ],
       responses: {
@@ -190,7 +190,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),
@@ -199,7 +199,7 @@ export const hooksRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:hooks", "auth:read"],
         },
       ],
       responses: {
@@ -238,7 +238,7 @@ export const hooksRoutes = new OpenAPIHono<{
       path: "/{hook_id}",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         params: z.object({
           hook_id: z.string(),
@@ -247,7 +247,7 @@ export const hooksRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["delete:hooks", "auth:write"],
         },
       ],
       responses: {

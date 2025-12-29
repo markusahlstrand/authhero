@@ -29,12 +29,12 @@ export const statsRoutes = new OpenAPIHono<{
           }),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:stats", "auth:read"],
         },
       ],
       responses: {
@@ -76,12 +76,12 @@ export const statsRoutes = new OpenAPIHono<{
       path: "/active-users",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:stats", "auth:read"],
         },
       ],
       responses: {

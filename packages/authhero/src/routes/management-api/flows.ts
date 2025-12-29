@@ -28,12 +28,12 @@ export const flowsRoutes = new OpenAPIHono<{
       request: {
         query: querySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:flows", "auth:read"],
         },
       ],
       responses: {
@@ -48,7 +48,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const {
         page,
         per_page,
@@ -85,12 +85,12 @@ export const flowsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:flows", "auth:read"],
         },
       ],
       responses: {
@@ -105,7 +105,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const flow = await ctx.env.data.flows.get(tenant_id, id);
@@ -129,12 +129,12 @@ export const flowsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:flows", "auth:write"],
         },
       ],
       responses: {
@@ -144,7 +144,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.flows.remove(tenant_id, id);
@@ -177,12 +177,12 @@ export const flowsRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:flows", "auth:write"],
         },
       ],
       responses: {
@@ -197,7 +197,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -228,12 +228,12 @@ export const flowsRoutes = new OpenAPIHono<{
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:flows", "auth:write"],
         },
       ],
       responses: {
@@ -248,7 +248,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
       const flow = await ctx.env.data.flows.create(tenant_id, body);

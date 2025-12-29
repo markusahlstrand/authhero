@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import {
   clientGrantInsertSchema,
@@ -72,7 +72,10 @@ const clientGrantsWithTotalsSchema = totalsSchema.extend({
   client_grants: z.array(clientGrantSchema),
 });
 
-export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const clientGrantRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /api/v2/client-grants
   // --------------------------------
@@ -84,13 +87,13 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       request: {
         query: clientGrantsQuerySchema,
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:client-grants", "auth:read"],
         },
       ],
       responses: {
@@ -108,7 +111,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
 
       const {
         page,
@@ -178,13 +181,13 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:client-grants", "auth:read"],
         },
       ],
       responses: {
@@ -199,7 +202,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const clientGrant = await ctx.env.data.clientGrants.get(tenant_id, id);
@@ -226,12 +229,12 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:client-grants", "auth:write"],
         },
       ],
       responses: {
@@ -241,7 +244,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.clientGrants.remove(tenant_id, id);
@@ -274,12 +277,12 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:client-grants", "auth:write"],
         },
       ],
       responses: {
@@ -294,7 +297,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -343,12 +346,12 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
           },
         },
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:client-grants", "auth:write"],
         },
       ],
       responses: {
@@ -363,7 +366,7 @@ export const clientGrantRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
       },
     }),
     async (ctx) => {
-      const { "tenant-id": tenant_id } = ctx.req.valid("header");
+      const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
       const clientGrant = await ctx.env.data.clientGrants.create(

@@ -49,7 +49,7 @@ describe("Tenant Sync Hooks Integration", () => {
   let adapters: ReturnType<typeof createAdapters>;
   let env: { data: ReturnType<typeof createAdapters> };
   const testUserId = "auth0|test-user-123";
-  const controlPlaneTenantId = "main";
+  const controlPlaneTenantId = "control_plane";
 
   beforeEach(async () => {
     // Create in-memory SQLite database

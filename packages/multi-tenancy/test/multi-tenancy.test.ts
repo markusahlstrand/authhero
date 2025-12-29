@@ -34,7 +34,7 @@ describe("Multi-Tenancy", () => {
 
     // Create control plane tenant
     await adapters.tenants.create({
-      id: "main",
+      id: "control_plane",
       friendly_name: "Control Plane",
       audience: "https://example.com",
       sender_email: "admin@example.com",
@@ -42,7 +42,7 @@ describe("Multi-Tenancy", () => {
     });
 
     // Create a test user on the control plane
-    await adapters.users.create("main", {
+    await adapters.users.create("control_plane", {
       user_id: testUserId,
       email: "test@example.com",
       email_verified: true,
@@ -55,7 +55,7 @@ describe("Multi-Tenancy", () => {
     // Setup multi-tenancy with access control for organization creation
     const multiTenancy = setupMultiTenancy({
       accessControl: {
-        controlPlaneTenantId: "main",
+        controlPlaneTenantId: "control_plane",
         requireOrganizationMatch: false, // Disable strict organization matching for tests
         defaultPermissions: ["tenant:admin"],
       },
@@ -72,8 +72,8 @@ describe("Multi-Tenancy", () => {
 
     // Set tenant_id and user variables in context (simulating authenticated user)
     app.use("*", async (c, next) => {
-      c.set("tenant_id", "main");
-      c.set("user", { sub: testUserId, tenant_id: "main" });
+      c.set("tenant_id", "control_plane");
+      c.set("user", { sub: testUserId, tenant_id: "control_plane" });
       await next();
     });
 
@@ -121,7 +121,7 @@ describe("Multi-Tenancy", () => {
     expect(acmeTenant?.friendly_name).toBe("Acme Corporation");
 
     // Verify organization was created on control plane
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const acmeOrg = orgs.organizations.find((org) => org.name === "acme");
     expect(acmeOrg).toBeDefined();
     expect(acmeOrg?.name).toBe("acme");
@@ -146,21 +146,21 @@ describe("Multi-Tenancy", () => {
     });
 
     // Create organizations and add user to them
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "tenant1",
       name: "tenant1",
       display_name: "Tenant 1",
     });
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "tenant2",
       name: "tenant2",
       display_name: "Tenant 2",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "tenant1",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "tenant2",
     });
@@ -170,8 +170,7 @@ describe("Multi-Tenancy", () => {
 
     const data = await response.json();
     expect(Array.isArray(data)).toBe(true);
-    expect(data).toHaveLength(3); // main + tenant1 + tenant2
-    expect(data.map((t: any) => t.id)).toContain("main");
+    expect(data).toHaveLength(2); // tenant1 + tenant2 (user is not member of control_plane)
     expect(data.map((t: any) => t.id)).toContain("tenant1");
     expect(data.map((t: any) => t.id)).toContain("tenant2");
   });
@@ -195,18 +194,18 @@ describe("Multi-Tenancy", () => {
     });
 
     // Only create organization and membership for accessible tenant
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "accessible-tenant",
       name: "accessible-tenant",
       display_name: "Accessible Tenant",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "accessible-tenant",
     });
 
     // Create organization for inaccessible tenant but don't add user
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "inaccessible-tenant",
       name: "inaccessible-tenant",
       display_name: "Inaccessible Tenant",
@@ -217,9 +216,9 @@ describe("Multi-Tenancy", () => {
 
     const data = await response.json();
     expect(Array.isArray(data)).toBe(true);
-    expect(data).toHaveLength(2); // main + accessible-tenant only
-    expect(data.map((t: any) => t.id)).toContain("main");
+    expect(data).toHaveLength(1); // accessible-tenant only (user is not member of control_plane)
     expect(data.map((t: any) => t.id)).toContain("accessible-tenant");
+    expect(data.map((t: any) => t.id)).not.toContain("main");
     expect(data.map((t: any) => t.id)).not.toContain("inaccessible-tenant");
   });
 
@@ -234,12 +233,12 @@ describe("Multi-Tenancy", () => {
     });
 
     // Create organization and add user to it
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "test-tenant",
       name: "test-tenant",
       display_name: "Test Tenant",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "test-tenant",
     });
@@ -267,12 +266,12 @@ describe("Multi-Tenancy", () => {
     });
 
     // Create organization and add user to it
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "update-tenant",
       name: "update-tenant",
       display_name: "Original Name",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "update-tenant",
     });
@@ -313,12 +312,12 @@ describe("Multi-Tenancy", () => {
     });
 
     // Create organization for the tenant and add user to it
-    await adapters.organizations.create("main", {
+    await adapters.organizations.create("control_plane", {
       id: "delete-tenant",
       name: "delete-tenant",
       display_name: "Delete Me",
     });
-    await adapters.userOrganizations.create("main", {
+    await adapters.userOrganizations.create("control_plane", {
       user_id: testUserId,
       organization_id: "delete-tenant",
     });
@@ -336,7 +335,7 @@ describe("Multi-Tenancy", () => {
     expect(tenant).toBeNull();
 
     // Verify organization was deleted
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const deletedOrg = orgs.organizations.find(
       (org) => org.name === "delete-tenant",
     );
@@ -365,7 +364,7 @@ describe("Multi-Tenancy", () => {
     expect(response.status).toBe(201);
 
     // Verify organization was created on control plane
-    const orgs = await adapters.organizations.list("main");
+    const orgs = await adapters.organizations.list("control_plane");
     const orgTestOrg = orgs.organizations.find(
       (org) => org.name === "org-test",
     );

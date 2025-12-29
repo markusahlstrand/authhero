@@ -12,6 +12,24 @@ export async function tenantMiddleware(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   next: Next,
 ) {
+  const user = ctx.var.user;
+  if (user?.tenant_id) {
+    if (user.tenant_id === "control_plane" && user.org_name) {
+      ctx.set("tenant_id", user.org_name);
+      return await next();
+    } else if (user.tenant_id) {
+      ctx.set("tenant_id", user.tenant_id);
+      return await next();
+    }
+  }
+
+  // Check tenant-id header first (for API calls)
+  const tenantIdHeader = ctx.req.header("tenant-id");
+  if (tenantIdHeader) {
+    ctx.set("tenant_id", tenantIdHeader);
+    return await next();
+  }
+
   // Check x-forwarded-host for custom domains (used for proxied requests)
   const xForwardedHost = ctx.req.header("x-forwarded-host");
   if (xForwardedHost) {
@@ -39,13 +57,6 @@ export async function tenantMiddleware(
     }
   } else {
     ctx.set("host", new URL(getIssuer(ctx.env)).host);
-  }
-
-  if (!ctx.var.tenant_id) {
-    const tenantId = ctx.req.header("tenant-id");
-    if (tenantId) {
-      ctx.set("tenant_id", tenantId);
-    }
   }
 
   return await next();

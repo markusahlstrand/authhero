@@ -20,13 +20,13 @@ export const refreshTokensRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
 
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:refresh-tokens", "auth:read"],
         },
       ],
       responses: {
@@ -68,12 +68,12 @@ export const refreshTokensRoutes = new OpenAPIHono<{
           id: z.string(),
         }),
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["delete:refresh-tokens", "auth:write"],
         },
       ],
       responses: {

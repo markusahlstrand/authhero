@@ -530,6 +530,11 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Read connection keys", value: "read:connections_keys" },
   { description: "Update connection keys", value: "update:connections_keys" },
   { description: "Create connection keys", value: "create:connections_keys" },
+  // Tenant management scopes
+  { description: "Read Tenants", value: "read:tenants" },
+  { description: "Create Tenants", value: "create:tenants" },
+  { description: "Update Tenants", value: "update:tenants" },
+  { description: "Delete Tenants", value: "delete:tenants" },
   // Simplified auth scopes used by management API endpoints
   {
     description: "Read access to authentication resources",
@@ -551,11 +556,11 @@ export interface SeedOptions {
    */
   adminPassword: string;
   /**
-   * The tenant ID to create (defaults to "main")
+   * The tenant ID to create (defaults to "control_plane")
    */
   tenantId?: string;
   /**
-   * The tenant name (defaults to "Main Tenant")
+   * The tenant name (defaults to "Control Plane")
    */
   tenantName?: string;
   /**
@@ -565,11 +570,11 @@ export interface SeedOptions {
    */
   audience?: string;
   /**
-   * Whether this is the main/management tenant.
+   * Whether this is the control plane tenant (the main management tenant).
    * If true, the audience will default to `urn:authhero:management`.
    * @default true
    */
-  isMainTenant?: boolean;
+  isControlPlane?: boolean;
   /**
    * The default client ID (defaults to "default")
    */
@@ -624,9 +629,9 @@ export async function seed(
   const {
     adminEmail,
     adminPassword,
-    tenantId = "main",
+    tenantId = "control_plane",
     tenantName = "Control Plane",
-    isMainTenant = true,
+    isControlPlane = true,
     clientId = "default",
     callbacks = [
       "https://manage.authhero.net/auth-callback",
@@ -641,7 +646,6 @@ export async function seed(
       "https://localhost:3000",
     ],
     debug = true,
-    issuer,
   } = options;
 
   // Determine the audience based on tenant type
@@ -649,7 +653,7 @@ export async function seed(
   // Child tenants use urn:authhero:tenant:{tenantId} for tenant-specific access
   const audience =
     options.audience ||
-    (isMainTenant
+    (isControlPlane
       ? "urn:authhero:management"
       : `urn:authhero:tenant:${tenantId}`);
 
@@ -670,7 +674,7 @@ export async function seed(
     // Enable allow_organization_name_in_authentication_api for main tenant
     // This includes org_name in tokens, which is needed for multi-tenancy
     // where org_name should match tenant_id
-    if (isMainTenant) {
+    if (isControlPlane) {
       await adapters.tenants.update(tenantId, {
         allow_organization_name_in_authentication_api: true,
       });
@@ -798,44 +802,47 @@ export async function seed(
     }
   }
 
-  // Create Management API resource server if issuer is provided
-  if (issuer) {
-    const managementApiIdentifier = `${issuer}api/v2/`;
-    const existingResourceServers = await adapters.resourceServers.list(
-      tenantId,
-      {},
-    );
-    const hasManagementApi = existingResourceServers.resource_servers.some(
-      (rs) => rs.identifier === managementApiIdentifier,
-    );
+  // Create Management API resource server
+  // Use the tenant's audience as the identifier so tokens match the resource server
+  const managementApiIdentifier = audience;
+  const existingResourceServers = await adapters.resourceServers.list(
+    tenantId,
+    {},
+  );
+  const hasManagementApi = existingResourceServers.resource_servers.some(
+    (rs) => rs.identifier === managementApiIdentifier,
+  );
 
-    if (!hasManagementApi) {
-      if (debug) {
-        console.log("Creating Management API resource server...");
-      }
-      await adapters.resourceServers.create(tenantId, {
-        name: "Authhero Management API",
-        identifier: managementApiIdentifier,
-        allow_offline_access: true,
-        skip_consent_for_verifiable_first_party_clients: false,
-        token_lifetime: 86400,
-        token_lifetime_for_web: 7200,
-        signing_alg: "RS256",
-        scopes: MANAGEMENT_API_SCOPES,
-      });
-      if (debug) {
-        console.log("✅ Management API resource server created");
-        console.log(`   Identifier: ${managementApiIdentifier}`);
-        console.log(`   Scopes: ${MANAGEMENT_API_SCOPES.length} permissions`);
-      }
-    } else if (debug) {
-      console.log("Management API resource server already exists, skipping...");
+  if (!hasManagementApi) {
+    if (debug) {
+      console.log("Creating Management API resource server...");
     }
+    await adapters.resourceServers.create(tenantId, {
+      name: "Authhero Management API",
+      identifier: managementApiIdentifier,
+      allow_offline_access: true,
+      skip_consent_for_verifiable_first_party_clients: false,
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+      signing_alg: "RS256",
+      scopes: MANAGEMENT_API_SCOPES,
+      options: {
+        enforce_policies: true,
+        token_dialect: "access_token_authz",
+      },
+    });
+    if (debug) {
+      console.log("✅ Management API resource server created");
+      console.log(`   Identifier: ${managementApiIdentifier}`);
+      console.log(`   Scopes: ${MANAGEMENT_API_SCOPES.length} permissions`);
+    }
+  } else if (debug) {
+    console.log("Management API resource server already exists, skipping...");
   }
 
   // Create organization with tenant_id as the name (for org-scoped token support)
   // The ID is a generated random string like Auth0's org_xxx pattern
-  // Users can authenticate with organization: "main" (the name) when
+  // Users can authenticate with organization: "control_plane" (the name) when
   // allow_organization_name_in_authentication_api is enabled on the tenant
   const { organizations: existingOrgs } = await adapters.organizations.list(
     tenantId,
@@ -873,19 +880,17 @@ export async function seed(
     });
 
     // Assign all management API permissions to the admin role
-    if (issuer) {
-      const managementApiIdentifier = `${issuer}api/v2/`;
-      const adminPermissions = MANAGEMENT_API_SCOPES.map((scope) => ({
-        role_id: adminRole!.id,
-        resource_server_identifier: managementApiIdentifier,
-        permission_name: scope.value,
-      }));
-      await adapters.rolePermissions.assign(
-        tenantId,
-        adminRole.id,
-        adminPermissions,
-      );
-    }
+    // Use audience as the identifier to match the resource server
+    const adminPermissions = MANAGEMENT_API_SCOPES.map((scope) => ({
+      role_id: adminRole!.id,
+      resource_server_identifier: audience,
+      permission_name: scope.value,
+    }));
+    await adapters.rolePermissions.assign(
+      tenantId,
+      adminRole.id,
+      adminPermissions,
+    );
 
     if (debug) {
       console.log(

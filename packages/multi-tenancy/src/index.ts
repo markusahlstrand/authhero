@@ -285,7 +285,7 @@ export interface MultiTenantAuthHeroConfig
  *
  * const { app } = init({
  *   dataAdapter,
- *   controlPlaneTenantId: "main",
+ *   controlPlaneTenantId: "control_plane",
  *   syncResourceServers: true,
  * });
  *
@@ -294,7 +294,7 @@ export interface MultiTenantAuthHeroConfig
  */
 export function init(config: MultiTenantAuthHeroConfig) {
   const {
-    controlPlaneTenantId = "main",
+    controlPlaneTenantId = "control_plane",
     syncResourceServers = true,
     syncRoles = true,
     multiTenancy: multiTenancyOptions,

@@ -17,12 +17,12 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:emails", "auth:read"],
         },
       ],
       responses: {
@@ -58,7 +58,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -70,7 +70,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["create:emails", "auth:write"],
         },
       ],
       responses: {
@@ -100,7 +100,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       path: "/",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -112,7 +112,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:emails", "auth:write"],
         },
       ],
       responses: {

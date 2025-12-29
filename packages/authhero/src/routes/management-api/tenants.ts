@@ -1,10 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
-import {
-  tenantInsertSchema,
-  tenantSchema,
-} from "@authhero/adapter-interfaces";
+import { tenantInsertSchema, tenantSchema } from "@authhero/adapter-interfaces";
 import { deepMergePatch } from "../../utils/deep-merge";
 
 export const tenantRoutes = new OpenAPIHono<{
@@ -21,12 +18,12 @@ export const tenantRoutes = new OpenAPIHono<{
       path: "/settings",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
       },
       security: [
         {
-          Bearer: ["auth:read"],
+          Bearer: ["read:tenants", "auth:read"],
         },
       ],
       responses: {
@@ -62,7 +59,7 @@ export const tenantRoutes = new OpenAPIHono<{
       path: "/settings",
       request: {
         headers: z.object({
-          "tenant-id": z.string(),
+          "tenant-id": z.string().optional(),
         }),
         body: {
           content: {
@@ -74,7 +71,7 @@ export const tenantRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:tenants", "auth:write"],
         },
       ],
       responses: {
@@ -121,4 +118,3 @@ export const tenantRoutes = new OpenAPIHono<{
       return ctx.json(updatedTenant);
     },
   );
-
