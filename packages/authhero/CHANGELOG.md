@@ -1,5 +1,11 @@
 # authhero
 
+## 0.308.0
+
+### Minor Changes
+
+- bbe5492: Add real scopes
+
 ## 0.307.0
 
 ### Minor Changes
