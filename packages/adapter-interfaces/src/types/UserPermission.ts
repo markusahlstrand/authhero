@@ -11,7 +11,7 @@ export type UserPermissionInsert = z.infer<typeof userPermissionInsertSchema>;
 
 export const userPermissionSchema = z.object({
   ...userPermissionInsertSchema.shape,
-  tenant_id: z.string().optional().optional(),
+  tenant_id: z.string(),
   created_at: z.string().optional(),
 });
 export type UserPermission = z.infer<typeof userPermissionSchema>;
