@@ -284,25 +284,6 @@ export async function calculateScopesAndPermissions(
       )
     : [];
 
-  console.log(
-    "[DEBUG] scopes-permissions: userId=",
-    userId,
-    "tenantId=",
-    tenantId,
-    "organizationId=",
-    organizationId,
-    "audience=",
-    audience,
-  );
-  console.log(
-    "[DEBUG] globalRoles=",
-    globalRoles.map((r) => r.id),
-  );
-  console.log(
-    "[DEBUG] orgRoles=",
-    orgRoles.map((r) => r.id),
-  );
-
   // Combine global and organization-specific roles
   const userRoles = [...globalRoles, ...orgRoles];
 
@@ -313,19 +294,7 @@ export async function calculateScopesAndPermissions(
       tenantId,
       role.id,
     );
-    console.log(
-      "[DEBUG] role=",
-      role.id,
-      "permissions count=",
-      permissions.length,
-      "first 3=",
-      permissions
-        .slice(0, 3)
-        .map((p) => ({
-          name: p.permission_name,
-          rsi: p.resource_server_identifier,
-        })),
-    );
+
     permissions.forEach((permission) => {
       if (permission.resource_server_identifier === audience) {
         rolePermissions.push(permission.permission_name);
