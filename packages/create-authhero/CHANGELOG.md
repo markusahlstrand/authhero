@@ -1,5 +1,12 @@
 # create-authhero
 
+## 0.15.0
+
+### Minor Changes
+
+- aaf0aa0: Fix paging issue for scopes
+- aaf0aa0: Update permissions casing
+
 ## 0.14.0
 
 ### Minor Changes
