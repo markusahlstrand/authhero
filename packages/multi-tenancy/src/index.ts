@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import {
   init as initAuthHero,
   AuthHeroConfig,
@@ -28,7 +29,7 @@ import {
   createRoleSyncHooks,
   createTenantRoleSyncHooks,
 } from "./hooks/role-sync";
-import { fetchAll } from "./utils/fetchAll";
+import { fetchAll } from "authhero";
 
 // Re-export essential types and functions from authhero
 export { seed, MANAGEMENT_API_SCOPES } from "authhero";
@@ -79,9 +80,9 @@ export {
   createProtectSyncedMiddleware,
 } from "./middleware";
 
-// Re-export utils
-export { fetchAll } from "./utils/fetchAll";
-export type { FetchAllOptions } from "./utils/fetchAll";
+// Re-export utils from authhero
+export { fetchAll } from "authhero";
+export type { FetchAllOptions } from "authhero";
 
 // Re-export plugin
 export { createMultiTenancyPlugin } from "./plugin";
@@ -576,6 +577,17 @@ export function init(config: MultiTenantAuthHeroConfig) {
     Bindings: MultiTenancyBindings;
     Variables: MultiTenancyVariables;
   }>();
+
+  // Register error handler BEFORE routes so it can catch all errors
+  // This ensures HTTPException errors (like 403 Forbidden) are returned with
+  // the correct status code instead of being swallowed as 500 errors
+  app.onError((err, ctx) => {
+    if (err instanceof HTTPException) {
+      return err.getResponse();
+    }
+    console.error(err);
+    return ctx.json({ message: "Internal Server Error" }, 500);
+  });
 
   // Add middleware to protect system resources from modification
   // This MUST be added before routes so it can intercept write operations

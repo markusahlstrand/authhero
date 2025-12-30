@@ -957,6 +957,36 @@ export async function seed(
     console.log("Admin user already has admin role, skipping...");
   }
 
+  // Also assign admin role as a global role (without organization)
+  // This ensures permissions are included in tokens even when not using organizations
+  // Important for single-tenant setups where users may not authenticate with an organization
+  const existingGlobalUserRoles = await adapters.userRoles.list(
+    tenantId,
+    userId,
+    undefined,
+    "", // Empty string = global role (no organization)
+  );
+  const hasGlobalAdminRole = existingGlobalUserRoles.some(
+    (r) => r.id === adminRole!.id,
+  );
+
+  if (!hasGlobalAdminRole) {
+    if (debug) {
+      console.log("Assigning global admin role to user...");
+    }
+    await adapters.userRoles.create(
+      tenantId,
+      userId,
+      adminRole.id,
+      "", // Empty string = global role
+    );
+    if (debug) {
+      console.log("✅ Global admin role assigned to user");
+    }
+  } else if (debug) {
+    console.log("Admin user already has global admin role, skipping...");
+  }
+
   if (debug) {
     console.log("\n🎉 Seeding complete!");
   }

@@ -1,2 +1,3 @@
-export { fetchAll } from "./fetchAll";
-export type { FetchAllOptions } from "./fetchAll";
+// Re-export from authhero
+export { fetchAll } from "authhero";
+export type { FetchAllOptions } from "authhero";

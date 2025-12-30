@@ -134,15 +134,17 @@ async function createOrganizationForTenant(
     },
   );
 
-  // Get or create the admin role (only if issuer is provided)
-  const adminRoleId = issuer
-    ? await getOrCreateAdminRole(
-        ctx,
-        controlPlaneTenantId,
-        adminRoleName,
-        adminRoleDescription,
-      )
-    : null;
+  // Get or create the admin role with all Management API permissions
+  // Only create admin role if issuer is provided (per documentation)
+  let adminRoleId: string | undefined;
+  if (issuer) {
+    adminRoleId = await getOrCreateAdminRole(
+      ctx,
+      controlPlaneTenantId,
+      adminRoleName,
+      adminRoleDescription,
+    );
+  }
 
   // Add the creator to the organization and assign the admin role
   if (addCreatorToOrganization && ctx.ctx) {
@@ -155,7 +157,7 @@ async function createOrganizationForTenant(
           organization_id: organization.id,
         });
 
-        // Assign admin role to the user for this organization if we have one
+        // Assign admin role to the user for this organization (only if role was created)
         if (adminRoleId) {
           await ctx.adapters.userRoles.create(
             controlPlaneTenantId,
