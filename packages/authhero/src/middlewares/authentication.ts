@@ -214,10 +214,13 @@ export function createAuthMiddleware(
             ctx.set("organization_id", orgId);
           }
 
-          // For tenant list/create endpoints (relativePath === "/tenants" or starts with "/tenants")
-          // we don't require org_id
+          // For tenant list/create/settings endpoints, we don't require org_id
+          // Note: /settings comes from tenantRoutes which is mounted at /tenants
           const isTenantManagementEndpoint =
-            relativePath === "/tenants" || relativePath.startsWith("/tenants/");
+            relativePath === "/tenants" ||
+            relativePath.startsWith("/tenants/") ||
+            relativePath === "/settings" ||
+            relativePath.startsWith("/settings/");
 
           if (!isTenantManagementEndpoint) {
             // For other endpoints, org_id or org_name is required

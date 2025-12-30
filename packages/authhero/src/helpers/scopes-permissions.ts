@@ -293,6 +293,7 @@ export async function calculateScopesAndPermissions(
     const permissions = await ctx.env.data.rolePermissions.list(
       tenantId,
       role.id,
+      { per_page: 1000 }, // Fetch all permissions - roles can have many permissions
     );
 
     permissions.forEach((permission) => {

@@ -13,7 +13,7 @@ import {
   MultiTenancyHooks,
   TenantHookContext,
 } from "../types";
-import { fetchAll } from "../utils/fetchAll";
+import { fetchAll } from "authhero";
 
 /**
  * Creates OpenAPI-based tenant management routes.

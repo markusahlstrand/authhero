@@ -1,6 +1,6 @@
 import { DataAdapters, Role, RoleInsert } from "@authhero/adapter-interfaces";
 import { TenantEntityHooks, TenantHookContext } from "../types";
-import { fetchAll } from "../utils/fetchAll";
+import { fetchAll } from "authhero";
 
 /**
  * Configuration for role synchronization

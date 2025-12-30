@@ -67,7 +67,6 @@ export default {
 
     const app = createApp(config);
 
-    // Pass the issuer via env bindings
     const envWithIssuer = {
       ...env,
       ISSUER: issuer,

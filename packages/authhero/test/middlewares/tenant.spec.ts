@@ -27,6 +27,7 @@ describe("tenantMiddleware", () => {
           },
           tenants: {
             get: mockGet,
+            list: vi.fn().mockResolvedValue({ tenants: [] }),
           },
         },
         ISSUER: "https://example.com",

@@ -59,5 +59,13 @@ export async function tenantMiddleware(
     ctx.set("host", new URL(getIssuer(ctx.env)).host);
   }
 
+  // Auto-detect single tenant: if no tenant found and only one exists in DB, use it
+  if (!ctx.var.tenant_id) {
+    const { tenants } = await ctx.env.data.tenants.list({ per_page: 2 });
+    if (tenants.length === 1 && tenants[0]) {
+      ctx.set("tenant_id", tenants[0].id);
+    }
+  }
+
   return await next();
 }

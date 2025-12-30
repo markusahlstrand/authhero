@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import i18next from "i18next";
 import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
@@ -35,6 +36,10 @@ export type { SamlSigner } from "@authhero/saml/core";
 export { HttpSamlSigner } from "@authhero/saml/core";
 // LocalSamlSigner is available via @authhero/saml/local-signer for Node.js users
 
+// Export utilities
+export { fetchAll } from "./utils/fetchAll";
+export type { FetchAllOptions } from "./utils/fetchAll";
+
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
   fallbackLng: "en",
@@ -52,6 +57,17 @@ i18next.init({
 
 export function init(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
+
+  // Register error handler BEFORE routes so it can catch all errors
+  // This ensures HTTPException errors (like 403 Forbidden) are returned with
+  // the correct status code instead of being swallowed as 500 errors
+  app.onError((err, ctx) => {
+    if (err instanceof HTTPException) {
+      return err.getResponse();
+    }
+    console.error(err);
+    return ctx.json({ message: "Internal Server Error" }, 500);
+  });
 
   // Add middleware to merge config hooks with env hooks (backwards compatibility)
   app.use("*", async (ctx, next) => {
