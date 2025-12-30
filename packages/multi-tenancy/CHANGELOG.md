@@ -1,5 +1,18 @@
 # @authhero/multi-tenancy
 
+## 13.10.0
+
+### Minor Changes
+
+- aaf0aa0: Fix paging issue for scopes
+- aaf0aa0: Update permissions casing
+
+### Patch Changes
+
+- Updated dependencies [aaf0aa0]
+- Updated dependencies [aaf0aa0]
+  - authhero@0.309.0
+
 ## 13.9.0
 
 ### Minor Changes

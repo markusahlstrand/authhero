@@ -1,5 +1,12 @@
 # authhero
 
+## 0.309.0
+
+### Minor Changes
+
+- aaf0aa0: Fix paging issue for scopes
+- aaf0aa0: Update permissions casing
+
 ## 0.308.0
 
 ### Minor Changes
