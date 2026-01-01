@@ -10,6 +10,11 @@ import Icon from "./Icon";
  * Sanitize HTML content to prevent XSS attacks.
  * While form content comes from trusted admin sources (management API),
  * this provides defense-in-depth against compromised admin accounts.
+ *
+ * Security considerations:
+ * - No style attributes: Prevents CSS injection (background: url() tracking, UI redressing)
+ * - Images restricted to data: URIs and https: Prevents tracking pixels from arbitrary domains
+ * - Only safe formatting tags allowed
  */
 function sanitizeHtml(html: string): string {
   return sanitizeHtmlLib(html, {
@@ -26,9 +31,32 @@ function sanitizeHtml(html: string): string {
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
       img: ['src', 'alt', 'width', 'height'],
-      '*': ['class', 'id', 'style'],
+      '*': ['class', 'id'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesAppliedToAttributes: ['href', 'src'],
+    // Restrict image sources to https and data URIs (for inline images)
+    // This prevents tracking pixels from arbitrary http domains
+    transformTags: {
+      img: (tagName, attribs) => {
+        const src = attribs.src || '';
+        // Only allow https:// URLs and data: URIs for images
+        if (src && !src.startsWith('https://') && !src.startsWith('data:')) {
+          return { tagName: 'span', attribs: {} };
+        }
+        return { tagName, attribs };
+      },
+      // Ensure links open safely
+      a: (tagName, attribs) => {
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            rel: 'noopener noreferrer',
+          },
+        };
+      },
+    },
   });
 }
 

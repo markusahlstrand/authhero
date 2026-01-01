@@ -322,7 +322,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       
       // Handle internal links
       if (href.startsWith('/u/')) {
-        window.location.href = href + '?state=${escapeJs(state)}';
+        window.location.href = href + '?state=' + encodeURIComponent('${escapeJs(state)}');
       } else {
         window.location.href = href;
       }

@@ -28,16 +28,15 @@
       "type": "NEXT_BUTTON",
       "id": "submit",
       "config": {
-        "label": "Continue"
+        "text": "Continue"
       }
     },
     {
-      "category": "BLOCK",
-      "type": "SOCIAL_BUTTON",
-      "id": "google",
+      "category": "FIELD",
+      "type": "SOCIAL",
+      "id": "social",
       "config": {
-        "strategy": "google-oauth2",
-        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/google/google-avatar.png"
+        "providers": ["google-oauth2"]
       }
     }
   ],
