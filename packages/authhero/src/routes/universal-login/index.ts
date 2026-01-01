@@ -26,6 +26,8 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { tailwindCss } from "../../styles";
 import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
+import { flowApiRoutes } from "./flow-api";
+import { flowWidgetRoutes } from "./flow-widget";
 import { impersonateRoutes } from "./impersonate";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
@@ -76,6 +78,25 @@ export default function create(config: AuthHeroConfig) {
     return ctx.text(clientJs, 200, {
       "content-type": "application/javascript; charset=utf-8",
     });
+  });
+
+  // Widget files must be served by the consumer application
+  // Install @authhero/widget and serve the dist/authhero-widget directory at /u/widget/
+  // Example with Hono + Bun:
+  //   import { serveStatic } from "hono/bun";
+  //   app.get("/u/widget/*", serveStatic({
+  //     root: "./node_modules/@authhero/widget/dist/authhero-widget",
+  //     rewriteRequestPath: (path) => path.replace("/u/widget", ""),
+  //   }));
+  app.get("/widget/*", async (ctx: Context) => {
+    return ctx.json(
+      {
+        error: "widget_not_configured",
+        message:
+          "The AuthHero widget is not configured. Install @authhero/widget and serve the dist/authhero-widget directory at /u/widget/",
+      },
+      404,
+    );
   });
 
   app
@@ -130,7 +151,9 @@ export default function create(config: AuthHeroConfig) {
     .route("/validate-email", validateEmailRoutes)
     .route("/signup", signupRoutes)
     .route("/impersonate", impersonateRoutes)
-    .route("/forms", formNodeRoutes);
+    .route("/forms", formNodeRoutes)
+    .route("/flow", flowApiRoutes)
+    .route("/flow-widget", flowWidgetRoutes);
 
   universalApp.doc("/u/spec", {
     openapi: "3.0.0",

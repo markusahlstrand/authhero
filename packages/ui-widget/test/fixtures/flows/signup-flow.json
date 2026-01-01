@@ -1,0 +1,51 @@
+{
+  "name": "Signup Flow",
+  "description": "Tests the complete signup flow with email verification",
+  "steps": [
+    {
+      "id": "initial",
+      "screen": "signup",
+      "fixture": "signup.json",
+      "description": "User sees signup form"
+    },
+    {
+      "id": "validation-error",
+      "screen": "signup",
+      "fixture": "signup.json",
+      "nodeOverrides": {
+        "password": {
+          "messages": {
+            "error": "Password must be at least 8 characters"
+          }
+        }
+      },
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "password": "short",
+          "password_confirm": "short",
+          "terms": "true"
+        }
+      },
+      "description": "User submits with weak password"
+    },
+    {
+      "id": "email-verification",
+      "screen": "email-verification",
+      "fixture": "email-verification.json",
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "password": "strongpassword123",
+          "password_confirm": "strongpassword123",
+          "terms": "true"
+        }
+      },
+      "description": "User completes signup, needs to verify email"
+    }
+  ]
+}

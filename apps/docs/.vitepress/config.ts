@@ -73,6 +73,7 @@ export default withMermaid(
           text: "Packages",
           items: [
             { text: "Core Library", link: "/packages/authhero/" },
+            { text: "UI Widget", link: "/packages/ui-widget" },
             {
               text: "Multi-Tenancy",
               link: "/packages/multi-tenancy/",

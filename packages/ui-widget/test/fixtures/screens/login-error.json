@@ -1,0 +1,63 @@
+{
+  "id": "login",
+  "title": "Sign in to your account",
+  "action": "/api/auth/login",
+  "method": "POST",
+  "messages": [
+    { "id": 4000006, "text": "Invalid email or password. Please try again.", "type": "error" }
+  ],
+  "nodes": [
+    {
+      "type": "input",
+      "group": "default",
+      "attributes": {
+        "node_type": "input",
+        "name": "identifier",
+        "type": "email",
+        "value": "user@example.com",
+        "required": true,
+        "autocomplete": "email"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1070004, "text": "Email address", "type": "info" }
+      }
+    },
+    {
+      "type": "input",
+      "group": "password",
+      "attributes": {
+        "node_type": "input",
+        "name": "password",
+        "type": "password",
+        "required": true,
+        "autocomplete": "current-password"
+      },
+      "messages": [
+        { "id": 4000001, "text": "Password is incorrect", "type": "error" }
+      ],
+      "meta": {
+        "label": { "id": 1070001, "text": "Password", "type": "info" }
+      }
+    },
+    {
+      "type": "input",
+      "group": "password",
+      "attributes": {
+        "node_type": "input",
+        "name": "method",
+        "type": "submit",
+        "value": "password"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1010001, "text": "Sign in", "type": "info" }
+      }
+    }
+  ],
+  "ui": {
+    "links": [
+      { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" }
+    ]
+  }
+}

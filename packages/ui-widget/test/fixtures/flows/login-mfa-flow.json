@@ -1,0 +1,52 @@
+{
+  "name": "Login with MFA Flow",
+  "description": "Tests login flow that requires MFA verification",
+  "steps": [
+    {
+      "id": "initial",
+      "screen": "login",
+      "fixture": "login.json",
+      "description": "User sees login form"
+    },
+    {
+      "id": "mfa-required",
+      "screen": "mfa-totp",
+      "fixture": "mfa-totp.json",
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "email": "user@example.com",
+          "password": "correctpassword"
+        }
+      },
+      "description": "User has MFA enabled, prompted for code"
+    },
+    {
+      "id": "mfa-invalid",
+      "screen": "mfa-totp",
+      "fixture": "mfa-totp.json",
+      "messages": {
+        "error": "Invalid verification code. Please try again."
+      },
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "code": "000000"
+        }
+      },
+      "description": "User enters wrong MFA code"
+    },
+    {
+      "id": "success",
+      "screen": "success",
+      "fixture": "success.json",
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "code": "123456"
+        }
+      },
+      "description": "User enters correct MFA code"
+    }
+  ]
+}

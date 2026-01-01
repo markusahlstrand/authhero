@@ -1,0 +1,70 @@
+{
+  "id": "identifier",
+  "title": "Sign in to Tenant",
+  "action": "/api/auth/identifier",
+  "method": "POST",
+  "nodes": [
+    {
+      "type": "img",
+      "group": "default",
+      "attributes": {
+        "node_type": "img",
+        "id": "logo",
+        "src": "https://placehold.co/48x48/6366f1/white?text=T",
+        "alt": "Tenant Logo",
+        "width": 48,
+        "height": 48
+      },
+      "messages": [],
+      "meta": {}
+    },
+    {
+      "type": "input",
+      "group": "identifier_first",
+      "attributes": {
+        "node_type": "input",
+        "name": "identifier",
+        "type": "email",
+        "required": true,
+        "autocomplete": "email"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1070004, "text": "Email", "type": "info" }
+      }
+    },
+    {
+      "type": "input",
+      "group": "identifier_first",
+      "attributes": {
+        "node_type": "input",
+        "name": "method",
+        "type": "submit",
+        "value": "identifier_first"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1070005, "text": "Continue", "type": "info" }
+      }
+    },
+    {
+      "type": "input",
+      "group": "oidc",
+      "attributes": {
+        "node_type": "input",
+        "name": "provider",
+        "type": "submit",
+        "value": "google"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1010002, "text": "Continue with Google", "type": "info" }
+      }
+    }
+  ],
+  "ui": {
+    "links": [
+      { "id": "signup", "text": "Don't have an account?", "href": "/register", "link_text": "Get started" }
+    ]
+  }
+}

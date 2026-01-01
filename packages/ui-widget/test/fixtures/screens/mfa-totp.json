@@ -1,0 +1,56 @@
+{
+  "id": "mfa-totp",
+  "title": "Two-factor authentication",
+  "action": "/api/auth/mfa/verify",
+  "method": "POST",
+  "nodes": [
+    {
+      "type": "text",
+      "group": "totp",
+      "attributes": {
+        "node_type": "text",
+        "id": "info",
+        "text": { "id": 1050001, "text": "Enter the 6-digit code from your authenticator app", "type": "info" }
+      },
+      "messages": [],
+      "meta": {}
+    },
+    {
+      "type": "input",
+      "group": "totp",
+      "attributes": {
+        "node_type": "input",
+        "name": "totp_code",
+        "type": "text",
+        "required": true,
+        "maxlength": 6,
+        "pattern": "[0-9]{6}",
+        "autocomplete": "one-time-code"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1050002, "text": "Verification code", "type": "info" }
+      }
+    },
+    {
+      "type": "input",
+      "group": "totp",
+      "attributes": {
+        "node_type": "input",
+        "name": "method",
+        "type": "submit",
+        "value": "totp"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1050003, "text": "Verify", "type": "info" }
+      }
+    }
+  ],
+  "ui": {
+    "links": [
+      { "id": "backup", "text": "Use a backup code instead", "href": "/mfa/backup" },
+      { "id": "back", "text": "Back to login", "href": "/login" }
+    ]
+  }
+}

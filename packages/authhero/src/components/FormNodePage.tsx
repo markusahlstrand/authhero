@@ -21,7 +21,7 @@ const RichTextComponent = (comp: RichTextComponentProps) => {
   return (
     <div
       className="rich-text mb-6 prose prose-gray max-w-none [&>*:last-child]:mb-0 [&_h1]:mb-6 [&_h2]:mb-6"
-      dangerouslySetInnerHTML={{ __html: comp.config.content }}
+      dangerouslySetInnerHTML={{ __html: comp.config?.content ?? "" }}
       key={comp.id}
     />
   );
@@ -39,7 +39,7 @@ const LegalComponent = (comp: LegalComponentProps) => {
         id={comp.id}
       />
       <span className="text-base leading-tight">
-        <span dangerouslySetInnerHTML={{ __html: comp.config.text }} />
+        <span dangerouslySetInnerHTML={{ __html: comp.config?.text ?? "" }} />
       </span>
     </div>
   );

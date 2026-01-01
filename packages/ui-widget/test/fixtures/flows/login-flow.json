@@ -1,0 +1,38 @@
+{
+  "name": "Standard Login Flow",
+  "description": "Tests the standard email/password login flow with error handling",
+  "steps": [
+    {
+      "id": "initial",
+      "screen": "login",
+      "fixture": "login.json",
+      "description": "User sees login form"
+    },
+    {
+      "id": "invalid-credentials",
+      "screen": "login-error",
+      "fixture": "login-error.json",
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "email": "user@example.com",
+          "password": "wrongpassword"
+        }
+      },
+      "description": "User enters wrong password, sees error"
+    },
+    {
+      "id": "success",
+      "screen": "success",
+      "fixture": "success.json",
+      "trigger": {
+        "action": "submit",
+        "data": {
+          "email": "user@example.com",
+          "password": "correctpassword"
+        }
+      },
+      "description": "User enters correct credentials, sees success"
+    }
+  ]
+}

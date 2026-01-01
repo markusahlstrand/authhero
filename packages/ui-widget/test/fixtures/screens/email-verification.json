@@ -1,0 +1,61 @@
+{
+  "id": "email-verification",
+  "title": "Verify your email",
+  "action": "/api/auth/verify-email/resend",
+  "method": "POST",
+  "nodes": [
+    {
+      "type": "img",
+      "group": "default",
+      "attributes": {
+        "node_type": "img",
+        "id": "icon",
+        "src": "/email-icon.svg",
+        "alt": "Email"
+      },
+      "messages": [],
+      "meta": {}
+    },
+    {
+      "type": "text",
+      "group": "default",
+      "attributes": {
+        "node_type": "text",
+        "id": "title",
+        "text": { "id": 1090001, "text": "Check your inbox", "type": "info" }
+      },
+      "messages": [],
+      "meta": {}
+    },
+    {
+      "type": "text",
+      "group": "default",
+      "attributes": {
+        "node_type": "text",
+        "id": "message",
+        "text": { "id": 1090002, "text": "We sent a verification link to user@example.com. Click the link in the email to verify your account.", "type": "info" }
+      },
+      "messages": [],
+      "meta": {}
+    },
+    {
+      "type": "input",
+      "group": "default",
+      "attributes": {
+        "node_type": "input",
+        "name": "method",
+        "type": "submit",
+        "value": "resend"
+      },
+      "messages": [],
+      "meta": {
+        "label": { "id": 1090003, "text": "Resend verification email", "type": "info" }
+      }
+    }
+  ],
+  "ui": {
+    "links": [
+      { "id": "back", "text": "Use a different email", "href": "/register" }
+    ]
+  }
+}
