@@ -1,5 +1,18 @@
 # @authhero/demo
 
+## 0.25.0
+
+### Minor Changes
+
+- d967833: Add a stencil-js widget for login
+
+### Patch Changes
+
+- Updated dependencies [d967833]
+  - authhero@1.0.0
+  - @authhero/widget@0.2.0
+  - @authhero/kysely-adapter@10.73.1
+
 ## 0.24.8
 
 ### Patch Changes
