@@ -385,6 +385,41 @@ export type BlockComponent = z.infer<typeof blockComponentSchema>;
 export type WidgetComponent = z.infer<typeof widgetComponentSchema>;
 export type FieldComponent = z.infer<typeof fieldComponentSchema>;
 
+// Individual BLOCK component types
+export type DividerComponent = z.infer<typeof dividerComponent>;
+export type HtmlComponent = z.infer<typeof htmlComponent>;
+export type ImageComponent = z.infer<typeof imageComponent>;
+export type JumpButtonComponent = z.infer<typeof jumpButtonComponent>;
+export type ResendButtonComponent = z.infer<typeof resendButtonComponent>;
+export type NextButtonComponent = z.infer<typeof nextButtonComponent>;
+export type PreviousButtonComponent = z.infer<typeof previousButtonComponent>;
+export type RichTextComponent = z.infer<typeof richTextComponent>;
+
+// Individual WIDGET component types
+export type VerifiableCredentialsWidget = z.infer<
+  typeof verifiableCredentialsWidget
+>;
+export type GmapsAddressWidget = z.infer<typeof gmapsAddressWidget>;
+export type RecaptchaWidget = z.infer<typeof recaptchaWidget>;
+
+// Individual FIELD component types
+export type BooleanField = z.infer<typeof booleanField>;
+export type CardsField = z.infer<typeof cardsField>;
+export type ChoiceField = z.infer<typeof choiceField>;
+export type CustomField = z.infer<typeof customField>;
+export type DateField = z.infer<typeof dateField>;
+export type DropdownField = z.infer<typeof dropdownField>;
+export type EmailField = z.infer<typeof emailField>;
+export type FileField = z.infer<typeof fileField>;
+export type LegalField = z.infer<typeof legalField>;
+export type NumberField = z.infer<typeof numberField>;
+export type PasswordField = z.infer<typeof passwordField>;
+export type PaymentField = z.infer<typeof paymentField>;
+export type SocialField = z.infer<typeof socialField>;
+export type TelField = z.infer<typeof telField>;
+export type TextField = z.infer<typeof textField>;
+export type UrlField = z.infer<typeof urlField>;
+
 // =============================================================================
 // Form Control (legacy, kept for compatibility)
 // =============================================================================
@@ -557,6 +592,18 @@ export type RuntimeComponent = FormNodeComponent & {
 };
 
 /**
+ * Navigation link displayed on the screen.
+ */
+export const screenLinkSchema = z.object({
+  id: z.string().optional(),
+  text: z.string(),
+  href: z.string(),
+  linkText: z.string().optional(),
+});
+
+export type ScreenLink = z.infer<typeof screenLinkSchema>;
+
+/**
  * Screen sent to the widget (simplified STEP for rendering)
  * This is what the API returns to the widget - no flow routing logic
  */
@@ -567,16 +614,29 @@ export const uiScreenSchema = z.object({
   description: z.string().optional(),
   components: z.array(formNodeComponentDefinition),
   messages: z.array(componentMessageSchema).optional(),
-  links: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        text: z.string(),
-        href: z.string(),
-        linkText: z.string().optional(),
-      }),
-    )
-    .optional(),
+  links: z.array(screenLinkSchema).optional(),
 });
 
 export type UiScreen = z.infer<typeof uiScreenSchema>;
+
+// =============================================================================
+// Type Guards
+// =============================================================================
+
+export function isBlockComponent(
+  component: FormNodeComponent,
+): component is BlockComponent {
+  return component.category === "BLOCK";
+}
+
+export function isWidgetComponent(
+  component: FormNodeComponent,
+): component is WidgetComponent {
+  return component.category === "WIDGET";
+}
+
+export function isFieldComponent(
+  component: FormNodeComponent,
+): component is FieldComponent {
+  return component.category === "FIELD";
+}

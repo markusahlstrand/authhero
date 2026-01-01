@@ -15,13 +15,15 @@ describe('authhero-widget', () => {
     expect(page.root).toMatchSnapshot();
     // Widget renders authhero-node children in its shadow DOM
     const nodeElements = page.root!.shadowRoot!.querySelectorAll('authhero-node');
-    expect(nodeElements.length).toBe(screens.login.nodes.length);
+    expect(nodeElements.length).toBe(screens.login.components.length);
   });
 
   it('renders login with social providers', async () => {
+    // Escape for HTML attribute (single quotes break with apostrophe in "Don't")
+    const screenJson = JSON.stringify(screens.loginWithSocial).replace(/'/g, '&#39;');
     const page = await newSpecPage({
       components: [AuthheroWidget, AuthheroNode],
-      html: `<authhero-widget screen='${JSON.stringify(screens.loginWithSocial)}'></authhero-widget>`,
+      html: `<authhero-widget screen='${screenJson}'></authhero-widget>`,
     });
 
     await page.waitForChanges();
@@ -42,7 +44,7 @@ describe('authhero-widget', () => {
 
     const errorEl = page.root!.shadowRoot!.querySelector('.message-error');
     expect(errorEl).not.toBeNull();
-    expect(errorEl!.textContent).toContain('Invalid email or password');
+    expect(errorEl!.textContent).toContain('Invalid credentials');
   });
 
   it('renders signup screen with all fields', async () => {
@@ -54,9 +56,9 @@ describe('authhero-widget', () => {
     await page.waitForChanges();
 
     expect(page.root).toMatchSnapshot();
-    // Count the nodes
+    // Count the components
     const nodeElements = page.root!.shadowRoot!.querySelectorAll('authhero-node');
-    expect(nodeElements.length).toBe(screens.signup.nodes.length);
+    expect(nodeElements.length).toBe(screens.signup.components.length);
   });
 
   it('renders MFA TOTP screen', async () => {
@@ -156,7 +158,7 @@ describe('authhero-widget', () => {
     const links = page.root!.shadowRoot!.querySelector('.links');
     expect(links).not.toBeNull();
     const linkElements = links!.querySelectorAll('a');
-    expect(linkElements.length).toBe(screens.login.meta?.links?.length || 0);
+    expect(linkElements.length).toBe(screens.login.links?.length || 0);
   });
 
   it('emits screenChange event on initial load', async () => {

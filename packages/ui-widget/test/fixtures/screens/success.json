@@ -1,58 +1,43 @@
 {
-  "id": "success",
+  "screen": "success",
   "title": "Success!",
   "action": "/",
   "method": "GET",
   "messages": [
-    { "id": 1080001, "text": "You have successfully signed in.", "type": "success" }
+    { "type": "success", "text": "You have successfully signed in." }
   ],
-  "nodes": [
+  "components": [
     {
-      "type": "img",
-      "group": "default",
-      "attributes": {
-        "node_type": "img",
-        "id": "icon",
+      "category": "BLOCK",
+      "type": "IMAGE",
+      "id": "icon",
+      "config": {
         "src": "/success-icon.svg",
         "alt": "Success"
-      },
-      "messages": [],
-      "meta": {}
+      }
     },
     {
-      "type": "text",
-      "group": "default",
-      "attributes": {
-        "node_type": "text",
-        "id": "title",
-        "text": { "id": 1080002, "text": "Welcome back!", "type": "success" }
-      },
-      "messages": [],
-      "meta": {}
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "title",
+      "config": {
+        "content": "<h2>Welcome back!</h2>"
+      }
     },
     {
-      "type": "text",
-      "group": "default",
-      "attributes": {
-        "node_type": "text",
-        "id": "message",
-        "text": { "id": 1080003, "text": "You will be redirected to your dashboard shortly.", "type": "info" }
-      },
-      "messages": [],
-      "meta": {}
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "message",
+      "config": {
+        "content": "You will be redirected to your dashboard shortly."
+      }
     },
     {
-      "type": "input",
-      "group": "default",
-      "attributes": {
-        "node_type": "input",
-        "name": "action",
-        "type": "button",
-        "value": "continue"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1080004, "text": "Continue to Dashboard", "type": "info" }
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "continue",
+      "config": {
+        "label": "Continue to Dashboard"
       }
     }
   ]

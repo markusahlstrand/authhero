@@ -1,62 +1,39 @@
 {
-  "id": "login",
+  "screen": "login",
   "title": "Sign in to Acme Corp",
   "action": "/api/auth/login",
   "method": "POST",
-  "nodes": [
+  "components": [
     {
-      "type": "input",
-      "group": "default",
-      "attributes": {
-        "node_type": "input",
-        "name": "identifier",
-        "type": "email",
-        "required": true,
+      "category": "FIELD",
+      "type": "EMAIL",
+      "id": "identifier",
+      "label": "Work email",
+      "required": true,
+      "config": {
         "autocomplete": "email"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070004, "text": "Work email", "type": "info" }
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "password",
-        "type": "password",
-        "required": true,
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "id": "password",
+      "label": "Password",
+      "required": true,
+      "config": {
         "autocomplete": "current-password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070001, "text": "Password", "type": "info" }
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "method",
-        "type": "submit",
-        "value": "password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010001, "text": "Sign in", "type": "info" }
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Sign in"
       }
     }
   ],
-  "ui": {
-    "branding": {
-      "logo_url": "https://acme.com/logo.png",
-      "primary_color": "#6366f1",
-      "background_color": "#f5f3ff"
-    },
-    "links": [
-      { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" }
-    ]
-  }
+  "links": [
+    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" }
+  ]
 }

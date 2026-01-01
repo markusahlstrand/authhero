@@ -22,8 +22,8 @@
       "types": "./dist/types/server/index.d.ts"
     },
     "./types": {
-      "import": "./dist/collection/types/nodes.js",
-      "types": "./dist/types/types/nodes.d.ts"
+      "import": "./dist/collection/types/components.js",
+      "types": "./dist/types/types/components.d.ts"
     }
   },
   "scripts": {
@@ -32,6 +32,9 @@
     "test": "stencil test --spec",
     "test:watch": "stencil test --spec --watchAll",
     "generate": "stencil generate"
+  },
+  "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:*"
   },
   "devDependencies": {
     "@stencil/core": "^4.40.1",

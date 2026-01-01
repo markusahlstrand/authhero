@@ -1,2 +1,2 @@
 // Export types for consumers
-export * from './types/nodes';
+export * from './types/components';

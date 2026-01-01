@@ -1,103 +1,74 @@
 {
-  "id": "signup",
-  "title": "Create your account",
   "action": "/api/auth/register",
   "method": "POST",
-  "nodes": [
+  "title": "Create your account",
+  "components": [
     {
-      "type": "input",
-      "group": "profile",
-      "attributes": {
-        "node_type": "input",
-        "name": "traits.name",
-        "type": "text",
-        "required": true,
-        "autocomplete": "name"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070002, "text": "Full name", "type": "info" }
+      "id": "name",
+      "category": "FIELD",
+      "type": "TEXT",
+      "order": 0,
+      "label": "Full name",
+      "required": true,
+      "config": {
+        "placeholder": "John Doe"
       }
     },
     {
-      "type": "input",
-      "group": "profile",
-      "attributes": {
-        "node_type": "input",
-        "name": "traits.email",
-        "type": "email",
-        "required": true,
-        "autocomplete": "email"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070004, "text": "Email address", "type": "info" }
+      "id": "email",
+      "category": "FIELD",
+      "type": "EMAIL",
+      "order": 1,
+      "label": "Email address",
+      "required": true,
+      "config": {
+        "placeholder": "you@example.com"
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "password",
-        "type": "password",
-        "required": true,
-        "autocomplete": "new-password"
-      },
-      "messages": [
-        { "id": 1070003, "text": "Must be at least 8 characters", "type": "info" }
-      ],
-      "meta": {
-        "label": { "id": 1070001, "text": "Password", "type": "info" }
+      "id": "password",
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "order": 2,
+      "label": "Password",
+      "hint": "Must be at least 8 characters",
+      "required": true,
+      "config": {
+        "min_length": 8
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "password_confirm",
-        "type": "password",
-        "required": true,
-        "autocomplete": "new-password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070001, "text": "Confirm password", "type": "info" }
-      }
+      "id": "password_confirm",
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "order": 3,
+      "label": "Confirm password",
+      "required": true
     },
     {
-      "type": "input",
-      "group": "default",
-      "attributes": {
-        "node_type": "input",
-        "name": "terms",
-        "type": "checkbox",
-        "required": true
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070006, "text": "I agree to the Terms of Service and Privacy Policy", "type": "info" }
-      }
+      "id": "terms",
+      "category": "FIELD",
+      "type": "BOOLEAN",
+      "order": 4,
+      "label": "I agree to the Terms of Service and Privacy Policy",
+      "required": true
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "method",
-        "type": "submit",
-        "value": "password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010003, "text": "Create account", "type": "info" }
+      "id": "submit",
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "order": 5,
+      "config": {
+        "text": "Create account"
       }
     }
   ],
-  "ui": {
-    "links": [
-      { "id": "login", "text": "Already have an account? Sign in", "href": "/login" }
-    ]
-  }
+  "links": [
+    {
+      "id": "login",
+      "text": "Already have an account?",
+      "href": "/login",
+      "linkText": "Sign in"
+    }
+  ]
 }

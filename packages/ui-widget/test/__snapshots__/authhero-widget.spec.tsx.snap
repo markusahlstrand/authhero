@@ -1,52 +1,53 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`authhero-widget applies custom branding from fixture 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in to Acme Corp&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;email&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;email&quot;,&quot;type&quot;:&quot;email&quot;,&quot;required&quot;:true,&quot;placeholder&quot;:&quot;you@acme.com&quot;,&quot;autocomplete&quot;:&quot;email&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Work email&quot;}},{&quot;id&quot;:&quot;password&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;password&quot;,&quot;type&quot;:&quot;password&quot;,&quot;required&quot;:true,&quot;autocomplete&quot;:&quot;current-password&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Password&quot;}},{&quot;id&quot;:&quot;submit&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;submit&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;meta&quot;:{&quot;branding&quot;:{&quot;logo&quot;:&quot;https://acme.com/logo.png&quot;,&quot;primaryColor&quot;:&quot;#6366f1&quot;,&quot;backgroundColor&quot;:&quot;#f5f3ff&quot;},&quot;links&quot;:[{&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;,&quot;type&quot;:&quot;forgot-password&quot;}]}}">
+<authhero-widget screen="{&quot;screen&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in to Acme Corp&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;components&quot;:[{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;EMAIL&quot;,&quot;id&quot;:&quot;identifier&quot;,&quot;label&quot;:&quot;Work email&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;email&quot;}},{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;PASSWORD&quot;,&quot;id&quot;:&quot;password&quot;,&quot;label&quot;:&quot;Password&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;current-password&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;id&quot;:&quot;submit&quot;,&quot;config&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;links&quot;:[{&quot;id&quot;:&quot;forgot-password&quot;,&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #6366f1; --background-color: #f5f3ff;">
-      <img alt="Logo" class="logo" src="https://acme.com/logo.png">
-      <h1 class="title">
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
         Sign in to Acme Corp
       </h1>
-      <form>
+      <form part="form">
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="email">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-identifier" part="label">
                 Work email
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="email" class="input-field" id="email" name="email" placeholder="you@acme.com" required="" type="email" value="">
+              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="password">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-password" part="label">
                 Password
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="current-password" class="input-field" id="password" name="password" required="" type="password" value="">
+              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-primary" type="submit">
-              Sign in
+            <button class="btn btn-primary" part="button button-primary" type="submit">
+              Continue
             </button>
           </template>
         </authhero-node>
       </form>
-      <div class="links">
-        <a class="link link-forgot-password" href="/forgot-password">
-          Forgot password?
-        </a>
+      <div class="links" part="links">
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/forgot-password" part="link">
+            Forgot password?
+          </a>
+        </span>
       </div>
     </div>
   </template>
@@ -54,48 +55,52 @@ exports[`authhero-widget applies custom branding from fixture 1`] = `
 `;
 
 exports[`authhero-widget renders MFA TOTP screen 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;mfa-totp&quot;,&quot;title&quot;:&quot;Two-factor authentication&quot;,&quot;action&quot;:&quot;/api/auth/mfa/verify&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;info&quot;,&quot;type&quot;:&quot;text&quot;,&quot;meta&quot;:{&quot;description&quot;:&quot;Enter the 6-digit code from your authenticator app&quot;}},{&quot;id&quot;:&quot;code&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;code&quot;,&quot;type&quot;:&quot;text&quot;,&quot;required&quot;:true,&quot;maxLength&quot;:6,&quot;pattern&quot;:&quot;[0-9]{6}&quot;,&quot;autocomplete&quot;:&quot;one-time-code&quot;,&quot;placeholder&quot;:&quot;000000&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Verification code&quot;}},{&quot;id&quot;:&quot;submit&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;submit&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Verify&quot;}}],&quot;meta&quot;:{&quot;links&quot;:[{&quot;text&quot;:&quot;Use a backup code instead&quot;,&quot;href&quot;:&quot;/mfa/backup&quot;,&quot;type&quot;:&quot;back&quot;},{&quot;text&quot;:&quot;Back to login&quot;,&quot;href&quot;:&quot;/login&quot;,&quot;type&quot;:&quot;back&quot;}]}}">
+<authhero-widget screen="{&quot;screen&quot;:&quot;mfa-totp&quot;,&quot;title&quot;:&quot;Two-factor authentication&quot;,&quot;action&quot;:&quot;/api/auth/mfa/verify&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;components&quot;:[{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;RICH_TEXT&quot;,&quot;id&quot;:&quot;info&quot;,&quot;config&quot;:{&quot;content&quot;:&quot;Enter the 6-digit code from your authenticator app&quot;}},{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;TEXT&quot;,&quot;id&quot;:&quot;totp_code&quot;,&quot;label&quot;:&quot;Verification code&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;maxlength&quot;:6,&quot;pattern&quot;:&quot;[0-9]{6}&quot;,&quot;autocomplete&quot;:&quot;one-time-code&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;id&quot;:&quot;submit&quot;,&quot;config&quot;:{&quot;label&quot;:&quot;Verify&quot;}}],&quot;links&quot;:[{&quot;id&quot;:&quot;backup&quot;,&quot;text&quot;:&quot;Use a backup code instead&quot;,&quot;href&quot;:&quot;/mfa/backup&quot;},{&quot;id&quot;:&quot;back&quot;,&quot;text&quot;:&quot;Back to login&quot;,&quot;href&quot;:&quot;/login&quot;}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #0066cc; --background-color: #ffffff;">
-      <h1 class="title">
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
         Two-factor authentication
       </h1>
-      <form>
+      <form part="form">
         <authhero-node>
           <template shadowrootmode="open">
-            <p class="text-description">
+            <div class="rich-text" part="rich-text">
               Enter the 6-digit code from your authenticator app
-            </p>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="code">
-                Verification code
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="one-time-code" class="input-field" id="code" maxlength="6" name="code" pattern="[0-9]{6}" placeholder="000000" required="" type="text" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-primary" type="submit">
-              Verify
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-totp_code" part="label">
+                Verification code
+                <span class="required">
+                  *
+                </span>
+              </label>
+              <input class="input-field" id="input-totp_code" name="totp_code" part="input" required="" type="text" value="">
+            </div>
+          </template>
+        </authhero-node>
+        <authhero-node>
+          <template shadowrootmode="open">
+            <button class="btn btn-primary" part="button button-primary" type="submit">
+              Continue
             </button>
           </template>
         </authhero-node>
       </form>
-      <div class="links">
-        <a class="link link-back" href="/mfa/backup">
-          Use a backup code instead
-        </a>
-        <a class="link link-back" href="/login">
-          Back to login
-        </a>
+      <div class="links" part="links">
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/mfa/backup" part="link">
+            Use a backup code instead
+          </a>
+        </span>
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/login" part="link">
+            Back to login
+          </a>
+        </span>
       </div>
     </div>
   </template>
@@ -103,7 +108,7 @@ exports[`authhero-widget renders MFA TOTP screen 1`] = `
 `;
 
 exports[`authhero-widget renders forgot password screen 1`] = `
-<authhero-widget a="" address"}},{"id":"submit","type":"button","attributes":{"type":"submit"},"meta":{"label":"send="" link="" link"}}],"meta":{"links":[{"text":"back="" ll="" login","href":"="" login","type":"back"}]}}'="" password."}},{"id":"email","type":"input","attributes":{"name":"email","type":"email","required":true,"placeholder":"you@example.com","autocomplete":"email"},"meta":{"label":"email="" reset="" screen="{&quot;id&quot;:&quot;forgot-password&quot;,&quot;title&quot;:&quot;Reset your password&quot;,&quot;action&quot;:&quot;/api/auth/forgot-password&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;info&quot;,&quot;type&quot;:&quot;text&quot;,&quot;meta&quot;:{&quot;description&quot;:&quot;Enter your email address and we" send="" to="" you="" your="">
+<authhero-widget a="" address","required":true,"config":{"autocomplete":"email"}},{"category":"block","type":"next_button","id":"submit","config":{"label":"send="" link="" link"}}],"links":[{"id":"back","text":"back="" ll="" login","href":"="" login"}]}'="" password."}},{"category":"field","type":"email","id":"identifier","label":"email="" reset="" screen="{&quot;screen&quot;:&quot;forgot-password&quot;,&quot;title&quot;:&quot;Reset your password&quot;,&quot;action&quot;:&quot;/api/auth/forgot-password&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;components&quot;:[{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;RICH_TEXT&quot;,&quot;id&quot;:&quot;info&quot;,&quot;config&quot;:{&quot;content&quot;:&quot;Enter your email address and we" send="" to="" you="" your="">
   <template shadowrootmode="open">
     <div class="widget-container">
       <div class="error-message">
@@ -115,54 +120,58 @@ exports[`authhero-widget renders forgot password screen 1`] = `
 `;
 
 exports[`authhero-widget renders login screen from JSON string prop 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in to your account&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;email&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;email&quot;,&quot;type&quot;:&quot;email&quot;,&quot;required&quot;:true,&quot;placeholder&quot;:&quot;you@example.com&quot;,&quot;autocomplete&quot;:&quot;email&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Email address&quot;}},{&quot;id&quot;:&quot;password&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;password&quot;,&quot;type&quot;:&quot;password&quot;,&quot;required&quot;:true,&quot;autocomplete&quot;:&quot;current-password&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Password&quot;}},{&quot;id&quot;:&quot;submit&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;submit&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;meta&quot;:{&quot;links&quot;:[{&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;,&quot;type&quot;:&quot;forgot-password&quot;},{&quot;text&quot;:&quot;Create account&quot;,&quot;href&quot;:&quot;/register&quot;,&quot;type&quot;:&quot;signup&quot;}]}}">
+<authhero-widget screen="{&quot;screen&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in to your account&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;components&quot;:[{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;EMAIL&quot;,&quot;id&quot;:&quot;identifier&quot;,&quot;label&quot;:&quot;Email address&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;email&quot;}},{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;PASSWORD&quot;,&quot;id&quot;:&quot;password&quot;,&quot;label&quot;:&quot;Password&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;current-password&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;id&quot;:&quot;submit&quot;,&quot;config&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;links&quot;:[{&quot;id&quot;:&quot;forgot-password&quot;,&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;},{&quot;id&quot;:&quot;signup&quot;,&quot;text&quot;:&quot;Create account&quot;,&quot;href&quot;:&quot;/register&quot;}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #0066cc; --background-color: #ffffff;">
-      <h1 class="title">
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
         Sign in to your account
       </h1>
-      <form>
+      <form part="form">
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="email">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-identifier" part="label">
                 Email address
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="email" class="input-field" id="email" name="email" placeholder="you@example.com" required="" type="email" value="">
+              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="password">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-password" part="label">
                 Password
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="current-password" class="input-field" id="password" name="password" required="" type="password" value="">
+              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-primary" type="submit">
-              Sign in
+            <button class="btn btn-primary" part="button button-primary" type="submit">
+              Continue
             </button>
           </template>
         </authhero-node>
       </form>
-      <div class="links">
-        <a class="link link-forgot-password" href="/forgot-password">
-          Forgot password?
-        </a>
-        <a class="link link-signup" href="/register">
-          Create account
-        </a>
+      <div class="links" part="links">
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/forgot-password" part="link">
+            Forgot password?
+          </a>
+        </span>
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/register" part="link">
+            Create account
+          </a>
+        </span>
       </div>
     </div>
   </template>
@@ -170,84 +179,70 @@ exports[`authhero-widget renders login screen from JSON string prop 1`] = `
 `;
 
 exports[`authhero-widget renders login with social providers 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;google&quot;,&quot;type&quot;:&quot;social-button&quot;,&quot;attributes&quot;:{&quot;provider&quot;:&quot;google&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Continue with Google&quot;}},{&quot;id&quot;:&quot;github&quot;,&quot;type&quot;:&quot;social-button&quot;,&quot;attributes&quot;:{&quot;provider&quot;:&quot;github&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Continue with GitHub&quot;}},{&quot;id&quot;:&quot;microsoft&quot;,&quot;type&quot;:&quot;social-button&quot;,&quot;attributes&quot;:{&quot;provider&quot;:&quot;microsoft&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Continue with Microsoft&quot;}},{&quot;id&quot;:&quot;divider&quot;,&quot;type&quot;:&quot;divider&quot;,&quot;meta&quot;:{&quot;label&quot;:&quot;or&quot;}},{&quot;id&quot;:&quot;email&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;email&quot;,&quot;type&quot;:&quot;email&quot;,&quot;required&quot;:true,&quot;autocomplete&quot;:&quot;email&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Email&quot;}},{&quot;id&quot;:&quot;password&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;password&quot;,&quot;type&quot;:&quot;password&quot;,&quot;required&quot;:true,&quot;autocomplete&quot;:&quot;current-password&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Password&quot;}},{&quot;id&quot;:&quot;submit&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;submit&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;meta&quot;:{&quot;links&quot;:[{&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;,&quot;type&quot;:&quot;forgot-password&quot;},{&quot;text&quot;:&quot;Create account&quot;,&quot;href&quot;:&quot;/register&quot;,&quot;type&quot;:&quot;signup&quot;}]}}">
+<authhero-widget screen="{&quot;screen&quot;:&quot;login&quot;,&quot;title&quot;:&quot;Sign in to your account&quot;,&quot;action&quot;:&quot;/api/auth/login&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;components&quot;:[{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;SOCIAL_BUTTON&quot;,&quot;id&quot;:&quot;google&quot;,&quot;config&quot;:{&quot;strategy&quot;:&quot;google-oauth2&quot;,&quot;icon_url&quot;:&quot;https://cdn.auth0.com/marketplace/catalog/content/assets/creators/google/google-avatar.png&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;SOCIAL_BUTTON&quot;,&quot;id&quot;:&quot;github&quot;,&quot;config&quot;:{&quot;strategy&quot;:&quot;github&quot;,&quot;icon_url&quot;:&quot;https://cdn.auth0.com/marketplace/catalog/content/assets/creators/github/github-avatar.png&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;SOCIAL_BUTTON&quot;,&quot;id&quot;:&quot;microsoft&quot;,&quot;config&quot;:{&quot;strategy&quot;:&quot;windowslive&quot;,&quot;icon_url&quot;:&quot;https://cdn.auth0.com/marketplace/catalog/content/assets/creators/microsoft/microsoft-avatar.png&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;SEPARATOR&quot;,&quot;id&quot;:&quot;separator&quot;,&quot;config&quot;:{&quot;text&quot;:&quot;or&quot;}},{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;EMAIL&quot;,&quot;id&quot;:&quot;identifier&quot;,&quot;label&quot;:&quot;Email address&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;email&quot;}},{&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;PASSWORD&quot;,&quot;id&quot;:&quot;password&quot;,&quot;label&quot;:&quot;Password&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;autocomplete&quot;:&quot;current-password&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;id&quot;:&quot;submit&quot;,&quot;config&quot;:{&quot;label&quot;:&quot;Sign in&quot;}}],&quot;links&quot;:[{&quot;id&quot;:&quot;forgot-password&quot;,&quot;text&quot;:&quot;Forgot password?&quot;,&quot;href&quot;:&quot;/forgot-password&quot;},{&quot;id&quot;:&quot;signup&quot;,&quot;text&quot;:&quot;Don't have an account? Sign up&quot;,&quot;href&quot;:&quot;/register&quot;}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #0066cc; --background-color: #ffffff;">
-      <h1 class="title">
-        Sign in
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
+        Sign in to your account
       </h1>
-      <form>
+      <form part="form">
         <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-social btn-social-google" type="button">
-              Continue with Google
-            </button>
-          </template>
+          <template shadowrootmode="open"></template>
+        </authhero-node>
+        <authhero-node>
+          <template shadowrootmode="open"></template>
+        </authhero-node>
+        <authhero-node>
+          <template shadowrootmode="open"></template>
+        </authhero-node>
+        <authhero-node>
+          <template shadowrootmode="open"></template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-social btn-social-github" type="button">
-              Continue with GitHub
-            </button>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-social btn-social-microsoft" type="button">
-              Continue with Microsoft
-            </button>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="divider">
-              <span class="divider-text">
-                or
-              </span>
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="email">
-                Email
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-identifier" part="label">
+                Email address
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="email" class="input-field" id="email" name="email" required="" type="email" value="">
+              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="password">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-password" part="label">
                 Password
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="current-password" class="input-field" id="password" name="password" required="" type="password" value="">
+              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-primary" type="submit">
-              Sign in
+            <button class="btn btn-primary" part="button button-primary" type="submit">
+              Continue
             </button>
           </template>
         </authhero-node>
       </form>
-      <div class="links">
-        <a class="link link-forgot-password" href="/forgot-password">
-          Forgot password?
-        </a>
-        <a class="link link-signup" href="/register">
-          Create account
-        </a>
+      <div class="links" part="links">
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/forgot-password" part="link">
+            Forgot password?
+          </a>
+        </span>
+        <span class="link-wrapper" part="link-wrapper">
+          <a class="link" href="/register" part="link">
+            Don't have an account? Sign up
+          </a>
+        </span>
       </div>
     </div>
   </template>
@@ -255,50 +250,50 @@ exports[`authhero-widget renders login with social providers 1`] = `
 `;
 
 exports[`authhero-widget renders signup screen with all fields 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;signup&quot;,&quot;title&quot;:&quot;Create your account&quot;,&quot;action&quot;:&quot;/api/auth/register&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;nodes&quot;:[{&quot;id&quot;:&quot;name&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;name&quot;,&quot;type&quot;:&quot;text&quot;,&quot;required&quot;:true,&quot;placeholder&quot;:&quot;John Doe&quot;,&quot;autocomplete&quot;:&quot;name&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Full name&quot;}},{&quot;id&quot;:&quot;email&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;email&quot;,&quot;type&quot;:&quot;email&quot;,&quot;required&quot;:true,&quot;placeholder&quot;:&quot;you@example.com&quot;,&quot;autocomplete&quot;:&quot;email&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Email address&quot;}},{&quot;id&quot;:&quot;password&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;password&quot;,&quot;type&quot;:&quot;password&quot;,&quot;required&quot;:true,&quot;minLength&quot;:8,&quot;autocomplete&quot;:&quot;new-password&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Password&quot;,&quot;helperText&quot;:&quot;Must be at least 8 characters&quot;}},{&quot;id&quot;:&quot;password_confirm&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;password_confirm&quot;,&quot;type&quot;:&quot;password&quot;,&quot;required&quot;:true,&quot;autocomplete&quot;:&quot;new-password&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Confirm password&quot;}},{&quot;id&quot;:&quot;terms&quot;,&quot;type&quot;:&quot;input&quot;,&quot;attributes&quot;:{&quot;name&quot;:&quot;terms&quot;,&quot;type&quot;:&quot;checkbox&quot;,&quot;required&quot;:true},&quot;meta&quot;:{&quot;label&quot;:&quot;I agree to the Terms of Service and Privacy Policy&quot;}},{&quot;id&quot;:&quot;submit&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;submit&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Create account&quot;}}],&quot;meta&quot;:{&quot;links&quot;:[{&quot;text&quot;:&quot;Already have an account? Sign in&quot;,&quot;href&quot;:&quot;/login&quot;,&quot;type&quot;:&quot;login&quot;}]}}">
+<authhero-widget screen="{&quot;action&quot;:&quot;/api/auth/register&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;title&quot;:&quot;Create your account&quot;,&quot;components&quot;:[{&quot;id&quot;:&quot;name&quot;,&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;TEXT&quot;,&quot;order&quot;:0,&quot;label&quot;:&quot;Full name&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;placeholder&quot;:&quot;John Doe&quot;}},{&quot;id&quot;:&quot;email&quot;,&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;EMAIL&quot;,&quot;order&quot;:1,&quot;label&quot;:&quot;Email address&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;placeholder&quot;:&quot;you@example.com&quot;}},{&quot;id&quot;:&quot;password&quot;,&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;PASSWORD&quot;,&quot;order&quot;:2,&quot;label&quot;:&quot;Password&quot;,&quot;hint&quot;:&quot;Must be at least 8 characters&quot;,&quot;required&quot;:true,&quot;config&quot;:{&quot;min_length&quot;:8}},{&quot;id&quot;:&quot;password_confirm&quot;,&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;PASSWORD&quot;,&quot;order&quot;:3,&quot;label&quot;:&quot;Confirm password&quot;,&quot;required&quot;:true},{&quot;id&quot;:&quot;terms&quot;,&quot;category&quot;:&quot;FIELD&quot;,&quot;type&quot;:&quot;BOOLEAN&quot;,&quot;order&quot;:4,&quot;label&quot;:&quot;I agree to the Terms of Service and Privacy Policy&quot;,&quot;required&quot;:true},{&quot;id&quot;:&quot;submit&quot;,&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;order&quot;:5,&quot;config&quot;:{&quot;text&quot;:&quot;Create account&quot;}}],&quot;links&quot;:[{&quot;id&quot;:&quot;login&quot;,&quot;text&quot;:&quot;Already have an account?&quot;,&quot;href&quot;:&quot;/login&quot;,&quot;linkText&quot;:&quot;Sign in&quot;}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #0066cc; --background-color: #ffffff;">
-      <h1 class="title">
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
         Create your account
       </h1>
-      <form>
+      <form part="form">
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="name">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-name" part="label">
                 Full name
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="name" class="input-field" id="name" name="name" placeholder="John Doe" required="" type="text" value="">
+              <input class="input-field" id="input-name" name="name" part="input" placeholder="John Doe" required="" type="text" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="email">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-email" part="label">
                 Email address
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="email" class="input-field" id="email" name="email" placeholder="you@example.com" required="" type="email" value="">
+              <input autocomplete="email" class="input-field" id="input-email" name="email" part="input" placeholder="you@example.com" required="" type="email" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="password">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-password" part="label">
                 Password
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="new-password" class="input-field" id="password" minlength="8" name="password" required="" type="password" value="">
-              <span class="helper-text">
+              <input autocomplete="current-password" class="input-field" id="input-password" minlength="8" name="password" part="input" required="" type="password" value="">
+              <span class="helper-text" part="helper-text">
                 Must be at least 8 characters
               </span>
             </div>
@@ -306,22 +301,22 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <div class="input-wrapper">
-              <label class="input-label" htmlfor="password_confirm">
+            <div class="input-wrapper" part="input-wrapper">
+              <label class="input-label" htmlfor="input-password_confirm" part="label">
                 Confirm password
                 <span class="required">
                   *
                 </span>
               </label>
-              <input autocomplete="new-password" class="input-field" id="password_confirm" name="password_confirm" required="" type="password" value="">
+              <input autocomplete="current-password" class="input-field" id="input-password_confirm" name="password_confirm" part="input" required="" type="password" value="">
             </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <label class="checkbox-wrapper">
-              <input name="terms" required="" type="checkbox">
-              <span class="checkbox-label">
+            <label class="checkbox-wrapper" part="checkbox-wrapper">
+              <input name="terms" part="checkbox" required="" type="checkbox">
+              <span class="checkbox-label" part="checkbox-label">
                 I agree to the Terms of Service and Privacy Policy
               </span>
             </label>
@@ -329,16 +324,21 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn btn-primary" type="submit">
+            <button class="btn btn-primary" part="button button-primary" type="submit">
               Create account
             </button>
           </template>
         </authhero-node>
       </form>
-      <div class="links">
-        <a class="link link-login" href="/login">
-          Already have an account? Sign in
-        </a>
+      <div class="links" part="links">
+        <span class="link-wrapper" part="link-wrapper">
+          <span>
+            Already have an account?
+            <a class="link" href="/login" part="link">
+              Sign in
+            </a>
+          </span>
+        </span>
       </div>
     </div>
   </template>
@@ -346,32 +346,41 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
 `;
 
 exports[`authhero-widget renders success screen 1`] = `
-<authhero-widget screen="{&quot;id&quot;:&quot;success&quot;,&quot;title&quot;:&quot;Success!&quot;,&quot;action&quot;:&quot;/&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;messages&quot;:{&quot;success&quot;:&quot;You have successfully signed in.&quot;},&quot;nodes&quot;:[{&quot;id&quot;:&quot;icon&quot;,&quot;type&quot;:&quot;image&quot;,&quot;attributes&quot;:{&quot;src&quot;:&quot;/success-icon.svg&quot;,&quot;alt&quot;:&quot;Success&quot;}},{&quot;id&quot;:&quot;message&quot;,&quot;type&quot;:&quot;text&quot;,&quot;meta&quot;:{&quot;title&quot;:&quot;Welcome back!&quot;,&quot;description&quot;:&quot;You will be redirected to your dashboard shortly.&quot;}},{&quot;id&quot;:&quot;continue&quot;,&quot;type&quot;:&quot;button&quot;,&quot;attributes&quot;:{&quot;type&quot;:&quot;button&quot;},&quot;meta&quot;:{&quot;label&quot;:&quot;Continue to Dashboard&quot;}}]}">
+<authhero-widget screen="{&quot;screen&quot;:&quot;success&quot;,&quot;title&quot;:&quot;Success!&quot;,&quot;action&quot;:&quot;/&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;messages&quot;:[{&quot;type&quot;:&quot;success&quot;,&quot;text&quot;:&quot;You have successfully signed in.&quot;}],&quot;components&quot;:[{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;IMAGE&quot;,&quot;id&quot;:&quot;icon&quot;,&quot;config&quot;:{&quot;src&quot;:&quot;/success-icon.svg&quot;,&quot;alt&quot;:&quot;Success&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;RICH_TEXT&quot;,&quot;id&quot;:&quot;title&quot;,&quot;config&quot;:{&quot;content&quot;:&quot;<h2>Welcome back!</h2>&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;RICH_TEXT&quot;,&quot;id&quot;:&quot;message&quot;,&quot;config&quot;:{&quot;content&quot;:&quot;You will be redirected to your dashboard shortly.&quot;}},{&quot;category&quot;:&quot;BLOCK&quot;,&quot;type&quot;:&quot;NEXT_BUTTON&quot;,&quot;id&quot;:&quot;continue&quot;,&quot;config&quot;:{&quot;label&quot;:&quot;Continue to Dashboard&quot;}}]}">
   <template shadowrootmode="open">
-    <div class="widget-container" style="--primary-color: #0066cc; --background-color: #ffffff;">
-      <h1 class="title">
+    <div class="widget-container" part="container">
+      <h1 class="title" part="title">
         Success!
       </h1>
-      <div class="message message-success">
+      <div class="message message-success" part="message message-success">
         You have successfully signed in.
       </div>
-      <form>
+      <form part="form">
         <authhero-node>
           <template shadowrootmode="open">
-            <img alt="Success" class="image" loading="lazy" src="/success-icon.svg">
+            <img alt="Success" class="image" loading="lazy" part="image" src="/success-icon.svg">
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <h2 class="text-title">
-              Welcome back!
-            </h2>
+            <div class="rich-text" part="rich-text">
+              <h2>
+                Welcome back!
+              </h2>
+            </div>
           </template>
         </authhero-node>
         <authhero-node>
           <template shadowrootmode="open">
-            <button class="btn" type="button">
-              Continue to Dashboard
+            <div class="rich-text" part="rich-text">
+              You will be redirected to your dashboard shortly.
+            </div>
+          </template>
+        </authhero-node>
+        <authhero-node>
+          <template shadowrootmode="open">
+            <button class="btn btn-primary" part="button button-primary" type="submit">
+              Continue
             </button>
           </template>
         </authhero-node>

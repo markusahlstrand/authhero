@@ -56,6 +56,7 @@
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/sanitize-html": "^2.16.0",
     "autoprefixer": "10.4.21",
     "better-sqlite3": "^12.4.1",
     "cssnano": "7.1.2",
@@ -85,7 +86,8 @@
     "i18next": "^25.6.0",
     "libphonenumber-js": "^1.12.25",
     "nanoid": "^5.1.6",
-    "oslo": "^1.2.1"
+    "oslo": "^1.2.1",
+    "sanitize-html": "^2.17.0"
   },
   "peerDependencies": {
     "@authhero/widget": "workspace:*",

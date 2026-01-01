@@ -5,10 +5,10 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FormComponent, UiScreen } from "./types/components";
+import { FormNodeComponent as FormComponent, UiScreen } from "./types/components";
 import { WidgetBranding, WidgetTheme } from "./utils/branding";
 import { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
-export { FormComponent, UiScreen } from "./types/components";
+export { FormNodeComponent as FormComponent, UiScreen } from "./types/components";
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
 export { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export namespace Components {

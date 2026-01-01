@@ -5,25 +5,33 @@
  * the AuthHero widget in Hono applications.
  */
 
-import type { UIScreen, UINode, NodeType, InputType, ButtonType } from '../types/nodes';
+import type {
+  UiScreen,
+  FormComponent,
+  ScreenLink,
+  ComponentMessage,
+  EmailField,
+  PasswordField,
+  TextField,
+  DividerComponent,
+  NextButtonComponent,
+  SocialField,
+  RichTextComponent,
+  ImageComponent,
+} from '../types/components';
 
-export type { UIScreen, UINode, NodeType, InputType, ButtonType };
+// Re-export the types
+export type { UiScreen, FormComponent, ScreenLink, ComponentMessage };
 
 // Local type definitions for convenience
 type ScreenBranding = {
-  logo?: string;
+  logo_url?: string;
   primaryColor?: string;
   backgroundColor?: string;
 };
 
-type ScreenLink = {
-  text: string;
-  href: string;
-  type: 'forgot-password' | 'signup' | 'login' | 'back';
-};
-
 /**
- * Creates a basic login screen configuration
+ * Creates a basic login screen configuration using the new UiScreen format.
  */
 export function createLoginScreen(options: {
   action: string;
@@ -32,68 +40,65 @@ export function createLoginScreen(options: {
   showForgotPassword?: boolean;
   showSignUp?: boolean;
   branding?: ScreenBranding;
-}): UIScreen {
-  const nodes: UINode[] = [
-    {
-      id: 'email',
-      type: 'input',
-      attributes: {
-        name: 'email',
-        type: 'email',
-        required: true,
-        autocomplete: 'email',
-      },
-      meta: {
-        label: 'Email address',
-      },
+}): UiScreen {
+  const components: FormComponent[] = [];
+  let order = 0;
+
+  // Email field
+  components.push({
+    id: 'email',
+    category: 'FIELD',
+    type: 'EMAIL',
+    order: order++,
+    label: 'Email address',
+    required: true,
+    config: {
+      placeholder: 'you@example.com',
     },
-    {
-      id: 'password',
-      type: 'input',
-      attributes: {
-        name: 'password',
-        type: 'password',
-        required: true,
-        autocomplete: 'current-password',
-      },
-      meta: {
-        label: 'Password',
-      },
+  } satisfies EmailField);
+
+  // Password field
+  components.push({
+    id: 'password',
+    category: 'FIELD',
+    type: 'PASSWORD',
+    order: order++,
+    label: 'Password',
+    required: true,
+    config: {
+      placeholder: 'Enter your password',
     },
-    {
-      id: 'submit',
-      type: 'button',
-      attributes: {
-        type: 'submit',
-      },
-      meta: {
-        label: 'Sign in',
-      },
+  } satisfies PasswordField);
+
+  // Submit button
+  components.push({
+    id: 'submit',
+    category: 'BLOCK',
+    type: 'NEXT_BUTTON',
+    order: order++,
+    config: {
+      text: 'Sign in',
     },
-  ];
+  } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
-    nodes.push({
+    components.push({
       id: 'divider',
-      type: 'divider',
-      meta: {
-        label: 'or',
-      },
-    });
+      category: 'BLOCK',
+      type: 'DIVIDER',
+      order: order++,
+    } satisfies DividerComponent);
 
-    options.showSocialProviders.forEach((provider) => {
-      nodes.push({
-        id: `social-${provider}`,
-        type: 'social-button',
-        attributes: {
-          provider,
-        },
-        meta: {
-          label: `Continue with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`,
-        },
-      });
-    });
+    components.push({
+      id: 'social',
+      category: 'FIELD',
+      type: 'SOCIAL',
+      order: order++,
+      config: {
+        providers: options.showSocialProviders,
+      },
+    } satisfies SocialField);
   }
 
   const links: ScreenLink[] = [];
@@ -102,28 +107,23 @@ export function createLoginScreen(options: {
     links.push({
       text: 'Forgot your password?',
       href: '/forgot-password',
-      type: 'forgot-password',
     });
   }
 
   if (options.showSignUp !== false) {
     links.push({
-      text: "Don't have an account? Sign up",
+      text: "Don't have an account?",
       href: '/signup',
-      type: 'signup',
+      linkText: 'Sign up',
     });
   }
 
   return {
-    id: 'login',
     title: options.title || 'Sign in to your account',
     action: options.action,
     method: 'POST',
-    nodes,
-    meta: {
-      branding: options.branding,
-      links,
-    },
+    components,
+    links,
   };
 }
 
@@ -139,99 +139,84 @@ export function createIdentifierScreen(options: {
   showSignUp?: boolean;
   signUpUrl?: string;
   branding?: ScreenBranding;
-}): UIScreen {
-  const nodes: UINode[] = [];
+}): UiScreen {
+  const components: FormComponent[] = [];
+  let order = 0;
 
   // Add logo if provided
   if (options.logoUrl) {
-    nodes.push({
+    components.push({
       id: 'logo',
-      type: 'image',
-      attributes: {
+      category: 'BLOCK',
+      type: 'IMAGE',
+      order: order++,
+      config: {
         src: options.logoUrl,
         alt: `${options.tenantName || 'Company'} Logo`,
       },
-    });
+    } satisfies ImageComponent);
   }
 
   // Email input
-  nodes.push({
+  components.push({
     id: 'email',
-    type: 'input',
-    attributes: {
-      name: 'email',
-      type: 'email',
-      required: true,
+    category: 'FIELD',
+    type: 'EMAIL',
+    order: order++,
+    label: 'Email',
+    required: true,
+    config: {
       placeholder: 'Your email address',
-      autocomplete: 'email',
     },
-    meta: {
-      label: 'Email',
-    },
-  });
+  } satisfies EmailField);
 
   // Continue button
-  nodes.push({
+  components.push({
     id: 'submit',
-    type: 'button',
-    attributes: {
-      type: 'submit',
+    category: 'BLOCK',
+    type: 'NEXT_BUTTON',
+    order: order++,
+    config: {
+      text: 'Continue',
     },
-    meta: {
-      label: 'Continue',
-    },
-  });
+  } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
-    nodes.push({
+    components.push({
       id: 'divider',
-      type: 'divider',
-      meta: {
-        label: 'OR',
-      },
-    });
+      category: 'BLOCK',
+      type: 'DIVIDER',
+      order: order++,
+    } satisfies DividerComponent);
 
-    options.showSocialProviders.forEach((provider) => {
-      nodes.push({
-        id: `social-${provider}`,
-        type: 'social-button',
-        attributes: {
-          provider,
-        },
-        meta: {
-          label: `Continue with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`,
-        },
-      });
-    });
+    components.push({
+      id: 'social',
+      category: 'FIELD',
+      type: 'SOCIAL',
+      order: order++,
+      config: {
+        providers: options.showSocialProviders,
+      },
+    } satisfies SocialField);
   }
 
-  const links: Array<{
-    text: string;
-    href: string;
-    type: 'forgot-password' | 'signup' | 'login' | 'back';
-    linkText?: string;
-  }> = [];
+  const links: ScreenLink[] = [];
 
   if (options.showSignUp !== false) {
     links.push({
       text: "Don't have an account?",
       href: options.signUpUrl || '/signup',
-      type: 'signup',
       linkText: 'Get started',
     });
   }
 
   return {
-    id: 'identifier',
     title: options.title || `Sign in to ${options.tenantName || 'your account'}`,
     action: options.action,
     method: 'POST',
-    nodes,
-    meta: {
-      branding: options.branding,
-      links,
-    },
+    components,
+    links,
   };
 }
 
@@ -243,7 +228,7 @@ export function createSignupScreen(options: {
   title?: string;
   fields?: Array<{
     name: string;
-    type?: InputType;
+    type?: 'email' | 'password' | 'text' | 'tel' | 'url' | 'number' | 'date';
     label: string;
     required?: boolean;
     placeholder?: string;
@@ -251,10 +236,10 @@ export function createSignupScreen(options: {
   showSocialProviders?: string[];
   showLogin?: boolean;
   branding?: ScreenBranding;
-}): UIScreen {
+}): UiScreen {
   const defaultFields: Array<{
     name: string;
-    type: InputType;
+    type: 'email' | 'password' | 'text';
     label: string;
     required: boolean;
     placeholder?: string;
@@ -270,76 +255,99 @@ export function createSignupScreen(options: {
   ];
 
   const fields = options.fields || defaultFields;
+  const components: FormComponent[] = [];
+  let order = 0;
 
-  const nodes: UINode[] = fields.map((field, index) => ({
-    id: field.name || `field-${index}`,
-    type: 'input' as NodeType,
-    attributes: {
-      name: field.name,
-      type: field.type || 'text',
-      required: field.required ?? true,
-      placeholder: field.placeholder,
-    },
-    meta: {
-      label: field.label,
-    },
-  }));
+  // Map fields to components
+  fields.forEach((field) => {
+    const fieldType = field.type || 'text';
 
-  nodes.push({
-    id: 'submit',
-    type: 'button',
-    attributes: {
-      type: 'submit',
-    },
-    meta: {
-      label: 'Create account',
-    },
+    if (fieldType === 'email') {
+      components.push({
+        id: field.name,
+        category: 'FIELD',
+        type: 'EMAIL',
+        order: order++,
+        label: field.label,
+        required: field.required ?? true,
+        config: {
+          placeholder: field.placeholder,
+        },
+      } satisfies EmailField);
+    } else if (fieldType === 'password') {
+      components.push({
+        id: field.name,
+        category: 'FIELD',
+        type: 'PASSWORD',
+        order: order++,
+        label: field.label,
+        required: field.required ?? true,
+        config: {
+          placeholder: field.placeholder,
+        },
+      } satisfies PasswordField);
+    } else {
+      components.push({
+        id: field.name,
+        category: 'FIELD',
+        type: 'TEXT',
+        order: order++,
+        label: field.label,
+        required: field.required ?? true,
+        config: {
+          placeholder: field.placeholder,
+        },
+      } satisfies TextField);
+    }
   });
+
+  // Submit button
+  components.push({
+    id: 'submit',
+    category: 'BLOCK',
+    type: 'NEXT_BUTTON',
+    order: order++,
+    config: {
+      text: 'Create account',
+    },
+  } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
-    nodes.push({
+    components.push({
       id: 'divider',
-      type: 'divider',
-      meta: {
-        label: 'or',
-      },
-    });
+      category: 'BLOCK',
+      type: 'DIVIDER',
+      order: order++,
+    } satisfies DividerComponent);
 
-    options.showSocialProviders.forEach((provider) => {
-      nodes.push({
-        id: `social-${provider}`,
-        type: 'social-button',
-        attributes: {
-          provider,
-        },
-        meta: {
-          label: `Continue with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`,
-        },
-      });
-    });
+    components.push({
+      id: 'social',
+      category: 'FIELD',
+      type: 'SOCIAL',
+      order: order++,
+      config: {
+        providers: options.showSocialProviders,
+      },
+    } satisfies SocialField);
   }
 
   const links: ScreenLink[] = [];
 
   if (options.showLogin !== false) {
     links.push({
-      text: 'Already have an account? Sign in',
+      text: 'Already have an account?',
       href: '/login',
-      type: 'login',
+      linkText: 'Sign in',
     });
   }
 
   return {
-    id: 'signup',
     title: options.title || 'Create your account',
     action: options.action,
     method: 'POST',
-    nodes,
-    meta: {
-      branding: options.branding,
-      links,
-    },
+    components,
+    links,
   };
 }
 
@@ -352,61 +360,64 @@ export function createMfaScreen(options: {
   codeLength?: number;
   method?: 'totp' | 'sms' | 'email';
   branding?: ScreenBranding;
-}): UIScreen {
+}): UiScreen {
+  const components: FormComponent[] = [];
+  let order = 0;
+
+  const description =
+    options.method === 'sms'
+      ? 'Enter the code sent to your phone'
+      : options.method === 'email'
+        ? 'Enter the code sent to your email'
+        : 'Enter the code from your authenticator app';
+
+  // Description text
+  components.push({
+    id: 'description',
+    category: 'BLOCK',
+    type: 'RICH_TEXT',
+    order: order++,
+    config: {
+      content: `<p>${description}</p>`,
+    },
+  } satisfies RichTextComponent);
+
+  // Code input
+  components.push({
+    id: 'code',
+    category: 'FIELD',
+    type: 'TEXT',
+    order: order++,
+    label: 'Verification code',
+    required: true,
+    config: {
+      placeholder: '000000',
+      max_length: options.codeLength || 6,
+    },
+  } satisfies TextField);
+
+  // Submit button
+  components.push({
+    id: 'submit',
+    category: 'BLOCK',
+    type: 'NEXT_BUTTON',
+    order: order++,
+    config: {
+      text: 'Verify',
+    },
+  } satisfies NextButtonComponent);
+
   return {
-    id: 'mfa',
     title: options.title || 'Two-factor authentication',
     action: options.action,
     method: 'POST',
-    nodes: [
+    components,
+    links: [
       {
-        id: 'description',
-        type: 'text',
-        meta: {
-          description:
-            options.method === 'sms'
-              ? 'Enter the code sent to your phone'
-              : options.method === 'email'
-                ? 'Enter the code sent to your email'
-                : 'Enter the code from your authenticator app',
-        },
-      },
-      {
-        id: 'code',
-        type: 'input',
-        attributes: {
-          name: 'code',
-          type: 'otp',
-          required: true,
-          maxLength: options.codeLength || 6,
-          autocomplete: 'one-time-code',
-          pattern: `[0-9]{${options.codeLength || 6}}`,
-        },
-        meta: {
-          label: 'Verification code',
-        },
-      },
-      {
-        id: 'submit',
-        type: 'button',
-        attributes: {
-          type: 'submit',
-        },
-        meta: {
-          label: 'Verify',
-        },
+        text: 'Back to login',
+        href: '/login',
       },
     ],
-    meta: {
-      branding: options.branding,
-      links: [
-        {
-          text: 'Back to login',
-          href: '/login',
-          type: 'back',
-        },
-      ],
-    },
   };
 }
 
@@ -417,99 +428,136 @@ export function createForgotPasswordScreen(options: {
   action: string;
   title?: string;
   branding?: ScreenBranding;
-}): UIScreen {
+}): UiScreen {
+  const components: FormComponent[] = [];
+  let order = 0;
+
+  // Description text
+  components.push({
+    id: 'description',
+    category: 'BLOCK',
+    type: 'RICH_TEXT',
+    order: order++,
+    config: {
+      content: "<p>Enter your email address and we'll send you a link to reset your password.</p>",
+    },
+  } satisfies RichTextComponent);
+
+  // Email input
+  components.push({
+    id: 'email',
+    category: 'FIELD',
+    type: 'EMAIL',
+    order: order++,
+    label: 'Email address',
+    required: true,
+  } satisfies EmailField);
+
+  // Submit button
+  components.push({
+    id: 'submit',
+    category: 'BLOCK',
+    type: 'NEXT_BUTTON',
+    order: order++,
+    config: {
+      text: 'Send reset link',
+    },
+  } satisfies NextButtonComponent);
+
   return {
-    id: 'forgot-password',
     title: options.title || 'Reset your password',
     action: options.action,
     method: 'POST',
-    nodes: [
+    components,
+    links: [
       {
-        id: 'description',
-        type: 'text',
-        meta: {
-          description: "Enter your email address and we'll send you a link to reset your password.",
-        },
-      },
-      {
-        id: 'email',
-        type: 'input',
-        attributes: {
-          name: 'email',
-          type: 'email',
-          required: true,
-          autocomplete: 'email',
-        },
-        meta: {
-          label: 'Email address',
-        },
-      },
-      {
-        id: 'submit',
-        type: 'button',
-        attributes: {
-          type: 'submit',
-        },
-        meta: {
-          label: 'Send reset link',
-        },
+        text: 'Back to login',
+        href: '/login',
       },
     ],
-    meta: {
-      branding: options.branding,
-      links: [
-        {
-          text: 'Back to login',
-          href: '/login',
-          type: 'back',
-        },
-      ],
-    },
   };
 }
 
 /**
  * Adds an error message to a screen
  */
-export function withError(screen: UIScreen, error: string): UIScreen {
+export function withError(screen: UiScreen, error: string): UiScreen {
   return {
     ...screen,
-    messages: {
-      ...screen.messages,
-      error,
-    },
+    messages: [
+      ...(screen.messages || []),
+      { text: error, type: 'error' },
+    ],
   };
 }
 
 /**
  * Adds a success message to a screen
  */
-export function withSuccess(screen: UIScreen, success: string): UIScreen {
+export function withSuccess(screen: UiScreen, success: string): UiScreen {
   return {
     ...screen,
-    messages: {
-      ...screen.messages,
-      success,
-    },
+    messages: [
+      ...(screen.messages || []),
+      { text: success, type: 'success' },
+    ],
   };
 }
 
 /**
- * Adds a field-level error to a specific node
+ * Recursively add an error message to a component by ID.
+ * Handles nested components if they have a 'components' or 'children' property.
  */
-export function withFieldError(screen: UIScreen, nodeId: string, error: string): UIScreen {
+function addErrorToComponent<T extends { id: string; messages?: Array<{ text: string; type: string }> }>(
+  component: T,
+  componentId: string,
+  error: string
+): T {
+  // Check if this is the target component
+  if (component.id === componentId) {
+    return {
+      ...component,
+      messages: [
+        ...((component.messages as Array<{ text: string; type: string }>) || []),
+        { text: error, type: 'error' },
+      ],
+    };
+  }
+
+  // Check for nested components (new format might use 'components')
+  const componentWithChildren = component as T & { components?: T[]; children?: T[] };
+  
+  if (componentWithChildren.components?.length) {
+    return {
+      ...component,
+      components: componentWithChildren.components.map((child) =>
+        addErrorToComponent(child, componentId, error)
+      ),
+    } as T;
+  }
+
+  // Check for nested children (deprecated UINode format)
+  if (componentWithChildren.children?.length) {
+    return {
+      ...component,
+      children: componentWithChildren.children.map((child) =>
+        addErrorToComponent(child, componentId, error)
+      ),
+    } as T;
+  }
+
+  return component;
+}
+
+/**
+ * Adds a field-level error to a specific component.
+ * Recursively searches nested components/children.
+ */
+export function withFieldError(screen: UiScreen, componentId: string, error: string): UiScreen {
   return {
     ...screen,
-    nodes: screen.nodes.map((node: UINode) =>
-      node.id === nodeId
-        ? {
-            ...node,
-            messages: {
-              ...node.messages,
-              error,
-            },
-          }
-        : node
+    components: screen.components.map((component) =>
+      addErrorToComponent(component, componentId, error)
     ),
   };
 }

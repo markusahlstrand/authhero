@@ -1,9 +1,36 @@
 import type { FC } from "hono/jsx";
+import sanitizeHtmlLib from "sanitize-html";
 import Layout from "./Layout";
 import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
 import type { FormNodeComponent } from "@authhero/adapter-interfaces";
 import Button from "./Button";
 import Icon from "./Icon";
+
+/**
+ * Sanitize HTML content to prevent XSS attacks.
+ * While form content comes from trusted admin sources (management API),
+ * this provides defense-in-depth against compromised admin accounts.
+ */
+function sanitizeHtml(html: string): string {
+  return sanitizeHtmlLib(html, {
+    allowedTags: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'br', 'hr',
+      'ul', 'ol', 'li',
+      'strong', 'b', 'em', 'i', 'u', 's', 'mark',
+      'a', 'span', 'div',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'blockquote', 'pre', 'code',
+      'img',
+    ],
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height'],
+      '*': ['class', 'id', 'style'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+  });
+}
 
 export type FormNodePageProps = {
   theme: Theme | null;
@@ -18,10 +45,11 @@ export type FormNodePageProps = {
 
 type RichTextComponentProps = Extract<FormNodeComponent, { type: "RICH_TEXT" }>;
 const RichTextComponent = (comp: RichTextComponentProps) => {
+  const sanitizedContent = sanitizeHtml(comp.config?.content ?? "");
   return (
     <div
       className="rich-text mb-6 prose prose-gray max-w-none [&>*:last-child]:mb-0 [&_h1]:mb-6 [&_h2]:mb-6"
-      dangerouslySetInnerHTML={{ __html: comp.config?.content ?? "" }}
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
       key={comp.id}
     />
   );
@@ -29,6 +57,7 @@ const RichTextComponent = (comp: RichTextComponentProps) => {
 
 type LegalComponentProps = Extract<FormNodeComponent, { type: "LEGAL" }>;
 const LegalComponent = (comp: LegalComponentProps) => {
+  const sanitizedText = sanitizeHtml(comp.config?.text ?? "");
   return (
     <div key={comp.id} className="flex items-center gap-2">
       <input
@@ -39,7 +68,7 @@ const LegalComponent = (comp: LegalComponentProps) => {
         id={comp.id}
       />
       <span className="text-base leading-tight">
-        <span dangerouslySetInnerHTML={{ __html: comp.config?.text ?? "" }} />
+        <span dangerouslySetInnerHTML={{ __html: sanitizedText }} />
       </span>
     </div>
   );

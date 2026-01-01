@@ -1,100 +1,75 @@
 {
-  "id": "login",
-  "title": "Sign in",
+  "screen": "login",
+  "title": "Sign in to your account",
   "action": "/api/auth/login",
   "method": "POST",
-  "nodes": [
+  "components": [
     {
-      "type": "input",
-      "group": "oidc",
-      "attributes": {
-        "node_type": "input",
-        "name": "provider",
-        "type": "submit",
-        "value": "google"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010002, "text": "Continue with Google", "type": "info" }
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "google",
+      "config": {
+        "strategy": "google-oauth2",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/google/google-avatar.png"
       }
     },
     {
-      "type": "input",
-      "group": "oidc",
-      "attributes": {
-        "node_type": "input",
-        "name": "provider",
-        "type": "submit",
-        "value": "github"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010002, "text": "Continue with GitHub", "type": "info" }
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "github",
+      "config": {
+        "strategy": "github",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/github/github-avatar.png"
       }
     },
     {
-      "type": "input",
-      "group": "oidc",
-      "attributes": {
-        "node_type": "input",
-        "name": "provider",
-        "type": "submit",
-        "value": "microsoft"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010002, "text": "Continue with Microsoft", "type": "info" }
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "microsoft",
+      "config": {
+        "strategy": "windowslive",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/microsoft/microsoft-avatar.png"
       }
     },
     {
-      "type": "input",
-      "group": "default",
-      "attributes": {
-        "node_type": "input",
-        "name": "identifier",
-        "type": "email",
-        "required": true,
+      "category": "BLOCK",
+      "type": "SEPARATOR",
+      "id": "separator",
+      "config": {
+        "text": "or"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "EMAIL",
+      "id": "identifier",
+      "label": "Email address",
+      "required": true,
+      "config": {
         "autocomplete": "email"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070004, "text": "Email", "type": "info" }
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "password",
-        "type": "password",
-        "required": true,
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "id": "password",
+      "label": "Password",
+      "required": true,
+      "config": {
         "autocomplete": "current-password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1070001, "text": "Password", "type": "info" }
       }
     },
     {
-      "type": "input",
-      "group": "password",
-      "attributes": {
-        "node_type": "input",
-        "name": "method",
-        "type": "submit",
-        "value": "password"
-      },
-      "messages": [],
-      "meta": {
-        "label": { "id": 1010001, "text": "Sign in", "type": "info" }
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Sign in"
       }
     }
   ],
-  "ui": {
-    "links": [
-      { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" },
-      { "id": "signup", "text": "Create account", "href": "/register" }
-    ]
-  }
+  "links": [
+    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" },
+    { "id": "signup", "text": "Don't have an account? Sign up", "href": "/register" }
+  ]
 }

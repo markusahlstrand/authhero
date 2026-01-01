@@ -2,6 +2,104 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
+ * Escape a string for use in JavaScript string literals
+ */
+function escapeJs(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/</g, "\\x3c")
+    .replace(/>/g, "\\x3e");
+}
+
+/**
+ * Validate and sanitize a URL for use in href/src attributes
+ * Returns empty string if URL is invalid or uses dangerous protocol
+ */
+function sanitizeUrl(url: string | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    // Only allow http, https, and data (for favicons) protocols
+    if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
+      return "";
+    }
+    return escapeHtml(url);
+  } catch {
+    // If it's a relative URL, allow it after escaping
+    if (url.startsWith("/")) {
+      return escapeHtml(url);
+    }
+    return "";
+  }
+}
+
+/**
+ * Sanitize CSS color value - only allow safe color formats
+ */
+function sanitizeCssColor(color: string | undefined): string {
+  if (!color) return "";
+  // Allow: hex colors, rgb/rgba, hsl/hsla, named colors
+  const safeColorPattern =
+    /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
+  if (safeColorPattern.test(color.trim())) {
+    return color.trim();
+  }
+  return "";
+}
+
+/**
+ * Build a CSS background value from page_background object
+ */
+function buildPageBackground(
+  pageBackground:
+    | {
+        type?: string;
+        start?: string;
+        end?: string;
+        angle_deg?: number;
+      }
+    | undefined,
+): string {
+  if (!pageBackground) return "#f5f5f5";
+
+  const { type, start, end, angle_deg } = pageBackground;
+
+  // Handle gradient backgrounds
+  if (type === "linear-gradient" && start && end) {
+    const sanitizedStart = sanitizeCssColor(start);
+    const sanitizedEnd = sanitizeCssColor(end);
+    if (sanitizedStart && sanitizedEnd) {
+      const angle = typeof angle_deg === "number" ? angle_deg : 180;
+      return `linear-gradient(${angle}deg, ${sanitizedStart}, ${sanitizedEnd})`;
+    }
+  }
+
+  // Handle solid color (use start as the color)
+  if (start) {
+    const sanitizedColor = sanitizeCssColor(start);
+    if (sanitizedColor) return sanitizedColor;
+  }
+
+  return "#f5f5f5";
+}
+
 export const flowWidgetRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -39,25 +137,31 @@ export const flowWidgetRoutes = new OpenAPIHono<{
     const baseUrl = new URL(ctx.req.url).origin;
     const flowApiUrl = `${baseUrl}/u/flow/${formId}/screen?state=${encodeURIComponent(state)}`;
 
-    // Convert branding to CSS variables
+    // Convert branding to CSS variables with sanitization
     const cssVariables: string[] = [];
-    if (branding?.colors?.primary) {
-      cssVariables.push(`--ah-color-primary: ${branding.colors.primary}`);
+    const primaryColor = sanitizeCssColor(branding?.colors?.primary);
+    if (primaryColor) {
+      cssVariables.push(`--ah-color-primary: ${primaryColor}`);
     }
-    if (branding?.colors?.page_background) {
-      cssVariables.push(
-        `--ah-widget-background: ${branding.colors.page_background}`,
-      );
-    }
+
+    // Build page background (handles gradient objects)
+    const pageBackground = buildPageBackground(branding?.colors?.page_background);
+
+    // Sanitize URLs
+    const faviconUrl = sanitizeUrl(branding?.favicon_url);
+    const fontUrl = sanitizeUrl(branding?.font?.url);
+
+    // Escape values for HTML context
+    const clientName = escapeHtml(client.name || "AuthHero");
 
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in - ${client.name || "AuthHero"}</title>
-  ${branding?.favicon_url ? `<link rel="icon" href="${branding.favicon_url}">` : ""}
-  ${branding?.font?.url ? `<link rel="stylesheet" href="${branding.font.url}">` : ""}
+  <title>Sign in - ${clientName}</title>
+  ${faviconUrl ? `<link rel="icon" href="${faviconUrl}">` : ""}
+  ${fontUrl ? `<link rel="stylesheet" href="${fontUrl}">` : ""}
   <style>
     * {
       box-sizing: border-box;
@@ -70,8 +174,8 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       display: flex;
       align-items: center;
       justify-content: center;
-      background: ${branding?.colors?.page_background || "#f5f5f5"};
-      font-family: ${branding?.font?.url ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
+      background: ${pageBackground || "#f5f5f5"};
+      font-family: ${fontUrl ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
       padding: 20px;
     }
     
@@ -105,7 +209,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
 
   <script type="module">
     const widget = document.getElementById('widget');
-    const flowApiUrl = '${flowApiUrl}';
+    const flowApiUrl = '${escapeJs(flowApiUrl)}';
     let currentNodeId = null;
     
     // Fetch and render the current screen
@@ -194,7 +298,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       // Redirect to the social login endpoint
       const socialUrl = '/authorize?' + new URLSearchParams({
         connection: provider,
-        state: '${state}',
+        state: '${escapeJs(state)}',
       }).toString();
       window.location.href = socialUrl;
     }
@@ -218,7 +322,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       
       // Handle internal links
       if (href.startsWith('/u/')) {
-        window.location.href = href + '?state=${state}';
+        window.location.href = href + '?state=${escapeJs(state)}';
       } else {
         window.location.href = href;
       }
