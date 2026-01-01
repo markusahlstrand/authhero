@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.113.0
+
+### Minor Changes
+
+- d967833: Add a stencil-js widget for login
+
 ## 0.112.0
 
 ### Minor Changes
