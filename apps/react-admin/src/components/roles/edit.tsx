@@ -268,6 +268,26 @@ const AddRolePermissionButton = () => {
                     </li>
                   )}
                 />
+                {!loadingPermissions && availablePermissions.length > 0 && (
+                  <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setSelectedPermissions([...availablePermissions])}
+                      disabled={selectedPermissions.length === availablePermissions.length}
+                    >
+                      Select All ({availablePermissions.length})
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setSelectedPermissions([])}
+                      disabled={selectedPermissions.length === 0}
+                    >
+                      Clear Selection
+                    </Button>
+                  </Box>
+                )}
               </Box>
 
               {!loadingPermissions && availablePermissions.length === 0 && (

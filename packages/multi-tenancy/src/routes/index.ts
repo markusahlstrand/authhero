@@ -1,2 +1,1 @@
-export { createTenantsRouter } from "./tenants";
-export { createTenantsOpenAPIRouter } from "./tenants-openapi";
+export { createTenantsOpenAPIRouter } from "./tenants";

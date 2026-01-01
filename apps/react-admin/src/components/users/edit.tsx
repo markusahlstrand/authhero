@@ -988,85 +988,105 @@ const UserRolesTable = ({
 
   return (
     <Box sx={{ mt: 2 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ backgroundColor: "#f5f5f5" }}>
-            <th
-              style={{
+      <Box component="table" sx={{ width: "100%", borderCollapse: "collapse" }}>
+        <Box component="thead" sx={{ bgcolor: "action.hover" }}>
+          <tr>
+            <Box
+              component="th"
+              sx={{
                 padding: "12px",
                 textAlign: "left",
-                borderBottom: "1px solid #ddd",
+                borderBottom: 1,
+                borderColor: "divider",
               }}
             >
               Role
-            </th>
-            <th
-              style={{
+            </Box>
+            <Box
+              component="th"
+              sx={{
                 padding: "12px",
                 textAlign: "left",
-                borderBottom: "1px solid #ddd",
+                borderBottom: 1,
+                borderColor: "divider",
               }}
             >
               Description
-            </th>
-            <th
-              style={{
+            </Box>
+            <Box
+              component="th"
+              sx={{
                 padding: "12px",
                 textAlign: "left",
-                borderBottom: "1px solid #ddd",
+                borderBottom: 1,
+                borderColor: "divider",
               }}
             >
               Organization
-            </th>
-            <th
-              style={{
+            </Box>
+            <Box
+              component="th"
+              sx={{
                 padding: "12px",
                 textAlign: "left",
-                borderBottom: "1px solid #ddd",
+                borderBottom: 1,
+                borderColor: "divider",
               }}
             >
               ID
-            </th>
-            <th
-              style={{
+            </Box>
+            <Box
+              component="th"
+              sx={{
                 padding: "12px",
                 textAlign: "left",
-                borderBottom: "1px solid #ddd",
+                borderBottom: 1,
+                borderColor: "divider",
               }}
             >
               Actions
-            </th>
+            </Box>
           </tr>
-        </thead>
+        </Box>
         <tbody>
           {roles.map((role) => (
-            <tr
+            <Box
+              component="tr"
               key={`${role.id}-${role.organization_id || "global"}`}
-              style={{ borderBottom: "1px solid #eee" }}
+              sx={{ borderBottom: 1, borderColor: "divider" }}
             >
-              <td style={{ padding: "12px" }}>{role.name}</td>
-              <td style={{ padding: "12px" }}>{role.description || "-"}</td>
-              <td style={{ padding: "12px" }}>
-                <span
-                  style={{
-                    color: role.role_context === "global" ? "#666" : "#1976d2",
+              <Box component="td" sx={{ padding: "12px" }}>
+                {role.name}
+              </Box>
+              <Box component="td" sx={{ padding: "12px" }}>
+                {role.description || "-"}
+              </Box>
+              <Box component="td" sx={{ padding: "12px" }}>
+                <Box
+                  component="span"
+                  sx={{
+                    color:
+                      role.role_context === "global"
+                        ? "text.secondary"
+                        : "primary.main",
                     fontStyle:
                       role.role_context === "global" ? "italic" : "normal",
                   }}
                 >
                   {role.organization_name}
-                </span>
-              </td>
-              <td
-                style={{
+                </Box>
+              </Box>
+              <Box
+                component="td"
+                sx={{
                   padding: "12px",
                   fontFamily: "monospace",
                   fontSize: "0.9em",
                 }}
               >
                 {role.id}
-              </td>
-              <td style={{ padding: "12px" }}>
+              </Box>
+              <Box component="td" sx={{ padding: "12px" }}>
                 <IconButton
                   onClick={() => handleRemoveRole(role)}
                   color="error"
@@ -1075,21 +1095,26 @@ const UserRolesTable = ({
                 >
                   <DeleteIcon />
                 </IconButton>
-              </td>
-            </tr>
+              </Box>
+            </Box>
           ))}
           {roles.length === 0 && (
             <tr>
-              <td
+              <Box
+                component="td"
                 colSpan={5}
-                style={{ padding: "24px", textAlign: "center", color: "#666" }}
+                sx={{
+                  padding: "24px",
+                  textAlign: "center",
+                  color: "text.secondary",
+                }}
               >
                 No roles assigned
-              </td>
+              </Box>
             </tr>
           )}
         </tbody>
-      </table>
+      </Box>
     </Box>
   );
 };

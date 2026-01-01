@@ -195,6 +195,9 @@ export function createResourceServerSyncHooks(
                 existing.id,
                 dataWithIsSystem,
               );
+            } else {
+              // Create if it doesn't exist on the target tenant
+              await adapters.resourceServers.create(tenantId, dataWithIsSystem);
             }
           }
         } catch (error) {
