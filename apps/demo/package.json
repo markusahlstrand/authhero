@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@authhero/kysely-adapter": "workspace:^",
+    "@authhero/widget": "workspace:^",
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^0.19.2",
     "@peculiar/x509": "^1.13.0",

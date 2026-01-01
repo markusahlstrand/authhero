@@ -1,0 +1,40 @@
+{
+  "screen": "mfa-totp",
+  "title": "Two-factor authentication",
+  "action": "/api/auth/mfa/verify",
+  "method": "POST",
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "info",
+      "config": {
+        "content": "Enter the 6-digit code from your authenticator app"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "TEXT",
+      "id": "totp_code",
+      "label": "Verification code",
+      "required": true,
+      "config": {
+        "maxlength": 6,
+        "pattern": "[0-9]{6}",
+        "autocomplete": "one-time-code"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Verify"
+      }
+    }
+  ],
+  "links": [
+    { "id": "backup", "text": "Use a backup code instead", "href": "/mfa/backup" },
+    { "id": "back", "text": "Back to login", "href": "/login" }
+  ]
+}

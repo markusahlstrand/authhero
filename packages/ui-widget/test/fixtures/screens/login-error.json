@@ -1,0 +1,44 @@
+{
+  "screen": "login",
+  "title": "Sign in to your account",
+  "action": "/api/auth/login",
+  "method": "POST",
+  "messages": [
+    { "type": "error", "text": "Invalid credentials. Please try again." }
+  ],
+  "components": [
+    {
+      "category": "FIELD",
+      "type": "EMAIL",
+      "id": "identifier",
+      "label": "Email address",
+      "required": true,
+      "value": "user@example.com",
+      "config": {
+        "autocomplete": "email"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "id": "password",
+      "label": "Password",
+      "required": true,
+      "error": "The password you entered is incorrect",
+      "config": {
+        "autocomplete": "current-password"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Sign in"
+      }
+    }
+  ],
+  "links": [
+    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" }
+  ]
+}

@@ -1,0 +1,139 @@
+/**
+ * AuthHero Widget - CSS Custom Properties (Design Tokens)
+ * 
+ * These variables can be overridden by consumers to customize the widget.
+ * Set these on the `authhero-widget` element or a parent element.
+ * 
+ * Example:
+ *   authhero-widget {
+ *     --ah-color-primary: #6366f1;
+ *     --ah-radius-md: 12px;
+ *   }
+ */
+
+:root {
+  /* ==========================================================================
+     Colors
+     ========================================================================== */
+  
+  /* Primary brand color */
+  --ah-color-primary: #0066cc;
+  --ah-color-primary-hover: color-mix(in srgb, var(--ah-color-primary) 85%, black);
+  --ah-color-primary-focus-ring: color-mix(in srgb, var(--ah-color-primary) 20%, transparent);
+  
+  /* Text colors */
+  --ah-color-text: #1f2937;
+  --ah-color-text-muted: #6b7280;
+  --ah-color-text-label: #374151;
+  --ah-color-text-on-primary: #ffffff;
+  
+  /* Background colors */
+  --ah-color-bg: #ffffff;
+  --ah-color-bg-muted: #f9fafb;
+  --ah-color-bg-disabled: #f3f4f6;
+  
+  /* Border colors */
+  --ah-color-border: #d1d5db;
+  --ah-color-border-muted: #e5e7eb;
+  
+  /* Semantic colors */
+  --ah-color-error: #dc2626;
+  --ah-color-error-bg: #fee2e2;
+  --ah-color-error-border: #fecaca;
+  
+  --ah-color-success: #16a34a;
+  --ah-color-success-bg: #dcfce7;
+  --ah-color-success-border: #bbf7d0;
+  
+  --ah-color-info: #0284c7;
+  --ah-color-info-bg: #e0f2fe;
+  --ah-color-info-border: #bae6fd;
+
+  /* ==========================================================================
+     Typography
+     ========================================================================== */
+  
+  --ah-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  
+  --ah-font-size-xs: 0.75rem;    /* 12px */
+  --ah-font-size-sm: 0.875rem;   /* 14px */
+  --ah-font-size-base: 1rem;     /* 16px */
+  --ah-font-size-lg: 1.125rem;   /* 18px */
+  --ah-font-size-xl: 1.25rem;    /* 20px */
+  --ah-font-size-2xl: 1.5rem;    /* 24px */
+  
+  --ah-font-weight-normal: 400;
+  --ah-font-weight-medium: 500;
+  --ah-font-weight-semibold: 600;
+  --ah-font-weight-bold: 700;
+  
+  --ah-line-height-tight: 1.25;
+  --ah-line-height-normal: 1.5;
+
+  /* ==========================================================================
+     Spacing
+     ========================================================================== */
+  
+  --ah-space-1: 0.25rem;   /* 4px */
+  --ah-space-2: 0.5rem;    /* 8px */
+  --ah-space-3: 0.75rem;   /* 12px */
+  --ah-space-4: 1rem;      /* 16px */
+  --ah-space-5: 1.25rem;   /* 20px */
+  --ah-space-6: 1.5rem;    /* 24px */
+  --ah-space-8: 2rem;      /* 32px */
+
+  /* ==========================================================================
+     Border Radius
+     ========================================================================== */
+  
+  --ah-radius-sm: 4px;
+  --ah-radius-md: 6px;
+  --ah-radius-lg: 8px;
+  --ah-radius-xl: 12px;
+  --ah-radius-full: 9999px;
+
+  /* ==========================================================================
+     Shadows
+     ========================================================================== */
+  
+  --ah-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ah-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --ah-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --ah-shadow-card: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  /* ==========================================================================
+     Transitions
+     ========================================================================== */
+  
+  --ah-transition-fast: 150ms ease;
+  --ah-transition-base: 200ms ease;
+  --ah-transition-slow: 300ms ease;
+
+  /* ==========================================================================
+     Component-Specific
+     ========================================================================== */
+  
+  /* Widget container */
+  --ah-widget-max-width: 400px;
+  --ah-widget-padding: var(--ah-space-8);
+  --ah-widget-radius: var(--ah-radius-lg);
+  --ah-widget-shadow: var(--ah-shadow-card);
+  
+  /* Inputs */
+  --ah-input-height: auto;
+  --ah-input-padding-x: var(--ah-space-4);
+  --ah-input-padding-y: var(--ah-space-3);
+  --ah-input-radius: var(--ah-radius-md);
+  --ah-input-border-width: 1px;
+  
+  /* Buttons */
+  --ah-btn-height: auto;
+  --ah-btn-padding-x: var(--ah-space-6);
+  --ah-btn-padding-y: var(--ah-space-3);
+  --ah-btn-radius: var(--ah-radius-lg);
+  --ah-btn-font-weight: var(--ah-font-weight-medium);
+  
+  /* Logo */
+  --ah-logo-size: 48px;
+  --ah-logo-radius: var(--ah-radius-lg);
+}

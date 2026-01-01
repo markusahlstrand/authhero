@@ -1,0 +1,82 @@
+/**
+ * AuthHero Widget - Theme Presets
+ * 
+ * Pre-built theme configurations that override CSS custom properties.
+ * Apply a theme class to the widget or a parent element.
+ * 
+ * Note: For production use, branding and theme should be configured via
+ * the AuthHero API and passed to the widget via the `branding` and `theme` props.
+ * These presets are provided for quick prototyping and demos.
+ * 
+ * Example:
+ *   <authhero-widget class="ah-theme-minimal"></authhero-widget>
+ */
+
+/* ==========================================================================
+   Default Theme (Applied automatically)
+   ========================================================================== */
+
+/* No overrides needed - uses base variables */
+
+
+/* ==========================================================================
+   Minimal Theme
+   A cleaner, more minimal design with subtle styling
+   ========================================================================== */
+
+.ah-theme-minimal {
+  --ah-widget-shadow: none;
+  --ah-widget-radius: 0;
+  --ah-input-radius: var(--ah-radius-sm);
+  --ah-btn-radius: var(--ah-radius-sm);
+  --ah-color-border: #e5e7eb;
+  --ah-shadow-card: none;
+}
+
+
+/* ==========================================================================
+   Rounded Theme
+   Extra rounded corners for a friendly feel
+   ========================================================================== */
+
+.ah-theme-rounded {
+  --ah-radius-sm: 8px;
+  --ah-radius-md: 12px;
+  --ah-radius-lg: 16px;
+  --ah-radius-xl: 24px;
+  --ah-widget-radius: var(--ah-radius-xl);
+  --ah-input-radius: var(--ah-radius-lg);
+  --ah-btn-radius: var(--ah-radius-full);
+}
+
+
+/* ==========================================================================
+   Dark Theme
+   Dark mode color scheme
+   ========================================================================== */
+
+.ah-theme-dark {
+  --ah-color-text: #f9fafb;
+  --ah-color-text-muted: #9ca3af;
+  --ah-color-text-label: #d1d5db;
+  
+  --ah-color-bg: #1f2937;
+  --ah-color-bg-muted: #374151;
+  --ah-color-bg-disabled: #4b5563;
+  
+  --ah-color-border: #4b5563;
+  --ah-color-border-muted: #374151;
+  
+  --ah-color-error-bg: rgba(220, 38, 38, 0.2);
+  --ah-color-success-bg: rgba(22, 163, 74, 0.2);
+}
+
+.ah-brand-cyan {
+  --ah-color-primary: #06b6d4;
+  --ah-color-primary-hover: #0891b2;
+}
+
+.ah-brand-emerald {
+  --ah-color-primary: #10b981;
+  --ah-color-primary-hover: #059669;
+}

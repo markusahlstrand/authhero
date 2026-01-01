@@ -1,0 +1,74 @@
+{
+  "action": "/api/auth/register",
+  "method": "POST",
+  "title": "Create your account",
+  "components": [
+    {
+      "id": "name",
+      "category": "FIELD",
+      "type": "TEXT",
+      "order": 0,
+      "label": "Full name",
+      "required": true,
+      "config": {
+        "placeholder": "John Doe"
+      }
+    },
+    {
+      "id": "email",
+      "category": "FIELD",
+      "type": "EMAIL",
+      "order": 1,
+      "label": "Email address",
+      "required": true,
+      "config": {
+        "placeholder": "you@example.com"
+      }
+    },
+    {
+      "id": "password",
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "order": 2,
+      "label": "Password",
+      "hint": "Must be at least 8 characters",
+      "required": true,
+      "config": {
+        "min_length": 8
+      }
+    },
+    {
+      "id": "password_confirm",
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "order": 3,
+      "label": "Confirm password",
+      "required": true
+    },
+    {
+      "id": "terms",
+      "category": "FIELD",
+      "type": "BOOLEAN",
+      "order": 4,
+      "label": "I agree to the Terms of Service and Privacy Policy",
+      "required": true
+    },
+    {
+      "id": "submit",
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "order": 5,
+      "config": {
+        "text": "Create account"
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "login",
+      "text": "Already have an account?",
+      "href": "/login",
+      "linkText": "Sign in"
+    }
+  ]
+}

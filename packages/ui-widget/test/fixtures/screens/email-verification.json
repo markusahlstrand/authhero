@@ -1,0 +1,44 @@
+{
+  "screen": "email-verification",
+  "title": "Verify your email",
+  "action": "/api/auth/resend-verification",
+  "method": "POST",
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "IMAGE",
+      "id": "icon",
+      "config": {
+        "src": "/email-icon.svg",
+        "alt": "Email icon"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "info",
+      "config": {
+        "content": "We've sent a verification email to your inbox. Please check your email and click the link to verify your account."
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "HIDDEN",
+      "id": "email",
+      "config": {
+        "value": "user@example.com"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Resend verification email"
+      }
+    }
+  ],
+  "links": [
+    { "id": "change-email", "text": "Use a different email", "href": "/register" }
+  ]
+}

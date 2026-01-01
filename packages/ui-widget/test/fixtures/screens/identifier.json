@@ -1,0 +1,46 @@
+{
+  "screen": "identifier",
+  "title": "Sign in",
+  "action": "/api/auth/identifier",
+  "method": "POST",
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "IMAGE",
+      "id": "logo",
+      "config": {
+        "src": "/logo.svg",
+        "alt": "Company Logo"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "EMAIL",
+      "id": "identifier",
+      "label": "Email address",
+      "required": true,
+      "config": {
+        "autocomplete": "email"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "text": "Continue"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "SOCIAL",
+      "id": "social",
+      "config": {
+        "providers": ["google-oauth2"]
+      }
+    }
+  ],
+  "links": [
+    { "id": "signup", "text": "Don't have an account? Sign up", "href": "/register" }
+  ]
+}

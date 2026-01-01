@@ -1,0 +1,44 @@
+{
+  "screen": "success",
+  "title": "Success!",
+  "action": "/",
+  "method": "GET",
+  "messages": [
+    { "type": "success", "text": "You have successfully signed in." }
+  ],
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "IMAGE",
+      "id": "icon",
+      "config": {
+        "src": "/success-icon.svg",
+        "alt": "Success"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "title",
+      "config": {
+        "content": "<h2>Welcome back!</h2>"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "message",
+      "config": {
+        "content": "You will be redirected to your dashboard shortly."
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "continue",
+      "config": {
+        "label": "Continue to Dashboard"
+      }
+    }
+  ]
+}

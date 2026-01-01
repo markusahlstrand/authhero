@@ -1,0 +1,75 @@
+{
+  "screen": "login",
+  "title": "Sign in to your account",
+  "action": "/api/auth/login",
+  "method": "POST",
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "google",
+      "config": {
+        "strategy": "google-oauth2",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/google/google-avatar.png"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "github",
+      "config": {
+        "strategy": "github",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/github/github-avatar.png"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "SOCIAL_BUTTON",
+      "id": "microsoft",
+      "config": {
+        "strategy": "windowslive",
+        "icon_url": "https://cdn.auth0.com/marketplace/catalog/content/assets/creators/microsoft/microsoft-avatar.png"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "SEPARATOR",
+      "id": "separator",
+      "config": {
+        "text": "or"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "EMAIL",
+      "id": "identifier",
+      "label": "Email address",
+      "required": true,
+      "config": {
+        "autocomplete": "email"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "PASSWORD",
+      "id": "password",
+      "label": "Password",
+      "required": true,
+      "config": {
+        "autocomplete": "current-password"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Sign in"
+      }
+    }
+  ],
+  "links": [
+    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" },
+    { "id": "signup", "text": "Don't have an account? Sign up", "href": "/register" }
+  ]
+}

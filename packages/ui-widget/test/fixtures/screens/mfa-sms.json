@@ -1,0 +1,49 @@
+{
+  "screen": "mfa-sms",
+  "title": "Verify your phone",
+  "action": "/api/auth/mfa/sms/verify",
+  "method": "POST",
+  "components": [
+    {
+      "category": "BLOCK",
+      "type": "RICH_TEXT",
+      "id": "info",
+      "config": {
+        "content": "We sent a verification code to your phone ending in ••••42"
+      }
+    },
+    {
+      "category": "FIELD",
+      "type": "TEXT",
+      "id": "code",
+      "label": "Verification code",
+      "required": true,
+      "config": {
+        "maxlength": 6,
+        "pattern": "[0-9]{6}",
+        "autocomplete": "one-time-code"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "NEXT_BUTTON",
+      "id": "submit",
+      "config": {
+        "label": "Verify"
+      }
+    },
+    {
+      "category": "BLOCK",
+      "type": "ACTION_LINK",
+      "id": "resend",
+      "config": {
+        "href": "/api/auth/mfa/sms/resend",
+        "text": "Didn't receive a code? Send again"
+      }
+    }
+  ],
+  "links": [
+    { "id": "methods", "text": "Try another method", "href": "/mfa/methods" },
+    { "id": "back", "text": "Back to login", "href": "/login" }
+  ]
+}
