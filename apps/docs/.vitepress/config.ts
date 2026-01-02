@@ -57,7 +57,7 @@ export default withMermaid(
       ["meta", { property: "og:type", content: "website" }],
       ["meta", { property: "og:locale", content: "en_US" }],
       ["meta", { property: "og:site_name", content: "AuthHero" }],
-      ["meta", { property: "og:url", content: "https://authhero.dev/" }],
+      ["meta", { property: "og:url", content: "https://www.authhero.net/" }],
       [
         "meta",
         {
@@ -73,7 +73,7 @@ export default withMermaid(
             "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
         },
       ],
-      ["meta", { property: "og:image", content: "https://authhero.dev/og-image.png" }],
+      ["meta", { property: "og:image", content: "https://www.authhero.net/og-image.png" }],
       ["meta", { property: "og:image:width", content: "1200" }],
       ["meta", { property: "og:image:height", content: "630" }],
 
@@ -95,10 +95,10 @@ export default withMermaid(
             "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
         },
       ],
-      ["meta", { name: "twitter:image", content: "https://authhero.dev/og-image.png" }],
+      ["meta", { name: "twitter:image", content: "https://www.authhero.net/og-image.png" }],
 
       // Canonical URL
-      ["link", { rel: "canonical", href: "https://authhero.dev/" }],
+      ["link", { rel: "canonical", href: "https://www.authhero.net/" }],
 
       // Google Analytics
       [
@@ -118,7 +118,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
       ],
     ],
     sitemap: {
-      hostname: "https://authhero.dev",
+      hostname: "https://www.authhero.net",
     },
     lastUpdated: true,
     cleanUrls: true,
