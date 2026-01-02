@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.13.0
+
+### Minor Changes
+
+- efaad87: Check for permissions rather than scopes for tenants
+
 ## 13.12.1
 
 ### Patch Changes
