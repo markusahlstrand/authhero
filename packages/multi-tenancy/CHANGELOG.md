@@ -1,5 +1,13 @@
 # @authhero/multi-tenancy
 
+## 13.12.1
+
+### Patch Changes
+
+- Updated dependencies [f738edf]
+  - @authhero/adapter-interfaces@0.115.0
+  - authhero@1.3.0
+
 ## 13.12.0
 
 ### Minor Changes
