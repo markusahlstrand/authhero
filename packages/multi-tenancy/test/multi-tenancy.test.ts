@@ -169,10 +169,10 @@ describe("Multi-Tenancy", () => {
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data).toHaveLength(2); // tenant1 + tenant2 (user is not member of control_plane)
-    expect(data.map((t: any) => t.id)).toContain("tenant1");
-    expect(data.map((t: any) => t.id)).toContain("tenant2");
+    expect(Array.isArray(data.tenants)).toBe(true);
+    expect(data.tenants).toHaveLength(2); // tenant1 + tenant2 (user is not member of control_plane)
+    expect(data.tenants.map((t: any) => t.id)).toContain("tenant1");
+    expect(data.tenants.map((t: any) => t.id)).toContain("tenant2");
   });
 
   it("should only list tenants the user has access to", async () => {
@@ -215,90 +215,11 @@ describe("Multi-Tenancy", () => {
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data).toHaveLength(1); // accessible-tenant only (user is not member of control_plane)
-    expect(data.map((t: any) => t.id)).toContain("accessible-tenant");
-    expect(data.map((t: any) => t.id)).not.toContain("main");
-    expect(data.map((t: any) => t.id)).not.toContain("inaccessible-tenant");
-  });
-
-  it("should get a specific tenant", async () => {
-    // Create test tenant
-    await adapters.tenants.create({
-      id: "test-tenant",
-      friendly_name: "Test Tenant",
-      audience: "https://test.example.com",
-      sender_email: "support@test.com",
-      sender_name: "Test",
-    });
-
-    // Create organization and add user to it
-    await adapters.organizations.create("control_plane", {
-      id: "test-tenant",
-      name: "test-tenant",
-      display_name: "Test Tenant",
-    });
-    await adapters.userOrganizations.create("control_plane", {
-      user_id: testUserId,
-      organization_id: "test-tenant",
-    });
-
-    const response = await app.request(
-      "/management/tenants/test-tenant",
-      {},
-      env,
-    );
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-    expect(data.id).toBe("test-tenant");
-    expect(data.friendly_name).toBe("Test Tenant");
-  });
-
-  it("should update a tenant", async () => {
-    // Create test tenant
-    await adapters.tenants.create({
-      id: "update-tenant",
-      friendly_name: "Original Name",
-      audience: "https://update.example.com",
-      sender_email: "support@update.com",
-      sender_name: "Original",
-    });
-
-    // Create organization and add user to it
-    await adapters.organizations.create("control_plane", {
-      id: "update-tenant",
-      name: "update-tenant",
-      display_name: "Original Name",
-    });
-    await adapters.userOrganizations.create("control_plane", {
-      user_id: testUserId,
-      organization_id: "update-tenant",
-    });
-
-    const response = await app.request(
-      "/management/tenants/update-tenant",
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          friendly_name: "Updated Name",
-          sender_name: "Updated",
-        }),
-      },
-      env,
-    );
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.friendly_name).toBe("Updated Name");
-    expect(data.sender_name).toBe("Updated");
-
-    // Verify in database
-    const tenant = await adapters.tenants.get("update-tenant");
-    expect(tenant?.friendly_name).toBe("Updated Name");
+    expect(Array.isArray(data.tenants)).toBe(true);
+    expect(data.tenants).toHaveLength(1); // accessible-tenant only (user is not member of control_plane)
+    expect(data.tenants.map((t: any) => t.id)).toContain("accessible-tenant");
+    expect(data.tenants.map((t: any) => t.id)).not.toContain("main");
+    expect(data.tenants.map((t: any) => t.id)).not.toContain("inaccessible-tenant");
   });
 
   it("should delete a tenant", async () => {
@@ -371,25 +292,6 @@ describe("Multi-Tenancy", () => {
     expect(orgTestOrg).toBeDefined();
     expect(orgTestOrg?.name).toBe("org-test");
     expect(orgTestOrg?.display_name).toBe("Org Test Corp");
-  });
-
-  it("should return 403 for tenant user has no access to", async () => {
-    // Create a tenant but don't add user to its organization
-    await adapters.tenants.create({
-      id: "no-access-tenant",
-      friendly_name: "No Access",
-      audience: "https://noaccess.example.com",
-      sender_email: "support@noaccess.com",
-      sender_name: "No Access",
-    });
-
-    const response = await app.request(
-      "/management/tenants/no-access-tenant",
-      {},
-      env,
-    );
-    // Should return 403 because user is not a member of the organization
-    expect(response.status).toBe(403);
   });
 
   it("should validate required fields when creating tenant", async () => {

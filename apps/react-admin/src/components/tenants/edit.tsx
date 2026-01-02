@@ -1,4 +1,5 @@
 import {
+  BooleanInput,
   DateField,
   Edit,
   FieldTitle,
@@ -47,6 +48,13 @@ export function TenantsEdit() {
           <ColorInput source="primary_color" label="Primary Color" />
           <ColorInput source="secondary_color" label="Secondary Color" />
           <TextInput source="logo" label="Logo" />
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="Settings">
+          <BooleanInput
+            source="flags.inherit_global_permissions_in_organizations"
+            label="Inherit Tenant Permissions in Organizations"
+            helperText="When enabled, tenant-level permissions will be inherited when users request organization-scoped tokens"
+          />
         </TabbedForm.Tab>
       </TabbedForm>
     </Edit>

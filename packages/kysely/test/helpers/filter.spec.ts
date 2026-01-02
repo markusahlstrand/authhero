@@ -204,4 +204,30 @@ describe("luceneFilter", () => {
     expect(mockQb.where).toHaveBeenCalledWith("created_at", ">", "2023-01-01");
     expect(mockQb.where).toHaveBeenCalledWith("status", "!=", "banned");
   });
+
+  // OR logic tests
+  it("handles simple OR query", () => {
+    luceneFilter(mockDb, mockQb as any, "field1:value1 OR field2:value2", searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("handles OR query with multiple fields", () => {
+    luceneFilter(mockDb, mockQb as any, "id:tenant1 OR id:tenant2 OR id:tenant3", searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("handles OR query with quoted values", () => {
+    luceneFilter(mockDb, mockQb as any, 'name:"John Doe" OR name:"Jane Smith"', searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("handles OR query case-insensitively", () => {
+    luceneFilter(mockDb, mockQb as any, "field1:value1 or field2:value2", searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("handles OR query with mixed case", () => {
+    luceneFilter(mockDb, mockQb as any, "field1:value1 Or field2:value2", searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
 });

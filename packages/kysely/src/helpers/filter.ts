@@ -7,6 +7,30 @@ export function luceneFilter<TB extends keyof Database>(
   query: string,
   searchableColumns: string[],
 ) {
+  // Split by OR first to handle OR queries
+  const orParts = query.split(/ OR /i);
+  
+  if (orParts.length > 1) {
+    // Handle OR query - combine all parts with OR logic
+    return qb.where((eb) => {
+      const conditions = orParts.map((orPart) => {
+        // Process each OR part recursively to handle AND within it
+        // For simplicity, just parse field:value pairs directly
+        const match = orPart.trim().match(/^([^:]+):(.+)$/);
+        if (match) {
+          const [, field, value] = match;
+          if (!field || !value) return null;
+          const cleanValue = value.replace(/^"(.*)"$/, "$1"); // Remove quotes
+          return eb(field.trim() as any, "=", cleanValue.trim());
+        }
+        return null;
+      }).filter(Boolean);
+      
+      return eb.or(conditions as any);
+    });
+  }
+  
+  // Original logic for AND queries
   // Tokenize the query while respecting quoted strings
   const tokens: string[] = [];
   let current = "";
