@@ -1,5 +1,11 @@
 # authhero
 
+## 1.2.0
+
+### Minor Changes
+
+- c8c83e3: Add a admin:organizations permission to hande organizations in the control_plane
+
 ## 1.1.0
 
 ### Minor Changes

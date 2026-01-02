@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.17.0
+
+### Minor Changes
+
+- c8c83e3: Add a admin:organizations permission to hande organizations in the control_plane
+
 ## 0.16.0
 
 ### Minor Changes

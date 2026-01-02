@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.12.0
+
+### Minor Changes
+
+- c8c83e3: Add a admin:organizations permission to hande organizations in the control_plane
+
+### Patch Changes
+
+- Updated dependencies [c8c83e3]
+  - authhero@1.2.0
+
 ## 13.11.0
 
 ### Minor Changes
