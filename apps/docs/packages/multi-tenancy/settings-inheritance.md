@@ -5,7 +5,7 @@ description: Automatically inherit settings from the main tenant to child tenant
 
 # Settings Inheritance
 
-Configure child tenants to automatically inherit settings from the main tenant, reducing configuration overhead and ensuring consistency.
+Configure child tenants to automatically inherit settings from the control plane tenant, reducing configuration overhead and ensuring consistency.
 
 ## Overview
 
@@ -24,32 +24,42 @@ Settings inheritance allows you to:
 The simplest configuration inherits all compatible settings:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
+import { init } from "@authhero/multi-tenancy";
+
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+    },
   },
 });
 ```
 
-When a tenant is created, it will inherit all settings from the main tenant except for identifying fields like `id`, `name`, `created_at`, etc.
+When a tenant is created, it will inherit all settings from the control plane tenant except for identifying fields like `id`, `name`, `created_at`, etc.
 
 ### Inherit Specific Keys
 
 Inherit only specific settings:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    inheritedKeys: [
-      "support_email",
-      "logo",
-      "primary_color",
-      "secondary_color",
-      "session_lifetime",
-      "idle_session_lifetime",
-      "password_policy",
-    ],
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      inheritedKeys: [
+        "support_email",
+        "logo",
+        "primary_color",
+        "secondary_color",
+        "session_lifetime",
+        "idle_session_lifetime",
+        "password_policy",
+      ],
+    },
   },
 });
 ```
@@ -59,17 +69,21 @@ const multiTenancy = setupMultiTenancy({
 Inherit all settings except specific ones:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    excludedKeys: [
-      "id",
-      "name",
-      "friendly_name",
-      "created_at",
-      "updated_at",
-      "custom_domain",
-    ],
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      excludedKeys: [
+        "id",
+        "name",
+        "friendly_name",
+        "created_at",
+        "updated_at",
+        "custom_domain",
+      ],
+    },
   },
 });
 ```
@@ -81,23 +95,27 @@ const multiTenancy = setupMultiTenancy({
 Apply transformations to inherited settings:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    transformSettings: (mainSettings, newTenantId) => {
-      return {
-        ...mainSettings,
-        // Customize support email per tenant
-        support_email: `support+${newTenantId}@example.com`,
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      transformSettings: (controlPlaneSettings, newTenantId) => {
+        return {
+          ...controlPlaneSettings,
+          // Customize support email per tenant
+          support_email: `support+${newTenantId}@example.com`,
 
-        // Use tenant-specific logo path
-        logo: mainSettings.logo?.replace("/main/", `/${newTenantId}/`),
+          // Use tenant-specific logo path
+          logo: controlPlaneSettings.logo?.replace("/control_plane/", `/${newTenantId}/`),
 
-        // Add tenant ID to callback URLs
-        allowed_callback_urls: mainSettings.allowed_callback_urls?.map((url) =>
-          url.replace("{{tenant}}", newTenantId),
-        ),
-      };
+          // Add tenant ID to callback URLs
+          allowed_callback_urls: controlPlaneSettings.allowed_callback_urls?.map((url) =>
+            url.replace("{{tenant}}", newTenantId),
+          ),
+        };
+      },
     },
   },
 });
@@ -108,32 +126,31 @@ const multiTenancy = setupMultiTenancy({
 Inherit settings based on conditions:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    transformSettings: (mainSettings, newTenantId, metadata) => {
-      // Different settings based on tenant tier
-      const tier = metadata.tier || "basic";
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      transformSettings: (controlPlaneSettings, newTenantId) => {
+        // You can add custom logic here based on tenant ID or other factors
+        // For example, different session lifetimes for different tenant types
+        const isEnterprise = newTenantId.startsWith("ent-");
 
-      if (tier === "enterprise") {
-        return {
-          ...mainSettings,
-          session_lifetime: 28800, // 8 hours for enterprise
-          idle_session_lifetime: 3600,
-          mfa_enabled: true,
-        };
-      }
+        if (isEnterprise) {
+          return {
+            ...controlPlaneSettings,
+            session_lifetime: 28800, // 8 hours for enterprise
+            idle_session_lifetime: 3600,
+          };
+        }
 
-      if (tier === "basic") {
         return {
-          ...mainSettings,
-          session_lifetime: 3600, // 1 hour for basic
+          ...controlPlaneSettings,
+          session_lifetime: 3600, // 1 hour for standard
           idle_session_lifetime: 900,
-          mfa_enabled: false,
         };
-      }
-
-      return mainSettings;
+      },
     },
   },
 });
@@ -148,8 +165,8 @@ const multiTenancy = setupMultiTenancy({
 │                   SETTINGS INHERITANCE FLOW                       │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  1. Fetch main tenant settings                                   │
-│     └─> GET /api/v2/tenants/main/settings                        │
+│  1. Fetch control plane tenant settings                          │
+│     └─> GET /api/v2/tenants/control_plane                        │
 │                                                                   │
 │  2. Filter settings                                              │
 │     └─> Apply inheritedKeys if specified                         │
@@ -157,7 +174,7 @@ const multiTenancy = setupMultiTenancy({
 │                                                                   │
 │  3. Transform settings                                           │
 │     └─> Call transformSettings() if provided                     │
-│     └─> Pass tenant ID and metadata                              │
+│     └─> Pass tenant ID                                           │
 │                                                                   │
 │  4. Merge with new tenant data                                   │
 │     └─> New tenant data takes precedence                         │
@@ -165,19 +182,18 @@ const multiTenancy = setupMultiTenancy({
 │                                                                   │
 │  5. Apply to new tenant                                          │
 │     └─> Save merged settings                                     │
-│     └─> Mark as inherited                                        │
 │                                                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Example Flow
 
-Given main tenant settings:
+Given control plane tenant settings:
 
 ```json
 {
-  "id": "main",
-  "name": "Main Tenant",
+  "id": "control_plane",
+  "name": "Control Plane",
   "support_email": "support@example.com",
   "logo": "https://cdn.example.com/logo.png",
   "primary_color": "#007bff",
@@ -189,7 +205,7 @@ With configuration:
 
 ```typescript
 {
-  inheritFromMain: true,
+  inheritFromControlPlane: true,
   inheritedKeys: ["support_email", "logo", "primary_color"],
   transformSettings: (settings, tenantId) => ({
     ...settings,
@@ -217,22 +233,26 @@ Creating tenant "acme" results in:
 Inherit branding consistently:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    inheritedKeys: [
-      "logo",
-      "favicon",
-      "primary_color",
-      "secondary_color",
-      "font_family",
-      "custom_css",
-    ],
-    transformSettings: (settings, tenantId) => ({
-      ...settings,
-      // Allow tenant-specific logo override
-      logo: settings.logo?.replace("/logos/main.png", `/logos/${tenantId}.png`),
-    }),
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      inheritedKeys: [
+        "logo",
+        "favicon",
+        "primary_color",
+        "secondary_color",
+        "font_family",
+        "custom_css",
+      ],
+      transformSettings: (settings, tenantId) => ({
+        ...settings,
+        // Allow tenant-specific logo override
+        logo: settings.logo?.replace("/logos/control_plane.png", `/logos/${tenantId}.png`),
+      }),
+    },
   },
 });
 ```
@@ -242,11 +262,14 @@ const multiTenancy = setupMultiTenancy({
 Inherit security policies:
 
 ```typescript
-const multiTenancy = setupMultiTenancy({
-  settingsInheritance: {
-    inheritFromMain: true,
-    inheritedKeys: [
-      "password_policy",
+const { app } = init({
+  dataAdapter,
+  controlPlaneTenantId: "control_plane",
+  multiTenancy: {
+    settingsInheritance: {
+      inheritFromControlPlane: true,
+      inheritedKeys: [
+        "password_policy",
       "mfa_enabled",
       "session_lifetime",
       "idle_session_lifetime",

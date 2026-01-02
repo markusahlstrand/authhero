@@ -1254,6 +1254,22 @@ export default (
       return { data: res.json };
     },
 
-    deleteMany: () => Promise.reject("not supporting deleteMany"),
+    deleteMany: async (resource, params) => {
+      const headers = new Headers({ "content-type": "text/plain" });
+      if (tenantId) headers.set("tenant-id", tenantId);
+
+      const deletedIds: typeof params.ids = [];
+
+      for (const id of params.ids) {
+        const resourceUrl = `${resource}/${encodeURIComponent(String(id))}`;
+        await httpClient(`${apiUrl}/api/v2/${resourceUrl}`, {
+          method: "DELETE",
+          headers,
+        });
+        deletedIds.push(id);
+      }
+
+      return { data: deletedIds };
+    },
   };
 };

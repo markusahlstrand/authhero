@@ -1,7 +1,14 @@
 import { HTTPException } from "hono/http-exception";
-import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
-import { userInfoSchema } from "../../types/UserInto";
+
+const userInfoSchema = z.object({
+  sub: z.string(),
+  email: z.string().optional(),
+  family_name: z.string().optional(),
+  given_name: z.string().optional(),
+  email_verified: z.boolean(),
+});
 
 export const userinfoRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -45,6 +52,36 @@ export const userinfoRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "User not found" });
       }
 
-      return ctx.json(userInfoSchema.parse({ ...user, sub: user.user_id }));
+      // Build initial userinfo response
+      const baseUserInfo = userInfoSchema.parse({
+        ...user,
+        sub: user.user_id,
+      });
+
+      // Call onFetchUserInfo hook if configured
+      const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
+      if (onFetchUserInfo) {
+        const customClaims: Record<string, unknown> = {};
+
+        await onFetchUserInfo(
+          {
+            ctx,
+            user,
+            tenant_id: ctx.var.user.tenant_id,
+            scopes: (ctx.var as { scope?: string }).scope?.split(" ") || [],
+          },
+          {
+            setCustomClaim: (claim: string, value: unknown) => {
+              customClaims[claim] = value;
+            },
+          },
+        );
+
+        // Merge custom claims into userinfo (custom claims override base)
+        // Return as generic JSON since custom claims extend the schema
+        return ctx.json({ ...baseUserInfo, ...customClaims });
+      }
+
+      return ctx.json(baseUserInfo);
     },
   );

@@ -14,96 +14,42 @@ import { Variables } from "./Variables";
 // Entity CRUD Hooks
 // ============================================================================
 
-/**
- * Context passed to all entity hooks
- */
+/** Context passed to entity hooks */
 export interface EntityHookContext {
-  /** The tenant where the operation occurred */
   tenantId: string;
-  /** Data adapters for the current tenant */
   adapters: DataAdapters;
 }
 
-/**
- * CRUD hooks for any entity type.
- *
- * Use these hooks to implement cross-tenant synchronization,
- * audit logging, webhooks, or any other side effects.
- *
- * @example
- * ```typescript
- * const roleHooks: EntityHooks<Role, RoleInsert> = {
- *   afterCreate: async (ctx, role) => {
- *     // Propagate to other tenants
- *     await syncToChildTenants(ctx, role);
- *   },
- *   afterUpdate: async (ctx, id, role) => {
- *     // Log the update
- *     await auditLog('role_updated', { id, tenantId: ctx.tenantId });
- *   },
- * };
- * ```
- */
+/** CRUD hooks for entity operations */
 export interface EntityHooks<TEntity, TInsert, TUpdate = Partial<TInsert>> {
-  /** Called before an entity is created */
   beforeCreate?: (ctx: EntityHookContext, data: TInsert) => Promise<TInsert>;
-
-  /** Called after an entity is created */
   afterCreate?: (ctx: EntityHookContext, entity: TEntity) => Promise<void>;
-
-  /** Called before an entity is updated */
   beforeUpdate?: (
     ctx: EntityHookContext,
     id: string,
     data: TUpdate,
   ) => Promise<TUpdate>;
-
-  /** Called after an entity is updated */
   afterUpdate?: (
     ctx: EntityHookContext,
     id: string,
     entity: TEntity,
   ) => Promise<void>;
-
-  /** Called before an entity is deleted */
   beforeDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
-
-  /** Called after an entity is deleted */
   afterDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
 }
 
-/**
- * Hooks for role permission assignment operations.
- *
- * Role permissions use assign/remove operations rather than typical CRUD,
- * so they have a specialized hook interface.
- *
- * @example
- * ```typescript
- * const rolePermissionHooks: RolePermissionHooks = {
- *   afterAssign: async (ctx, roleId, permissions) => {
- *     // Sync permissions to child tenants
- *     await syncPermissionsToChildTenants(ctx, roleId, permissions);
- *   },
- * };
- * ```
- */
+/** Hooks for role permission assign/remove operations */
 export interface RolePermissionHooks {
-  /** Called before permissions are assigned to a role */
   beforeAssign?: (
     ctx: EntityHookContext,
     roleId: string,
     permissions: RolePermissionInsert[],
   ) => Promise<RolePermissionInsert[]>;
-
-  /** Called after permissions are assigned to a role */
   afterAssign?: (
     ctx: EntityHookContext,
     roleId: string,
     permissions: RolePermissionInsert[],
   ) => Promise<void>;
-
-  /** Called before permissions are removed from a role */
   beforeRemove?: (
     ctx: EntityHookContext,
     roleId: string,
@@ -117,8 +63,6 @@ export interface RolePermissionHooks {
       "resource_server_identifier" | "permission_name"
     >[]
   >;
-
-  /** Called after permissions are removed from a role */
   afterRemove?: (
     ctx: EntityHookContext,
     roleId: string,
@@ -134,7 +78,7 @@ export interface RolePermissionHooks {
 // ============================================================================
 
 export type Transaction = {
-  id?: string; // Transaction ID - unique identifier for the transaction
+  id?: string;
   locale: string;
   login_hint?: string;
   prompt?: string;
@@ -147,8 +91,8 @@ export type Transaction = {
 };
 
 export type HookRequest = {
-  asn?: string; // Autonomous System Number
-  body?: Record<string, any>;
+  asn?: string;
+  body?: Record<string, unknown>;
   geoip?: {
     cityName?: string;
     continentCode?: string;
@@ -164,61 +108,53 @@ export type HookRequest = {
   language?: string;
   method: string;
   user_agent?: string;
-  // This is not part of the Auth0 event
   url: string;
 };
 
 export type HookEvent = {
-  // AuthHero specific (not in Auth0)
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
-
-  // Auth0 compatible properties
   client?: LegacyClient;
   request: HookRequest;
   transaction?: Transaction;
   user?: User;
-  scope?: string; // Space-separated list of scopes being requested
-  grant_type?: string; // The grant type (e.g., "password", "refresh_token")
-  audience?: string; // Optional audience being requested
-
-  // Additional Auth0 event properties
+  scope?: string;
+  grant_type?: string;
+  audience?: string;
   authentication?: {
     methods: Array<{
-      name: string; // "federated", "pwd", "passkey", "sms", "email", "phone_number"
+      name: string;
       timestamp?: string;
     }>;
   };
   authorization?: {
-    roles: string[]; // Array of role names assigned to the user
+    roles: string[];
   };
   connection?: {
     id: string;
     name: string;
-    strategy: string; // "auth0", "waad", "ad", "google-oauth2", etc.
-    metadata?: Record<string, any>;
+    strategy: string;
+    metadata?: Record<string, unknown>;
   };
   organization?: {
     id: string;
     name: string;
     display_name: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
   resource_server?: {
-    identifier: string; // The audience/identifier of the resource server
+    identifier: string;
   };
   stats?: {
-    logins_count: number; // Number of times this user has logged in
+    logins_count: number;
   };
   tenant?: {
-    id: string; // The tenant identifier
+    id: string;
   };
   session?: {
     id?: string;
     created_at?: string;
     authenticated_at?: string;
-    clients?: Array<{
-      client_id: string;
-    }>;
+    clients?: Array<{ client_id: string }>;
     device?: {
       initial_ip?: string;
       initial_user_agent?: string;
@@ -227,8 +163,8 @@ export type HookEvent = {
     };
   };
   security_context?: {
-    ja3?: string; // JA3 fingerprint signature
-    ja4?: string; // JA4 fingerprint signature
+    ja3?: string;
+    ja4?: string;
   };
 };
 
@@ -350,8 +286,23 @@ export type OnExecuteValidateRegistrationUsername = (
   api: OnExecuteValidateRegistrationUsernameAPI,
 ) => Promise<void>;
 
-// Backwards compatibility alias
-export type OnExecuteValidateSignupEmail =
-  OnExecuteValidateRegistrationUsername;
-export type OnExecuteValidateSignupEmailAPI =
-  OnExecuteValidateRegistrationUsernameAPI;
+// ============================================================================
+// Userinfo Hook
+// ============================================================================
+
+export type UserInfoEvent = {
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
+  user: User;
+  tenant_id: string;
+  scopes: string[];
+};
+
+export type OnFetchUserInfoAPI = {
+  setCustomClaim: (claim: string, value: unknown) => void;
+};
+
+/** Called when /userinfo endpoint is accessed */
+export type OnFetchUserInfo = (
+  event: UserInfoEvent,
+  api: OnFetchUserInfoAPI,
+) => Promise<void>;
