@@ -1,5 +1,19 @@
 # @authhero/multi-tenancy
 
+## 13.11.0
+
+### Minor Changes
+
+- 17d73eb: Change name of organization flag and add OR support in lucence queries
+- e542773: Fixes for syncing resources servers and global roles
+
+### Patch Changes
+
+- Updated dependencies [17d73eb]
+- Updated dependencies [e542773]
+  - @authhero/adapter-interfaces@0.114.0
+  - authhero@1.1.0
+
 ## 13.10.1
 
 ### Patch Changes

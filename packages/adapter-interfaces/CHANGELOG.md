@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.114.0
+
+### Minor Changes
+
+- 17d73eb: Change name of organization flag and add OR support in lucence queries
+- e542773: Fixes for syncing resources servers and global roles
+
 ## 0.113.0
 
 ### Minor Changes
