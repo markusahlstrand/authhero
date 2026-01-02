@@ -602,3 +602,219 @@ describe("Tenant Provisioning with addCreatorToOrganization disabled", () => {
     expect(userOrgs.userOrganizations).toHaveLength(0);
   });
 });
+
+describe("Tenant Provisioning with admin:organizations permission", () => {
+  let app: Hono<{
+    Bindings: { data: ReturnType<typeof createAdapters> };
+    Variables: { tenant_id: string; user?: { sub: string; tenant_id: string } };
+  }>;
+  let db: Kysely<Database>;
+  let adapters: ReturnType<typeof createAdapters>;
+  let env: { data: ReturnType<typeof createAdapters> };
+
+  const TEST_ISSUER = "https://auth.example.com/";
+  const GLOBAL_ADMIN_USER_ID = "auth0|global-admin";
+
+  beforeEach(async () => {
+    // Create in-memory SQLite database
+    const dialect = new SqliteDialect({
+      database: new SQLite(":memory:"),
+    });
+    db = new Kysely<Database>({ dialect });
+
+    // Run migrations
+    await migrateToLatest(db, false);
+
+    // Create adapters
+    adapters = createAdapters(db);
+
+    // Create env object
+    env = { data: adapters };
+
+    // Create control plane tenant
+    await adapters.tenants.create({
+      id: "control_plane",
+      friendly_name: "Control Plane",
+      audience: "https://example.com",
+      sender_email: "admin@example.com",
+      sender_name: "Control Plane",
+    });
+
+    // Create the Management API resource server on the control plane
+    await adapters.resourceServers.create("control_plane", {
+      name: "Authhero Management API",
+      identifier: "urn:authhero:management",
+      allow_offline_access: false,
+      skip_consent_for_verifiable_first_party_clients: false,
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+      signing_alg: "RS256",
+      scopes: MANAGEMENT_API_SCOPES,
+    });
+
+    // Create a global admin user on the control plane
+    await adapters.users.create("control_plane", {
+      user_id: GLOBAL_ADMIN_USER_ID,
+      email: "global-admin@example.com",
+      email_verified: true,
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+    });
+
+    // Create a global admin role with admin:organizations permission
+    const globalAdminRole = await adapters.roles.create("control_plane", {
+      name: "Global Admin",
+      description: "Can admin all organizations without membership",
+    });
+
+    // Assign admin:organizations permission to the role
+    await adapters.rolePermissions.assign("control_plane", globalAdminRole.id, [
+      {
+        role_id: globalAdminRole.id,
+        resource_server_identifier: "urn:authhero:management",
+        permission_name: "admin:organizations",
+      },
+    ]);
+
+    // Assign the global admin role to the user (at global level, not organization-specific)
+    await adapters.userRoles.create(
+      "control_plane",
+      GLOBAL_ADMIN_USER_ID,
+      globalAdminRole.id,
+      "", // Empty string for global role
+    );
+
+    // Setup multi-tenancy with access control
+    const multiTenancy = setupMultiTenancy({
+      accessControl: {
+        controlPlaneTenantId: "control_plane",
+        requireOrganizationMatch: false,
+        issuer: TEST_ISSUER,
+        adminRoleName: "Tenant Admin",
+        adminRoleDescription: "Full access to all tenant management operations",
+        addCreatorToOrganization: true,
+      },
+    });
+
+    // Create Hono app
+    app = new Hono<{
+      Bindings: { data: typeof adapters };
+      Variables: {
+        tenant_id: string;
+        user?: { sub: string; tenant_id: string };
+      };
+    }>();
+
+    // Set tenant_id and user variables (user with admin:organizations permission)
+    app.use("*", async (c, next) => {
+      c.set("tenant_id", "control_plane");
+      c.set("user", {
+        sub: GLOBAL_ADMIN_USER_ID,
+        tenant_id: "control_plane",
+      });
+      await next();
+    });
+
+    // Apply multi-tenancy middleware
+    app.use("*", multiTenancy.middleware);
+
+    // Mount tenant management routes
+    app.route("/management", multiTenancy.app);
+  });
+
+  it("should not add user with admin:organizations to organization when creating a tenant", async () => {
+    // Create a new tenant as a user with admin:organizations permission
+    const response = await app.request(
+      "/management/tenants",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "admin-created-tenant",
+          friendly_name: "Admin Created Tenant",
+          audience: "https://admin-created.example.com",
+          sender_email: "support@admin-created.com",
+          sender_name: "Admin Created",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(201);
+    const data = await response.json();
+    expect(data.id).toBe("admin-created-tenant");
+
+    // Verify organization was created on control plane
+    const orgs = await adapters.organizations.list("control_plane");
+    const newTenantOrg = orgs.organizations.find(
+      (org) => org.name === "admin-created-tenant",
+    );
+    expect(newTenantOrg).toBeDefined();
+    expect(newTenantOrg?.display_name).toBe("Admin Created Tenant");
+
+    // Verify the global admin user was NOT added to the organization
+    // (because they have admin:organizations permission at the global level)
+    const userOrgs = await adapters.userOrganizations.list("control_plane", {
+      q: `organization_id:${newTenantOrg!.id}`,
+    });
+    const adminOrgMembership = userOrgs.userOrganizations.find(
+      (uo) => uo.user_id === GLOBAL_ADMIN_USER_ID,
+    );
+    expect(adminOrgMembership).toBeUndefined();
+  });
+
+  it("should not assign organization-specific role to user with admin:organizations", async () => {
+    // Create a new tenant as a user with admin:organizations permission
+    const response = await app.request(
+      "/management/tenants",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "no-role-tenant",
+          friendly_name: "No Role Tenant",
+          audience: "https://no-role.example.com",
+          sender_email: "support@no-role.com",
+          sender_name: "No Role",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(201);
+
+    // Get the organization that was created
+    const orgs = await adapters.organizations.list("control_plane");
+    const testOrg = orgs.organizations.find(
+      (org) => org.name === "no-role-tenant",
+    );
+    expect(testOrg).toBeDefined();
+
+    // Verify the user does NOT have organization-specific roles
+    // (they should only have their global admin role)
+    const userOrgRoles = await adapters.userRoles.list(
+      "control_plane",
+      GLOBAL_ADMIN_USER_ID,
+      {},
+      testOrg!.id,
+    );
+    expect(userOrgRoles).toHaveLength(0);
+
+    // Verify the user still has their global role
+    const userGlobalRoles = await adapters.userRoles.list(
+      "control_plane",
+      GLOBAL_ADMIN_USER_ID,
+      {},
+      "", // Empty string for global roles
+    );
+    expect(userGlobalRoles.length).toBeGreaterThan(0);
+    const hasGlobalAdminRole = userGlobalRoles.some(
+      (r) => r.name === "Global Admin",
+    );
+    expect(hasGlobalAdminRole).toBe(true);
+  });
+});
