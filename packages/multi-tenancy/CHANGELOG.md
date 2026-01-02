@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.13.2
+
+### Patch Changes
+
+- authhero@2.0.0
+
 ## 13.13.1
 
 ### Patch Changes
