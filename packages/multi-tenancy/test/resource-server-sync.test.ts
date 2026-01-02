@@ -238,6 +238,69 @@ describe("Resource Server Sync Hooks", () => {
       expect(tenant2RS?.token_lifetime).toBe(7200);
     });
 
+    it("should create resource server on child tenant when update is called but it does not exist", async () => {
+      const hooks = createResourceServerSyncHooks({
+        controlPlaneTenantId: "main",
+        getChildTenantIds: async () => ["tenant1", "tenant2"],
+        getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
+      });
+
+      // Create resource server on main WITHOUT syncing it first
+      const resourceServer = await mainAdapters.resourceServers.create("main", {
+        name: "My API",
+        identifier: "https://api.example.com",
+        token_lifetime: 3600,
+      });
+
+      // Verify it does NOT exist on child tenants
+      let tenant1RS = await findByIdentifier(
+        tenant1Adapters,
+        "tenant1",
+        "https://api.example.com",
+      );
+      expect(tenant1RS).toBeNull();
+
+      // Update the resource server on main
+      await mainAdapters.resourceServers.update("main", resourceServer.id, {
+        name: "My Updated API",
+        token_lifetime: 7200,
+      });
+
+      // Get the updated resource server
+      const updatedRS = await findByIdentifier(
+        mainAdapters,
+        "main",
+        "https://api.example.com",
+      );
+
+      // Call the afterUpdate hook - this should CREATE the resource server on child tenants
+      await hooks.afterUpdate!(
+        { tenantId: "main", adapters: mainAdapters },
+        "https://api.example.com",
+        updatedRS!,
+      );
+
+      // Verify resource server was CREATED on tenant1 with updated values
+      tenant1RS = await findByIdentifier(
+        tenant1Adapters,
+        "tenant1",
+        "https://api.example.com",
+      );
+      expect(tenant1RS).toBeDefined();
+      expect(tenant1RS?.name).toBe("My Updated API");
+      expect(tenant1RS?.token_lifetime).toBe(7200);
+      expect(tenant1RS?.is_system).toBe(true);
+
+      // Verify resource server was CREATED on tenant2
+      const tenant2RS = await findByIdentifier(
+        tenant2Adapters,
+        "tenant2",
+        "https://api.example.com",
+      );
+      expect(tenant2RS).toBeDefined();
+      expect(tenant2RS?.name).toBe("My Updated API");
+    });
+
     it("should sync resource server deletions from control plane", async () => {
       const hooks = createResourceServerSyncHooks({
         controlPlaneTenantId: "main",

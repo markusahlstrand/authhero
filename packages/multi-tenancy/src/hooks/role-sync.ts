@@ -165,6 +165,9 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
                 existing.id,
                 dataWithIsSystem,
               );
+            } else {
+              // Create if it doesn't exist on the target tenant
+              await adapters.roles.create(tenantId, dataWithIsSystem);
             }
           }
         } catch (error) {

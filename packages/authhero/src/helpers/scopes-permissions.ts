@@ -59,6 +59,75 @@ interface ClientCredentialsScopesParams {
 }
 
 /**
+ * Gets global admin permissions from tenants that have `global_admin_permissions` enabled.
+ * This allows control plane admins to inherit their permissions when accessing organization tokens.
+ *
+ * @param ctx - The Hono context
+ * @param currentTenantId - The tenant ID where the token is being requested
+ * @param userId - The user ID to check permissions for
+ * @param audience - The audience to filter permissions by
+ * @returns Array of permission names that should be inherited
+ */
+async function getGlobalAdminPermissions(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  currentTenantId: string,
+  userId: string,
+  audience: string,
+): Promise<string[]> {
+  const permissions: string[] = [];
+
+  // Find all tenants where this user exists and has the global_admin_permissions flag enabled
+  // We need to check all tenants where the user might have admin access
+  const { tenants } = await ctx.env.data.tenants.list({
+    per_page: 100, // Reasonable limit for tenants with global admin permissions
+  });
+
+  for (const tenant of tenants) {
+    // Skip the current tenant - we're looking for inherited permissions from other tenants
+    if (tenant.id === currentTenantId) {
+      continue;
+    }
+
+    // Only check tenants that have global_admin_permissions enabled
+    if (!tenant.flags?.global_admin_permissions) {
+      continue;
+    }
+
+    // Check if user exists in this tenant
+    const user = await ctx.env.data.users.get(tenant.id, userId);
+    if (!user) {
+      continue;
+    }
+
+    // Get user's global roles in the admin tenant (not organization-scoped)
+    const adminTenantRoles = await ctx.env.data.userRoles.list(
+      tenant.id,
+      userId,
+      undefined,
+      "", // Empty string for global roles
+    );
+
+    // Get permissions from each role
+    for (const role of adminTenantRoles) {
+      const rolePermissions = await ctx.env.data.rolePermissions.list(
+        tenant.id,
+        role.id,
+        { per_page: 1000 },
+      );
+
+      // Add permissions that match the requested audience
+      rolePermissions.forEach((permission) => {
+        if (permission.resource_server_identifier === audience) {
+          permissions.push(permission.permission_name);
+        }
+      });
+    }
+  }
+
+  return [...new Set(permissions)]; // Deduplicate
+}
+
+/**
  * Calculates scopes and permissions for client_credentials grant type based on client grants.
  * This implementation only considers client grants, the audience, and the resource server configuration.
  */
@@ -287,6 +356,15 @@ export async function calculateScopesAndPermissions(
   // Combine global and organization-specific roles
   const userRoles = [...globalRoles, ...orgRoles];
 
+  // Check for global admin permissions from other tenants
+  // This allows control plane admins to inherit permissions when accessing organization tokens
+  const globalAdminPermissions = await getGlobalAdminPermissions(
+    ctx,
+    tenantId,
+    userId,
+    audience,
+  );
+
   // Get all permissions from user's roles
   const rolePermissions: string[] = [];
   for (const role of userRoles) {
@@ -315,6 +393,11 @@ export async function calculateScopesAndPermissions(
 
   // Add role-based permissions
   rolePermissions.forEach((permission) => {
+    allUserPermissions.add(permission);
+  });
+
+  // Add global admin permissions (from control plane or other tenants with global_admin_permissions enabled)
+  globalAdminPermissions.forEach((permission) => {
     allUserPermissions.add(permission);
   });
 

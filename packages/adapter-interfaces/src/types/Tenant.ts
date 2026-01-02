@@ -80,6 +80,10 @@ export const tenantInsertSchema = z.object({
         .boolean()
         .optional(),
       use_scope_descriptions_for_consent: z.boolean().optional(),
+      // When enabled, users with roles in this tenant will have their
+      // permissions inherited when requesting organization tokens in other tenants.
+      // This is useful for control plane tenants where admins need access to all child tenants.
+      global_admin_permissions: z.boolean().optional(),
     })
     .optional(),
 

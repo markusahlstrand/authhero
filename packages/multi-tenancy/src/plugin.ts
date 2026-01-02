@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { createMultiTenancyMiddleware } from "./middleware";
 import { createMultiTenancyHooks } from "./index";
-import { createTenantsRouter } from "./routes";
+import { createTenantsOpenAPIRouter } from "./routes";
 
 type MultiTenancyEnv = {
   Bindings: MultiTenancyBindings;
@@ -94,7 +94,7 @@ export function createMultiTenancyPlugin(
     routes: [
       {
         path: "/management",
-        handler: createTenantsRouter(config, hooks),
+        handler: createTenantsOpenAPIRouter(config, hooks),
       },
     ],
 

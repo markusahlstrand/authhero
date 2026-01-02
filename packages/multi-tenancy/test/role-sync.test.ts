@@ -206,6 +206,51 @@ describe("Role Sync Hooks", () => {
       expect(tenant2Role?.description).toBe("Can edit and publish content");
     });
 
+    it("should create role on child tenant when update is called but it does not exist", async () => {
+      const hooks = createRoleSyncHooks({
+        controlPlaneTenantId: "main",
+        getChildTenantIds: async () => ["tenant1", "tenant2"],
+        getAdapters: async (tenantId) => adaptersMap.get(tenantId)!,
+      });
+
+      // Create role on main WITHOUT syncing it first
+      const role = await mainAdapters.roles.create("main", {
+        name: "Editor",
+        description: "Can edit content",
+      });
+
+      // Verify it does NOT exist on child tenants
+      let tenant1Role = await findByName(tenant1Adapters, "tenant1", "Editor");
+      expect(tenant1Role).toBeNull();
+
+      // Update the role on main
+      await mainAdapters.roles.update("main", role.id, {
+        description: "Can edit and publish content",
+      });
+
+      const updatedRole = await mainAdapters.roles.get("main", role.id);
+      if (!updatedRole) throw new Error("Role not found");
+
+      // Call afterUpdate hook - this should CREATE the role on child tenants
+      await hooks.afterUpdate!(
+        { tenantId: "main", adapters: mainAdapters },
+        role.id,
+        updatedRole,
+      );
+
+      // Verify role was CREATED on tenant1 with updated values
+      tenant1Role = await findByName(tenant1Adapters, "tenant1", "Editor");
+      expect(tenant1Role).toBeDefined();
+      expect(tenant1Role?.name).toBe("Editor");
+      expect(tenant1Role?.description).toBe("Can edit and publish content");
+      expect(tenant1Role?.is_system).toBe(true);
+
+      // Verify role was CREATED on tenant2
+      const tenant2Role = await findByName(tenant2Adapters, "tenant2", "Editor");
+      expect(tenant2Role).toBeDefined();
+      expect(tenant2Role?.description).toBe("Can edit and publish content");
+    });
+
     it("should use shouldSync filter", async () => {
       const hooks = createRoleSyncHooks({
         controlPlaneTenantId: "main",

@@ -16,7 +16,7 @@ import {
   createDatabaseHooks,
   createProvisioningHooks,
 } from "./hooks";
-import { createTenantsRouter, createTenantsOpenAPIRouter } from "./routes";
+import { createTenantsOpenAPIRouter } from "./routes";
 import {
   createMultiTenancyMiddleware,
   createProtectSyncedMiddleware,
@@ -69,7 +69,7 @@ export type {
 } from "./hooks/role-sync";
 
 // Re-export routes
-export { createTenantsRouter } from "./routes";
+export { createTenantsOpenAPIRouter } from "./routes";
 
 // Re-export middleware
 export {
@@ -167,7 +167,7 @@ export function createMultiTenancy(config: MultiTenancyConfig) {
   const hooks = createMultiTenancyHooks(config);
 
   // Mount tenant management routes
-  app.route("/tenants", createTenantsRouter(config, hooks));
+  app.route("/tenants", createTenantsOpenAPIRouter(config, hooks));
 
   return app;
 }
@@ -218,8 +218,10 @@ export function setupMultiTenancy(config: MultiTenancyConfig) {
 /**
  * Configuration for multi-tenant AuthHero initialization.
  */
-export interface MultiTenantAuthHeroConfig
-  extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
+export interface MultiTenantAuthHeroConfig extends Omit<
+  AuthHeroConfig,
+  "entityHooks" | "managementApiExtensions"
+> {
   /**
    * The control plane tenant ID that manages all other tenants.
    * This tenant can create, update, and delete other tenants.

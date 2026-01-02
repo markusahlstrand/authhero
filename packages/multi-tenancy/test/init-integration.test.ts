@@ -8,7 +8,7 @@ import {
   setupMultiTenancy,
   createTenantResourceServerSyncHooks,
   createTenantRoleSyncHooks,
-  createTenantsRouter,
+  createTenantsOpenAPIRouter,
   MultiTenancyConfig,
   MultiTenancyHooks,
 } from "../src/index";
@@ -173,7 +173,7 @@ describe("Tenant Sync Hooks Integration", () => {
     app.use("*", multiTenancy.middleware);
 
     // Create router for tenant routes with combined hooks
-    const tenantsRouter = createTenantsRouter(
+    const tenantsRouter = createTenantsOpenAPIRouter(
       multiTenancyConfig,
       combinedHooks,
     );
