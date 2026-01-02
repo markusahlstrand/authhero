@@ -171,7 +171,7 @@ export const organizationRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
-      const { page, per_page, include_totals, sort, q } =
+      const { page, per_page, include_totals, sort, q, from, take } =
         ctx.req.valid("query");
 
       const result = await ctx.env.data.organizations.list(tenant_id, {
@@ -180,6 +180,8 @@ export const organizationRoutes = new OpenAPIHono<{
         include_totals,
         sort: parseSort(sort),
         q,
+        from,
+        take,
       });
 
       if (include_totals) {

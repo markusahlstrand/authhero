@@ -134,12 +134,21 @@ export async function queryWithPagination<T>(
     indexName?: string;
     scanIndexForward?: boolean;
   },
-): Promise<{ items: T[]; start: number; limit: number; length: number }> {
-  const { page = 0, per_page = 50, include_totals = false } = params;
+): Promise<{
+  items: T[];
+  start: number;
+  limit: number;
+  length: number;
+  total?: number;
+}> {
+  const { page, per_page, include_totals = false, from, take } = params;
   const { skPrefix, indexName, scanIndexForward = true } = options || {};
 
-  // For pagination, we need to skip items
-  const skip = page * per_page;
+  // Determine pagination strategy
+  // If 'from' is provided, use it as offset (checkpoint pagination)
+  // Otherwise use page-based pagination
+  const limit = take || per_page || 50;
+  const skip = from !== undefined ? parseInt(from, 10) : (page || 0) * limit;
 
   let keyConditionExpression = indexName
     ? `${indexName}PK = :pk`
@@ -161,7 +170,7 @@ export async function queryWithPagination<T>(
   let totalFetched = 0;
 
   // Fetch items until we have enough for the requested page
-  const targetCount = skip + per_page;
+  const targetCount = skip + limit;
 
   while (totalFetched < targetCount) {
     const result = await ctx.client.send(
@@ -185,7 +194,7 @@ export async function queryWithPagination<T>(
   }
 
   // Slice to get the requested page
-  const pageItems = allItems.slice(skip, skip + per_page);
+  const pageItems = allItems.slice(skip, skip + limit);
 
   // Get total count if requested
   let totalCount = allItems.length;
@@ -211,8 +220,9 @@ export async function queryWithPagination<T>(
   return {
     items: pageItems,
     start: skip,
-    limit: per_page,
-    length: include_totals ? totalCount : pageItems.length,
+    limit,
+    length: pageItems.length,
+    total: include_totals ? totalCount : undefined,
   };
 }
 
