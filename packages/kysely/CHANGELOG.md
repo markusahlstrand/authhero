@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 10.74.0
+
+### Minor Changes
+
+- 17d73eb: Change name of organization flag and add OR support in lucence queries
+
+### Patch Changes
+
+- Updated dependencies [17d73eb]
+- Updated dependencies [e542773]
+  - @authhero/adapter-interfaces@0.114.0
+
 ## 10.73.1
 
 ### Patch Changes

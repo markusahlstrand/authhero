@@ -1,5 +1,12 @@
 # @authhero/react-admin
 
+## 0.16.0
+
+### Minor Changes
+
+- 17d73eb: Change name of organization flag and add OR support in lucence queries
+- e542773: Fixes for syncing resources servers and global roles
+
 ## 0.15.0
 
 ### Minor Changes
