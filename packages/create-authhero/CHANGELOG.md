@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.16.0
+
+### Minor Changes
+
+- 928d358: Add userinfo hook
+
 ## 0.15.0
 
 ### Minor Changes

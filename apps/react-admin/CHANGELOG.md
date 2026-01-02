@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.18.0
+
+### Minor Changes
+
+- 928d358: Add userinfo hook
+
 ## 0.17.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # authhero
 
+## 1.4.0
+
+### Minor Changes
+
+- 928d358: Add userinfo hook
+
 ## 1.3.0
 
 ### Minor Changes

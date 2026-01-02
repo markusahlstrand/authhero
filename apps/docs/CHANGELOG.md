@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.23.0
+
+### Minor Changes
+
+- 928d358: Add userinfo hook
+
 ## 1.22.0
 
 ### Minor Changes
