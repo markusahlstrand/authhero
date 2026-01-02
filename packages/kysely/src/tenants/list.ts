@@ -3,6 +3,7 @@ import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 import { sqlTenantToTenant } from "./utils";
+import { luceneFilter } from "../helpers/filter";
 
 export function list(db: Kysely<Database>) {
   return async (params: ListParams) => {
@@ -16,9 +17,7 @@ export function list(db: Kysely<Database>) {
     }
 
     if (q) {
-      query = query.where((eb) =>
-        eb.or([eb("friendly_name", "like", `%${q}%`)]),
-      );
+      query = luceneFilter(db, query, q, ["friendly_name"]);
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);

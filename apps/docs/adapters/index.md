@@ -29,6 +29,22 @@ A modern TypeScript ORM adapter with excellent type safety and developer experie
 - Relational queries
 - Edge runtime support
 
+### NoSQL Adapters
+
+#### [AWS (DynamoDB)](/adapters/aws/)
+
+A DynamoDB adapter using single-table design for AWS-native deployments.
+
+**Features:**
+
+- Single-table design
+- Serverless-ready (Lambda, Cloudflare Workers)
+- Global distribution with DynamoDB
+- Basic authentication flows
+- No Lucene query support (basic filtering only)
+
+**Note**: This adapter supports core authentication flows but doesn't support advanced Lucene-style queries. Best for AWS-native deployments with basic filtering needs.
+
 ### Platform Adapters
 
 #### [Cloudflare](/adapters/cloudflare/)
@@ -56,17 +72,24 @@ All adapters implement standardized interfaces defined in the [Adapter Interface
 
 ### For Traditional Deployments
 
-- **Kysely**: Best for existing SQL infrastructure
+- **Kysely**: Best for existing SQL infrastructure, full Lucene query support
 - **Drizzle**: Great for new projects with modern TypeScript requirements
+
+### For AWS Deployments
+
+- **AWS**: Native DynamoDB integration, serverless-ready, basic filtering
+- **Kysely with RDS**: Full SQL features with AWS infrastructure
 
 ### For Edge/Serverless Deployments
 
-- **Cloudflare**: Optimal for global edge deployment
+- **Cloudflare**: Optimal for global edge deployment with D1
+- **AWS**: Works with Lambda and Cloudflare Workers
 - **Consider latency**: Choose adapters that minimize database round trips
 
 ### For Development
 
 - **SQLite with Kysely**: Easy local development setup
+- **DynamoDB Local**: Test AWS adapter locally
 - **In-memory options**: Fast testing and development
 
 ## Migration Between Adapters

@@ -17,8 +17,9 @@ export function listUserOrganizations(db: Kysely<Database>) {
       .selectFrom("user_organizations")
       .innerJoin(
         "organizations",
-        "organizations.id",
-        "user_organizations.organization_id",
+        (join) => join
+          .onRef("organizations.id", "=", "user_organizations.organization_id")
+          .on("organizations.tenant_id", "=", tenantId),
       )
       .select([
         "organizations.id",
@@ -48,8 +49,9 @@ export function listUserOrganizations(db: Kysely<Database>) {
       .selectFrom("user_organizations")
       .innerJoin(
         "organizations",
-        "organizations.id",
-        "user_organizations.organization_id",
+        (join) => join
+          .onRef("organizations.id", "=", "user_organizations.organization_id")
+          .on("organizations.tenant_id", "=", tenantId),
       )
       .select(db.fn.count("user_organizations.id").as("count"))
       .where("user_organizations.tenant_id", "=", tenantId)
