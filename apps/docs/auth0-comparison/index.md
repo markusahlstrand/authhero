@@ -11,7 +11,7 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 | **Multi-tenancy**            | Enterprise plans  | Built-in, all plans                    |
 | **Database**                 | Managed           | Your choice (SQL, etc.)                |
 | **Edge Deployment**          | Limited           | Full support (Workers, Edge Functions) |
-| **Source Code**              | Closed            | Open source (ISC License)              |
+| **Source Code**              | Closed            | Open source (MIT License)              |
 | **Hooks System**             | Deprecated (2024) | Active & expanding                     |
 | **User Deletion Hooks**      | ❌ Not available  | ✅ Pre & Post hooks                    |
 | **Connection Order Control** | ❌ Not available  | ✅ Configurable ordering               |
@@ -23,7 +23,7 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 
 AuthHero gives you complete control over your authentication system:
 
-- **Open Source**: Full source code access under ISC license
+- **Open Source**: Full source code access under MIT license
 - **Self-Hosted**: Deploy on your infrastructure
 - **Data Ownership**: Your data stays in your database
 - **Customization**: Modify any part of the system

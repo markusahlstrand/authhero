@@ -200,4 +200,4 @@ authhero/
 
 ## License
 
-[ISC License](LICENSE)
+[MIT License](LICENSE)

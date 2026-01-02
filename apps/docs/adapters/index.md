@@ -94,11 +94,83 @@ All adapters implement standardized interfaces defined in the [Adapter Interface
 
 ## Migration Between Adapters
 
-AuthHero's adapter system is designed to facilitate migration between different storage backends. The standardized interfaces mean that switching adapters typically only requires:
+AuthHero's database-agnostic design makes migrating from one storage backend to another straightforward using the **passthrough adapter pattern**. This allows you to:
 
-1. Installing the new adapter package
-2. Updating configuration
-3. Running data migration scripts (when changing storage types)
+- **Run multiple adapters simultaneously** during migration
+- **Sync all writes to both databases** automatically
+- **Read from your existing database** while the new one is being populated
+- **Switch over with zero downtime** by changing configuration
+- **Migrate across different ORMs and database types**
+
+### How It Works
+
+The `createPassthroughAdapter` utility from `@authhero/adapter-interfaces` enables dual-write mode:
+
+```typescript
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createKyselyAdapter } from "@authhero/kysely";
+import { createDrizzleAdapter } from "@authhero/drizzle";
+
+// Current database (PostgreSQL with Kysely)
+const currentAdapter = createKyselyAdapter(postgresDb);
+
+// Target database (MySQL with Drizzle)
+const targetAdapter = createDrizzleAdapter(mysqlDb);
+
+// Dual-write configuration
+const dataAdapter = {
+  users: createPassthroughAdapter({
+    primary: currentAdapter.users,      // Reads come from here
+    secondaries: [
+      {
+        adapter: targetAdapter.users,   // Writes go here too
+        blocking: true,                 // Wait for success
+        onError: (err) => console.error("Migration sync error:", err),
+      },
+    ],
+  }),
+  // Configure other entities similarly...
+};
+```
+
+During migration:
+1. **All reads** come from the current database
+2. **All writes** go to both databases (current first, then target)
+3. After verifying data, **swap the primary** to read from the new database
+4. Once stable, **remove the passthrough** and use the new adapter directly
+
+### Migration Steps
+
+1. **Set up both adapters** and configure passthrough mode
+2. **Backfill existing data** to the new database
+3. **Verify data integrity** between both databases
+4. **Switch primary** to read from new database
+5. **Monitor for issues** while keeping old database as backup
+6. **Remove old database** after confirming stability
+
+### Complete Migration Guide
+
+For a detailed, step-by-step migration guide with code examples, see:
+
+**[Database Migration Guide →](/guides/database-migration)**
+
+This guide covers:
+- Setting up dual-write with passthrough adapters
+- Backfilling existing data with scripts
+- Verification and monitoring strategies
+- Switchover procedures and rollback plans
+- Troubleshooting common issues
+
+### Use Cases
+
+Beyond database migration, the passthrough adapter pattern supports:
+
+- **Multi-destination logging**: Write logs to both database and analytics
+- **Cache synchronization**: Keep multiple cache layers in sync
+- **Search index updates**: Sync data to search engines
+- **Analytics pipelines**: Send data to warehouses without affecting primary operations
+
+See the [Adapter Concepts](/concepts/adapters#adapter-middleware-and-composition) page for more details on adapter composition.
 
 ## Custom Adapters
 

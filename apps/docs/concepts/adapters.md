@@ -29,6 +29,205 @@ Platform adapters add cloud-specific capabilities:
 
 - **[Cloudflare](/adapters/cloudflare/)** - D1 database, KV storage, custom domains, analytics
 
+## Adapter Middleware and Composition
+
+AuthHero's adapter architecture supports **middleware patterns** that allow you to combine multiple adapters or add cross-cutting concerns like caching, logging, or data synchronization.
+
+### Passthrough Adapter
+
+The `createPassthroughAdapter` utility enables syncing write operations to multiple adapter implementations simultaneously. This powerful pattern supports:
+
+- **Database Migration**: Gradually migrate from one database to another
+- **Multi-destination Logging**: Write logs to both database and analytics services
+- **Cache Warming**: Keep multiple cache layers synchronized
+- **Search Index Sync**: Update search indexes alongside primary storage
+
+#### How It Works
+
+A passthrough adapter has one **primary** adapter and one or more **secondary** adapters:
+
+- **Reads** always come from the primary adapter
+- **Writes** go to the primary adapter first, then are synced to all secondaries
+- Secondaries can be **blocking** (wait for completion) or **non-blocking** (fire-and-forget)
+- Secondary failures are logged but don't block the primary operation
+
+```typescript
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+import { createKyselyAdapter } from "@authhero/kysely";
+import { createDrizzleAdapter } from "@authhero/drizzle";
+
+// Primary: PostgreSQL with Kysely
+const postgresAdapter = createKyselyAdapter(postgresDb);
+
+// Secondary: MySQL with Drizzle (migration target)
+const mysqlAdapter = createDrizzleAdapter(mysqlDb);
+
+// Create combined adapter
+const combinedAdapter = {
+  ...postgresAdapter,
+  users: createPassthroughAdapter({
+    primary: postgresAdapter.users,
+    secondaries: [
+      {
+        adapter: mysqlAdapter.users,
+        blocking: true, // Wait for MySQL write to complete
+        onError: (error, method, args) => {
+          console.error(`MySQL sync failed for ${method}:`, error);
+          // Alert your monitoring system
+        },
+      },
+    ],
+  }),
+  // Repeat for other entities...
+};
+```
+
+### Multi-Adapter Use Cases
+
+#### 1. Database Migration
+
+Run two databases in parallel during migration:
+
+```typescript
+const dataAdapter = {
+  users: createPassthroughAdapter({
+    primary: oldDatabaseAdapter.users, // Read from old DB
+    secondaries: [
+      {
+        adapter: newDatabaseAdapter.users, // Write to new DB
+        blocking: true, // Ensure writes succeed before returning
+      },
+    ],
+  }),
+};
+
+// All reads come from the old database
+// All writes go to both databases
+// When migration is complete, swap the primary
+```
+
+Once data is fully synced, you can:
+1. Switch the primary and secondary to read from the new database
+2. Verify data integrity
+3. Remove the passthrough and use the new adapter directly
+
+#### 2. Analytics and Monitoring
+
+Send data to analytics without affecting primary operations:
+
+```typescript
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseLogsAdapter,
+  secondaries: [
+    {
+      adapter: analyticsEngineAdapter,
+      blocking: false, // Don't wait for analytics
+    },
+    {
+      adapter: webhookNotifier,
+      blocking: false,
+    },
+  ],
+});
+```
+
+#### 3. Cache Synchronization
+
+Keep multiple cache layers in sync:
+
+```typescript
+const cacheAdapter = createPassthroughAdapter({
+  primary: redisCacheAdapter,
+  secondaries: [
+    { adapter: memcachedAdapter },
+    { adapter: cdnCacheAdapter },
+  ],
+  syncMethods: ["set", "delete"], // Only sync write operations
+});
+```
+
+#### 4. Multi-Cloud Resilience
+
+Ensure high availability by running on multiple cloud providers simultaneously. If one provider experiences an outage, you can quickly failover to the other:
+
+```typescript
+import { createCloudflareAdapter } from "@authhero/cloudflare";
+import { createKyselyAdapter } from "@authhero/kysely";
+
+// Primary: Cloudflare D1 (edge database)
+const cloudflareAdapter = createCloudflareAdapter(cloudflareEnv);
+
+// Secondary: AWS RDS with Kysely (regional database)
+const awsAdapter = createKyselyAdapter(awsDb);
+
+const dataAdapter = {
+  users: createPassthroughAdapter({
+    primary: cloudflareAdapter.users,
+    secondaries: [
+      {
+        adapter: awsAdapter.users,
+        blocking: true, // Ensure AWS stays in sync
+        onError: (error) => {
+          // Alert on sync failures - may indicate AWS issues
+          alertOpsTeam("AWS sync failed", error);
+        },
+      },
+    ],
+  }),
+  // Configure other entities similarly...
+};
+
+// If Cloudflare has an outage, quickly switch to AWS:
+// Just swap primary and secondary in your configuration
+```
+
+**Benefits:**
+- **Zero data loss**: All writes go to both providers
+- **Fast failover**: Switch configuration to make AWS primary
+- **Provider independence**: Not locked into a single cloud
+- **Regional coverage**: Combine edge (Cloudflare) with regional (AWS) deployment
+
+**Considerations:**
+- **Increased costs**: Running two databases
+- **Latency**: Blocking writes may be slower (use non-blocking if acceptable)
+- **Consistency**: Monitor sync health to ensure both databases stay aligned
+- **Failover testing**: Regularly test switching between providers
+
+### Configuration Options
+
+```typescript
+interface PassthroughConfig<T> {
+  // Primary adapter - handles all reads and initial writes
+  primary: T;
+
+  // Secondary adapters to sync writes to
+  secondaries: Array<{
+    // Can be a partial implementation - only implemented methods are called
+    adapter: Partial<T>;
+
+    // Wait for this secondary before returning? Default: false
+    blocking?: boolean;
+
+    // Error handler for failed secondary writes
+    onError?: (error: Error, method: string, args: unknown[]) => void;
+  }>;
+
+  // Which methods trigger secondary syncing
+  // Default: ["create", "update", "remove", "delete", "set"]
+  syncMethods?: string[];
+}
+```
+
+### Best Practices
+
+1. **Use blocking for critical secondaries**: If data consistency matters (like during migration), set `blocking: true`
+2. **Monitor secondary failures**: Always implement `onError` handlers to track sync issues
+3. **Partial implementations**: Secondaries don't need to implement all methods - only implement what you need
+4. **Gradual rollout**: Migrate one entity at a time (start with logs, then users, etc.)
+5. **Verify before switching**: Monitor secondary writes for errors before promoting to primary
+
+See the [Database Migration Guide](/guides/database-migration) for a complete step-by-step migration example.
+
 ## Writing a Custom Adapter
 
 ### 1. Implement the Core Interfaces

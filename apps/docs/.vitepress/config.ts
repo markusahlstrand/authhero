@@ -178,12 +178,20 @@ export default withMermaid(
               link: "/guides/authentication-flow",
             },
             {
+              text: "Custom Authorization Middleware",
+              link: "/guides/custom-authorization-middleware",
+            },
+            {
               text: "Custom Domain Setup",
               link: "/guides/custom-domain-setup",
             },
             {
               text: "Database Integration",
               link: "/guides/database-integration",
+            },
+            {
+              text: "Database Migration",
+              link: "/guides/database-migration",
             },
             { text: "Impersonation", link: "/guides/impersonation" },
             { text: "RBAC and Scopes", link: "/guides/rbac-and-scopes" },
@@ -223,7 +231,7 @@ export default withMermaid(
       },
 
       footer: {
-        message: "Released under the ISC License.",
+        message: "Released under the MIT License.",
         copyright: "Copyright © 2025 AuthHero",
       },
     },
