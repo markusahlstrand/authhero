@@ -36,7 +36,8 @@
     "dev": "stencil build --dev --watch --serve",
     "test": "stencil test --spec",
     "test:watch": "stencil test --spec --watchAll",
-    "generate": "stencil generate"
+    "generate": "stencil generate",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*"
