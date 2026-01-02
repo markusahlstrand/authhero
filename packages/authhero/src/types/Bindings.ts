@@ -8,8 +8,8 @@ import {
   OnExecutePostLogin,
   OnExecutePreUserDeletion,
   OnExecutePostUserDeletion,
-  OnExecuteValidateSignupEmail,
   OnExecuteValidateRegistrationUsername,
+  OnFetchUserInfo,
 } from "./Hooks";
 import { EntityHooksConfig } from "./AuthHeroConfig";
 import { EmailService } from "./EmailService";
@@ -39,8 +39,9 @@ export type Bindings = {
     onExecutePostLogin?: OnExecutePostLogin;
     onExecutePreUserDeletion?: OnExecutePreUserDeletion;
     onExecutePostUserDeletion?: OnExecutePostUserDeletion;
-    onExecuteValidateSignupEmail?: OnExecuteValidateSignupEmail;
     onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;
+    /** Called when /userinfo endpoint is accessed to add custom claims */
+    onFetchUserInfo?: OnFetchUserInfo;
   };
 
   /**

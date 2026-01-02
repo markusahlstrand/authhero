@@ -20,6 +20,7 @@ Defined directly in your application code during initialization. These provide s
 - `onExecutePostUserDeletion` - After a user is deleted (AuthHero-specific)
 - `onExecutePostLogin` - After successful authentication
 - `onExecuteCredentialsExchange` - Before tokens are issued
+- `onFetchUserInfo` - When the /userinfo endpoint is accessed (AuthHero-specific)
 
 **Example:**
 
@@ -176,6 +177,42 @@ onExecuteCredentialsExchange: async (ctx) => {
   };
 }
 ```
+
+### Userinfo Customization
+
+Add custom claims to the userinfo endpoint response:
+
+```typescript
+onFetchUserInfo: async (event, api) => {
+  const user = event.user;
+  
+  // Add subscription info from external service
+  const subscription = await getSubscription(user.user_id);
+  api.setCustomClaim("subscription_tier", subscription.tier);
+  api.setCustomClaim("subscription_expires_at", subscription.expiresAt);
+  
+  // Add custom user data
+  api.setCustomClaim("preferences", user.user_metadata?.preferences);
+  
+  // Add computed claims
+  api.setCustomClaim("is_premium", subscription.tier === "premium");
+}
+```
+
+The `onFetchUserInfo` hook is called when the `/userinfo` endpoint is accessed. Use it to:
+
+- Add data from external systems (CRM, subscriptions, etc.)
+- Include user metadata in a standardized format
+- Add computed or derived claims
+- Enrich the response based on the requested scopes
+
+The hook receives:
+- `event.user` - The authenticated user
+- `event.tenant_id` - The tenant ID
+- `event.scopes` - The scopes from the access token
+- `event.ctx` - The Hono context
+
+The `api.setCustomClaim()` method adds or overrides claims in the response. Custom claims are merged with the standard userinfo claims (`sub`, `email`, `email_verified`, etc.).
 
 ### Analytics and Monitoring
 

@@ -7,19 +7,21 @@ import {
   DataAdapters,
 } from "@authhero/multi-tenancy";
 
-// Main tenant ID - the tenant that manages all other tenants
-const MAIN_TENANT_ID = "main";
+// Control plane tenant ID - the tenant that manages all other tenants
+const CONTROL_PLANE_TENANT_ID = "control_plane";
 
 export default function createApp(
-  config: Omit<MultiTenantAuthHeroConfig, "mainTenantId"> & {
+  config: Omit<MultiTenantAuthHeroConfig, "controlPlaneTenantId"> & {
     dataAdapter: DataAdapters;
   },
 ) {
   const { app } = init({
     ...config,
-    mainTenantId: MAIN_TENANT_ID,
-    // Sync resource servers from main tenant to all child tenants
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    // Sync resource servers from control plane tenant to all child tenants
     syncResourceServers: true,
+    // Sync roles from control plane tenant to all child tenants
+    syncRoles: true,
   });
 
   app
@@ -36,7 +38,7 @@ export default function createApp(
         version: "1.0.0",
         status: "running",
         docs: "/docs",
-        mainTenant: MAIN_TENANT_ID,
+        controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
       });
     })
     .get("/docs", swaggerUI({ url: "/api/v2/spec" }));

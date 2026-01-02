@@ -244,7 +244,7 @@ function createUserUpdateHooks(
  * This is a lightweight check that can be done early (e.g., on identifier page)
  * without committing to creating a user.
  *
- * Now supports code-based hooks and webhooks via onExecuteValidateSignupEmail
+ * Supports code-based hooks via onExecuteValidateRegistrationUsername
  *
  * @returns An object with `allowed` boolean and optional `reason` string
  */
@@ -285,7 +285,7 @@ export async function validateSignupEmail(
   }
 
   // Call code-based hook if configured
-  if (ctx.env.hooks?.onExecuteValidateSignupEmail) {
+  if (ctx.env.hooks?.onExecuteValidateRegistrationUsername) {
     const request: HookRequest = {
       method: ctx.req.method,
       ip: ctx.var.ip || ctx.get("ip") || "",
@@ -297,7 +297,7 @@ export async function validateSignupEmail(
     let denyReason: string | undefined;
 
     try {
-      await ctx.env.hooks.onExecuteValidateSignupEmail(
+      await ctx.env.hooks.onExecuteValidateRegistrationUsername(
         {
           ctx,
           client,

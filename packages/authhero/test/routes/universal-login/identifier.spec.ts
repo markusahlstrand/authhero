@@ -172,7 +172,7 @@ describe("login identifier page", () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
       hooks: {
-        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+        onExecuteValidateRegistrationUsername: validateSignupEmailSpy,
       },
     });
     const oauthClient = testClient(oauthApp, env);
@@ -236,7 +236,7 @@ describe("login identifier page", () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
       hooks: {
-        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+        onExecuteValidateRegistrationUsername: validateSignupEmailSpy,
       },
     });
     const oauthClient = testClient(oauthApp, env);
@@ -285,7 +285,7 @@ describe("login identifier page", () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
       hooks: {
-        onExecuteValidateSignupEmail: validateSignupEmailSpy,
+        onExecuteValidateRegistrationUsername: validateSignupEmailSpy,
       },
     });
     const oauthClient = testClient(oauthApp, env);
