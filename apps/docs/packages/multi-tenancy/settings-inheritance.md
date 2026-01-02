@@ -1,3 +1,8 @@
+---
+title: Settings Inheritance
+description: Automatically inherit settings from the main tenant to child tenants. Reduce setup time, maintain consistency, and override per tenant.
+---
+
 # Settings Inheritance
 
 Configure child tenants to automatically inherit settings from the main tenant, reducing configuration overhead and ensuring consistency.

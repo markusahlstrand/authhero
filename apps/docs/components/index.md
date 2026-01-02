@@ -1,3 +1,8 @@
+---
+title: Component Library
+description: Pre-built UI components for AuthHero authentication flows built with Hono JSX. Themable, internationalized, and accessible components.
+---
+
 # Component Library
 
 AuthHero provides a set of pre-built UI components for authentication flows, built with [Hono JSX](https://hono.dev/guides/jsx) for server-side rendering.

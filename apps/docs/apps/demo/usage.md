@@ -1,3 +1,8 @@
+---
+title: Demo App Usage
+description: Explore the AuthHero demo app authentication endpoints, test login flows, access protected APIs, and explore the SQLite database structure.
+---
+
 # Demo App Usage
 
 ## Authentication Endpoints

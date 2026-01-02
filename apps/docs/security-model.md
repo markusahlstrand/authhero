@@ -1,3 +1,8 @@
+---
+title: Security Model
+description: Learn about AuthHero's security model including resource servers, scopes, roles, permissions, and organizations for fine-grained access control using RBAC.
+---
+
 # Security Model
 
 AuthHero provides a comprehensive security model for controlling access to your APIs and resources. This document explains the key components and how they work together.

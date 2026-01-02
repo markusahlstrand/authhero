@@ -1,3 +1,8 @@
+---
+title: AuthHero Installation
+description: Install the AuthHero package using npm, yarn, or pnpm. Requirements, basic usage, and next steps for configuration.
+---
+
 # AuthHero Installation
 
 ## Requirements

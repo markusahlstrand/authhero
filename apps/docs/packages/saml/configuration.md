@@ -1,3 +1,8 @@
+---
+title: SAML Configuration
+description: Configure SAML signing in AuthHero using signer instances, environment variables, or HttpSamlSigner for edge-compatible HTTP-based signing.
+---
+
 # SAML Configuration
 
 The SAML package supports flexible configuration options for different deployment environments.

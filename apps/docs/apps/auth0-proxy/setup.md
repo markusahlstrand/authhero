@@ -1,3 +1,8 @@
+---
+title: Auth0 Proxy Setup
+description: Set up the Auth0 Proxy for AuthHero. Installation steps, running the proxy server, and testing the connection with environment variables or headers.
+---
+
 # Auth0 Proxy Setup
 
 ## Prerequisites

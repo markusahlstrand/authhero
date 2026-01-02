@@ -1,3 +1,8 @@
+---
+title: Analytics Engine Logs
+description: Write authentication logs to Cloudflare Workers Analytics Engine with fire-and-forget writes and SQL-based querying for real-time analytics.
+---
+
 # Analytics Engine Logs Adapter
 
 Write authentication logs to Cloudflare Workers Analytics Engine for low-latency writes and SQL-based querying.

@@ -1,3 +1,8 @@
+---
+title: Cache Adapter
+description: High-performance caching using Cloudflare's Cache API. Get, set, and delete cached data with TTL and key prefixing support.
+---
+
 # Cache Adapter
 
 The Cache adapter provides caching using Cloudflare's Cache API for high-performance data storage.

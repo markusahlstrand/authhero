@@ -1,3 +1,8 @@
+---
+title: Multi-Tenant Comparison
+description: Compare AuthHero's built-in multi-tenancy with Auth0. Single installation manages multiple tenants with flexible domain strategies and centralized management.
+---
+
 # Multi-Tenant Support: AuthHero vs. Auth0
 
 AuthHero is designed from the ground up to support true multi-tenant authentication within a single installation. This provides significant flexibility and efficiency for SaaS platforms, agencies, and organizations managing multiple brands or customers.

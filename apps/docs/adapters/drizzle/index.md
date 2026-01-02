@@ -1,3 +1,8 @@
+---
+title: Drizzle Adapter
+description: Modern TypeScript ORM adapter for AuthHero with excellent type safety, schema migrations, and edge runtime support for PostgreSQL, MySQL, SQLite.
+---
+
 # Drizzle Adapter
 
 The Drizzle adapter provides a modern TypeScript ORM experience for AuthHero using [Drizzle ORM](https://orm.drizzle.team/). It offers excellent TypeScript integration, schema migrations, and edge runtime support.

@@ -1,3 +1,8 @@
+---
+title: Demo Application
+description: Reference implementation showcasing AuthHero capabilities including authentication flows, user management, API integration, and multi-tenant features.
+---
+
 # Demo Application
 
 The AuthHero demo application showcases the authentication system's capabilities and serves as a reference implementation.

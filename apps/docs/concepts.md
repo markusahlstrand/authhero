@@ -1,3 +1,8 @@
+---
+title: Key Concepts
+description: Learn the core concepts and terminology in AuthHero including tenants, applications, connections, users, domains, and account linking.
+---
+
 # Key Concepts in AuthHero
 
 This document explains the core concepts and terminology used in AuthHero.

@@ -1,3 +1,8 @@
+---
+title: Auth0 Proxy
+description: Auth0 compatibility proxy for AuthHero. Migrate existing Auth0 applications with minimal changes using the Auth0 API compatibility layer.
+---
+
 # Auth0 Proxy
 
 The Auth0 Proxy provides compatibility with Auth0's API, allowing applications built for Auth0 to work with AuthHero with minimal changes.

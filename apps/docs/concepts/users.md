@@ -1,3 +1,8 @@
+---
+title: Users
+description: Manage users in AuthHero including user properties, metadata, identities, account linking, and querying linked accounts.
+---
+
 # Users
 
 Users are the individuals who authenticate through AuthHero. Each user belongs to one or more tenants and can have different attributes and permissions.

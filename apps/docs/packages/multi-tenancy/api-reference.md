@@ -1,3 +1,8 @@
+---
+title: Multi-Tenancy API Reference
+description: Complete API reference for @authhero/multi-tenancy including configuration types, access control, database isolation, and subdomain routing.
+---
+
 # API Reference
 
 Complete API reference for the `@authhero/multi-tenancy` package.

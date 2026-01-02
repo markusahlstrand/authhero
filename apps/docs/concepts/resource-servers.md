@@ -1,3 +1,8 @@
+---
+title: Resource Servers
+description: Protect your APIs with AuthHero resource servers. Define scopes, configure RBAC, and control access through roles and permissions.
+---
+
 # Resource Servers
 
 Resource Servers (also called APIs) represent protected APIs in your system. They define the scopes (permissions) available for your API and control access through Role-Based Access Control (RBAC).

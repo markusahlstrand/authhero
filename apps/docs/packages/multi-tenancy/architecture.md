@@ -1,3 +1,8 @@
+---
+title: Multi-Tenancy Architecture
+description: Organization-based multi-tenancy model with control plane management, token-based access control, and organization-tenant relationships.
+---
+
 # Architecture
 
 The multi-tenancy package uses an organization-based model to manage access to multiple tenants from a central control plane.

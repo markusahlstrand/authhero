@@ -1,3 +1,8 @@
+---
+title: Create AuthHero CLI Commands
+description: Reference for create-authhero CLI commands and options including template, adapter, and skip-install flags.
+---
+
 # Create AuthHero CLI Commands
 
 ## Base Command

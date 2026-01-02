@@ -1,3 +1,8 @@
+---
+title: Code Style
+description: Code style guidelines for AuthHero including TypeScript, React, naming conventions, formatting with Prettier, and linting with ESLint.
+---
+
 # Code Style
 
 This document outlines the code style guidelines for the AuthHero project.

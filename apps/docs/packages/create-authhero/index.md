@@ -1,3 +1,8 @@
+---
+title: Create AuthHero CLI
+description: CLI tool for scaffolding new AuthHero projects. Choose from Basic, Multi-tenant, Cloudflare Workers, or Next.js templates with automatic setup.
+---
+
 # Create AuthHero
 
 The `create-authhero` CLI tool helps you quickly scaffold new AuthHero projects with the right configuration and boilerplate code.

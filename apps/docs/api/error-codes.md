@@ -1,3 +1,8 @@
+---
+title: Error Codes
+description: Reference guide for AuthHero API error codes including HTTP status codes, authentication errors, and user-related error responses.
+---
+
 # Error Codes
 
 This document provides a reference for error codes returned by the AuthHero API.

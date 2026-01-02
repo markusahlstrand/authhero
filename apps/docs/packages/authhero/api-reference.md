@@ -1,3 +1,8 @@
+---
+title: AuthHero API Reference
+description: API reference for the AuthHero library including authentication methods (login, signup) and token methods (validate, refresh).
+---
+
 # AuthHero API Reference
 
 This document provides a reference for the AuthHero API.

@@ -1,3 +1,8 @@
+---
+title: Database Migration Guide
+description: Migrate between databases using AuthHero's passthrough adapter. Run dual databases, sync writes, verify data integrity, and switch with zero downtime.
+---
+
 # Database Migration Guide
 
 This guide demonstrates how to migrate from one database to another using AuthHero's passthrough adapter system. You'll run both databases in parallel, sync all writes to both systems, verify data integrity, and then switch over with zero downtime.

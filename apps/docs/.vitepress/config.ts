@@ -24,20 +24,102 @@ export default withMermaid(
       },
     },
     head: [
+      // Favicon and icons
       ["link", { rel: "icon", href: "/favicon.ico" }],
+      [
+        "link",
+        { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon.ico" },
+      ],
+      ["link", { rel: "apple-touch-icon", href: "/favicon.ico" }],
+
+      // Primary meta tags
       ["meta", { name: "theme-color", content: "#3B82F6" }],
+      [
+        "meta",
+        {
+          name: "description",
+          content:
+            "AuthHero is an open-source, multi-tenant authentication system with Auth0 API compatibility. Self-host your identity management with enterprise features.",
+        },
+      ],
+      [
+        "meta",
+        {
+          name: "keywords",
+          content:
+            "authentication, auth0, identity management, multi-tenant, open source, oauth2, oidc, self-hosted, identity provider",
+        },
+      ],
+      ["meta", { name: "author", content: "AuthHero" }],
+      ["meta", { name: "robots", content: "index, follow" }],
+
+      // Open Graph / Facebook
       ["meta", { property: "og:type", content: "website" }],
-      ["meta", { property: "og:locale", content: "en" }],
+      ["meta", { property: "og:locale", content: "en_US" }],
+      ["meta", { property: "og:site_name", content: "AuthHero" }],
+      ["meta", { property: "og:url", content: "https://authhero.dev/" }],
       [
         "meta",
         {
           property: "og:title",
-          content: "AuthHero | Multi-tenant Authentication System",
+          content: "AuthHero | Open-Source Multi-tenant Authentication",
         },
       ],
-      ["meta", { property: "og:site_name", content: "AuthHero" }],
-      ["meta", { property: "og:url", content: "https://authhero.dev/" }],
+      [
+        "meta",
+        {
+          property: "og:description",
+          content:
+            "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
+        },
+      ],
+      ["meta", { property: "og:image", content: "https://authhero.dev/og-image.png" }],
+      ["meta", { property: "og:image:width", content: "1200" }],
+      ["meta", { property: "og:image:height", content: "630" }],
+
+      // Twitter
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      ["meta", { name: "twitter:site", content: "@authhero" }],
+      [
+        "meta",
+        {
+          name: "twitter:title",
+          content: "AuthHero | Open-Source Multi-tenant Authentication",
+        },
+      ],
+      [
+        "meta",
+        {
+          name: "twitter:description",
+          content:
+            "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
+        },
+      ],
+      ["meta", { name: "twitter:image", content: "https://authhero.dev/og-image.png" }],
+
+      // Canonical URL
+      ["link", { rel: "canonical", href: "https://authhero.dev/" }],
+
+      // Google Analytics
+      [
+        "script",
+        {
+          async: "",
+          src: "https://www.googletagmanager.com/gtag/js?id=G-DNZWG3PF2L",
+        },
+      ],
+      [
+        "script",
+        {},
+        `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-DNZWG3PF2L');`,
+      ],
     ],
+    sitemap: {
+      hostname: "https://authhero.dev",
+    },
     lastUpdated: true,
     cleanUrls: true,
     themeConfig: {

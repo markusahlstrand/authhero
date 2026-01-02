@@ -1,3 +1,8 @@
+---
+title: Adapters Overview
+description: Overview of AuthHero database adapters including Kysely (recommended), Cloudflare, and Drizzle for SQL database support and multi-database compatibility.
+---
+
 # AuthHero Adapters
 
 AuthHero provides database adapters to work with various database systems and platforms.

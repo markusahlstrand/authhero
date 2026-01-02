@@ -1,3 +1,8 @@
+---
+title: User Creation Flow
+description: Complete user creation flow in AuthHero with all hooks triggered during signup including validation, pre-registration, account linking, and post-registration.
+---
+
 # User Creation Flow and Hooks
 
 This document describes the complete user creation flow in AuthHero and all hooks that are triggered during the process.

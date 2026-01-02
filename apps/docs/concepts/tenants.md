@@ -1,3 +1,8 @@
+---
+title: Tenants
+description: Learn about multi-tenancy in AuthHero for isolating users, applications, and settings across customers, environments, or regions.
+---
+
 # Tenants
 
 In AuthHero, a tenant represents a logical isolation of users, applications, and authentication settings. Multi-tenancy allows you to manage multiple authentication domains within a single AuthHero instance.

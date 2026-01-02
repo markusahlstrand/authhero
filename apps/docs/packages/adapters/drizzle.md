@@ -1,3 +1,8 @@
+---
+title: Drizzle Adapter
+description: AuthHero adapter using Drizzle ORM for SQL databases including PostgreSQL, MySQL, and SQLite. Currently under development.
+---
+
 # Drizzle Adapter
 
 The Drizzle adapter allows AuthHero to work with SQL databases using the [Drizzle ORM](https://github.com/drizzle-team/drizzle-orm). It provides an implementation of the adapter interfaces for SQL databases.

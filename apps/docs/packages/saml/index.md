@@ -1,3 +1,8 @@
+---
+title: SAML Package
+description: SAML authentication for AuthHero with support for request parsing, response generation, metadata, and pluggable signing strategies for edge environments.
+---
+
 # @authhero/saml
 
 The `@authhero/saml` package provides SAML authentication functionality for AuthHero. It supports both Node.js environments with local signing and edge/serverless environments with HTTP-based signing.

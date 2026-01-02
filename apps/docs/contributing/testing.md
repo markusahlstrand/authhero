@@ -1,3 +1,8 @@
+---
+title: Testing
+description: Testing guidelines for AuthHero using Vitest. Run tests, organize test files, and write unit and integration tests.
+---
+
 # Testing
 
 This document outlines the testing guidelines for the AuthHero project.

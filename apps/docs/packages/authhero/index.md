@@ -1,3 +1,8 @@
+---
+title: AuthHero Core Library
+description: Core AuthHero library providing authentication flows, session management, token handling, multi-tenant support, and flexible middleware system.
+---
+
 # AuthHero Core Library
 
 The AuthHero core library provides the main authentication functionality and API for building authentication systems.

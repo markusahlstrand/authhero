@@ -1,3 +1,8 @@
+---
+title: Authentication Flow
+description: Understand AuthHero's OAuth 2.0 / OpenID Connect authentication flow including login, token types (ID, access, refresh), and session management.
+---
+
 # Authentication Flow
 
 This guide explains the authentication flow in AuthHero, covering login, registration, token handling, and session management.

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://authhero.dev/sitemap.xml

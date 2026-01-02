@@ -1,3 +1,8 @@
+---
+title: Release Process
+description: AuthHero release process using Changesets for version management. Create changesets, follow versioning guidelines, and publish packages.
+---
+
 # Release Process
 
 This document outlines the release process for the AuthHero project.

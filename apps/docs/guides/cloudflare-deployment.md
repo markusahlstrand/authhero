@@ -1,3 +1,8 @@
+---
+title: Cloudflare Workers Deployment
+description: Deploy AuthHero to Cloudflare Workers with D1 database. Quick start with create-authhero CLI, manual setup, migrations, and production deployment.
+---
+
 # Deploying AuthHero to Cloudflare Workers
 
 This guide covers deploying AuthHero to Cloudflare Workers with D1 database.

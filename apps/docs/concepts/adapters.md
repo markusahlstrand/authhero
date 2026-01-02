@@ -1,3 +1,8 @@
+---
+title: Adapters
+description: Learn about AuthHero's adapter system for database abstraction, including Kysely, Drizzle, AWS DynamoDB, and Cloudflare adapters with middleware patterns.
+---
+
 # Adapters
 
 Adapters are the data access layer in AuthHero that abstract database operations and platform-specific functionality. They provide a consistent interface for storing and retrieving authentication data across different storage backends.

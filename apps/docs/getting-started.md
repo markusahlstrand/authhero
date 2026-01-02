@@ -1,3 +1,8 @@
+---
+title: Getting Started
+description: Get started with AuthHero quickly using the create-authhero CLI or manual installation. Learn about templates, configuration options, and prerequisites.
+---
+
 # Getting Started with AuthHero
 
 This guide will help you get started with AuthHero in your project.

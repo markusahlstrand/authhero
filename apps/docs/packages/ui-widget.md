@@ -1,3 +1,8 @@
+---
+title: UI Widget
+description: Server-driven UI web component for authentication flows built with StencilJS. Framework agnostic, customizable, and SSR compatible.
+---
+
 # UI Widget
 
 The `@authhero/widget` is a server-driven UI web component for authentication flows, built on [StencilJS](https://stenciljs.com/).

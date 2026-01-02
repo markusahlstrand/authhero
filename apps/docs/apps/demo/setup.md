@@ -1,3 +1,8 @@
+---
+title: Demo App Setup
+description: Set up and run the AuthHero demo application locally. Prerequisites, installation steps, configuration, and starting the development server.
+---
+
 # Demo App Setup
 
 ## Prerequisites

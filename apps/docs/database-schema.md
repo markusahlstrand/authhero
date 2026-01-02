@@ -1,3 +1,8 @@
+---
+title: Database Schema
+description: Complete documentation of AuthHero's database schema for multi-tenant authentication, including tables, relationships, and entity diagrams.
+---
+
 # Database Schema
 
 AuthHero uses a comprehensive database schema designed for multi-tenant authentication and authorization. This page documents the complete database structure and relationships.

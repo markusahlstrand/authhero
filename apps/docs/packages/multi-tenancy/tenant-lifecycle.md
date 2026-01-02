@@ -1,3 +1,8 @@
+---
+title: Tenant Lifecycle
+description: Complete tenant lifecycle management from creation to deletion including organization provisioning, database setup, settings inheritance, and cleanup.
+---
+
 # Tenant Lifecycle
 
 This guide covers the complete lifecycle of tenants, from creation to deletion, including provisioning, configuration, and cleanup.

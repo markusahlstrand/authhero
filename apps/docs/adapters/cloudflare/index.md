@@ -1,3 +1,8 @@
+---
+title: Cloudflare Adapter
+description: Cloudflare-specific integrations for AuthHero including custom domains, caching, Analytics Engine logs, and R2 SQL for long-term storage.
+---
+
 # Cloudflare Adapter
 
 The Cloudflare adapter provides Cloudflare-specific integrations for AuthHero, including custom domain management, caching, and optional logging solutions.

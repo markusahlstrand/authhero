@@ -1,3 +1,8 @@
+---
+title: SAML API Reference
+description: Complete API reference for the @authhero/saml package including SAMLRequest, SAMLResponseJSON types, and signing methods.
+---
+
 # SAML API Reference
 
 This document provides a complete API reference for the `@authhero/saml` package.

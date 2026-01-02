@@ -1,3 +1,8 @@
+---
+title: Auth0 Proxy Configuration
+description: Configure the Auth0 Proxy using environment variables or request headers. Set up AUTH0_DOMAIN, API keys, and authentication settings.
+---
+
 # Auth0 Proxy Configuration
 
 The Auth0 Proxy can be configured using environment variables (recommended) or request headers (alternative).

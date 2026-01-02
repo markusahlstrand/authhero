@@ -1,3 +1,8 @@
+---
+title: Tokens
+description: Understand the different token types in AuthHero including ID tokens, access tokens, and refresh tokens with their claims and usage patterns.
+---
+
 # Tokens
 
 AuthHero generates various types of tokens during the authentication process. Understanding these tokens is essential for implementing secure authentication and authorization.

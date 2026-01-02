@@ -1,3 +1,8 @@
+---
+title: API Endpoints
+description: Complete reference for AuthHero API endpoints including Auth API for authentication and Management API for administrative operations.
+---
+
 # API Endpoints
 
 This document provides details on the available API endpoints in AuthHero.

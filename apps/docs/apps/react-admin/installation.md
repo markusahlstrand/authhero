@@ -1,3 +1,8 @@
+---
+title: React Admin Installation
+description: Install and configure the AuthHero React Admin Dashboard. Prerequisites, installation steps, and production deployment instructions.
+---
+
 # React Admin Dashboard Installation
 
 ## Prerequisites

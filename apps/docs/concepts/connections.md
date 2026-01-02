@@ -1,3 +1,8 @@
+---
+title: Connections
+description: Configure authentication methods in AuthHero including database connections, social logins (Google, Facebook, GitHub), and enterprise SAML/LDAP connections.
+---
+
 # Connections
 
 Connections are authentication methods available to users, such as username/password, social logins, or enterprise connections like SAML or LDAP.

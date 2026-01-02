@@ -1,3 +1,8 @@
+---
+title: Control Plane Architecture
+description: Central management layer for multi-tenant AuthHero. Entity synchronization, organization mapping, and access control via the control plane.
+---
+
 # Control Plane Architecture
 
 The multi-tenancy package uses a **control plane** architecture where a central tenant manages and provisions all other tenants in the system.

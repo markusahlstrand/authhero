@@ -1,3 +1,8 @@
+---
+title: Forms
+description: Learn about AuthHero's flow-based form system with nodes, components, and routing for building complex authentication user journeys.
+---
+
 # Forms in AuthHero
 
 This document explains how forms work in AuthHero, including the form structure, component types, and implementation details.

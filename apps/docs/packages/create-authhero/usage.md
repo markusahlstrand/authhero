@@ -1,3 +1,8 @@
+---
+title: Create AuthHero CLI Usage
+description: Create new AuthHero projects with pnpm create, npx, or yarn. Interactive setup with template and adapter selection.
+---
+
 # Create AuthHero CLI Usage
 
 ## Prerequisites

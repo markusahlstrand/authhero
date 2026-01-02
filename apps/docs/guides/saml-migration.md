@@ -1,3 +1,8 @@
+---
+title: SAML Migration Guide
+description: Migrate to the @authhero/saml package with backward compatibility. Configure HTTP-based signing for edge environments or local signing for Node.js.
+---
+
 # SAML Migration Guide
 
 This guide helps you migrate to the new `@authhero/saml` package and understand the changes in SAML configuration.

@@ -1,3 +1,8 @@
+---
+title: Impersonation Guide
+description: Implement user impersonation in AuthHero for administrators and support staff. Config-based hooks with users:impersonate permission.
+---
+
 # Impersonation Guide
 
 ## Overview

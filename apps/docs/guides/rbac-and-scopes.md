@@ -1,3 +1,8 @@
+---
+title: RBAC and Scopes Guide
+description: Detailed guide to implementing Role-Based Access Control in AuthHero including resource servers, scope behavior with RBAC enabled/disabled, and examples.
+---
+
 # Role-Based Access Control (RBAC) and Scopes
 
 This guide provides detailed examples and use cases for implementing Role-Based Access Control (RBAC) in AuthHero. For a comprehensive overview of the security model, see the [Security Model](/security-model) documentation.

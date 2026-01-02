@@ -1,3 +1,8 @@
+---
+title: Custom Domains Adapter
+description: Manage custom domains through Cloudflare API with automatic SSL certificates and DNS configuration for AuthHero authentication pages.
+---
+
 # Custom Domains Adapter
 
 The Custom Domains adapter manages custom domains through the Cloudflare API, handling SSL certificates and DNS configuration automatically.

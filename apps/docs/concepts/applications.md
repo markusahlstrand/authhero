@@ -1,3 +1,8 @@
+---
+title: Applications
+description: Learn about applications (OAuth clients) in AuthHero including web apps, SPAs, mobile apps, and machine-to-machine services with their configuration options.
+---
+
 # Applications
 
 Applications represent client applications that use AuthHero for authentication. Each application has its own settings, redirect URIs, and other configuration options.

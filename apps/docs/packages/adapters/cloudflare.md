@@ -1,3 +1,8 @@
+---
+title: Cloudflare Adapter
+description: Custom domain support for AuthHero using Cloudflare services. Domain verification, SSL certificates, and DNS record management.
+---
+
 # Cloudflare Adapter
 
 The Cloudflare adapter provides custom domain support for AuthHero using Cloudflare services. It allows you to set up and manage custom domains for your authentication pages.

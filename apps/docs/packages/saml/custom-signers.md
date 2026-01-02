@@ -1,3 +1,8 @@
+---
+title: Custom SAML Signers
+description: Implement custom SAML signing logic using the SamlSigner interface. Examples for AWS KMS, Azure Key Vault, and HashiCorp Vault integration.
+---
+
 # Custom SAML Signers
 
 This guide explains how to implement custom SAML signing logic by implementing the `SamlSigner` interface.

@@ -1,3 +1,8 @@
+---
+title: Main Tenant Adapter
+description: Provide fallback configurations from a main tenant to other tenants. Share social connections, merge settings, and enable centralized OAuth apps.
+---
+
 # Main Tenant Adapter
 
 The Main Tenant Adapter is a powerful feature in AuthHero that provides fallback functionality from a designated "main" tenant to other tenants. This allows you to set up default configurations that other tenants can inherit while still allowing tenant-specific customizations.

@@ -1,3 +1,8 @@
+---
+title: Multi-Tenancy Migration Guide
+description: Migrate from single-tenant to multi-tenant AuthHero architecture. Planning, data migration, code updates, and rollback strategies.
+---
+
 # Migration Guide
 
 Learn how to migrate from a single-tenant AuthHero setup to multi-tenant architecture.

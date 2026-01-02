@@ -1,3 +1,8 @@
+---
+title: Database Isolation
+description: Per-tenant database isolation using DatabaseFactory interface. Support for Cloudflare D1, Turso, or custom database providers.
+---
+
 # Database Isolation
 
 Each tenant can have its own database instance for complete data isolation. The multi-tenancy package provides a `DatabaseFactory` interface that can be implemented for different database providers.

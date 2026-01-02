@@ -1,3 +1,8 @@
+---
+title: Multi-Tenancy Package
+description: Complete multi-tenancy solution for AuthHero with organization-based access control, per-tenant database isolation, and subdomain routing.
+---
+
 # @authhero/multi-tenancy
 
 Multi-tenancy support for AuthHero with organization-based access control, per-tenant database isolation, and subdomain routing.

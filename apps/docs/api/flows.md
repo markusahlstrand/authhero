@@ -1,3 +1,8 @@
+---
+title: Flows
+description: Orchestrate complex authentication workflows with AuthHero flows. Configure action types, execution logic, and redirect actions for user management.
+---
+
 # Flows in AuthHero
 
 Flows in AuthHero provide a powerful way to orchestrate complex authentication and user management workflows. Unlike forms which focus on UI presentation, flows handle the business logic and actions that need to be performed during authentication processes.

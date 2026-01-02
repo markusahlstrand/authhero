@@ -1,3 +1,8 @@
+---
+title: Architecture
+description: Understand AuthHero's modular architecture including the core library, SAML package, admin dashboard, adapters, and multi-tenant design.
+---
+
 # AuthHero Architecture
 
 This document provides an overview of the AuthHero architecture and how its components interact.

@@ -1,3 +1,8 @@
+---
+title: Kysely Adapter
+description: Type-safe SQL database adapter for AuthHero using Kysely query builder. Supports PostgreSQL, MySQL, SQLite with migrations and transactions.
+---
+
 # Kysely Adapter
 
 The Kysely adapter provides type-safe SQL database operations for AuthHero using the [Kysely](https://github.com/kysely-org/kysely) query builder. It supports PostgreSQL, MySQL, SQLite, and other SQL databases with full TypeScript integration.

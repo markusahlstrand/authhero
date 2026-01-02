@@ -1,3 +1,8 @@
+---
+title: Custom Authorization Middleware
+description: Design and implement custom authorization middleware with RBAC, tenant isolation, complex permission hierarchies, and custom audit logging.
+---
+
 # Custom Authorization Middleware
 
 This guide shows how to design and implement custom authorization middleware for AuthHero that enforces role-based access control (RBAC) with tenant-level isolation and handles complex permission hierarchies across multiple applications.

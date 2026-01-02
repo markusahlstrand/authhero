@@ -1,3 +1,8 @@
+---
+title: R2 SQL Logs Adapter
+description: Write authentication logs to Cloudflare R2 using Pipelines for ingestion and R2 SQL with Apache Iceberg format for long-term storage and compliance.
+---
+
 # R2 SQL Logs Adapter
 
 Write authentication logs to Cloudflare R2 using Pipelines for data ingestion and R2 SQL for querying.

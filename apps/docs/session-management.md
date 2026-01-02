@@ -1,3 +1,8 @@
+---
+title: Session Management
+description: Understand AuthHero's dual-session architecture with login sessions and user sessions for handling authentication flows and enabling Single Sign-On (SSO).
+---
+
 # Session Management
 
 AuthHero uses a dual-session architecture with **Login Sessions** and **Sessions** to handle authentication flows and user sessions. Understanding how these work together is crucial for developers working with the AuthHero authentication system.

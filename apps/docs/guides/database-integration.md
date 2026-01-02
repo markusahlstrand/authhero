@@ -1,3 +1,8 @@
+---
+title: Database Integration
+description: Integrate AuthHero with various database systems using adapters. Choose from Kysely, Drizzle, or custom adapters for SQL databases.
+---
+
 # Database Integration
 
 This guide explains how to integrate AuthHero with various database systems using adapters.

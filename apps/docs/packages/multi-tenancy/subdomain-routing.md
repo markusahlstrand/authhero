@@ -1,3 +1,8 @@
+---
+title: Subdomain Routing
+description: Route requests to tenants based on subdomains. Organization-based routing, reserved subdomains, custom domain support, and resolution logic.
+---
+
 # Subdomain Routing
 
 Route requests to the correct tenant based on subdomains, enabling tenant-specific URLs and seamless multi-tenant access.

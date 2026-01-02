@@ -1,3 +1,8 @@
+---
+title: API Overview
+description: Overview of the AuthHero API including authentication methods, base URLs, response formats, rate limiting, and versioning.
+---
+
 # API Overview
 
 This document provides an overview of the AuthHero API.

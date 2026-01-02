@@ -1,3 +1,8 @@
+---
+title: Adapters Overview
+description: Modular adapter system for AuthHero supporting different databases and platforms. Kysely SQL, Drizzle ORM, AWS DynamoDB, and Cloudflare adapters.
+---
+
 # Adapters Overview
 
 AuthHero uses a modular adapter system to support different databases, storage backends, and cloud platforms. This architecture allows you to choose the right technology stack for your deployment while maintaining a consistent API.

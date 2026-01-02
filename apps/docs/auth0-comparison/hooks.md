@@ -1,3 +1,8 @@
+---
+title: Hooks Comparison
+description: Compare AuthHero hooks with Auth0 Actions. AuthHero offers pre/post user deletion hooks, form rendering, and entity hooks not available in Auth0.
+---
+
 # Hooks: AuthHero vs. Auth0
 
 Auth0 made the decision to deprecate its Hooks feature in October 2024, moving towards Actions as the primary way to customize authentication flows. While Actions offer powerful capabilities, AuthHero continues to support a flexible Hooks system that provides distinct advantages, especially for certain use cases.

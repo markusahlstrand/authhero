@@ -1,3 +1,8 @@
+---
+title: Adapter Interfaces
+description: Standardized interfaces for AuthHero adapters ensuring consistency, type safety, and interoperability across different storage backends.
+---
+
 # Adapter Interfaces
 
 The `@authhero/adapter-interfaces` package defines the standardized interfaces that all AuthHero adapters must implement. This ensures consistency, type safety, and interoperability across different storage backends.

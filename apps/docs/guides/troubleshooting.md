@@ -1,3 +1,8 @@
+---
+title: Troubleshooting
+description: Solutions to common AuthHero issues including authentication problems, token validation errors, database issues, custom domains, and API errors.
+---
+
 # Troubleshooting
 
 This guide provides solutions to common issues you might encounter when using AuthHero.

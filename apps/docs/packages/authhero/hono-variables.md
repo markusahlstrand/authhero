@@ -1,3 +1,8 @@
+---
+title: Hono Variables
+description: Context variables in AuthHero using Hono's var system including tenant_id, ip, client_id, user_id, auth0_client, and authentication variables.
+---
+
 # Hono Variables in AuthHero
 
 AuthHero uses [Hono's context variables system](https://hono.dev/api/context#var) to store and share data across middleware and route handlers. This document describes the available variables and how to use them.

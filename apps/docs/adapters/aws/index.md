@@ -1,3 +1,8 @@
+---
+title: AWS Adapter
+description: DynamoDB-based storage for AuthHero using single-table design. Serverless-ready for Lambda and edge deployments with global distribution.
+---
+
 # AWS Adapter
 
 The AWS adapter (`@authhero/aws-adapter`) provides DynamoDB-based storage for AuthHero. Unlike SQL adapters, it uses a NoSQL single-table design optimized for DynamoDB's access patterns.

@@ -1,3 +1,8 @@
+---
+title: AuthHero vs Auth0
+description: Compare AuthHero with Auth0. Learn about the key differences including self-hosting, multi-tenancy, hooks system, and open-source advantages.
+---
+
 # AuthHero vs. Auth0
 
 AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced features and full control over your authentication infrastructure. This section highlights the key differences and improvements.

@@ -1,3 +1,8 @@
+---
+title: Concepts Overview
+description: Overview of core AuthHero concepts including tenants, applications, connections, users, organizations, resource servers, tokens, hooks, and adapters.
+---
+
 # Key Concepts in AuthHero
 
 This section explains the core concepts and terminology used in AuthHero.

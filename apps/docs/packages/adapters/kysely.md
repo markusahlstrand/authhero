@@ -1,3 +1,8 @@
+---
+title: Kysely Adapter
+description: Recommended AuthHero adapter using Kysely query builder. Single schema for PostgreSQL, MySQL, SQLite with full TypeScript support and migrations.
+---
+
 # Kysely Adapter
 
 The Kysely adapter allows AuthHero to work with SQL databases using the [Kysely](https://github.com/kysely-org/kysely) query builder. It provides a single schema definition that works across multiple database dialects.

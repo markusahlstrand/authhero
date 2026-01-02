@@ -1,3 +1,8 @@
+---
+title: Hooks
+description: Extend AuthHero functionality with hooks for user registration, login, deletion, and more. Supports both programmatic hooks and URL webhooks.
+---
+
 # Hooks
 
 Hooks are a powerful extensibility mechanism that allows you to customize the authentication and user lifecycle at various points. AuthHero supports both URL-based webhooks and programmatic hooks defined in code.

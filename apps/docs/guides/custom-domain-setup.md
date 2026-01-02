@@ -1,3 +1,8 @@
+---
+title: Custom Domain Setup
+description: Configure custom domains for branded AuthHero authentication pages. DNS configuration, SSL certificates, and Cloudflare adapter integration.
+---
+
 # Custom Domain Setup
 
 This guide explains how to set up and configure custom domains for your AuthHero authentication pages.

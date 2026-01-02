@@ -1,3 +1,8 @@
+---
+title: Adapter Interfaces
+description: Interface definitions for AuthHero adapters including UserAdapter, ConnectionAdapter, DomainAdapter, TokenAdapter, and GeoAdapter for location data.
+---
+
 # Adapter Interfaces
 
 The `adapter-interfaces` package defines the interfaces that all AuthHero adapters must implement. These interfaces provide a consistent API for AuthHero to interact with different database systems.

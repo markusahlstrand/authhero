@@ -1,3 +1,8 @@
+---
+title: React Admin Development
+description: Development guide for the AuthHero React Admin Dashboard including project structure, development workflow, building, and testing.
+---
+
 # React Admin Dashboard Development
 
 ## Development Environment

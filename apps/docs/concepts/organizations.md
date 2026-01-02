@@ -1,3 +1,8 @@
+---
+title: Organizations
+description: Group users with organizations in AuthHero for B2B applications. Configure roles, permissions, branding, and manage organization invitations.
+---
+
 # Organizations
 
 Organizations enable you to group users and apply specific configurations, branding, and access controls to them. Organizations are useful for B2B applications where you serve multiple customer companies.

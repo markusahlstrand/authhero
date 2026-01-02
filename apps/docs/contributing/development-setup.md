@@ -1,3 +1,8 @@
+---
+title: Development Setup
+description: Set up the AuthHero development environment. Clone the repository, install dependencies, and run projects in the monorepo structure.
+---
+
 # Development Setup
 
 This guide explains how to set up the AuthHero development environment.

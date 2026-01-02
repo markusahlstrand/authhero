@@ -1,3 +1,8 @@
+---
+title: Redirect URLs Comparison
+description: AuthHero provides enhanced redirect URL wildcards including subdomain and path wildcards for flexible multi-tenant and deployment URL matching.
+---
+
 # Redirect URLs: AuthHero vs. Auth0
 
 AuthHero provides more flexible redirect URL validation compared to Auth0, allowing both subdomain wildcards and path wildcards that can be combined for powerful URL matching patterns.

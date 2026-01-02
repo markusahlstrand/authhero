@@ -1,3 +1,8 @@
+---
+title: React Admin Usage
+description: Learn how to use the AuthHero React Admin Dashboard for managing tenants, applications, connections, domains, users, and viewing logs.
+---
+
 # React Admin Dashboard Usage
 
 ## Logging In

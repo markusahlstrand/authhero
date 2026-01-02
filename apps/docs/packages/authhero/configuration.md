@@ -1,3 +1,8 @@
+---
+title: AuthHero Configuration
+description: Configure the AuthHero package including dataAdapter, allowedOrigins, samlSigner, and hooks for customizing authentication behavior.
+---
+
 # AuthHero Configuration
 
 This document describes how to configure the AuthHero package for your application.

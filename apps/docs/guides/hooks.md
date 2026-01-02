@@ -1,3 +1,8 @@
+---
+title: Hooks Guide
+description: Comprehensive guide to AuthHero hooks including lifecycle, configuration options, code-based hooks, webhooks, form hooks, and page hooks.
+---
+
 # Hooks Guide
 
 This guide explains how hooks work in AuthHero, including their lifecycle, configuration options, and usage patterns.
