@@ -8,7 +8,7 @@ export const querySchema = z.object({
     .default("0")
     .transform((p) => parseInt(p, 10))
     .openapi({
-      description: "The page number where 0 is the first page",
+      description: "Page index of the results to return. First page is 0.",
     }),
   per_page: z
     .string()
@@ -17,7 +17,7 @@ export const querySchema = z.object({
     .default("10")
     .transform((p) => parseInt(p, 10))
     .openapi({
-      description: "The number of items per page",
+      description: "Number of results per page. Defaults to 50.",
     }),
   include_totals: z
     .string()
@@ -26,7 +26,17 @@ export const querySchema = z.object({
     .transform((it) => it === "true")
     .openapi({
       description:
-        "If the total number of items should be included in the response",
+        "Return results inside an object that contains the total result count (true) or as a direct array of results (false, default).",
+    }),
+  from: z.string().optional().openapi({
+    description: "Optional Id from which to start selection.",
+  }),
+  take: z
+    .string()
+    .optional()
+    .transform((t) => (t ? parseInt(t, 10) : undefined))
+    .openapi({
+      description: "Number of results per page. Defaults to 50.",
     }),
   sort: z
     .string()
@@ -34,7 +44,7 @@ export const querySchema = z.object({
     .optional()
     .openapi({
       description:
-        "A property that should have the format 'string:-1' or 'string:1'",
+        "Field to sort by. Use field:order where order is 1 for ascending and -1 for descending. e.g. created_at:1.",
     }),
   q: z.string().optional().openapi({
     description: "A lucene query string used to filter the results",

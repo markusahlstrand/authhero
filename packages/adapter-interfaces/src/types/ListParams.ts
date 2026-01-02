@@ -7,4 +7,7 @@ export interface ListParams {
     sort_by: string;
     sort_order: "asc" | "desc";
   };
+  // Checkpoint pagination (alternative to page/per_page)
+  from?: string;
+  take?: number;
 }

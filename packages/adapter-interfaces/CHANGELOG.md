@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.115.0
+
+### Minor Changes
+
+- f738edf: Add checkpoint pagination for organizations
+
 ## 0.114.0
 
 ### Minor Changes

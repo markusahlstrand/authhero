@@ -1,5 +1,23 @@
 # authhero
 
+## 1.3.0
+
+### Minor Changes
+
+- f738edf: Add checkpoint pagination for organizations
+
+### Patch Changes
+
+- Updated dependencies [f738edf]
+  - @authhero/adapter-interfaces@0.115.0
+  - @authhero/widget@0.2.2
+
+## 1.2.0
+
+### Minor Changes
+
+- c8c83e3: Add a admin:organizations permission to hande organizations in the control_plane
+
 ## 1.1.0
 
 ### Minor Changes

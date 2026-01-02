@@ -147,30 +147,41 @@ async function createOrganizationForTenant(
   }
 
   // Add the creator to the organization and assign the admin role
+  // Skip if the user has admin:organizations permission (they can access any org without membership)
   if (addCreatorToOrganization && ctx.ctx) {
     const user = ctx.ctx.var.user;
     if (user?.sub) {
-      try {
-        // Add user to the organization
-        await ctx.adapters.userOrganizations.create(controlPlaneTenantId, {
-          user_id: user.sub,
-          organization_id: organization.id,
-        });
+      // Check if user has admin:organizations at the global level
+      const hasGlobalOrgAdmin = await userHasGlobalOrgAdminPermission(
+        ctx,
+        controlPlaneTenantId,
+        user.sub,
+      );
 
-        // Assign admin role to the user for this organization (only if role was created)
-        if (adminRoleId) {
-          await ctx.adapters.userRoles.create(
-            controlPlaneTenantId,
-            user.sub,
-            adminRoleId,
-            organization.id, // organizationId
+      // Only add user to organization if they don't have global admin:organizations
+      if (!hasGlobalOrgAdmin) {
+        try {
+          // Add user to the organization
+          await ctx.adapters.userOrganizations.create(controlPlaneTenantId, {
+            user_id: user.sub,
+            organization_id: organization.id,
+          });
+
+          // Assign admin role to the user for this organization (only if role was created)
+          if (adminRoleId) {
+            await ctx.adapters.userRoles.create(
+              controlPlaneTenantId,
+              user.sub,
+              adminRoleId,
+              organization.id, // organizationId
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `Failed to add creator ${user.sub} to organization ${organization.id}:`,
+            error,
           );
         }
-      } catch (error) {
-        console.warn(
-          `Failed to add creator ${user.sub} to organization ${organization.id}:`,
-          error,
-        );
       }
     }
   }
@@ -192,6 +203,43 @@ async function createOrganizationForTenant(
       `Would grant permissions ${defaultPermissions.join(", ")} to organization ${organization.id}`,
     );
   }
+}
+
+/**
+ * Checks if a user has the admin:organizations permission at the global (tenant) level.
+ * This is used to determine if the user should be added to organizations or not.
+ */
+async function userHasGlobalOrgAdminPermission(
+  ctx: TenantHookContext,
+  controlPlaneTenantId: string,
+  userId: string,
+): Promise<boolean> {
+  // Get user's global roles (not organization-scoped)
+  const globalRoles = await ctx.adapters.userRoles.list(
+    controlPlaneTenantId,
+    userId,
+    undefined,
+    "", // Empty string for global roles
+  );
+
+  // Check if any global role has admin:organizations permission
+  for (const role of globalRoles) {
+    const rolePermissions = await ctx.adapters.rolePermissions.list(
+      controlPlaneTenantId,
+      role.id,
+      { per_page: 1000 },
+    );
+
+    const hasAdminOrg = rolePermissions.some(
+      (permission) => permission.permission_name === "admin:organizations",
+    );
+
+    if (hasAdminOrg) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

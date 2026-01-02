@@ -228,6 +228,10 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Create Organizations", value: "create:organizations" },
   { description: "Delete Organizations", value: "delete:organizations" },
   {
+    description: "Administer Organizations",
+    value: "admin:organizations",
+  },
+  {
     description: "Read Organization Discovery Domains",
     value: "read:organization_discovery_domains",
   },

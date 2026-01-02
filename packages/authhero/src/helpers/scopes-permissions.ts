@@ -255,22 +255,63 @@ export async function calculateScopesAndPermissions(
   const { tenantId, userId, audience, requestedScopes, organizationId } =
     params;
 
+  // Check if user has admin:organizations permission at global level
+  // This allows org admins to get tokens for any organization without membership
+  let hasGlobalOrgAdminPermission = false;
+
   if (organizationId) {
-    const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
-      q: `user_id:${userId}`,
-      per_page: 1000, // Should be enough for most cases
-    });
+    // Get the current tenant to check if permission inheritance is enabled
+    const currentTenant = await ctx.env.data.tenants.get(tenantId);
 
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organizationId,
-    );
+    if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
+      // Check if user has admin:organizations permission at the global level
+      const globalRoles = await ctx.env.data.userRoles.list(
+        tenantId,
+        userId,
+        undefined,
+        "", // Empty string for tenant-level (global) roles
+      );
 
-    if (!isMember) {
-      // User is not a member of the organization - throw 403 error
-      throw new JSONHTTPException(403, {
-        error: "access_denied",
-        error_description: "User is not a member of the specified organization",
+      // Get permissions from each global role
+      for (const role of globalRoles) {
+        const rolePermissions = await ctx.env.data.rolePermissions.list(
+          tenantId,
+          role.id,
+          { per_page: 1000 },
+        );
+
+        const hasAdminOrg = rolePermissions.some(
+          (permission) =>
+            permission.permission_name === "admin:organizations" &&
+            permission.resource_server_identifier === audience,
+        );
+
+        if (hasAdminOrg) {
+          hasGlobalOrgAdminPermission = true;
+          break;
+        }
+      }
+    }
+
+    // Only check membership if user doesn't have global admin:organizations permission
+    if (!hasGlobalOrgAdminPermission) {
+      const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
+        q: `user_id:${userId}`,
+        per_page: 1000, // Should be enough for most cases
       });
+
+      const isMember = userOrgs.userOrganizations.some(
+        (uo) => uo.organization_id === organizationId,
+      );
+
+      if (!isMember) {
+        // User is not a member of the organization - throw 403 error
+        throw new JSONHTTPException(403, {
+          error: "access_denied",
+          error_description:
+            "User is not a member of the specified organization",
+        });
+      }
     }
   }
 
