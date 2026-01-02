@@ -2,6 +2,11 @@
   "name": "@authhero/widget",
   "version": "0.2.1",
   "description": "Server-Driven UI widget for AuthHero authentication flows",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero",
+    "directory": "packages/ui-widget"
+  },
   "files": [
     "dist/",
     "hydrate/",
