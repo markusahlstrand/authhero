@@ -73,14 +73,14 @@ export function createTenantsOpenAPIRouter(
 
       // Get the current user from context (set by authhero's auth middleware)
       const user = ctx.var.user as
-        | { sub: string; tenant_id: string; scope?: string }
+        | { sub: string; tenant_id: string; scope?: string; permissions?: string[] }
         | undefined;
 
-      // TEMPORARY: If user has auth:read scope on control plane, allow access to all tenants
-      const userScopes = (user?.scope || "").split(" ");
-      const hasAuthRead = userScopes.includes("auth:read");
-      console.log("User scopes:", userScopes, "hasAuthRead:", hasAuthRead);
-      if (hasAuthRead) {
+      // If user has auth:read or admin:organizations permission, allow access to all tenants
+      const userPermissions = user?.permissions || [];
+      const hasFullAccess = userPermissions.includes("auth:read") || userPermissions.includes("admin:organizations");
+      console.log("User permissions:", userPermissions, "hasFullAccess:", hasFullAccess);
+      if (hasFullAccess) {
         const result = await ctx.env.data.tenants.list({
           page,
           per_page,
