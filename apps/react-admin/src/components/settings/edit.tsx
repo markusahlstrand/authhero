@@ -9,9 +9,32 @@ import {
 } from "react-admin";
 import { Stack } from "@mui/material";
 
+// Recursively remove null/undefined values from an object
+function removeNullValues(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const cleaned = removeNullValues(value as Record<string, unknown>);
+      if (Object.keys(cleaned).length > 0) {
+        result[key] = cleaned;
+      }
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export function SettingsEdit() {
+  const transform = (data: Record<string, unknown>) => {
+    return removeNullValues(data);
+  };
+
   return (
-    <Edit>
+    <Edit transform={transform}>
       <TabbedForm>
         <TabbedForm.Tab label="General">
           <Stack spacing={2}>
@@ -214,6 +237,11 @@ export function SettingsEdit() {
             <BooleanInput
               source="flags.mfa_show_factor_list_on_enrollment"
               label="MFA Show Factor List on Enrollment"
+            />
+            <BooleanInput
+              source="flags.inherit_global_permissions_in_organizations"
+              label="Inherit Tenant Permissions in Organizations"
+              helperText="When enabled, tenant-level permissions will be inherited when users request organization-scoped tokens"
             />
           </Stack>
         </TabbedForm.Tab>

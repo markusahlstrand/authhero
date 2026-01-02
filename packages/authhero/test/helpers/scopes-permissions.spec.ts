@@ -692,6 +692,285 @@ describe("scopes-permissions helper", () => {
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 
+    describe("inherit_global_permissions_in_organizations with admin:organizations", () => {
+      it("should allow users with admin:organizations to get organization tokens for any organization without membership", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server with RBAC enabled
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API for Admin",
+            identifier: "https://admin-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "admin:organizations", description: "Admin organizations" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        // Create an organization that the user is NOT a member of
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Target Organization",
+          display_name: "Target Org",
+        });
+
+        // Create a global admin role with admin:organizations permission
+        const adminRole = await env.data.roles.create("tenantId", {
+          name: "Global Organization Admin",
+          description: "Can manage all organizations",
+        });
+
+        // Assign the admin:organizations and read:users permissions to the role
+        await env.data.rolePermissions.assign("tenantId", adminRole.id, [
+          {
+            role_id: adminRole.id,
+            resource_server_identifier: "https://admin-test-api.example.com",
+            permission_name: "admin:organizations",
+          },
+          {
+            role_id: adminRole.id,
+            resource_server_identifier: "https://admin-test-api.example.com",
+            permission_name: "read:users",
+          },
+        ]);
+
+        // Assign global role to user (organizationId = "" for global)
+        await env.data.userRoles.create(
+          "tenantId",
+          "globalAdminUserId",
+          adminRole.id,
+          "", // Global role (no organization)
+        );
+
+        // Enable the inherit_global_permissions_in_organizations flag
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: true,
+          },
+        });
+
+        // User should be able to get organization token with their global permissions
+        // even though they're NOT a member of the organization
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "globalAdminUserId",
+          audience: "https://admin-test-api.example.com",
+          requestedScopes: ["read:users", "admin:organizations"],
+          organizationId: organization.id,
+        });
+
+        expect(result).toEqual({
+          scopes: [],
+          permissions: expect.arrayContaining(["admin:organizations", "read:users"]),
+        });
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.roles.remove("tenantId", adminRole.id);
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: false,
+          },
+        });
+      });
+
+      it("should only grant permissions the user actually has at the global level", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server with RBAC enabled
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API for Permission Check",
+            identifier: "https://permission-check-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "delete:users", description: "Delete users" },
+              { value: "admin:organizations", description: "Admin organizations" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        // Create an organization
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Permission Test Org",
+          display_name: "Permission Test Organization",
+        });
+
+        // Create a limited role - only has read:users and admin:organizations
+        const limitedRole = await env.data.roles.create("tenantId", {
+          name: "Limited Admin",
+          description: "Can admin orgs but only read users",
+        });
+
+        // Only assign read:users and admin:organizations (NOT write:users or delete:users)
+        await env.data.rolePermissions.assign("tenantId", limitedRole.id, [
+          {
+            role_id: limitedRole.id,
+            resource_server_identifier: "https://permission-check-api.example.com",
+            permission_name: "admin:organizations",
+          },
+          {
+            role_id: limitedRole.id,
+            resource_server_identifier: "https://permission-check-api.example.com",
+            permission_name: "read:users",
+          },
+        ]);
+
+        // Assign global role to user
+        await env.data.userRoles.create(
+          "tenantId",
+          "limitedAdminUserId",
+          limitedRole.id,
+          "", // Global role
+        );
+
+        // Enable the flag
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: true,
+          },
+        });
+
+        // User requests more permissions than they have
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "limitedAdminUserId",
+          audience: "https://permission-check-api.example.com",
+          requestedScopes: ["read:users", "write:users", "delete:users", "admin:organizations"],
+          organizationId: organization.id,
+        });
+
+        // Should only get the permissions they actually have
+        expect(result.permissions).toContain("read:users");
+        expect(result.permissions).toContain("admin:organizations");
+        expect(result.permissions).not.toContain("write:users");
+        expect(result.permissions).not.toContain("delete:users");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.roles.remove("tenantId", limitedRole.id);
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: false,
+          },
+        });
+      });
+
+      it("should reject non-member users without admin:organizations when flag is enabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API for Rejection",
+            identifier: "https://rejection-test-api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        // Create an organization
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Rejection Test Org",
+          display_name: "Rejection Test Organization",
+        });
+
+        // Create a role WITHOUT admin:organizations
+        const regularRole = await env.data.roles.create("tenantId", {
+          name: "Regular User Role",
+          description: "Can only read users",
+        });
+
+        await env.data.rolePermissions.assign("tenantId", regularRole.id, [
+          {
+            role_id: regularRole.id,
+            resource_server_identifier: "https://rejection-test-api.example.com",
+            permission_name: "read:users",
+          },
+        ]);
+
+        // Assign global role to user (but no admin:organizations)
+        await env.data.userRoles.create(
+          "tenantId",
+          "regularUserId",
+          regularRole.id,
+          "", // Global role
+        );
+
+        // Enable the flag
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: true,
+          },
+        });
+
+        // User without admin:organizations should still be rejected when not a member
+        await expect(
+          calculateScopesAndPermissions(ctx, {
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            userId: "regularUserId",
+            audience: "https://rejection-test-api.example.com",
+            requestedScopes: ["read:users"],
+            organizationId: organization.id,
+          }),
+        ).rejects.toThrow("User is not a member of the specified organization");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.roles.remove("tenantId", regularRole.id);
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: false,
+          },
+        });
+      });
+    });
+
     describe("client_credentials grant", () => {
       it("should return only scopes granted via client grants table", async () => {
         const { env } = await getTestServer();
