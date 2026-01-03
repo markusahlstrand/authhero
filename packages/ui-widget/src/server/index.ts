@@ -17,7 +17,7 @@ import type {
   NextButtonComponent,
   SocialField,
   ImageComponent,
-} from '../types/components';
+} from "../types/components";
 
 // Re-export the types
 export type { UiScreen, FormComponent, ScreenLink, ComponentMessage };
@@ -45,58 +45,58 @@ export function createLoginScreen(options: {
 
   // Email field
   components.push({
-    id: 'email',
-    category: 'FIELD',
-    type: 'EMAIL',
+    id: "email",
+    category: "FIELD",
+    type: "EMAIL",
     order: order++,
-    label: 'Email address',
+    label: "Email address",
     required: true,
     visible: true,
     config: {
-      placeholder: 'you@example.com',
+      placeholder: "you@example.com",
     },
   } satisfies EmailField);
 
   // Password field
   components.push({
-    id: 'password',
-    category: 'FIELD',
-    type: 'PASSWORD',
+    id: "password",
+    category: "FIELD",
+    type: "PASSWORD",
     order: order++,
-    label: 'Password',
+    label: "Password",
     required: true,
     visible: true,
     config: {
-      placeholder: 'Enter your password',
+      placeholder: "Enter your password",
     },
   } satisfies PasswordField);
 
   // Submit button
   components.push({
-    id: 'submit',
-    category: 'BLOCK',
-    type: 'NEXT_BUTTON',
+    id: "submit",
+    category: "BLOCK",
+    type: "NEXT_BUTTON",
     order: order++,
     visible: true,
     config: {
-      text: 'Sign in',
+      text: "Sign in",
     },
   } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
     components.push({
-      id: 'divider',
-      category: 'BLOCK',
-      type: 'DIVIDER',
+      id: "divider",
+      category: "BLOCK",
+      type: "DIVIDER",
       order: order++,
       visible: true,
     } satisfies DividerComponent);
 
     components.push({
-      id: 'social',
-      category: 'FIELD',
-      type: 'SOCIAL',
+      id: "social",
+      category: "FIELD",
+      type: "SOCIAL",
       order: order++,
       visible: true,
       config: {
@@ -109,23 +109,23 @@ export function createLoginScreen(options: {
 
   if (options.showForgotPassword !== false) {
     links.push({
-      text: 'Forgot your password?',
-      href: '/forgot-password',
+      text: "Forgot your password?",
+      href: "/forgot-password",
     });
   }
 
   if (options.showSignUp !== false) {
     links.push({
       text: "Don't have an account?",
-      href: '/signup',
-      linkText: 'Sign up',
+      href: "/signup",
+      linkText: "Sign up",
     });
   }
 
   return {
-    title: options.title || 'Sign in to your account',
+    title: options.title || "Sign in to your account",
     action: options.action,
-    method: 'POST',
+    method: "POST",
     components,
     links,
   };
@@ -150,58 +150,58 @@ export function createIdentifierScreen(options: {
   // Add logo if provided
   if (options.logoUrl) {
     components.push({
-      id: 'logo',
-      category: 'BLOCK',
-      type: 'IMAGE',
+      id: "logo",
+      category: "BLOCK",
+      type: "IMAGE",
       order: order++,
       visible: true,
       config: {
         src: options.logoUrl,
-        alt: `${options.tenantName || 'Company'} Logo`,
+        alt: `${options.tenantName || "Company"} Logo`,
       },
     } satisfies ImageComponent);
   }
 
   // Email input
   components.push({
-    id: 'email',
-    category: 'FIELD',
-    type: 'EMAIL',
+    id: "email",
+    category: "FIELD",
+    type: "EMAIL",
     order: order++,
-    label: 'Email',
+    label: "Email",
     required: true,
     visible: true,
     config: {
-      placeholder: 'Your email address',
+      placeholder: "Your email address",
     },
   } satisfies EmailField);
 
   // Continue button
   components.push({
-    id: 'submit',
-    category: 'BLOCK',
-    type: 'NEXT_BUTTON',
+    id: "submit",
+    category: "BLOCK",
+    type: "NEXT_BUTTON",
     order: order++,
     visible: true,
     config: {
-      text: 'Continue',
+      text: "Continue",
     },
   } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
     components.push({
-      id: 'divider',
-      category: 'BLOCK',
-      type: 'DIVIDER',
+      id: "divider",
+      category: "BLOCK",
+      type: "DIVIDER",
       order: order++,
       visible: true,
     } satisfies DividerComponent);
 
     components.push({
-      id: 'social',
-      category: 'FIELD',
-      type: 'SOCIAL',
+      id: "social",
+      category: "FIELD",
+      type: "SOCIAL",
       order: order++,
       visible: true,
       config: {
@@ -215,15 +215,16 @@ export function createIdentifierScreen(options: {
   if (options.showSignUp !== false) {
     links.push({
       text: "Don't have an account?",
-      href: options.signUpUrl || '/signup',
-      linkText: 'Get started',
+      href: options.signUpUrl || "/signup",
+      linkText: "Get started",
     });
   }
 
   return {
-    title: options.title || `Sign in to ${options.tenantName || 'your account'}`,
+    title:
+      options.title || `Sign in to ${options.tenantName || "your account"}`,
     action: options.action,
-    method: 'POST',
+    method: "POST",
     components,
     links,
   };
@@ -237,7 +238,7 @@ export function createSignupScreen(options: {
   title?: string;
   fields?: Array<{
     name: string;
-    type?: 'email' | 'password' | 'text' | 'tel' | 'url' | 'number' | 'date';
+    type?: "email" | "password" | "text" | "tel" | "url" | "number" | "date";
     label: string;
     required?: boolean;
     placeholder?: string;
@@ -248,17 +249,17 @@ export function createSignupScreen(options: {
 }): UiScreen {
   const defaultFields: Array<{
     name: string;
-    type: 'email' | 'password' | 'text';
+    type: "email" | "password" | "text";
     label: string;
     required: boolean;
     placeholder?: string;
   }> = [
-    { name: 'email', type: 'email', label: 'Email address', required: true },
-    { name: 'password', type: 'password', label: 'Password', required: true },
+    { name: "email", type: "email", label: "Email address", required: true },
+    { name: "password", type: "password", label: "Password", required: true },
     {
-      name: 'password_confirm',
-      type: 'password',
-      label: 'Confirm password',
+      name: "password_confirm",
+      type: "password",
+      label: "Confirm password",
       required: true,
     },
   ];
@@ -269,13 +270,13 @@ export function createSignupScreen(options: {
 
   // Map fields to components
   fields.forEach((field) => {
-    const fieldType = field.type || 'text';
+    const fieldType = field.type || "text";
 
-    if (fieldType === 'email') {
+    if (fieldType === "email") {
       components.push({
         id: field.name,
-        category: 'FIELD',
-        type: 'EMAIL',
+        category: "FIELD",
+        type: "EMAIL",
         order: order++,
         label: field.label,
         required: field.required ?? true,
@@ -284,11 +285,11 @@ export function createSignupScreen(options: {
           placeholder: field.placeholder,
         },
       } satisfies EmailField);
-    } else if (fieldType === 'password') {
+    } else if (fieldType === "password") {
       components.push({
         id: field.name,
-        category: 'FIELD',
-        type: 'PASSWORD',
+        category: "FIELD",
+        type: "PASSWORD",
         order: order++,
         label: field.label,
         required: field.required ?? true,
@@ -300,8 +301,8 @@ export function createSignupScreen(options: {
     } else {
       components.push({
         id: field.name,
-        category: 'FIELD',
-        type: 'TEXT',
+        category: "FIELD",
+        type: "TEXT",
         order: order++,
         label: field.label,
         required: field.required ?? true,
@@ -315,30 +316,30 @@ export function createSignupScreen(options: {
 
   // Submit button
   components.push({
-    id: 'submit',
-    category: 'BLOCK',
-    type: 'NEXT_BUTTON',
+    id: "submit",
+    category: "BLOCK",
+    type: "NEXT_BUTTON",
     order: order++,
     visible: true,
     config: {
-      text: 'Create account',
+      text: "Create account",
     },
   } satisfies NextButtonComponent);
 
   // Add social providers if specified
   if (options.showSocialProviders?.length) {
     components.push({
-      id: 'divider',
-      category: 'BLOCK',
-      type: 'DIVIDER',
+      id: "divider",
+      category: "BLOCK",
+      type: "DIVIDER",
       order: order++,
       visible: true,
     } satisfies DividerComponent);
 
     components.push({
-      id: 'social',
-      category: 'FIELD',
-      type: 'SOCIAL',
+      id: "social",
+      category: "FIELD",
+      type: "SOCIAL",
       order: order++,
       visible: true,
       config: {
@@ -351,16 +352,16 @@ export function createSignupScreen(options: {
 
   if (options.showLogin !== false) {
     links.push({
-      text: 'Already have an account?',
-      href: '/login',
-      linkText: 'Sign in',
+      text: "Already have an account?",
+      href: "/login",
+      linkText: "Sign in",
     });
   }
 
   return {
-    title: options.title || 'Create your account',
+    title: options.title || "Create your account",
     action: options.action,
-    method: 'POST',
+    method: "POST",
     components,
     links,
   };
@@ -373,24 +374,24 @@ export function createMfaScreen(options: {
   action: string;
   title?: string;
   codeLength?: number;
-  method?: 'totp' | 'sms' | 'email';
+  method?: "totp" | "sms" | "email";
   branding?: ScreenBranding;
 }): UiScreen {
   const components: FormComponent[] = [];
   let order = 0;
 
   const description =
-    options.method === 'sms'
-      ? 'Enter the code sent to your phone'
-      : options.method === 'email'
-        ? 'Enter the code sent to your email'
-        : 'Enter the code from your authenticator app';
+    options.method === "sms"
+      ? "Enter the code sent to your phone"
+      : options.method === "email"
+        ? "Enter the code sent to your email"
+        : "Enter the code from your authenticator app";
 
   // Description text
   components.push({
-    id: 'description',
-    category: 'BLOCK' as const,
-    type: 'RICH_TEXT' as const,
+    id: "description",
+    category: "BLOCK" as const,
+    type: "RICH_TEXT" as const,
     order: order++,
     visible: true,
     config: {
@@ -400,40 +401,40 @@ export function createMfaScreen(options: {
 
   // Code input
   components.push({
-    id: 'code',
-    category: 'FIELD',
-    type: 'TEXT',
+    id: "code",
+    category: "FIELD",
+    type: "TEXT",
     order: order++,
-    label: 'Verification code',
+    label: "Verification code",
     required: true,
     visible: true,
     config: {
-      placeholder: '000000',
+      placeholder: "000000",
       max_length: options.codeLength || 6,
     },
   } satisfies TextField);
 
   // Submit button
   components.push({
-    id: 'submit',
-    category: 'BLOCK',
-    type: 'NEXT_BUTTON',
+    id: "submit",
+    category: "BLOCK",
+    type: "NEXT_BUTTON",
     order: order++,
     visible: true,
     config: {
-      text: 'Verify',
+      text: "Verify",
     },
   } satisfies NextButtonComponent);
 
   return {
-    title: options.title || 'Two-factor authentication',
+    title: options.title || "Two-factor authentication",
     action: options.action,
-    method: 'POST',
+    method: "POST",
     components,
     links: [
       {
-        text: 'Back to login',
-        href: '/login',
+        text: "Back to login",
+        href: "/login",
       },
     ],
   };
@@ -452,48 +453,49 @@ export function createForgotPasswordScreen(options: {
 
   // Description text
   components.push({
-    id: 'description',
-    category: 'BLOCK' as const,
-    type: 'RICH_TEXT' as const,
+    id: "description",
+    category: "BLOCK" as const,
+    type: "RICH_TEXT" as const,
     order: order++,
     visible: true,
     config: {
-      content: "<p>Enter your email address and we'll send you a link to reset your password.</p>",
+      content:
+        "<p>Enter your email address and we'll send you a link to reset your password.</p>",
     },
   });
 
   // Email input
   components.push({
-    id: 'email',
-    category: 'FIELD',
-    type: 'EMAIL',
+    id: "email",
+    category: "FIELD",
+    type: "EMAIL",
     order: order++,
-    label: 'Email address',
+    label: "Email address",
     required: true,
     visible: true,
   } satisfies EmailField);
 
   // Submit button
   components.push({
-    id: 'submit',
-    category: 'BLOCK',
-    type: 'NEXT_BUTTON',
+    id: "submit",
+    category: "BLOCK",
+    type: "NEXT_BUTTON",
     order: order++,
     visible: true,
     config: {
-      text: 'Send reset link',
+      text: "Send reset link",
     },
   } satisfies NextButtonComponent);
 
   return {
-    title: options.title || 'Reset your password',
+    title: options.title || "Reset your password",
     action: options.action,
-    method: 'POST',
+    method: "POST",
     components,
     links: [
       {
-        text: 'Back to login',
-        href: '/login',
+        text: "Back to login",
+        href: "/login",
       },
     ],
   };
@@ -505,10 +507,7 @@ export function createForgotPasswordScreen(options: {
 export function withError(screen: UiScreen, error: string): UiScreen {
   return {
     ...screen,
-    messages: [
-      ...(screen.messages || []),
-      { text: error, type: 'error' },
-    ],
+    messages: [...(screen.messages || []), { text: error, type: "error" }],
   };
 }
 
@@ -518,10 +517,7 @@ export function withError(screen: UiScreen, error: string): UiScreen {
 export function withSuccess(screen: UiScreen, success: string): UiScreen {
   return {
     ...screen,
-    messages: [
-      ...(screen.messages || []),
-      { text: success, type: 'success' },
-    ],
+    messages: [...(screen.messages || []), { text: success, type: "success" }],
   };
 }
 
@@ -529,30 +525,32 @@ export function withSuccess(screen: UiScreen, success: string): UiScreen {
  * Recursively add an error message to a component by ID.
  * Handles nested components if they have a 'components' or 'children' property.
  */
-function addErrorToComponent<T extends { id: string; messages?: Array<{ text: string; type: string }> }>(
-  component: T,
-  componentId: string,
-  error: string
-): T {
+function addErrorToComponent<
+  T extends { id: string; messages?: Array<{ text: string; type: string }> },
+>(component: T, componentId: string, error: string): T {
   // Check if this is the target component
   if (component.id === componentId) {
     return {
       ...component,
       messages: [
-        ...((component.messages as Array<{ text: string; type: string }>) || []),
-        { text: error, type: 'error' },
+        ...((component.messages as Array<{ text: string; type: string }>) ||
+          []),
+        { text: error, type: "error" },
       ],
     };
   }
 
   // Check for nested components (new format might use 'components')
-  const componentWithChildren = component as T & { components?: T[]; children?: T[] };
-  
+  const componentWithChildren = component as T & {
+    components?: T[];
+    children?: T[];
+  };
+
   if (componentWithChildren.components?.length) {
     return {
       ...component,
       components: componentWithChildren.components.map((child) =>
-        addErrorToComponent(child, componentId, error)
+        addErrorToComponent(child, componentId, error),
       ),
     } as T;
   }
@@ -562,7 +560,7 @@ function addErrorToComponent<T extends { id: string; messages?: Array<{ text: st
     return {
       ...component,
       children: componentWithChildren.children.map((child) =>
-        addErrorToComponent(child, componentId, error)
+        addErrorToComponent(child, componentId, error),
       ),
     } as T;
   }
@@ -574,11 +572,15 @@ function addErrorToComponent<T extends { id: string; messages?: Array<{ text: st
  * Adds a field-level error to a specific component.
  * Recursively searches nested components/children.
  */
-export function withFieldError(screen: UiScreen, componentId: string, error: string): UiScreen {
+export function withFieldError(
+  screen: UiScreen,
+  componentId: string,
+  error: string,
+): UiScreen {
   return {
     ...screen,
     components: screen.components.map((component) =>
-      addErrorToComponent(component, componentId, error)
+      addErrorToComponent(component, componentId, error),
     ),
   };
 }

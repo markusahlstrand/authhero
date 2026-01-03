@@ -1,15 +1,15 @@
-import { Component, h, Prop, Event, EventEmitter } from '@stencil/core';
+import { Component, h, Prop, Event, EventEmitter } from "@stencil/core";
 import type {
   FormComponent,
   RuntimeComponent,
   ComponentMessage,
   BlockComponent,
   FieldComponent,
-} from '../../types/components';
+} from "../../types/components";
 
 @Component({
-  tag: 'authhero-node',
-  styleUrl: 'authhero-node.css',
+  tag: "authhero-node",
+  styleUrl: "authhero-node.css",
   shadow: true,
 })
 export class AuthheroNode {
@@ -37,7 +37,11 @@ export class AuthheroNode {
   /**
    * Emitted when a button is clicked.
    */
-  @Event() buttonClick!: EventEmitter<{ id: string; type: string; value?: string }>;
+  @Event() buttonClick!: EventEmitter<{
+    id: string;
+    type: string;
+    value?: string;
+  }>;
 
   private handleInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -46,11 +50,14 @@ export class AuthheroNode {
 
   private handleCheckbox = (e: Event) => {
     const target = e.target as HTMLInputElement;
-    this.fieldChange.emit({ id: this.component.id, value: target.checked ? 'true' : 'false' });
+    this.fieldChange.emit({
+      id: this.component.id,
+      value: target.checked ? "true" : "false",
+    });
   };
 
   private handleButtonClick = (e: Event, type: string, value?: string) => {
-    if (type !== 'submit') {
+    if (type !== "submit") {
       e.preventDefault();
     }
     this.buttonClick.emit({ id: this.component.id, type, value });
@@ -61,13 +68,21 @@ export class AuthheroNode {
    */
   private getErrors(): ComponentMessage[] {
     const runtimeComp = this.component as RuntimeComponent;
-    return runtimeComp.messages?.filter((m: ComponentMessage) => m.type === 'error') || [];
+    return (
+      runtimeComp.messages?.filter(
+        (m: ComponentMessage) => m.type === "error",
+      ) || []
+    );
   }
 
   /**
    * Render a label for a field.
    */
-  private renderLabel(text: string | undefined, inputId: string, required?: boolean) {
+  private renderLabel(
+    text: string | undefined,
+    inputId: string,
+    required?: boolean,
+  ) {
     if (!text) return null;
     return (
       <label class="input-label" part="label" htmlFor={inputId}>
@@ -94,7 +109,11 @@ export class AuthheroNode {
    */
   private renderHint(hint: string | undefined) {
     if (!hint) return null;
-    return <span class="helper-text" part="helper-text">{hint}</span>;
+    return (
+      <span class="helper-text" part="helper-text">
+        {hint}
+      </span>
+    );
   }
 
   // ===========================================================================
@@ -105,17 +124,17 @@ export class AuthheroNode {
     return <hr class="divider" part="divider" />;
   }
 
-  private renderHtml(component: BlockComponent & { type: 'HTML' }) {
+  private renderHtml(component: BlockComponent & { type: "HTML" }) {
     return (
       <div
         class="html-content"
         part="html-content"
-        innerHTML={component.config?.content ?? ''}
+        innerHTML={component.config?.content ?? ""}
       />
     );
   }
 
-  private renderImage(component: BlockComponent & { type: 'IMAGE' }) {
+  private renderImage(component: BlockComponent & { type: "IMAGE" }) {
     const { src, alt, width, height } = component.config ?? {};
     if (!src) return null;
     return (
@@ -123,7 +142,7 @@ export class AuthheroNode {
         class="image"
         part="image"
         src={src}
-        alt={alt ?? ''}
+        alt={alt ?? ""}
         width={width}
         height={height}
         loading="lazy"
@@ -131,68 +150,80 @@ export class AuthheroNode {
     );
   }
 
-  private renderRichText(component: BlockComponent & { type: 'RICH_TEXT' }) {
+  private renderRichText(component: BlockComponent & { type: "RICH_TEXT" }) {
     return (
       <div
         class="rich-text"
         part="rich-text"
-        innerHTML={component.config?.content ?? ''}
+        innerHTML={component.config?.content ?? ""}
       />
     );
   }
 
-  private renderNextButton(component: BlockComponent & { type: 'NEXT_BUTTON' }) {
+  private renderNextButton(
+    component: BlockComponent & { type: "NEXT_BUTTON" },
+  ) {
     return (
       <button
         type="submit"
         class="btn btn-primary"
         part="button button-primary"
         disabled={this.disabled}
-        onClick={(e) => this.handleButtonClick(e, 'submit', 'next')}
+        onClick={(e) => this.handleButtonClick(e, "submit", "next")}
       >
-        {component.config.text ?? 'Continue'}
+        {component.config.text ?? "Continue"}
       </button>
     );
   }
 
-  private renderPreviousButton(component: BlockComponent & { type: 'PREVIOUS_BUTTON' }) {
+  private renderPreviousButton(
+    component: BlockComponent & { type: "PREVIOUS_BUTTON" },
+  ) {
     return (
       <button
         type="button"
         class="btn btn-secondary"
         part="button button-secondary"
         disabled={this.disabled}
-        onClick={(e) => this.handleButtonClick(e, 'previous', 'back')}
+        onClick={(e) => this.handleButtonClick(e, "previous", "back")}
       >
-        {component.config.text ?? 'Back'}
+        {component.config.text ?? "Back"}
       </button>
     );
   }
 
-  private renderJumpButton(component: BlockComponent & { type: 'JUMP_BUTTON' }) {
+  private renderJumpButton(
+    component: BlockComponent & { type: "JUMP_BUTTON" },
+  ) {
     return (
       <button
         type="button"
         class="btn btn-link"
         part="button button-link"
         disabled={this.disabled}
-        onClick={(e) => this.handleButtonClick(e, 'jump', component.config.target_step)}
+        onClick={(e) =>
+          this.handleButtonClick(e, "jump", component.config.target_step)
+        }
       >
-        {component.config.text ?? 'Go'}
+        {component.config.text ?? "Go"}
       </button>
     );
   }
 
-  private renderResendButton(component: BlockComponent & { type: 'RESEND_BUTTON' }) {
+  private renderResendButton(
+    component: BlockComponent & { type: "RESEND_BUTTON" },
+  ) {
     return (
       <button
         type="button"
         class="btn btn-link"
         part="button button-link"
         disabled={this.disabled}
-        onClick={(e) => this.handleButtonClick(e, 'resend', component.config.resend_action)}
+        onClick={(e) =>
+          this.handleButtonClick(e, "resend", component.config.resend_action)
+        }
       >
-        {component.config.text ?? 'Resend'}
+        {component.config.text ?? "Resend"}
       </button>
     );
   }
@@ -201,7 +232,7 @@ export class AuthheroNode {
   // FIELD Component Renderers
   // ===========================================================================
 
-  private renderTextField(component: FieldComponent & { type: 'TEXT' }) {
+  private renderTextField(component: FieldComponent & { type: "TEXT" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { placeholder, multiline, max_length } = component.config ?? {};
@@ -212,7 +243,7 @@ export class AuthheroNode {
           {this.renderLabel(component.label, inputId, component.required)}
           <textarea
             id={inputId}
-            class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+            class={{ "input-field": true, "has-error": errors.length > 0 }}
             part="input textarea"
             name={component.id}
             placeholder={placeholder}
@@ -221,7 +252,7 @@ export class AuthheroNode {
             maxLength={max_length}
             onInput={this.handleInput}
           >
-            {this.value ?? ''}
+            {this.value ?? ""}
           </textarea>
           {this.renderErrors()}
           {errors.length === 0 && this.renderHint(component.hint)}
@@ -234,11 +265,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
-          type={component.sensitive ? 'password' : 'text'}
+          type={component.sensitive ? "password" : "text"}
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -251,7 +282,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderEmailField(component: FieldComponent & { type: 'EMAIL' }) {
+  private renderEmailField(component: FieldComponent & { type: "EMAIL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
 
@@ -260,11 +291,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="email"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -277,7 +308,9 @@ export class AuthheroNode {
     );
   }
 
-  private renderPasswordField(component: FieldComponent & { type: 'PASSWORD' }) {
+  private renderPasswordField(
+    component: FieldComponent & { type: "PASSWORD" },
+  ) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
 
@@ -286,11 +319,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="password"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -304,7 +337,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderNumberField(component: FieldComponent & { type: 'NUMBER' }) {
+  private renderNumberField(component: FieldComponent & { type: "NUMBER" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { placeholder, min, max, step } = component.config ?? {};
@@ -314,11 +347,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="number"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -333,7 +366,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderTelField(component: FieldComponent & { type: 'TEL' }) {
+  private renderTelField(component: FieldComponent & { type: "TEL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
 
@@ -342,11 +375,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="tel"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -359,7 +392,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderUrlField(component: FieldComponent & { type: 'URL' }) {
+  private renderUrlField(component: FieldComponent & { type: "URL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
 
@@ -368,11 +401,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="url"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -384,7 +417,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderDateField(component: FieldComponent & { type: 'DATE' }) {
+  private renderDateField(component: FieldComponent & { type: "DATE" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { min, max } = component.config ?? {};
@@ -394,11 +427,11 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input"
           type="date"
           name={component.id}
-          value={this.value ?? ''}
+          value={this.value ?? ""}
           required={component.required}
           disabled={this.disabled}
           min={min}
@@ -411,14 +444,16 @@ export class AuthheroNode {
     );
   }
 
-  private renderBooleanField(component: FieldComponent & { type: 'BOOLEAN' }) {
+  private renderBooleanField(component: FieldComponent & { type: "BOOLEAN" }) {
     return (
       <label class="checkbox-wrapper" part="checkbox-wrapper">
         <input
           type="checkbox"
           part="checkbox"
           name={component.id}
-          checked={this.value === 'true' || component.config?.default_value === true}
+          checked={
+            this.value === "true" || component.config?.default_value === true
+          }
           required={component.required}
           disabled={this.disabled}
           onChange={this.handleCheckbox}
@@ -430,8 +465,8 @@ export class AuthheroNode {
     );
   }
 
-  private renderLegalField(component: FieldComponent & { type: 'LEGAL' }) {
-    const text = component.config?.text ?? component.label ?? '';
+  private renderLegalField(component: FieldComponent & { type: "LEGAL" }) {
+    const text = component.config?.text ?? component.label ?? "";
     const isHtml = component.config?.html === true;
 
     return (
@@ -440,7 +475,7 @@ export class AuthheroNode {
           type="checkbox"
           part="checkbox"
           name={component.id}
-          checked={this.value === 'true'}
+          checked={this.value === "true"}
           required={component.required}
           disabled={this.disabled}
           onChange={this.handleCheckbox}
@@ -448,13 +483,17 @@ export class AuthheroNode {
         {isHtml ? (
           <span class="checkbox-label" part="checkbox-label" innerHTML={text} />
         ) : (
-          <span class="checkbox-label" part="checkbox-label">{text}</span>
+          <span class="checkbox-label" part="checkbox-label">
+            {text}
+          </span>
         )}
       </label>
     );
   }
 
-  private renderDropdownField(component: FieldComponent & { type: 'DROPDOWN' }) {
+  private renderDropdownField(
+    component: FieldComponent & { type: "DROPDOWN" },
+  ) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { options, placeholder } = component.config ?? {};
@@ -464,7 +503,7 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <select
           id={inputId}
-          class={{ 'input-field': true, 'has-error': errors.length > 0 }}
+          class={{ "input-field": true, "has-error": errors.length > 0 }}
           part="input select"
           name={component.id}
           required={component.required}
@@ -477,7 +516,11 @@ export class AuthheroNode {
             </option>
           )}
           {options?.map((opt) => (
-            <option value={opt.value} selected={this.value === opt.value} key={opt.value}>
+            <option
+              value={opt.value}
+              selected={this.value === opt.value}
+              key={opt.value}
+            >
               {opt.label}
             </option>
           ))}
@@ -488,11 +531,11 @@ export class AuthheroNode {
     );
   }
 
-  private renderChoiceField(component: FieldComponent & { type: 'CHOICE' }) {
+  private renderChoiceField(component: FieldComponent & { type: "CHOICE" }) {
     const errors = this.getErrors();
     const { options, display } = component.config ?? {};
-    const isCheckbox = display === 'checkbox';
-    const inputType = isCheckbox ? 'checkbox' : 'radio';
+    const isCheckbox = display === "checkbox";
+    const inputType = isCheckbox ? "checkbox" : "radio";
 
     return (
       <div class="choice-wrapper" part="choice-wrapper">
@@ -525,7 +568,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderSocialField(component: FieldComponent & { type: 'SOCIAL' }) {
+  private renderSocialField(component: FieldComponent & { type: "SOCIAL" }) {
     const providers = component.config?.providers ?? [];
 
     return (
@@ -537,7 +580,7 @@ export class AuthheroNode {
             part="button button-secondary button-social"
             data-provider={provider}
             disabled={this.disabled}
-            onClick={(e) => this.handleButtonClick(e, 'social', provider)}
+            onClick={(e) => this.handleButtonClick(e, "social", provider)}
             key={provider}
           >
             Continue with {provider.charAt(0).toUpperCase() + provider.slice(1)}
@@ -563,66 +606,108 @@ export class AuthheroNode {
 
     switch (this.component.type) {
       // BLOCK components
-      case 'DIVIDER':
+      case "DIVIDER":
         return this.renderDivider();
-      case 'HTML':
-        return this.renderHtml(this.component as BlockComponent & { type: 'HTML' });
-      case 'IMAGE':
-        return this.renderImage(this.component as BlockComponent & { type: 'IMAGE' });
-      case 'RICH_TEXT':
-        return this.renderRichText(this.component as BlockComponent & { type: 'RICH_TEXT' });
-      case 'NEXT_BUTTON':
-        return this.renderNextButton(this.component as BlockComponent & { type: 'NEXT_BUTTON' });
-      case 'PREVIOUS_BUTTON':
-        return this.renderPreviousButton(this.component as BlockComponent & { type: 'PREVIOUS_BUTTON' });
-      case 'JUMP_BUTTON':
-        return this.renderJumpButton(this.component as BlockComponent & { type: 'JUMP_BUTTON' });
-      case 'RESEND_BUTTON':
-        return this.renderResendButton(this.component as BlockComponent & { type: 'RESEND_BUTTON' });
+      case "HTML":
+        return this.renderHtml(
+          this.component as BlockComponent & { type: "HTML" },
+        );
+      case "IMAGE":
+        return this.renderImage(
+          this.component as BlockComponent & { type: "IMAGE" },
+        );
+      case "RICH_TEXT":
+        return this.renderRichText(
+          this.component as BlockComponent & { type: "RICH_TEXT" },
+        );
+      case "NEXT_BUTTON":
+        return this.renderNextButton(
+          this.component as BlockComponent & { type: "NEXT_BUTTON" },
+        );
+      case "PREVIOUS_BUTTON":
+        return this.renderPreviousButton(
+          this.component as BlockComponent & { type: "PREVIOUS_BUTTON" },
+        );
+      case "JUMP_BUTTON":
+        return this.renderJumpButton(
+          this.component as BlockComponent & { type: "JUMP_BUTTON" },
+        );
+      case "RESEND_BUTTON":
+        return this.renderResendButton(
+          this.component as BlockComponent & { type: "RESEND_BUTTON" },
+        );
 
       // FIELD components
-      case 'TEXT':
-        return this.renderTextField(this.component as FieldComponent & { type: 'TEXT' });
-      case 'EMAIL':
-        return this.renderEmailField(this.component as FieldComponent & { type: 'EMAIL' });
-      case 'PASSWORD':
-        return this.renderPasswordField(this.component as FieldComponent & { type: 'PASSWORD' });
-      case 'NUMBER':
-        return this.renderNumberField(this.component as FieldComponent & { type: 'NUMBER' });
-      case 'TEL':
-        return this.renderTelField(this.component as FieldComponent & { type: 'TEL' });
-      case 'URL':
-        return this.renderUrlField(this.component as FieldComponent & { type: 'URL' });
-      case 'DATE':
-        return this.renderDateField(this.component as FieldComponent & { type: 'DATE' });
-      case 'BOOLEAN':
-        return this.renderBooleanField(this.component as FieldComponent & { type: 'BOOLEAN' });
-      case 'LEGAL':
-        return this.renderLegalField(this.component as FieldComponent & { type: 'LEGAL' });
-      case 'DROPDOWN':
-        return this.renderDropdownField(this.component as FieldComponent & { type: 'DROPDOWN' });
-      case 'CHOICE':
-        return this.renderChoiceField(this.component as FieldComponent & { type: 'CHOICE' });
-      case 'SOCIAL':
-        return this.renderSocialField(this.component as FieldComponent & { type: 'SOCIAL' });
+      case "TEXT":
+        return this.renderTextField(
+          this.component as FieldComponent & { type: "TEXT" },
+        );
+      case "EMAIL":
+        return this.renderEmailField(
+          this.component as FieldComponent & { type: "EMAIL" },
+        );
+      case "PASSWORD":
+        return this.renderPasswordField(
+          this.component as FieldComponent & { type: "PASSWORD" },
+        );
+      case "NUMBER":
+        return this.renderNumberField(
+          this.component as FieldComponent & { type: "NUMBER" },
+        );
+      case "TEL":
+        return this.renderTelField(
+          this.component as FieldComponent & { type: "TEL" },
+        );
+      case "URL":
+        return this.renderUrlField(
+          this.component as FieldComponent & { type: "URL" },
+        );
+      case "DATE":
+        return this.renderDateField(
+          this.component as FieldComponent & { type: "DATE" },
+        );
+      case "BOOLEAN":
+        return this.renderBooleanField(
+          this.component as FieldComponent & { type: "BOOLEAN" },
+        );
+      case "LEGAL":
+        return this.renderLegalField(
+          this.component as FieldComponent & { type: "LEGAL" },
+        );
+      case "DROPDOWN":
+        return this.renderDropdownField(
+          this.component as FieldComponent & { type: "DROPDOWN" },
+        );
+      case "CHOICE":
+        return this.renderChoiceField(
+          this.component as FieldComponent & { type: "CHOICE" },
+        );
+      case "SOCIAL":
+        return this.renderSocialField(
+          this.component as FieldComponent & { type: "SOCIAL" },
+        );
 
       // WIDGET components (not yet implemented)
-      case 'AUTH0_VERIFIABLE_CREDENTIALS':
-      case 'GMAPS_ADDRESS':
-      case 'RECAPTCHA':
-        console.warn(`Widget component "${this.component.type}" not yet implemented`);
+      case "AUTH0_VERIFIABLE_CREDENTIALS":
+      case "GMAPS_ADDRESS":
+      case "RECAPTCHA":
+        console.warn(
+          `Widget component "${this.component.type}" not yet implemented`,
+        );
         return null;
 
       // Other FIELD components (not yet implemented)
-      case 'CARDS':
-      case 'CUSTOM':
-      case 'FILE':
-      case 'PAYMENT':
+      case "CARDS":
+      case "CUSTOM":
+      case "FILE":
+      case "PAYMENT":
         console.warn(`Component "${this.component.type}" not yet implemented`);
         return null;
 
       default:
-        console.warn(`Unknown component type: ${(this.component as FormComponent).type}`);
+        console.warn(
+          `Unknown component type: ${(this.component as FormComponent).type}`,
+        );
         return null;
     }
   }
