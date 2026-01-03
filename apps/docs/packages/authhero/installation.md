@@ -35,7 +35,7 @@ yarn add authhero
 Here's a basic example of integrating AuthHero in your application:
 
 ```typescript
-import { AuthHero } from 'authhero';
+import { AuthHero } from "authhero";
 
 // Configuration details will go here
 

@@ -30,7 +30,7 @@ If you're using the `SAML_SIGN_URL` environment variable, nothing needs to chang
 
 ```typescript
 // Before (still works!)
-import { init } from 'authhero';
+import { init } from "authhero";
 
 const app = init({ dataAdapter });
 // Uses SAML_SIGN_URL automatically
@@ -42,11 +42,11 @@ For better control, pass a signer instance:
 
 ```typescript
 // After (recommended)
-import { init, HttpSamlSigner } from 'authhero';
+import { init, HttpSamlSigner } from "authhero";
 
 const app = init({
   dataAdapter,
-  samlSigner: new HttpSamlSigner('https://signing-service.com/sign')
+  samlSigner: new HttpSamlSigner("https://signing-service.com/sign"),
 });
 ```
 
@@ -56,12 +56,12 @@ If you were relying on local signing behavior:
 
 ```typescript
 // After (Node.js only)
-import { init } from 'authhero';
-import { LocalSamlSigner } from '@authhero/saml/local-signer';
+import { init } from "authhero";
+import { LocalSamlSigner } from "@authhero/saml/local-signer";
 
 const app = init({
   dataAdapter,
-  samlSigner: new LocalSamlSigner()
+  samlSigner: new LocalSamlSigner(),
 });
 ```
 
@@ -70,22 +70,22 @@ const app = init({
 ### Before (All Imports)
 
 ```typescript
-import { init } from 'authhero';
+import { init } from "authhero";
 // Bundle: ~65 KB (includes xml-crypto)
 ```
 
 ### After (HTTP-Based Only)
 
 ```typescript
-import { init, HttpSamlSigner } from 'authhero';
+import { init, HttpSamlSigner } from "authhero";
 // Bundle: ~64 KB (NO xml-crypto)
 ```
 
 ### After (Local Signing)
 
 ```typescript
-import { init } from 'authhero';
-import { LocalSamlSigner } from '@authhero/saml/local-signer';
+import { init } from "authhero";
+import { LocalSamlSigner } from "@authhero/saml/local-signer";
 // Bundle: ~64 KB + xml-crypto (same as before)
 ```
 
@@ -96,17 +96,15 @@ import { LocalSamlSigner } from '@authhero/saml/local-signer';
 You can now change the SAML signer at runtime:
 
 ```typescript
-const httpSigner = new HttpSamlSigner('https://signing-service.com/sign');
+const httpSigner = new HttpSamlSigner("https://signing-service.com/sign");
 const localSigner = new LocalSamlSigner();
 
 // Use different signers based on environment
-const signer = process.env.NODE_ENV === 'production' 
-  ? httpSigner 
-  : localSigner;
+const signer = process.env.NODE_ENV === "production" ? httpSigner : localSigner;
 
 const app = init({
   dataAdapter,
-  samlSigner: signer
+  samlSigner: signer,
 });
 ```
 
@@ -115,7 +113,7 @@ const app = init({
 Implement custom signing logic:
 
 ```typescript
-import type { SamlSigner } from 'authhero';
+import type { SamlSigner } from "authhero";
 
 class MyCustomSigner implements SamlSigner {
   async signSAML(xml: string): Promise<string> {
@@ -126,7 +124,7 @@ class MyCustomSigner implements SamlSigner {
 
 const app = init({
   dataAdapter,
-  samlSigner: new MyCustomSigner()
+  samlSigner: new MyCustomSigner(),
 });
 ```
 
@@ -135,23 +133,23 @@ const app = init({
 Wrap signers with additional functionality:
 
 ```typescript
-import { HttpSamlSigner } from 'authhero';
+import { HttpSamlSigner } from "authhero";
 
 class RetrySigner implements SamlSigner {
   constructor(private inner: SamlSigner) {}
-  
+
   async signSAML(xml: string): Promise<string> {
     // Retry logic
     return await this.inner.signSAML(xml);
   }
 }
 
-const baseSigner = new HttpSamlSigner('https://signing-service.com/sign');
+const baseSigner = new HttpSamlSigner("https://signing-service.com/sign");
 const retrySigner = new RetrySigner(baseSigner);
 
 const app = init({
   dataAdapter,
-  samlSigner: retrySigner
+  samlSigner: retrySigner,
 });
 ```
 
@@ -169,10 +167,10 @@ import { createCloudflareAdapter } from '@authhero/cloudflare';
 export default {
   async fetch(request: Request, env: Env) {
     const dataAdapter = createCloudflareAdapter(env);
-    
+
     // Automatically uses HttpSamlSigner
     const { app } = init({ dataAdapter });
-    
+
     return app.fetch(request, env);
   }
 };
@@ -181,18 +179,18 @@ export default {
 ### Vercel Edge Functions
 
 ```typescript
-import { init, HttpSamlSigner } from 'authhero';
+import { init, HttpSamlSigner } from "authhero";
 
 export const config = {
-  runtime: 'edge',
+  runtime: "edge",
 };
 
 export default async function handler(req: Request) {
   const { app } = init({
     dataAdapter,
-    samlSigner: new HttpSamlSigner(process.env.SAML_SIGN_URL!)
+    samlSigner: new HttpSamlSigner(process.env.SAML_SIGN_URL!),
   });
-  
+
   return app.fetch(req);
 }
 ```
@@ -204,13 +202,13 @@ If you were importing SAML utilities directly, update imports:
 ### Before
 
 ```typescript
-import { createSamlResponse } from 'authhero';
+import { createSamlResponse } from "authhero";
 ```
 
 ### After
 
 ```typescript
-import { createSamlResponse } from '@authhero/saml';
+import { createSamlResponse } from "@authhero/saml";
 ```
 
 ## TypeScript Types
@@ -219,14 +217,10 @@ SAML types are now exported from both packages:
 
 ```typescript
 // From main package (recommended)
-import type { SamlSigner } from 'authhero';
+import type { SamlSigner } from "authhero";
 
 // Or from SAML package directly
-import type { 
-  SamlSigner, 
-  SAMLRequest, 
-  SAMLResponseJSON 
-} from '@authhero/saml';
+import type { SamlSigner, SAMLRequest, SAMLResponseJSON } from "@authhero/saml";
 ```
 
 ## Testing
@@ -234,7 +228,7 @@ import type {
 ### Mock Signer for Tests
 
 ```typescript
-import type { SamlSigner } from 'authhero';
+import type { SamlSigner } from "authhero";
 
 class MockSigner implements SamlSigner {
   async signSAML(xml: string): Promise<string> {
@@ -245,7 +239,7 @@ class MockSigner implements SamlSigner {
 // In tests
 const app = init({
   dataAdapter: mockAdapter,
-  samlSigner: new MockSigner()
+  samlSigner: new MockSigner(),
 });
 ```
 
@@ -267,10 +261,10 @@ You're trying to use `LocalSamlSigner` in an edge environment. Use `HttpSamlSign
 
 ```typescript
 // Don't do this in edge environments
-import { LocalSamlSigner } from '@authhero/saml/local-signer';
+import { LocalSamlSigner } from "@authhero/saml/local-signer";
 
 // Do this instead
-import { HttpSamlSigner } from 'authhero';
+import { HttpSamlSigner } from "authhero";
 const signer = new HttpSamlSigner(env.SAML_SIGN_URL);
 ```
 
@@ -280,12 +274,12 @@ Make sure you're not importing from the wrong entry point:
 
 ```typescript
 // ❌ Wrong - includes LocalSamlSigner
-import { HttpSamlSigner } from '@authhero/saml';
+import { HttpSamlSigner } from "@authhero/saml";
 
 // ✅ Correct - no xml-crypto
-import { HttpSamlSigner } from 'authhero';
+import { HttpSamlSigner } from "authhero";
 // or
-import { HttpSamlSigner } from '@authhero/saml/core';
+import { HttpSamlSigner } from "@authhero/saml/core";
 ```
 
 ## Getting Help

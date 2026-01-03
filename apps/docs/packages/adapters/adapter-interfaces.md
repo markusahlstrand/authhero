@@ -15,10 +15,7 @@ The main adapter interface that combines all specialized adapters:
 
 ```typescript
 interface Adapter
-  extends UserAdapter,
-    ConnectionAdapter,
-    DomainAdapter,
-    TokenAdapter {
+  extends UserAdapter, ConnectionAdapter, DomainAdapter, TokenAdapter {
   // Common methods
 }
 ```

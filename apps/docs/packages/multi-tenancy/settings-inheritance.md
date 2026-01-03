@@ -108,12 +108,16 @@ const { app } = init({
           support_email: `support+${newTenantId}@example.com`,
 
           // Use tenant-specific logo path
-          logo: controlPlaneSettings.logo?.replace("/control_plane/", `/${newTenantId}/`),
+          logo: controlPlaneSettings.logo?.replace(
+            "/control_plane/",
+            `/${newTenantId}/`,
+          ),
 
           // Add tenant ID to callback URLs
-          allowed_callback_urls: controlPlaneSettings.allowed_callback_urls?.map((url) =>
-            url.replace("{{tenant}}", newTenantId),
-          ),
+          allowed_callback_urls:
+            controlPlaneSettings.allowed_callback_urls?.map((url) =>
+              url.replace("{{tenant}}", newTenantId),
+            ),
         };
       },
     },
@@ -250,7 +254,10 @@ const { app } = init({
       transformSettings: (settings, tenantId) => ({
         ...settings,
         // Allow tenant-specific logo override
-        logo: settings.logo?.replace("/logos/control_plane.png", `/logos/${tenantId}.png`),
+        logo: settings.logo?.replace(
+          "/logos/control_plane.png",
+          `/logos/${tenantId}.png`,
+        ),
       }),
     },
   },

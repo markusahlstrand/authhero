@@ -27,9 +27,9 @@ The AuthHero core library provides the main authentication functionality and API
 The core library is designed to be used with various web frameworks, with first-class support for Hono.
 
 ```typescript
-import { createAuthHero } from 'authhero'
+import { createAuthHero } from "authhero";
 
 const auth = createAuthHero({
   // configuration
-})
+});
 ```

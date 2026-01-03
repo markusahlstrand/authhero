@@ -34,16 +34,16 @@ const auth = new Authhero({
       if (!user.email.endsWith("@company.com")) {
         throw new Error("Only company emails allowed");
       }
-      
+
       // Enrich user profile
       user.app_metadata = {
         department: "sales",
         onboarding_completed: false,
       };
-      
+
       return user;
     },
-    
+
     onExecutePostLogin: async (user, ctx) => {
       // Log authentication event
       await analytics.track("user_login", {
@@ -131,15 +131,15 @@ onExecutePreUserRegistration: async (user) => {
   if (!isAllowedDomain(user.email)) {
     throw new Error("Email domain not allowed");
   }
-  
+
   // Check for existing account in external system
   const exists = await externalSystem.checkUser(user.email);
   if (exists) {
     throw new Error("Account already exists in main system");
   }
-  
+
   return user;
-}
+};
 ```
 
 ### User Enrichment
@@ -150,7 +150,7 @@ Add metadata from external systems:
 onExecutePostUserRegistration: async (user) => {
   // Fetch additional data from CRM
   const crmData = await crm.getUserData(user.email);
-  
+
   // Update user metadata
   await auth.users.update(user.tenant_id, user.user_id, {
     app_metadata: {
@@ -158,7 +158,7 @@ onExecutePostUserRegistration: async (user) => {
       account_tier: crmData.tier,
     },
   });
-}
+};
 ```
 
 ### Custom Claims
@@ -168,14 +168,14 @@ Add custom claims to tokens:
 ```typescript
 onExecuteCredentialsExchange: async (ctx) => {
   const user = ctx.user;
-  
+
   return {
     customClaims: {
       "https://example.com/department": user.app_metadata.department,
       "https://example.com/roles": user.app_metadata.roles,
     },
   };
-}
+};
 ```
 
 ### Userinfo Customization
@@ -185,18 +185,18 @@ Add custom claims to the userinfo endpoint response:
 ```typescript
 onFetchUserInfo: async (event, api) => {
   const user = event.user;
-  
+
   // Add subscription info from external service
   const subscription = await getSubscription(user.user_id);
   api.setCustomClaim("subscription_tier", subscription.tier);
   api.setCustomClaim("subscription_expires_at", subscription.expiresAt);
-  
+
   // Add custom user data
   api.setCustomClaim("preferences", user.user_metadata?.preferences);
-  
+
   // Add computed claims
   api.setCustomClaim("is_premium", subscription.tier === "premium");
-}
+};
 ```
 
 The `onFetchUserInfo` hook is called when the `/userinfo` endpoint is accessed. Use it to:
@@ -207,6 +207,7 @@ The `onFetchUserInfo` hook is called when the `/userinfo` endpoint is accessed. 
 - Enrich the response based on the requested scopes
 
 The hook receives:
+
 - `event.user` - The authenticated user
 - `event.tenant_id` - The tenant ID
 - `event.scopes` - The scopes from the access token
@@ -226,12 +227,12 @@ onExecutePostLogin: async (user, ctx) => {
     user_agent: ctx.user_agent,
     connection: ctx.connection,
   });
-  
+
   // Alert on suspicious activity
   if (await isSuspicious(user, ctx)) {
     await security.alert("Suspicious login detected", { user, ctx });
   }
-}
+};
 ```
 
 ## Key Differences from Auth0

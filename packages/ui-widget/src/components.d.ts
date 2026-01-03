@@ -5,10 +5,10 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FormNodeComponent as FormComponent, UiScreen } from "./types/components";
+import { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
 import { WidgetBranding, WidgetTheme } from "./utils/branding";
 import { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
-export { FormNodeComponent as FormComponent, UiScreen } from "./types/components";
+export { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
 export { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export namespace Components {
@@ -16,7 +16,7 @@ export namespace Components {
         /**
           * The component configuration to render. Follows Auth0 Forms component schema.
          */
-        "component": FormComponent;
+        "component": FormComponent | RuntimeComponent;
         /**
           * Whether the component is disabled.
           * @default false
@@ -116,7 +116,7 @@ declare namespace LocalJSX {
         /**
           * The component configuration to render. Follows Auth0 Forms component schema.
          */
-        "component": FormComponent;
+        "component": FormComponent | RuntimeComponent;
         /**
           * Whether the component is disabled.
           * @default false

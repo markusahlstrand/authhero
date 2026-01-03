@@ -1,6 +1,7 @@
 import { Component, h, Prop, Event, EventEmitter } from '@stencil/core';
 import type {
   FormComponent,
+  RuntimeComponent,
   ComponentMessage,
   BlockComponent,
   FieldComponent,
@@ -16,7 +17,7 @@ export class AuthheroNode {
    * The component configuration to render.
    * Follows Auth0 Forms component schema.
    */
-  @Prop() component!: FormComponent;
+  @Prop() component!: FormComponent | RuntimeComponent;
 
   /**
    * Current value for field components.
@@ -59,7 +60,8 @@ export class AuthheroNode {
    * Get error messages from the component.
    */
   private getErrors(): ComponentMessage[] {
-    return this.component.messages?.filter((m) => m.type === 'error') || [];
+    const runtimeComp = this.component as RuntimeComponent;
+    return runtimeComp.messages?.filter((m: ComponentMessage) => m.type === 'error') || [];
   }
 
   /**

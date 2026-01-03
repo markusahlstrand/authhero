@@ -11,7 +11,7 @@ This guide provides detailed examples and use cases for implementing Role-Based 
 
 AuthHero uses **Resource Servers** (APIs) to define available scopes, and **RBAC** to control which users receive those scopes in their access tokens.
 
-**Key insight:** When RBAC is enabled, only scopes *defined* on your resource server are restricted. Scopes *not defined* pass through freely, giving you flexibility to mix controlled and uncontrolled access.
+**Key insight:** When RBAC is enabled, only scopes _defined_ on your resource server are restricted. Scopes _not defined_ pass through freely, giving you flexibility to mix controlled and uncontrolled access.
 
 [Learn about Resource Servers, Roles, and Permissions →](/security-model)
 
@@ -38,6 +38,7 @@ When `enforce_policies: false` (or not set), **all requested scopes are granted*
 ```
 
 **Behavior:**
+
 - User requests: `openid read:users write:users custom:scope`
 - User receives: `openid read:users write:users custom:scope` ✓
 
@@ -47,11 +48,11 @@ All scopes are granted, even those not defined on the resource server.
 
 When `enforce_policies: true`, scopes are granted based on the following rules:
 
-| Scope Type | Behavior |
-|------------|----------|
-| **OIDC scopes** (`openid`, `profile`, `email`, etc.) | Always granted |
-| **Scopes defined on resource server** | Only granted if user has the permission |
-| **Scopes NOT defined on resource server** | Always granted (pass through) |
+| Scope Type                                           | Behavior                                |
+| ---------------------------------------------------- | --------------------------------------- |
+| **OIDC scopes** (`openid`, `profile`, `email`, etc.) | Always granted                          |
+| **Scopes defined on resource server**                | Only granted if user has the permission |
+| **Scopes NOT defined on resource server**            | Always granted (pass through)           |
 
 ```json
 // Resource Server with RBAC enabled
@@ -130,6 +131,7 @@ For production APIs with sensitive operations, define restricted scopes and enab
 ```
 
 Then assign permissions to users:
+
 - Regular users get `read:users`
 - Admins get `read:users`, `write:users`, `delete:users`
 - Super admins get all scopes including `impersonate`
@@ -154,6 +156,7 @@ You can combine restricted scopes with pass-through scopes by only defining the 
 - `entitlement`, `custom:feature`, etc. - Pass through for all users
 
 This is ideal when you have:
+
 - A few sensitive operations that need access control
 - Many general scopes that all users should access
 
@@ -271,6 +274,7 @@ This means if you revoke a user's permission, they won't get that scope even whe
 AuthHero's RBAC implementation is compatible with Auth0's behavior when `enforce_policies` is enabled. However, there's one key difference:
 
 **Scopes not defined on the resource server:**
+
 - Auth0: Behavior varies depending on settings
 - AuthHero: Always pass through (granted) when RBAC is enabled
 

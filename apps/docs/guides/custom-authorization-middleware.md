@@ -44,19 +44,19 @@ AuthHero provides built-in authentication middleware, but you may need custom au
 ```typescript
 // Permission hierarchy example
 interface Permission {
-  name: string;                    // e.g., "users:read"
-  resource: string;                // e.g., "users"
-  action: string;                  // e.g., "read", "write", "delete"
+  name: string; // e.g., "users:read"
+  resource: string; // e.g., "users"
+  action: string; // e.g., "read", "write", "delete"
   scope?: "tenant" | "org" | "global";
-  conditions?: PolicyCondition[];   // Dynamic conditions
+  conditions?: PolicyCondition[]; // Dynamic conditions
 }
 
 interface Role {
   id: string;
   name: string;
   permissions: Permission[];
-  inheritsFrom?: string[];         // Role inheritance
-  priority: number;                // For conflict resolution
+  inheritsFrom?: string[]; // Role inheritance
+  priority: number; // For conflict resolution
 }
 
 interface PolicyCondition {
@@ -81,14 +81,14 @@ import { Bindings, Variables } from "../types";
 interface AuthorizationConfig {
   // Permission cache TTL in seconds
   cacheTTL?: number;
-  
+
   // Custom permission evaluator
   evaluatePermission?: (
     ctx: Context,
     required: string[],
     user: UserPermissions,
   ) => Promise<boolean>;
-  
+
   // Audit logger
   auditLog?: (
     ctx: Context,
@@ -115,24 +115,20 @@ export function createAuthorizationMiddleware(
     // Get user from authentication middleware
     const userId = ctx.var.user_id;
     const tenantId = ctx.var.tenant_id;
-    
+
     if (!userId) {
       // No authentication required for this route
       return await next();
     }
 
     if (!tenantId) {
-      throw new HTTPException(400, { 
-        message: "Tenant ID is required for authorization" 
+      throw new HTTPException(400, {
+        message: "Tenant ID is required for authorization",
       });
     }
 
     // Load user permissions
-    const userPermissions = await loadUserPermissions(
-      ctx,
-      tenantId,
-      userId,
-    );
+    const userPermissions = await loadUserPermissions(ctx, tenantId, userId);
 
     // Get required permissions from route metadata
     const requiredPermissions = getRequiredPermissions(ctx);
@@ -187,10 +183,13 @@ Efficiently load and cache user permissions:
 import { Context } from "hono";
 import { Bindings, Variables } from "../../types";
 
-const permissionCache = new Map<string, {
-  data: UserPermissions;
-  expires: number;
-}>();
+const permissionCache = new Map<
+  string,
+  {
+    data: UserPermissions;
+    expires: number;
+  }
+>();
 
 export async function loadUserPermissions(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -209,7 +208,7 @@ export async function loadUserPermissions(
 
   // Load user roles
   const userRoles = await data.userRoles.list(tenantId, userId);
-  
+
   // Load role details with permissions
   const roles = await Promise.all(
     userRoles.map(async (ur) => {
@@ -232,10 +231,7 @@ export async function loadUserPermissions(
   );
 
   // Load direct user permissions
-  const directPermissions = await data.userPermissions.list(
-    tenantId,
-    userId,
-  );
+  const directPermissions = await data.userPermissions.list(tenantId, userId);
 
   const userPermissions: UserPermissions = {
     userId,
@@ -290,7 +286,9 @@ interface RoleHierarchy {
 export class PermissionEvaluator {
   private hierarchy: RoleHierarchy = {};
 
-  constructor(private ctx: Context<{ Bindings: Bindings; Variables: Variables }>) {}
+  constructor(
+    private ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ) {}
 
   /**
    * Build role hierarchy from database
@@ -301,7 +299,7 @@ export class PermissionEvaluator {
 
     for (const role of roles) {
       const permissions = await data.rolePermissions.list(tenantId, role.id);
-      
+
       this.hierarchy[role.id] = {
         inheritsFrom: [], // Extended in your schema if you support role inheritance
         permissions: new Set(permissions.map((p) => p.permission_name)),
@@ -394,7 +392,7 @@ export async function checkPermissions(
   // Default: build evaluator and check
   const evaluator = new PermissionEvaluator(ctx);
   await evaluator.buildHierarchy(userPermissions.tenantId);
-  
+
   const userPerms = evaluator.getAllPermissions(userPermissions);
 
   // User must have ALL required permissions
@@ -424,11 +422,13 @@ export function createTenantIsolationMiddleware() {
     next: Next,
   ) => {
     const requestTenantId = ctx.var.tenant_id;
-    const userPermissions = ctx.var.user_permissions as UserPermissions | undefined;
+    const userPermissions = ctx.var.user_permissions as
+      | UserPermissions
+      | undefined;
 
     if (!requestTenantId) {
-      throw new HTTPException(400, { 
-        message: "Tenant ID is required" 
+      throw new HTTPException(400, {
+        message: "Tenant ID is required",
       });
     }
 
@@ -541,7 +541,7 @@ authorizer.registerPolicy({
       const evaluator = new PermissionEvaluator(ctx);
       await evaluator.buildHierarchy(tenantId!);
       const perms = evaluator.getAllPermissions(userPermissions);
-      
+
       return perms.has("posts:admin") || perms.has("posts:*");
     }
 
@@ -580,7 +580,7 @@ Here's a complete example combining all concepts:
 // src/index.ts
 import { init } from "@authhero/authhero";
 import { createKyselyAdapter } from "@authhero/kysely";
-import { 
+import {
   createAuthorizationMiddleware,
   createTenantIsolationMiddleware,
   ResourceAuthorizer,
@@ -598,7 +598,7 @@ const { app, managementApp } = init({
 // Configure authorization
 const authzMiddleware = createAuthorizationMiddleware({
   cacheTTL: 300, // 5 minutes
-  
+
   // Custom permission evaluator with time-based access
   evaluatePermission: async (ctx, required, user) => {
     // Build evaluator
@@ -626,7 +626,7 @@ const authzMiddleware = createAuthorizationMiddleware({
 
     return true;
   },
-  
+
   // Audit logging
   auditLog: async (ctx, decision, required) => {
     const { data } = ctx.env;
@@ -681,10 +681,10 @@ const permissionHierarchy = {
 ```typescript
 // Different scopes for different contexts
 const permissions = [
-  "users:read:own",        // Can only read own user data
-  "users:read:org",        // Can read users in same organization
-  "users:read:tenant",     // Can read all users in tenant
-  "users:read:global",     // Can read users across all tenants (super admin)
+  "users:read:own", // Can only read own user data
+  "users:read:org", // Can read users in same organization
+  "users:read:tenant", // Can read all users in tenant
+  "users:read:global", // Can read users across all tenants (super admin)
 ];
 ```
 
@@ -744,12 +744,7 @@ describe("Authorization Middleware", () => {
       directPermissions: [],
     };
 
-    const hasPermission = await checkPermissions(
-      ctx,
-      user,
-      ["users:read"],
-      {},
-    );
+    const hasPermission = await checkPermissions(ctx, user, ["users:read"], {});
 
     expect(hasPermission).toBe(true);
   });

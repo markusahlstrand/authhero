@@ -11,6 +11,7 @@ export type {
 
   // Union types
   FormNodeComponent as FormComponent,
+  RuntimeComponent,
   BlockComponent,
   WidgetComponent,
   FieldComponent,

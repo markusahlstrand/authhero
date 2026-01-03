@@ -10,6 +10,7 @@ The `@authhero/widget` is a server-driven UI web component for authentication fl
 ## Overview
 
 The widget is a **pure UI component** that can be embedded in either:
+
 - **Hosted Login Pages** - Server-rendered pages controlled by AuthHero
 - **Client Applications** - Directly in your SPA or website
 
@@ -33,10 +34,12 @@ The widget tracks two key pieces of state:
 2. **`formId`** (required) - The form to render (e.g., `login`, `signup`, `mfa`)
 
 The `formId` can be provided in two ways:
+
 - **Path-based**: `/u/flow/login/screen?state=abc123`
 - **Query-based**: `/u/flow/screen?form=login&state=abc123`
 
 This dual-mode support allows the widget to work in both:
+
 - **Hosted pages** where the form is known at page render time (path-based)
 - **SPAs** where the form and screen are controlled dynamically (query-based)
 
@@ -57,30 +60,28 @@ For server-rendered hosted login pages:
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <script type="module" src="/widget/authhero-widget.esm.js"></script>
-</head>
-<body>
-  <authhero-widget 
-    api-url="/u/flow/login/screen"
-    auto-submit="true">
-  </authhero-widget>
-  
-  <script>
-    // Extract state from URL
-    const params = new URLSearchParams(window.location.search);
-    const state = params.get('state');
-    
-    const widget = document.querySelector('authhero-widget');
-    
-    // Widget auto-fetches screen and handles submissions
-    widget.addEventListener('flowComplete', (e) => {
-      if (e.detail.redirectUrl) {
-        window.location.href = e.detail.redirectUrl;
-      }
-    });
-  </script>
-</body>
+  <head>
+    <script type="module" src="/widget/authhero-widget.esm.js"></script>
+  </head>
+  <body>
+    <authhero-widget api-url="/u/flow/login/screen" auto-submit="true">
+    </authhero-widget>
+
+    <script>
+      // Extract state from URL
+      const params = new URLSearchParams(window.location.search);
+      const state = params.get("state");
+
+      const widget = document.querySelector("authhero-widget");
+
+      // Widget auto-fetches screen and handles submissions
+      widget.addEventListener("flowComplete", (e) => {
+        if (e.detail.redirectUrl) {
+          window.location.href = e.detail.redirectUrl;
+        }
+      });
+    </script>
+  </body>
 </html>
 ```
 
@@ -89,16 +90,16 @@ For server-rendered hosted login pages:
 For embedding in your own application:
 
 ```javascript
-import '@authhero/widget';
+import "@authhero/widget";
 
-const widget = document.createElement('authhero-widget');
-widget.setAttribute('auto-submit', 'false'); // Handle events manually
+const widget = document.createElement("authhero-widget");
+widget.setAttribute("auto-submit", "false"); // Handle events manually
 
 document.body.appendChild(widget);
 
 // Extract state from OAuth flow
 const params = new URLSearchParams(window.location.search);
-const loginTicket = params.get('state');
+const loginTicket = params.get("state");
 
 // Fetch initial screen
 const response = await fetch(`/u/flow/screen?form=login&state=${loginTicket}`);
@@ -108,20 +109,20 @@ widget.screen = JSON.stringify(screen);
 widget.branding = JSON.stringify(branding);
 
 // Handle form submissions
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const { data } = e.detail;
-  
+
   const response = await fetch(
     `/u/flow/screen?form=login&state=${loginTicket}`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data }),
-    }
+    },
   );
-  
+
   const result = await response.json();
-  
+
   if (result.redirect) {
     window.location.href = result.redirect;
   } else {
@@ -135,7 +136,7 @@ widget.addEventListener('formSubmit', async (e) => {
 The widget supports SSR for optimal performance on hosted pages:
 
 ```typescript
-import { renderToString } from '@authhero/widget/hydrate';
+import { renderToString } from "@authhero/widget/hydrate";
 
 // Fetch screen data
 const { screen, branding } = await fetchScreen(formId, state);
@@ -167,28 +168,28 @@ The widget will hydrate on the client side, becoming interactive without a flash
 
 ## Widget Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `screen` | `string \| UIScreen` | - | Screen configuration to render (JSON string or object) |
-| `api-url` | `string` | - | API endpoint to fetch initial screen from |
-| `branding` | `string \| Branding` | - | Branding configuration (logo, colors, fonts) |
-| `theme` | `string` | - | Theme configuration JSON |
-| `loading` | `boolean` | `false` | Show loading state |
-| `auto-submit` | `boolean` | `false` | Auto-handle form submissions (not recommended for SPAs) |
+| Prop          | Type                 | Default | Description                                             |
+| ------------- | -------------------- | ------- | ------------------------------------------------------- |
+| `screen`      | `string \| UIScreen` | -       | Screen configuration to render (JSON string or object)  |
+| `api-url`     | `string`             | -       | API endpoint to fetch initial screen from               |
+| `branding`    | `string \| Branding` | -       | Branding configuration (logo, colors, fonts)            |
+| `theme`       | `string`             | -       | Theme configuration JSON                                |
+| `loading`     | `boolean`            | `false` | Show loading state                                      |
+| `auto-submit` | `boolean`            | `false` | Auto-handle form submissions (not recommended for SPAs) |
 
 ## Widget Events
 
 The widget is event-driven and emits the following custom events:
 
-| Event | Detail | Description |
-|-------|--------|-------------|
-| `formSubmit` | `{ screen: UIScreen, data: Record<string, any> }` | Form submitted with field values |
-| `buttonClick` | `{ id: string, action: string, value?: string }` | Button clicked (social login, navigation, etc.) |
-| `linkClick` | `{ href: string, text?: string }` | Link clicked |
-| `navigate` | `{ to: string }` | Navigation requested |
-| `flowComplete` | `{ redirectUrl?: string, result?: any }` | Auth flow completed successfully |
-| `flowError` | `{ error: Error, message?: string }` | Error occurred |
-| `screenChange` | `UIScreen` | Screen was updated |
+| Event          | Detail                                            | Description                                     |
+| -------------- | ------------------------------------------------- | ----------------------------------------------- |
+| `formSubmit`   | `{ screen: UIScreen, data: Record<string, any> }` | Form submitted with field values                |
+| `buttonClick`  | `{ id: string, action: string, value?: string }`  | Button clicked (social login, navigation, etc.) |
+| `linkClick`    | `{ href: string, text?: string }`                 | Link clicked                                    |
+| `navigate`     | `{ to: string }`                                  | Navigation requested                            |
+| `flowComplete` | `{ redirectUrl?: string, result?: any }`          | Auth flow completed successfully                |
+| `flowError`    | `{ error: Error, message?: string }`              | Error occurred                                  |
+| `screenChange` | `UIScreen`                                        | Screen was updated                              |
 
 ## Integration Patterns
 
@@ -199,6 +200,7 @@ The widget supports multiple integration patterns depending on your use case.
 This pattern gives you full control over the authentication flow. The widget emits events, and you handle HTTP requests with your preferred auth library.
 
 **Best for:**
+
 - SPAs with auth libraries like Auth0 SPA SDK
 - Custom authentication flows
 - Complex error handling requirements
@@ -207,48 +209,48 @@ This pattern gives you full control over the authentication flow. The widget emi
 **Example:**
 
 ```typescript
-import '@authhero/widget';
+import "@authhero/widget";
 
-const widget = document.querySelector('authhero-widget');
-const loginTicket = new URLSearchParams(location.search).get('state');
+const widget = document.querySelector("authhero-widget");
+const loginTicket = new URLSearchParams(location.search).get("state");
 
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const { data } = e.detail;
-  
+
   widget.loading = true;
   try {
     const response = await fetch(
       `/u/flow/screen?form=login&state=${loginTicket}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data }),
-      }
+      },
     );
-    
+
     const result = await response.json();
-    
+
     if (result.redirect) {
       window.location.href = result.redirect;
     } else {
       widget.screen = JSON.stringify(result.screen);
     }
   } catch (error) {
-    console.error('Login failed:', error);
+    console.error("Login failed:", error);
   } finally {
     widget.loading = false;
   }
 });
 
-widget.addEventListener('buttonClick', (e) => {
+widget.addEventListener("buttonClick", (e) => {
   const { action, value } = e.detail;
-  
-  if (action === 'social-login') {
+
+  if (action === "social-login") {
     window.location.href = `/authorize?connection=${value}&state=${loginTicket}`;
   }
 });
 
-widget.addEventListener('linkClick', (e) => {
+widget.addEventListener("linkClick", (e) => {
   window.location.href = e.detail.href;
 });
 ```
@@ -258,6 +260,7 @@ widget.addEventListener('linkClick', (e) => {
 The widget automatically handles form submissions and screen transitions.
 
 **Best for:**
+
 - Simple hosted login pages
 - Quick prototyping
 - Minimal JavaScript requirements
@@ -265,24 +268,22 @@ The widget automatically handles form submissions and screen transitions.
 **Example:**
 
 ```html
-<authhero-widget 
-  api-url="/u/flow/login/screen"
-  auto-submit="true">
+<authhero-widget api-url="/u/flow/login/screen" auto-submit="true">
 </authhero-widget>
 
 <script>
-  const widget = document.querySelector('authhero-widget');
-  
-  widget.addEventListener('flowComplete', (e) => {
+  const widget = document.querySelector("authhero-widget");
+
+  widget.addEventListener("flowComplete", (e) => {
     if (e.detail.redirectUrl) {
       window.location.href = e.detail.redirectUrl;
     }
   });
-  
+
   // Still need to handle social buttons manually
-  widget.addEventListener('buttonClick', (e) => {
-    if (e.detail.action === 'social-login') {
-      const state = new URLSearchParams(location.search).get('state');
+  widget.addEventListener("buttonClick", (e) => {
+    if (e.detail.action === "social-login") {
+      const state = new URLSearchParams(location.search).get("state");
       window.location.href = `/authorize?connection=${e.detail.value}&state=${state}`;
     }
   });
@@ -294,6 +295,7 @@ The widget automatically handles form submissions and screen transitions.
 Use the widget with Auth0's official SPA SDK for production applications.
 
 **Best for:**
+
 - Production SPAs
 - OAuth/OIDC flows
 - Token management and refresh
@@ -302,21 +304,21 @@ Use the widget with Auth0's official SPA SDK for production applications.
 **Example:**
 
 ```typescript
-import { Auth0Client } from '@auth0/auth0-spa-js';
-import '@authhero/widget';
+import { Auth0Client } from "@auth0/auth0-spa-js";
+import "@authhero/widget";
 
 const auth0 = new Auth0Client({
-  domain: 'your-tenant.authhero.com',
-  clientId: 'your-client-id',
-  cacheLocation: 'localstorage',
+  domain: "your-tenant.authhero.com",
+  clientId: "your-client-id",
+  cacheLocation: "localstorage",
 });
 
 // Check if returning from login
 const params = new URLSearchParams(window.location.search);
-if (params.has('code') && params.has('state')) {
+if (params.has("code") && params.has("state")) {
   // Auth0 SDK handles the callback
   await auth0.handleRedirectCallback();
-  window.history.replaceState({}, document.title, '/');
+  window.history.replaceState({}, document.title, "/");
 }
 
 // Check authentication
@@ -325,14 +327,14 @@ const isAuthenticated = await auth0.isAuthenticated();
 if (!isAuthenticated) {
   // Start login flow
   await auth0.loginWithRedirect({
-    appState: { targetUrl: window.location.pathname }
+    appState: { targetUrl: window.location.pathname },
   });
 } else {
   // Get user info
   const user = await auth0.getUser();
   const token = await auth0.getTokenSilently();
-  
-  console.log('Logged in as:', user);
+
+  console.log("Logged in as:", user);
 }
 ```
 
@@ -346,23 +348,23 @@ const loginTicket = await initiateLogin(); // Your custom function
 const response = await fetch(`/u/flow/screen?form=login&state=${loginTicket}`);
 const { screen, branding } = await response.json();
 
-const widget = document.querySelector('authhero-widget');
+const widget = document.querySelector("authhero-widget");
 widget.screen = JSON.stringify(screen);
 widget.branding = JSON.stringify(branding);
 
 // Handle submissions
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const response = await fetch(
     `/u/flow/screen?form=login&state=${loginTicket}`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data: e.detail.data }),
-    }
+    },
   );
-  
+
   const result = await response.json();
-  
+
   if (result.redirect) {
     // Redirect to callback - Auth0 SDK will handle it
     window.location.href = result.redirect;
@@ -377,6 +379,7 @@ widget.addEventListener('formSubmit', async (e) => {
 Handle tokens and sessions yourself without an auth library.
 
 **Best for:**
+
 - Custom authentication requirements
 - Non-standard OAuth flows
 - Direct API integration
@@ -384,57 +387,57 @@ Handle tokens and sessions yourself without an auth library.
 **Example:**
 
 ```typescript
-import '@authhero/widget';
+import "@authhero/widget";
 
 const tokenStorage = {
-  get: () => localStorage.getItem('access_token'),
+  get: () => localStorage.getItem("access_token"),
   set: (token: string, refresh?: string) => {
-    localStorage.setItem('access_token', token);
-    if (refresh) localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem("access_token", token);
+    if (refresh) localStorage.setItem("refresh_token", refresh);
   },
   clear: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
   },
 };
 
-const widget = document.querySelector('authhero-widget');
-const loginTicket = new URLSearchParams(location.search).get('state');
+const widget = document.querySelector("authhero-widget");
+const loginTicket = new URLSearchParams(location.search).get("state");
 
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const response = await fetch(
     `/u/flow/screen?form=login&state=${loginTicket}`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data: e.detail.data }),
-    }
+    },
   );
-  
+
   const result = await response.json();
-  
+
   if (result.redirect) {
     // Parse callback URL for code
     const url = new URL(result.redirect);
-    const code = url.searchParams.get('code');
-    
+    const code = url.searchParams.get("code");
+
     // Exchange code for tokens
-    const tokenResponse = await fetch('/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const tokenResponse = await fetch("/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_type: 'authorization_code',
+        grant_type: "authorization_code",
         code,
-        client_id: 'your-client-id',
-        redirect_uri: window.location.origin + '/callback',
+        client_id: "your-client-id",
+        redirect_uri: window.location.origin + "/callback",
       }),
     });
-    
+
     const tokens = await tokenResponse.json();
     tokenStorage.set(tokens.access_token, tokens.refresh_token);
-    
+
     // Redirect to app
-    window.location.href = '/app';
+    window.location.href = "/app";
   } else {
     widget.screen = JSON.stringify(result.screen);
   }
@@ -442,21 +445,21 @@ widget.addEventListener('formSubmit', async (e) => {
 
 // Token refresh
 async function refreshAccessToken() {
-  const refreshToken = localStorage.getItem('refresh_token');
-  
-  const response = await fetch('/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const refreshToken = localStorage.getItem("refresh_token");
+
+  const response = await fetch("/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: 'your-client-id',
+      client_id: "your-client-id",
     }),
   });
-  
+
   const tokens = await response.json();
   tokenStorage.set(tokens.access_token, tokens.refresh_token);
-  
+
   return tokens.access_token;
 }
 ```
@@ -466,6 +469,7 @@ async function refreshAccessToken() {
 The widget can also be used for generic server-driven forms outside of authentication.
 
 **Best for:**
+
 - Multi-step forms
 - Dynamic forms based on user input
 - Survey flows
@@ -474,50 +478,50 @@ The widget can also be used for generic server-driven forms outside of authentic
 **Example:**
 
 ```typescript
-import '@authhero/widget';
+import "@authhero/widget";
 
-const widget = document.querySelector('authhero-widget');
+const widget = document.querySelector("authhero-widget");
 
 // Initial form screen
 widget.screen = JSON.stringify({
-  title: 'Contact Us',
-  description: 'We\'d love to hear from you',
+  title: "Contact Us",
+  description: "We'd love to hear from you",
   components: [
     {
-      component: 'text-input',
-      id: 'name',
-      name: 'name',
-      label: 'Your Name',
+      component: "text-input",
+      id: "name",
+      name: "name",
+      label: "Your Name",
       required: true,
     },
     {
-      component: 'text-input',
-      id: 'email',
-      name: 'email',
-      label: 'Email Address',
-      type: 'email',
+      component: "text-input",
+      id: "email",
+      name: "email",
+      label: "Email Address",
+      type: "email",
       required: true,
     },
     {
-      component: 'submit-button',
-      id: 'submit',
-      label: 'Continue',
+      component: "submit-button",
+      id: "submit",
+      label: "Continue",
     },
   ],
 });
 
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const { data } = e.detail;
-  
+
   // Send to your backend
-  const response = await fetch('/api/contact', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch("/api/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  
+
   const result = await response.json();
-  
+
   // Show next screen (e.g., thank you message)
   widget.screen = JSON.stringify(result.nextScreen);
 });
@@ -531,11 +535,11 @@ The widget supports full branding customization:
 
 ```typescript
 widget.branding = JSON.stringify({
-  logoUrl: 'https://example.com/logo.png',
-  primaryColor: '#6366f1',
-  backgroundColor: '#ffffff',
+  logoUrl: "https://example.com/logo.png",
+  primaryColor: "#6366f1",
+  backgroundColor: "#ffffff",
   font: {
-    url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap',
+    url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
   },
 });
 ```
@@ -550,7 +554,7 @@ authhero-widget {
   --background-color: #ffffff;
   --text-color: #333333;
   --border-radius: 8px;
-  --font-family: 'Inter', sans-serif;
+  --font-family: "Inter", sans-serif;
 }
 ```
 
@@ -562,14 +566,14 @@ Advanced theming with component-level customization:
 widget.theme = JSON.stringify({
   button: {
     primary: {
-      backgroundColor: '#6366f1',
-      textColor: '#ffffff',
-      borderRadius: '8px',
+      backgroundColor: "#6366f1",
+      textColor: "#ffffff",
+      borderRadius: "8px",
     },
   },
   input: {
-    borderColor: '#e5e7eb',
-    focusBorderColor: '#6366f1',
+    borderColor: "#e5e7eb",
+    focusBorderColor: "#6366f1",
   },
 });
 ```

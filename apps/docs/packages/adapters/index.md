@@ -18,6 +18,7 @@ The **Kysely adapter** is the primary and recommended adapter for AuthHero. It s
 - ✅ MySQL
 
 **Why Kysely?**
+
 - Single schema works across all databases
 - Full TypeScript support with type inference
 - No need to maintain separate schemas for each database
@@ -55,6 +56,7 @@ Choose the adapter that matches your needs:
 - **Simple Cloudflare D1 projects** → Use **Kysely Adapter** with D1 dialect
 
 Each adapter handles:
+
 - Database schema creation and migrations
 - CRUD operations for users, sessions, and tenant data
 - Platform-specific optimizations

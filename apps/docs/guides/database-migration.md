@@ -91,12 +91,12 @@ function handleSyncError(entity: string) {
   return (error: Error, method: string, args: unknown[]) => {
     const key = `${entity}.${method}`;
     syncErrors.set(key, (syncErrors.get(key) || 0) + 1);
-    
+
     console.error(`MySQL sync failed for ${key}:`, {
       error: error.message,
       args: args.slice(0, 2), // Log first 2 args (usually tenantId, id)
     });
-    
+
     // Send to your monitoring system
     // reportError(error, { entity, method });
   };
@@ -141,27 +141,57 @@ export const dataAdapter = {
   // Add all other entities...
   connections: createPassthroughAdapter({
     primary: postgresAdapter.connections,
-    secondaries: [{ adapter: mysqlAdapter.connections, blocking: true, onError: handleSyncError("connections") }],
+    secondaries: [
+      {
+        adapter: mysqlAdapter.connections,
+        blocking: true,
+        onError: handleSyncError("connections"),
+      },
+    ],
   }),
 
   logs: createPassthroughAdapter({
     primary: postgresAdapter.logs,
-    secondaries: [{ adapter: mysqlAdapter.logs, blocking: false, onError: handleSyncError("logs") }], // Logs can be non-blocking
+    secondaries: [
+      {
+        adapter: mysqlAdapter.logs,
+        blocking: false,
+        onError: handleSyncError("logs"),
+      },
+    ], // Logs can be non-blocking
   }),
 
   sessions: createPassthroughAdapter({
     primary: postgresAdapter.sessions,
-    secondaries: [{ adapter: mysqlAdapter.sessions, blocking: true, onError: handleSyncError("sessions") }],
+    secondaries: [
+      {
+        adapter: mysqlAdapter.sessions,
+        blocking: true,
+        onError: handleSyncError("sessions"),
+      },
+    ],
   }),
 
   codes: createPassthroughAdapter({
     primary: postgresAdapter.codes,
-    secondaries: [{ adapter: mysqlAdapter.codes, blocking: true, onError: handleSyncError("codes") }],
+    secondaries: [
+      {
+        adapter: mysqlAdapter.codes,
+        blocking: true,
+        onError: handleSyncError("codes"),
+      },
+    ],
   }),
 
   passwords: createPassthroughAdapter({
     primary: postgresAdapter.passwords,
-    secondaries: [{ adapter: mysqlAdapter.passwords, blocking: true, onError: handleSyncError("passwords") }],
+    secondaries: [
+      {
+        adapter: mysqlAdapter.passwords,
+        blocking: true,
+        onError: handleSyncError("passwords"),
+      },
+    ],
   }),
 
   // Include any platform-specific adapters from primary
@@ -204,18 +234,18 @@ async function backfillEntity<T>(
   create: (item: T) => Promise<void>,
 ) {
   console.log(`Backfilling ${entityName}...`);
-  
+
   const items = await getAll();
   console.log(`Found ${items.length} ${entityName} to migrate`);
-  
+
   let successful = 0;
   let failed = 0;
-  
+
   for (const item of items) {
     try {
       await create(item);
       successful++;
-      
+
       if (successful % 100 === 0) {
         console.log(`  Migrated ${successful}/${items.length} ${entityName}`);
       }
@@ -224,14 +254,16 @@ async function backfillEntity<T>(
       console.error(`  Failed to migrate ${entityName}:`, error);
     }
   }
-  
-  console.log(`✓ Completed ${entityName}: ${successful} successful, ${failed} failed\n`);
+
+  console.log(
+    `✓ Completed ${entityName}: ${successful} successful, ${failed} failed\n`,
+  );
   return { successful, failed };
 }
 
 async function backfillTenants() {
   const { tenants } = await postgresAdapter.tenants.list();
-  
+
   return backfillEntity(
     "tenants",
     async () => tenants,
@@ -246,12 +278,12 @@ async function backfillUsers() {
   const { tenants } = await postgresAdapter.tenants.list();
   let totalSuccessful = 0;
   let totalFailed = 0;
-  
+
   for (const tenant of tenants) {
     console.log(`Backfilling users for tenant ${tenant.id}...`);
-    
+
     const { users } = await postgresAdapter.users.list(tenant.id, {});
-    
+
     const result = await backfillEntity(
       `users (${tenant.id})`,
       async () => users,
@@ -259,22 +291,22 @@ async function backfillUsers() {
         await mysqlAdapter.users.create(tenant.id, user);
       },
     );
-    
+
     totalSuccessful += result.successful;
     totalFailed += result.failed;
   }
-  
+
   return { successful: totalSuccessful, failed: totalFailed };
 }
 
 async function main() {
   console.log("Starting database backfill...\n");
-  
+
   // Backfill in dependency order
   await backfillTenants();
   await backfillUsers();
   // Add other entities in correct order
-  
+
   console.log("Backfill complete!");
 }
 
@@ -301,52 +333,52 @@ async function verifyEntity<T extends { id?: string }>(
   getMySQL: () => Promise<T[]>,
 ) {
   console.log(`Verifying ${entityName}...`);
-  
+
   const [postgresItems, mysqlItems] = await Promise.all([
     getPostgres(),
     getMySQL(),
   ]);
-  
+
   console.log(`  PostgreSQL: ${postgresItems.length} records`);
   console.log(`  MySQL: ${mysqlItems.length} records`);
-  
+
   if (postgresItems.length !== mysqlItems.length) {
     console.error(`  ✗ Count mismatch!\n`);
     return false;
   }
-  
+
   // Check for missing records
   const postgresIds = new Set(postgresItems.map((item) => item.id));
   const mysqlIds = new Set(mysqlItems.map((item) => item.id));
-  
+
   const missingInMySQL = [...postgresIds].filter((id) => !mysqlIds.has(id));
   const extraInMySQL = [...mysqlIds].filter((id) => !postgresIds.has(id));
-  
+
   if (missingInMySQL.length > 0) {
     console.error(`  ✗ ${missingInMySQL.length} records missing in MySQL`);
     console.error(`  Missing IDs:`, missingInMySQL.slice(0, 5));
     return false;
   }
-  
+
   if (extraInMySQL.length > 0) {
     console.warn(`  ⚠ ${extraInMySQL.length} extra records in MySQL`);
     console.warn(`  Extra IDs:`, extraInMySQL.slice(0, 5));
   }
-  
+
   console.log(`  ✓ ${entityName} verified\n`);
   return true;
 }
 
 async function main() {
   console.log("Starting migration verification...\n");
-  
+
   const results = await Promise.all([
     verifyEntity(
       "tenants",
       async () => (await postgresAdapter.tenants.list()).tenants,
       async () => (await mysqlAdapter.tenants.list()).tenants,
     ),
-    
+
     verifyEntity(
       "users",
       async () => {
@@ -368,12 +400,12 @@ async function main() {
         return allUsers;
       },
     ),
-    
+
     // Add other entities...
   ]);
-  
+
   const allPassed = results.every((result) => result);
-  
+
   if (allPassed) {
     console.log("✓ All verifications passed! Ready to switch over.");
   } else {
@@ -404,8 +436,11 @@ const admin = new Hono();
 
 admin.get("/migration-status", (c) => {
   const errors = getSyncErrorStats();
-  const totalErrors = Object.values(errors).reduce((sum, count) => sum + count, 0);
-  
+  const totalErrors = Object.values(errors).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+
   return c.json({
     status: totalErrors === 0 ? "healthy" : "errors",
     totalErrors,
@@ -433,7 +468,7 @@ export const dataAdapter = {
       },
     ],
   }),
-  
+
   // Update all other entities similarly...
 };
 ```
@@ -510,7 +545,7 @@ function handleSyncError(entity: string) {
     // Increment error counter
     const key = `${entity}.${method}`;
     metrics.syncErrors.set(key, (metrics.syncErrors.get(key) || 0) + 1);
-    
+
     // Alert if error rate is high
     if (metrics.syncErrors.get(key)! > 10) {
       sendAlert(`High sync error rate for ${key}`);
@@ -555,7 +590,7 @@ secondaries: [
     adapter: newAdapter.users,
     blocking: false, // Don't wait for sync
   },
-]
+];
 ```
 
 ### Sync Failures
@@ -632,15 +667,15 @@ const authHeroAdapter = createKyselyAdapter(db);
 // Phase 1: External auth primary, AuthHero secondary (dual-write)
 const dataAdapter = {
   users: createPassthroughAdapter({
-    primary: externalAuthAdapter.users,      // Read from external service
+    primary: externalAuthAdapter.users, // Read from external service
     secondaries: [
       {
-        adapter: authHeroAdapter.users,      // Write to AuthHero
+        adapter: authHeroAdapter.users, // Write to AuthHero
         blocking: true,
       },
     ],
   }),
-  
+
   sessions: createPassthroughAdapter({
     primary: externalAuthAdapter.sessions,
     secondaries: [
@@ -650,7 +685,7 @@ const dataAdapter = {
       },
     ],
   }),
-  
+
   // ... other entities
 };
 ```
@@ -669,52 +704,52 @@ export function createExternalUsersAdapter(config: ExternalAuthConfig) {
       const response = await fetch(
         `https://${config.domain}/api/users/${userId}`,
         {
-          headers: { Authorization: `Bearer ${config.managementToken}` }
-        }
+          headers: { Authorization: `Bearer ${config.managementToken}` },
+        },
       );
-      
+
       // Transform external format to AuthHero format
       const externalUser = await response.json();
       return transformToAuthHeroUser(externalUser);
     },
-    
+
     async list(tenantId: string, params) {
       // Query users from external service
       // May need to filter by tenant using metadata or tags
       const response = await fetch(
         `https://${config.domain}/api/users?tenant=${tenantId}`,
         {
-          headers: { Authorization: `Bearer ${config.managementToken}` }
-        }
+          headers: { Authorization: `Bearer ${config.managementToken}` },
+        },
       );
-      
+
       const externalUsers = await response.json();
       return {
-        users: externalUsers.map(transformToAuthHeroUser)
+        users: externalUsers.map(transformToAuthHeroUser),
       };
     },
-    
+
     // Write operations during migration
     async create(tenantId: string, user) {
       // Option 1: Proxy to external service
       // Option 2: Throw error (read-only during migration)
       throw new Error("User creation not supported during migration");
     },
-    
+
     async update(tenantId: string, userId: string, updates) {
       // Proxy updates to external service
       const response = await fetch(
         `https://${config.domain}/api/users/${userId}`,
         {
           method: "PATCH",
-          headers: { 
+          headers: {
             Authorization: `Bearer ${config.managementToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(transformToExternalFormat(updates)),
-        }
+        },
       );
-      
+
       return transformToAuthHeroUser(await response.json());
     },
   };
@@ -729,40 +764,40 @@ export function createExternalSessionsAdapter(config: ExternalAuthConfig) {
     async get(tenantId: string, sessionId: string) {
       // External auth services typically don't expose sessions
       // Store mapping of AuthHero session ID -> external tokens
-      
+
       const mapping = await getSessionMapping(sessionId);
       if (!mapping) return null;
-      
+
       // Validate external token is still valid
       const isValid = await validateExternalToken(
-        mapping.external_access_token
+        mapping.external_access_token,
       );
-      
+
       if (!isValid) {
         // Try to refresh using external refresh token
         const refreshed = await refreshExternalToken(
-          mapping.external_refresh_token
+          mapping.external_refresh_token,
         );
-        
+
         if (refreshed) {
           await updateSessionMapping(sessionId, refreshed);
           return transformToAuthHeroSession(refreshed);
         }
-        
+
         return null;
       }
-      
+
       return transformToAuthHeroSession(mapping);
     },
-    
+
     async create(tenantId: string, session) {
       // When proxying authentication:
       // 1. External service handles actual auth
       // 2. Receive external tokens
       // 3. Store mapping for future use
-      
+
       const sessionId = generateSessionId();
-      
+
       await storeSessionMapping(sessionId, {
         tenant_id: tenantId,
         user_id: session.user_id,
@@ -771,7 +806,7 @@ export function createExternalSessionsAdapter(config: ExternalAuthConfig) {
         external_id_token: session.external_id_token,
         expires_at: session.expires_at,
       });
-      
+
       return {
         id: sessionId,
         tenant_id: tenantId,
@@ -803,34 +838,33 @@ export function createAuthFlowProxy(config: ExternalAuthConfig) {
         })}`,
       };
     },
-    
+
     // Proxy token exchange to external service
     async handleTokenExchange(params) {
-      const response = await fetch(
-        `https://${config.domain}/oauth/token`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: params.grant_type,
-            code: params.code,
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-            redirect_uri: params.redirect_uri,
-          }),
-        }
-      );
-      
+      const response = await fetch(`https://${config.domain}/oauth/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: params.grant_type,
+          code: params.code,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          redirect_uri: params.redirect_uri,
+        }),
+      });
+
       const tokens = await response.json();
-      
+
       // Store in AuthHero session format
       await authHeroAdapter.sessions.create(tenantId, {
         user_id: tokens.sub,
         external_access_token: tokens.access_token,
         external_refresh_token: tokens.refresh_token,
-        expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+        expires_at: new Date(
+          Date.now() + tokens.expires_in * 1000,
+        ).toISOString(),
       });
-      
+
       return tokens;
     },
   };
@@ -861,7 +895,7 @@ All reads from external service, all writes go to both.
 // scripts/backfill-from-external-auth.ts
 async function backfillUsers() {
   const { users } = await externalAuthAdapter.users.list("tenant-id", {});
-  
+
   for (const user of users) {
     await authHeroAdapter.users.create("tenant-id", user);
   }
@@ -883,12 +917,12 @@ Unlike database migration, session continuity is possible through token proxying
 // Progressive migration: new users -> AuthHero, existing -> external
 async function routeAuthentication(userId: string) {
   const user = await authHeroAdapter.users.get("tenant-id", userId);
-  
+
   if (user && user.migrated_to_authhero) {
     // Use AuthHero authentication
     return authHeroAuth(user);
   }
-  
+
   // Proxy to external auth
   return externalAuth(userId);
 }
@@ -906,7 +940,7 @@ console.log(`AuthHero: ${authHeroUsers.users.length}`);
 
 // Check for discrepancies
 const missing = externalUsers.users.filter(
-  (eu) => !authHeroUsers.users.find((au) => au.user_id === eu.user_id)
+  (eu) => !authHeroUsers.users.find((au) => au.user_id === eu.user_id),
 );
 console.log(`Missing in AuthHero: ${missing.length}`);
 ```
@@ -917,10 +951,10 @@ console.log(`Missing in AuthHero: ${missing.length}`);
 // Switch to AuthHero as primary
 const dataAdapter = {
   users: createPassthroughAdapter({
-    primary: authHeroAdapter.users,          // Now primary
+    primary: authHeroAdapter.users, // Now primary
     secondaries: [
       {
-        adapter: externalAuthAdapter.users,  // Keep as backup
+        adapter: externalAuthAdapter.users, // Keep as backup
         blocking: false,
       },
     ],

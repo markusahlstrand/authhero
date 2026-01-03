@@ -22,6 +22,7 @@ create-authhero my-auth-project
 ```
 
 This will:
+
 - Set up the project structure
 - Install necessary dependencies
 - Create configuration files

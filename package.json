@@ -21,6 +21,7 @@
     "saml": "pnpm --filter @authhero/saml",
     "vitepress": "pnpm --filter @authhero/docs",
     "multi-tenancy": "pnpm --filter @authhero/multi-tenancy",
+    "widget": "pnpm --filter @authhero/widget",
     "prepare": "husky"
   },
   "keywords": [],

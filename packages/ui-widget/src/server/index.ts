@@ -16,7 +16,6 @@ import type {
   DividerComponent,
   NextButtonComponent,
   SocialField,
-  RichTextComponent,
   ImageComponent,
 } from '../types/components';
 
@@ -52,6 +51,7 @@ export function createLoginScreen(options: {
     order: order++,
     label: 'Email address',
     required: true,
+    visible: true,
     config: {
       placeholder: 'you@example.com',
     },
@@ -65,6 +65,7 @@ export function createLoginScreen(options: {
     order: order++,
     label: 'Password',
     required: true,
+    visible: true,
     config: {
       placeholder: 'Enter your password',
     },
@@ -76,6 +77,7 @@ export function createLoginScreen(options: {
     category: 'BLOCK',
     type: 'NEXT_BUTTON',
     order: order++,
+    visible: true,
     config: {
       text: 'Sign in',
     },
@@ -88,6 +90,7 @@ export function createLoginScreen(options: {
       category: 'BLOCK',
       type: 'DIVIDER',
       order: order++,
+      visible: true,
     } satisfies DividerComponent);
 
     components.push({
@@ -95,6 +98,7 @@ export function createLoginScreen(options: {
       category: 'FIELD',
       type: 'SOCIAL',
       order: order++,
+      visible: true,
       config: {
         providers: options.showSocialProviders,
       },
@@ -150,6 +154,7 @@ export function createIdentifierScreen(options: {
       category: 'BLOCK',
       type: 'IMAGE',
       order: order++,
+      visible: true,
       config: {
         src: options.logoUrl,
         alt: `${options.tenantName || 'Company'} Logo`,
@@ -165,6 +170,7 @@ export function createIdentifierScreen(options: {
     order: order++,
     label: 'Email',
     required: true,
+    visible: true,
     config: {
       placeholder: 'Your email address',
     },
@@ -176,6 +182,7 @@ export function createIdentifierScreen(options: {
     category: 'BLOCK',
     type: 'NEXT_BUTTON',
     order: order++,
+    visible: true,
     config: {
       text: 'Continue',
     },
@@ -188,6 +195,7 @@ export function createIdentifierScreen(options: {
       category: 'BLOCK',
       type: 'DIVIDER',
       order: order++,
+      visible: true,
     } satisfies DividerComponent);
 
     components.push({
@@ -195,6 +203,7 @@ export function createIdentifierScreen(options: {
       category: 'FIELD',
       type: 'SOCIAL',
       order: order++,
+      visible: true,
       config: {
         providers: options.showSocialProviders,
       },
@@ -270,6 +279,7 @@ export function createSignupScreen(options: {
         order: order++,
         label: field.label,
         required: field.required ?? true,
+        visible: true,
         config: {
           placeholder: field.placeholder,
         },
@@ -282,6 +292,7 @@ export function createSignupScreen(options: {
         order: order++,
         label: field.label,
         required: field.required ?? true,
+        visible: true,
         config: {
           placeholder: field.placeholder,
         },
@@ -294,6 +305,7 @@ export function createSignupScreen(options: {
         order: order++,
         label: field.label,
         required: field.required ?? true,
+        visible: true,
         config: {
           placeholder: field.placeholder,
         },
@@ -307,6 +319,7 @@ export function createSignupScreen(options: {
     category: 'BLOCK',
     type: 'NEXT_BUTTON',
     order: order++,
+    visible: true,
     config: {
       text: 'Create account',
     },
@@ -319,6 +332,7 @@ export function createSignupScreen(options: {
       category: 'BLOCK',
       type: 'DIVIDER',
       order: order++,
+      visible: true,
     } satisfies DividerComponent);
 
     components.push({
@@ -326,6 +340,7 @@ export function createSignupScreen(options: {
       category: 'FIELD',
       type: 'SOCIAL',
       order: order++,
+      visible: true,
       config: {
         providers: options.showSocialProviders,
       },
@@ -374,13 +389,14 @@ export function createMfaScreen(options: {
   // Description text
   components.push({
     id: 'description',
-    category: 'BLOCK',
-    type: 'RICH_TEXT',
+    category: 'BLOCK' as const,
+    type: 'RICH_TEXT' as const,
     order: order++,
+    visible: true,
     config: {
       content: `<p>${description}</p>`,
     },
-  } satisfies RichTextComponent);
+  });
 
   // Code input
   components.push({
@@ -390,6 +406,7 @@ export function createMfaScreen(options: {
     order: order++,
     label: 'Verification code',
     required: true,
+    visible: true,
     config: {
       placeholder: '000000',
       max_length: options.codeLength || 6,
@@ -402,6 +419,7 @@ export function createMfaScreen(options: {
     category: 'BLOCK',
     type: 'NEXT_BUTTON',
     order: order++,
+    visible: true,
     config: {
       text: 'Verify',
     },
@@ -435,13 +453,14 @@ export function createForgotPasswordScreen(options: {
   // Description text
   components.push({
     id: 'description',
-    category: 'BLOCK',
-    type: 'RICH_TEXT',
+    category: 'BLOCK' as const,
+    type: 'RICH_TEXT' as const,
     order: order++,
+    visible: true,
     config: {
       content: "<p>Enter your email address and we'll send you a link to reset your password.</p>",
     },
-  } satisfies RichTextComponent);
+  });
 
   // Email input
   components.push({
@@ -451,6 +470,7 @@ export function createForgotPasswordScreen(options: {
     order: order++,
     label: 'Email address',
     required: true,
+    visible: true,
   } satisfies EmailField);
 
   // Submit button
@@ -459,6 +479,7 @@ export function createForgotPasswordScreen(options: {
     category: 'BLOCK',
     type: 'NEXT_BUTTON',
     order: order++,
+    visible: true,
     config: {
       text: 'Send reset link',
     },

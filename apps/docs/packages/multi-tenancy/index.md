@@ -53,6 +53,7 @@ export default app;
 ```
 
 This sets up a complete multi-tenant system where:
+
 - The `control_plane` tenant manages all other tenants
 - Resource servers created on `control_plane` are automatically synced to all child tenants
 - Roles created on `control_plane` are automatically synced to all child tenants
@@ -113,13 +114,17 @@ When you assign permissions to roles on the control plane, they sync too:
 
 ```typescript
 // On control_plane tenant
-POST /api/v2/roles/{roleId}/permissions
-[
-  {
-    "resource_server_identifier": "https://api.example.com",
-    "permission_name": "read:data"
-  }
-]
+POST /
+  api /
+  v2 /
+  roles /
+  { roleId } /
+  permissions[
+    {
+      resource_server_identifier: "https://api.example.com",
+      permission_name: "read:data",
+    }
+  ];
 
 // These permissions are automatically assigned to the same role on all child tenants
 ```
@@ -139,7 +144,7 @@ Entities synced from the control plane are marked as `is_system: true` on child 
 
 ```typescript
 // On child tenant - this will fail
-PATCH /api/v2/resource-servers/{id}  // where is_system: true
+PATCH / api / v2 / resource - servers / { id }; // where is_system: true
 // Response: 403 "This resource server is a system resource and cannot be modified"
 ```
 
@@ -151,10 +156,10 @@ To modify synced entities, update them on the control plane and changes will aut
 const { app } = init({
   dataAdapter,
   controlPlaneTenantId: "control_plane",
-  
+
   // Sync resource servers (default: true)
   syncResourceServers: true,
-  
+
   // Sync roles and their permissions (default: true)
   syncRoles: true,
 });
@@ -185,6 +190,7 @@ The multi-tenancy system uses a **control plane** architecture where a central t
 - **Organizations**: Organizations on the control plane represent child tenants and control access to them
 
 When a new child tenant is created:
+
 1. A tenant record is created in the database
 2. An organization with the same ID is created on the control plane
 3. All control plane resource servers are copied to the new tenant (if `syncResourceServers: true`)

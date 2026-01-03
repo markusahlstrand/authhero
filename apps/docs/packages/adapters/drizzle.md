@@ -38,8 +38,8 @@ pnpm add better-sqlite3 # for SQLite
 ## Usage
 
 ```typescript
-import { AuthHero } from 'authhero';
-import { DrizzleAdapter } from 'authhero-drizzle-adapter';
+import { AuthHero } from "authhero";
+import { DrizzleAdapter } from "authhero-drizzle-adapter";
 // Import your Drizzle database setup
 
 // Create the adapter

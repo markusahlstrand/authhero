@@ -25,8 +25,8 @@ pnpm add authhero-cloudflare-adapter
 ## Usage
 
 ```typescript
-import { AuthHero } from 'authhero';
-import { CloudflareAdapter } from 'authhero-cloudflare-adapter';
+import { AuthHero } from "authhero";
+import { CloudflareAdapter } from "authhero-cloudflare-adapter";
 
 // Create the adapter
 const cloudflareAdapter = new CloudflareAdapter({
@@ -53,8 +53,8 @@ const authHero = new AuthHero({
 ```typescript
 // Example code for setting up a custom domain
 await authHero.domains.create({
-  domain: 'auth.example.com',
-  tenantId: 'tenant-123',
+  domain: "auth.example.com",
+  tenantId: "tenant-123",
   // other domain options
 });
 ```
