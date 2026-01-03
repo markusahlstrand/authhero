@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.3.0
+
+### Minor Changes
+
+- 23c06fc: Add a prepublish to widget
+
 ## 0.2.2
 
 ### Patch Changes

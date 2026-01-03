@@ -1,5 +1,12 @@
 # authhero
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [23c06fc]
+  - @authhero/widget@0.3.0
+
 ## 1.4.0
 
 ### Minor Changes
