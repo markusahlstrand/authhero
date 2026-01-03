@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.4.0
+
+### Minor Changes
+
+- 8e9a085: Add prepublish to ci script
+
 ## 0.3.0
 
 ### Minor Changes
