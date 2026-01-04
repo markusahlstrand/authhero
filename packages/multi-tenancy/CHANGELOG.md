@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.14.0
+
+### Minor Changes
+
+- 44b751a: Sync connections
+
 ## 13.13.3
 
 ### Patch Changes

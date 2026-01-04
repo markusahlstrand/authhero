@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.17.0
+
+### Minor Changes
+
+- bf9d776: Add semantic release to create authhero
+
 ## 0.16.0
 
 ### Minor Changes
