@@ -65,7 +65,7 @@ app
   .route("/", oauthApp)
   .route("/u", universalApp)
   .route("/api/v2", managementApp)
-  .route("/", samlApp);
+  .route("/samlp", samlApp);
 ```
 
 ## Data Adapters

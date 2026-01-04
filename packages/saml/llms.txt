@@ -126,9 +126,8 @@ const metadata = generateMetadata({
 | Function | Description |
 |----------|-------------|
 | `createSamlResponse` | Generate signed SAML response |
-| `parseSamlRequest` | Parse incoming SAML AuthnRequest |
-| `generateMetadata` | Generate IdP metadata XML |
-| `validateSignature` | Verify SAML signature |
+| `parseSamlRequestQuery` | Parse incoming SAML AuthnRequest from query string |
+| `createSamlMetadata` | Generate IdP metadata XML |
 
 ## Signing Implementations
 
@@ -144,12 +143,14 @@ const metadata = generateMetadata({
 
 ## Key Files
 
-- `src/index.ts` - Full exports
-- `src/core.ts` - Core exports without xml-crypto
-- `src/local-signer.ts` - LocalSamlSigner
-- `src/response.ts` - SAML response generation
-- `src/request.ts` - SAML request parsing
-- `src/metadata.ts` - Metadata generation
+- `src/index.ts` - Full exports (includes xml-crypto dependency)
+- `src/core.ts` - Core exports without xml-crypto (edge-compatible)
+- `src/helpers.ts` - SAML response generation, request parsing, metadata creation
+- `src/signer.ts` - Base signer interface
+- `src/types.ts` - TypeScript types and Zod schemas
+- `src/signers/local.ts` - LocalSamlSigner implementation
+- `src/signers/http.ts` - HttpSamlSigner implementation
+- `src/local-signer.ts` - Re-export of LocalSamlSigner
 
 ## Related Packages
 
