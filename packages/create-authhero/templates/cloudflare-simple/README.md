@@ -49,7 +49,7 @@ This project is designed to be **open-source friendly**. Sensitive Cloudflare ID
 4. Start the development server:
 
    ```bash
-   npm run dev:local
+   npm run dev
    ```
 
 The server will be available at `https://localhost:3000`.
@@ -91,8 +91,7 @@ The server will be available at `https://localhost:3000`.
 
 ## Available Scripts
 
-- `npm run dev` - Start development server (uses wrangler.local.toml if available)
-- `npm run dev:local` - Start with local D1 database (no remote resources)
+- `npm run dev` - Start development server with local D1 database
 - `npm run dev:remote` - Start with remote D1 database
 - `npm run deploy` - Deploy to Cloudflare Workers
 - `npm run migrate` - Run migrations on local database

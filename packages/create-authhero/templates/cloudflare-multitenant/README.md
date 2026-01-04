@@ -69,7 +69,7 @@ This project is designed to be **open-source friendly**. Sensitive Cloudflare ID
 
 4. Start the development server:
    ```bash
-   npm run dev:local
+   npm run dev
    ```
 
 The server will be available at `https://localhost:3000`.

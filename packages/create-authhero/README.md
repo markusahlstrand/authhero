@@ -88,7 +88,7 @@ cd my-auth-project
 npm install
 npm run migrate
 ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
-npm run dev:local
+npm run dev
 ```
 
 **Remote Development (Your Cloudflare Account):**
@@ -159,7 +159,7 @@ cd my-auth-project
 npm install
 npm run migrate
 ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
-npm run dev:local
+npm run dev
 ```
 
 **Remote Development (Your Cloudflare Account):**
