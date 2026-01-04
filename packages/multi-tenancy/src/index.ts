@@ -306,6 +306,12 @@ export function init(config: MultiTenantAuthHeroConfig) {
   // Create multi-tenancy hooks
   const multiTenancyHooks = createMultiTenancyHooks(multiTenancyConfig);
 
+  // Determine how to get adapters for a tenant
+  // If database isolation is configured, use the tenant-specific adapter factory
+  // Otherwise, use the shared data adapter for all tenants
+  const getAdaptersForTenant = multiTenancyOptions?.databaseIsolation?.getAdapters
+    ?? (async () => config.dataAdapter);
+
   // Create unified sync hooks
   const { entityHooks: syncEntityHooks, tenantHooks: syncTenantHooks } =
     createSyncHooks({
@@ -320,8 +326,8 @@ export function init(config: MultiTenantAuthHeroConfig) {
           .filter((t) => t.id !== controlPlaneTenantId)
           .map((t) => t.id);
       },
-      getAdapters: async () => config.dataAdapter,
-      getControlPlaneAdapters: async () => config.dataAdapter,
+      getAdapters: getAdaptersForTenant,
+      getControlPlaneAdapters: async () => getAdaptersForTenant(controlPlaneTenantId),
       sync: syncOptions,
     });
 
