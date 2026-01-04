@@ -28,7 +28,26 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                           └─────────────┘
 ```
 
+## Security & Privacy
+
+This project is designed to be **open-source friendly**. Sensitive Cloudflare IDs are kept out of version control:
+
+| File                  | Purpose                            | In Git? |
+| --------------------- | ---------------------------------- | ------- |
+| `wrangler.toml`       | Base config (safe for public repo) | ✅ Yes  |
+| `wrangler.local.toml` | Your private IDs (database_id)     | ❌ No   |
+| `.dev.vars`           | Local secrets (API tokens, etc.)   | ❌ No   |
+| `.dev.vars.example`   | Template for .dev.vars             | ✅ Yes  |
+
+**For GitHub Actions / CI:**
+
+- Set `CLOUDFLARE_API_TOKEN` as a GitHub Secret
+- Set `CLOUDFLARE_ACCOUNT_ID` as a GitHub Secret (if needed)
+- The wrangler action will use these automatically
+
 ## Getting Started
+
+### Local Development (Quick Start)
 
 1. Install dependencies:
 
@@ -36,7 +55,7 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
    npm install
    ```
 
-2. Run local database migrations:
+2. Run database migrations (uses local SQLite-backed D1):
 
    ```bash
    npm run migrate
@@ -50,34 +69,51 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
 
 4. Start the development server:
    ```bash
-   npm run dev
+   npm run dev:local
    ```
 
 The server will be available at `https://localhost:3000`.
 
-## Production Deployment
+### Remote Development (Your Cloudflare Account)
 
 1. Create a D1 database:
 
    ```bash
-   wrangler d1 create authhero-db
+   npx wrangler d1 create authhero-db
    ```
 
-2. Update `wrangler.toml` with your database ID.
+2. Copy the `database_id` from the output and update `wrangler.local.toml`:
 
-3. Run migrations on production:
+   ```toml
+   [[d1_databases]]
+   binding = "AUTH_DB"
+   database_name = "authhero-db"
+   database_id = "paste-your-database-id-here"
+   migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+   ```
+
+3. Run remote migrations:
 
    ```bash
    npm run db:migrate:remote
    ```
 
-4. Seed the production database:
+4. Seed the remote database:
 
    ```bash
    ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
    ```
 
-5. Deploy:
+5. Start with remote D1:
+   ```bash
+   npm run dev:remote
+   ```
+
+## Production Deployment
+
+1. Ensure `wrangler.local.toml` has your production `database_id`.
+
+2. Deploy:
    ```bash
    npm run deploy
    ```

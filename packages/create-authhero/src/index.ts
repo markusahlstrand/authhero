@@ -81,17 +81,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        "dev:local": "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote",
         dev: "wrangler dev --port 3000 --local-protocol https",
-        deploy: "wrangler deploy",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy: "wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        "db:migrate:remote":
+          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
         migrate: "wrangler d1 migrations apply AUTH_DB --local",
         "seed:local": "node seed-helper.js",
         "seed:remote": "node seed-helper.js '' '' remote",
         seed: "node seed-helper.js",
+        setup:
+          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
       },
       dependencies: {
         "@authhero/drizzle": "latest",
@@ -123,17 +125,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        "dev:local": "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote",
         dev: "wrangler dev --port 3000 --local-protocol https",
-        deploy: "wrangler deploy",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy: "wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        "db:migrate:remote":
+          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
         migrate: "wrangler d1 migrations apply AUTH_DB --local",
         "seed:local": "node seed-helper.js",
         "seed:remote": "node seed-helper.js '' '' remote",
         seed: "node seed-helper.js",
+        setup:
+          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
       },
       dependencies: {
         "@authhero/drizzle": "latest",
@@ -512,6 +516,30 @@ program
     } else {
       console.error(`❌ Template directory not found: ${sourceDir}`);
       process.exit(1);
+    }
+
+    // For Cloudflare setups, create local config files
+    if (
+      setupType === "cloudflare-simple" ||
+      setupType === "cloudflare-multitenant"
+    ) {
+      // Copy wrangler.toml to wrangler.local.toml for local development
+      const wranglerPath = path.join(projectPath, "wrangler.toml");
+      const wranglerLocalPath = path.join(projectPath, "wrangler.local.toml");
+      if (fs.existsSync(wranglerPath)) {
+        fs.copyFileSync(wranglerPath, wranglerLocalPath);
+      }
+
+      // Copy .dev.vars.example to .dev.vars
+      const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
+      const devVarsPath = path.join(projectPath, ".dev.vars");
+      if (fs.existsSync(devVarsExamplePath)) {
+        fs.copyFileSync(devVarsExamplePath, devVarsPath);
+      }
+
+      console.log(
+        "📁 Created wrangler.local.toml and .dev.vars for local development",
+      );
     }
 
     // Ask about GitHub CI for cloudflare setups

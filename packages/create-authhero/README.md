@@ -69,25 +69,36 @@ npm run dev
 ```
 my-auth-project/
 ├── src/
-│   ├── index.ts     # Worker entry point
-│   ├── app.ts       # AuthHero configuration
-│   └── types.ts     # TypeScript types
-├── wrangler.toml    # Cloudflare configuration
-├── seed.sql         # Database seeding (generated)
+│   ├── index.ts          # Worker entry point
+│   ├── app.ts            # AuthHero configuration
+│   └── types.ts          # TypeScript types
+├── wrangler.toml         # Base Cloudflare config (safe for git)
+├── wrangler.local.toml   # Your private IDs (gitignored)
+├── .dev.vars             # Local secrets (gitignored)
+├── .dev.vars.example     # Template for .dev.vars
+├── seed.sql              # Database seeding (generated)
 ├── package.json
 └── tsconfig.json
 ```
 
-**Quick Start:**
+**Quick Start (Local Development):**
 
 ```sh
 cd my-auth-project
 npm install
-wrangler d1 create authhero-db
-# Update wrangler.toml with database_id
-npm run db:migrate
-npm run seed
-npm run dev
+npm run migrate
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
+npm run dev:local
+```
+
+**Remote Development (Your Cloudflare Account):**
+
+```sh
+# Create a D1 database
+npx wrangler d1 create authhero-db
+# Copy the database_id to wrangler.local.toml
+npm run db:migrate:remote
+npm run dev:remote
 ```
 
 ### 3. Cloudflare Multi-Tenant (Production)
@@ -104,13 +115,15 @@ npm run dev
 ```
 my-auth-project/
 ├── src/
-│   ├── index.ts           # Worker entry point
-│   ├── app.ts             # AuthHero configuration
-│   ├── types.ts           # TypeScript types
+│   ├── index.ts            # Worker entry point
+│   ├── app.ts              # AuthHero configuration
+│   ├── types.ts            # TypeScript types
 │   └── database-factory.ts # Multi-tenant DB factory
-├── wrangler.toml          # Cloudflare configuration
-├── .dev.vars.example      # Environment variables template
-├── seed.sql               # Database seeding (generated)
+├── wrangler.toml           # Base Cloudflare config (safe for git)
+├── wrangler.local.toml     # Your private IDs (gitignored)
+├── .dev.vars               # Local secrets (gitignored)
+├── .dev.vars.example       # Environment variables template
+├── seed.sql                # Database seeding (generated)
 ├── package.json
 └── tsconfig.json
 ```
@@ -139,19 +152,50 @@ my-auth-project/
    └─────────────┘         └─────────────┘         └─────────────┘
 ```
 
-**Quick Start:**
+**Quick Start (Local Development):**
 
 ```sh
 cd my-auth-project
 npm install
-wrangler d1 create authhero-main-db
-# Update wrangler.toml with database_id
-cp .dev.vars.example .dev.vars
-# Add your Cloudflare credentials to .dev.vars
-npm run db:migrate
-npm run seed
-npm run dev
+npm run migrate
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
+npm run dev:local
 ```
+
+**Remote Development (Your Cloudflare Account):**
+
+```sh
+# Create a D1 database
+npx wrangler d1 create authhero-db
+# Copy the database_id to wrangler.local.toml
+# Optionally add CLOUDFLARE_ACCOUNT_ID to .dev.vars
+npm run db:migrate:remote
+npm run dev:remote
+```
+
+## Security & Privacy
+
+Cloudflare projects are designed to be **open-source friendly**:
+
+| File                  | Purpose                            | In Git? |
+| --------------------- | ---------------------------------- | ------- |
+| `wrangler.toml`       | Base config (safe for public repo) | ✅ Yes  |
+| `wrangler.local.toml` | Your private IDs (database_id)     | ❌ No   |
+| `.dev.vars`           | Local secrets (API tokens, etc.)   | ❌ No   |
+| `.dev.vars.example`   | Template for .dev.vars             | ✅ Yes  |
+
+The CLI automatically creates `wrangler.local.toml` and `.dev.vars` from the templates when you create a project. Simply update them with your Cloudflare IDs.
+
+### GitHub Actions / CI Deployment
+
+For automated deployments, set these GitHub Secrets:
+
+| Secret                  | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | API token with Workers permissions                       |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID (optional, for some features) |
+
+The wrangler GitHub Action will automatically use these secrets. No need to store IDs in your repo!
 
 ## Example
 
@@ -194,10 +238,13 @@ GitHub Release → Deploy to Production
 
 ### Required GitHub Secrets
 
-| Secret                      | Description                          |
-| --------------------------- | ------------------------------------ |
-| `CLOUDFLARE_API_TOKEN`      | API token for dev deployments        |
-| `PROD_CLOUDFLARE_API_TOKEN` | API token for production deployments |
+| Secret                      | Description                              |
+| --------------------------- | ---------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`      | API token for dev deployments            |
+| `CLOUDFLARE_ACCOUNT_ID`     | Account ID (optional, for some features) |
+| `PROD_CLOUDFLARE_API_TOKEN` | API token for production deployments     |
+
+> **Note:** You do NOT need to store `database_id` or `zone_id` in your repo or secrets. Wrangler resolves these automatically when deploying with the correct API token.
 
 ### Commit Message Conventions
 
