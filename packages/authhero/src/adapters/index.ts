@@ -9,24 +9,24 @@ import {
  * This should be used when initializing the AuthHero application to enable
  * fallback to a main tenant for default configurations.
  *
+ * @deprecated Use `withSettingsInheritance` or `createSettingsInheritanceAdapter`
+ * from `@authhero/multi-tenancy` instead. This function will be removed in a future version.
+ *
  * @param baseAdapters - The base data adapters to wrap
  * @param config - Configuration for main tenant fallback
  * @returns Wrapped data adapters with main tenant fallback functionality
  *
  * @example
  * ```typescript
+ * // Old way (deprecated):
  * import { init, withMainTenantFallback } from "@authhero/authhero";
- * import createAdapters from "@authhero/kysely";
  *
- * const db = // ... your database connection
- * const baseAdapters = createAdapters(db);
- *
- * const adapters = withMainTenantFallback(baseAdapters, {
- *   mainTenantId: "main",
- *   mainClientId: "main-client"
+ * // New way:
+ * import { withSettingsInheritance } from "@authhero/multi-tenancy";
+ * const adapters = withSettingsInheritance(baseAdapters, {
+ *   controlPlaneTenantId: "main",
+ *   controlPlaneClientId: "main-client"
  * });
- *
- * const app = init({ dataAdapter: adapters });
  * ```
  */
 export function withMainTenantFallback(

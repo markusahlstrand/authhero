@@ -113,19 +113,6 @@ const multiTenancy = setupMultiTenancy({
       });
     },
   },
-  settingsInheritance: {
-    inheritFromMain: true,
-    inheritedKeys: [
-      "support_email",
-      "logo",
-      "primary_color",
-      "session_lifetime",
-    ],
-    transformSettings: (settings, tenantId) => ({
-      ...settings,
-      support_email: `support+${tenantId}@example.com`,
-    }),
-  },
 });
 ```
 
