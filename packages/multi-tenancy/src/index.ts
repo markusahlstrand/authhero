@@ -21,57 +21,26 @@ import {
   createMultiTenancyMiddleware,
   createProtectSyncedMiddleware,
 } from "./middleware";
-import {
-  createResourceServerSyncHooks,
-  createTenantResourceServerSyncHooks,
-} from "./hooks/resource-server-sync";
-import {
-  createRoleSyncHooks,
-  createTenantRoleSyncHooks,
-} from "./hooks/role-sync";
+import { createSyncHooks } from "./hooks/sync";
 import { fetchAll } from "authhero";
 
-// Re-export essential types and functions from authhero
-export { seed, MANAGEMENT_API_SCOPES } from "authhero";
-export type {
-  AuthHeroConfig,
-  DataAdapters,
-  Tenant,
-  CreateTenantParams,
-  ResourceServer,
-} from "authhero";
+// Re-export everything from authhero for convenience
+// This allows consumers to import from @authhero/multi-tenancy without also needing authhero
+export * from "authhero";
 
-// Re-export all types
+// Re-export all multi-tenancy types
 export * from "./types";
 
-// Re-export hooks
-export {
-  createAccessControlHooks,
-  createDatabaseHooks,
-  createProvisioningHooks,
-  createResourceServerSyncHooks,
-  createTenantResourceServerSyncHooks,
-  createRoleSyncHooks,
-  createTenantRoleSyncHooks,
-} from "./hooks";
-
-export { validateTenantAccess } from "./hooks/access-control";
-export type { DatabaseFactory } from "./hooks/database";
+// Public API - functions and types consumers actually need
+export { createSyncHooks } from "./hooks/sync";
 export type {
-  ResourceServerSyncConfig,
-  ResourceServerEntityHooks,
-  TenantResourceServerSyncConfig,
-} from "./hooks/resource-server-sync";
-export type {
-  RoleSyncConfig,
-  RoleEntityHooks,
-  TenantRoleSyncConfig,
-} from "./hooks/role-sync";
+  EntitySyncConfig,
+  SyncHooksResult,
+  EntityHooks,
+} from "./hooks/sync";
 
-// Re-export routes
 export { createTenantsOpenAPIRouter } from "./routes";
 
-// Re-export middleware
 export {
   createMultiTenancyMiddleware,
   createAccessControlMiddleware,
@@ -80,13 +49,17 @@ export {
   createProtectSyncedMiddleware,
 } from "./middleware";
 
-// Re-export utils from authhero
-export { fetchAll } from "authhero";
-export type { FetchAllOptions } from "authhero";
-
-// Re-export plugin
 export { createMultiTenancyPlugin } from "./plugin";
 export type { AuthHeroPlugin } from "./plugin";
+
+// Internal hooks - exported for advanced use cases only
+export {
+  createAccessControlHooks,
+  createDatabaseHooks,
+  createProvisioningHooks,
+} from "./hooks";
+export { validateTenantAccess } from "./hooks/access-control";
+export type { DatabaseFactory } from "./hooks/database";
 
 /**
  * Creates multi-tenancy hooks from configuration.
@@ -103,7 +76,7 @@ export type { AuthHeroPlugin } from "./plugin";
  *
  * const hooks = createMultiTenancyHooks({
  *   accessControl: {
- *     controlPlaneTenantId: "main",
+ *     controlPlaneTenantId: "control_plane",
  *     defaultPermissions: ["tenant:admin"],
  *   },
  *   databaseIsolation: {
@@ -230,20 +203,35 @@ export interface MultiTenantAuthHeroConfig extends Omit<
   controlPlaneTenantId?: string;
 
   /**
-   * Whether to sync resource servers from the control plane to child tenants.
-   * When enabled, resource servers created on the control plane are automatically
-   * copied to all other tenants.
-   * @default true
+   * Configuration for syncing entities from the control plane to child tenants.
+   * All sync options default to true.
    */
-  syncResourceServers?: boolean;
+  sync?: {
+    /**
+     * Whether to sync resource servers from the control plane to child tenants.
+     * When enabled, resource servers created on the control plane are automatically
+     * copied to all other tenants.
+     * @default true
+     */
+    resourceServers?: boolean;
 
-  /**
-   * Whether to sync roles from the control plane to child tenants.
-   * When enabled, roles created on the control plane are automatically
-   * copied to all other tenants (including their permissions).
-   * @default true
-   */
-  syncRoles?: boolean;
+    /**
+     * Whether to sync roles from the control plane to child tenants.
+     * When enabled, roles created on the control plane are automatically
+     * copied to all other tenants (including their permissions).
+     * @default true
+     */
+    roles?: boolean;
+
+    /**
+     * Whether to sync connections from the control plane to child tenants.
+     * When enabled, connections created on the control plane are automatically
+     * copied to all other tenants (without sensitive credentials like client_id,
+     * client_secret, app_secret, kid, team_id, twilio_sid, twilio_token).
+     * @default true
+     */
+    connections?: boolean;
+  };
 
   /**
    * Additional multi-tenancy configuration options.
@@ -289,7 +277,7 @@ export interface MultiTenantAuthHeroConfig extends Omit<
  * const { app } = init({
  *   dataAdapter,
  *   controlPlaneTenantId: "control_plane",
- *   syncResourceServers: true,
+ *   sync: { resourceServers: true, roles: true, connections: true },
  * });
  *
  * export default app;
@@ -298,8 +286,7 @@ export interface MultiTenantAuthHeroConfig extends Omit<
 export function init(config: MultiTenantAuthHeroConfig) {
   const {
     controlPlaneTenantId = "control_plane",
-    syncResourceServers = true,
-    syncRoles = true,
+    sync: syncOptions,
     multiTenancy: multiTenancyOptions,
     entityHooks: configEntityHooks,
     ...authHeroConfig
@@ -319,16 +306,9 @@ export function init(config: MultiTenantAuthHeroConfig) {
   // Create multi-tenancy hooks
   const multiTenancyHooks = createMultiTenancyHooks(multiTenancyConfig);
 
-  // Create resource server sync hooks if enabled
-  let resourceServerHooks:
-    | ReturnType<typeof createResourceServerSyncHooks>
-    | undefined;
-  let tenantResourceServerHooks:
-    | ReturnType<typeof createTenantResourceServerSyncHooks>
-    | undefined;
-
-  if (syncResourceServers) {
-    resourceServerHooks = createResourceServerSyncHooks({
+  // Create unified sync hooks
+  const { entityHooks: syncEntityHooks, tenantHooks: syncTenantHooks } =
+    createSyncHooks({
       controlPlaneTenantId,
       getChildTenantIds: async () => {
         const allTenants = await fetchAll<{ id: string }>(
@@ -340,215 +320,126 @@ export function init(config: MultiTenantAuthHeroConfig) {
           .filter((t) => t.id !== controlPlaneTenantId)
           .map((t) => t.id);
       },
-      getAdapters: async (_tenantId: string) => config.dataAdapter,
-    });
-
-    tenantResourceServerHooks = createTenantResourceServerSyncHooks({
-      controlPlaneTenantId,
+      getAdapters: async () => config.dataAdapter,
       getControlPlaneAdapters: async () => config.dataAdapter,
-      getAdapters: async (_tenantId: string) => config.dataAdapter,
-    });
-  }
-
-  // Create role sync hooks if enabled
-  let roleHooks: ReturnType<typeof createRoleSyncHooks> | undefined;
-  let tenantRoleHooks: ReturnType<typeof createTenantRoleSyncHooks> | undefined;
-
-  if (syncRoles) {
-    roleHooks = createRoleSyncHooks({
-      controlPlaneTenantId,
-      getChildTenantIds: async () => {
-        const allTenants = await fetchAll<{ id: string }>(
-          (params) => config.dataAdapter.tenants.list(params),
-          "tenants",
-          { cursorField: "id", pageSize: 100 },
-        );
-        return allTenants
-          .filter((t) => t.id !== controlPlaneTenantId)
-          .map((t) => t.id);
-      },
-      getAdapters: async (_tenantId: string) => config.dataAdapter,
+      sync: syncOptions,
     });
 
-    tenantRoleHooks = createTenantRoleSyncHooks({
-      controlPlaneTenantId,
-      getControlPlaneAdapters: async () => config.dataAdapter,
-      getAdapters: async (_tenantId: string) => config.dataAdapter,
-      syncPermissions: true,
-    });
-  }
-
-  // Helper to chain hooks with error handling - ensures both hooks execute
-  // even if the first one throws, then re-throws any errors that occurred
-  const chainHooks = async <T extends unknown[]>(
-    hook1: ((...args: T) => Promise<void>) | undefined,
-    hook2: ((...args: T) => Promise<void>) | undefined,
-    ...args: T
-  ): Promise<void> => {
-    const errors: Error[] = [];
-
-    if (hook1) {
-      try {
-        await hook1(...args);
-      } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
-      }
-    }
-
-    if (hook2) {
-      try {
-        await hook2(...args);
-      } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
-      }
-    }
-
-    if (errors.length === 1) {
-      throw errors[0];
-    } else if (errors.length > 1) {
-      throw new AggregateError(
-        errors,
-        `Multiple hook errors: ${errors.map((e) => e.message).join("; ")}`,
-      );
-    }
-  };
-
-  // Helper to chain multiple hooks with error handling
-  const chainMultipleHooks = async <T extends unknown[]>(
-    hooks: (((...args: T) => Promise<void>) | undefined)[],
-    ...args: T
-  ): Promise<void> => {
-    const errors: Error[] = [];
-
-    for (const hook of hooks) {
-      if (hook) {
+  // Helper to chain two hooks of the same type
+  function chainHook<TArgs extends unknown[]>(
+    hook1: ((...args: TArgs) => Promise<void>) | undefined,
+    hook2: ((...args: TArgs) => Promise<void>) | undefined,
+  ): ((...args: TArgs) => Promise<void>) | undefined {
+    if (!hook1 && !hook2) return undefined;
+    if (!hook1) return hook2;
+    if (!hook2) return hook1;
+    return async (...args: TArgs) => {
+      const errors: Error[] = [];
+      for (const hook of [hook1, hook2]) {
         try {
           await hook(...args);
-        } catch (error) {
-          errors.push(
-            error instanceof Error ? error : new Error(String(error)),
-          );
+        } catch (e) {
+          errors.push(e instanceof Error ? e : new Error(String(e)));
         }
       }
-    }
+      if (errors.length === 1) throw errors[0];
+      if (errors.length > 1)
+        throw new AggregateError(
+          errors,
+          errors.map((e) => e.message).join("; "),
+        );
+    };
+  }
 
-    if (errors.length === 1) {
-      throw errors[0];
-    } else if (errors.length > 1) {
-      throw new AggregateError(
-        errors,
-        `Multiple hook errors: ${errors.map((e) => e.message).join("; ")}`,
-      );
-    }
-  };
-
-  // Merge entity hooks
+  // Merge entity hooks using chainHook for each hook type
   const mergedEntityHooks: AuthHeroConfig["entityHooks"] = {
     ...configEntityHooks,
-    resourceServers: resourceServerHooks
+    resourceServers: syncEntityHooks?.resourceServers
       ? {
           ...configEntityHooks?.resourceServers,
-          afterCreate: async (ctx, entity) => {
-            await chainHooks(
-              configEntityHooks?.resourceServers?.afterCreate,
-              resourceServerHooks?.afterCreate,
-              ctx,
-              entity,
-            );
-          },
-          afterUpdate: async (ctx, id, entity) => {
-            await chainHooks(
-              configEntityHooks?.resourceServers?.afterUpdate,
-              resourceServerHooks?.afterUpdate,
-              ctx,
-              id,
-              entity,
-            );
-          },
-          afterDelete: async (ctx, id) => {
-            await chainHooks(
-              configEntityHooks?.resourceServers?.afterDelete,
-              resourceServerHooks?.afterDelete,
-              ctx,
-              id,
-            );
-          },
+          afterCreate: chainHook(
+            configEntityHooks?.resourceServers?.afterCreate,
+            syncEntityHooks.resourceServers.afterCreate,
+          ),
+          afterUpdate: chainHook(
+            configEntityHooks?.resourceServers?.afterUpdate,
+            syncEntityHooks.resourceServers.afterUpdate,
+          ),
+          beforeDelete: chainHook(
+            configEntityHooks?.resourceServers?.beforeDelete,
+            syncEntityHooks.resourceServers.beforeDelete,
+          ),
+          afterDelete: chainHook(
+            configEntityHooks?.resourceServers?.afterDelete,
+            syncEntityHooks.resourceServers.afterDelete,
+          ),
         }
       : configEntityHooks?.resourceServers,
-    roles: roleHooks
+    roles: syncEntityHooks?.roles
       ? {
           ...configEntityHooks?.roles,
-          afterCreate: async (ctx, entity) => {
-            await chainHooks(
-              configEntityHooks?.roles?.afterCreate,
-              roleHooks?.afterCreate,
-              ctx,
-              entity,
-            );
-          },
-          afterUpdate: async (ctx, id, entity) => {
-            await chainHooks(
-              configEntityHooks?.roles?.afterUpdate,
-              roleHooks?.afterUpdate,
-              ctx,
-              id,
-              entity,
-            );
-          },
-          afterDelete: async (ctx, id) => {
-            await chainHooks(
-              configEntityHooks?.roles?.afterDelete,
-              roleHooks?.afterDelete,
-              ctx,
-              id,
-            );
-          },
+          afterCreate: chainHook(
+            configEntityHooks?.roles?.afterCreate,
+            syncEntityHooks.roles.afterCreate,
+          ),
+          afterUpdate: chainHook(
+            configEntityHooks?.roles?.afterUpdate,
+            syncEntityHooks.roles.afterUpdate,
+          ),
+          beforeDelete: chainHook(
+            configEntityHooks?.roles?.beforeDelete,
+            syncEntityHooks.roles.beforeDelete,
+          ),
+          afterDelete: chainHook(
+            configEntityHooks?.roles?.afterDelete,
+            syncEntityHooks.roles.afterDelete,
+          ),
         }
       : configEntityHooks?.roles,
-    tenants:
-      tenantResourceServerHooks || tenantRoleHooks
-        ? {
-            ...configEntityHooks?.tenants,
-            afterCreate: async (ctx, entity) => {
-              await chainMultipleHooks(
-                [
-                  configEntityHooks?.tenants?.afterCreate,
-                  tenantResourceServerHooks?.afterCreate,
-                  tenantRoleHooks?.afterCreate,
-                ],
-                ctx,
-                entity,
-              );
-            },
-          }
-        : configEntityHooks?.tenants,
+    connections: syncEntityHooks?.connections
+      ? {
+          ...configEntityHooks?.connections,
+          afterCreate: chainHook(
+            configEntityHooks?.connections?.afterCreate,
+            syncEntityHooks.connections.afterCreate,
+          ),
+          afterUpdate: chainHook(
+            configEntityHooks?.connections?.afterUpdate,
+            syncEntityHooks.connections.afterUpdate,
+          ),
+          beforeDelete: chainHook(
+            configEntityHooks?.connections?.beforeDelete,
+            syncEntityHooks.connections.beforeDelete,
+          ),
+          afterDelete: chainHook(
+            configEntityHooks?.connections?.afterDelete,
+            syncEntityHooks.connections.afterDelete,
+          ),
+        }
+      : configEntityHooks?.connections,
+    tenants: syncTenantHooks
+      ? {
+          ...configEntityHooks?.tenants,
+          afterCreate: chainHook(
+            configEntityHooks?.tenants?.afterCreate,
+            syncTenantHooks.afterCreate,
+          ),
+        }
+      : configEntityHooks?.tenants,
   };
 
-  // Create combined tenant hooks for the router that include both provisioning and sync hooks
-  // The router needs these hooks to be called when creating tenants via the API
+  // Create combined tenant hooks for the router
   const combinedTenantHooks: MultiTenancyHooks = {
     ...multiTenancyHooks,
-    tenants:
-      tenantResourceServerHooks || tenantRoleHooks
-        ? {
-            ...multiTenancyHooks.tenants,
-            afterCreate: async (ctx, entity) => {
-              // First run the provisioning hooks (creates organization, etc.)
-              if (multiTenancyHooks.tenants?.afterCreate) {
-                await multiTenancyHooks.tenants.afterCreate(ctx, entity);
-              }
-              // Then run the sync hooks (syncs resource servers and roles)
-              await chainMultipleHooks(
-                [
-                  tenantResourceServerHooks?.afterCreate,
-                  tenantRoleHooks?.afterCreate,
-                ],
-                ctx,
-                entity,
-              );
-            },
-          }
-        : multiTenancyHooks.tenants,
+    tenants: syncTenantHooks
+      ? {
+          ...multiTenancyHooks.tenants,
+          afterCreate: chainHook(
+            multiTenancyHooks.tenants?.afterCreate,
+            syncTenantHooks.afterCreate,
+          ),
+        }
+      : multiTenancyHooks.tenants,
   };
 
   // Create the OpenAPI tenant routes
@@ -561,8 +452,6 @@ export function init(config: MultiTenantAuthHeroConfig) {
   const authHeroResult = initAuthHero({
     ...authHeroConfig,
     entityHooks: mergedEntityHooks,
-    // Register tenant routes via the extension mechanism
-    // This ensures they go through the full middleware chain (caching, tenant, auth, entity hooks)
     managementApiExtensions: [
       ...(authHeroConfig.managementApiExtensions || []),
       { path: "/tenants", router: tenantsOpenAPIRouter },
@@ -571,18 +460,12 @@ export function init(config: MultiTenantAuthHeroConfig) {
 
   const { app: authHeroApp, managementApp, ...rest } = authHeroResult;
 
-  // Create a wrapper app to ensure middleware is registered before routes
-  // In Hono, middleware only applies to routes defined AFTER the middleware is registered.
-  // Since initAuthHero() already mounts routes internally, we need a wrapper app
-  // where we can register middleware first, then mount the authHero routes.
+  // Create a wrapper app with error handling and middleware
   const app = new Hono<{
     Bindings: MultiTenancyBindings;
     Variables: MultiTenancyVariables;
   }>();
 
-  // Register error handler BEFORE routes so it can catch all errors
-  // This ensures HTTPException errors (like 403 Forbidden) are returned with
-  // the correct status code instead of being swallowed as 500 errors
   app.onError((err, ctx) => {
     if (err instanceof HTTPException) {
       return err.getResponse();
@@ -591,11 +474,7 @@ export function init(config: MultiTenantAuthHeroConfig) {
     return ctx.json({ message: "Internal Server Error" }, 500);
   });
 
-  // Add middleware to protect system resources from modification
-  // This MUST be added before routes so it can intercept write operations
   app.use("/api/v2/*", createProtectSyncedMiddleware());
-
-  // Mount all authHero routes on the wrapper app
   app.route("/", authHeroApp);
 
   return {

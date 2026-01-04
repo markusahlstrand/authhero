@@ -6,13 +6,12 @@ import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
 import {
   setupMultiTenancy,
-  createTenantResourceServerSyncHooks,
-  createTenantRoleSyncHooks,
+  createSyncHooks,
   createTenantsOpenAPIRouter,
   MultiTenancyConfig,
   MultiTenancyHooks,
 } from "../src/index";
-import { Role, ResourceServer, Tenant } from "@authhero/adapter-interfaces";
+import { Role, ResourceServer } from "@authhero/adapter-interfaces";
 
 /**
  * Helper to find a resource server by identifier using the list query
@@ -95,31 +94,31 @@ describe("Tenant Sync Hooks Integration", () => {
   function createAppWithSyncHooks(options: {
     syncResourceServers?: boolean;
     syncRoles?: boolean;
-    syncPermissions?: boolean;
+    syncConnections?: boolean;
   }) {
     const {
       syncResourceServers = true,
       syncRoles = true,
-      syncPermissions = true,
+      syncConnections = true,
     } = options;
 
-    // Create the sync hooks
-    const tenantResourceServerHooks = syncResourceServers
-      ? createTenantResourceServerSyncHooks({
-          controlPlaneTenantId,
-          getControlPlaneAdapters: async () => adapters,
-          getAdapters: async (_tenantId: string) => adapters,
-        })
-      : undefined;
-
-    const tenantRoleHooks = syncRoles
-      ? createTenantRoleSyncHooks({
-          controlPlaneTenantId,
-          getControlPlaneAdapters: async () => adapters,
-          getAdapters: async (_tenantId: string) => adapters,
-          syncPermissions,
-        })
-      : undefined;
+    // Create the unified sync hooks
+    const { tenantHooks: syncTenantHooks } = createSyncHooks({
+      controlPlaneTenantId,
+      getControlPlaneAdapters: async () => adapters,
+      getAdapters: async (_tenantId: string) => adapters,
+      getChildTenantIds: async () => {
+        const allTenants = await adapters.tenants.list();
+        return allTenants.tenants
+          .map((t) => t.id)
+          .filter((id) => id !== controlPlaneTenantId);
+      },
+      sync: {
+        resourceServers: syncResourceServers,
+        roles: syncRoles,
+        connections: syncConnections,
+      },
+    });
 
     // Setup base multi-tenancy
     const multiTenancyConfig: MultiTenancyConfig = {
@@ -143,11 +142,8 @@ describe("Tenant Sync Hooks Integration", () => {
             await multiTenancy.hooks.tenants.afterCreate(ctx, entity);
           }
           // Then run sync hooks
-          if (tenantResourceServerHooks?.afterCreate) {
-            await tenantResourceServerHooks.afterCreate(ctx, entity);
-          }
-          if (tenantRoleHooks?.afterCreate) {
-            await tenantRoleHooks.afterCreate(ctx, entity);
+          if (syncTenantHooks?.afterCreate) {
+            await syncTenantHooks.afterCreate(ctx, entity);
           }
         },
       },
@@ -360,7 +356,6 @@ describe("Tenant Sync Hooks Integration", () => {
     const app = createAppWithSyncHooks({
       syncResourceServers: true,
       syncRoles: true,
-      syncPermissions: true,
     });
 
     // Create a new tenant via the API
