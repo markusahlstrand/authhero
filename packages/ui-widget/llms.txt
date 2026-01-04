@@ -64,48 +64,45 @@ const html = await renderToString(`
 
 ## Component Types
 
-Supports 27+ Auth0 component types:
+Supports Auth0 Forms API component types:
 
 | Component | Description |
 |-----------|-------------|
-| `heading` | Page headings and titles |
-| `description` | Descriptive text |
-| `text-input` | Text, email, phone inputs |
-| `password-input` | Password field with toggle |
-| `checkbox-input` | Checkboxes |
-| `select-input` | Dropdown selects |
-| `submit-button` | Primary action buttons |
-| `button` | Secondary action buttons |
-| `social-button-group` | Social login buttons |
-| `anchor` | Links and navigation |
-| `separator` | Visual dividers |
-| `image` | Logos and images |
-| `phone-input` | Phone number input |
-| `captcha` | CAPTCHA verification |
-| `mfa` | Multi-factor authentication |
+| `EMAIL` | Email input field |
+| `PASSWORD` | Password field with toggle |
+| `TEXT` | Generic text input |
+| `DIVIDER` | Visual separator |
+| `NEXT_BUTTON` | Primary action/submit button |
+| `SOCIAL` | Social login buttons |
+| `IMAGE` | Logos and images |
+| `ALERT` | Alert/notification messages |
+| `RICH_TEXT` | HTML content blocks |
+| `HIDDEN` | Hidden input fields |
+| `PHONE` | Phone number input |
+| `CODE` | Verification code input |
+| `LEGAL` | Legal text/agreements |
 
 ## Screen Configuration
 
 ```typescript
-interface UIScreen {
-  title?: string;
-  description?: string;
-  components: UIComponent[];
-  branding?: {
-    logoUrl?: string;
-    primaryColor?: string;
-    backgroundColor?: string;
+import type { UiScreen, FormComponent } from '@authhero/widget/types';
+
+// UiScreen contains form components and branding
+interface UiScreen {
+  screen: {
+    name: string;
+    data?: Record<string, any>;
   };
-  theme?: string;
+  transaction?: {
+    state: string;
+  };
+  components: FormComponent[];
 }
 
-interface UIComponent {
-  id: string;
+interface FormComponent {
   type: string;
-  label?: string;
-  placeholder?: string;
-  required?: boolean;
-  // ... component-specific properties
+  id?: string;
+  attributes?: Record<string, any>;
 }
 ```
 
@@ -114,22 +111,33 @@ interface UIComponent {
 ```javascript
 const widget = document.querySelector('authhero-widget');
 
-// Form submission
-widget.addEventListener('submit', (event) => {
-  const { action, data } = event.detail;
-  // Handle form submission
+// Form action (submit, continue, etc.)
+widget.addEventListener('formAction', (event) => {
+  const { action, payload } = event.detail;
+  // Handle form action
 });
 
-// Navigation
-widget.addEventListener('navigate', (event) => {
-  const { href } = event.detail;
+// Social provider selection
+widget.addEventListener('socialAction', (event) => {
+  const { connection } = event.detail;
+  // Redirect to social provider
+});
+
+// Link/anchor clicks
+widget.addEventListener('linkAction', (event) => {
+  const { href, target } = event.detail;
   // Handle navigation
 });
 
-// Social login
-widget.addEventListener('social-login', (event) => {
-  const { provider } = event.detail;
-  // Redirect to social provider
+// Alert dismissal
+widget.addEventListener('alertAction', (event) => {
+  // Handle alert action
+});
+
+// Captcha completion
+widget.addEventListener('captchaAction', (event) => {
+  const { token } = event.detail;
+  // Handle captcha verification
 });
 ```
 
@@ -137,22 +145,31 @@ widget.addEventListener('social-login', (event) => {
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `api-url` | string | Endpoint for fetching screen config |
 | `screen` | string | JSON screen configuration |
-| `auto-submit` | boolean | Auto-submit on single action |
-| `state` | string | Auth state parameter |
+| `branding` | string | JSON branding configuration |
+| `vendorSettings` | string | JSON vendor settings |
+| `formData` | string | Pre-populated form data |
+| `disabled` | boolean | Disable form interactions |
+| `captchaProvider` | string | Captcha provider name |
 
 ## CSS Custom Properties
 
 ```css
 authhero-widget {
-  --ah-primary-color: #635dff;
-  --ah-background-color: #ffffff;
-  --ah-text-color: #1e1e1e;
-  --ah-error-color: #dc2626;
-  --ah-border-radius: 8px;
-  --ah-font-family: Inter, sans-serif;
+  --ah-widget-background: #ffffff;
+  --ah-widget-radius: 8px;
+  --ah-widget-font-family: Inter, sans-serif;
+  /* See branding utilities for full customization */
 }
+```
+
+### Theme Presets
+
+```html
+<!-- Apply theme class -->
+<authhero-widget class="ah-theme-minimal"></authhero-widget>
+<authhero-widget class="ah-theme-rounded"></authhero-widget>
+<authhero-widget class="ah-theme-dark"></authhero-widget>
 ```
 
 ## Integration with AuthHero
@@ -174,9 +191,10 @@ app.get("/u/flow/screen", async (c) => {
 
 ## Key Files
 
-- `src/components/` - StencilJS components
 - `src/components/authhero-widget/` - Main widget component
-- `src/utils/` - Utility functions
+- `src/components/authhero-node/` - Individual form component renderer
+- `src/utils/branding.ts` - Branding utilities
+- `src/types/` - TypeScript type definitions
 - `dist/` - Built distribution files
 - `hydrate/` - SSR hydration scripts
 

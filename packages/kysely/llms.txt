@@ -22,7 +22,7 @@ npm install @authhero/kysely-adapter kysely
 
 ```typescript
 import { Kysely } from "kysely";
-import { createAdapters, migrateToLatest } from "@authhero/kysely-adapter";
+import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
 
 // Create Kysely instance with your dialect
 const db = new Kysely({
@@ -126,10 +126,10 @@ const db = new Kysely({
 
 ## Key Files
 
-- `src/index.ts` - Main exports and `createAdapters()` function
-- `src/adapters/` - Individual adapter implementations
-- `src/migrations/` - Database migration files
-- `src/scripts/` - SQL export scripts for D1
+- `src/index.ts` - Main exports and `createAdapters()` default export
+- `src/` - Individual adapter implementations in subdirectories
+- `migrations/` - Database migration files
+- `scripts/` - SQL export scripts for D1
 
 ## Related Packages
 

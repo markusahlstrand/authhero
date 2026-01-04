@@ -31,6 +31,7 @@ AuthHero is a monorepo containing multiple packages and applications that work t
 - `/apps/react-admin` - Admin interface for managing tenants, users, and applications
 - `/apps/auth0-proxy` - Proxy service for Auth0 API compatibility
 - `/apps/docs` - VitePress documentation site
+- `/apps/portal` - User portal for self-service account management
 
 ## Key Features
 

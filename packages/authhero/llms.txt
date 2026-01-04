@@ -49,8 +49,9 @@ Handles SAML authentication:
 ```javascript
 import { init } from 'authhero';
 
-const { managementApp, oauthApp, universalApp, samlApp } = init({
+const { app, managementApp, oauthApp, universalApp, samlApp, createX509Certificate } = init({
   dataAdapter: yourDataAdapter,
+  issuer: 'https://auth.example.com',
   hooks: {
     onExecuteCredentialsExchange: async (event, api) => {
       // Custom token claims
@@ -61,6 +62,10 @@ const { managementApp, oauthApp, universalApp, samlApp } = init({
   }
 });
 
+// Use the combined app
+export default app;
+
+// Or route individually
 app
   .route("/", oauthApp)
   .route("/u", universalApp)
@@ -85,6 +90,10 @@ Customize authentication behavior:
 | `onExecutePreUserRegistration` | Validate/modify user data before registration |
 | `onExecutePostUserRegistration` | Actions after user registration |
 | `onExecutePostLogin` | Actions after successful login |
+| `onExecutePreUserUpdate` | Before user profile updates |
+| `onExecutePreUserDeletion` | Before user deletion |
+| `onExecutePostUserDeletion` | After user deletion |
+| `onFetchUserInfo` | Customize userinfo response |
 
 ## Email Providers
 
@@ -100,14 +109,15 @@ emailProviders: {
 
 ## Styling
 
-Two options for Tailwind CSS styles:
+Tailwind CSS styles for Universal Login:
 
 ```javascript
-// Option 1: Import CSS file (Node.js)
-import "authhero/styles";
+// Option 1: Import CSS string
+import { styles } from "authhero/styles";
 
-// Option 2: Inject programmatically (Cloudflare Workers)
-import { injectStyles } from "authhero/client";
+// Option 2: Inject into document
+import { injectStyles } from "authhero/styles";
+injectStyles();
 ```
 
 ## Key Files
@@ -116,7 +126,8 @@ import { injectStyles } from "authhero/client";
 - `src/routes/` - Route handlers for each API
 - `src/authentication-flows/` - OAuth2/OIDC flow implementations
 - `src/hooks/` - Hook system implementation
-- `src/templates/` - Universal login templates
+- `src/components/` - Universal login JSX components
+- `src/types/` - TypeScript type definitions
 
 ## License
 

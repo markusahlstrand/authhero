@@ -39,7 +39,7 @@ pnpm db:generate
 pnpm db:push
 ```
 
-Migrations output to `./drizzle/sqlite/`.
+Migrations output to `./drizzle/`.
 
 ## Schema Files
 
@@ -54,8 +54,7 @@ src/schema/sqlite/
 ├── organizations.ts  # Organization tables
 ├── roles.ts          # Role & permission tables
 ├── branding.ts       # Branding, theme & UI tables
-├── logs.ts           # Log tables
-└── legacy.ts         # Legacy/deprecated tables
+└── logs.ts           # Log tables
 ```
 
 ## Database Tables
@@ -90,7 +89,7 @@ The `cloudflare-simple` template uses pre-generated migrations from this schema:
 
 - `src/schema/sqlite/` - SQLite/D1 schema definitions
 - `drizzle.config.ts` - Drizzle configuration
-- `drizzle/sqlite/` - Generated migration files
+- `drizzle/` - Generated migration files
 
 ## Related Packages
 

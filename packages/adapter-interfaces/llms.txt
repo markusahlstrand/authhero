@@ -97,10 +97,10 @@ const adapter = createWriteOnlyAdapter({
 ```typescript
 // Main data adapter type
 export interface DataAdapters {
-  users: UsersDataAdapter;
-  clients: ClientsDataAdapter;
-  connections: ConnectionsDataAdapter;
-  sessions: SessionsDataAdapter;
+  users: UserDataAdapter;
+  clients: ClientsAdapter;
+  connections: ConnectionsAdapter;
+  sessions: SessionsAdapter;
   // ... more adapters
 }
 
@@ -108,8 +108,12 @@ export interface DataAdapters {
 export interface ListParams {
   page?: number;
   per_page?: number;
-  sort?: string;
+  include_totals?: boolean;
   q?: string;
+  sort?: {
+    sort_by: string;
+    sort_order: "asc" | "desc";
+  };
 }
 ```
 

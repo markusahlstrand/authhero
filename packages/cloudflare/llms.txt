@@ -83,12 +83,13 @@ const adapters = createAdapters({
 
 ```typescript
 const adapters = createAdapters({
-  // Automatically extracts cf-ipcountry, cf-ipcity headers
-  getHeaders: () => request.headers,
+  // ... other config
 });
 
 const { geo } = adapters;
-const location = geo.getLocation(); // { country: "US", city: "San Francisco" }
+// Pass request headers to get geo info
+const geoInfo = await geo.getGeoInfo(Object.fromEntries(request.headers));
+// Returns: { country_code, city_name, latitude, longitude, time_zone, continent_code }
 ```
 
 ## Custom Domains
@@ -149,7 +150,9 @@ bucket_name = "auth-logs"
 - `src/customDomains/` - Cloudflare DNS and SSL management
 - `src/cache/` - Cache API adapter
 - `src/geo/` - Geo location from CF headers
-- `src/logs/` - Analytics Engine and R2 SQL adapters
+- `src/analyticsEngine/` - Analytics Engine logs adapter
+- `src/r2Sql/` - R2 SQL logs adapter
+- `src/types/` - Type definitions
 
 ## Related Packages
 

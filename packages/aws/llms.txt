@@ -136,7 +136,9 @@ table.addGlobalSecondaryIndex({
 
 - `src/index.ts` - Main `createAdapters()` function
 - `src/adapters/` - Individual DynamoDB adapter implementations
-- `src/utils/` - Key generation and query helpers
+- `src/keys.ts` - Key generation utilities for single-table design
+- `src/utils.ts` - Generic DynamoDB query helpers
+- `src/types.ts` - Type definitions
 
 ## Related Packages
 

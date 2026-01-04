@@ -93,14 +93,15 @@ import { setupMultiTenancy } from "@authhero/multi-tenancy";
 
 const multiTenancy = setupMultiTenancy({
   databaseIsolation: {
-    provider: "d1", // or "turso", "custom"
-    createDatabase: async (tenantId) => {
-      // Provision new D1 database
-      return d1Client.createDatabase(tenantId);
+    getAdapters: async (tenantId) => {
+      // Return data adapters for the tenant
+      return adaptersForTenant(tenantId);
     },
-    getConnection: async (tenantId) => {
-      // Return connection for tenant
-      return d1Client.getDatabase(tenantId);
+    onProvision: async (tenantId) => {
+      // Optional: Called when a new tenant is created
+    },
+    onDeprovision: async (tenantId) => {
+      // Optional: Called when a tenant is deleted
     },
   },
 });
@@ -111,7 +112,12 @@ const multiTenancy = setupMultiTenancy({
 Automatically sync API configurations across tenants:
 
 ```typescript
-import { createResourceServerSyncHooks } from "@authhero/multi-tenancy";
+import {
+  createResourceServerSyncHooks,
+  createTenantResourceServerSyncHooks,
+  createRoleSyncHooks,
+  createTenantRoleSyncHooks,
+} from "@authhero/multi-tenancy";
 
 const resourceServerHooks = createResourceServerSyncHooks({
   mainTenantId: "main",
@@ -150,9 +156,9 @@ interface MultiTenancyConfig {
     defaultPermissions: string[];
   };
   databaseIsolation?: {
-    provider: "d1" | "turso" | "custom";
-    createDatabase: (tenantId: string) => Promise<Database>;
-    getConnection: (tenantId: string) => Promise<Connection>;
+    getAdapters: (tenantId: string) => Promise<DataAdapters>;
+    onProvision?: (tenantId: string) => Promise<void>;
+    onDeprovision?: (tenantId: string) => Promise<void>;
   };
   subdomainRouting?: {
     baseDomain: string;
@@ -173,11 +179,13 @@ interface MultiTenancyConfig {
 
 ## Key Files
 
-- `src/index.ts` - Main `setupMultiTenancy()` function
+- `src/index.ts` - Main `setupMultiTenancy()` function and exports
+- `src/plugin.ts` - Plugin interface for AuthHero
 - `src/middleware/` - Tenant resolution middleware
-- `src/hooks/` - AuthHero hooks integration
-- `src/database/` - Database isolation providers
-- `src/sync/` - Resource server synchronization
+- `src/hooks/` - AuthHero hooks (database, access control, resource server sync, role sync)
+- `src/routes/` - OpenAPI routes for tenant management
+- `src/types.ts` - TypeScript type definitions
+- `src/utils/` - Utility functions
 
 ## License
 
