@@ -27,20 +27,19 @@ export default function create(config: AuthHeroConfig) {
       });
     })
     .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
-    // Serve widget files from the @authhero/widget package at /u/widget/
-    // This is required for the flow-widget routes to work
+    // Serve static assets (widget, CSS, JS) from authhero package
     .get(
-      "/u/widget/*",
+      "/u/*",
       serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
-        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
+        root: "./node_modules/authhero/dist/assets/u",
+        rewriteRequestPath: (path) => path.replace("/u", ""),
       }),
     )
-    // Also serve at /widget/ for demo pages that use /widget/ path
+    // Also serve widget at /widget/ for demo pages
     .get(
       "/widget/*",
       serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
+        root: "./node_modules/authhero/dist/assets/u/widget",
         rewriteRequestPath: (path) => path.replace("/widget", ""),
       }),
     )

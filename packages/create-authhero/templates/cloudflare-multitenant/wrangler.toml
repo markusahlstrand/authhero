@@ -16,6 +16,15 @@ main = "src/index.ts"
 compatibility_date = "2024-11-20"
 
 # ════════════════════════════════════════════════════════════════════════════
+# Static Assets (CSS, JS, Widget)
+# ════════════════════════════════════════════════════════════════════════════
+# Serve static assets from the authhero package.
+# This includes the widget, CSS, and client-side JavaScript.
+# Assets are served at their path: /u/widget/*, /u/css/*, /u/js/*
+[assets]
+directory = "node_modules/authhero/dist/assets"
+
+# ════════════════════════════════════════════════════════════════════════════
 # D1 Database binding
 # ════════════════════════════════════════════════════════════════════════════
 # This configuration uses a local D1 database by default.

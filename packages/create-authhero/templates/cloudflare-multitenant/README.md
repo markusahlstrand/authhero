@@ -4,6 +4,7 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
 
 - Multi-tenant support with tenant isolation at the data level
 - Multiple tenants in a single D1 database
+- Static assets (widget, CSS, JS) served via Cloudflare Workers Assets
 - Easy setup similar to single-tenant
 
 ## Architecture
@@ -18,6 +19,11 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                     │  │   - Tenant isolation via API    │   │
                     │  └─────────────────────────────────┘   │
                     │              │                          │
+                    │  ┌───────────┴───────────┐              │
+                    │  │    Static Assets      │              │
+                    │  │  /u/widget/* /u/css/* │              │
+                    │  └───────────────────────┘              │
+                    │              │                          │
                     └──────────────┼──────────────────────────┘
                                    │
                                    ▼
@@ -27,6 +33,21 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                           │ (All Tenants)│
                           └─────────────┘
 ```
+
+## Static Assets
+
+The authentication widget, CSS, and client-side JavaScript are served as static assets from `node_modules/authhero/dist/assets`. This is configured in `wrangler.toml`:
+
+```toml
+[assets]
+directory = "node_modules/authhero/dist/assets"
+```
+
+Assets are served at:
+
+- `/u/widget/*` - AuthHero login widget (Stencil web component)
+- `/u/css/*` - Tailwind CSS for universal login pages
+- `/u/js/*` - Client-side JavaScript bundle
 
 ## Security & Privacy
 

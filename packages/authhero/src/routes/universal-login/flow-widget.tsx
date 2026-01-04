@@ -145,7 +145,9 @@ export const flowWidgetRoutes = new OpenAPIHono<{
     }
 
     // Build page background (handles gradient objects)
-    const pageBackground = buildPageBackground(branding?.colors?.page_background);
+    const pageBackground = buildPageBackground(
+      branding?.colors?.page_background,
+    );
 
     // Sanitize URLs
     const faviconUrl = sanitizeUrl(branding?.favicon_url);
