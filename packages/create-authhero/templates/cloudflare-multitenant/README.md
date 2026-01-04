@@ -19,10 +19,10 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                     │  │   - Tenant isolation via API    │   │
                     │  └─────────────────────────────────┘   │
                     │              │                          │
-                    │  ┌───────────┴───────────┐              │
-                    │  │    Static Assets      │              │
-                    │  │  /u/widget/* /u/css/* │              │
-                    │  └───────────────────────┘              │
+                    │  ┌───────────┴────────────────────┐     │
+                    │  │      Static Assets             │     │
+                    │  │  /u/widget/* /u/css/* /u/js/*  │     │
+                    │  └────────────────────────────────┘     │
                     │              │                          │
                     └──────────────┼──────────────────────────┘
                                    │
@@ -36,12 +36,16 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
 
 ## Static Assets
 
-The authentication widget, CSS, and client-side JavaScript are served as static assets from `node_modules/authhero/dist/assets`. This is configured in `wrangler.toml`:
+The authentication widget, CSS, and client-side JavaScript are served as static assets via Cloudflare Workers Assets.
 
-```toml
-[assets]
-directory = "node_modules/authhero/dist/assets"
-```
+### How It Works
+
+1. **Source**: Assets are bundled with the `authhero` package in `node_modules/authhero/dist/assets`
+2. **Build Step**: The `copy-assets.js` script copies these files to `./dist/assets` before dev/deploy
+3. **Serving**: Wrangler serves files from `./dist/assets` (configured in `wrangler.toml`)
+4. **Automatic**: The copy happens automatically when you run `npm run dev` or `npm run deploy`
+
+> **Note**: Wrangler's Assets feature does not support serving files directly from `node_modules`, which is why the copy step is necessary.
 
 Assets are served at:
 
