@@ -18,9 +18,10 @@ The CLI will guide you through:
 
 1. **Project name** - Name of your project directory
 2. **Setup type** - Choose between Local, Cloudflare Simple, or Cloudflare Multi-Tenant
-3. **Admin credentials** - Email and password for the initial admin user
-4. **Install dependencies** - Optionally install packages with your preferred package manager
-5. **Start server** - Optionally run migrations, seed the database, and start the dev server
+3. **GitHub CI** - (Cloudflare only) Optionally include GitHub Actions workflows with semantic versioning
+4. **Admin credentials** - Email and password for the initial admin user
+5. **Install dependencies** - Optionally install packages with your preferred package manager
+6. **Start server** - Optionally run migrations, seed the database, and start the dev server
 
 ## Setup Types
 
@@ -174,6 +175,37 @@ You'll be prompted to:
 | Logging      | Console      | Console           | Analytics Engine        |
 | Complexity   | Low          | Medium            | High                    |
 | Best For     | Development  | Simple Production | Enterprise/SaaS         |
+
+## GitHub CI with Semantic Versioning
+
+For Cloudflare setups, you can optionally include GitHub Actions workflows that provide:
+
+- **Unit Tests**: Runs on all pushes to any branch
+- **Deploy to Dev**: Automatically deploys to dev environment on push to `main`, with semantic-release for version management
+- **Deploy to Production**: Deploys to production when a GitHub release is published
+
+### CI/CD Flow
+
+```
+All PRs/Pushes → Unit Tests (type-check + tests)
+Push to main  → Semantic Release + Deploy to Dev
+GitHub Release → Deploy to Production
+```
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `CLOUDFLARE_API_TOKEN` | API token for dev deployments |
+| `PROD_CLOUDFLARE_API_TOKEN` | API token for production deployments |
+
+### Commit Message Conventions
+
+Use conventional commits for automatic versioning:
+
+- `fix:` → Patch release (1.0.0 → 1.0.1)
+- `feat:` → Minor release (1.0.0 → 1.1.0)
+- `BREAKING CHANGE:` → Major release (1.0.0 → 2.0.0)
 
 ## Documentation
 

@@ -154,6 +154,83 @@ curl https://your-worker.workers.dev/management/tenants \
 
 For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
 
+## CI/CD with GitHub Actions
+
+If you selected GitHub CI during setup, your project includes automated workflows for continuous integration and deployment.
+
+### Workflow Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           GitHub Actions                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │  Any Push    │     │   Push to main   │     │ GitHub Release   │    │
+│  │              │     │                  │     │   (released)     │    │
+│  └──────┬───────┘     └────────┬─────────┘     └────────┬─────────┘    │
+│         │                      │                        │               │
+│         ▼                      ▼                        ▼               │
+│  ┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │  Unit Tests  │     │ Semantic Release │     │    Deploy to     │    │
+│  │  Type Check  │     │  + Deploy Dev    │     │   Production     │    │
+│  └──────────────┘     └──────────────────┘     └──────────────────┘    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Workflows
+
+1. **Unit Tests** (`.github/workflows/unit-tests.yml`)
+   - **Trigger**: All pushes to any branch
+   - **Actions**: Runs type checking and tests
+
+2. **Deploy to Dev** (`.github/workflows/deploy-dev.yml`)
+   - **Trigger**: Push to `main` branch
+   - **Actions**: 
+     - Runs semantic-release to create version tags
+     - Deploys to Cloudflare Workers (dev environment)
+
+3. **Deploy to Production** (`.github/workflows/release.yml`)
+   - **Trigger**: GitHub Release (when "released")
+   - **Actions**: Deploys to Cloudflare Workers (production environment)
+
+### Required Secrets
+
+Configure these secrets in your GitHub repository settings:
+
+| Secret | Description |
+|--------|-------------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for dev deployments |
+| `PROD_CLOUDFLARE_API_TOKEN` | Cloudflare API token for production deployments |
+
+### Semantic Versioning
+
+Commits to `main` are analyzed to determine version bumps:
+
+- `fix:` - Patch release (1.0.0 → 1.0.1)
+- `feat:` - Minor release (1.0.0 → 1.1.0)
+- `BREAKING CHANGE:` - Major release (1.0.0 → 2.0.0)
+
+### Production Deployment
+
+To deploy to production:
+
+1. Go to GitHub → Releases → "Draft a new release"
+2. Create a new tag (e.g., `v1.0.0`)
+3. Click "Publish release"
+4. The `release.yml` workflow will deploy to production
+
+### Wrangler Configuration
+
+For production deployments, add an environment to `wrangler.toml`:
+
+```toml
+[env.production]
+name = "your-worker-production"
+# Add production-specific settings here
+```
+
 ## Optional Features
 
 ### Analytics Engine (Centralized Logging)
