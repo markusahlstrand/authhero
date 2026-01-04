@@ -20,8 +20,8 @@ interface CliOptions {
   skipMigrate?: boolean;
   skipSeed?: boolean;
   skipStart?: boolean;
-  remote?: boolean;
   yes?: boolean;
+  githubCi?: boolean;
 }
 
 interface SetupConfig {
@@ -81,17 +81,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        "dev:local": "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote",
         dev: "wrangler dev --port 3000 --local-protocol https",
-        deploy: "wrangler deploy",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy: "wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        "db:migrate:remote":
+          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
         migrate: "wrangler d1 migrations apply AUTH_DB --local",
         "seed:local": "node seed-helper.js",
         "seed:remote": "node seed-helper.js '' '' remote",
         seed: "node seed-helper.js",
+        setup:
+          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
       },
       dependencies: {
         "@authhero/drizzle": "latest",
@@ -123,17 +125,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        "dev:local": "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote",
         dev: "wrangler dev --port 3000 --local-protocol https",
-        deploy: "wrangler deploy",
+        "dev:remote":
+          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy: "wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote": "wrangler d1 migrations apply AUTH_DB --remote",
+        "db:migrate:remote":
+          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
         migrate: "wrangler d1 migrations apply AUTH_DB --local",
         "seed:local": "node seed-helper.js",
         "seed:remote": "node seed-helper.js '' '' remote",
         seed: "node seed-helper.js",
+        setup:
+          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
       },
       dependencies: {
         "@authhero/drizzle": "latest",
@@ -207,6 +211,146 @@ main().catch(console.error);
 `;
 }
 
+function createGithubWorkflows(projectPath: string): void {
+  const workflowsDir = path.join(projectPath, ".github", "workflows");
+  fs.mkdirSync(workflowsDir, { recursive: true });
+
+  // Unit tests workflow - runs on all pushes
+  const unitTestsYml = `name: Unit tests
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - run: npm run type-check
+      - run: npm test
+`;
+
+  // Deploy to dev workflow - runs on push to main
+  const deployDevYml = `name: Deploy to Dev
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Deploy to Cloudflare (Dev)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: deploy
+`;
+
+  // Release to production workflow - runs on GitHub release
+  const releaseYml = `name: Deploy to Production
+
+on:
+  release:
+    types: ["released"]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Cloudflare (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: \${{ secrets.PROD_CLOUDFLARE_API_TOKEN }}
+          command: deploy --env production
+`;
+
+  fs.writeFileSync(path.join(workflowsDir, "unit-tests.yml"), unitTestsYml);
+  fs.writeFileSync(path.join(workflowsDir, "deploy-dev.yml"), deployDevYml);
+  fs.writeFileSync(path.join(workflowsDir, "release.yml"), releaseYml);
+
+  console.log("\\n📦 GitHub CI workflows created!");
+}
+
+function addSemanticReleaseConfig(projectPath: string): void {
+  // Add .releaserc.json for semantic-release configuration
+  const releaseConfig = {
+    branches: ["main"],
+    plugins: [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github",
+    ],
+  };
+
+  fs.writeFileSync(
+    path.join(projectPath, ".releaserc.json"),
+    JSON.stringify(releaseConfig, null, 2),
+  );
+
+  // Read and update package.json to add semantic-release and test script
+  const packageJsonPath = path.join(projectPath, "package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+
+  packageJson.devDependencies = {
+    ...packageJson.devDependencies,
+    "semantic-release": "^24.0.0",
+  };
+
+  // Add test and type-check scripts if not present
+  packageJson.scripts = {
+    ...packageJson.scripts,
+    test: 'echo "No tests yet"',
+    "type-check": "tsc --noEmit",
+  };
+
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+}
+
 function runCommand(command: string, cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, [], {
@@ -270,7 +414,7 @@ program
   .option("--skip-migrate", "skip running database migrations")
   .option("--skip-seed", "skip seeding the database")
   .option("--skip-start", "skip starting the development server")
-  .option("--remote", "use remote mode for cloudflare-simple (production D1)")
+  .option("--github-ci", "include GitHub CI workflows with semantic versioning")
   .option("-y, --yes", "skip all prompts and use defaults/provided options")
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
@@ -374,6 +518,60 @@ program
       process.exit(1);
     }
 
+    // For Cloudflare setups, create local config files
+    if (
+      setupType === "cloudflare-simple" ||
+      setupType === "cloudflare-multitenant"
+    ) {
+      // Copy wrangler.toml to wrangler.local.toml for local development
+      const wranglerPath = path.join(projectPath, "wrangler.toml");
+      const wranglerLocalPath = path.join(projectPath, "wrangler.local.toml");
+      if (fs.existsSync(wranglerPath)) {
+        fs.copyFileSync(wranglerPath, wranglerLocalPath);
+      }
+
+      // Copy .dev.vars.example to .dev.vars
+      const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
+      const devVarsPath = path.join(projectPath, ".dev.vars");
+      if (fs.existsSync(devVarsExamplePath)) {
+        fs.copyFileSync(devVarsExamplePath, devVarsPath);
+      }
+
+      console.log(
+        "📁 Created wrangler.local.toml and .dev.vars for local development",
+      );
+    }
+
+    // Ask about GitHub CI for cloudflare setups
+    let includeGithubCi = false;
+    if (
+      setupType === "cloudflare-simple" ||
+      setupType === "cloudflare-multitenant"
+    ) {
+      if (options.githubCi !== undefined) {
+        includeGithubCi = options.githubCi;
+        if (includeGithubCi) {
+          console.log("Including GitHub CI workflows with semantic versioning");
+        }
+      } else if (!isNonInteractive) {
+        const ciAnswer = await inquirer.prompt([
+          {
+            type: "confirm",
+            name: "includeGithubCi",
+            message:
+              "Would you like to include GitHub CI with semantic versioning?",
+            default: false,
+          },
+        ]);
+        includeGithubCi = ciAnswer.includeGithubCi;
+      }
+
+      if (includeGithubCi) {
+        createGithubWorkflows(projectPath);
+        addSemanticReleaseConfig(projectPath);
+      }
+    }
+
     // Generate seed file for local setup only
     // cloudflare-simple and cloudflare-multitenant have seed.ts in the template
     if (setupType === "local") {
@@ -455,45 +653,12 @@ program
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // Track the mode for cloudflare setups
-        let mode: "local" | "remote" = options.remote ? "remote" : "local";
-
         // For local and cloudflare setups, run migrations and seed
         if (
           setupType === "local" ||
           setupType === "cloudflare-simple" ||
           setupType === "cloudflare-multitenant"
         ) {
-          // For cloudflare setups, ask if they want to use local or remote mode
-          if (
-            (setupType === "cloudflare-simple" ||
-              setupType === "cloudflare-multitenant") &&
-            !isNonInteractive &&
-            !options.remote
-          ) {
-            const modeAnswer = await inquirer.prompt([
-              {
-                type: "list",
-                name: "mode",
-                message: "Would you like to run in local mode or remote mode?",
-                choices: [
-                  {
-                    name: "Local (using local D1 database)",
-                    value: "local",
-                    short: "Local",
-                  },
-                  {
-                    name: "Remote (using production D1 database)",
-                    value: "remote",
-                    short: "Remote",
-                  },
-                ],
-                default: "local",
-              },
-            ]);
-            mode = modeAnswer.mode;
-          }
-
           // Determine if we should run migrations and seed
           let shouldSetup: boolean;
           if (options.skipMigrate && options.skipSeed) {
@@ -565,13 +730,7 @@ program
             // Run migrations unless skipped
             if (!options.skipMigrate) {
               console.log("\n🔄 Running migrations...\n");
-              const migrateCmd =
-                (setupType === "cloudflare-simple" ||
-                  setupType === "cloudflare-multitenant") &&
-                mode === "remote"
-                  ? `${packageManager} run db:migrate:remote`
-                  : `${packageManager} run migrate`;
-              await runCommand(migrateCmd, projectPath);
+              await runCommand(`${packageManager} run migrate`, projectPath);
             }
 
             // Seed unless skipped
@@ -589,15 +748,14 @@ program
                 );
               } else {
                 // For cloudflare setups, use the seed helper with environment variables
-                const seedCmd =
-                  mode === "remote"
-                    ? `${packageManager} run seed:remote`
-                    : `${packageManager} run seed:local`;
-
-                await runCommandWithEnv(seedCmd, projectPath, {
-                  ADMIN_EMAIL: credentials.username,
-                  ADMIN_PASSWORD: credentials.password,
-                });
+                await runCommandWithEnv(
+                  `${packageManager} run seed:local`,
+                  projectPath,
+                  {
+                    ADMIN_EMAIL: credentials.username,
+                    ADMIN_PASSWORD: credentials.password,
+                  },
+                );
               }
             }
           }
@@ -625,13 +783,7 @@ program
           console.log(
             "\n🚀 Starting development server on https://localhost:3000 ...\n",
           );
-          const devCmd =
-            (setupType === "cloudflare-simple" ||
-              setupType === "cloudflare-multitenant") &&
-            mode === "remote"
-              ? `${packageManager} run dev:remote`
-              : `${packageManager} run dev`;
-          await runCommand(devCmd, projectPath);
+          await runCommand(`${packageManager} run dev`, projectPath);
         }
 
         // Success message for non-interactive mode
@@ -639,15 +791,7 @@ program
           console.log("\n✅ Setup complete!");
           console.log(`\nTo start the development server:`);
           console.log(`  cd ${projectName}`);
-          if (
-            (setupType === "cloudflare-simple" ||
-              setupType === "cloudflare-multitenant") &&
-            mode === "remote"
-          ) {
-            console.log(`  npm run dev:remote`);
-          } else {
-            console.log(`  npm run dev`);
-          }
+          console.log(`  npm run dev`);
           if (
             setupType === "cloudflare-simple" ||
             setupType === "cloudflare-multitenant"

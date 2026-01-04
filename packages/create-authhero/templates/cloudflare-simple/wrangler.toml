@@ -1,22 +1,45 @@
+# ════════════════════════════════════════════════════════════════════════════
+# AuthHero Cloudflare Worker Configuration
+# ════════════════════════════════════════════════════════════════════════════
+# This file is safe for version control. Sensitive IDs should go in:
+# - wrangler.local.toml (local development - gitignored)
+# - GitHub Secrets / Cloudflare Dashboard (production)
+#
+# For local development with your own Cloudflare resources:
+#   cp wrangler.toml wrangler.local.toml
+#   # Add your database_id to wrangler.local.toml
+#   npm run dev  # Uses wrangler.local.toml automatically
+# ════════════════════════════════════════════════════════════════════════════
+
 name = "authhero-server"
 main = "src/index.ts"
 compatibility_date = "2024-11-20"
 
+# ════════════════════════════════════════════════════════════════════════════
 # D1 Database binding
-# Run: wrangler d1 create authhero-db
-# Then uncomment and update the database_id below:
-# [[d1_databases]]
-# binding = "AUTH_DB"
-# database_name = "authhero-db"
-# database_id = "<YOUR_DATABASE_ID>"
-# migrations_dir = "node_modules/@authhero/drizzle/drizzle"
-
-# For local development, you can use a local D1 database:
+# ════════════════════════════════════════════════════════════════════════════
+# This configuration uses a local D1 database by default.
+# For remote development/production, copy to wrangler.local.toml and update.
+#
+# Setup:
+# 1. Create database: npx wrangler d1 create authhero-db
+# 2. Copy to local config: cp wrangler.toml wrangler.local.toml
+# 3. Update database_id in wrangler.local.toml with the ID from step 1
+#
 [[d1_databases]]
 binding = "AUTH_DB"
 database_name = "authhero-db"
-database_id = "local"
+database_id = "local"  # Use "local" for local dev, or your actual ID in wrangler.local.toml
 migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Custom Domain
+# ════════════════════════════════════════════════════════════════════════════
+# To route your worker to a custom domain, use zone_name (not zone_id):
+#
+# [[routes]]
+# pattern = "auth.yourdomain.com/*"
+# zone_name = "yourdomain.com"
 
 # ════════════════════════════════════════════════════════════════════════════
 # OPTIONAL: Analytics Engine for centralized logging

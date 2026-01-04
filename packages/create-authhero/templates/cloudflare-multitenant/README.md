@@ -28,7 +28,26 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                           └─────────────┘
 ```
 
+## Security & Privacy
+
+This project is designed to be **open-source friendly**. Sensitive Cloudflare IDs are kept out of version control:
+
+| File                  | Purpose                            | In Git? |
+| --------------------- | ---------------------------------- | ------- |
+| `wrangler.toml`       | Base config (safe for public repo) | ✅ Yes  |
+| `wrangler.local.toml` | Your private IDs (database_id)     | ❌ No   |
+| `.dev.vars`           | Local secrets (API tokens, etc.)   | ❌ No   |
+| `.dev.vars.example`   | Template for .dev.vars             | ✅ Yes  |
+
+**For GitHub Actions / CI:**
+
+- Set `CLOUDFLARE_API_TOKEN` as a GitHub Secret
+- Set `CLOUDFLARE_ACCOUNT_ID` as a GitHub Secret (if needed)
+- The wrangler action will use these automatically
+
 ## Getting Started
+
+### Local Development (Quick Start)
 
 1. Install dependencies:
 
@@ -36,7 +55,7 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
    npm install
    ```
 
-2. Run local database migrations:
+2. Run database migrations (uses local SQLite-backed D1):
 
    ```bash
    npm run migrate
@@ -55,29 +74,46 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
 
 The server will be available at `https://localhost:3000`.
 
-## Production Deployment
+### Remote Development (Your Cloudflare Account)
 
 1. Create a D1 database:
 
    ```bash
-   wrangler d1 create authhero-db
+   npx wrangler d1 create authhero-db
    ```
 
-2. Update `wrangler.toml` with your database ID.
+2. Copy the `database_id` from the output and update `wrangler.local.toml`:
 
-3. Run migrations on production:
+   ```toml
+   [[d1_databases]]
+   binding = "AUTH_DB"
+   database_name = "authhero-db"
+   database_id = "paste-your-database-id-here"
+   migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+   ```
+
+3. Run remote migrations:
 
    ```bash
    npm run db:migrate:remote
    ```
 
-4. Seed the production database:
+4. Seed the remote database:
 
    ```bash
    ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
    ```
 
-5. Deploy:
+5. Start with remote D1:
+   ```bash
+   npm run dev:remote
+   ```
+
+## Production Deployment
+
+1. Ensure `wrangler.local.toml` has your production `database_id`.
+
+2. Deploy:
    ```bash
    npm run deploy
    ```
@@ -153,6 +189,83 @@ curl https://your-worker.workers.dev/management/tenants \
 ```
 
 For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
+
+## CI/CD with GitHub Actions
+
+If you selected GitHub CI during setup, your project includes automated workflows for continuous integration and deployment.
+
+### Workflow Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           GitHub Actions                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │  Any Push    │     │   Push to main   │     │ GitHub Release   │    │
+│  │              │     │                  │     │   (released)     │    │
+│  └──────┬───────┘     └────────┬─────────┘     └────────┬─────────┘    │
+│         │                      │                        │               │
+│         ▼                      ▼                        ▼               │
+│  ┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │  Unit Tests  │     │ Semantic Release │     │    Deploy to     │    │
+│  │  Type Check  │     │  + Deploy Dev    │     │   Production     │    │
+│  └──────────────┘     └──────────────────┘     └──────────────────┘    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Workflows
+
+1. **Unit Tests** (`.github/workflows/unit-tests.yml`)
+   - **Trigger**: All pushes to any branch
+   - **Actions**: Runs type checking and tests
+
+2. **Deploy to Dev** (`.github/workflows/deploy-dev.yml`)
+   - **Trigger**: Push to `main` branch
+   - **Actions**:
+     - Runs semantic-release to create version tags
+     - Deploys to Cloudflare Workers (dev environment)
+
+3. **Deploy to Production** (`.github/workflows/release.yml`)
+   - **Trigger**: GitHub Release (when "released")
+   - **Actions**: Deploys to Cloudflare Workers (production environment)
+
+### Required Secrets
+
+Configure these secrets in your GitHub repository settings:
+
+| Secret                      | Description                                     |
+| --------------------------- | ----------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`      | Cloudflare API token for dev deployments        |
+| `PROD_CLOUDFLARE_API_TOKEN` | Cloudflare API token for production deployments |
+
+### Semantic Versioning
+
+Commits to `main` are analyzed to determine version bumps:
+
+- `fix:` - Patch release (1.0.0 → 1.0.1)
+- `feat:` - Minor release (1.0.0 → 1.1.0)
+- `BREAKING CHANGE:` - Major release (1.0.0 → 2.0.0)
+
+### Production Deployment
+
+To deploy to production:
+
+1. Go to GitHub → Releases → "Draft a new release"
+2. Create a new tag (e.g., `v1.0.0`)
+3. Click "Publish release"
+4. The `release.yml` workflow will deploy to production
+
+### Wrangler Configuration
+
+For production deployments, add an environment to `wrangler.toml`:
+
+```toml
+[env.production]
+name = "your-worker-production"
+# Add production-specific settings here
+```
 
 ## Optional Features
 
