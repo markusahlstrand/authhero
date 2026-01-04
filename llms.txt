@@ -1,0 +1,73 @@
+# AuthHero
+
+> AuthHero is an open-source, multi-tenant authentication system that provides identity and access management services. It's designed as a drop-in replacement for Auth0.
+
+## Overview
+
+AuthHero is a monorepo containing multiple packages and applications that work together to provide a complete authentication solution. The system supports OAuth2/OIDC, SAML, social logins, and passwordless authentication.
+
+## Documentation
+
+- Full documentation: https://authhero.net
+- Getting started: https://authhero.net/getting-started
+- Architecture: https://authhero.net/architecture
+
+## Repository Structure
+
+- `/packages/authhero` - Core authentication library with Hono routers for Management API, OAuth2/OIDC, Universal Login, and SAML
+- `/packages/adapter-interfaces` - TypeScript interfaces for creating database and service adapters
+- `/packages/kysely` - SQL database adapter using Kysely ORM (SQLite, PostgreSQL, MySQL)
+- `/packages/drizzle` - Drizzle ORM schemas for migration generation
+- `/packages/cloudflare` - Cloudflare Workers adapters (custom domains, cache, logs)
+- `/packages/aws` - AWS DynamoDB adapter
+- `/packages/saml` - SAML utilities for SSO authentication
+- `/packages/multi-tenancy` - Multi-tenant support with per-tenant database isolation
+- `/packages/create-authhero` - CLI tool for creating new AuthHero projects
+- `/packages/ui-widget` - Server-Driven UI widget for authentication flows
+
+## Applications
+
+- `/apps/demo` - Demo authentication server using SQLite
+- `/apps/react-admin` - Admin interface for managing tenants, users, and applications
+- `/apps/auth0-proxy` - Proxy service for Auth0 API compatibility
+- `/apps/docs` - VitePress documentation site
+- `/apps/portal` - User portal for self-service account management
+
+## Key Features
+
+- **Multi-tenant Architecture**: Each tenant has isolated users, applications, settings, and optionally separate databases
+- **Auth0 Compatible**: Management API compatible with Auth0's `/api/v2` endpoints
+- **Extensible Hooks**: Customize authentication logic with hooks like `onExecuteCredentialsExchange`, `onExecutePostLogin`
+- **Multiple Database Backends**: SQLite, PostgreSQL, MySQL via Kysely, or DynamoDB via AWS adapter
+- **Edge-Ready**: Designed for Cloudflare Workers with D1 database support
+- **Universal Login**: Server-side rendered authentication UI with customizable branding
+
+## Quick Start
+
+```bash
+# Create a new project
+npm create authhero my-auth-project
+cd my-auth-project
+pnpm install
+pnpm dev
+```
+
+## API Routers
+
+The main `authhero` package exposes four Hono routers:
+
+1. **Management API** (`/api/v2`) - Manage users, clients, connections, tenants
+2. **OAuth API** (`/`) - OAuth2/OIDC endpoints for authentication
+3. **Universal Auth** (`/u`) - Server-rendered login UI
+4. **SAML App** (`/`) - SAML authentication endpoints
+
+## Configuration
+
+Environment variables:
+- `VITE_AUTH0_DOMAIN` - Default authentication domain
+- `VITE_AUTH0_CLIENT_ID` - Default client ID
+- `VITE_AUTH0_API_URL` - API URL for the auth server
+
+## License
+
+MIT License

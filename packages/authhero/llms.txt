@@ -1,0 +1,134 @@
+# authhero
+
+> The core authentication library for AuthHero - an open-source drop-in replacement for Auth0.
+
+## Overview
+
+This package provides a fully functional authentication server that can be set up in minutes. It includes four Hono routers for different authentication aspects.
+
+## Installation
+
+```bash
+npm install authhero
+```
+
+## API Routers
+
+### Management API (`/api/v2`)
+Exposes endpoints for managing authentication data, compatible with Auth0's API:
+- Users management
+- Clients (applications) management  
+- Connections (identity providers)
+- Tenants configuration
+- Roles and permissions
+- Organizations
+
+### Auth API (`/`)
+Implements OAuth2/OIDC endpoints:
+- `/authorize` - Authorization endpoint
+- `/oauth/token` - Token endpoint
+- `/userinfo` - User information
+- `/.well-known/openid-configuration` - OIDC discovery
+- `/.well-known/jwks.json` - JSON Web Key Set
+
+### Universal Auth (`/u`)
+Server-side rendered UI for login:
+- `/u/login` - Login page
+- `/u/signup` - Registration page
+- `/u/reset-password` - Password reset
+- Customizable branding and themes
+
+### SAML App
+Handles SAML authentication:
+- SAML request/response handling
+- Metadata endpoint
+- SSO and SLO flows
+
+## Usage
+
+```javascript
+import { init } from 'authhero';
+
+const { app, managementApp, oauthApp, universalApp, samlApp, createX509Certificate } = init({
+  dataAdapter: yourDataAdapter,
+  issuer: 'https://auth.example.com',
+  hooks: {
+    onExecuteCredentialsExchange: async (event, api) => {
+      // Custom token claims
+    },
+    onExecutePostLogin: async (event, api) => {
+      // Post-login logic
+    }
+  }
+});
+
+// Use the combined app
+export default app;
+
+// Or route individually
+app
+  .route("/", oauthApp)
+  .route("/u", universalApp)
+  .route("/api/v2", managementApp)
+  .route("/samlp", samlApp);
+```
+
+## Data Adapters
+
+The package requires a data adapter for persistence:
+- `@authhero/kysely-adapter` - SQL databases (SQLite, PostgreSQL, MySQL)
+- `@authhero/aws-adapter` - AWS DynamoDB
+- Custom adapters implementing `@authhero/adapter-interfaces`
+
+## Hooks
+
+Customize authentication behavior:
+
+| Hook | Description |
+|------|-------------|
+| `onExecuteCredentialsExchange` | Modify token claims during exchange |
+| `onExecutePreUserRegistration` | Validate/modify user data before registration |
+| `onExecutePostUserRegistration` | Actions after user registration |
+| `onExecutePostLogin` | Actions after successful login |
+| `onExecutePreUserUpdate` | Before user profile updates |
+| `onExecutePreUserDeletion` | Before user deletion |
+| `onExecutePostUserDeletion` | After user deletion |
+| `onFetchUserInfo` | Customize userinfo response |
+
+## Email Providers
+
+Configure email sending for verification, password reset:
+
+```javascript
+emailProviders: {
+  ses: sendSesEmail,
+  sqs: sendSqsEmail,
+  sendgrid: sendGridEmail,
+}
+```
+
+## Styling
+
+Tailwind CSS styles for Universal Login:
+
+```javascript
+// Option 1: Import CSS string
+import { styles } from "authhero/styles";
+
+// Option 2: Inject into document
+import { injectStyles } from "authhero/styles";
+injectStyles();
+```
+
+## Key Files
+
+- `src/index.ts` - Main entry point and `init()` function
+- `src/routes/` - Route handlers for each API
+- `src/authentication-flows/` - OAuth2/OIDC flow implementations
+- `src/hooks/` - Hook system implementation
+- `src/components/` - Universal login JSX components
+- `src/types/` - TypeScript type definitions
+
+## License
+
+MIT License

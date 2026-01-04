@@ -1,0 +1,141 @@
+# @authhero/kysely-adapter
+
+> Kysely-based database adapter for AuthHero - connects to SQLite, PostgreSQL, and MySQL.
+
+## Overview
+
+This is the primary database adapter for AuthHero, providing a single schema that works across multiple SQL dialects. It uses Kysely ORM for type-safe query building.
+
+## Installation
+
+```bash
+npm install @authhero/kysely-adapter kysely
+```
+
+## Supported Databases
+
+- **SQLite** (including Cloudflare D1)
+- **PostgreSQL**
+- **MySQL**
+
+## Usage
+
+```typescript
+import { Kysely } from "kysely";
+import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
+
+// Create Kysely instance with your dialect
+const db = new Kysely({
+  dialect: yourDialect, // SQLite, PostgreSQL, or MySQL
+});
+
+// Run migrations
+await migrateToLatest(db);
+
+// Create AuthHero adapters
+const adapters = createAdapters(db);
+
+// Use with AuthHero
+const authApp = init({
+  dataAdapter: adapters,
+});
+```
+
+## D1 Integration (Cloudflare)
+
+For Cloudflare D1, export SQL migrations instead of running at runtime:
+
+```bash
+# Generate D1 migration files
+pnpm run export-sql:d1
+
+# Generate combined SQL file
+pnpm run export-sql:combined
+```
+
+## Database Schema
+
+The adapter manages these tables:
+
+| Table | Description |
+|-------|-------------|
+| `tenants` | Multi-tenant configuration |
+| `users` | User accounts |
+| `passwords` | Hashed password credentials |
+| `clients` | OAuth2 clients/applications |
+| `connections` | Identity providers |
+| `sessions` | Active user sessions |
+| `codes` | Authorization codes |
+| `tokens` | Refresh tokens |
+| `roles` | RBAC roles |
+| `permissions` | RBAC permissions |
+| `organizations` | Organization management |
+| `logs` | Audit logs |
+| `custom_domains` | Custom domain configuration |
+| `branding` | UI branding settings |
+
+## Migrations
+
+```typescript
+import { migrateToLatest, migrateDown } from "@authhero/kysely-adapter";
+
+// Apply all pending migrations
+await migrateToLatest(db);
+
+// Rollback one migration
+await migrateDown(db);
+```
+
+## Dialects
+
+### SQLite
+
+```typescript
+import { SqliteDialect } from "kysely";
+import Database from "better-sqlite3";
+
+const db = new Kysely({
+  dialect: new SqliteDialect({
+    database: new Database("auth.db"),
+  }),
+});
+```
+
+### PostgreSQL
+
+```typescript
+import { PostgresDialect } from "kysely";
+import { Pool } from "pg";
+
+const db = new Kysely({
+  dialect: new PostgresDialect({
+    pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+  }),
+});
+```
+
+### Cloudflare D1
+
+```typescript
+import { D1Dialect } from "kysely-d1";
+
+const db = new Kysely({
+  dialect: new D1Dialect({ database: env.DB }),
+});
+```
+
+## Key Files
+
+- `src/index.ts` - Main exports and `createAdapters()` default export
+- `src/` - Individual adapter implementations in subdirectories
+- `migrations/` - Database migration files
+- `scripts/` - SQL export scripts for D1
+
+## Related Packages
+
+- `@authhero/drizzle` - Used for migration generation
+- `@authhero/adapter-interfaces` - Interface definitions
+
+## License
+
+MIT License

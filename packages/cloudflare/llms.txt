@@ -1,0 +1,164 @@
+# @authhero/cloudflare-adapter
+
+> Cloudflare-specific adapters for AuthHero - custom domains, caching, geo, and logging.
+
+## Overview
+
+This package provides adapters optimized for Cloudflare Workers, integrating with Cloudflare services like Custom Domains API, Cache API, Analytics Engine, and R2.
+
+## Installation
+
+```bash
+npm install @authhero/cloudflare-adapter
+```
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Custom Domains** | Manage custom domains via Cloudflare API |
+| **Cache** | Caching using Cloudflare's Cache API |
+| **Geo** | Extract geographic info from CF request headers |
+| **Logs (Analytics Engine)** | Low-latency writes with SQL querying (90-day retention) |
+| **Logs (R2 SQL)** | Long-term storage with unlimited retention |
+
+## Usage
+
+### Basic Setup
+
+```typescript
+import createAdapters from "@authhero/cloudflare-adapter";
+
+const adapters = createAdapters({
+  // Custom domains
+  zoneId: "your-cloudflare-zone-id",
+  authKey: "your-cloudflare-api-key",
+  authEmail: "your-cloudflare-email",
+  customDomainAdapter: yourDatabaseAdapter,
+
+  // Cache (optional)
+  cacheName: "default",
+  defaultTtlSeconds: 3600,
+  keyPrefix: "authhero:",
+});
+```
+
+### With Analytics Engine Logs
+
+```typescript
+interface Env {
+  AUTH_LOGS: AnalyticsEngineDataset;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  ANALYTICS_ENGINE_API_TOKEN: string;
+}
+
+const adapters = createAdapters({
+  // ... custom domains config
+
+  analyticsEngineLogs: {
+    analyticsEngineBinding: env.AUTH_LOGS,
+    accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: env.ANALYTICS_ENGINE_API_TOKEN,
+  },
+});
+```
+
+### With R2 SQL Logs (HTTP Mode)
+
+```typescript
+const adapters = createAdapters({
+  // ... custom domains config
+
+  r2SqlLogs: {
+    pipelineEndpoint: "https://your-stream-id.ingest.cloudflare.com",
+    authToken: process.env.R2_SQL_AUTH_TOKEN,
+    warehouseName: process.env.R2_WAREHOUSE_NAME,
+    namespace: "default",
+    tableName: "logs",
+  },
+});
+```
+
+### Geo Adapter
+
+```typescript
+const adapters = createAdapters({
+  // ... other config
+});
+
+const { geo } = adapters;
+// Pass request headers to get geo info
+const geoInfo = await geo.getGeoInfo(Object.fromEntries(request.headers));
+// Returns: { country_code, city_name, latitude, longitude, time_zone, continent_code }
+```
+
+## Custom Domains
+
+Manages custom domains for multi-tenant authentication:
+
+```typescript
+const { customDomains } = adapters;
+
+// Create a custom domain
+await customDomains.create("tenant-1", {
+  domain: "auth.example.com",
+  // Automatically creates DNS records and SSL certificates
+});
+
+// Get domain status
+const domain = await customDomains.get("tenant-1", "auth.example.com");
+```
+
+## Caching
+
+Uses Cloudflare's Cache API for edge caching:
+
+```typescript
+const { cache } = adapters;
+
+// Cache JWKS
+await cache.set("jwks", jwksData, { ttl: 3600 });
+const jwks = await cache.get("jwks");
+```
+
+## Logging Comparison
+
+| Feature | Analytics Engine | R2 SQL |
+|---------|-----------------|--------|
+| Write Latency | Very low | Low |
+| Retention | 90 days | Unlimited |
+| Querying | SQL via API | SQL queries |
+| Cost | Included in Workers | Storage costs |
+| Best For | Real-time analytics | Compliance, audit |
+
+## Environment Bindings
+
+```toml
+# wrangler.toml
+[[analytics_engine_datasets]]
+binding = "AUTH_LOGS"
+dataset = "authhero_logs"
+
+[[r2_buckets]]
+binding = "LOG_BUCKET"
+bucket_name = "auth-logs"
+```
+
+## Key Files
+
+- `src/index.ts` - Main `createAdapters()` function
+- `src/customDomains/` - Cloudflare DNS and SSL management
+- `src/cache/` - Cache API adapter
+- `src/geo/` - Geo location from CF headers
+- `src/analyticsEngine/` - Analytics Engine logs adapter
+- `src/r2Sql/` - R2 SQL logs adapter
+- `src/types/` - Type definitions
+
+## Related Packages
+
+- `@authhero/adapter-interfaces` - Interface definitions
+- `@authhero/kysely-adapter` - Primary database adapter
+
+## License
+
+MIT License

@@ -1,0 +1,101 @@
+# @authhero/drizzle
+
+> Drizzle ORM schemas for AuthHero - used for migration generation only.
+
+## Overview
+
+This package provides Drizzle ORM schema definitions specifically for generating database migrations. AuthHero uses Kysely for runtime queries but Drizzle for migration generation due to its superior D1/SQLite support.
+
+## Purpose
+
+| Tool | Role | Why |
+|------|------|-----|
+| **Kysely** | Runtime queries | Single schema works across all SQL dialects |
+| **Drizzle** | Migration generation | Native D1 support, automatic diff migrations |
+
+## Installation
+
+```bash
+npm install @authhero/drizzle
+```
+
+## Available Schemas
+
+### SQLite/D1
+
+```typescript
+import * as schema from "@authhero/drizzle/sqlite";
+```
+
+Designed for Cloudflare D1 and SQLite databases.
+
+## Generating Migrations
+
+```bash
+# Generate a new migration
+pnpm db:generate
+
+# Push changes directly (development only)
+pnpm db:push
+```
+
+Migrations output to `./drizzle/`.
+
+## Schema Files
+
+```
+src/schema/sqlite/
+├── index.ts          # Main export
+├── tenants.ts        # Tenant tables
+├── users.ts          # User & password tables  
+├── clients.ts        # Client & grant tables
+├── connections.ts    # Connection & domain tables
+├── sessions.ts       # Session, token & code tables
+├── organizations.ts  # Organization tables
+├── roles.ts          # Role & permission tables
+├── branding.ts       # Branding, theme & UI tables
+└── logs.ts           # Log tables
+```
+
+## Database Tables
+
+The schema defines these core tables:
+
+- `tenants` - Multi-tenant configuration
+- `users` - User accounts with profile data
+- `passwords` - Hashed password credentials
+- `clients` - OAuth2 clients/applications
+- `connections` - Identity providers (social, SAML, etc.)
+- `sessions` - Active user sessions
+- `codes` - Authorization codes
+- `tokens` - Refresh tokens
+- `roles` - RBAC roles
+- `permissions` - RBAC permissions
+- `organizations` - Organization management
+- `organization_members` - Organization membership
+- `logs` - Audit logs
+- `custom_domains` - Custom domain configuration
+- `branding` - UI branding settings
+- `themes` - Theme configuration
+
+## Usage with create-authhero
+
+The `cloudflare-simple` template uses pre-generated migrations from this schema:
+
+1. Use the initial migration as-is for a fresh database
+2. Modify the Drizzle schema and run `pnpm db:generate` for incremental changes
+
+## Key Files
+
+- `src/schema/sqlite/` - SQLite/D1 schema definitions
+- `drizzle.config.ts` - Drizzle configuration
+- `drizzle/` - Generated migration files
+
+## Related Packages
+
+- `@authhero/kysely-adapter` - Runtime database operations
+- `@authhero/adapter-interfaces` - Interface definitions
+
+## License
+
+MIT License

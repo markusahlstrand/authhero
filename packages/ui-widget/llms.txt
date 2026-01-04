@@ -1,0 +1,208 @@
+# @authhero/widget
+
+> Server-Driven UI widget for AuthHero authentication flows - framework-agnostic web components.
+
+## Overview
+
+A StencilJS-based web component that renders authentication UI based on server-provided configurations. Compatible with Auth0 Forms API schema for universal login flows.
+
+## Installation
+
+```bash
+npm install @authhero/widget
+```
+
+## Features
+
+- **Auth0 Forms Compatible** - Uses Auth0's Forms API schema
+- **Server-Driven UI (SDUI)** - Server controls what UI to render
+- **Zero-Deploy Updates** - Update auth flows without widget redeployment
+- **Event-Based Architecture** - Pure UI component with event emissions
+- **Framework Agnostic** - Works with React, Vue, Angular, vanilla JS
+- **SSR Support** - Includes hydrate scripts for server-side rendering
+- **Customizable** - CSS custom properties for branding
+
+## Usage
+
+### Browser (CDN)
+
+```html
+<script type="module" src="https://unpkg.com/@authhero/widget/dist/authhero-widget/authhero-widget.esm.js"></script>
+
+<authhero-widget 
+  api-url="/u/flow/screen"
+  auto-submit="false">
+</authhero-widget>
+```
+
+### JavaScript Framework
+
+```javascript
+import '@authhero/widget';
+
+// Or with lazy-loading
+import { defineCustomElements } from '@authhero/widget/loader';
+defineCustomElements();
+```
+
+```html
+<authhero-widget 
+  api-url="/u/flow/screen"
+  auto-submit="false">
+</authhero-widget>
+```
+
+### Server-Side Rendering (Hono)
+
+```typescript
+import { renderToString } from '@authhero/widget/hydrate';
+
+const html = await renderToString(`
+  <authhero-widget screen='${JSON.stringify(screenConfig)}'></authhero-widget>
+`);
+```
+
+## Component Types
+
+Supports Auth0 Forms API component types:
+
+| Component | Description |
+|-----------|-------------|
+| `EMAIL` | Email input field |
+| `PASSWORD` | Password field with toggle |
+| `TEXT` | Generic text input |
+| `DIVIDER` | Visual separator |
+| `NEXT_BUTTON` | Primary action/submit button |
+| `SOCIAL` | Social login buttons |
+| `IMAGE` | Logos and images |
+| `ALERT` | Alert/notification messages |
+| `RICH_TEXT` | HTML content blocks |
+| `HIDDEN` | Hidden input fields |
+| `PHONE` | Phone number input |
+| `CODE` | Verification code input |
+| `LEGAL` | Legal text/agreements |
+
+## Screen Configuration
+
+```typescript
+import type { UiScreen, FormComponent } from '@authhero/widget/types';
+
+// UiScreen contains form components and branding
+interface UiScreen {
+  screen: {
+    name: string;
+    data?: Record<string, any>;
+  };
+  transaction?: {
+    state: string;
+  };
+  components: FormComponent[];
+}
+
+interface FormComponent {
+  type: string;
+  id?: string;
+  attributes?: Record<string, any>;
+}
+```
+
+## Events
+
+```javascript
+const widget = document.querySelector('authhero-widget');
+
+// Form action (submit, continue, etc.)
+widget.addEventListener('formAction', (event) => {
+  const { action, payload } = event.detail;
+  // Handle form action
+});
+
+// Social provider selection
+widget.addEventListener('socialAction', (event) => {
+  const { connection } = event.detail;
+  // Redirect to social provider
+});
+
+// Link/anchor clicks
+widget.addEventListener('linkAction', (event) => {
+  const { href, target } = event.detail;
+  // Handle navigation
+});
+
+// Alert dismissal
+widget.addEventListener('alertAction', (event) => {
+  // Handle alert action
+});
+
+// Captcha completion
+widget.addEventListener('captchaAction', (event) => {
+  const { token } = event.detail;
+  // Handle captcha verification
+});
+```
+
+## Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `screen` | string | JSON screen configuration |
+| `branding` | string | JSON branding configuration |
+| `vendorSettings` | string | JSON vendor settings |
+| `formData` | string | Pre-populated form data |
+| `disabled` | boolean | Disable form interactions |
+| `captchaProvider` | string | Captcha provider name |
+
+## CSS Custom Properties
+
+```css
+authhero-widget {
+  --ah-widget-background: #ffffff;
+  --ah-widget-radius: 8px;
+  --ah-widget-font-family: Inter, sans-serif;
+  /* See branding utilities for full customization */
+}
+```
+
+### Theme Presets
+
+```html
+<!-- Apply theme class -->
+<authhero-widget class="ah-theme-minimal"></authhero-widget>
+<authhero-widget class="ah-theme-rounded"></authhero-widget>
+<authhero-widget class="ah-theme-dark"></authhero-widget>
+```
+
+## Integration with AuthHero
+
+```typescript
+// Server-side (Hono)
+app.get("/u/flow/screen", async (c) => {
+  return c.json({
+    title: "Log in",
+    components: [
+      { type: "heading", text: "Welcome" },
+      { type: "text-input", id: "email", label: "Email" },
+      { type: "password-input", id: "password", label: "Password" },
+      { type: "submit-button", text: "Continue" },
+    ],
+  });
+});
+```
+
+## Key Files
+
+- `src/components/authhero-widget/` - Main widget component
+- `src/components/authhero-node/` - Individual form component renderer
+- `src/utils/branding.ts` - Branding utilities
+- `src/types/` - TypeScript type definitions
+- `dist/` - Built distribution files
+- `hydrate/` - SSR hydration scripts
+
+## Related Packages
+
+- `authhero` - Core authentication library
+- Auth0 Forms API - Schema compatibility
+
+## License
+
+MIT License

@@ -1,0 +1,150 @@
+# @authhero/aws-adapter
+
+> AWS DynamoDB adapter for AuthHero - single-table design for efficient NoSQL storage.
+
+## Overview
+
+This adapter implements AuthHero data adapters using Amazon DynamoDB as the storage backend, using a single-table design pattern for optimal performance and cost.
+
+## Installation
+
+```bash
+npm install @authhero/aws-adapter @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+```
+
+## Features
+
+- Single-table design for efficient DynamoDB usage
+- Works with AWS Lambda and Cloudflare Workers
+- Full TypeScript support
+- Global Secondary Indexes for efficient queries
+
+## Usage
+
+### With AWS Lambda
+
+```typescript
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import createAdapters from "@authhero/aws-adapter";
+
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
+
+const adapters = createAdapters(docClient, {
+  tableName: "authhero",
+});
+```
+
+### With Cloudflare Workers
+
+```typescript
+const client = new DynamoDBClient({
+  region: env.AWS_REGION,
+  credentials: {
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+const docClient = DynamoDBDocumentClient.from(client);
+
+const adapters = createAdapters(docClient, {
+  tableName: "authhero",
+});
+```
+
+## Table Design
+
+Single-table design with composite keys:
+
+| Entity | PK | SK |
+|--------|----|----|
+| Tenant | `TENANT#{tenant_id}` | `TENANT` |
+| User | `TENANT#{tenant_id}` | `USER#{user_id}` |
+| Session | `TENANT#{tenant_id}` | `SESSION#{session_id}` |
+| Client | `TENANT#{tenant_id}` | `CLIENT#{client_id}` |
+| Connection | `TENANT#{tenant_id}` | `CONNECTION#{connection_id}` |
+| Code | `TENANT#{tenant_id}` | `CODE#{code_id}` |
+| Password | `TENANT#{tenant_id}#USER#{user_id}` | `PASSWORD#{password_id}` |
+
+## Global Secondary Indexes
+
+### GSI1 - Email Queries
+- GSI1PK: `TENANT#{tenant_id}#EMAIL#{email}`
+- GSI1SK: `USER`
+
+### GSI2 - Custom Domains
+- GSI2PK: `DOMAIN#{domain}`
+- GSI2SK: `CUSTOM_DOMAIN`
+
+## Table Setup
+
+```json
+{
+  "TableName": "authhero",
+  "KeySchema": [
+    { "AttributeName": "PK", "KeyType": "HASH" },
+    { "AttributeName": "SK", "KeyType": "RANGE" }
+  ],
+  "AttributeDefinitions": [
+    { "AttributeName": "PK", "AttributeType": "S" },
+    { "AttributeName": "SK", "AttributeType": "S" },
+    { "AttributeName": "GSI1PK", "AttributeType": "S" },
+    { "AttributeName": "GSI1SK", "AttributeType": "S" },
+    { "AttributeName": "GSI2PK", "AttributeType": "S" },
+    { "AttributeName": "GSI2SK", "AttributeType": "S" }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "GSI1",
+      "KeySchema": [
+        { "AttributeName": "GSI1PK", "KeyType": "HASH" },
+        { "AttributeName": "GSI1SK", "KeyType": "RANGE" }
+      ]
+    },
+    {
+      "IndexName": "GSI2",
+      "KeySchema": [
+        { "AttributeName": "GSI2PK", "KeyType": "HASH" },
+        { "AttributeName": "GSI2SK", "KeyType": "RANGE" }
+      ]
+    }
+  ],
+  "BillingMode": "PAY_PER_REQUEST"
+}
+```
+
+## CloudFormation/CDK
+
+```typescript
+// AWS CDK example
+const table = new dynamodb.Table(this, "AuthHeroTable", {
+  tableName: "authhero",
+  partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+  sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
+  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+});
+
+table.addGlobalSecondaryIndex({
+  indexName: "GSI1",
+  partitionKey: { name: "GSI1PK", type: dynamodb.AttributeType.STRING },
+  sortKey: { name: "GSI1SK", type: dynamodb.AttributeType.STRING },
+});
+```
+
+## Key Files
+
+- `src/index.ts` - Main `createAdapters()` function
+- `src/adapters/` - Individual DynamoDB adapter implementations
+- `src/keys.ts` - Key generation utilities for single-table design
+- `src/utils.ts` - Generic DynamoDB query helpers
+- `src/types.ts` - Type definitions
+
+## Related Packages
+
+- `@authhero/adapter-interfaces` - Interface definitions
+- `@authhero/kysely-adapter` - SQL alternative
+
+## License
+
+MIT License
