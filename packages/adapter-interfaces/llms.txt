@@ -1,0 +1,144 @@
+# @authhero/adapter-interfaces
+
+> TypeScript interfaces for creating AuthHero adapters - connects AuthHero to databases, email services, and more.
+
+## Overview
+
+This package provides the interface definitions that all AuthHero adapters must implement. It ensures type safety and consistency across different storage backends.
+
+## Installation
+
+```bash
+npm install @authhero/adapter-interfaces
+```
+
+## Database Adapter Interface
+
+### Design Rules
+
+- `created_at` and `modified_at` fields are handled by the adapter
+- `tenant_id` is not part of entities sent to the adapter
+- Entity IDs are passed to the adapter
+- Types are inferred from Zod schemas for runtime type safety
+- ID columns follow Auth0 naming conventions (e.g., `user_id`, `client_id`)
+
+### Standard Methods
+
+Each adapter typically exposes:
+
+```typescript
+interface EntityAdapter<T> {
+  create(tenant_id: string, entity: T): Promise<T>;
+  update(tenant_id: string, id: string, entity: Partial<T>): Promise<boolean>;
+  remove(tenant_id: string, id: string): Promise<boolean>;
+  get(tenant_id: string, id: string): Promise<T | null>;
+  list(tenant_id: string, query: Query): Promise<{ items: T[]; total: number }>;
+}
+```
+
+## Available Adapters
+
+| Adapter | Entity |
+|---------|--------|
+| `users` | User accounts |
+| `clients` | OAuth2 clients/applications |
+| `connections` | Identity providers |
+| `sessions` | User sessions |
+| `codes` | Authorization codes |
+| `passwords` | Password credentials |
+| `tenants` | Multi-tenant configuration |
+| `roles` | RBAC roles |
+| `permissions` | RBAC permissions |
+| `organizations` | Organization management |
+| `logs` | Audit logs |
+| `customDomains` | Custom domain management |
+
+## Passthrough Adapter
+
+Utility for syncing writes to multiple adapters:
+
+```typescript
+import { createPassthroughAdapter } from "@authhero/adapter-interfaces";
+
+const logsAdapter = createPassthroughAdapter({
+  primary: databaseAdapter,
+  secondaries: [
+    {
+      adapter: analyticsAdapter,
+      blocking: false,
+      onError: (err) => console.error(err),
+    },
+  ],
+  syncMethods: ["create", "update", "remove"],
+});
+```
+
+### Use Cases
+
+- Multi-destination logging
+- Cache warming
+- Database migration
+- Analytics synchronization
+
+## Write-Only Adapter Helper
+
+```typescript
+import { createWriteOnlyAdapter } from "@authhero/adapter-interfaces";
+
+const adapter = createWriteOnlyAdapter({
+  create: async (tenantId, entity) => {
+    // Write-only implementation
+  },
+});
+```
+
+## Key Types
+
+```typescript
+// Main data adapter type
+export interface DataAdapters {
+  users: UsersDataAdapter;
+  clients: ClientsDataAdapter;
+  connections: ConnectionsDataAdapter;
+  sessions: SessionsDataAdapter;
+  // ... more adapters
+}
+
+// Query parameters for listing
+export interface ListParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  q?: string;
+}
+```
+
+## Implementing a Custom Adapter
+
+```typescript
+import { DataAdapters } from "@authhero/adapter-interfaces";
+
+export function createMyAdapter(config: Config): DataAdapters {
+  return {
+    users: {
+      create: async (tenantId, user) => { /* ... */ },
+      get: async (tenantId, userId) => { /* ... */ },
+      list: async (tenantId, params) => { /* ... */ },
+      update: async (tenantId, userId, data) => { /* ... */ },
+      remove: async (tenantId, userId) => { /* ... */ },
+    },
+    // ... implement other adapters
+  };
+}
+```
+
+## Key Files
+
+- `src/index.ts` - Main exports
+- `src/adapters/` - Individual adapter interface definitions
+- `src/types/` - Shared type definitions
+- `src/utils/` - Utility functions like `createPassthroughAdapter`
+
+## License
+
+MIT License

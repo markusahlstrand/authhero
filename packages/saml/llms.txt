@@ -1,0 +1,160 @@
+# @authhero/saml
+
+> SAML utilities for AuthHero - request parsing, response generation, and metadata handling.
+
+## Overview
+
+This package provides SAML (Security Assertion Markup Language) support for AuthHero, enabling enterprise SSO integrations with identity providers like Okta, Azure AD, and Google Workspace.
+
+## Installation
+
+```bash
+npm install @authhero/saml
+```
+
+For local signing (Node.js):
+```bash
+npm install xml-crypto
+```
+
+## Features
+
+- Parse SAML requests
+- Generate SAML metadata
+- Create SAML responses
+- Pluggable signing implementations:
+  - **LocalSamlSigner** - xml-crypto for Node.js
+  - **HttpSamlSigner** - HTTP-based for edge/browser environments
+
+## Import Strategies
+
+### Full Import (Node.js)
+
+```typescript
+import {
+  createSamlResponse,
+  LocalSamlSigner,
+  HttpSamlSigner,
+} from "@authhero/saml";
+```
+
+### Core Import (Edge/Cloudflare Workers) - Recommended
+
+```typescript
+import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
+```
+No xml-crypto imports, smaller bundle size.
+
+### Local Signer Only
+
+```typescript
+import { LocalSamlSigner } from "@authhero/saml/local-signer";
+```
+
+## Usage
+
+### Edge Environment (HTTP Signer)
+
+```typescript
+import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
+
+const signer = new HttpSamlSigner("https://your-signing-service.com/sign");
+
+const response = await createSamlResponse(
+  {
+    issuer: "https://auth.example.com",
+    audience: "urn:example:audience",
+    destination: "https://sp.example.com/acs",
+    inResponseTo: "request-id",
+    userId: "user-123",
+    email: "user@example.com",
+    sessionIndex: "session-123",
+  },
+  signer
+);
+```
+
+### Node.js Environment (Local Signer)
+
+```typescript
+import { createSamlResponse, LocalSamlSigner } from "@authhero/saml";
+
+const signer = new LocalSamlSigner({
+  privateKey: process.env.SAML_PRIVATE_KEY,
+  certificate: process.env.SAML_CERTIFICATE,
+});
+
+const response = await createSamlResponse(config, signer);
+```
+
+### Parse SAML Request
+
+```typescript
+import { parseSamlRequest } from "@authhero/saml/core";
+
+const request = await parseSamlRequest(samlRequestBase64);
+// { id, issuer, destination, assertionConsumerServiceURL }
+```
+
+### Generate Metadata
+
+```typescript
+import { generateMetadata } from "@authhero/saml/core";
+
+const metadata = generateMetadata({
+  entityId: "https://auth.example.com",
+  ssoUrl: "https://auth.example.com/saml/sso",
+  certificate: publicCertificate,
+});
+```
+
+## SAML Flow
+
+1. **SP-Initiated SSO**:
+   - Service Provider sends SAML AuthnRequest
+   - AuthHero parses request, authenticates user
+   - AuthHero generates signed SAML Response
+   - User is redirected back to SP with assertion
+
+2. **IdP-Initiated SSO**:
+   - User starts at AuthHero
+   - AuthHero generates SAML Response
+   - User is redirected to SP
+
+## Key Functions
+
+| Function | Description |
+|----------|-------------|
+| `createSamlResponse` | Generate signed SAML response |
+| `parseSamlRequest` | Parse incoming SAML AuthnRequest |
+| `generateMetadata` | Generate IdP metadata XML |
+| `validateSignature` | Verify SAML signature |
+
+## Signing Implementations
+
+### LocalSamlSigner
+- Uses xml-crypto library
+- Node.js only (uses crypto module)
+- Best for: Server environments
+
+### HttpSamlSigner
+- Signs via HTTP endpoint
+- Edge/browser compatible
+- Best for: Cloudflare Workers, edge functions
+
+## Key Files
+
+- `src/index.ts` - Full exports
+- `src/core.ts` - Core exports without xml-crypto
+- `src/local-signer.ts` - LocalSamlSigner
+- `src/response.ts` - SAML response generation
+- `src/request.ts` - SAML request parsing
+- `src/metadata.ts` - Metadata generation
+
+## Related Packages
+
+- `authhero` - Main authentication library (includes SAML router)
+
+## License
+
+MIT License

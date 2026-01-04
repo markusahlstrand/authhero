@@ -1,0 +1,184 @@
+# @authhero/multi-tenancy
+
+> Multi-tenancy support for AuthHero - organization-based access control and per-tenant database isolation.
+
+## Overview
+
+This package provides enterprise multi-tenancy capabilities, enabling SaaS platforms to manage multiple isolated tenants with organization-based access control.
+
+## Installation
+
+```bash
+npm install @authhero/multi-tenancy
+```
+
+## Features
+
+- 🔐 **Organization-based Access Control** - JWT tokens with `org_id` claims
+- 💾 **Database Isolation** - Per-tenant databases (D1, Turso, custom)
+- ⚙️ **Settings Inheritance** - Child tenants inherit from main tenant
+- 🌐 **Subdomain Routing** - Automatic subdomain-to-tenant resolution
+- 🔄 **Tenant Lifecycle** - Automated provisioning/deprovisioning
+- 🪝 **Hooks Integration** - Seamless AuthHero hooks system
+- 📡 **Resource Server Sync** - Sync APIs across all tenants
+
+## Quick Start
+
+```typescript
+import { Hono } from "hono";
+import { createAuthhero } from "authhero";
+import { setupMultiTenancy } from "@authhero/multi-tenancy";
+
+const multiTenancy = setupMultiTenancy({
+  accessControl: {
+    controlPlaneTenantId: "control_plane",
+    defaultPermissions: ["tenant:admin"],
+  },
+});
+
+const app = new Hono();
+
+// Apply middleware
+app.use("*", multiTenancy.middleware);
+
+// Mount management routes
+app.route("/management", multiTenancy.app);
+
+// Mount AuthHero with hooks
+app.route("/", createAuthhero({
+  dataAdapter: env.data,
+  hooks: multiTenancy.hooks,
+}));
+```
+
+## Key Concepts
+
+### Organization-Tenant Model
+
+Organizations on a "main" (control plane) tenant represent and control access to child tenants. Each organization maps to exactly one child tenant.
+
+```
+Main Tenant (Control Plane)
+├── Organization A → Tenant A (isolated database)
+├── Organization B → Tenant B (isolated database)
+└── Organization C → Tenant C (isolated database)
+```
+
+### Token-Based Access Control
+
+Access controlled via `org_id` claim in JWT tokens:
+
+| Token Type | Access |
+|------------|--------|
+| No `org_id` | Main tenant only |
+| With `org_id` | Matching child tenant |
+
+### Silent Authentication (Tenant Switching)
+
+```typescript
+// Switch to a specific tenant
+const token = await getAccessTokenSilently({
+  authorizationParams: {
+    organization: "tenant-id",
+  },
+});
+```
+
+## Database Isolation
+
+Per-tenant databases for complete data isolation:
+
+```typescript
+import { setupMultiTenancy } from "@authhero/multi-tenancy";
+
+const multiTenancy = setupMultiTenancy({
+  databaseIsolation: {
+    provider: "d1", // or "turso", "custom"
+    createDatabase: async (tenantId) => {
+      // Provision new D1 database
+      return d1Client.createDatabase(tenantId);
+    },
+    getConnection: async (tenantId) => {
+      // Return connection for tenant
+      return d1Client.getDatabase(tenantId);
+    },
+  },
+});
+```
+
+## Resource Server Synchronization
+
+Automatically sync API configurations across tenants:
+
+```typescript
+import { createResourceServerSyncHooks } from "@authhero/multi-tenancy";
+
+const resourceServerHooks = createResourceServerSyncHooks({
+  mainTenantId: "main",
+  getChildTenantIds: async () => {
+    const { tenants } = await adapters.tenants.list();
+    return tenants.filter(t => t.id !== "main").map(t => t.id);
+  },
+  getAdapters: async (tenantId) => {
+    return adapters.forTenant(tenantId);
+  },
+});
+```
+
+## Subdomain Routing
+
+Map subdomains to tenants:
+
+```typescript
+const multiTenancy = setupMultiTenancy({
+  subdomainRouting: {
+    baseDomain: "example.com",
+    resolver: async (subdomain) => {
+      // customer1.example.com → tenant-customer1
+      return `tenant-${subdomain}`;
+    },
+  },
+});
+```
+
+## Configuration
+
+```typescript
+interface MultiTenancyConfig {
+  accessControl: {
+    controlPlaneTenantId: string;
+    defaultPermissions: string[];
+  };
+  databaseIsolation?: {
+    provider: "d1" | "turso" | "custom";
+    createDatabase: (tenantId: string) => Promise<Database>;
+    getConnection: (tenantId: string) => Promise<Connection>;
+  };
+  subdomainRouting?: {
+    baseDomain: string;
+    resolver: (subdomain: string) => Promise<string>;
+  };
+  settingsInheritance?: {
+    inheritFrom: string;
+    fields: string[];
+  };
+}
+```
+
+## Documentation
+
+- [Architecture](https://authhero.net/packages/multi-tenancy/architecture)
+- [Database Isolation](https://authhero.net/packages/multi-tenancy/database-isolation)
+- [API Reference](https://authhero.net/packages/multi-tenancy/api-reference)
+
+## Key Files
+
+- `src/index.ts` - Main `setupMultiTenancy()` function
+- `src/middleware/` - Tenant resolution middleware
+- `src/hooks/` - AuthHero hooks integration
+- `src/database/` - Database isolation providers
+- `src/sync/` - Resource server synchronization
+
+## License
+
+MIT License

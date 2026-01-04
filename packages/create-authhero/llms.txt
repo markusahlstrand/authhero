@@ -1,0 +1,169 @@
+# create-authhero
+
+> CLI tool for creating new AuthHero projects - scaffolds authentication servers in minutes.
+
+## Overview
+
+`create-authhero` is a command-line tool that scaffolds new AuthHero projects with different deployment targets and configurations.
+
+## Usage
+
+```bash
+# Create a new project
+npm create authhero my-auth-project
+
+# Or with npx
+npx create-authhero my-auth-project
+```
+
+## Interactive Setup
+
+The CLI guides you through:
+
+1. **Project name** - Directory name for your project
+2. **Setup type** - Local, Cloudflare Simple, or Cloudflare Multi-Tenant
+3. **Admin credentials** - Email and password for initial admin user
+4. **Install dependencies** - Optional package installation
+5. **Start server** - Optional migration, seeding, and dev server start
+
+## Setup Types
+
+### 1. Local (SQLite)
+
+**Best for:** Getting started, local development, small deployments
+
+- SQLite database with `better-sqlite3`
+- Runs with Bun or Node.js
+- No external dependencies
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts     # Server entry point
+│   ├── app.ts       # AuthHero configuration
+│   ├── migrate.ts   # Database migrations
+│   └── seed.ts      # Database seeding
+├── package.json
+└── tsconfig.json
+```
+
+**Quick Start:**
+```bash
+cd my-auth-project
+npm install
+npm run migrate
+npm run seed
+npm run dev
+```
+
+### 2. Cloudflare Simple (Single Tenant)
+
+**Best for:** Single-tenant deployments, simple production setups
+
+- Cloudflare Workers with D1 database
+- Single tenant configuration
+- Edge deployment with low latency
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts     # Worker entry point
+│   ├── app.ts       # AuthHero configuration
+│   └── types.ts     # TypeScript types
+├── wrangler.toml    # Cloudflare configuration
+├── seed.sql         # Database seeding
+├── package.json
+└── tsconfig.json
+```
+
+**Quick Start:**
+```bash
+cd my-auth-project
+npm install
+wrangler d1 create authhero-db
+# Update wrangler.toml with database_id
+npm run db:migrate
+npm run seed
+npm run dev
+```
+
+### 3. Cloudflare Multi-Tenant (Production)
+
+**Best for:** SaaS platforms, agencies, enterprise deployments
+
+- Production-grade multi-tenant architecture
+- Main D1 database + per-tenant databases
+- Analytics Engine for centralized logging
+- Subdomain-based tenant routing
+
+```
+my-auth-project/
+├── src/
+│   ├── index.ts     # Worker entry point
+│   ├── app.ts       # AuthHero configuration
+│   ├── tenants.ts   # Tenant management
+│   └── types.ts     # TypeScript types
+├── wrangler.toml    # Cloudflare configuration
+├── package.json
+└── tsconfig.json
+```
+
+## Generated Configuration
+
+### Local Template
+
+```typescript
+// src/app.ts
+import { init } from "authhero";
+import { createAdapters } from "@authhero/kysely-adapter";
+
+const adapters = createAdapters(db);
+const { managementApp, oauthApp, universalApp } = init({
+  dataAdapter: adapters,
+});
+```
+
+### Cloudflare Template
+
+```typescript
+// src/index.ts
+import { Hono } from "hono";
+import { createAuthhero } from "authhero";
+import { createAdapters } from "@authhero/kysely-adapter";
+import { D1Dialect } from "kysely-d1";
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const app = createAuthhero({
+      dataAdapter: createAdapters(env.DB),
+    });
+    return app.fetch(request, env);
+  },
+};
+```
+
+## Seed Data
+
+The CLI generates seed data including:
+
+- Initial tenant configuration
+- Admin user with provided credentials
+- Default OAuth2 client
+- Basic connections (username-password)
+
+## Key Files
+
+- `index.js` - CLI entry point
+- `templates/local/` - Local SQLite template
+- `templates/cloudflare-simple/` - Cloudflare single-tenant template
+- `templates/cloudflare-multi-tenant/` - Cloudflare multi-tenant template
+
+## Related Packages
+
+- `authhero` - Core authentication library
+- `@authhero/kysely-adapter` - Database adapter
+- `@authhero/multi-tenancy` - Multi-tenant support
+
+## License
+
+MIT License
