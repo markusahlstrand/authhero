@@ -319,13 +319,13 @@ function addSemanticReleaseConfig(projectPath: string): void {
     plugins: [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
-      "@semantic-release/github"
-    ]
+      "@semantic-release/github",
+    ],
   };
 
   fs.writeFileSync(
     path.join(projectPath, ".releaserc.json"),
-    JSON.stringify(releaseConfig, null, 2)
+    JSON.stringify(releaseConfig, null, 2),
   );
 
   // Read and update package.json to add semantic-release and test script
@@ -516,7 +516,10 @@ program
 
     // Ask about GitHub CI for cloudflare setups
     let includeGithubCi = false;
-    if (setupType === "cloudflare-simple" || setupType === "cloudflare-multitenant") {
+    if (
+      setupType === "cloudflare-simple" ||
+      setupType === "cloudflare-multitenant"
+    ) {
       if (options.githubCi !== undefined) {
         includeGithubCi = options.githubCi;
         if (includeGithubCi) {
@@ -527,7 +530,8 @@ program
           {
             type: "confirm",
             name: "includeGithubCi",
-            message: "Would you like to include GitHub CI with semantic versioning?",
+            message:
+              "Would you like to include GitHub CI with semantic versioning?",
             default: false,
           },
         ]);
@@ -627,7 +631,6 @@ program
           setupType === "cloudflare-simple" ||
           setupType === "cloudflare-multitenant"
         ) {
-
           // Determine if we should run migrations and seed
           let shouldSetup: boolean;
           if (options.skipMigrate && options.skipSeed) {

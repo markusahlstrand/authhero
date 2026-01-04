@@ -194,9 +194,9 @@ GitHub Release → Deploy to Production
 
 ### Required GitHub Secrets
 
-| Secret | Description |
-|--------|-------------|
-| `CLOUDFLARE_API_TOKEN` | API token for dev deployments |
+| Secret                      | Description                          |
+| --------------------------- | ------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`      | API token for dev deployments        |
 | `PROD_CLOUDFLARE_API_TOKEN` | API token for production deployments |
 
 ### Commit Message Conventions

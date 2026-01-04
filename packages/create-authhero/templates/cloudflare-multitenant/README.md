@@ -187,7 +187,7 @@ If you selected GitHub CI during setup, your project includes automated workflow
 
 2. **Deploy to Dev** (`.github/workflows/deploy-dev.yml`)
    - **Trigger**: Push to `main` branch
-   - **Actions**: 
+   - **Actions**:
      - Runs semantic-release to create version tags
      - Deploys to Cloudflare Workers (dev environment)
 
@@ -199,9 +199,9 @@ If you selected GitHub CI during setup, your project includes automated workflow
 
 Configure these secrets in your GitHub repository settings:
 
-| Secret | Description |
-|--------|-------------|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for dev deployments |
+| Secret                      | Description                                     |
+| --------------------------- | ----------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`      | Cloudflare API token for dev deployments        |
 | `PROD_CLOUDFLARE_API_TOKEN` | Cloudflare API token for production deployments |
 
 ### Semantic Versioning
