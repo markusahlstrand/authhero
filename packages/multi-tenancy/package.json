@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@authhero/kysely-adapter": "workspace:*",
+    "authhero": "workspace:*",
     "@hono/zod-openapi": "^0.19.10",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.0.0",
@@ -45,11 +46,11 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "authhero": "workspace:*",
     "zod": "^3.24.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^0.19.10",
+    "authhero": "^3.0.0",
     "hono": "^4.7.0"
   }
 }
