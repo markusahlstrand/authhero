@@ -72,9 +72,9 @@ const adapters = withRuntimeFallback(baseAdapters, {
   controlPlaneClientId: "main-client"     // Control plane client for defaults
 });
 
-// Use with standard AuthHero init
+// Use with AuthHero init
 import { init } from "authhero";
-const app = init({
+const { app } = init({
   dataAdapter: adapters
 });
 ```

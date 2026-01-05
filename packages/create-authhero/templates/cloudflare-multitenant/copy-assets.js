@@ -59,6 +59,25 @@ try {
 
   copyDirectory(sourceDir, targetDir);
 
+  // Also copy widget files from @authhero/widget package
+  const widgetSourceDir = path.join(
+    __dirname,
+    "node_modules",
+    "@authhero",
+    "widget",
+    "dist",
+    "authhero-widget",
+  );
+  const widgetTargetDir = path.join(targetDir, "u", "widget");
+
+  if (fs.existsSync(widgetSourceDir)) {
+    console.log("📦 Copying widget assets...");
+    copyDirectory(widgetSourceDir, widgetTargetDir);
+  } else {
+    console.warn(`⚠️  Widget directory not found: ${widgetSourceDir}`);
+    console.warn("Widget features may not work. Install @authhero/widget to enable.");
+  }
+
   console.log(`✅ Assets copied to ${targetDir}`);
 } catch (error) {
   console.error("❌ Error copying assets:", error.message);

@@ -18,36 +18,83 @@ This package provides a complete multi-tenancy solution for AuthHero-based authe
 - **Sync entities** from control plane to child tenants
 - **Share secrets** via runtime fallback without copying sensitive data
 
+::: tip Composable Architecture
+This package uses a **peer dependency** on `authhero` (^3.0.0) and provides composable building blocks that integrate with AuthHero's hooks system. You import and use AuthHero's `init()` function directly, passing in multi-tenancy hooks and extensions.
+:::
+
 ## Installation
 
 ```bash
-pnpm add @authhero/multi-tenancy
+pnpm add authhero @authhero/multi-tenancy
 # or
-npm install @authhero/multi-tenancy
+npm install authhero @authhero/multi-tenancy
 ```
+
+::: tip Peer Dependency
+`@authhero/multi-tenancy` requires `authhero` as a peer dependency (^3.0.0). Both packages must be installed.
+:::
 
 ## Quick Start
 
 ```typescript
-import { init } from "@authhero/multi-tenancy";
+import { init, fetchAll } from "authhero";
+import {
+  createSyncHooks,
+  createTenantsOpenAPIRouter,
+  createProtectSyncedMiddleware,
+} from "@authhero/multi-tenancy";
 import createAdapters from "@authhero/kysely-adapter";
 
-// Create your data adapters (Kysely, Drizzle, etc.)
+const CONTROL_PLANE_TENANT_ID = "control_plane";
 const dataAdapter = createAdapters(db);
 
-// Initialize multi-tenant AuthHero with entity sync
+// Create sync hooks for syncing entities from control plane to child tenants
+const { entityHooks, tenantHooks } = createSyncHooks({
+  controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  getChildTenantIds: async () => {
+    const allTenants = await fetchAll(
+      (params) => dataAdapter.tenants.list(params),
+      "tenants",
+      { cursorField: "id", pageSize: 100 }
+    );
+    return allTenants
+      .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
+      .map((t) => t.id);
+  },
+  getAdapters: async () => dataAdapter,
+  getControlPlaneAdapters: async () => dataAdapter,
+  sync: {
+    resourceServers: true,
+    roles: true,
+    connections: true,
+  },
+});
+
+// Create tenants router
+const tenantsRouter = createTenantsOpenAPIRouter(
+  {
+    accessControl: {
+      controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+      requireOrganizationMatch: false,
+      defaultPermissions: ["tenant:admin"],
+    },
+  },
+  { tenants: tenantHooks }
+);
+
+// Initialize AuthHero with sync hooks and tenant routes
 const { app } = init({
   dataAdapter,
-  // Control plane tenant manages all other tenants
-  controlPlaneTenantId: "control_plane",
-  // Sync resource servers from control plane to all child tenants
-  syncResourceServers: true,
-  // Sync roles from control plane to all child tenants
-  syncRoles: true,
-  // Additional AuthHero configuration
+  entityHooks,
+  managementApiExtensions: [
+    { path: "/tenants", router: tenantsRouter },
+  ],
   emailProvider: myEmailProvider,
   smsProvider: mySmsProvider,
 });
+
+// Add middleware to protect synced entities
+app.use("/api/v2/*", createProtectSyncedMiddleware());
 
 export default app;
 ```
@@ -65,7 +112,7 @@ The multi-tenancy system automatically synchronizes specific entities from the c
 
 ### Synced Entities
 
-When `syncResourceServers` and `syncRoles` are enabled, the following happens automatically:
+When entity sync is enabled via `createSyncHooks`, the following happens automatically:
 
 #### Resource Servers
 
@@ -152,20 +199,25 @@ To modify synced entities, update them on the control plane and changes will aut
 
 ### Configuration Options
 
+Control which entities to sync using the `sync` option in `createSyncHooks`:
+
 ```typescript
-const { app } = init({
-  dataAdapter,
+const { entityHooks, tenantHooks } = createSyncHooks({
   controlPlaneTenantId: "control_plane",
-
-  // Sync resource servers (default: true)
-  syncResourceServers: true,
-
-  // Sync roles and their permissions (default: true)
-  syncRoles: true,
+  getChildTenantIds: async () => { /* ... */ },
+  getAdapters: async () => dataAdapter,
+  getControlPlaneAdapters: async () => dataAdapter,
+  
+  // Control which entities to sync (all default to true)
+  sync: {
+    resourceServers: true,  // Sync resource servers
+    roles: true,            // Sync roles and permissions
+    connections: true,      // Sync connections (without secrets)
+  },
 });
 ```
 
-Set either option to `false` to disable that type of synchronization if you want child tenants to manage their own resource servers or roles independently.
+Set any option to `false` to disable that type of synchronization if you want child tenants to manage their own entities independently.
 
 ## Documentation
 
@@ -193,9 +245,10 @@ When a new child tenant is created:
 
 1. A tenant record is created in the database
 2. An organization with the same ID is created on the control plane
-3. All control plane resource servers are copied to the new tenant (if `syncResourceServers: true`)
-4. All control plane roles are copied to the new tenant (if `syncRoles: true`)
-5. Users added to that organization on the control plane can manage the child tenant
+3. All control plane resource servers are copied to the new tenant (if `sync.resourceServers: true`)
+4. All control plane roles are copied to the new tenant (if `sync.roles: true`)
+5. All control plane connections are copied to the new tenant without secrets (if `sync.connections: true`)
+6. Users added to that organization on the control plane can manage the child tenant
 
 ### Token-Based Access Control
 

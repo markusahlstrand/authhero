@@ -9,14 +9,18 @@ Multi-tenancy support for AuthHero with organization-based access control, per-t
 - ⚙️ **Settings Inheritance** - Inherit configuration from main tenant to child tenants
 - 🌐 **Subdomain Routing** - Automatic subdomain-to-tenant resolution
 - 🔄 **Tenant Lifecycle** - Automated provisioning and deprovisioning
-- 🪝 **Hooks Integration** - Seamless integration with AuthHero hooks system
-- 📡 **Resource Server Sync** - Automatically sync resource servers from main tenant to all child tenants
+- 🪝 **Composable Architecture** - Combine multi-tenancy features with the base AuthHero package
+- 📡 **Entity Sync** - Automatically sync resource servers, roles, and connections from control plane to all child tenants
 
 ## Installation
 
 ```bash
-pnpm add @authhero/multi-tenancy
+pnpm add authhero @authhero/multi-tenancy
 ```
+
+::: tip Peer Dependency
+`@authhero/multi-tenancy` requires `authhero` as a peer dependency. Both packages must be installed.
+:::
 
 ## Documentation
 
@@ -29,33 +33,64 @@ pnpm add @authhero/multi-tenancy
 ## Quick Start
 
 ```typescript
-import { Hono } from "hono";
-import { createAuthhero } from "authhero";
-import { setupMultiTenancy } from "@authhero/multi-tenancy";
+import { init, AuthHeroConfig, fetchAll } from "authhero";
+import {
+  createSyncHooks,
+  createTenantsOpenAPIRouter,
+  createProtectSyncedMiddleware,
+} from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
 
-const multiTenancy = setupMultiTenancy({
-  accessControl: {
-    controlPlaneTenantId: "control_plane",
-    defaultPermissions: ["tenant:admin"],
+const CONTROL_PLANE_TENANT_ID = "control_plane";
+const dataAdapter = createAdapters(db);
+
+// Create sync hooks for syncing entities from control plane to child tenants
+const { entityHooks, tenantHooks } = createSyncHooks({
+  controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  getChildTenantIds: async () => {
+    const allTenants = await fetchAll(
+      (params) => dataAdapter.tenants.list(params),
+      "tenants",
+      { cursorField: "id", pageSize: 100 }
+    );
+    return allTenants
+      .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
+      .map((t) => t.id);
+  },
+  getAdapters: async () => dataAdapter,
+  getControlPlaneAdapters: async () => dataAdapter,
+  sync: {
+    resourceServers: true,
+    roles: true,
+    connections: true,
   },
 });
 
-const app = new Hono();
-
-// Apply middleware
-app.use("*", multiTenancy.middleware);
-
-// Mount management routes
-app.route("/management", multiTenancy.app);
-
-// Mount AuthHero with hooks
-app.route(
-  "/",
-  createAuthhero({
-    dataAdapter: env.data,
-    hooks: multiTenancy.hooks,
-  }),
+// Create tenants router
+const tenantsRouter = createTenantsOpenAPIRouter(
+  {
+    accessControl: {
+      controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+      requireOrganizationMatch: false,
+      defaultPermissions: ["tenant:admin"],
+    },
+  },
+  { tenants: tenantHooks }
 );
+
+// Initialize AuthHero with sync hooks and tenant routes
+const { app } = init({
+  dataAdapter,
+  entityHooks,
+  managementApiExtensions: [
+    { path: "/tenants", router: tenantsRouter },
+  ],
+});
+
+// Add middleware to protect synced entities
+app.use("/api/v2/*", createProtectSyncedMiddleware());
+
+export default app;
 ```
 
 ## Key Concepts
