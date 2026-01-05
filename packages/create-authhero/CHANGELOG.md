@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.20.0
+
+### Minor Changes
+
+- 6dcb42e: Refactor assets
+
 ## 0.19.0
 
 ### Minor Changes

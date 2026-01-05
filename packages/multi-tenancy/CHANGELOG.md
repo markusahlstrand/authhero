@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 13.18.0
+
+### Minor Changes
+
+- 6dcb42e: Refactor assets
+
 ## 13.17.0
 
 ### Minor Changes
