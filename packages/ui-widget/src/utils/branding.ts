@@ -319,9 +319,25 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
         center: 'center',
         left: 'flex-start',
         right: 'flex-end',
-        none: 'none',
       };
-      vars['--ah-logo-align'] = positionMap[w.logo_position] ?? 'center';
+      if (w.logo_position === 'none') {
+        vars['--ah-logo-display'] = 'none';
+      } else {
+        vars['--ah-logo-align'] = positionMap[w.logo_position] ?? 'center';
+      }
+    }
+    if (w.social_buttons_layout) {
+      // 'top' means social buttons above fields, 'bottom' means below
+      // Divider is always order 1 (middle)
+      if (w.social_buttons_layout === 'top') {
+        vars['--ah-social-order'] = '0';
+        vars['--ah-divider-order'] = '1';
+        vars['--ah-fields-order'] = '2';
+      } else {
+        vars['--ah-social-order'] = '2';
+        vars['--ah-divider-order'] = '1';
+        vars['--ah-fields-order'] = '0';
+      }
     }
   }
 

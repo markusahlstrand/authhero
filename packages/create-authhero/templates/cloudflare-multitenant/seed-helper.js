@@ -32,6 +32,7 @@ const worker = spawn("wrangler", wranglerArgs, {
 });
 
 let workerUrl = "http://localhost:8787";
+let workerReady = false;
 
 // Listen for the worker output to get the URL
 worker.stdout?.on("data", (data) => {
@@ -43,10 +44,53 @@ worker.stdout?.on("data", (data) => {
   if (urlMatch) {
     workerUrl = urlMatch[0].replace(/\/$/, ""); // Remove trailing slash
   }
+  
+  // Detect when the worker is ready
+  if (output.includes("Ready on") || output.includes("Listening on")) {
+    workerReady = true;
+  }
 });
 
-// Wait for the worker to start
-await setTimeout(3000);
+// Function to wait for worker to be ready with retries
+async function waitForWorker(maxAttempts = 30, delayMs = 1000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      // Just check if the server responds (even with an error is fine)
+      const response = await fetch(workerUrl, { 
+        signal: AbortSignal.timeout(2000) 
+      });
+      // Any response means the server is up
+      return true;
+    } catch (e) {
+      // ECONNREFUSED means server not ready yet
+      if (e.cause?.code !== 'ECONNREFUSED') {
+        // Other errors might mean the server is actually responding
+        return true;
+      }
+    }
+    
+    if (workerReady) {
+      // Give it a bit more time after wrangler reports ready
+      await setTimeout(500);
+      return true;
+    }
+    
+    await setTimeout(delayMs);
+    if (i > 0 && i % 5 === 0) {
+      console.log(`Still waiting for worker... (attempt ${i + 1}/${maxAttempts})`);
+    }
+  }
+  return false;
+}
+
+console.log("Waiting for seed worker to start...");
+const isReady = await waitForWorker();
+
+if (!isReady) {
+  console.error("\n❌ Seed worker failed to start within timeout");
+  worker.kill();
+  process.exit(1);
+}
 
 console.log(`\nMaking seed request to ${workerUrl}...`);
 

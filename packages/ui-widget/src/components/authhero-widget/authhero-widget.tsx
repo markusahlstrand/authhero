@@ -341,6 +341,13 @@ export class AuthheroWidget {
   };
 
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
+    // If this is a submit button click, trigger form submission
+    if (detail.type === 'submit') {
+      // Create a synthetic submit event and call handleSubmit
+      const syntheticEvent = { preventDefault: () => {} } as Event;
+      this.handleSubmit(syntheticEvent);
+      return;
+    }
     this.buttonClick.emit(detail);
   };
 
@@ -384,6 +391,22 @@ export class AuthheroWidget {
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
+  /**
+   * Check if a component is a social button.
+   */
+  private isSocialComponent(component: FormComponent): boolean {
+    // Check the type property directly - FormComponent has a 'type' field
+    // SocialField has type 'SOCIAL'
+    return (component as { type: string }).type === 'SOCIAL';
+  }
+
+  /**
+   * Check if a component is a divider.
+   */
+  private isDividerComponent(component: FormComponent): boolean {
+    return (component as { type: string }).type === 'DIVIDER';
+  }
+
   render() {
     if (this.loading && !this._screen) {
       return (
@@ -405,12 +428,21 @@ export class AuthheroWidget {
     const screenSuccesses = this.getScreenSuccesses();
     const components = this.getOrderedComponents();
 
-    // Get logo URL from branding props
-    const logoUrl = this._branding?.logo_url;
+    // Separate social, divider, and field components for layout ordering
+    const socialComponents = components.filter(c => this.isSocialComponent(c));
+    const fieldComponents = components.filter(c => !this.isSocialComponent(c) && !this.isDividerComponent(c));
+    const hasDivider = components.some(c => this.isDividerComponent(c));
+
+    // Get logo URL from theme.widget (takes precedence) or branding
+    const logoUrl = this._theme?.widget?.logo_url || this._branding?.logo_url;
 
     return (
       <div class="widget-container" part="container">
-        {logoUrl && <img class="logo" part="logo" src={logoUrl} alt="Logo" />}
+        {logoUrl && (
+          <div class="logo-wrapper" part="logo-wrapper">
+            <img class="logo" part="logo" src={logoUrl} alt="Logo" />
+          </div>
+        )}
 
         {this._screen.title && (
           <h1 class="title" part="title">
@@ -437,20 +469,52 @@ export class AuthheroWidget {
         ))}
 
         <form onSubmit={this.handleSubmit} part="form">
-          {components.map((component) => (
-            <authhero-node
-              key={component.id}
-              component={component}
-              value={this.formData[component.id]}
-              onFieldChange={(e: CustomEvent<{ id: string; value: string }>) =>
-                this.handleInputChange(e.detail.id, e.detail.value)
-              }
-              onButtonClick={(e: CustomEvent<{ id: string; type: string; value?: string }>) =>
-                this.handleButtonClick(e.detail)
-              }
-              disabled={this.loading}
-            />
-          ))}
+          <div class="form-content">
+            {/* Social buttons section - order controlled by CSS */}
+            {socialComponents.length > 0 && (
+              <div class="social-section" part="social-section">
+                {socialComponents.map((component) => (
+                  <authhero-node
+                    key={component.id}
+                    component={component}
+                    value={this.formData[component.id]}
+                    onFieldChange={(e: CustomEvent<{ id: string; value: string }>) =>
+                      this.handleInputChange(e.detail.id, e.detail.value)
+                    }
+                    onButtonClick={(e: CustomEvent<{ id: string; type: string; value?: string }>) =>
+                      this.handleButtonClick(e.detail)
+                    }
+                    disabled={this.loading}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Divider between social and form fields */}
+            {socialComponents.length > 0 && fieldComponents.length > 0 && hasDivider && (
+              <div class="divider" part="divider">
+                <span class="divider-text">Or</span>
+              </div>
+            )}
+
+            {/* Form fields section - order controlled by CSS */}
+            <div class="fields-section" part="fields-section">
+              {fieldComponents.map((component) => (
+                <authhero-node
+                  key={component.id}
+                  component={component}
+                  value={this.formData[component.id]}
+                  onFieldChange={(e: CustomEvent<{ id: string; value: string }>) =>
+                    this.handleInputChange(e.detail.id, e.detail.value)
+                  }
+                  onButtonClick={(e: CustomEvent<{ id: string; type: string; value?: string }>) =>
+                    this.handleButtonClick(e.detail)
+                  }
+                  disabled={this.loading}
+                />
+              ))}
+            </div>
+          </div>
         </form>
 
         {this._screen.links && this._screen.links.length > 0 && (
