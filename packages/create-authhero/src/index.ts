@@ -81,10 +81,12 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        dev: "wrangler dev --port 3000 --local-protocol https",
+        "copy-assets": "node copy-assets.js",
+        dev: "npm run copy-assets && wrangler dev --port 3000 --local-protocol https",
         "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-        deploy: "wrangler deploy --config wrangler.local.toml",
+          "npm run copy-assets && wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy:
+          "npm run copy-assets && wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
         "db:migrate:remote":
           "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
@@ -125,10 +127,12 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       version: "1.0.0",
       type: "module",
       scripts: {
-        dev: "wrangler dev --port 3000 --local-protocol https",
+        "copy-assets": "node copy-assets.js",
+        dev: "npm run copy-assets && wrangler dev --port 3000 --local-protocol https",
         "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-        deploy: "wrangler deploy --config wrangler.local.toml",
+          "npm run copy-assets && wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+        deploy:
+          "npm run copy-assets && wrangler deploy --config wrangler.local.toml",
         "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
         "db:migrate:remote":
           "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",

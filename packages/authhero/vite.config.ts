@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
   if (mode === "client") {
     return {
       build: {
+        emptyOutDir: false, // Don't wipe CSS files built earlier
         rollupOptions: {
           input: path.resolve(__dirname, "src/client/index.tsx"),
           output: {
@@ -47,6 +48,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     build: {
+      emptyOutDir: false, // Don't wipe CSS/JS files built earlier
       outDir: "./dist",
       lib: {
         entry: path.resolve(__dirname, "src/index.ts"),
