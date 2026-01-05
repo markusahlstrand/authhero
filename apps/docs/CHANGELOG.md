@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.25.0
+
+### Minor Changes
+
+- 6dcb42e: Refactor assets
+
 ## 1.24.0
 
 ### Minor Changes
