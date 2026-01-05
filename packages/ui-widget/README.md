@@ -284,8 +284,11 @@ See [`packages/authhero/FLOWS.md`](../authhero/FLOWS.md) for detailed integratio
 # Install dependencies
 pnpm install
 
-# Start development server
+# Start development server (runs Stencil build + demo server)
 pnpm dev
+
+# Run demo server only (requires built widget)
+pnpm demo
 
 # Build for production
 pnpm build
@@ -293,6 +296,23 @@ pnpm build
 # Run tests
 pnpm test
 ```
+
+### Demo Server
+
+The widget includes a demo server at `demo-server/server.ts` that provides:
+
+- **Live Settings Panel**: Test all theme and branding options in real-time
+- **Mock Authentication Flow**: Test identifier → code entry → success screens
+- **Server-Driven UI**: Demonstrates how the widget integrates with a backend
+
+When you run `pnpm dev`, the demo is available at:
+- Path-based: http://localhost:3456/u2/login/identifier
+- Query-based: http://localhost:3456/u2/login?screen=identifier
+
+The demo server provides:
+- `GET /u2/screen/:screenId` - Returns screen configuration
+- `POST /u2/screen/:screenId` - Processes form submissions and returns next screen
+- Settings panel to customize theme, branding, and widget options
 
 ## License
 

@@ -6,6 +6,8 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { passwordlessGrant } from "../../../authentication-flows/passwordless";
+import { getPrimaryUserByProvider } from "../../../helpers/users";
 
 /**
  * Create the enter-code screen
@@ -101,8 +103,90 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
   description: "OTP code verification screen",
   handler: {
     get: enterCodeScreen,
-    // POST handler would validate the code and either:
-    // 1. Complete login if code is valid
-    // 2. Return error if code is invalid/expired
+    post: async (context, data) => {
+      const { ctx, client, state } = context;
+      const code = (data.code as string)?.trim();
+
+      // Validate code is provided
+      if (!code) {
+        return {
+          error: "Verification code is required",
+          screen: enterCodeScreen({
+            ...context,
+            errors: { code: "Verification code is required" },
+          }),
+        };
+      }
+
+      // Get the login session to find the username
+      const loginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      if (!loginSession || !loginSession.authParams?.username) {
+        return {
+          error: "Session expired",
+          screen: enterCodeScreen({
+            ...context,
+            errors: { code: "Session expired. Please start over." },
+          }),
+        };
+      }
+
+      try {
+        const result = await passwordlessGrant(ctx, {
+          client_id: client.client_id,
+          authParams: loginSession.authParams,
+          username: loginSession.authParams.username,
+          otp: code,
+        });
+
+        if (result instanceof Response) {
+          // Get the redirect URL from the response
+          const location = result.headers.get("location");
+          if (location) {
+            return { redirect: location };
+          }
+        }
+
+        // If we got here, something went wrong
+        return {
+          error: "Unexpected error",
+          screen: enterCodeScreen({
+            ...context,
+            errors: { code: "An unexpected error occurred. Please try again." },
+          }),
+        };
+      } catch (e: unknown) {
+        // Check if user has password login available
+        let hasPasswordLogin = false;
+        try {
+          const passwordUser = await getPrimaryUserByProvider({
+            userAdapter: ctx.env.data.users,
+            tenant_id: client.tenant.id,
+            username: loginSession.authParams.username,
+            provider: "auth2",
+          });
+          hasPasswordLogin = !!passwordUser;
+        } catch {
+          // Ignore errors
+        }
+
+        const errorMessage = (e as Error).message || "Invalid or expired code";
+
+        return {
+          error: errorMessage,
+          screen: enterCodeScreen({
+            ...context,
+            errors: { code: errorMessage },
+            data: {
+              ...context.data,
+              hasPasswordLogin,
+            },
+          }),
+        };
+      }
+    },
   },
 };

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Widget Event Test</title>
+  <script type="module" src="/build/authhero-widget.esm.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f5f5f5; }
+    .test-widget { max-width: 400px; margin: 0 auto; }
+    .log { background: #1e1e1e; color: #d4d4d4; padding: 1rem; margin-top: 2rem; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    .log-entry { margin: 4px 0; padding: 4px; border-bottom: 1px solid #333; }
+  </style>
+</head>
+<body>
+  <h1>Widget Event Test</h1>
+  <div class="test-widget">
+    <authhero-widget id="widget"></authhero-widget>
+  </div>
+  <div class="log" id="log"></div>
+
+  <script type="module">
+    const widget = document.getElementById('widget');
+    const log = document.getElementById('log');
+
+    function addLog(message) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+      log.insertBefore(entry, log.firstChild);
+      console.log(message);
+    }
+
+    // Simple test screen
+    const testScreen = {
+      action: '/api/test',
+      method: 'POST',
+      title: 'Test Login',
+      description: 'Enter your email to test',
+      components: [
+        {
+          id: 'email',
+          type: 'EMAIL',
+          category: 'FIELD',
+          visible: true,
+          label: 'Email',
+          required: true,
+          order: 1
+        },
+        {
+          id: 'submit',
+          type: 'NEXT_BUTTON',
+          category: 'BLOCK',
+          visible: true,
+          config: { text: 'Continue' },
+          order: 2
+        }
+      ]
+    };
+
+    // Set up event listeners BEFORE setting the screen
+    addLog('Setting up event listeners...');
+
+    widget.addEventListener('formSubmit', (e) => {
+      addLog(`formSubmit fired! Data: ${JSON.stringify(e.detail.data)}`);
+    });
+
+    widget.addEventListener('buttonClick', (e) => {
+      addLog(`buttonClick fired! ${JSON.stringify(e.detail)}`);
+    });
+
+    widget.addEventListener('screenChange', (e) => {
+      addLog(`screenChange fired! Title: ${e.detail?.title}`);
+    });
+
+    widget.addEventListener('fieldChange', (e) => {
+      addLog(`fieldChange fired! ${JSON.stringify(e.detail)}`);
+    });
+
+    // Set the screen
+    addLog('Setting screen...');
+    widget.screen = testScreen;
+    addLog('Screen set!');
+    
+    // After a delay, check the shadow DOM structure
+    setTimeout(() => {
+      const shadowRoot = widget.shadowRoot;
+      if (shadowRoot) {
+        const form = shadowRoot.querySelector('form');
+        const button = shadowRoot.querySelector('button[type="submit"]');
+        addLog(`Form found: ${!!form}`);
+        addLog(`Submit button found: ${!!button}`);
+        if (button) {
+          addLog(`Button inside form: ${form?.contains(button)}`);
+        }
+      } else {
+        addLog('No shadow root found');
+      }
+    }, 500);
+  </script>
+</body>
+</html>

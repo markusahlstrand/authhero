@@ -319,8 +319,21 @@ export const screenApiRoutes = new OpenAPIHono<{
       // 1. Try built-in screens first
       const builtInResult = getBuiltInScreen(screenId, screenContext);
       if (builtInResult) {
+        // Override the action URL and links to use the u2 routes
+        const screen = {
+          ...builtInResult.screen,
+          action: `/u2/screen/${screenId}?state=${encodeURIComponent(state)}`,
+          // Update links to use u2 routes
+          links: builtInResult.screen.links?.map((link) => ({
+            ...link,
+            href: link.href
+              .replace("/u/widget/", "/u2/")
+              .replace("/u/signup", "/u2/signup")
+              .replace("/u/enter-", "/u2/enter-"),
+          })),
+        };
         return ctx.json({
-          screen: builtInResult.screen,
+          screen,
           branding: builtInResult.branding,
         });
       }

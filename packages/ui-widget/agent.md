@@ -151,6 +151,24 @@ Ory doesn't have explicit dividers. The widget automatically inserts an "OR" div
 
 The `src/server/index.ts` helpers currently use the **legacy schema**. These need to be updated to generate Ory-compatible JSON. Until then, prefer writing JSON directly or using the new type definitions.
 
+## Development & Testing
+
+### Demo Server
+
+The package includes a demo server (`demo-server/server.ts`) built with Hono that provides:
+
+- **Live Settings Panel**: Test all theme and branding options without rebuilding
+- **Mock Authentication Flow**: Complete flow from identifier → code entry → success
+- **Server-Driven UI Example**: Shows how to integrate the widget with a backend
+
+Run with:
+```bash
+pnpm dev    # Builds widget + runs demo server with auto-reload
+pnpm demo   # Runs demo server only (requires pre-built widget)
+```
+
+Available at http://localhost:3456/u2/login/identifier
+
 ## Resources
 
 - [Ory Kratos UI Reference](https://www.ory.sh/docs/kratos/concepts/ui-user-interface)

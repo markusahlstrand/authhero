@@ -67,7 +67,11 @@ export interface AuthheroWidgetCustomEvent<T> extends CustomEvent<T> {
 declare global {
     interface HTMLAuthheroNodeElementEventMap {
         "fieldChange": { id: string; value: string };
-        "buttonClick": { id: string; type: string; value?: string };
+        "buttonClick": {
+    id: string;
+    type: string;
+    value?: string;
+  };
     }
     interface HTMLAuthheroNodeElement extends Components.AuthheroNode, HTMLStencilElement {
         addEventListener<K extends keyof HTMLAuthheroNodeElementEventMap>(type: K, listener: (this: HTMLAuthheroNodeElement, ev: AuthheroNodeCustomEvent<HTMLAuthheroNodeElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
@@ -125,7 +129,11 @@ declare namespace LocalJSX {
         /**
           * Emitted when a button is clicked.
          */
-        "onButtonClick"?: (event: AuthheroNodeCustomEvent<{ id: string; type: string; value?: string }>) => void;
+        "onButtonClick"?: (event: AuthheroNodeCustomEvent<{
+    id: string;
+    type: string;
+    value?: string;
+  }>) => void;
         /**
           * Emitted when a field value changes.
          */

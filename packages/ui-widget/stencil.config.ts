@@ -17,14 +17,6 @@ export const config: Config = {
       customElementsExportBehavior: 'auto-define-custom-elements',
       externalRuntime: false,
     },
-    {
-      type: 'www',
-      serviceWorker: null, // Disable service worker
-      copy: [
-        { src: 'demo.html', dest: 'demo.html' },
-        { src: '../test/fixtures', dest: 'test/fixtures' },
-      ],
-    },
   ],
   testing: {
     browserHeadless: 'shell',

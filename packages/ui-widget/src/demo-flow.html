@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AuthHero Widget - Login Flow Demo</title>
+    <script type="module" src="/build/authhero-widget.esm.js"></script>
+    <script nomodule src="/build/authhero-widget.js"></script>
+    <link rel="stylesheet" href="/src/themes/variables.css" />
+    <link rel="stylesheet" href="/src/themes/presets.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 20px;
+      }
+
+      .demo-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: white;
+      }
+
+      .demo-header h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .demo-header p {
+        font-size: 0.875rem;
+        opacity: 0.9;
+      }
+
+      authhero-widget {
+        max-width: 400px;
+        width: 100%;
+      }
+
+      .controls {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        font-size: 0.75rem;
+        max-width: 320px;
+      }
+
+      .controls h3 {
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: #333;
+      }
+
+      .controls label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.25rem 0;
+        cursor: pointer;
+      }
+
+      .controls select,
+      .controls input[type="text"] {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        width: 100%;
+        margin-top: 0.25rem;
+      }
+
+      .controls .section {
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .controls .section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .controls .url-display {
+        background: #f3f4f6;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-family: 'Menlo', 'Monaco', monospace;
+        font-size: 0.65rem;
+        word-break: break-all;
+        color: #4b5563;
+        margin-top: 0.5rem;
+      }
+
+      .event-log {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #1e1e1e;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        color: #d4d4d4;
+        font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        font-size: 0.7rem;
+        max-width: 350px;
+        max-height: 250px;
+        overflow-y: auto;
+      }
+
+      .event-log h3 {
+        margin-bottom: 0.5rem;
+        color: #9ca3af;
+        font-size: 0.75rem;
+      }
+
+      .event-log .event {
+        margin: 0.25rem 0;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #333;
+      }
+
+      .event-log .event-type {
+        color: #569cd6;
+      }
+
+      .event-log .event-data {
+        color: #ce9178;
+        word-break: break-all;
+      }
+
+      .reset-btn {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        color: white;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: background 0.2s;
+      }
+
+      .reset-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .current-state {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.75rem;
+        position: fixed;
+        top: 20px;
+        left: 20px;
+      }
+
+      .current-state strong {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="current-state">
+      Current Screen: <strong id="current-screen">identifier</strong>
+    </div>
+
+    <button class="reset-btn" id="reset-btn">↺ Reset Flow</button>
+
+    <div class="demo-header">
+      <h1>AuthHero Universal Login</h1>
+      <p>Interactive login flow demo with mocked /u2/screen API</p>
+    </div>
+
+    <authhero-widget id="widget">
+      <div style="text-align: center; padding: 40px; color: #666;">Loading...</div>
+    </authhero-widget>
+
+    <div class="controls">
+      <h3>🔧 Demo Settings</h3>
+      
+      <div class="section">
+        <label>
+          <span>URL Mode:</span>
+          <select id="url-mode">
+            <option value="query">Query String (?screen=...)</option>
+            <option value="hash">Hash (#/screen/...)</option>
+          </select>
+        </label>
+        <div class="url-display" id="url-display"></div>
+      </div>
+      
+      <div class="section">
+        <label>
+          <span>Login Strategy:</span>
+          <select id="strategy">
+            <option value="code">Email Code (OTP)</option>
+            <option value="password">Password</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="section">
+        <label>
+          <input type="checkbox" id="show-social" checked />
+          Show Social Login (Google)
+        </label>
+        <label>
+          <input type="checkbox" id="allow-signup" checked />
+          Allow Signup
+        </label>
+        <label>
+          <input type="checkbox" id="user-exists" checked />
+          User Exists (for demo)
+        </label>
+      </div>
+
+      <div class="section">
+        <label>
+          <span>Brand Color:</span>
+          <input type="color" id="brand-color" value="#667eea" />
+        </label>
+      </div>
+    </div>
+
+    <div class="event-log">
+      <h3>📋 Event Log</h3>
+      <div id="events"></div>
+    </div>
+
+    <script type="module">
+      /**
+       * Mock /u2/screen API
+       * 
+       * This simulates the screen API endpoints that the authhero server provides.
+       * The API returns screen configurations and handles form submissions.
+       * 
+       * URL modes:
+       * - query: ?screen=identifier&state=xxx
+       * - hash: #/screen/identifier?state=xxx
+       */
+
+      // ========================================
+      // URL State Management
+      // ========================================
+      
+      const urlState = {
+        mode: 'query', // 'query' or 'hash'
+        
+        /**
+         * Get current screen and state from URL
+         */
+        get() {
+          if (this.mode === 'hash') {
+            const hash = window.location.hash.slice(1); // Remove #
+            const match = hash.match(/\/screen\/([^?]+)/);
+            const screenId = match ? match[1] : 'identifier';
+            const params = new URLSearchParams(hash.split('?')[1] || '');
+            return {
+              screen: screenId,
+              state: params.get('state') || mockState.sessionId,
+              email: params.get('email'),
+            };
+          } else {
+            const params = new URLSearchParams(window.location.search);
+            return {
+              screen: params.get('screen') || 'identifier',
+              state: params.get('state') || mockState.sessionId,
+              email: params.get('email'),
+            };
+          }
+        },
+        
+        /**
+         * Update URL with new screen
+         */
+        set(screenId, extraParams = {}) {
+          const params = new URLSearchParams();
+          params.set('state', mockState.sessionId);
+          if (extraParams.email) params.set('email', extraParams.email);
+          
+          let newUrl;
+          if (this.mode === 'hash') {
+            newUrl = `${window.location.pathname}#/screen/${screenId}?${params.toString()}`;
+          } else {
+            params.set('screen', screenId);
+            newUrl = `${window.location.pathname}?${params.toString()}`;
+          }
+          
+          window.history.pushState({ screen: screenId }, '', newUrl);
+          updateUrlDisplay();
+        },
+        
+        /**
+         * Replace current URL (no history entry)
+         */
+        replace(screenId, extraParams = {}) {
+          const params = new URLSearchParams();
+          params.set('state', mockState.sessionId);
+          if (extraParams.email) params.set('email', extraParams.email);
+          
+          let newUrl;
+          if (this.mode === 'hash') {
+            newUrl = `${window.location.pathname}#/screen/${screenId}?${params.toString()}`;
+          } else {
+            params.set('screen', screenId);
+            newUrl = `${window.location.pathname}?${params.toString()}`;
+          }
+          
+          window.history.replaceState({ screen: screenId }, '', newUrl);
+          updateUrlDisplay();
+        },
+        
+        /**
+         * Reset to initial state
+         */
+        reset() {
+          const newUrl = this.mode === 'hash' 
+            ? `${window.location.pathname}#/screen/identifier?state=${mockState.sessionId}`
+            : `${window.location.pathname}?screen=identifier&state=${mockState.sessionId}`;
+          window.history.pushState({ screen: 'identifier' }, '', newUrl);
+          updateUrlDisplay();
+        }
+      };
+
+      // Demo state (simulates server-side session)
+      const mockState = {
+        sessionId: 'demo_' + Math.random().toString(36).substr(2, 9),
+        username: null,
+        email: null,
+        codeId: null,
+        authenticated: false,
+      };
+
+      // Demo settings
+      const settings = {
+        strategy: 'code',
+        showSocial: true,
+        allowSignup: true,
+        userExists: true,
+        brandColor: '#667eea',
+      };
+
+      // Base URL for the mock API
+      const baseUrl = '';
+
+      /**
+       * Build social buttons based on settings
+       */
+      function buildSocialButtons() {
+        if (!settings.showSocial) return [];
+        
+        return [
+          {
+            id: 'social-buttons',
+            type: 'SOCIAL',
+            category: 'FIELD',
+            visible: true,
+            config: {
+              providers: ['google-oauth2'],
+            },
+            order: 0,
+          },
+          {
+            id: 'divider',
+            type: 'DIVIDER',
+            category: 'BLOCK',
+            visible: true,
+            order: 1,
+          },
+        ];
+      }
+
+      /**
+       * Screen definitions - matches authhero's built-in screens
+       */
+      const screens = {
+        /**
+         * Identifier screen - first screen in login flow
+         * Collects email/username
+         */
+        identifier: () => {
+          const socialButtons = buildSocialButtons();
+          const socialCount = socialButtons.length;
+
+          return {
+            action: `${baseUrl}/u2/screen/identifier?state=${mockState.sessionId}`,
+            method: 'POST',
+            title: 'Welcome',
+            description: 'Sign in to continue',
+            components: [
+              ...socialButtons,
+              {
+                id: 'username',
+                type: 'EMAIL',
+                category: 'FIELD',
+                visible: true,
+                label: 'Email address',
+                config: {
+                  placeholder: 'name@example.com',
+                },
+                required: true,
+                order: socialCount + 1,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: {
+                  text: 'Continue',
+                },
+                order: socialCount + 2,
+              },
+            ],
+            links: settings.allowSignup ? [
+              {
+                id: 'signup',
+                text: "Don't have an account?",
+                linkText: 'Sign up',
+                href: `${baseUrl}/u2/signup?state=${mockState.sessionId}`,
+              },
+            ] : [],
+          };
+        },
+
+        /**
+         * Enter Password screen - password authentication
+         */
+        'enter-password': () => ({
+          action: `${baseUrl}/u2/screen/enter-password?state=${mockState.sessionId}`,
+          method: 'POST',
+          title: 'Enter your password',
+          components: [
+            {
+              id: 'email-display',
+              type: 'RICH_TEXT',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                content: `Signing in as <strong>${mockState.email || 'user@example.com'}</strong>`,
+              },
+              order: 0,
+            },
+            {
+              id: 'password',
+              type: 'PASSWORD',
+              category: 'FIELD',
+              visible: true,
+              label: 'Password',
+              config: {
+                placeholder: 'Enter your password',
+              },
+              required: true,
+              sensitive: true,
+              order: 1,
+            },
+            {
+              id: 'submit',
+              type: 'NEXT_BUTTON',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                text: 'Continue',
+              },
+              order: 2,
+            },
+          ],
+          links: [
+            {
+              id: 'forgot-password',
+              text: 'Forgot your password?',
+              linkText: 'Reset it',
+              href: `${baseUrl}/u2/forgot-password?state=${mockState.sessionId}`,
+            },
+            {
+              id: 'back',
+              text: 'Not your account?',
+              linkText: 'Go back',
+              href: `${baseUrl}/u2/login/identifier?state=${mockState.sessionId}`,
+            },
+          ],
+        }),
+
+        /**
+         * Enter Code screen - OTP verification
+         */
+        'enter-code': () => {
+          const maskedEmail = mockState.email 
+            ? mockState.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+            : 'your email';
+
+          return {
+            action: `${baseUrl}/u2/screen/enter-code?state=${mockState.sessionId}`,
+            method: 'POST',
+            title: 'Check your email',
+            description: 'Enter the verification code',
+            components: [
+              {
+                id: 'info',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: {
+                  content: `We sent a code to <strong>${maskedEmail}</strong>. Enter it below to continue.`,
+                },
+                order: 0,
+              },
+              {
+                id: 'code',
+                type: 'TEXT',
+                category: 'FIELD',
+                visible: true,
+                label: 'Verification code',
+                config: {
+                  placeholder: 'Enter 6-digit code',
+                  max_length: 6,
+                },
+                required: true,
+                order: 1,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: {
+                  text: 'Continue',
+                },
+                order: 2,
+              },
+              {
+                id: 'resend',
+                type: 'RESEND_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: {
+                  text: 'Resend code',
+                },
+                order: 3,
+              },
+            ],
+            links: [
+              {
+                id: 'back',
+                text: 'Not your email?',
+                linkText: 'Go back',
+                href: `${baseUrl}/u2/login/identifier?state=${mockState.sessionId}`,
+              },
+            ],
+          };
+        },
+
+        /**
+         * Signup screen - new user registration
+         */
+        signup: () => ({
+          action: `${baseUrl}/u2/screen/signup?state=${mockState.sessionId}`,
+          method: 'POST',
+          title: 'Create your account',
+          components: [
+            ...buildSocialButtons(),
+            {
+              id: 'email',
+              type: 'EMAIL',
+              category: 'FIELD',
+              visible: true,
+              label: 'Email address',
+              config: {
+                placeholder: 'name@example.com',
+              },
+              required: true,
+              order: buildSocialButtons().length + 1,
+            },
+            {
+              id: 'password',
+              type: 'PASSWORD',
+              category: 'FIELD',
+              visible: true,
+              label: 'Password',
+              hint: 'Must be at least 8 characters',
+              config: {
+                placeholder: 'Create a password',
+                min_length: 8,
+              },
+              required: true,
+              order: buildSocialButtons().length + 2,
+            },
+            {
+              id: 'submit',
+              type: 'NEXT_BUTTON',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                text: 'Create account',
+              },
+              order: buildSocialButtons().length + 3,
+            },
+          ],
+          links: [
+            {
+              id: 'login',
+              text: 'Already have an account?',
+              linkText: 'Sign in',
+              href: `${baseUrl}/u2/login/identifier?state=${mockState.sessionId}`,
+            },
+          ],
+        }),
+
+        /**
+         * Forgot Password screen
+         */
+        'forgot-password': () => ({
+          action: `${baseUrl}/u2/screen/forgot-password?state=${mockState.sessionId}`,
+          method: 'POST',
+          title: 'Reset your password',
+          description: "Enter your email and we'll send you a link to reset your password.",
+          components: [
+            {
+              id: 'email',
+              type: 'EMAIL',
+              category: 'FIELD',
+              visible: true,
+              label: 'Email address',
+              config: {
+                placeholder: 'name@example.com',
+                value: mockState.email || '',
+              },
+              required: true,
+              order: 1,
+            },
+            {
+              id: 'submit',
+              type: 'NEXT_BUTTON',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                text: 'Send reset link',
+              },
+              order: 2,
+            },
+          ],
+          links: [
+            {
+              id: 'back',
+              text: 'Remember your password?',
+              linkText: 'Sign in',
+              href: `${baseUrl}/u2/login/identifier?state=${mockState.sessionId}`,
+            },
+          ],
+        }),
+
+        /**
+         * Success screen - authentication complete
+         */
+        success: () => ({
+          action: `${baseUrl}/callback?code=demo_auth_code`,
+          method: 'GET',
+          title: 'Welcome back!',
+          description: `Successfully signed in as ${mockState.email}`,
+          components: [
+            {
+              id: 'success-message',
+              type: 'RICH_TEXT',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                content: '✓ You have been successfully authenticated.',
+              },
+              order: 0,
+            },
+            {
+              id: 'continue',
+              type: 'NEXT_BUTTON',
+              category: 'BLOCK',
+              visible: true,
+              config: {
+                text: 'Continue to Application',
+              },
+              order: 1,
+            },
+          ],
+          messages: [
+            { text: 'Authentication successful!', type: 'success' },
+          ],
+        }),
+      };
+
+      /**
+       * Create a screen with error message
+       */
+      function screenWithError(screenId, fieldId, errorMessage, screenMessage) {
+        const screen = screens[screenId]();
+        
+        // Add field-level error
+        const field = screen.components.find(c => c.id === fieldId);
+        if (field) {
+          field.messages = [{ text: errorMessage, type: 'error' }];
+        }
+        
+        // Add screen-level message
+        if (screenMessage) {
+          screen.messages = [{ text: screenMessage, type: 'error' }];
+        }
+        
+        return screen;
+      }
+
+      /**
+       * Mock API handlers for POST submissions
+       */
+      const postHandlers = {
+        identifier: (data) => {
+          const username = data.username?.toLowerCase()?.trim();
+          
+          if (!username) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('identifier', 'username', 'Email is required'),
+              },
+            };
+          }
+
+          // Basic email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(username)) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('identifier', 'username', 'Please enter a valid email address'),
+              },
+            };
+          }
+
+          // Store email in mock session
+          mockState.email = username;
+          mockState.username = username;
+
+          // Check if user exists (for demo)
+          if (!settings.userExists && settings.allowSignup) {
+            // Redirect to signup for new users
+            return {
+              status: 200,
+              body: {
+                redirect: `${baseUrl}/u2/signup?state=${mockState.sessionId}`,
+              },
+            };
+          }
+
+          // Determine next screen based on strategy
+          if (settings.strategy === 'password') {
+            return {
+              status: 200,
+              body: {
+                redirect: `${baseUrl}/u2/enter-password?state=${mockState.sessionId}`,
+              },
+            };
+          }
+
+          // Code-based login - generate mock OTP
+          mockState.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+          console.log('📧 Mock OTP code sent:', mockState.codeId);
+
+          return {
+            status: 200,
+            body: {
+              redirect: `${baseUrl}/u2/enter-code?state=${mockState.sessionId}`,
+            },
+          };
+        },
+
+        'enter-password': (data) => {
+          const password = data.password;
+
+          if (!password) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('enter-password', 'password', 'Password is required'),
+              },
+            };
+          }
+
+          // Demo: accept any password with 6+ chars
+          if (password.length < 6) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('enter-password', 'password', 'Invalid password', 'The email or password is incorrect.'),
+              },
+            };
+          }
+
+          // Success!
+          mockState.authenticated = true;
+          return {
+            status: 200,
+            body: {
+              redirect: `${baseUrl}/callback?code=demo_auth_code&state=${mockState.sessionId}`,
+            },
+          };
+        },
+
+        'enter-code': (data) => {
+          const code = data.code?.trim();
+
+          if (!code) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('enter-code', 'code', 'Code is required'),
+              },
+            };
+          }
+
+          // Demo: accept any 6-digit code or the mock code
+          if (code.length !== 6) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('enter-code', 'code', 'Please enter a 6-digit code'),
+              },
+            };
+          }
+
+          // For demo, accept any 6-digit code
+          mockState.authenticated = true;
+          return {
+            status: 200,
+            body: {
+              redirect: `${baseUrl}/callback?code=demo_auth_code&state=${mockState.sessionId}`,
+            },
+          };
+        },
+
+        signup: (data) => {
+          const email = data.email?.toLowerCase()?.trim();
+          const password = data.password;
+
+          if (!email) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('signup', 'email', 'Email is required'),
+              },
+            };
+          }
+
+          if (!password || password.length < 8) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('signup', 'password', 'Password must be at least 8 characters'),
+              },
+            };
+          }
+
+          mockState.email = email;
+          mockState.authenticated = true;
+
+          return {
+            status: 200,
+            body: {
+              redirect: `${baseUrl}/callback?code=demo_auth_code&state=${mockState.sessionId}`,
+            },
+          };
+        },
+
+        'forgot-password': (data) => {
+          const email = data.email?.toLowerCase()?.trim();
+
+          if (!email) {
+            return {
+              status: 400,
+              body: {
+                screen: screenWithError('forgot-password', 'email', 'Email is required'),
+              },
+            };
+          }
+
+          console.log('📧 Mock password reset email sent to:', email);
+
+          // Show success message
+          const screen = screens['forgot-password']();
+          screen.messages = [
+            { text: `Password reset link sent to ${email}. Check your inbox.`, type: 'success' },
+          ];
+          
+          return {
+            status: 200,
+            body: { screen },
+          };
+        },
+      };
+
+      /**
+       * Mock fetch that intercepts /u2/screen calls
+       */
+      function mockFetch(url, options = {}) {
+        const urlObj = new URL(url, window.location.origin);
+        const path = urlObj.pathname;
+
+        // Handle GET /u2/screen/:screenId
+        if (options.method === 'GET' || !options.method) {
+          const screenMatch = path.match(/\/u2\/screen\/([^/?]+)/);
+          if (screenMatch) {
+            const screenId = screenMatch[1];
+            if (screens[screenId]) {
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({
+                  screen: screens[screenId](),
+                  branding: {
+                    colors: { primary: settings.brandColor },
+                  },
+                }),
+              });
+            }
+          }
+          
+          // Handle page routes (redirect to identifier)
+          if (path.includes('/u2/login/identifier') || path.includes('/u2/signup') || path.includes('/u2/enter-')) {
+            const screenId = path.includes('signup') ? 'signup' 
+              : path.includes('enter-password') ? 'enter-password'
+              : path.includes('enter-code') ? 'enter-code'
+              : path.includes('forgot-password') ? 'forgot-password'
+              : 'identifier';
+            
+            if (screens[screenId]) {
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({
+                  screen: screens[screenId](),
+                  branding: {
+                    colors: { primary: settings.brandColor },
+                  },
+                }),
+              });
+            }
+          }
+        }
+
+        // Handle POST /u2/screen/:screenId
+        if (options.method === 'POST') {
+          const screenMatch = path.match(/\/u2\/screen\/([^/?]+)/);
+          if (screenMatch) {
+            const screenId = screenMatch[1];
+            const handler = postHandlers[screenId];
+            
+            if (handler) {
+              const body = JSON.parse(options.body);
+              const result = handler(body.data || {});
+              
+              return Promise.resolve({
+                ok: result.status < 400,
+                status: result.status,
+                json: () => Promise.resolve(result.body),
+              });
+            }
+          }
+        }
+
+        // Handle callback (success)
+        if (path === '/callback') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({
+              screen: screens.success(),
+              branding: {
+                colors: { primary: settings.brandColor },
+              },
+            }),
+          });
+        }
+
+        // Fallback
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: () => Promise.resolve({ message: 'Not found' }),
+        });
+      }
+
+      // ========================================
+      // Widget Setup
+      // ========================================
+
+      const widget = document.getElementById('widget');
+      const eventsEl = document.getElementById('events');
+      const currentScreenEl = document.getElementById('current-screen');
+      const urlDisplayEl = document.getElementById('url-display');
+
+      let currentScreen = 'identifier';
+
+      function updateCurrentScreen(screenId) {
+        currentScreen = screenId;
+        currentScreenEl.textContent = screenId;
+      }
+      
+      function updateUrlDisplay() {
+        urlDisplayEl.textContent = window.location.href;
+      }
+
+      // Event logging
+      function logEvent(type, detail) {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'event';
+        const detailStr = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+        eventEl.innerHTML = `
+          <span class="event-type">${type}</span>: 
+          <span class="event-data">${detailStr.substring(0, 100)}${detailStr.length > 100 ? '...' : ''}</span>
+        `;
+        eventsEl.insertBefore(eventEl, eventsEl.firstChild);
+        
+        while (eventsEl.children.length > 15) {
+          eventsEl.removeChild(eventsEl.lastChild);
+        }
+      }
+
+      // Fetch and display a screen
+      async function loadScreen(screenId, updateUrl = true) {
+        try {
+          const response = await mockFetch(`/u2/screen/${screenId}?state=${mockState.sessionId}`);
+          const data = await response.json();
+          
+          if (data.screen) {
+            widget.screen = data.screen;
+            updateCurrentScreen(screenId);
+            
+            if (data.branding) {
+              widget.branding = data.branding;
+            }
+            
+            // Update URL to persist state
+            if (updateUrl) {
+              urlState.set(screenId, { email: mockState.email });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load screen:', error);
+          logEvent('error', error.message);
+        }
+      }
+      
+      // Navigate to a screen (with URL update)
+      async function navigateTo(screenId, extraParams = {}) {
+        logEvent('navigate', screenId);
+        await loadScreen(screenId, true);
+      }
+
+      // Handle form submissions
+      widget.addEventListener('formSubmit', async (event) => {
+        const { screen, data } = event.detail;
+        logEvent('formSubmit', data);
+        
+        widget.loading = true;
+        
+        try {
+          const response = await mockFetch(screen.action, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({ data }),
+          });
+          
+          const result = await response.json();
+          logEvent('response', result.redirect ? { redirect: result.redirect } : { screen: result.screen?.title });
+          
+          if (result.redirect) {
+            // Handle redirect - could be to another screen or final callback
+            const redirectUrl = new URL(result.redirect, window.location.origin);
+            
+            if (redirectUrl.pathname === '/callback') {
+              // Auth complete - show success
+              widget.screen = screens.success();
+              updateCurrentScreen('success');
+              urlState.set('success');
+            } else {
+              // Navigate to next screen
+              const screenMatch = redirectUrl.pathname.match(/\/u2\/(?:screen\/)?([^/?]+)/);
+              if (screenMatch) {
+                const nextScreen = screenMatch[1].replace('login/', '');
+                await navigateTo(nextScreen);
+              }
+            }
+            return;
+          }
+          
+          if (result.screen) {
+            widget.screen = result.screen;
+            if (result.branding) {
+              widget.branding = result.branding;
+            }
+          }
+        } catch (error) {
+          console.error('Form submission error:', error);
+          logEvent('error', error.message);
+        } finally {
+          widget.loading = false;
+        }
+      });
+
+      // Handle button clicks (social login, resend, etc.)
+      widget.addEventListener('buttonClick', (event) => {
+        const { id, type, value } = event.detail;
+        logEvent('buttonClick', { id, type, value });
+        
+        if (type === 'SOCIAL' && value) {
+          // Mock social login - in real app would redirect to OAuth provider
+          logEvent('social', `Would redirect to ${value} OAuth`);
+          mockState.email = 'user@google.com';
+          mockState.authenticated = true;
+          widget.screen = screens.success();
+          updateCurrentScreen('success');
+          urlState.set('success');
+        }
+        
+        if (type === 'RESEND_BUTTON') {
+          mockState.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+          console.log('📧 New OTP code:', mockState.codeId);
+          logEvent('resend', `New code: ${mockState.codeId}`);
+        }
+      });
+
+      // Handle link clicks
+      widget.addEventListener('linkClick', async (event) => {
+        const { href } = event.detail;
+        logEvent('linkClick', href);
+        
+        // Navigate to the linked screen
+        const url = new URL(href, window.location.origin);
+        const screenMatch = url.pathname.match(/\/u2\/([^/?]+)/);
+        if (screenMatch) {
+          const screenId = screenMatch[1].replace('login/', '');
+          await navigateTo(screenId);
+        }
+      });
+
+      // Handle screen changes
+      widget.addEventListener('screenChange', (event) => {
+        logEvent('screenChange', event.detail?.title || 'unknown');
+      });
+      
+      // Handle browser back/forward navigation
+      window.addEventListener('popstate', async (event) => {
+        const { screen } = urlState.get();
+        logEvent('popstate', screen);
+        await loadScreen(screen, false); // Don't update URL on popstate
+      });
+
+      // ========================================
+      // Controls
+      // ========================================
+      
+      // URL mode selector
+      document.getElementById('url-mode').addEventListener('change', (e) => {
+        urlState.mode = e.target.value;
+        logEvent('setting', `URL mode: ${urlState.mode}`);
+        // Update URL to new format
+        urlState.replace(currentScreen, { email: mockState.email });
+      });
+
+      // Strategy selector
+      document.getElementById('strategy').addEventListener('change', (e) => {
+        settings.strategy = e.target.value;
+        logEvent('setting', `strategy: ${settings.strategy}`);
+      });
+
+      // Checkboxes
+      document.getElementById('show-social').addEventListener('change', (e) => {
+        settings.showSocial = e.target.checked;
+        loadScreen(currentScreen, false);
+      });
+
+      document.getElementById('allow-signup').addEventListener('change', (e) => {
+        settings.allowSignup = e.target.checked;
+        loadScreen(currentScreen, false);
+      });
+
+      document.getElementById('user-exists').addEventListener('change', (e) => {
+        settings.userExists = e.target.checked;
+      });
+
+      // Brand color
+      document.getElementById('brand-color').addEventListener('change', (e) => {
+        settings.brandColor = e.target.value;
+        document.body.style.background = `linear-gradient(135deg, ${settings.brandColor} 0%, #764ba2 100%)`;
+        widget.branding = { colors: { primary: settings.brandColor } };
+      });
+
+      // Reset button
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        mockState.sessionId = 'demo_' + Math.random().toString(36).substr(2, 9);
+        mockState.username = null;
+        mockState.email = null;
+        mockState.codeId = null;
+        mockState.authenticated = false;
+        eventsEl.innerHTML = '';
+        urlState.reset();
+        loadScreen('identifier', false);
+        logEvent('reset', 'Flow reset');
+      });
+
+      // ========================================
+      // Initial Load
+      // ========================================
+      
+      // Check URL for initial screen
+      const initialState = urlState.get();
+      
+      // Restore email from URL if present
+      if (initialState.email) {
+        mockState.email = initialState.email;
+      }
+      
+      // Use session from URL if present, otherwise generate new one
+      if (initialState.state && initialState.state !== mockState.sessionId) {
+        mockState.sessionId = initialState.state;
+      }
+      
+      // Load the screen from URL (or default to identifier)
+      const initialScreen = initialState.screen || 'identifier';
+      
+      // Set initial URL if not already set
+      if (!window.location.search && !window.location.hash) {
+        urlState.replace(initialScreen);
+      }
+      
+      updateUrlDisplay();
+      loadScreen(initialScreen, false);
+      logEvent('init', `Loaded screen: ${initialScreen}`);
+    </script>
+  </body>
+</html>

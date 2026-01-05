@@ -29,11 +29,16 @@
    Part: logo
    ========================================================================== */
 
+.logo-wrapper {
+  display: var(--ah-logo-display, flex);
+  justify-content: var(--ah-logo-align, center);
+  margin-bottom: var(--ah-space-6, 1.5rem);
+}
+
 .logo {
   display: block;
-  width: var(--ah-logo-size, 48px);
-  height: var(--ah-logo-size, 48px);
-  margin: 0 auto var(--ah-space-6, 1.5rem);
+  height: var(--ah-logo-height, 48px);
+  width: auto;
   object-fit: contain;
   border-radius: var(--ah-logo-radius, 8px);
 }
@@ -46,7 +51,7 @@
 .title {
   font-size: var(--ah-font-size-2xl, 1.5rem);
   font-weight: var(--ah-font-weight-semibold, 600);
-  text-align: center;
+  text-align: var(--ah-title-align, center);
   margin: 0 0 var(--ah-space-8, 2rem);
   color: var(--ah-color-text, #111827);
   line-height: var(--ah-line-height-tight, 1.25);
@@ -86,6 +91,53 @@ form {
   display: flex;
   flex-direction: column;
   gap: var(--ah-space-4, 1rem);
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ah-space-4, 1rem);
+}
+
+.social-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ah-space-2, 0.5rem);
+  order: var(--ah-social-order, 1);
+}
+
+.fields-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ah-space-4, 1rem);
+  order: var(--ah-fields-order, 0);
+}
+
+/* ==========================================================================
+   Divider
+   Part: divider
+   ========================================================================== */
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: var(--ah-space-2, 0.5rem) 0;
+  order: var(--ah-divider-order, 0);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--ah-color-border-muted, #e5e7eb);
+}
+
+.divider-text {
+  padding: 0 var(--ah-space-4, 1rem);
+  font-size: var(--ah-font-size-sm, 0.875rem);
+  color: var(--ah-color-text-muted, #9ca3af);
+  text-transform: lowercase;
 }
 
 /* ==========================================================================
