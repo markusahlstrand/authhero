@@ -108,6 +108,16 @@ for (const widgetSrc of widgetSrcPaths) {
     const files = fs.readdirSync(widgetSrc);
     for (const file of files) {
       copyFile(path.join(widgetSrc, file), path.join(WIDGET_DIR, file));
+    const entries = fs.readdirSync(widgetSrc, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(widgetSrc, entry.name);
+      const destPath = path.join(WIDGET_DIR, entry.name);
+
+      if (entry.isDirectory()) {
+        copyDir(srcPath, destPath);
+      } else {
+        copyFile(srcPath, destPath);
+      }
     }
     widgetCopied = true;
     break;

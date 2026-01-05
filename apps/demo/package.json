@@ -1,7 +1,7 @@
 {
   "name": "@authhero/demo",
   "private": true,
-  "version": "0.25.2",
+  "version": "0.26.0",
   "scripts": {
     "dev": "bun --watch src/bun.ts"
   },

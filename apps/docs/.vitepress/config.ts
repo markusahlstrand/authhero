@@ -189,8 +189,8 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/packages/multi-tenancy/tenant-lifecycle",
                 },
                 {
-                  text: "Settings Inheritance",
-                  link: "/packages/multi-tenancy/settings-inheritance",
+                  text: "Runtime Fallback",
+                  link: "/packages/multi-tenancy/runtime-fallback",
                 },
                 {
                   text: "Subdomain Routing",

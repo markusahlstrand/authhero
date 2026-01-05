@@ -277,9 +277,6 @@ importers:
       '@authhero/saml':
         specifier: workspace:*
         version: link:../saml
-      '@authhero/widget':
-        specifier: workspace:*
-        version: link:../ui-widget
       '@peculiar/x509':
         specifier: ^1.14.0
         version: 1.14.2
@@ -317,6 +314,9 @@ importers:
       '@authhero/kysely-adapter':
         specifier: workspace:*
         version: link:../kysely
+      '@authhero/widget':
+        specifier: workspace:*
+        version: link:../ui-widget
       '@hono/zod-openapi':
         specifier: ^0.19.10
         version: 0.19.10(hono@4.11.1)(zod@3.25.76)

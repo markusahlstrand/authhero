@@ -117,6 +117,52 @@ const config: AuthHeroConfig = {
 };
 ```
 
+## Migration Guide
+
+### Migrating from Legacy Settings Inheritance
+
+If you're using the deprecated settings inheritance functions, migrate to the new runtime fallback API:
+
+#### Before (Deprecated)
+
+```typescript
+import {
+  withSettingsInheritance,
+  SettingsInheritanceConfig,
+} from "@authhero/multi-tenancy";
+
+const config: SettingsInheritanceConfig = {
+  controlPlaneTenantId: "main",
+  controlPlaneClientId: "main-client",
+};
+
+const adapters = withSettingsInheritance(baseAdapters, config);
+```
+
+#### After (Current)
+
+```typescript
+import {
+  withRuntimeFallback,
+  RuntimeFallbackConfig,
+} from "@authhero/multi-tenancy";
+
+const config: RuntimeFallbackConfig = {
+  controlPlaneTenantId: "main",
+  controlPlaneClientId: "main-client",
+};
+
+const adapters = withRuntimeFallback(baseAdapters, config);
+```
+
+**What changed:**
+
+- `withSettingsInheritance` → `withRuntimeFallback`
+- `createSettingsInheritanceAdapter` → `createRuntimeFallbackAdapter`
+- `SettingsInheritanceConfig` → `RuntimeFallbackConfig`
+
+The functionality remains identical - this is purely a naming change to better reflect that settings are inherited at runtime without copying data between tenants.
+
 ## License
 
 MIT

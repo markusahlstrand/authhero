@@ -7,6 +7,11 @@ import {
 import { Bindings } from "../types";
 import { getUniversalLoginUrl } from "../variables";
 
+// DEPRECATED: Legacy fallback logic for backward compatibility
+// This duplicates the functionality of withRuntimeFallback from @authhero/multi-tenancy
+// Once all environments use withRuntimeFallback adapter, this code can be removed
+// See: https://github.com/authhero/authhero/blob/main/packages/multi-tenancy/src/middleware/settings-inheritance.ts
+
 export async function getClientWithDefaults(
   env: Bindings,
   clientId: string,

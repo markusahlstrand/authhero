@@ -149,41 +149,6 @@ export interface DatabaseIsolationConfig {
 }
 
 /**
- * Configuration for tenant settings inheritance.
- *
- * This enables child tenants to inherit default settings from the control plane,
- * reducing configuration overhead and ensuring consistency.
- */
-export interface SettingsInheritanceConfig {
-  /**
-   * If true, new tenants will inherit settings from the control plane
-   * as their default configuration.
-   * @default true
-   */
-  inheritFromControlPlane?: boolean;
-
-  /**
-   * Specific settings keys to inherit from the control plane.
-   * If not provided, all settings are inherited.
-   */
-  inheritedKeys?: (keyof Tenant)[];
-
-  /**
-   * Settings keys that should NOT be inherited (blacklist approach).
-   * Takes precedence over inheritedKeys.
-   */
-  excludedKeys?: (keyof Tenant)[];
-
-  /**
-   * Custom function to transform inherited settings before applying.
-   */
-  transformSettings?: (
-    controlPlaneSettings: Partial<Tenant>,
-    newTenantId: string,
-  ) => Partial<Tenant>;
-}
-
-/**
  * Configuration for subdomain-based tenant routing.
  *
  * This enables using subdomains to route requests to different tenants,
@@ -223,7 +188,6 @@ export interface SubdomainRoutingConfig {
  *
  * - **accessControl**: Organization-based tenant access validation
  * - **databaseIsolation**: Per-tenant database instances
- * - **settingsInheritance**: Inherit settings from control plane
  * - **subdomainRouting**: Route requests via subdomains
  */
 export interface MultiTenancyConfig {
@@ -237,11 +201,6 @@ export interface MultiTenancyConfig {
    * Per-tenant database isolation configuration.
    */
   databaseIsolation?: DatabaseIsolationConfig;
-
-  /**
-   * Settings inheritance configuration.
-   */
-  settingsInheritance?: SettingsInheritanceConfig;
 
   /**
    * Subdomain-based tenant routing configuration.
