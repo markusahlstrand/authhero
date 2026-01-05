@@ -681,6 +681,11 @@ export async function seed(
     if (isControlPlane) {
       await adapters.tenants.update(tenantId, {
         allow_organization_name_in_authentication_api: true,
+        // Enable permission inheritance so users with global roles (like admin:organizations)
+        // can get org tokens without being a member of each organization
+        flags: {
+          inherit_global_permissions_in_organizations: true,
+        },
       });
     }
 

@@ -299,6 +299,7 @@ const resourceServerAdapter = (
   listKey: "resource_servers",
   getId: (entity) => entity.id,
   transform: (entity) => ({
+    id: entity.id,
     name: entity.name,
     identifier: entity.identifier,
     scopes: entity.scopes,
@@ -323,6 +324,7 @@ const roleAdapter = (
   listKey: "roles",
   getId: (entity) => entity.id,
   transform: (entity) => ({
+    id: entity.id,
     name: entity.name,
     description: entity.description,
   }),
@@ -351,6 +353,7 @@ const connectionAdapter = (
       delete options[field];
     }
     return {
+      id: entity.id,
       name: entity.name,
       display_name: entity.display_name,
       strategy: entity.strategy,

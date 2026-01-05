@@ -17,8 +17,6 @@ const path = require("path");
  *         authhero-widget.esm.js  - Widget entry point
  *         index.esm.js            - Widget main bundle
  *         p-*.js                  - Widget chunks
- *     css/
- *       shadcn-ui.css    - shadcn/ui component styles (for management UI)
  */
 
 const ASSETS_DIR = path.resolve(__dirname, "dist/assets");
@@ -26,7 +24,6 @@ const U_DIR = path.join(ASSETS_DIR, "u");
 const CSS_DIR = path.join(U_DIR, "css");
 const JS_DIR = path.join(U_DIR, "js");
 const WIDGET_DIR = path.join(U_DIR, "widget");
-const ROOT_CSS_DIR = path.join(ASSETS_DIR, "css");
 
 // Ensure directories exist
 function ensureDir(dir) {
@@ -75,24 +72,15 @@ ensureDir(U_DIR);
 ensureDir(CSS_DIR);
 ensureDir(JS_DIR);
 ensureDir(WIDGET_DIR);
-ensureDir(ROOT_CSS_DIR);
 
 // Copy CSS files
 console.log("CSS files:");
 const tailwindSrc = path.resolve(__dirname, "dist/tailwind.css");
-const shadcnSrc = path.resolve(__dirname, "dist/shadcn-ui.css");
 
 if (copyFile(tailwindSrc, path.join(CSS_DIR, "tailwind.css"))) {
   // Success
 } else {
   console.log("  Warning: tailwind.css not found. Run build:tailwind first.");
-}
-
-// shadcn goes to root css for management UI
-if (copyFile(shadcnSrc, path.join(ROOT_CSS_DIR, "shadcn-ui.css"))) {
-  // Success
-} else {
-  console.log("  Warning: shadcn-ui.css not found. Run build:shadcn first.");
 }
 
 // Copy JS files
@@ -117,6 +105,9 @@ const widgetSrcPaths = [
 let widgetCopied = false;
 for (const widgetSrc of widgetSrcPaths) {
   if (fs.existsSync(widgetSrc)) {
+    const files = fs.readdirSync(widgetSrc);
+    for (const file of files) {
+      copyFile(path.join(widgetSrc, file), path.join(WIDGET_DIR, file));
     const entries = fs.readdirSync(widgetSrc, { withFileTypes: true });
     for (const entry of entries) {
       const srcPath = path.join(widgetSrc, entry.name);

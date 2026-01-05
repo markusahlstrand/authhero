@@ -529,13 +529,16 @@ importers:
         version: 10.75.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))
       '@authhero/multi-tenancy':
         specifier: latest
-        version: 13.14.0(@authhero/widget@0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76)))(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
+        version: 13.15.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.3(hono@4.11.1)
       '@hono/zod-openapi':
         specifier: ^0.19.0
         version: 0.19.10(hono@4.11.1)(zod@3.25.76)
+      authhero:
+        specifier: latest
+        version: 3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
       hono:
         specifier: ^4.6.0
         version: 4.11.1
@@ -872,8 +875,8 @@ packages:
       kysely-bun-sqlite: ^0.3.2
       kysely-planetscale: ^1.5.0
 
-  '@authhero/multi-tenancy@13.14.0':
-    resolution: {integrity: sha512-/rERxurvlopwH8VQL+39ci4c7Qt6Tmn7pFLF6pI3kfAyX6kxdKX+1g6p5l1Cyp//xj0GQL07yH7L2dtkQbB+bA==}
+  '@authhero/multi-tenancy@13.15.0':
+    resolution: {integrity: sha512-Ps6ah69zsrl35yp9tZo02/3CAQSDMaWffqFSTf3DOMwwFZ9GurDaL3hncxezywgnQuRstDWz4p9u0BnPF6mRzw==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.10
       hono: ^4.7.0
@@ -882,9 +885,6 @@ packages:
     resolution: {integrity: sha512-hoUqYjZk+4aqj0XPjCpBIKegqIszwMngBG+GQDVYNsV33Gs2gI1wVmTb18VVkl5LbKjq2TZ0ZD5i/yFnyyxC9g==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
-
-  '@authhero/widget@0.4.0':
-    resolution: {integrity: sha512-QTitzbXbpqeyHpzSxeSX65pjkFoueLF4A7Hz3hC6ZdBEF0CVLOxnKNNo84s+PqrCYpy8mRs+ngbvmusPhqXRAQ==}
 
   '@aws-crypto/sha256-browser@5.2.0':
     resolution: {integrity: sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==}
@@ -4662,16 +4662,13 @@ packages:
     resolution: {integrity: sha512-eRtzyldEhXC1g9quWI8daG/j2OcXFsjgkT+zi3gqpe3SOwVNkWyvzaDAHAYWD2Z1ARTNXxezoXJiWNxwfHRMhw==}
     engines: {node: ^20.19.0 || ^22.12.0 || ^24.0.0}
 
-  authhero@3.0.0:
-    resolution: {integrity: sha512-WwH/wC2AKcJgGQ6xe33E9yv3tWR2LGnFZsljqxIbWMCJq2IZGp+UWnKbAnp9gK4ytZilA9b/6Fj2nbs1NIY6yQ==}
+  authhero@3.1.0:
+    resolution: {integrity: sha512-1HNf0BG5R4AIb/sN/fImvJ1YcsP+KbbyfRjdsNq8ExhfOLRQtDZl3FyH8MWBVdd8sabxwNRWwtFQZHeCB3gZrQ==}
     peerDependencies:
-      '@authhero/widget': 0.4.0
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.8.7
       ua-parser-js: ^2.0.0
     peerDependenciesMeta:
-      '@authhero/widget':
-        optional: true
       ua-parser-js:
         optional: true
 
@@ -10101,15 +10098,14 @@ snapshots:
       kysely-planetscale: 1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9)
       nanoid: 5.1.6
 
-  '@authhero/multi-tenancy@13.14.0(@authhero/widget@0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76)))(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)':
+  '@authhero/multi-tenancy@13.15.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)':
     dependencies:
       '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      authhero: 3.0.0(@authhero/widget@0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76)))(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
+      authhero: 3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
       hono: 4.11.1
       zod: 3.25.76
     transitivePeerDependencies:
-      - '@authhero/widget'
       - typescript
       - ua-parser-js
 
@@ -10121,13 +10117,6 @@ snapshots:
       oslo: 1.2.1
     optionalDependencies:
       xml-crypto: 6.1.2
-
-  '@authhero/widget@0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
-    dependencies:
-      '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-    transitivePeerDependencies:
-      - '@hono/zod-openapi'
-    optional: true
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -14453,7 +14442,7 @@ snapshots:
       jose: 4.15.9
       uuid: 11.1.0
 
-  authhero@3.0.0(@authhero/widget@0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76)))(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7):
+  authhero@3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7):
     dependencies:
       '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@authhero/saml': 0.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
@@ -14469,7 +14458,6 @@ snapshots:
       oslo: 1.2.1
       sanitize-html: 2.17.0
     optionalDependencies:
-      '@authhero/widget': 0.4.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       ua-parser-js: 2.0.7
     transitivePeerDependencies:
       - typescript

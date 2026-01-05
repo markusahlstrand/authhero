@@ -94,7 +94,6 @@ const AuthLayout = ({
         <meta charset="UTF-8" />
         <meta name="robots" content="noindex, follow" />
         <link rel="stylesheet" href="/u/css/tailwind.css" />
-        <link rel="stylesheet" href="/u/css/shadcn-ui.css" />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"

@@ -26,8 +26,6 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { tailwindCss } from "../../styles";
 import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
-import { flowApiRoutes } from "./flow-api";
-import { flowWidgetRoutes } from "./flow-widget";
 import { impersonateRoutes } from "./impersonate";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
@@ -151,11 +149,9 @@ export default function create(config: AuthHeroConfig) {
     .route("/validate-email", validateEmailRoutes)
     .route("/signup", signupRoutes)
     .route("/impersonate", impersonateRoutes)
-    .route("/forms", formNodeRoutes)
-    .route("/flow", flowApiRoutes)
-    .route("/flow-widget", flowWidgetRoutes);
+    .route("/forms", formNodeRoutes);
 
-  universalApp.doc("/u/spec", {
+  universalApp.doc("/spec", {
     openapi: "3.0.0",
     info: {
       version: "1.0.0",

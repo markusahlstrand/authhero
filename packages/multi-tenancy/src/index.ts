@@ -315,8 +315,9 @@ export function init(config: MultiTenantAuthHeroConfig) {
   // Determine how to get adapters for a tenant
   // If database isolation is configured, use the tenant-specific adapter factory
   // Otherwise, use the shared data adapter for all tenants
-  const getAdaptersForTenant = multiTenancyOptions?.databaseIsolation?.getAdapters
-    ?? (async () => config.dataAdapter);
+  const getAdaptersForTenant =
+    multiTenancyOptions?.databaseIsolation?.getAdapters ??
+    (async () => config.dataAdapter);
 
   // Create unified sync hooks
   const { entityHooks: syncEntityHooks, tenantHooks: syncTenantHooks } =
@@ -333,7 +334,8 @@ export function init(config: MultiTenantAuthHeroConfig) {
           .map((t) => t.id);
       },
       getAdapters: getAdaptersForTenant,
-      getControlPlaneAdapters: async () => getAdaptersForTenant(controlPlaneTenantId),
+      getControlPlaneAdapters: async () =>
+        getAdaptersForTenant(controlPlaneTenantId),
       sync: syncOptions,
     });
 
@@ -429,18 +431,13 @@ export function init(config: MultiTenantAuthHeroConfig) {
           ),
         }
       : configEntityHooks?.connections,
-    tenants: syncTenantHooks
-      ? {
-          ...configEntityHooks?.tenants,
-          afterCreate: chainHook(
-            configEntityHooks?.tenants?.afterCreate,
-            syncTenantHooks.afterCreate,
-          ),
-        }
-      : configEntityHooks?.tenants,
+    // Note: tenant sync hooks are only attached to combinedTenantHooks (for router use)
+    // to avoid duplicate execution. The entityHooks.tenants doesn't need the sync hook.
+    tenants: configEntityHooks?.tenants,
   };
 
   // Create combined tenant hooks for the router
+  // This is where sync hooks are attached for tenant creation
   const combinedTenantHooks: MultiTenancyHooks = {
     ...multiTenancyHooks,
     tenants: syncTenantHooks

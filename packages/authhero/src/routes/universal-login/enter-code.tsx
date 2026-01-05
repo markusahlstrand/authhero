@@ -2,8 +2,6 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import EnterCodePage from "../../components/EnterCodePage";
-import EnterCodeForm from "../../components/EnterCodeForm";
-import AuthLayout from "../../components/AuthLayout";
 import { getPrimaryUserByProvider } from "../../helpers/users";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import MessagePage from "../../components/MessagePage";
@@ -74,7 +72,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, style } = ctx.req.valid("query");
-      let theme, branding, loginSession, client, useShadcn;
+      let theme, branding, loginSession, client;
 
       // Set cookie if style is explicitly provided in query param
       if (style) {
@@ -88,7 +86,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
       }
 
       try {
-        ({ theme, branding, loginSession, client, useShadcn } =
+        ({ theme, branding, loginSession, client } =
           await initJSXRoute(ctx, state));
 
         if (!loginSession.authParams.username) {
@@ -116,27 +114,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
           provider: "auth2",
         });
 
-        // Use shadcn style if preferred, otherwise use classic (default)
-        if (useShadcn) {
-          return ctx.html(
-            <AuthLayout
-              title={i18next.t("verify_your_email", "Verify your email")}
-              theme={theme}
-              branding={branding}
-              client={client}
-            >
-              <EnterCodeForm
-                theme={theme}
-                branding={branding}
-                email={loginSession.authParams.username}
-                state={state}
-                hasPasswordLogin={!!passwordUser}
-              />
-            </AuthLayout>,
-          );
-        }
-
-        // Classic style (default)
+        // Classic style
         return ctx.html(
           <EnterCodePage
             theme={theme}
@@ -235,7 +213,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      const { theme, branding, client, loginSession, useShadcn } =
+      const { theme, branding, client, loginSession } =
         await initJSXRoute(ctx, state);
 
       if (!loginSession.authParams.username) {
@@ -279,29 +257,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
           passwordUser = null;
         }
 
-        // Use shadcn style if preferred, otherwise use classic (default)
-        if (useShadcn) {
-          return ctx.html(
-            <AuthLayout
-              title={i18next.t("verify_your_email", "Verify your email")}
-              theme={theme}
-              branding={branding}
-              client={client}
-            >
-              <EnterCodeForm
-                theme={theme}
-                branding={branding}
-                email={loginSession.authParams?.username}
-                state={state}
-                error={(e as Error).message}
-                hasPasswordLogin={!!passwordUser}
-              />
-            </AuthLayout>,
-            400,
-          );
-        }
-
-        // Classic style (default)
+        // Classic style
         return ctx.html(
           <EnterCodePage
             theme={theme}

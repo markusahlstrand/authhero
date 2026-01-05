@@ -22,6 +22,7 @@ export const resourceServerOptionsSchema = z.object({
 export type ResourceServerOptions = z.infer<typeof resourceServerOptionsSchema>;
 
 export const resourceServerInsertSchema = z.object({
+  id: z.string().optional(),
   name: z.string(),
   identifier: z.string(),
   scopes: z.array(resourceServerScopeSchema).optional(),
@@ -38,7 +39,6 @@ export const resourceServerInsertSchema = z.object({
 export type ResourceServerInsert = z.input<typeof resourceServerInsertSchema>;
 
 export const resourceServerSchema = z.object({
-  id: z.string().optional(),
   ...resourceServerInsertSchema.shape,
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
