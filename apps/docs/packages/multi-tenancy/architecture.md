@@ -14,15 +14,15 @@ The multi-tenancy package uses an organization-based model to manage access to m
 The system uses organizations on the control plane to represent and control access to child tenants:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     CONTROL PLANE (main)                         │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │ Organization │  │ Organization │  │ Organization │           │
-│  │   "acme"     │  │  "widgets"   │  │   "demo"     │           │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘           │
-│         │                 │                 │                    │
-└─────────┼─────────────────┼─────────────────┼────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                     CONTROL PLANE (main)                      │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Organization │  │ Organization │  │ Organization │         │
+│  │   "acme"     │  │  "widgets"   │  │   "demo"     │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+│         │                 │                 │                 │
+└─────────┼─────────────────┼─────────────────┼─────────────────┘
           │                 │                 │
           ▼                 ▼                 ▼
     ┌──────────┐      ┌──────────┐      ┌──────────┐
@@ -45,10 +45,10 @@ The system uses organizations on the control plane to represent and control acce
 
 Access to tenants is controlled via the `org_name` or `organization_id` claim in JWT tokens:
 
-| Token Type        | Org Claim      | Access                    |
-| ----------------- | -------------- | ------------------------- |
-| No organization   | `undefined`    | Control plane only        |
-| With organization | `"acme"`       | Tenant matching org claim |
+| Token Type        | Org Claim   | Access                    |
+| ----------------- | ----------- | ------------------------- |
+| No organization   | `undefined` | Control plane only        |
+| With organization | `"acme"`    | Tenant matching org claim |
 
 ### Token Examples
 
@@ -106,26 +106,26 @@ const response = await fetch("https://acme.auth.example.com/api/users", {
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     SILENT AUTHENTICATION FLOW                       │
+│                     SILENT AUTHENTICATION FLOW                      │
 ├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  1. User logged into Control Plane                                 │
+│                                                                     │
+│  1. User logged into Control Plane                                  │
 │     Token: { sub: "user_123" }                                      │
-│                                                                      │
+│                                                                     │
 │  2. Request token for "acme" organization (silent auth)             │
 │     └─> GET /authorize?organization=acme&prompt=none                │
-│                                                                      │
+│                                                                     │
 │  3. Auth server validates:                                          │
 │     - User is member of "acme" organization on control plane        │
 │     - User has appropriate permissions                              │
-│                                                                      │
+│                                                                     │
 │  4. Returns new token                                               │
 │     Token: { sub: "user_123", org_name: "acme" }                    │
-│                                                                      │
+│                                                                     │
 │  5. Use token to access "acme" tenant API                           │
 │     └─> GET https://acme.auth.example.com/api/users                 │
 │         Authorization: Bearer <acme_token>                          │
-│                                                                      │
+│                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 

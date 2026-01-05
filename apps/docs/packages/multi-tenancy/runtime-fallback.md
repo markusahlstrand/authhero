@@ -22,13 +22,13 @@ In multi-tenant applications, you often want to provide common defaults across a
 
 ## Runtime Fallback vs Entity Sync
 
-| Feature | Runtime Fallback | Entity Sync |
-|---------|------------------|-------------|
-| **When applied** | At query time | At creation/update time |
-| **Sensitive data** | Stays in control plane | Stripped before copying |
-| **Use case** | Connection secrets, SMTP keys, default URLs | Resource servers, roles (foreign keys) |
-| **Storage** | Single copy in control plane | Copied to each tenant |
-| **Updates** | Immediate (next query) | Requires sync operation |
+| Feature            | Runtime Fallback                            | Entity Sync                            |
+| ------------------ | ------------------------------------------- | -------------------------------------- |
+| **When applied**   | At query time                               | At creation/update time                |
+| **Sensitive data** | Stays in control plane                      | Stripped before copying                |
+| **Use case**       | Connection secrets, SMTP keys, default URLs | Resource servers, roles (foreign keys) |
+| **Storage**        | Single copy in control plane                | Copied to each tenant                  |
+| **Updates**        | Immediate (next query)                      | Requires sync operation                |
 
 ## Features
 
@@ -101,7 +101,7 @@ import { init, withRuntimeFallback } from "@authhero/multi-tenancy";
 const baseAdapters = createAdapters(db);
 const fallbackAdapters = withRuntimeFallback(baseAdapters, {
   controlPlaneTenantId: "control_plane",
-  controlPlaneClientId: "control_plane_client"
+  controlPlaneClientId: "control_plane_client",
 });
 
 // Then use with multi-tenancy init for entity sync
@@ -272,6 +272,7 @@ Provide default callback URLs from control plane:
 Creates a wrapped adapter with runtime fallback functionality.
 
 **Parameters:**
+
 - `baseAdapters: DataAdapters` - The base data adapters to wrap
 - `config: RuntimeFallbackConfig` - Configuration object
 
@@ -282,6 +283,7 @@ Creates a wrapped adapter with runtime fallback functionality.
 Convenience helper for `createRuntimeFallbackAdapter`.
 
 **Parameters:**
+
 - `baseAdapters: DataAdapters` - The base data adapters to wrap
 - `config: RuntimeFallbackConfig` - Configuration object
 
@@ -293,8 +295,8 @@ Configuration interface for runtime fallback:
 
 ```typescript
 interface RuntimeFallbackConfig {
-  controlPlaneTenantId?: string;  // Control plane tenant ID for connection fallbacks
-  controlPlaneClientId?: string;  // Control plane client ID for client fallbacks
+  controlPlaneTenantId?: string; // Control plane tenant ID for connection fallbacks
+  controlPlaneClientId?: string; // Control plane client ID for client fallbacks
 }
 ```
 
@@ -309,7 +311,7 @@ import { withMainTenantFallback } from "@authhero/authhero";
 
 const adapters = withMainTenantFallback(baseAdapters, {
   mainTenantId: "main",
-  mainClientId: "main-client"
+  mainClientId: "main-client",
 });
 ```
 
@@ -319,8 +321,8 @@ const adapters = withMainTenantFallback(baseAdapters, {
 import { withRuntimeFallback } from "@authhero/multi-tenancy";
 
 const adapters = withRuntimeFallback(baseAdapters, {
-  controlPlaneTenantId: "main",      // renamed from mainTenantId
-  controlPlaneClientId: "main-client" // renamed from mainClientId
+  controlPlaneTenantId: "main", // renamed from mainTenantId
+  controlPlaneClientId: "main-client", // renamed from mainClientId
 });
 ```
 
@@ -339,6 +341,7 @@ The functionality is identical, only the naming has changed to better reflect th
 ### Fallbacks Not Working
 
 Check that:
+
 - `controlPlaneTenantId` and `controlPlaneClientId` are set correctly
 - Control plane tenant/client exists in database
 - Connection names match between control plane and child tenant
@@ -347,6 +350,7 @@ Check that:
 ### Wrong Values Being Used
 
 Remember:
+
 - Tenant values **always override** control plane values
 - Arrays are **merged** (both control plane and tenant values included)
 - Null/empty tenant values don't trigger fallback - only missing properties do
