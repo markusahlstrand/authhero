@@ -2,8 +2,6 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import CheckEmailPage from "../../components/CheckEmailPage";
-import ContinueForm from "../../components/ContinueForm";
-import AuthLayout from "../../components/AuthLayout";
 import { getAuthCookie } from "../../utils/cookies";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
@@ -54,10 +52,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
 
       // Get theme and branding from initJSXRoute
-      const { theme, branding, client, useShadcn } = await initJSXRoute(
-        ctx,
-        state,
-      );
+      const { theme, branding, client } = await initJSXRoute(ctx, state);
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -99,25 +94,6 @@ export const checkAccountRoutes = new OpenAPIHono<{
 
       if (!user) {
         return ctx.redirect(`/u/login/identifier?state=${state}`);
-      }
-
-      if (useShadcn) {
-        return ctx.html(
-          <AuthLayout
-            title={i18next.t("continue_with_account", "Continue with account")}
-            theme={theme}
-            branding={branding}
-            client={client}
-          >
-            <ContinueForm
-              theme={theme}
-              branding={branding}
-              client={client}
-              state={state}
-              user={user}
-            />
-          </AuthLayout>,
-        );
       }
 
       return ctx.html(

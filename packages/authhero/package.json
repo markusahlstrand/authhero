@@ -27,25 +27,21 @@
     "./styles": {
       "import": "./dist/tailwind.css",
       "require": "./dist/tailwind.css"
-    },
-    "./shadcn-styles": {
-      "import": "./dist/shadcn-ui.css",
-      "require": "./dist/shadcn-ui.css"
     }
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "pnpm build:tailwind && pnpm build:shadcn && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build": "pnpm build:tailwind && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "build:tailwind": "node build-tailwind.js",
-    "build:shadcn": "node build-shadcn.js",
     "build:client": "vite build --mode client && node build-client.js",
+    "build:assets": "node build-assets.js",
     "build:vite": "vite build",
     "start": "pnpm build && node dist/index.js",
     "test": "vitest run",
     "pull-translations": "i18nexus pull --path ./src/locales",
     "watch-translations": "i18nexus listen --path ./src/locales",
-    "storybook": "pnpm build:tailwind && pnpm build:shadcn && storybook dev -p 6006",
-    "build-storybook": "pnpm build:tailwind && pnpm build:shadcn && storybook build -o ../../apps/docs/public/storybook"
+    "storybook": "pnpm build:tailwind && storybook dev -p 6006",
+    "build-storybook": "pnpm build:tailwind && storybook build -o ../../apps/docs/public/storybook"
   },
   "devDependencies": {
     "@ape-egg/tailwind-rows-columns": "^1.0.2",

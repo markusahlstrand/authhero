@@ -1,6 +1,5 @@
 import type { Preview } from "@storybook/react";
 import "../dist/tailwind.css";
-import "../dist/shadcn-ui.css"; // Import shadcn UI styles separately
 import i18next from "i18next";
 import enTranslations from "../src/locales/en/default.json";
 

@@ -1,0 +1,104 @@
+/**
+ * Enter Password screen - for password authentication
+ *
+ * Corresponds to: /u/enter-password
+ */
+
+import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+
+/**
+ * Create the enter-password screen
+ */
+export function enterPasswordScreen(context: ScreenContext): ScreenResult {
+  const { branding, state, baseUrl, errors, data } = context;
+
+  const email = data?.email as string | undefined;
+
+  const components: FormNodeComponent[] = [
+    // Show email being logged in
+    ...(email
+      ? [
+          {
+            id: "email-display",
+            type: "RICH_TEXT",
+            category: "BLOCK",
+            visible: true,
+            config: {
+              content: `Signing in as <strong>${email}</strong>`,
+            },
+            order: 0,
+          } as FormNodeComponent,
+        ]
+      : []),
+    // Password input
+    {
+      id: "password",
+      type: "PASSWORD",
+      category: "FIELD",
+      visible: true,
+      label: "Password",
+      config: {
+        placeholder: "Enter your password",
+      },
+      required: true,
+      sensitive: true,
+      order: 1,
+      hint: errors?.password,
+    },
+    // Submit button
+    {
+      id: "submit",
+      type: "NEXT_BUTTON",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        text: "Continue",
+      },
+      order: 2,
+    },
+  ];
+
+  const screen: UiScreen = {
+    action: `${baseUrl}/u/widget/enter-password?state=${encodeURIComponent(state)}`,
+    method: "POST",
+    title: "Enter your password",
+    components,
+    links: [
+      {
+        id: "forgot-password",
+        text: "Forgot your password?",
+        linkText: "Reset it",
+        href: `${baseUrl}/u/widget/forgot-password?state=${encodeURIComponent(state)}`,
+      },
+      {
+        id: "back",
+        text: "Not your account?",
+        linkText: "Go back",
+        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+      },
+    ],
+  };
+
+  return {
+    screen,
+    branding,
+  };
+}
+
+/**
+ * Screen definition for the enter-password screen
+ */
+export const enterPasswordScreenDefinition: ScreenDefinition = {
+  id: "enter-password",
+  name: "Enter Password",
+  description: "Password authentication screen",
+  handler: {
+    get: enterPasswordScreen,
+    // POST handler would:
+    // 1. Validate password against user
+    // 2. Complete login if valid
+    // 3. Return error if invalid
+    // 4. Handle account lockout
+  },
+};

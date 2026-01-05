@@ -12,9 +12,10 @@ export function create(db: Kysely<Database>) {
     params: RoleInsert & { is_system?: boolean },
   ): Promise<Role> => {
     const now = new Date().toISOString();
-    const id = nanoid();
+    // Use provided id or generate a new one
+    const id = params.id || nanoid();
 
-    const { is_system, ...rest } = params;
+    const { is_system, id: _providedId, ...rest } = params;
 
     const dbRole: RoleDbInsert = {
       id,

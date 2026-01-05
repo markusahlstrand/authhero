@@ -1,9 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute, getLoginStrategy } from "./common";
-import IdentifierForm from "../../components/IdentifierForm";
 import IdentifierPage from "../../components/IdentifierPage";
-import AuthLayout from "../../components/AuthLayout";
 import {
   getPrimaryUserByProvider,
   getPrimaryUserByEmail,
@@ -66,36 +64,15 @@ export const identifierRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { theme, branding, loginSession, client, useShadcn } =
-        await initJSXRoute(ctx, state);
+      const { theme, branding, loginSession, client } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       // Detect embedded browser from User-Agent
       const userAgent = ctx.req.header("user-agent") || "";
       const { isEmbedded, browserName } = detectEmbeddedBrowser(userAgent);
 
-      // Use shadcn style if useShadcn is true
-      if (useShadcn) {
-        return ctx.html(
-          <AuthLayout
-            title={i18next.t("welcome", "Login")}
-            theme={theme}
-            branding={branding}
-            client={client}
-          >
-            <IdentifierForm
-              theme={theme}
-              branding={branding}
-              loginSession={loginSession}
-              client={client}
-              email={loginSession.authParams.username}
-              isEmbedded={isEmbedded}
-              browserName={browserName}
-            />
-          </AuthLayout>,
-        );
-      }
-
-      // Classic style (default)
       return ctx.html(
         <IdentifierPage
           theme={theme}
@@ -121,9 +98,6 @@ export const identifierRoutes = new OpenAPIHono<{
         query: z.object({
           state: z.string().openapi({
             description: "The state parameter from the authorization request",
-          }),
-          style: z.enum(["classic", "shadcn"]).optional().openapi({
-            description: "UI style to use for the login page",
           }),
         }),
         body: {
@@ -153,8 +127,10 @@ export const identifierRoutes = new OpenAPIHono<{
       ctx.set("body", params);
       ctx.set("username", params.username);
 
-      const { client, loginSession, theme, branding, useShadcn } =
-        await initJSXRoute(ctx, state);
+      const { client, loginSession, theme, branding } = await initJSXRoute(
+        ctx,
+        state,
+      );
       ctx.set("client_id", client.client_id);
 
       // Detect embedded browser from User-Agent
@@ -198,29 +174,6 @@ export const identifierRoutes = new OpenAPIHono<{
         client.connections.find((c) => c.strategy === connectionType) || user;
 
       if (!hasValidConnection || !username) {
-        if (useShadcn) {
-          return ctx.html(
-            <AuthLayout
-              title={i18next.t("welcome", "Login")}
-              theme={theme}
-              branding={branding}
-              client={client}
-            >
-              <IdentifierForm
-                theme={theme}
-                branding={branding}
-                loginSession={loginSession}
-                error={i18next.t("invalid_identifier")}
-                email={params.username}
-                client={client}
-                isEmbedded={isEmbedded}
-                browserName={browserName}
-              />
-            </AuthLayout>,
-            400,
-          );
-        }
-
         return ctx.html(
           <IdentifierPage
             theme={theme}
@@ -251,29 +204,6 @@ export const identifierRoutes = new OpenAPIHono<{
             type: LogTypes.FAILED_SIGNUP,
             description: validation.reason || "Public signup is disabled",
           });
-
-          if (useShadcn) {
-            return ctx.html(
-              <AuthLayout
-                title={i18next.t("welcome", "Login")}
-                theme={theme}
-                branding={branding}
-                client={client}
-              >
-                <IdentifierForm
-                  theme={theme}
-                  branding={branding}
-                  loginSession={loginSession}
-                  error={i18next.t("user_account_does_not_exist")}
-                  email={params.username}
-                  client={client}
-                  isEmbedded={isEmbedded}
-                  browserName={browserName}
-                />
-              </AuthLayout>,
-              400,
-            );
-          }
 
           return ctx.html(
             <IdentifierPage
