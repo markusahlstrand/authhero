@@ -176,33 +176,6 @@ form {
 }
 
 /* ==========================================================================
-   Divider
-   Part: divider
-   ========================================================================== */
-
-.divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  margin: var(--ah-space-2, 0.5rem) 0;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid var(--ah-color-border-muted, #e5e7eb);
-}
-
-.divider-text {
-  padding: 0 var(--ah-space-4, 1rem);
-  font-size: var(--ah-font-size-sm, 0.875rem);
-  color: var(--ah-color-text-muted, #9ca3af);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* ==========================================================================
    Loading Spinner
    Part: spinner
    ========================================================================== */

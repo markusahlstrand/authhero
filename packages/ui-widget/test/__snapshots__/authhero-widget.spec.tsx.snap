@@ -8,39 +8,43 @@ exports[`authhero-widget applies custom branding from fixture 1`] = `
         Sign in to Acme Corp
       </h1>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-identifier" part="label">
-                Work email
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-password" part="label">
-                Password
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Continue
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-identifier" part="label">
+                    Work email
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-password" part="label">
+                    Password
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Continue
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
       <div class="links" part="links">
         <span class="link-wrapper" part="link-wrapper">
@@ -62,33 +66,37 @@ exports[`authhero-widget renders MFA TOTP screen 1`] = `
         Two-factor authentication
       </h1>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="rich-text" part="rich-text">
-              Enter the 6-digit code from your authenticator app
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-totp_code" part="label">
-                Verification code
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input class="input-field" id="input-totp_code" name="totp_code" part="input" required="" type="text" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Continue
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="rich-text" part="rich-text">
+                  Enter the 6-digit code from your authenticator app
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-totp_code" part="label">
+                    Verification code
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input class="input-field" id="input-totp_code" name="totp_code" part="input" required="" type="text" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Continue
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
       <div class="links" part="links">
         <span class="link-wrapper" part="link-wrapper">
@@ -127,39 +135,43 @@ exports[`authhero-widget renders login screen from JSON string prop 1`] = `
         Sign in to your account
       </h1>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-identifier" part="label">
-                Email address
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-password" part="label">
-                Password
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Continue
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-identifier" part="label">
+                    Email address
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-password" part="label">
+                    Password
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Continue
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
       <div class="links" part="links">
         <span class="link-wrapper" part="link-wrapper">
@@ -186,51 +198,55 @@ exports[`authhero-widget renders login with social providers 1`] = `
         Sign in to your account
       </h1>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open"></template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open"></template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open"></template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open"></template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-identifier" part="label">
-                Email address
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-password" part="label">
-                Password
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Continue
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open"></template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open"></template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open"></template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open"></template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-identifier" part="label">
+                    Email address
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="email" class="input-field" id="input-identifier" name="identifier" part="input" required="" type="email" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-password" part="label">
+                    Password
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="current-password" class="input-field" id="input-password" name="password" part="input" required="" type="password" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Continue
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
       <div class="links" part="links">
         <span class="link-wrapper" part="link-wrapper">
@@ -257,78 +273,82 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
         Create your account
       </h1>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-name" part="label">
-                Full name
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input class="input-field" id="input-name" name="name" part="input" placeholder="John Doe" required="" type="text" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-email" part="label">
-                Email address
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="email" class="input-field" id="input-email" name="email" part="input" placeholder="you@example.com" required="" type="email" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-password" part="label">
-                Password
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="current-password" class="input-field" id="input-password" minlength="8" name="password" part="input" required="" type="password" value="">
-              <span class="helper-text" part="helper-text">
-                Must be at least 8 characters
-              </span>
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="input-wrapper" part="input-wrapper">
-              <label class="input-label" htmlfor="input-password_confirm" part="label">
-                Confirm password
-                <span class="required">
-                  *
-                </span>
-              </label>
-              <input autocomplete="current-password" class="input-field" id="input-password_confirm" name="password_confirm" part="input" required="" type="password" value="">
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <label class="checkbox-wrapper" part="checkbox-wrapper">
-              <input name="terms" part="checkbox" required="" type="checkbox">
-              <span class="checkbox-label" part="checkbox-label">
-                I agree to the Terms of Service and Privacy Policy
-              </span>
-            </label>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Create account
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-name" part="label">
+                    Full name
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input class="input-field" id="input-name" name="name" part="input" placeholder="John Doe" required="" type="text" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-email" part="label">
+                    Email address
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="email" class="input-field" id="input-email" name="email" part="input" placeholder="you@example.com" required="" type="email" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-password" part="label">
+                    Password
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="current-password" class="input-field" id="input-password" minlength="8" name="password" part="input" required="" type="password" value="">
+                  <span class="helper-text" part="helper-text">
+                    Must be at least 8 characters
+                  </span>
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="input-wrapper" part="input-wrapper">
+                  <label class="input-label" htmlfor="input-password_confirm" part="label">
+                    Confirm password
+                    <span class="required">
+                      *
+                    </span>
+                  </label>
+                  <input autocomplete="current-password" class="input-field" id="input-password_confirm" name="password_confirm" part="input" required="" type="password" value="">
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <label class="checkbox-wrapper" part="checkbox-wrapper">
+                  <input name="terms" part="checkbox" required="" type="checkbox">
+                  <span class="checkbox-label" part="checkbox-label">
+                    I agree to the Terms of Service and Privacy Policy
+                  </span>
+                </label>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Create account
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
       <div class="links" part="links">
         <span class="link-wrapper" part="link-wrapper">
@@ -356,34 +376,38 @@ exports[`authhero-widget renders success screen 1`] = `
         You have successfully signed in.
       </div>
       <form part="form">
-        <authhero-node>
-          <template shadowrootmode="open">
-            <img alt="Success" class="image" loading="lazy" part="image" src="/success-icon.svg">
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="rich-text" part="rich-text">
-              <h2>
-                Welcome back!
-              </h2>
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <div class="rich-text" part="rich-text">
-              You will be redirected to your dashboard shortly.
-            </div>
-          </template>
-        </authhero-node>
-        <authhero-node>
-          <template shadowrootmode="open">
-            <button class="btn btn-primary" part="button button-primary" type="submit">
-              Continue
-            </button>
-          </template>
-        </authhero-node>
+        <div class="form-content">
+          <div class="fields-section" part="fields-section">
+            <authhero-node>
+              <template shadowrootmode="open">
+                <img alt="Success" class="image" loading="lazy" part="image" src="/success-icon.svg">
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="rich-text" part="rich-text">
+                  <h2>
+                    Welcome back!
+                  </h2>
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <div class="rich-text" part="rich-text">
+                  You will be redirected to your dashboard shortly.
+                </div>
+              </template>
+            </authhero-node>
+            <authhero-node>
+              <template shadowrootmode="open">
+                <button class="btn btn-primary" part="button button-primary" type="submit">
+                  Continue
+                </button>
+              </template>
+            </authhero-node>
+          </div>
+        </div>
       </form>
     </div>
   </template>

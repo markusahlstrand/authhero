@@ -2129,7 +2129,19 @@ app.get("/widget/*", async (c) => {
   const path = c.req.path.replace("/widget", "dist");
   try {
     const file = await import("fs/promises").then(fs => fs.readFile(path, "utf-8"));
-    const contentType = path.endsWith(".js") ? "application/javascript" : "text/plain";
+    
+    // Determine content type based on file extension
+    let contentType = "text/plain";
+    if (path.endsWith(".js")) contentType = "application/javascript";
+    else if (path.endsWith(".css")) contentType = "text/css";
+    else if (path.endsWith(".json")) contentType = "application/json";
+    else if (path.endsWith(".svg")) contentType = "image/svg+xml";
+    else if (path.endsWith(".html")) contentType = "text/html";
+    else if (path.endsWith(".png")) contentType = "image/png";
+    else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+    else if (path.endsWith(".woff")) contentType = "font/woff";
+    else if (path.endsWith(".woff2")) contentType = "font/woff2";
+    
     return c.body(file, 200, { "Content-Type": contentType });
   } catch {
     return c.text("Not found", 404);
