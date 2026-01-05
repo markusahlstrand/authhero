@@ -1,0 +1,98 @@
+/**
+ * Sanitization utilities for universal login routes
+ *
+ * These helpers provide XSS protection and input sanitization for
+ * rendering HTML pages with user-controlled or dynamic content.
+ */
+
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
+ * Escape a string for use in JavaScript string literals
+ */
+export function escapeJs(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/</g, "\\x3c")
+    .replace(/>/g, "\\x3e");
+}
+
+/**
+ * Sanitize URL for use in href/src attributes
+ */
+export function sanitizeUrl(url: string | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
+      return "";
+    }
+    return escapeHtml(url);
+  } catch {
+    if (url.startsWith("/")) {
+      return escapeHtml(url);
+    }
+    return "";
+  }
+}
+
+/**
+ * Sanitize CSS color value
+ */
+export function sanitizeCssColor(color: string | undefined): string {
+  if (!color) return "";
+  const safeColorPattern =
+    /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
+  if (safeColorPattern.test(color.trim())) {
+    return color.trim();
+  }
+  return "";
+}
+
+/**
+ * Build CSS background from page_background
+ */
+export function buildPageBackground(
+  pageBackground:
+    | string
+    | { type?: string; start?: string; end?: string; angle_deg?: number }
+    | undefined,
+): string {
+  if (!pageBackground) return "#f5f5f5";
+
+  if (typeof pageBackground === "string") {
+    return sanitizeCssColor(pageBackground) || "#f5f5f5";
+  }
+
+  const { type, start, end, angle_deg } = pageBackground;
+
+  if (type === "linear-gradient" && start && end) {
+    const sanitizedStart = sanitizeCssColor(start);
+    const sanitizedEnd = sanitizeCssColor(end);
+    if (sanitizedStart && sanitizedEnd) {
+      const angle = typeof angle_deg === "number" ? angle_deg : 180;
+      return `linear-gradient(${angle}deg, ${sanitizedStart}, ${sanitizedEnd})`;
+    }
+  }
+
+  if (start) {
+    const sanitizedColor = sanitizeCssColor(start);
+    if (sanitizedColor) return sanitizedColor;
+  }
+
+  return "#f5f5f5";
+}
