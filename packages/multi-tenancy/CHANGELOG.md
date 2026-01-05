@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 13.17.0
+
+### Minor Changes
+
+- 71b01a6: Move authhero to peer dependency
+
+### Patch Changes
+
+- Updated dependencies [71b01a6]
+  - authhero@3.3.0
+
 ## 13.16.0
 
 ### Minor Changes
