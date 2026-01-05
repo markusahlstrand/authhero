@@ -8,7 +8,7 @@ description: Provide runtime fallback configurations from control plane to child
 The Runtime Fallback Adapter provides runtime fallback functionality from a control plane tenant to child tenants. This allows you to set up default configurations that child tenants can inherit while still allowing tenant-specific customizations.
 
 ::: info Complementary Approaches
-This adapter provides **runtime value fallback** (sensitive data stays in control plane), while **Entity Sync** (see [Entity Sync](./entity-sync.md)) copies entities to child tenants (needed for foreign key references).
+This adapter provides **runtime value fallback** (sensitive data stays in control plane), while **Entity Sync** (see [Entity Synchronization](./control-plane.md#entity-synchronization)) copies entities to child tenants (needed for foreign key references).
 :::
 
 ## Overview
@@ -108,8 +108,10 @@ const fallbackAdapters = withRuntimeFallback(baseAdapters, {
 const { app } = init({
   dataAdapter: fallbackAdapters,
   controlPlaneTenantId: "control_plane",
-  syncResourceServers: true,
-  syncRoles: true,
+  sync: {
+    resourceServers: true,
+    roles: true,
+  },
 });
 ```
 
@@ -351,5 +353,5 @@ Remember:
 
 ## See Also
 
-- [Entity Sync](./entity-sync.md) - Sync resource servers and roles to child tenants
+- [Entity Synchronization](./control-plane.md#entity-synchronization) - Sync resource servers and roles to child tenants
 - [Control Plane](./control-plane.md) - Understanding the control plane model

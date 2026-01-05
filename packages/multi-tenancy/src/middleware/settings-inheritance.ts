@@ -70,6 +70,8 @@ export function createRuntimeFallbackAdapter(
     ...baseAdapters,
 
     legacyClients: {
+      ...baseAdapters.legacyClients,
+
       get: async (clientId: string): Promise<LegacyClient | null> => {
         const client = await baseAdapters.legacyClients.get(clientId);
         if (!client) {
