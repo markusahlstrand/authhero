@@ -1,5 +1,12 @@
 # authhero
 
+## 3.1.0
+
+### Minor Changes
+
+- 63e4ecb: Use assets folder
+- 8858622: Move fallbacks to multi-tenancy package
+
 ## 3.0.0
 
 ### Patch Changes

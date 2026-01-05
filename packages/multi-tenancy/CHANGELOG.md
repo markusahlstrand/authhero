@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 13.15.0
+
+### Minor Changes
+
+- 8858622: Move fallbacks to multi-tenancy package
+
+### Patch Changes
+
+- Updated dependencies [63e4ecb]
+- Updated dependencies [8858622]
+  - authhero@3.1.0
+
 ## 13.14.0
 
 ### Minor Changes

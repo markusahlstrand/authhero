@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.24.0
+
+### Minor Changes
+
+- 8858622: Move fallbacks to multi-tenancy package
+
 ## 1.23.0
 
 ### Minor Changes

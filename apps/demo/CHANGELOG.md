@@ -1,5 +1,18 @@
 # @authhero/demo
 
+## 0.26.0
+
+### Minor Changes
+
+- 63e4ecb: Use assets folder
+- 8858622: Move fallbacks to multi-tenancy package
+
+### Patch Changes
+
+- Updated dependencies [63e4ecb]
+- Updated dependencies [8858622]
+  - authhero@3.1.0
+
 ## 0.25.2
 
 ### Patch Changes
