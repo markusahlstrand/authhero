@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.76.0
+
+### Minor Changes
+
+- 9c15354: Remove shadcn and updated widget
+
+### Patch Changes
+
+- Updated dependencies [9c15354]
+  - @authhero/adapter-interfaces@0.116.0
+
 ## 10.75.0
 
 ### Minor Changes

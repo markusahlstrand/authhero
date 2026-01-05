@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.116.0
+
+### Minor Changes
+
+- 9c15354: Remove shadcn and updated widget
+
 ## 0.115.0
 
 ### Minor Changes
