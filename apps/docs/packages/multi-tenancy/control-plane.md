@@ -63,14 +63,14 @@ The control plane acts as the management layer for your entire multi-tenant syst
 
 ### Key Differences
 
-| Aspect | Control Plane | Child Tenants |
-|--------|--------------|---------------|
-| **Purpose** | Manages all tenants | Isolated customer environments |
-| **Organizations** | Map to child tenants | Internal business units |
-| **Users on Orgs** | Tenant administrators | Not used for tenant access |
-| **Resource Servers** | Synced to all tenants | Synced from control plane |
-| **Roles** | Synced to all tenants | Synced from control plane |
-| **End Users** | System administrators | Customer end users |
+| Aspect               | Control Plane         | Child Tenants                  |
+| -------------------- | --------------------- | ------------------------------ |
+| **Purpose**          | Manages all tenants   | Isolated customer environments |
+| **Organizations**    | Map to child tenants  | Internal business units        |
+| **Users on Orgs**    | Tenant administrators | Not used for tenant access     |
+| **Resource Servers** | Synced to all tenants | Synced from control plane      |
+| **Roles**            | Synced to all tenants | Synced from control plane      |
+| **End Users**        | System administrators | Customer end users             |
 
 ## Entity Synchronization
 
@@ -101,6 +101,7 @@ await adapters.resourceServers.create("main", {
 ```
 
 **Key Points:**
+
 - Marked as `is_system: true` on child tenants
 - Cannot be modified on child tenants
 - Updates on control plane are synced to all tenants
@@ -121,6 +122,7 @@ await adapters.roles.create("main", {
 ```
 
 **Key Points:**
+
 - Marked as `is_system: true` on child tenants
 - Cannot be modified on child tenants
 - Role permissions are also synced
@@ -220,11 +222,13 @@ await fetch("/management/tenants", {
 ```
 
 **Key characteristics:**
+
 - Organization name = tenant ID
 - Membership controls tenant administrator access
 - Used for access control to tenant management APIs
 
 **Example use case:**
+
 ```typescript
 // Alice is added to the "acme" organization on control plane
 // This grants her access to manage the acme tenant via:
@@ -250,12 +254,14 @@ await adapters.organizations.create("acme", {
 ```
 
 **Key characteristics:**
+
 - Represent departments, teams, or business units
 - Used for B2B customer organization management
 - Not used for tenant access control
 - End users belong to these organizations
 
 **Example use case:**
+
 ```typescript
 // Acme Corporation has two departments:
 // 1. Sales Department - has access to CRM features
@@ -291,12 +297,14 @@ const response = await fetch("https://api.example.com/api/v2/users", {
 ```
 
 **How it works:**
+
 - Token includes `org_name: "acme"` (if `allow_organization_name_in_authentication_api` is enabled)
 - Or `organization_id: "org_xxx"` where org.name = "acme"
 - Access control middleware validates organization membership on control plane
 - Request is automatically scoped to the acme tenant
 
 **Best for:**
+
 - Production applications
 - Frontend/mobile apps
 - Standard OAuth2/OIDC flows
@@ -319,12 +327,14 @@ const response = await fetch("https://api.example.com/api/v2/users", {
 ```
 
 **How it works:**
+
 - Token is for control plane (no org_id)
 - Tenant header explicitly specifies target tenant
 - Access control validates user has access to specified tenant
 - Request is scoped to the tenant from header
 
 **Best for:**
+
 - Administrative scripts
 - Backend services
 - Migration tools
@@ -357,12 +367,14 @@ const response = await fetch("https://acme.auth.example.com/api/v2/users", {
 ```
 
 **How it works:**
+
 - Subdomain routing determines tenant (acme.auth.example.com → acme)
 - Token is issued specifically for acme tenant
 - No organization claim needed
 - Request is automatically scoped via subdomain
 
 **Best for:**
+
 - Subdomain-based deployments
 - Tenant-specific domains
 - White-label scenarios
@@ -370,11 +382,11 @@ const response = await fetch("https://acme.auth.example.com/api/v2/users", {
 
 ### Comparison Table
 
-| Method | Token Type | Tenant Selection | Use Case |
-|--------|-----------|------------------|----------|
+| Method                 | Token Type                   | Tenant Selection                 | Use Case                             |
+| ---------------------- | ---------------------------- | -------------------------------- | ------------------------------------ |
 | **Organization Token** | Control plane with org claim | Via `org_name`/`organization_id` | Production apps, standard OAuth flow |
-| **Token + Header** | Control plane | Via `X-Tenant-ID` header | Admin tools, backend services |
-| **Tenant Token** | Tenant-specific | Via subdomain | White-label, isolated deployments |
+| **Token + Header**     | Control plane                | Via `X-Tenant-ID` header         | Admin tools, backend services        |
+| **Tenant Token**       | Tenant-specific              | Via subdomain                    | White-label, isolated deployments    |
 
 ## Access Control Flow
 
@@ -388,8 +400,8 @@ const token = {
 };
 
 // ✅ Can access control plane
-GET /management/tenants
-Authorization: Bearer <token>
+GET / management / tenants;
+Authorization: Bearer<token>;
 
 // ✅ Can list all tenants alice has access to
 // (based on organization memberships on control plane)

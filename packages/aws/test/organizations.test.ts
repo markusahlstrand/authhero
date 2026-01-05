@@ -46,7 +46,10 @@ describe("organizations", () => {
       name: "Test Organization",
     };
 
-    const created = await data.organizations.create(TENANT_ID, organizationData);
+    const created = await data.organizations.create(
+      TENANT_ID,
+      organizationData,
+    );
     const retrieved = await data.organizations.get(TENANT_ID, created.id);
 
     expect(retrieved).toBeDefined();
@@ -73,7 +76,10 @@ describe("organizations", () => {
       name: "Original Name",
     };
 
-    const created = await data.organizations.create(TENANT_ID, organizationData);
+    const created = await data.organizations.create(
+      TENANT_ID,
+      organizationData,
+    );
     const updated = await data.organizations.update(TENANT_ID, created.id, {
       name: "Updated Name",
       display_name: "Updated Display Name",
@@ -91,7 +97,10 @@ describe("organizations", () => {
       name: "To Be Deleted",
     };
 
-    const created = await data.organizations.create(TENANT_ID, organizationData);
+    const created = await data.organizations.create(
+      TENANT_ID,
+      organizationData,
+    );
     const removed = await data.organizations.remove(TENANT_ID, created.id);
 
     expect(removed).toBe(true);
