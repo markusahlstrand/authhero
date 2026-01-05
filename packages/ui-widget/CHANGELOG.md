@@ -1,5 +1,12 @@
 # @authhero/widget
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [9c15354]
+  - @authhero/adapter-interfaces@0.116.0
+
 ## 0.4.0
 
 ### Minor Changes
