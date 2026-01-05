@@ -536,9 +536,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^0.19.0
         version: 0.19.10(hono@4.11.1)(zod@3.25.76)
-      authhero:
-        specifier: latest
-        version: 3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
       hono:
         specifier: ^4.6.0
         version: 4.11.1
@@ -650,9 +647,6 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:*
         version: link:../adapter-interfaces
-      authhero:
-        specifier: workspace:*
-        version: link:../authhero
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -669,6 +663,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.3
+      authhero:
+        specifier: workspace:*
+        version: link:../authhero
       better-sqlite3:
         specifier: ^11.7.0
         version: 11.10.0

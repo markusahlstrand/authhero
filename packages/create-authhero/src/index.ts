@@ -149,6 +149,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         "@authhero/multi-tenancy": "latest",
         "@hono/swagger-ui": "^0.5.0",
         "@hono/zod-openapi": "^0.19.0",
+        authhero: "latest",
         hono: "^4.6.0",
         kysely: "latest",
         "kysely-d1": "latest",
