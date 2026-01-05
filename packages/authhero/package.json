@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "3.0.0",
+  "version": "3.1.0",
   "files": [
     "dist"
   ],
@@ -46,6 +46,7 @@
   "devDependencies": {
     "@ape-egg/tailwind-rows-columns": "^1.0.2",
     "@authhero/kysely-adapter": "workspace:*",
+    "@authhero/widget": "workspace:*",
     "@hono/zod-openapi": "^0.19.10",
     "@storybook/react": "^10.0.4",
     "@storybook/react-vite": "^10.0.4",
@@ -86,15 +87,11 @@
     "sanitize-html": "^2.17.0"
   },
   "peerDependencies": {
-    "@authhero/widget": "workspace:*",
     "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.8.7",
     "ua-parser-js": "^2.0.0"
   },
   "peerDependenciesMeta": {
-    "@authhero/widget": {
-      "optional": true
-    },
     "ua-parser-js": {
       "optional": true
     }

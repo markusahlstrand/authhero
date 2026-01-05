@@ -6,6 +6,9 @@ import {
   connectionOptionsSchema,
 } from "@authhero/adapter-interfaces";
 
+/**
+ * @deprecated Use `RuntimeFallbackConfig` from `@authhero/multi-tenancy` instead.
+ */
 export interface MainTenantAdapterConfig {
   mainTenantId?: string;
   mainClientId?: string;
@@ -14,6 +17,22 @@ export interface MainTenantAdapterConfig {
 /**
  * Main tenant adapter that wraps other adapters to provide fallback functionality
  * from a main tenant. This allows tenants to inherit default configurations.
+ *
+ * @deprecated Use `withRuntimeFallback` or `createRuntimeFallbackAdapter` from `@authhero/multi-tenancy` instead.
+ * This function will be removed in a future version.
+ *
+ * @see https://github.com/markusahlstrand/authhero/blob/main/packages/multi-tenancy/src/middleware/settings-inheritance.ts
+ *
+ * @example
+ * ```typescript
+ * // Migrate to:
+ * import { withRuntimeFallback } from "@authhero/multi-tenancy";
+ *
+ * const adapters = withRuntimeFallback(baseAdapters, {
+ *   controlPlaneTenantId: "main",
+ *   controlPlaneClientId: "main-client"
+ * });
+ * ```
  */
 export function createMainTenantAdapter(
   baseAdapters: DataAdapters,

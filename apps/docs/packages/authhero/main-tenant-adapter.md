@@ -1,11 +1,17 @@
 ---
-title: Main Tenant Adapter
-description: Provide fallback configurations from a main tenant to other tenants. Share social connections, merge settings, and enable centralized OAuth apps.
+title: Main Tenant Adapter (Deprecated)
+description: Legacy main tenant adapter - moved to @authhero/multi-tenancy as Runtime Fallback Adapter
 ---
 
-# Main Tenant Adapter
+# Main Tenant Adapter (Deprecated)
 
-The Main Tenant Adapter is a powerful feature in AuthHero that provides fallback functionality from a designated "main" tenant to other tenants. This allows you to set up default configurations that other tenants can inherit while still allowing tenant-specific customizations.
+::: warning DEPRECATED
+This adapter has been **deprecated** and moved to `@authhero/multi-tenancy` as the **Runtime Fallback Adapter**. Please migrate to the new package for continued support and new features.
+
+**Migration Guide:** See [Runtime Fallback in Multi-Tenancy](/packages/multi-tenancy/runtime-fallback) for the new location and updated API.
+:::
+
+The Main Tenant Adapter provided fallback functionality from a designated "main" tenant to other tenants. This functionality is now available in `@authhero/multi-tenancy` with improved naming and better integration with other multi-tenancy features.
 
 ## Overview
 
@@ -45,29 +51,51 @@ One of the most powerful features of the Main Tenant Adapter is the ability to p
 - Maintains existing fallback behavior when `DEFAULT_TENANT_ID` and `DEFAULT_CLIENT_ID` are set
 - Seamlessly integrates with existing codebases
 
-## Usage
+## Migration to @authhero/multi-tenancy
 
-### Basic Setup
+### Old Code (Deprecated)
 
 ```typescript
 import { init, withMainTenantFallback } from "@authhero/authhero";
 import createAdapters from "@authhero/kysely-adapter";
 
-// Create your base data adapters
 const db = // ... your database connection
 const baseAdapters = createAdapters(db);
 
-// Wrap with main tenant fallback functionality
+// Old approach (deprecated)
 const adapters = withMainTenantFallback(baseAdapters, {
-  mainTenantId: "main",      // Optional: main tenant for connection defaults
-  mainClientId: "main-client" // Optional: main client for client defaults
+  mainTenantId: "main",
+  mainClientId: "main-client"
 });
 
-// Initialize AuthHero with the wrapped adapters
 const app = init({
   dataAdapter: adapters
 });
 ```
+
+### New Code (Recommended)
+
+```typescript
+import { withRuntimeFallback } from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
+
+const db = // ... your database connection
+const baseAdapters = createAdapters(db);
+
+// New approach
+const adapters = withRuntimeFallback(baseAdapters, {
+  controlPlaneTenantId: "main",      // renamed from mainTenantId
+  controlPlaneClientId: "main-client" // renamed from mainClientId
+});
+
+// Use with standard authhero init or multi-tenancy init
+import { init } from "authhero";
+const app = init({
+  dataAdapter: adapters
+});
+```
+
+## Legacy Usage (For Reference Only)
 
 ### Environment-Based Configuration
 

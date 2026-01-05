@@ -1,6 +1,14 @@
 import dynalite from "dynalite";
-import { DynamoDBClient, CreateTableCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBClient,
+  CreateTableCommand,
+  DeleteTableCommand,
+} from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  ScanCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import createAdapters from "../../src";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 
@@ -22,7 +30,9 @@ export async function getTestServer(): Promise<{
 }> {
   // Reuse existing server if available
   if (currentServer) {
-    const data = createAdapters(currentServer.docClient, { tableName: TABLE_NAME });
+    const data = createAdapters(currentServer.docClient, {
+      tableName: TABLE_NAME,
+    });
     return { data, client: currentServer.docClient, tableName: TABLE_NAME };
   }
 
@@ -105,6 +115,49 @@ export async function getTestServer(): Promise<{
   const data = createAdapters(docClient, { tableName: TABLE_NAME });
 
   return { data, client: docClient, tableName: TABLE_NAME };
+}
+
+/**
+ * Clears all data from the test table by scanning and deleting all items.
+ * This is more reliable than destroying and recreating the server between tests.
+ */
+export async function clearTestData(): Promise<void> {
+  if (!currentServer) {
+    return;
+  }
+
+  const { docClient } = currentServer;
+
+  // Scan the table and delete all items
+  let lastEvaluatedKey: Record<string, any> | undefined;
+
+  do {
+    const scanResult = await docClient.send(
+      new ScanCommand({
+        TableName: TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey,
+      }),
+    );
+
+    if (scanResult.Items && scanResult.Items.length > 0) {
+      // Delete items in batches
+      await Promise.all(
+        scanResult.Items.map((item) =>
+          docClient.send(
+            new DeleteCommand({
+              TableName: TABLE_NAME,
+              Key: {
+                PK: item.PK,
+                SK: item.SK,
+              },
+            }),
+          ),
+        ),
+      );
+    }
+
+    lastEvaluatedKey = scanResult.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
 }
 
 export async function teardownTestServer(): Promise<void> {

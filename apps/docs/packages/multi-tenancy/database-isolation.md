@@ -432,5 +432,5 @@ const factory: DatabaseFactory = {
 ## Next Steps
 
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Learn about tenant creation and deletion
-- [Settings Inheritance](./settings-inheritance.md) - Inherit configuration from main tenant
+- [Runtime Fallback](./runtime-fallback.md) - Inherit configuration from control plane at runtime
 - [API Reference](./api-reference.md) - Complete API documentation

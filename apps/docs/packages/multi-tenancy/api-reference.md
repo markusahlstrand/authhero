@@ -17,7 +17,6 @@ Main configuration object for multi-tenancy setup.
 interface MultiTenancyConfig {
   accessControl?: AccessControlConfig;
   databaseIsolation?: DatabaseIsolationConfig;
-  settingsInheritance?: SettingsInheritanceConfig;
   subdomainRouting?: SubdomainRoutingConfig;
 }
 ```
@@ -89,42 +88,36 @@ interface DatabaseIsolationConfig {
 }
 ```
 
-### SettingsInheritanceConfig
+### RuntimeFallbackConfig
 
-Configure settings inheritance from main tenant.
+Configure runtime fallback for connection secrets and settings.
+
+::: tip Use Case
+Use this to share connection secrets, OAuth credentials, and SMTP settings across tenants **without copying them**. Sensitive data stays in the control plane.
+:::
 
 ```typescript
-interface SettingsInheritanceConfig {
-  // Whether to inherit settings from main tenant (default: true)
-  inheritFromMain?: boolean;
+interface RuntimeFallbackConfig {
+  // Control plane tenant ID for connection/setting fallbacks
+  controlPlaneTenantId?: string;
 
-  // Specific keys to inherit (if not set, inherits all compatible keys)
-  inheritedKeys?: (keyof Tenant)[];
-
-  // Keys to exclude from inheritance
-  excludedKeys?: (keyof Tenant)[];
-
-  // Transform settings before applying to new tenant
-  transformSettings?: (
-    settings: Partial<Tenant>,
-    tenantId: string,
-    metadata?: Record<string, any>,
-  ) => Partial<Tenant> | Promise<Partial<Tenant>>;
+  // Control plane client ID for client setting fallbacks
+  controlPlaneClientId?: string;
 }
 ```
 
 **Example:**
 
 ```typescript
-{
-  inheritFromMain: true,
-  inheritedKeys: ["support_email", "logo", "primary_color"],
-  transformSettings: (settings, tenantId) => ({
-    ...settings,
-    support_email: `support+${tenantId}@example.com`,
-  }),
-}
+import { withRuntimeFallback } from "@authhero/multi-tenancy";
+
+const adapters = withRuntimeFallback(baseAdapters, {
+  controlPlaneTenantId: "control_plane",
+  controlPlaneClientId: "control_plane_client"
+});
 ```
+
+**See also:** [Runtime Fallback Guide](./runtime-fallback.md)
 
 ### SubdomainRoutingConfig
 
@@ -358,6 +351,88 @@ const dbMiddleware = createDatabaseMiddleware({
 });
 
 app.use("*", dbMiddleware);
+```
+
+### createProtectSyncedMiddleware()
+
+Creates middleware to protect system resources from modification.
+
+```typescript
+function createProtectSyncedMiddleware(): MiddlewareHandler;
+```
+
+**Example:**
+
+```typescript
+const protect = createProtectSyncedMiddleware();
+
+app.use("/api/v2/*", protect);
+```
+
+## Adapter Functions
+
+### createRuntimeFallbackAdapter()
+
+Creates a wrapped adapter with runtime fallback functionality from control plane.
+
+```typescript
+function createRuntimeFallbackAdapter(
+  baseAdapters: DataAdapters,
+  config: RuntimeFallbackConfig,
+): DataAdapters;
+```
+
+**Parameters:**
+
+- `baseAdapters: DataAdapters` - The base data adapters to wrap
+- `config: RuntimeFallbackConfig` - Configuration for runtime fallback
+
+**Returns:**
+
+- `DataAdapters` - Wrapped adapters with fallback functionality
+
+**Example:**
+
+```typescript
+import { createRuntimeFallbackAdapter } from "@authhero/multi-tenancy";
+
+const adapters = createRuntimeFallbackAdapter(baseAdapters, {
+  controlPlaneTenantId: "control_plane",
+  controlPlaneClientId: "control_plane_client"
+});
+```
+
+**See also:** [Runtime Fallback Guide](./runtime-fallback.md)
+
+### withRuntimeFallback()
+
+Convenience helper for `createRuntimeFallbackAdapter`.
+
+```typescript
+function withRuntimeFallback(
+  baseAdapters: DataAdapters,
+  config: RuntimeFallbackConfig,
+): DataAdapters;
+```
+
+**Parameters:**
+
+- `baseAdapters: DataAdapters` - The base data adapters to wrap
+- `config: RuntimeFallbackConfig` - Configuration for runtime fallback
+
+**Returns:**
+
+- `DataAdapters` - Wrapped adapters with fallback functionality
+
+**Example:**
+
+```typescript
+import { withRuntimeFallback } from "@authhero/multi-tenancy";
+
+const adapters = withRuntimeFallback(baseAdapters, {
+  controlPlaneTenantId: "control_plane",
+  controlPlaneClientId: "control_plane_client"
+});
 ```
 
 ## Database Factory

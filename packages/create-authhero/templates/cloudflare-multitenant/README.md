@@ -4,6 +4,7 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
 
 - Multi-tenant support with tenant isolation at the data level
 - Multiple tenants in a single D1 database
+- Static assets (widget, CSS, JS) served via Cloudflare Workers Assets
 - Easy setup similar to single-tenant
 
 ## Architecture
@@ -18,6 +19,11 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                     │  │   - Tenant isolation via API    │   │
                     │  └─────────────────────────────────┘   │
                     │              │                          │
+                    │  ┌───────────┴────────────────────┐     │
+                    │  │      Static Assets             │     │
+                    │  │  /u/widget/* /u/css/* /u/js/*  │     │
+                    │  └────────────────────────────────┘     │
+                    │              │                          │
                     └──────────────┼──────────────────────────┘
                                    │
                                    ▼
@@ -27,6 +33,25 @@ A production-grade multi-tenant AuthHero authentication server using Cloudflare 
                           │ (All Tenants)│
                           └─────────────┘
 ```
+
+## Static Assets
+
+The authentication widget, CSS, and client-side JavaScript are served as static assets via Cloudflare Workers Assets.
+
+### How It Works
+
+1. **Source**: Assets are bundled with the `authhero` package in `node_modules/authhero/dist/assets`
+2. **Build Step**: The `copy-assets.js` script copies these files to `./dist/assets` before dev/deploy
+3. **Serving**: Wrangler serves files from `./dist/assets` (configured in `wrangler.toml`)
+4. **Automatic**: The copy happens automatically when you run `npm run dev` or `npm run deploy`
+
+> **Note**: Wrangler's Assets feature does not support serving files directly from `node_modules`, which is why the copy step is necessary.
+
+Assets are served at:
+
+- `/u/widget/*` - AuthHero login widget (Stencil web component)
+- `/u/css/*` - Tailwind CSS for universal login pages
+- `/u/js/*` - Client-side JavaScript bundle
 
 ## Security & Privacy
 

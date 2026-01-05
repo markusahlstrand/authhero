@@ -42,7 +42,7 @@ export function createProvisioningHooks(
     },
 
     async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
-      const { accessControl, databaseIsolation, settingsInheritance } = config;
+      const { accessControl, databaseIsolation } = config;
 
       // 1. Create organization on control plane for access control
       if (accessControl && ctx.ctx) {
@@ -52,11 +52,6 @@ export function createProvisioningHooks(
       // 2. Provision database if isolation is enabled
       if (databaseIsolation?.onProvision) {
         await databaseIsolation.onProvision(tenant.id);
-      }
-
-      // 3. Apply inherited settings if configured
-      if (settingsInheritance?.inheritFromControlPlane !== false && ctx.ctx) {
-        await applyInheritedSettings(ctx, tenant, config);
       }
     },
 
@@ -284,77 +279,4 @@ async function getOrCreateAdminRole(
   );
 
   return role.id;
-}
-
-/**
- * Applies inherited settings from the control plane to a new tenant.
- */
-async function applyInheritedSettings(
-  ctx: TenantHookContext,
-  tenant: Tenant,
-  config: MultiTenancyConfig,
-): Promise<void> {
-  const { accessControl, settingsInheritance } = config;
-
-  if (!accessControl) {
-    return;
-  }
-
-  // Get control plane settings
-  const controlPlane = await ctx.adapters.tenants.get(
-    accessControl.controlPlaneTenantId,
-  );
-  if (!controlPlane) {
-    return;
-  }
-
-  // Determine which settings to inherit
-  let inheritedSettings: Partial<Tenant> = { ...controlPlane };
-
-  // Remove system fields that should never be inherited
-  const systemFields: (keyof Tenant)[] = [
-    "id",
-    "created_at",
-    "updated_at",
-    // Tenant-specific required fields that should not be inherited
-    "friendly_name",
-    "audience",
-    "sender_email",
-    "sender_name",
-  ];
-
-  for (const field of systemFields) {
-    delete inheritedSettings[field];
-  }
-
-  // Apply include list if configured
-  if (settingsInheritance?.inheritedKeys) {
-    const filtered: Partial<Tenant> = {};
-    for (const key of settingsInheritance.inheritedKeys) {
-      if (key in controlPlane && !systemFields.includes(key)) {
-        (filtered as Record<string, unknown>)[key] = controlPlane[key];
-      }
-    }
-    inheritedSettings = filtered;
-  }
-
-  // Apply exclude list if configured
-  if (settingsInheritance?.excludedKeys) {
-    for (const key of settingsInheritance.excludedKeys) {
-      delete inheritedSettings[key];
-    }
-  }
-
-  // Apply custom transformation if configured
-  if (settingsInheritance?.transformSettings) {
-    inheritedSettings = settingsInheritance.transformSettings(
-      inheritedSettings,
-      tenant.id,
-    );
-  }
-
-  // Update tenant with inherited settings
-  if (Object.keys(inheritedSettings).length > 0) {
-    await ctx.adapters.tenants.update(tenant.id, inheritedSettings);
-  }
 }

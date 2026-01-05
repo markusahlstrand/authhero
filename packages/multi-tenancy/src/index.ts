@@ -47,7 +47,13 @@ export {
   createSubdomainMiddleware,
   createDatabaseMiddleware,
   createProtectSyncedMiddleware,
+  createRuntimeFallbackAdapter,
+  withRuntimeFallback,
+  // Legacy aliases for backward compatibility
+  createSettingsInheritanceAdapter,
+  withSettingsInheritance,
 } from "./middleware";
+export type { RuntimeFallbackConfig, SettingsInheritanceConfig } from "./middleware";
 
 export { createMultiTenancyPlugin } from "./plugin";
 export type { AuthHeroPlugin } from "./plugin";

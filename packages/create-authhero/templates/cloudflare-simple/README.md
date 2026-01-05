@@ -130,11 +130,33 @@ The server will be available at `https://localhost:3000`.
 │   ├── app.ts            # AuthHero app configuration
 │   ├── seed.ts           # Database seeding worker
 │   └── types.ts          # TypeScript type definitions
+├── dist/
+│   └── assets/           # Copied static assets (CSS, JS, Widget)
+├── copy-assets.js        # Build script to copy assets from authhero package
 ├── drizzle.config.ts     # Drizzle configuration (reference only)
 ├── seed-helper.js        # Helper script for automated seeding
 ├── wrangler.toml         # Cloudflare Worker configuration
 └── package.json
 ```
+
+## Static Assets
+
+The authentication widget, CSS, and client-side JavaScript are served as static assets via Cloudflare Workers Assets.
+
+### How It Works
+
+1. **Source**: Assets are bundled with the `authhero` package in `node_modules/authhero/dist/assets`
+2. **Build Step**: The `copy-assets.js` script copies these files to `./dist/assets` before dev/deploy
+3. **Serving**: Wrangler serves files from `./dist/assets` (configured in `wrangler.toml`)
+4. **Automatic**: The copy happens automatically when you run `npm run dev` or `npm run deploy`
+
+> **Note**: Wrangler's Assets feature does not support serving files directly from `node_modules`, which is why the copy step is necessary.
+
+Assets are served at:
+
+- `/u/widget/*` - AuthHero login widget (Stencil web component)
+- `/u/css/*` - Tailwind CSS for universal login pages
+- `/u/js/*` - Client-side JavaScript bundle
 
 ## Database Migrations
 

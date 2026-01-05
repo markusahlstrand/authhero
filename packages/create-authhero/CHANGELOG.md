@@ -1,5 +1,18 @@
 # create-authhero
 
+## 0.18.0
+
+### Minor Changes
+
+- 63e4ecb: Use assets folder
+- 8858622: Move fallbacks to multi-tenancy package
+
+## 0.17.0
+
+### Minor Changes
+
+- bf9d776: Add semantic release to create authhero
+
 ## 0.16.0
 
 ### Minor Changes
