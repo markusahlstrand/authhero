@@ -526,5 +526,5 @@ for (const tenant of tenants) {
 
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Learn about creating and managing tenants
 - [Database Isolation](./database-isolation.md) - Set up per-tenant databases
-- [Settings Inheritance](./settings-inheritance.md) - Inherit configuration from control plane
+- [Runtime Fallback](./runtime-fallback.md) - Inherit configuration from control plane at runtime
 - [API Reference](./api-reference.md) - Complete API documentation

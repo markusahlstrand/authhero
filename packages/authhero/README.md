@@ -65,6 +65,35 @@ hooks: {
 - `onExecutePostUserRegistration`
 - `onExecutePostLogin`
 
+## Development
+
+### Building
+
+The package uses a multi-step build process that must be run in sequence:
+
+```bash
+pnpm build
+```
+
+This runs the following steps in order:
+
+1. Clean the `dist` directory
+2. Build Tailwind CSS styles
+3. Build ShadCN UI styles
+4. Build client-side JavaScript
+5. Compile TypeScript
+6. Build server-side bundle with Vite
+7. Generate TypeScript declaration files
+8. Copy static assets
+
+**Important:** Always use `pnpm build` rather than running individual build commands or `vite build` directly. The build steps are interdependent and use `emptyOutDir: false` to preserve files built in previous steps. Running commands individually or out of order may result in incomplete or stale artifacts.
+
+To clean build artifacts manually:
+
+```bash
+pnpm clean
+```
+
 ## Email Providers
 
 Authhero supports email providers for sending authentication-related emails. You can use pre-built email provider packages or configure a custom provider. Example:

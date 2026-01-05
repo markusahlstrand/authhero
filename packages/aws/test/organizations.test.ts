@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { getTestServer, teardownTestServer } from "./helpers/test-server";
+import { getTestServer, clearTestData } from "./helpers/test-server";
 import { OrganizationInsert, DataAdapters } from "@authhero/adapter-interfaces";
 
 const TENANT_ID = "tenantId";
@@ -21,7 +21,7 @@ describe("organizations", () => {
   });
 
   afterEach(async () => {
-    await teardownTestServer();
+    await clearTestData();
   });
 
   it("should create an organization", async () => {

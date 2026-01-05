@@ -251,3 +251,17 @@ export function createMultiTenancyMiddleware(
 
 // Re-export protect system middleware
 export { createProtectSyncedMiddleware } from "./protect-synced";
+
+// Re-export runtime fallback adapter (for settings inheritance from control plane)
+export {
+  createRuntimeFallbackAdapter,
+  withRuntimeFallback,
+  // Legacy aliases for backward compatibility
+  createSettingsInheritanceAdapter,
+  withSettingsInheritance,
+} from "./settings-inheritance";
+export type {
+  RuntimeFallbackConfig,
+  // Legacy type alias
+  SettingsInheritanceConfig,
+} from "./settings-inheritance";

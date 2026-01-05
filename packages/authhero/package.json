@@ -37,7 +37,8 @@
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "pnpm build:tailwind && pnpm build:shadcn && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets",
+    "clean": "rm -rf dist",
+    "build": "pnpm clean && pnpm build:tailwind && pnpm build:shadcn && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets",
     "build:tailwind": "node build-tailwind.js",
     "build:shadcn": "node build-shadcn.js",
     "build:client": "vite build --mode client && node build-client.js",

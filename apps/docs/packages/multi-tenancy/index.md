@@ -16,7 +16,7 @@ This package provides a complete multi-tenancy solution for AuthHero-based authe
 - **Isolate data** with per-tenant databases (D1, Turso, or custom)
 - **Route requests** via subdomains
 - **Sync entities** from control plane to child tenants
-- **Inherit settings** from the control plane to child tenants
+- **Share secrets** via runtime fallback without copying sensitive data
 
 ## Installation
 
@@ -170,10 +170,10 @@ Set either option to `false` to disable that type of synchronization if you want
 ## Documentation
 
 - [Control Plane Architecture](./control-plane.md) - Control plane concept, entity sync, and API access methods
+- [Runtime Fallback](./runtime-fallback.md) - Share connection secrets and settings without copying them
 - [Architecture](./architecture.md) - Organization-tenant model and token-based access
 - [Database Isolation](./database-isolation.md) - Per-tenant databases with D1, Turso, or custom
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Creating, managing, and deleting tenants
-- [Settings Inheritance](./settings-inheritance.md) - Inherit configuration from control plane
 - [Subdomain Routing](./subdomain-routing.md) - Route requests based on subdomains
 - [API Reference](./api-reference.md) - Complete API documentation
 - [Migration Guide](./migration.md) - Moving from single to multi-tenant

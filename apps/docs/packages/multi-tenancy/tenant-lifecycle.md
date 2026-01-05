@@ -113,19 +113,6 @@ const multiTenancy = setupMultiTenancy({
       });
     },
   },
-  settingsInheritance: {
-    inheritFromMain: true,
-    inheritedKeys: [
-      "support_email",
-      "logo",
-      "primary_color",
-      "session_lifetime",
-    ],
-    transformSettings: (settings, tenantId) => ({
-      ...settings,
-      support_email: `support+${tenantId}@example.com`,
-    }),
-  },
 });
 ```
 
@@ -637,6 +624,6 @@ async function createTenant(data: TenantInput) {
 
 ## Next Steps
 
-- [Settings Inheritance](./settings-inheritance.md) - Configure settings inheritance
+- [Runtime Fallback](./runtime-fallback.md) - Configure runtime fallback from control plane
 - [Subdomain Routing](./subdomain-routing.md) - Set up subdomain routing
 - [API Reference](./api-reference.md) - Complete API documentation
