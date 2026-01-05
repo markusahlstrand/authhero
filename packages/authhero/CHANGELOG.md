@@ -1,5 +1,11 @@
 # authhero
 
+## 3.3.0
+
+### Minor Changes
+
+- 71b01a6: Move authhero to peer dependency
+
 ## 3.2.0
 
 ### Minor Changes

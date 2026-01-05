@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.19.0
+
+### Minor Changes
+
+- 71b01a6: Move authhero to peer dependency
+
 ## 0.18.0
 
 ### Minor Changes
