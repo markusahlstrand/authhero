@@ -19,46 +19,46 @@ The control plane acts as the management layer for your entire multi-tenant syst
 ## Control Plane vs Child Tenants
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        CONTROL PLANE (main)                              │
-│                                                                          │
-│  Organizations                   System Entities                        │
-│  ┌──────────────┐               ┌──────────────────┐                   │
-│  │ org: "acme"  │               │ Resource Servers │                   │
-│  │ users:       │               │  - Management API│                   │
-│  │  - alice     │               │  - My API        │                   │
-│  │  - bob       │               │                  │                   │
-│  └──────────────┘               │ Roles            │                   │
-│                                 │  - Admin         │                   │
-│  ┌──────────────┐               │  - User          │                   │
-│  │ org:"widgets"│               │  - Viewer        │                   │
-│  │ users:       │               └──────────────────┘                   │
-│  │  - charlie   │                                                       │
-│  └──────────────┘                                                       │
-│                                                                          │
-└──────────────────┬─────────────────────────────────┬─────────────────────┘
-                   │ Synced Entities                 │
-                   ▼                                 ▼
-        ┌──────────────────┐              ┌──────────────────┐
-        │ TENANT: acme     │              │ TENANT: widgets  │
-        │                  │              │                  │
-        │ Organizations    │              │ Organizations    │
-        │  - Sales Dept    │              │  - Engineering   │
-        │  - Marketing     │              │  - Product       │
-        │                  │              │                  │
-        │ Resource Servers │              │ Resource Servers │
-        │  - Management API│ (synced)     │  - Management API│ (synced)
-        │  - My API        │ (synced)     │  - My API        │ (synced)
-        │                  │              │                  │
-        │ Roles            │              │ Roles            │
-        │  - Admin         │ (synced)     │  - Admin         │ (synced)
-        │  - User          │ (synced)     │  - User          │ (synced)
-        │  - Viewer        │ (synced)     │  - Viewer        │ (synced)
-        │                  │              │                  │
-        │ Users            │              │ Users            │
-        │  - end-user-1    │              │  - end-user-2    │
-        │  - end-user-2    │              │  - end-user-3    │
-        └──────────────────┘              └──────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                        CONTROL PLANE (main)                           │
+│                                                                       │
+│  Organizations                    System Entities                     │
+│  ┌───────────────┐               ┌──────────────────┐                 │
+│  │ org: "acme"   │               │ Resource Servers │                 │
+│  │ users:        │               │  - Management API│                 │
+│  │  - alice      │               │  - My API        │                 │
+│  │  - bob        │               │                  │                 │
+│  └───────────────┘               │ Roles            │                 │
+│                                  │  - Admin         │                 │
+│  ┌───────────────┐               │  - User          │                 │
+│  │ org: "widgets"│               │  - Viewer        │                 │
+│  │ users:        │               └──────────────────┘                 │
+│  │  - charlie    │                                                    │
+│  └───────────────┘                                                    │
+│                                                                       │
+└─────────────────┬─────────────────────────────────┬───────────────────┘
+                  │ Synced Entities                 │
+                  ▼                                 ▼
+       ┌──────────────────┐              ┌──────────────────┐
+       │ TENANT: acme     │              │ TENANT: widgets  │
+       │                  │              │                  │
+       │ Organizations    │              │ Organizations    │
+       │  - Sales Dept    │              │  - Engineering   │
+       │  - Marketing     │              │  - Product       │
+       │                  │              │                  │
+       │ Resource Servers │              │ Resource Servers │
+       │  - Management API│ (synced)     │  - Management API│ (synced)
+       │  - My API        │ (synced)     │  - My API        │ (synced)
+       │                  │              │                  │
+       │ Roles            │              │ Roles            │
+       │  - Admin         │ (synced)     │  - Admin         │ (synced)
+       │  - User          │ (synced)     │  - User          │ (synced)
+       │  - Viewer        │ (synced)     │  - Viewer        │ (synced)
+       │                  │              │                  │
+       │ Users            │              │ Users            │
+       │  - end-user-1    │              │  - end-user-2    │
+       │  - end-user-2    │              │  - end-user-3    │
+       └──────────────────┘              └──────────────────┘
 ```
 
 ### Key Differences
@@ -393,15 +393,18 @@ const response = await fetch("https://acme.auth.example.com/api/v2/users", {
 ### Accessing Control Plane
 
 ```typescript
-// User alice has no organization claim
+// User alice has no organization claim - token for control plane access
 const token = {
   sub: "alice",
   // No org_id or org_name
 };
 
-// ✅ Can access control plane
-GET / management / tenants;
-Authorization: Bearer<token>;
+// ✅ Can access control plane management APIs
+const response = await fetch("/management/tenants", {
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+  },
+});
 
 // ✅ Can list all tenants alice has access to
 // (based on organization memberships on control plane)
@@ -417,13 +420,19 @@ const token = {
 };
 
 // ✅ Can access acme tenant
-GET /api/v2/users
-Authorization: Bearer <token>
+const response = await fetch("/api/v2/users", {
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+  },
+});
 
-// ❌ Cannot access widgets tenant
-GET /api/v2/users
-Authorization: Bearer <token>
-X-Tenant-ID: widgets
+// ❌ Cannot access widgets tenant (not a member of that organization)
+const forbidden = await fetch("/api/v2/users", {
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    "X-Tenant-ID": "widgets",
+  },
+});
 // Response: 403 Forbidden
 ```
 
