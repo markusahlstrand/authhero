@@ -1,5 +1,12 @@
 # @authhero/widget
 
+## 0.5.0
+
+### Minor Changes
+
+- f4b74e7: Add widget to react-admin
+- b6d3411: Add a hono demo for the widget
+
 ## 0.4.1
 
 ### Patch Changes
