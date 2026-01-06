@@ -126,11 +126,11 @@ importers:
         specifier: ^2.1.3
         version: 2.11.0
       '@authhero/adapter-interfaces':
-        specifier: workspace:*
-        version: link:../../packages/adapter-interfaces
+        specifier: ^0.116.0
+        version: 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@authhero/widget':
-        specifier: workspace:*
-        version: link:../../packages/ui-widget
+        specifier: ^0.4.1
+        version: 0.4.1(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@mui/icons-material':
         specifier: ^7.1.0
         version: 7.3.6(@mui/material@7.3.6(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react@19.2.7)(react@19.2.3)
@@ -231,9 +231,6 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
-      pnpm:
-        specifier: ^8.15.3
-        version: 8.15.9
       prettier:
         specifier: ^3.5.3
         version: 3.7.4
@@ -530,6 +527,9 @@ importers:
       '@authhero/kysely-adapter':
         specifier: latest
         version: 10.76.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))
+      '@authhero/multi-tenancy':
+        specifier: latest
+        version: 13.18.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(authhero@3.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7))(hono@4.11.1)
       '@authhero/widget':
         specifier: latest
         version: 0.4.1(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
@@ -883,6 +883,13 @@ packages:
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
       kysely-planetscale: ^1.5.0
+
+  '@authhero/multi-tenancy@13.18.0':
+    resolution: {integrity: sha512-XhGtFxDapYAVq1Sm+ITuIK2t6haECYy/3puIKCWwGm6Uy485AnkqEdkxBUV5p0xrZkwqEZ3jW9g2zLrFjEbYQA==}
+    peerDependencies:
+      '@hono/zod-openapi': ^0.19.10
+      authhero: ^3.0.0
+      hono: ^4.7.0
 
   '@authhero/saml@0.3.0':
     resolution: {integrity: sha512-hoUqYjZk+4aqj0XPjCpBIKegqIszwMngBG+GQDVYNsV33Gs2gI1wVmTb18VVkl5LbKjq2TZ0ZD5i/yFnyyxC9g==}
@@ -7214,11 +7221,6 @@ packages:
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
 
-  pnpm@8.15.9:
-    resolution: {integrity: sha512-SZQ0ydj90aJ5Tr9FUrOyXApjOrzuW7Fee13pDzL0e1E6ypjNXP0AHDHw20VLw4BO3M1XhQHkyik6aBYWa72fgQ==}
-    engines: {node: '>=16.14'}
-    hasBin: true
-
   points-on-curve@0.2.0:
     resolution: {integrity: sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A==}
 
@@ -9299,6 +9301,14 @@ snapshots:
       kysely-bun-sqlite: 0.4.0(kysely@0.28.9)
       kysely-planetscale: 1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9)
       nanoid: 5.1.6
+
+  '@authhero/multi-tenancy@13.18.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(authhero@3.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7))(hono@4.11.1)':
+    dependencies:
+      '@authhero/adapter-interfaces': 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
+      authhero: 3.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
+      hono: 4.11.1
+      zod: 3.25.76
 
   '@authhero/saml@0.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
     dependencies:
@@ -16612,8 +16622,6 @@ snapshots:
       confbox: 0.2.2
       exsolve: 1.0.8
       pathe: 2.0.3
-
-  pnpm@8.15.9: {}
 
   points-on-curve@0.2.0: {}
 
