@@ -39,7 +39,7 @@ exports[`authhero-widget applies custom branding from fixture 1`] = `
                           *
                         </span>
                       </label>
-                      <button aria-label="Show password" class="password-toggle" part="password-toggle" tabindex="-1" type="button">
+                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
@@ -186,7 +186,7 @@ exports[`authhero-widget renders login screen from JSON string prop 1`] = `
                           *
                         </span>
                       </label>
-                      <button aria-label="Show password" class="password-toggle" part="password-toggle" tabindex="-1" type="button">
+                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
@@ -275,7 +275,7 @@ exports[`authhero-widget renders login with social providers 1`] = `
                           *
                         </span>
                       </label>
-                      <button aria-label="Show password" class="password-toggle" part="password-toggle" tabindex="-1" type="button">
+                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
@@ -367,7 +367,7 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
                           *
                         </span>
                       </label>
-                      <button aria-label="Show password" class="password-toggle" part="password-toggle" tabindex="-1" type="button">
+                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>
@@ -391,7 +391,7 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
                           *
                         </span>
                       </label>
-                      <button aria-label="Show password" class="password-toggle" part="password-toggle" tabindex="-1" type="button">
+                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                           <circle cx="12" cy="12" r="3"></circle>

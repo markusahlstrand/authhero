@@ -398,8 +398,8 @@ export class AuthheroNode {
             class="password-toggle"
             part="password-toggle"
             onClick={this.togglePasswordVisibility}
-            aria-label={this.passwordVisible ? "Hide password" : "Show password"}
-            tabIndex={-1}
+            aria-label="Toggle password visibility"
+            aria-pressed={this.passwordVisible ? "true" : "false"}
           >
             {this.renderPasswordToggle()}
           </button>
