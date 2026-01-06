@@ -13,5 +13,5 @@
       "destination": "/index.html"
     }
   ],
-  "installCommand": "pnpm install --no-frozen-lockfile"
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile"
 }
