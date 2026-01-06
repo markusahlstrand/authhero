@@ -103,7 +103,7 @@ form {
   display: flex;
   flex-direction: column;
   gap: var(--ah-space-2, 0.5rem);
-  order: var(--ah-social-order, 1);
+  order: var(--ah-social-order, 2);
 }
 
 .fields-section {
@@ -123,7 +123,7 @@ form {
   align-items: center;
   text-align: center;
   margin: var(--ah-space-2, 0.5rem) 0;
-  order: var(--ah-divider-order, 0);
+  order: var(--ah-divider-order, 1);
 }
 
 .divider::before,
