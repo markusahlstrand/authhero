@@ -22,6 +22,7 @@
     ".": "./dist/index.js",
     "./hydrate": "./hydrate/index.js",
     "./loader": "./loader/index.js",
+    "./dist/esm/loader.js": "./dist/esm/loader.js",
     "./server": {
       "import": "./dist/collection/server/index.js",
       "types": "./dist/types/server/index.d.ts"
