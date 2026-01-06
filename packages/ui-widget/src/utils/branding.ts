@@ -266,6 +266,8 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
   // Fonts
   if (theme.fonts) {
     const f = theme.fonts;
+    // reference_text_size is the base font size in pixels (default 16px)
+    const baseSize = f.reference_text_size || 16;
 
     if (f.font_url) {
       vars['--ah-font-url'] = f.font_url;
@@ -273,34 +275,53 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
     if (f.reference_text_size) {
       vars['--ah-font-size-base'] = `${f.reference_text_size}px`;
     }
+    // Title, subtitle, etc. sizes are percentages of the base size
     if (f.title?.size) {
-      vars['--ah-font-size-title'] = `${f.title.size}px`;
+      const titlePx = Math.round((f.title.size / 100) * baseSize);
+      vars['--ah-font-size-title'] = `${titlePx}px`;
     }
     if (f.subtitle?.size) {
-      vars['--ah-font-size-subtitle'] = `${f.subtitle.size}px`;
+      const subtitlePx = Math.round((f.subtitle.size / 100) * baseSize);
+      vars['--ah-font-size-subtitle'] = `${subtitlePx}px`;
     }
     if (f.body_text?.size) {
-      vars['--ah-font-size-body'] = `${f.body_text.size}px`;
+      const bodyPx = Math.round((f.body_text.size / 100) * baseSize);
+      vars['--ah-font-size-body'] = `${bodyPx}px`;
     }
     if (f.input_labels?.size) {
-      vars['--ah-font-size-label'] = `${f.input_labels.size}px`;
+      const labelPx = Math.round((f.input_labels.size / 100) * baseSize);
+      vars['--ah-font-size-label'] = `${labelPx}px`;
     }
     if (f.buttons_text?.size) {
-      vars['--ah-font-size-btn'] = `${f.buttons_text.size}px`;
+      const btnPx = Math.round((f.buttons_text.size / 100) * baseSize);
+      vars['--ah-font-size-btn'] = `${btnPx}px`;
     }
     if (f.links?.size) {
-      vars['--ah-font-size-link'] = `${f.links.size}px`;
+      const linkPx = Math.round((f.links.size / 100) * baseSize);
+      vars['--ah-font-size-link'] = `${linkPx}px`;
     }
     if (f.links_style === 'underlined') {
       vars['--ah-link-decoration'] = 'underline';
     }
 
-    // Font weights
-    if (f.title?.bold) {
-      vars['--ah-font-weight-title'] = '700';
+    // Font weights - bold option sets font-weight to 700
+    if (f.title?.bold !== undefined) {
+      vars['--ah-font-weight-title'] = f.title.bold ? '700' : '400';
     }
-    if (f.buttons_text?.bold) {
-      vars['--ah-font-weight-btn'] = '600';
+    if (f.subtitle?.bold !== undefined) {
+      vars['--ah-font-weight-subtitle'] = f.subtitle.bold ? '700' : '400';
+    }
+    if (f.body_text?.bold !== undefined) {
+      vars['--ah-font-weight-body'] = f.body_text.bold ? '700' : '400';
+    }
+    if (f.input_labels?.bold !== undefined) {
+      vars['--ah-font-weight-label'] = f.input_labels.bold ? '700' : '400';
+    }
+    if (f.buttons_text?.bold !== undefined) {
+      vars['--ah-font-weight-btn'] = f.buttons_text.bold ? '600' : '400';
+    }
+    if (f.links?.bold !== undefined) {
+      vars['--ah-font-weight-link'] = f.links.bold ? '700' : '400';
     }
   }
 
