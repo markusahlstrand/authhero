@@ -812,8 +812,9 @@ export async function seed(
   }
 
   // Create Management API resource server
-  // Use the tenant's audience as the identifier so tokens match the resource server
-  const managementApiIdentifier = audience;
+  // Always use urn:authhero:management as the identifier for the Management API
+  // This ensures react-admin can use the same audience for both single and multi-tenant modes
+  const managementApiIdentifier = "urn:authhero:management";
   const existingResourceServers = await adapters.resourceServers.list(
     tenantId,
     {},
@@ -889,10 +890,10 @@ export async function seed(
     });
 
     // Assign all management API permissions to the admin role
-    // Use audience as the identifier to match the resource server
+    // Use urn:authhero:management as the identifier to match the resource server
     const adminPermissions = MANAGEMENT_API_SCOPES.map((scope) => ({
       role_id: adminRole!.id,
-      resource_server_identifier: audience,
+      resource_server_identifier: managementApiIdentifier,
       permission_name: scope.value,
     }));
     await adapters.rolePermissions.assign(
