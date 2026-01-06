@@ -521,18 +521,15 @@ importers:
 
   packages/create-authhero/auth-server:
     dependencies:
-      '@authhero/drizzle':
-        specifier: latest
-        version: 0.10.3(@cloudflare/workers-types@4.20251225.0)(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)
       '@authhero/kysely-adapter':
         specifier: latest
-        version: 10.75.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))
-      '@authhero/multi-tenancy':
-        specifier: latest
-        version: 13.15.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
+        version: 10.76.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))
       '@authhero/widget':
         specifier: latest
         version: 0.4.1(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+      '@hono/node-server':
+        specifier: latest
+        version: 1.19.7(hono@4.11.1)
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.3(hono@4.11.1)
@@ -542,31 +539,28 @@ importers:
       authhero:
         specifier: latest
         version: 3.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
+      better-sqlite3:
+        specifier: latest
+        version: 12.5.0
       hono:
         specifier: ^4.6.0
         version: 4.11.1
       kysely:
         specifier: latest
         version: 0.28.9
-      kysely-d1:
-        specifier: latest
-        version: 0.4.0(kysely@0.28.9)
     devDependencies:
-      '@cloudflare/workers-types':
+      '@types/better-sqlite3':
+        specifier: ^7.6.0
+        version: 7.6.13
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
+      tsx:
         specifier: ^4.0.0
-        version: 4.20251225.0
-      drizzle-kit:
-        specifier: ^0.31.0
-        version: 0.31.8
-      drizzle-orm:
-        specifier: ^0.44.0
-        version: 0.44.7(@cloudflare/workers-types@4.20251225.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)
+        version: 4.21.0
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
-      wrangler:
-        specifier: ^3.0.0
-        version: 3.114.16(@cloudflare/workers-types@4.20251225.0)
 
   packages/drizzle:
     dependencies:
@@ -871,32 +865,18 @@ packages:
   '@auth0/auth0-spa-js@2.11.0':
     resolution: {integrity: sha512-MZuUkB6cYAWm2uswWhEj8aMS7sw6zx8cs5YyPbrHCF+MlScLgfOkUnGe0tbnv7592xQ6M2h4lB66WyemFQEmPA==}
 
-  '@authhero/adapter-interfaces@0.115.0':
-    resolution: {integrity: sha512-zg02i7dhgIii99FmA9hW81pt1PIWMS71P9uciOqWHJITLeNAqIAj+CzNpDfGsZAoMt4Tm4e0ycHCElhEczTPPw==}
-    peerDependencies:
-      '@hono/zod-openapi': ^0.19.2
-
   '@authhero/adapter-interfaces@0.116.0':
     resolution: {integrity: sha512-diyLPjyiwxrLntaVGco058PdGOnpTxNDdnCEakmU/HH00jtK+Mj4wtfne/uDeDz64Wd06+9E4DMGRdSiQle4fA==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/drizzle@0.10.3':
-    resolution: {integrity: sha512-TGhqTq8I21VbnL4E8vn8GCbRNuk8U2N+MaWO4gszlfZJCWzjsut4ZGoOJa7u3XZ2uieTrBIFd+HSRymbJnYnOQ==}
-
-  '@authhero/kysely-adapter@10.75.0':
-    resolution: {integrity: sha512-LKfR0YE07S+y++JMOyicZw7crTdsTgxey+CCmzyBlo0A1qMCXru2OP7wLy7vbZcMQb1CEtlsBbfCq2PGbYZYzQ==}
+  '@authhero/kysely-adapter@10.76.0':
+    resolution: {integrity: sha512-c86QMG3Qh9duuks4OAEUnLQu9YMxbiFCnhMKSM6epPmnE+QcpNi8evZhwijGMmzlCzUtSrjLwdEKiEh9WwanTg==}
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
       hono: ^4.6.8
       kysely-bun-sqlite: ^0.3.2
       kysely-planetscale: ^1.5.0
-
-  '@authhero/multi-tenancy@13.15.0':
-    resolution: {integrity: sha512-Ps6ah69zsrl35yp9tZo02/3CAQSDMaWffqFSTf3DOMwwFZ9GurDaL3hncxezywgnQuRstDWz4p9u0BnPF6mRzw==}
-    peerDependencies:
-      '@hono/zod-openapi': ^0.19.10
-      hono: ^4.7.0
 
   '@authhero/saml@0.3.0':
     resolution: {integrity: sha512-hoUqYjZk+4aqj0XPjCpBIKegqIszwMngBG+GQDVYNsV33Gs2gI1wVmTb18VVkl5LbKjq2TZ0ZD5i/yFnyyxC9g==}
@@ -4558,16 +4538,6 @@ packages:
     resolution: {integrity: sha512-eRtzyldEhXC1g9quWI8daG/j2OcXFsjgkT+zi3gqpe3SOwVNkWyvzaDAHAYWD2Z1ARTNXxezoXJiWNxwfHRMhw==}
     engines: {node: ^20.19.0 || ^22.12.0 || ^24.0.0}
 
-  authhero@3.1.0:
-    resolution: {integrity: sha512-1HNf0BG5R4AIb/sN/fImvJ1YcsP+KbbyfRjdsNq8ExhfOLRQtDZl3FyH8MWBVdd8sabxwNRWwtFQZHeCB3gZrQ==}
-    peerDependencies:
-      '@hono/zod-openapi': ^0.19.2
-      hono: ^4.8.7
-      ua-parser-js: ^2.0.0
-    peerDependenciesMeta:
-      ua-parser-js:
-        optional: true
-
   authhero@3.3.0:
     resolution: {integrity: sha512-IPpAbT5w9oufPC3Yl9GtLhxCP3cyT/kqRV9odxYiqqEW3jAtAveiTSmbEHJVt9qpPypQUF0ONHBwSJGMG5xKhQ==}
     peerDependencies:
@@ -6608,11 +6578,6 @@ packages:
     engines: {bun: '>=1.1.31'}
     peerDependencies:
       kysely: ^0.28.2
-
-  kysely-d1@0.4.0:
-    resolution: {integrity: sha512-wUcVvQNtm30OTfuo7Ad5vYJ1qHqPXOCZc+zWchVKNyuvqY3u8OuGw4gmUx1Ypdx2wRVFLHVQC9I7v0pTmF7Nkw==}
-    peerDependencies:
-      kysely: '*'
 
   kysely-planetscale@1.7.1:
     resolution: {integrity: sha512-raPGGTp9uMRWFMiFzL5VDqk/QAtmhQxj4klgXUzkefOtCjyB0rYgEYsW0YODbGLQ43+IcOTU/kzBXohpK/IQJg==}
@@ -9314,72 +9279,20 @@ snapshots:
       dpop: 2.1.1
       es-cookie: 1.3.2
 
-  '@authhero/adapter-interfaces@0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
-    dependencies:
-      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      nanoid: 5.1.6
-
   '@authhero/adapter-interfaces@0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
     dependencies:
       '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
       nanoid: 5.1.6
 
-  '@authhero/drizzle@0.10.3(@cloudflare/workers-types@4.20251225.0)(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)':
+  '@authhero/kysely-adapter@10.76.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      drizzle-orm: 0.44.7(@cloudflare/workers-types@4.20251225.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(bun-types@1.3.5)(kysely@0.28.9)
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cloudflare/workers-types'
-      - '@electric-sql/pglite'
-      - '@hono/zod-openapi'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/api'
-      - '@planetscale/database'
-      - '@prisma/client'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - better-sqlite3
-      - bun-types
-      - expo-sqlite
-      - gel
-      - knex
-      - kysely
-      - mysql2
-      - pg
-      - postgres
-      - prisma
-      - sql.js
-      - sqlite3
-
-  '@authhero/kysely-adapter@10.75.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(kysely-bun-sqlite@0.4.0(kysely@0.28.9))(kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9))':
-    dependencies:
-      '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+      '@authhero/adapter-interfaces': 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
       hono: 4.11.1
       kysely: 0.27.6
       kysely-bun-sqlite: 0.4.0(kysely@0.28.9)
       kysely-planetscale: 1.7.1(@planetscale/database@1.19.0)(kysely@0.28.9)
       nanoid: 5.1.6
-
-  '@authhero/multi-tenancy@13.15.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)':
-    dependencies:
-      '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      authhero: 3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7)
-      hono: 4.11.1
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - typescript
-      - ua-parser-js
 
   '@authhero/saml@0.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
     dependencies:
@@ -13548,26 +13461,6 @@ snapshots:
       jose: 4.15.9
       uuid: 11.1.0
 
-  authhero@3.1.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7):
-    dependencies:
-      '@authhero/adapter-interfaces': 0.115.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      '@authhero/saml': 0.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
-      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
-      '@peculiar/x509': 1.14.2
-      arctic: 3.7.0
-      bcryptjs: 3.0.3
-      classnames: 2.5.1
-      hono: 4.11.1
-      i18next: 25.7.3(typescript@5.9.3)
-      libphonenumber-js: 1.12.33
-      nanoid: 5.1.6
-      oslo: 1.2.1
-      sanitize-html: 2.17.0
-    optionalDependencies:
-      ua-parser-js: 2.0.7
-    transitivePeerDependencies:
-      - typescript
-
   authhero@3.3.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)(typescript@5.9.3)(ua-parser-js@2.0.7):
     dependencies:
       '@authhero/adapter-interfaces': 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
@@ -16037,10 +15930,6 @@ snapshots:
   kysely-bun-sqlite@0.4.0(kysely@0.28.9):
     dependencies:
       bun-types: 1.3.5
-      kysely: 0.28.9
-
-  kysely-d1@0.4.0(kysely@0.28.9):
-    dependencies:
       kysely: 0.28.9
 
   kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.27.6):
