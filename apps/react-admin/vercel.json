@@ -13,5 +13,5 @@
       "destination": "/index.html"
     }
   ],
-  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile"
+  "installCommand": "cd ../.. && corepack enable && pnpm install --filter @authhero/react-admin... --no-frozen-lockfile"
 }
