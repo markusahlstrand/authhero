@@ -79,36 +79,36 @@ export function TenantsApp(props: TenantsAppProps = {}) {
       .then((result) => {
         // Multi-tenant mode - tenants endpoint exists
         // Mark as multi-tenant and show the tenants list (don't auto-redirect)
-        sessionStorage.setItem('isSingleTenant', `${selectedDomain}|false`);
+        sessionStorage.setItem("isSingleTenant", `${selectedDomain}|false`);
         setIsCheckingSingleTenant(false);
       })
       .catch(async (error) => {
         console.log("Tenants endpoint check:", error);
         // If we get a 404 or any error, the tenants endpoint doesn't exist
         // In single-tenant mode without multi-tenancy package, the endpoint won't exist
-        
+
         // Mark as single-tenant mode immediately (before trying to fetch settings)
         // This ensures subsequent requests won't try to use organization tokens
-        sessionStorage.setItem('isSingleTenant', `${selectedDomain}|true`);
-        
+        sessionStorage.setItem("isSingleTenant", `${selectedDomain}|true`);
+
         // Try to use the /tenants/settings endpoint which works in single-tenant mode
         // We need to get a token and make a direct fetch to avoid organization logic
         try {
-          const apiUrl = selectedDomain.startsWith("http") 
-            ? selectedDomain 
+          const apiUrl = selectedDomain.startsWith("http")
+            ? selectedDomain
             : `https://${selectedDomain}`;
-          
+
           // Get a non-org token
           const auth0Client = createAuth0Client(selectedDomain);
           const token = await auth0Client.getTokenSilently();
-          
+
           const response = await fetch(`${apiUrl}/api/v2/tenants/settings`, {
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
           });
-          
+
           if (response.ok) {
             const settings = await response.json();
             if (settings?.id) {
@@ -119,9 +119,9 @@ export function TenantsApp(props: TenantsAppProps = {}) {
         } catch (settingsError) {
           console.log("Settings endpoint also failed:", settingsError);
         }
-        
+
         // If both endpoints fail, clear the flag and show the tenants list (which will show an error)
-        sessionStorage.removeItem('isSingleTenant');
+        sessionStorage.removeItem("isSingleTenant");
         setIsCheckingSingleTenant(false);
       });
   }, [selectedDomain, dataProvider]);

@@ -438,37 +438,40 @@ export class AuthheroWidget {
 
     return (
       <div class="widget-container" part="container">
-        {logoUrl && (
-          <div class="logo-wrapper" part="logo-wrapper">
-            <img class="logo" part="logo" src={logoUrl} alt="Logo" />
-          </div>
-        )}
+        <header class="widget-header" part="header">
+          {logoUrl && (
+            <div class="logo-wrapper" part="logo-wrapper">
+              <img class="logo" part="logo" src={logoUrl} alt="Logo" />
+            </div>
+          )}
 
-        {this._screen.title && (
-          <h1 class="title" part="title">
-            {this._screen.title}
-          </h1>
-        )}
+          {this._screen.title && (
+            <h1 class="title" part="title">
+              {this._screen.title}
+            </h1>
+          )}
 
-        {this._screen.description && (
-          <p class="description" part="description">
-            {this._screen.description}
-          </p>
-        )}
+          {this._screen.description && (
+            <p class="description" part="description">
+              {this._screen.description}
+            </p>
+          )}
+        </header>
 
-        {screenErrors.map((err) => (
-          <div class="message message-error" part="message message-error" key={err.id ?? err.text}>
-            {err.text}
-          </div>
-        ))}
+        <div class="widget-body" part="body">
+          {screenErrors.map((err) => (
+            <div class="message message-error" part="message message-error" key={err.id ?? err.text}>
+              {err.text}
+            </div>
+          ))}
 
-        {screenSuccesses.map((msg) => (
-          <div class="message message-success" part="message message-success" key={msg.id ?? msg.text}>
-            {msg.text}
-          </div>
-        ))}
+          {screenSuccesses.map((msg) => (
+            <div class="message message-success" part="message message-success" key={msg.id ?? msg.text}>
+              {msg.text}
+            </div>
+          ))}
 
-        <form onSubmit={this.handleSubmit} part="form">
+          <form onSubmit={this.handleSubmit} part="form">
           <div class="form-content">
             {/* Social buttons section - order controlled by CSS */}
             {socialComponents.length > 0 && (
@@ -547,6 +550,7 @@ export class AuthheroWidget {
             ))}
           </div>
         )}
+        </div>
       </div>
     );
   }

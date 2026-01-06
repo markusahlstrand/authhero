@@ -9,7 +9,9 @@ import {
 import { ColorInput } from "react-admin-color-picker";
 import { useInput, useRecordContext } from "react-admin";
 import { useState, useEffect } from "react";
+import { Box } from "@mui/material";
 import { ThemesTab } from "./ThemesTab";
+import { BrandingPreview } from "./BrandingPreview";
 
 function PageBackgroundInput(props) {
   const { field } = useInput(props);
@@ -56,7 +58,7 @@ function PageBackgroundInput(props) {
       {mode === "color" ? (
         <>
           <ColorInput
-            key={color}
+            key="page-background-solid"
             source={props.source}
             label="Solid Color"
             // No value prop, uncontrolled
@@ -79,7 +81,7 @@ function PageBackgroundInput(props) {
             }
           />
           <ColorInput
-            key={gradient.start}
+            key="page-background-start"
             source="colors.page_background.start"
             label="Start Color"
           />
@@ -92,7 +94,7 @@ function PageBackgroundInput(props) {
             }
           />
           <ColorInput
-            key={gradient.end}
+            key="page-background-end"
             source="colors.page_background.end"
             label="End Color"
           />
@@ -119,31 +121,71 @@ function PageBackgroundInput(props) {
   );
 }
 
+// Wrapper component that provides the preview inside the form context
+function BrandingFormContent() {
+  return (
+    <Box sx={{ display: "flex", gap: 3, p: 0 }}>
+      {/* Form Section */}
+      <Box sx={{ flex: "1 1 60%", minWidth: 0 }}>
+        <TabbedForm>
+          <TabbedForm.Tab label="Info">
+            <TextInput source="id" />
+            <TextInput source="name" />
+            <Labeled label={<FieldTitle source="created_at" />}>
+              <DateField source="created_at" showTime={true} />
+            </Labeled>
+            <Labeled label={<FieldTitle source="updated_at" />}>
+              <DateField source="updated_at" showTime={true} />
+            </Labeled>
+          </TabbedForm.Tab>
+          <TabbedForm.Tab label="Style">
+            <ColorInput source="colors.primary" label="Primary Color" />
+            <PageBackgroundInput source="colors.page_background" />
+            <TextInput source="favicon_url" label="Favicon URL" />
+            <TextInput source="logo_url" label="Logo URL" />
+            <TextInput source="font.url" label="Font URL" />
+            {/* Preview inside the form context */}
+            <Box
+              sx={{
+                position: "fixed",
+                right: 24,
+                top: 80,
+                width: 400,
+                height: "calc(100vh - 120px)",
+                display: { xs: "none", lg: "block" },
+                zIndex: 1000,
+              }}
+            >
+              <BrandingPreview />
+            </Box>
+          </TabbedForm.Tab>
+          <TabbedForm.Tab label="Themes">
+            <ThemesTab />
+            {/* Preview inside the form context */}
+            <Box
+              sx={{
+                position: "fixed",
+                right: 24,
+                top: 80,
+                width: 400,
+                height: "calc(100vh - 120px)",
+                display: { xs: "none", lg: "block" },
+                zIndex: 1000,
+              }}
+            >
+              <BrandingPreview />
+            </Box>
+          </TabbedForm.Tab>
+        </TabbedForm>
+      </Box>
+    </Box>
+  );
+}
+
 export function BrandingEdit() {
   return (
     <Edit>
-      <TabbedForm>
-        <TabbedForm.Tab label="Info">
-          <TextInput source="id" />
-          <TextInput source="name" />
-          <Labeled label={<FieldTitle source="created_at" />}>
-            <DateField source="created_at" showTime={true} />
-          </Labeled>
-          <Labeled label={<FieldTitle source="updated_at" />}>
-            <DateField source="updated_at" showTime={true} />
-          </Labeled>
-        </TabbedForm.Tab>
-        <TabbedForm.Tab label="Style">
-          <ColorInput source="colors.primary" label="Primary Color" />
-          <PageBackgroundInput source="colors.page_background" />
-          <TextInput source="favicon_url" label="Favicon URL" />
-          <TextInput source="logo_url" label="Logo URL" />
-          <TextInput source="font.url" label="Font URL" />
-        </TabbedForm.Tab>
-        <TabbedForm.Tab label="Themes">
-          <ThemesTab />
-        </TabbedForm.Tab>
-      </TabbedForm>
+      <BrandingFormContent />
     </Edit>
   );
 }

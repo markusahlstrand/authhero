@@ -34,7 +34,9 @@ export function getDataprovider(auth0Domain?: string) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
     const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedAuth0Domain,
+    );
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured (ensure HTTPS)
@@ -76,7 +78,9 @@ export function getDataproviderForTenant(
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
     const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedAuth0Domain,
+    );
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured (ensure HTTPS)
@@ -87,7 +91,7 @@ export function getDataproviderForTenant(
     }
   } else {
     // Fallback to the environment variable (ensure HTTPS)
-    apiUrl = buildUrlWithProtocol(import.meta.env.VITE_AUTH0_API_URL || '');
+    apiUrl = buildUrlWithProtocol(import.meta.env.VITE_AUTH0_API_URL || "");
   }
 
   // Ensure apiUrl doesn't end with a slash
@@ -97,9 +101,10 @@ export function getDataproviderForTenant(
   // This is important because the mode may not be known when the dataProvider is created
   const dynamicHttpClient = (url: string, options?: any) => {
     // Check single-tenant mode at request time, not at creation time
-    const storedFlag = sessionStorage.getItem('isSingleTenant');
-    const isSingleTenant = storedFlag?.endsWith('|true') || storedFlag === 'true';
-    
+    const storedFlag = sessionStorage.getItem("isSingleTenant");
+    const isSingleTenant =
+      storedFlag?.endsWith("|true") || storedFlag === "true";
+
     // In single-tenant mode, use the regular authorized client without organization scope
     // In multi-tenant mode, use organization-scoped client for proper access control
     if (isSingleTenant) {

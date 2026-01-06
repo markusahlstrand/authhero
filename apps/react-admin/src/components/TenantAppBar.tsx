@@ -68,14 +68,14 @@ export function TenantAppBar(props: TenantAppBarProps) {
       })
       .catch(async (error) => {
         console.error("Failed to fetch tenant list:", error);
-        
+
         // In single-tenant mode, the tenants list endpoint might not exist
         // Try to fetch from the settings endpoint instead
         try {
           const settings = await tenantsDataProvider.getOne("tenants", {
             id: "settings",
           });
-          
+
           if (settings?.data && settings.data.id === tenantId) {
             setTenant(settings.data as TenantResponse);
             return;
@@ -83,7 +83,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
         } catch (settingsError) {
           console.error("Failed to fetch tenant settings:", settingsError);
         }
-        
+
         // Set a minimal tenant object on error
         setTenant({
           id: tenantId,

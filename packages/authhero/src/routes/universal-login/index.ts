@@ -78,24 +78,23 @@ export default function create(config: AuthHeroConfig) {
     });
   });
 
-  // Widget files must be served by the consumer application
-  // Install @authhero/widget and serve the dist/authhero-widget directory at /u/widget/
-  // Example with Hono + Bun:
-  //   import { serveStatic } from "hono/bun";
-  //   app.get("/u/widget/*", serveStatic({
-  //     root: "./node_modules/@authhero/widget/dist/authhero-widget",
-  //     rewriteRequestPath: (path) => path.replace("/u/widget", ""),
-  //   }));
-  app.get("/widget/*", async (ctx: Context) => {
-    return ctx.json(
-      {
-        error: "widget_not_configured",
-        message:
-          "The AuthHero widget is not configured. Install @authhero/widget and serve the dist/authhero-widget directory at /u/widget/",
-      },
-      404,
-    );
-  });
+  // Widget static file serving
+  // If widgetHandler is provided in config, use it to serve widget files
+  // Otherwise, return a helpful 404 error explaining how to configure it
+  if (config.widgetHandler) {
+    app.get("/widget/*", config.widgetHandler);
+  } else {
+    app.get("/widget/*", async (ctx: Context) => {
+      return ctx.json(
+        {
+          error: "widget_not_configured",
+          message:
+            "The AuthHero widget is not configured. Provide a widgetHandler in your AuthHeroConfig to serve widget files from @authhero/widget package.",
+        },
+        404,
+      );
+    });
+  }
 
   app
     .use(async (ctx, next) => {
