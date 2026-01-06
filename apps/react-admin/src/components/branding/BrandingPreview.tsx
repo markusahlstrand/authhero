@@ -8,23 +8,12 @@ import {
   ToggleButton,
 } from "@mui/material";
 import { useState } from "react";
+import { defineCustomElements } from "@authhero/widget/loader";
 
-// Initialize the widget custom elements using the ESM import
-let widgetLoaded = false;
-async function loadWidget() {
-  if (widgetLoaded || typeof window === "undefined") return;
-  try {
-    // Import using the package's loader export
-    const { defineCustomElements } = await import(
-      /* @vite-ignore */ "@authhero/widget/loader"
-    );
-    defineCustomElements(window);
-    widgetLoaded = true;
-  } catch (e) {
-    console.error("Failed to load widget:", e);
-  }
+// Initialize the widget custom elements
+if (typeof window !== "undefined") {
+  defineCustomElements(window);
 }
-loadWidget();
 
 // Types for the widget screen configuration
 interface FormComponent {
@@ -210,12 +199,14 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
 interface WidgetBranding {
   colors?: {
     primary?: string;
-    page_background?: {
-      type?: string;
-      start?: string;
-      end?: string;
-      angle_deg?: number;
-    } | string;
+    page_background?:
+      | {
+          type?: string;
+          start?: string;
+          end?: string;
+          angle_deg?: number;
+        }
+      | string;
   };
   logo_url?: string;
   favicon_url?: string;
@@ -350,7 +341,7 @@ export function BrandingPreview() {
   useEffect(() => {
     if (widgetRef.current) {
       const widget = widgetRef.current.querySelector(
-        "authhero-widget"
+        "authhero-widget",
       ) as HTMLElement & {
         screen?: UiScreen;
         branding?: WidgetBranding;

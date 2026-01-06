@@ -141,7 +141,7 @@ function copyFiles(source: string, target: string): void {
 function generateLocalSeedFileContent(multiTenant: boolean): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
-  
+
   // TypeScript seed file for local setup - uses the seed function from authhero
   return `import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
@@ -723,15 +723,18 @@ function runCommandWithEnv(
 /**
  * Generates app.ts and seed.ts files for cloudflare setup based on multi-tenant flag
  */
-function generateCloudflareFiles(projectPath: string, multiTenant: boolean): void {
+function generateCloudflareFiles(
+  projectPath: string,
+  multiTenant: boolean,
+): void {
   const srcDir = path.join(projectPath, "src");
-  
+
   // Generate app.ts
   fs.writeFileSync(
     path.join(srcDir, "app.ts"),
     generateCloudflareAppFileContent(multiTenant),
   );
-  
+
   // Generate seed.ts
   fs.writeFileSync(
     path.join(srcDir, "seed.ts"),
@@ -891,7 +894,7 @@ program
 
     // Copy template files
     const templateDir = config.templateDir;
-    
+
     const sourceDir = path.join(
       import.meta.url.replace("file://", "").replace("/create-authhero.js", ""),
       templateDir,
@@ -962,7 +965,7 @@ program
     if (setupType === "local") {
       const seedContent = generateLocalSeedFileContent(multiTenant);
       fs.writeFileSync(path.join(projectPath, "src/seed.ts"), seedContent);
-      
+
       const appContent = generateLocalAppFileContent(multiTenant);
       fs.writeFileSync(path.join(projectPath, "src/app.ts"), appContent);
     }
