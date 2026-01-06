@@ -14,9 +14,9 @@ let widgetLoaded = false;
 async function loadWidget() {
   if (widgetLoaded || typeof window === "undefined") return;
   try {
-    // Import directly from the widget's ESM output
+    // Import using the package's loader export
     const { defineCustomElements } = await import(
-      /* @vite-ignore */ "@authhero/widget/dist/esm/loader.js"
+      /* @vite-ignore */ "@authhero/widget/loader"
     );
     defineCustomElements(window);
     widgetLoaded = true;
