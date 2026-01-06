@@ -13,7 +13,7 @@ Use the `create-authhero` CLI to set up a new Cloudflare project:
 
 ```bash
 npx create-authhero my-auth-app \
-  --template cloudflare-simple \
+  --template cloudflare \
   --email admin@example.com \
   --password yourpassword123
 ```
@@ -23,7 +23,7 @@ npx create-authhero my-auth-app \
 ### 1. Create a Project
 
 ```bash
-npx create-authhero my-auth-app --template cloudflare-simple --skip-install
+npx create-authhero my-auth-app --template cloudflare --skip-install
 cd my-auth-app
 ```
 
@@ -97,7 +97,7 @@ npm run deploy
 
 ## Project Structure
 
-The cloudflare-simple template includes:
+The cloudflare template includes:
 
 ```
 my-auth-app/
@@ -189,10 +189,10 @@ If seeding fails:
 
 ## Multi-Tenant Setup
 
-For multi-tenant deployments with per-tenant databases, use the `cloudflare-multitenant` template instead:
+For multi-tenant deployments with per-tenant databases, use the `--multi-tenant` flag:
 
 ```bash
-npx create-authhero my-auth-app --template cloudflare-multitenant
+npx create-authhero my-auth-app --template cloudflare --multi-tenant
 ```
 
 See the [Multi-Tenancy Guide](../packages/multi-tenancy/index.md) for more details.

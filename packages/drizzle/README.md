@@ -42,7 +42,7 @@ Drizzle requires separate schema definitions per dialect, so we maintain a SQLit
 
 ## Usage with create-authhero
 
-The `cloudflare-simple` template uses pre-generated migrations from this schema. Users can:
+The `cloudflare` template uses pre-generated migrations from this schema. Users can:
 
 1. Use the initial migration as-is for a fresh database
 2. Modify the Drizzle schema and run `pnpm db:generate` for incremental changes

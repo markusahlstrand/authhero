@@ -12,6 +12,7 @@ import {
 import type { RolePermissionHooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import type { Handler } from "hono";
 import {
   EntityHooks,
   OnExecuteCredentialsExchange,
@@ -80,6 +81,46 @@ export interface AuthHeroConfig {
    * Use these to implement cross-tenant sync, audit logging, webhooks, etc.
    */
   entityHooks?: EntityHooksConfig;
+
+  /**
+   * Handler for serving widget static files at /u/widget/*.
+   *
+   * The widget files are served from @authhero/widget package.
+   * This must be a platform-specific static file handler.
+   *
+   * @example Node.js with @hono/node-server:
+   * ```typescript
+   * import { serveStatic } from "@hono/node-server/serve-static";
+   * import path from "path";
+   * import { fileURLToPath } from "url";
+   *
+   * const __dirname = path.dirname(fileURLToPath(import.meta.url));
+   * const widgetPath = path.resolve(__dirname, "../node_modules/@authhero/widget/dist/authhero-widget");
+   *
+   * const { app } = init({
+   *   dataAdapter,
+   *   widgetHandler: serveStatic({
+   *     root: widgetPath,
+   *     rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+   *   }),
+   * });
+   * ```
+   *
+   * @example Bun:
+   * ```typescript
+   * import { serveStatic } from "hono/bun";
+   *
+   * const { app } = init({
+   *   dataAdapter,
+   *   widgetHandler: serveStatic({
+   *     root: "./node_modules/@authhero/widget/dist/authhero-widget",
+   *     rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+   *   }),
+   * });
+   * ```
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  widgetHandler?: Handler<any>;
 
   /**
    * Additional routes to mount on the management API.
