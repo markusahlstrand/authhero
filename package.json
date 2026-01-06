@@ -2,6 +2,7 @@
   "name": "authhero-monorepo",
   "version": "1.0.0",
   "description": "",
+  "packageManager": "pnpm@10.20.0",
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --recursive --parallel --stream run dev",
