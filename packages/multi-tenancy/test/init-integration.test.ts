@@ -398,3 +398,61 @@ describe("Tenant Sync Hooks Integration", () => {
     expect(permissionNames).toContain("write:data");
   });
 });
+
+describe("initMultiTenant", () => {
+  let db: Kysely<Database>;
+  let adapters: ReturnType<typeof createAdapters>;
+  const controlPlaneTenantId = "control_plane";
+
+  beforeEach(async () => {
+    const dialect = new SqliteDialect({
+      database: new SQLite(":memory:"),
+    });
+    db = new Kysely<Database>({ dialect });
+    await migrateToLatest(db, false);
+    adapters = createAdapters(db);
+
+    // Create control plane tenant
+    await adapters.tenants.create({
+      id: controlPlaneTenantId,
+      friendly_name: "Control Plane",
+      audience: "https://example.com",
+      sender_email: "admin@example.com",
+      sender_name: "Control Plane",
+    });
+  });
+
+  it("should create an app with default settings", async () => {
+    const { initMultiTenant } = await import("../src/init");
+
+    const { app, controlPlaneTenantId: cpId } = initMultiTenant({
+      dataAdapter: adapters,
+    });
+
+    expect(app).toBeDefined();
+    expect(cpId).toBe("control_plane");
+  });
+
+  it("should create an app with custom control plane tenant ID", async () => {
+    const { initMultiTenant } = await import("../src/init");
+
+    const { controlPlaneTenantId: cpId } = initMultiTenant({
+      dataAdapter: adapters,
+      controlPlaneTenantId: "main",
+    });
+
+    expect(cpId).toBe("main");
+  });
+
+  it("should disable sync when sync is false", async () => {
+    const { initMultiTenant } = await import("../src/init");
+
+    // Should not throw
+    const { app } = initMultiTenant({
+      dataAdapter: adapters,
+      sync: false,
+    });
+
+    expect(app).toBeDefined();
+  });
+});

@@ -16,6 +16,10 @@ import { createMultiTenancyMiddleware } from "./middleware";
 // Re-export all multi-tenancy types
 export * from "./types";
 
+// Main entry point - the simplest way to set up multi-tenancy
+export { initMultiTenant } from "./init";
+export type { MultiTenantConfig, MultiTenantResult } from "./init";
+
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
 export type {
