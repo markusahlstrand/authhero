@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.22.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
 ## 0.21.0
 
 ### Minor Changes

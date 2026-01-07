@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.11.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
+### Patch Changes
+
+- Updated dependencies [8611a98]
+  - @authhero/adapter-interfaces@0.117.0
+
 ## 0.10.4
 
 ### Patch Changes

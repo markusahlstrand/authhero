@@ -1,5 +1,18 @@
 # @authhero/demo
 
+## 0.27.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
+### Patch Changes
+
+- Updated dependencies [8611a98]
+  - @authhero/widget@0.6.0
+  - authhero@3.5.0
+  - @authhero/kysely-adapter@10.76.1
+
 ## 0.26.1
 
 ### Patch Changes
