@@ -38,9 +38,11 @@ export interface RuntimeFallbackConfig {
  * - **Client URL fallbacks**: Add control plane URLs to allowed origins, callbacks, etc.
  * - **Tenant property defaults**: Fall back to control plane values for missing tenant settings
  *
- * **Key difference from entity sync:**
- * - **Runtime fallback**: Values are merged at query time, sensitive data stays in control plane only
- * - **Entity sync**: Entities are copied to child tenants, needed for foreign key relationships
+ * **Connection fallback by strategy:**
+ * Connections are matched by **strategy** (e.g., "google", "facebook", "email") rather than by name.
+ * This allows tenants to create a connection with a strategy like "google" and leave keys blank,
+ * and the system will automatically merge in the OAuth credentials from the control plane's
+ * google connection. This is the recommended approach for sharing social auth across tenants.
  *
  * @param baseAdapters - The base data adapters to wrap
  * @param config - Configuration for runtime settings fallback
@@ -93,12 +95,14 @@ export function createRuntimeFallbackAdapter(
           ? await baseAdapters.connections.list(controlPlaneTenantId)
           : { connections: [] };
 
-        // Merge connections with fallbacks
+        // Merge connections with fallbacks (matched by strategy)
         const connections = clientConnections.connections
           .map((connection) => {
+            // Match by strategy instead of name - this allows tenants to define
+            // a "google" strategy connection and inherit OAuth credentials from control plane
             const controlPlaneConnection =
               controlPlaneConnections.connections?.find(
-                (c) => c.name === connection.name,
+                (c) => c.strategy === connection.strategy,
               );
 
             if (!controlPlaneConnection?.options) {
@@ -167,13 +171,19 @@ export function createRuntimeFallbackAdapter(
           return connection;
         }
 
-        // Try to get the control plane connection for fallback
-        const controlPlaneConnection = await baseAdapters.connections.get(
-          controlPlaneTenantId,
-          connectionId,
+        // Skip fallback for control plane tenant itself
+        if (tenantId === controlPlaneTenantId) {
+          return connection;
+        }
+
+        // Find control plane connection by strategy for fallback
+        const controlPlaneResult =
+          await baseAdapters.connections.list(controlPlaneTenantId);
+        const controlPlaneConnection = controlPlaneResult.connections?.find(
+          (c) => c.strategy === connection.strategy,
         );
 
-        if (!controlPlaneConnection) {
+        if (!controlPlaneConnection?.options) {
           return connection;
         }
 
@@ -203,10 +213,12 @@ export function createRuntimeFallbackAdapter(
         const controlPlaneResult =
           await baseAdapters.connections.list(controlPlaneTenantId);
 
-        // Merge connections with control plane fallbacks
+        // Merge connections with control plane fallbacks (matched by strategy)
         const mergedConnections = result.connections.map((connection) => {
+          // Match by strategy - allows tenants to use "google" strategy
+          // and inherit OAuth credentials from control plane
           const controlPlaneConnection = controlPlaneResult.connections?.find(
-            (c) => c.name === connection.name,
+            (c) => c.strategy === connection.strategy,
           );
 
           if (!controlPlaneConnection?.options) {

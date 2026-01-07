@@ -41,9 +41,13 @@ In multi-tenant applications, you often want to provide common defaults across a
 ### Connection Fallbacks
 
 - Merges connection options from control plane connections
-- Matches connections by name for fallback inheritance
+- **Matches connections by strategy** (e.g., "google", "email", "facebook")
 - Supports deep merging of connection options objects
 - **Enables shared social connections** without exposing client secrets to individual tenants
+
+::: tip Strategy-Based Matching
+Connections are matched by **strategy** rather than by name. This means a tenant can create a connection with strategy "google" and leave the OAuth keys blank - the system will automatically inherit credentials from the control plane's Google connection.
+:::
 
 ### Shared Social Authentication
 
@@ -133,7 +137,7 @@ When connections are retrieved:
 
 1. **Fetches tenant's connections** from the database
 2. **Fetches control plane connections** (if `controlPlaneTenantId` is configured)
-3. **Matches connections by name**
+3. **Matches connections by strategy** (e.g., "google", "email")
 4. **Merges connection options** - tenant values override control plane values
 5. **Returns merged connections**
 
@@ -145,6 +149,7 @@ Settings are merged with tenant-specific values always taking precedence:
 // Control plane connection
 {
   name: "email",
+  strategy: "email",  // Connections matched by strategy
   options: {
     from: "noreply@example.com",
     smtp_host: "smtp.example.com",
@@ -155,7 +160,8 @@ Settings are merged with tenant-specific values always taking precedence:
 
 // Tenant's connection (override from address only)
 {
-  name: "email",
+  name: "my-email",  // Name can be different
+  strategy: "email", // Same strategy = will inherit
   options: {
     from: "hello@tenant.com"
     // smtp_password is inherited from control plane
@@ -164,7 +170,8 @@ Settings are merged with tenant-specific values always taking precedence:
 
 // Merged result (returned to tenant)
 {
-  name: "email",
+  name: "my-email",                    // Tenant's name preserved
+  strategy: "email",
   options: {
     from: "hello@tenant.com",          // Tenant override
     smtp_host: "smtp.example.com",     // Fallback
@@ -193,18 +200,22 @@ POST /api/v2/connections
   }
 }
 
-// Child tenants can use it immediately without storing secrets
-// They can override display settings:
+// Child tenants just need to define the strategy - keys are inherited!
 POST /api/v2/connections  // In child tenant
 {
-  "name": "google-oauth2",
+  "name": "google",                    // Name can be anything
+  "strategy": "google-oauth2",         // Same strategy = inherits credentials
   "display_name": "Sign in with Google for Acme Corp",
   "options": {
-    "scope": ["openid", "email", "profile", "calendar"]  // Custom scopes
-    // client_id and client_secret inherited from control plane
+    "scope": ["openid", "email", "profile", "calendar"]  // Optional overrides
+    // client_id and client_secret automatically inherited from control plane!
   }
 }
 ```
+
+::: info Minimal Configuration
+Tenants can simply create a connection with the desired strategy and leave sensitive fields blank. The runtime fallback will automatically provide the OAuth credentials from the control plane.
+:::
 
 ### Shared Email Provider
 
@@ -344,7 +355,7 @@ Check that:
 
 - `controlPlaneTenantId` and `controlPlaneClientId` are set correctly
 - Control plane tenant/client exists in database
-- Connection names match between control plane and child tenant
+- Connection **strategies** match between control plane and child tenant (e.g., both use "google-oauth2")
 - Adapter is properly wrapped before use
 
 ### Wrong Values Being Used
