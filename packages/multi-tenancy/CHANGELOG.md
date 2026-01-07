@@ -1,5 +1,12 @@
 # @authhero/multi-tenancy
 
+## 14.1.0
+
+### Minor Changes
+
+- 489db0b: Remove the connection sync
+  Created a saas multi-tenant guide
+
 ## 14.0.0
 
 ### Major Changes

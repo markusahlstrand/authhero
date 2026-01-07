@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.28.0
+
+### Minor Changes
+
+- 489db0b: Remove the connection sync
+  Created a saas multi-tenant guide
+
 ## 1.27.0
 
 ### Minor Changes
