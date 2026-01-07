@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.118.0
+
+### Minor Changes
+
+- b7bb663: Make organizations lowercase
+
 ## 0.117.0
 
 ### Minor Changes

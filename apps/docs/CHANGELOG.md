@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.27.0
+
+### Minor Changes
+
+- b7bb663: Make organizations lowercase
+
 ## 1.26.0
 
 ### Minor Changes
