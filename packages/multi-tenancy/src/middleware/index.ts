@@ -1,5 +1,6 @@
 import { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { MANAGEMENT_API_AUDIENCE } from "authhero";
 import {
   MultiTenancyBindings,
   MultiTenancyVariables,
@@ -44,9 +45,32 @@ export function createAccessControlMiddleware(
       return next();
     }
 
-    const targetTenantId = ctx.var.tenant_id;
-    const organizationId = ctx.var.organization_id;
+    const { controlPlaneTenantId } = config.accessControl;
 
+    // Get org claims from context (set by authhero's auth middleware)
+    const orgName = ctx.var.org_name;
+    const organizationId = ctx.var.organization_id;
+    const orgIdentifier = orgName || organizationId;
+
+    let targetTenantId = ctx.var.tenant_id;
+
+    // Check if this is a management token (issued by control plane for cross-tenant access)
+    const user = ctx.var.user as { aud?: string | string[] } | undefined;
+    const audiences = user?.aud
+      ? Array.isArray(user.aud)
+        ? user.aud
+        : [user.aud]
+      : [];
+    const isManagementToken = audiences.includes(MANAGEMENT_API_AUDIENCE);
+
+    // Only derive tenant_id from org claims for management tokens
+    // This prevents regular tenant tokens from accessing other tenants
+    if (!targetTenantId && orgIdentifier && isManagementToken) {
+      ctx.set("tenant_id", orgIdentifier);
+      targetTenantId = orgIdentifier;
+    }
+
+    // If still no tenant_id, deny access
     if (!targetTenantId) {
       throw new HTTPException(400, {
         message: "Tenant ID not found in request",
@@ -56,7 +80,8 @@ export function createAccessControlMiddleware(
     const hasAccess = validateTenantAccess(
       organizationId,
       targetTenantId,
-      config.accessControl.controlPlaneTenantId,
+      controlPlaneTenantId,
+      orgName,
     );
 
     if (!hasAccess) {

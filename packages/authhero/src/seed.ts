@@ -570,7 +570,6 @@ export interface SeedOptions {
   /**
    * The audience URL for the tenant.
    * For the main/management tenant, defaults to `urn:authhero:management`.
-   * For child tenants, use `getTenantAudience(tenantId)` to generate `urn:authhero:tenant:{tenantId}`.
    */
   audience?: string;
   /**

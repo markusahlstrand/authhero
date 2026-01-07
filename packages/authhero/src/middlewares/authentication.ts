@@ -38,28 +38,6 @@ interface JwtPayload {
  */
 export const MANAGEMENT_API_AUDIENCE = "urn:authhero:management";
 
-/**
- * Generates the audience URN for a specific tenant.
- * @param tenantId - The tenant ID
- * @returns The audience URN in the format `urn:authhero:tenant:{tenantId}`
- */
-export function getTenantAudience(tenantId: string): string {
-  return `urn:authhero:tenant:${tenantId}`;
-}
-
-/**
- * Extracts the tenant ID from a tenant-specific audience URN.
- * @param audience - The audience URN
- * @returns The tenant ID if it's a tenant audience, null otherwise
- */
-export function extractTenantIdFromAudience(audience: string): string | null {
-  const prefix = "urn:authhero:tenant:";
-  if (audience.startsWith(prefix)) {
-    return audience.slice(prefix.length);
-  }
-  return null;
-}
-
 async function getJwks(bindings: Bindings) {
   if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
     const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
@@ -177,90 +155,20 @@ export function createAuthMiddleware(
 
       try {
         const tokenPayload = await validateJwtToken(ctx, bearer);
-        // Can we just keep the user?
         ctx.set("user_id", tokenPayload.sub);
         ctx.set("user", tokenPayload);
 
-        // Determine the tenant from token audience
-        const audiences = Array.isArray(tokenPayload.aud)
-          ? tokenPayload.aud
-          : [tokenPayload.aud];
+        // Set org context from token claims (for downstream use by multi-tenancy package)
+        if (tokenPayload.org_name) {
+          ctx.set("org_name", tokenPayload.org_name);
+        }
+        if (tokenPayload.org_id) {
+          ctx.set("organization_id", tokenPayload.org_id);
+        }
 
-        // Check if this is a management token (urn:authhero:management)
-        const isManagementToken = audiences.includes(MANAGEMENT_API_AUDIENCE);
-
-        // Check if this is a tenant-specific token (urn:authhero:tenant:{id})
-        const tenantAudience = audiences.find((aud) =>
-          aud.startsWith("urn:authhero:tenant:"),
-        );
-        const audienceTenantId = tenantAudience
-          ? extractTenantIdFromAudience(tenantAudience)
-          : null;
-
-        // Get the current tenant from context (set by tenant middleware)
-        const currentTenantId = ctx.var.tenant_id;
-
-        if (isManagementToken) {
-          // Management tokens require org_id or org_name for non-tenant-list operations
-          // The org_id/org_name specifies which tenant's resources to access
-          const orgId = tokenPayload.org_id;
-          const orgName = tokenPayload.org_name;
-
-          // Set org_name and organization_id on context for downstream use (e.g., access control)
-          if (orgName) {
-            ctx.set("org_name", orgName);
-          }
-          if (orgId) {
-            ctx.set("organization_id", orgId);
-          }
-
-          // For tenant list/create/settings endpoints, we don't require org_id
-          // Note: /settings comes from tenantRoutes which is mounted at /tenants
-          const isTenantManagementEndpoint =
-            relativePath === "/tenants" ||
-            relativePath.startsWith("/tenants/") ||
-            relativePath === "/settings" ||
-            relativePath.startsWith("/settings/");
-
-          if (!isTenantManagementEndpoint) {
-            // For other endpoints, org_id or org_name is required
-            // org_name takes precedence when matching with tenant ID (for multi-tenancy)
-            const orgIdentifier = orgName || orgId;
-            if (!orgIdentifier) {
-              throw new JSONHTTPException(403, {
-                message:
-                  "Management tokens require org_id or org_name claim for accessing tenant resources",
-              });
-            }
-
-            // If tenant_id is not set by tenant middleware (no header, subdomain, or custom domain),
-            // derive it from the token's org_name/org_id
-            if (!currentTenantId) {
-              ctx.set("tenant_id", orgIdentifier);
-            } else if (orgIdentifier !== currentTenantId) {
-              // If tenant_id was explicitly set, it must match the token's org
-              throw new JSONHTTPException(403, {
-                message: `Token organization '${orgIdentifier}' does not match tenant '${currentTenantId}'`,
-              });
-            }
-          }
-        } else if (audienceTenantId) {
-          // Tenant-specific tokens can only access their own tenant's resources
-          if (audienceTenantId !== currentTenantId) {
-            throw new JSONHTTPException(403, {
-              message: `Token audience is for tenant '${audienceTenantId}' but request is for tenant '${currentTenantId}'`,
-            });
-          }
-          // Set tenant_id from audience if not already set
-          if (!ctx.var.tenant_id) {
-            ctx.set("tenant_id", audienceTenantId);
-          }
-        } else {
-          // Legacy tokens without the new audience format
-          // Fall back to setting tenant_id from token if present
-          if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
-            ctx.set("tenant_id", tokenPayload.tenant_id);
-          }
+        // Set tenant_id from token claim if not already set by tenant middleware
+        if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
+          ctx.set("tenant_id", tokenPayload.tenant_id);
         }
 
         const permissions = Array.isArray(tokenPayload.permissions)

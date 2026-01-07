@@ -1,9 +1,14 @@
 import { CreateTenantParams, Tenant } from "@authhero/adapter-interfaces";
-import {
-  MANAGEMENT_API_SCOPES,
-  MANAGEMENT_API_AUDIENCE,
-  getTenantAudience,
-} from "authhero";
+import { MANAGEMENT_API_SCOPES, MANAGEMENT_API_AUDIENCE } from "authhero";
+
+/**
+ * Generates the default audience URN for a tenant.
+ * @param tenantId - The tenant ID
+ * @returns The audience URN in the format `urn:authhero:tenant:{tenantId}`
+ */
+function getTenantAudience(tenantId: string): string {
+  return `urn:authhero:tenant:${tenantId.toLowerCase()}`;
+}
 import {
   MultiTenancyConfig,
   TenantEntityHooks,

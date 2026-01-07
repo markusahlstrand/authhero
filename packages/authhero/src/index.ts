@@ -26,8 +26,6 @@ export type { SeedOptions, SeedResult } from "./seed";
 export {
   createAuthMiddleware,
   MANAGEMENT_API_AUDIENCE,
-  getTenantAudience,
-  extractTenantIdFromAudience,
 } from "./middlewares/authentication";
 export { tenantMiddleware } from "./middlewares/tenant";
 export { clientInfoMiddleware } from "./middlewares/client-info";

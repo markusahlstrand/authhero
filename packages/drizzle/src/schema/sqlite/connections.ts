@@ -1,10 +1,16 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  primaryKey,
+} from "drizzle-orm/sqlite-core";
 import { tenants } from "./tenants";
 
 export const connections = sqliteTable(
   "connections",
   {
-    id: text("id", { length: 255 }).primaryKey(),
+    id: text("id", { length: 255 }).notNull(),
     tenant_id: text("tenant_id", { length: 191 })
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
@@ -12,7 +18,7 @@ export const connections = sqliteTable(
     response_type: text("response_type", { length: 255 }),
     response_mode: text("response_mode", { length: 255 }),
     strategy: text("strategy", { length: 64 }),
-    options: text("options", { length: 2048 }).notNull().default("{}"),
+    options: text("options", { length: 8192 }).notNull().default("{}"),
     created_at: text("created_at", { length: 35 }).notNull(),
     updated_at: text("updated_at", { length: 35 }).notNull(),
     display_name: text("display_name", { length: 255 }),
@@ -21,7 +27,10 @@ export const connections = sqliteTable(
     is_system: integer("is_system").notNull().default(0),
     metadata: text("metadata", { length: 4096 }),
   },
-  (table) => [index("connections_tenant_id_index").on(table.tenant_id)],
+  (table) => [
+    primaryKey({ columns: [table.tenant_id, table.id] }),
+    index("connections_tenant_id_index").on(table.tenant_id),
+  ],
 );
 
 export const customDomains = sqliteTable("custom_domains", {
