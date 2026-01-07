@@ -291,4 +291,75 @@ describe("org_name in tokens", () => {
       expect((parsed?.payload as any).org_name).toBeUndefined();
     });
   });
+
+  describe("org_name case normalization", () => {
+    it("should lowercase org_name in access token for Auth0 SDK compatibility", async () => {
+      const { env } = await getTestServer();
+
+      // Enable the flag on the tenant
+      await env.data.tenants.update("tenantId", {
+        allow_organization_name_in_authentication_api: true,
+      });
+
+      // Create an organization with mixed-case name
+      await env.data.organizations.create("tenantId", {
+        id: "org_mixed",
+        name: "DEFAULT_SETTINGS",
+        display_name: "Default Settings Org",
+      });
+
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        organization: {
+          id: "org_mixed",
+          name: "DEFAULT_SETTINGS", // Mixed case input
+        },
+      });
+
+      expect(tokens.access_token).toBeDefined();
+      expect(tokens.id_token).toBeDefined();
+
+      // Parse the access token - org_name should be lowercase
+      const accessParsed = parseJWT(tokens.access_token!);
+      expect(accessParsed?.payload).toMatchObject({
+        org_id: "org_mixed",
+        org_name: "default_settings", // Should be lowercased
+      });
+
+      // Parse the id token - org_name should also be lowercase
+      const idParsed = parseJWT(tokens.id_token!);
+      expect(idParsed?.payload).toMatchObject({
+        org_id: "org_mixed",
+        org_name: "default_settings", // Should be lowercased
+      });
+    });
+  });
 });

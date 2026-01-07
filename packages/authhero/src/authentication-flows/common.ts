@@ -98,10 +98,12 @@ export async function createAuthTokens(
     act: impersonatingUser ? { sub: impersonatingUser.user_id } : undefined, // RFC 8693 act claim for impersonation
     org_id: organization ? organization.id : undefined,
     // Include org_name in access token if tenant has allow_organization_name_in_authentication_api enabled
+    // Auth0 SDK validates org_name case-insensitively by lowercasing the expected value,
+    // so we lowercase the org_name to match the validation behavior
     org_name:
       organization &&
       client.tenant.allow_organization_name_in_authentication_api
-        ? organization.name
+        ? organization.name.toLowerCase()
         : undefined,
     permissions,
   };
@@ -127,7 +129,8 @@ export async function createAuthTokens(
             ? { sub: impersonatingUser.user_id }
             : undefined,
           org_id: organization?.id,
-          org_name: organization?.name,
+          // Auth0 SDK validates org_name case-insensitively, so we lowercase it
+          org_name: organization?.name.toLowerCase(),
         }
       : undefined;
 

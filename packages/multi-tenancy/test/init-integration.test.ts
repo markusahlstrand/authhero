@@ -11,7 +11,8 @@ import {
   MultiTenancyConfig,
   MultiTenancyHooks,
 } from "../src/index";
-import { Role, ResourceServer } from "@authhero/adapter-interfaces";
+import { Role, ResourceServer, DataAdapters } from "@authhero/adapter-interfaces";
+import { EntityHookContext } from "authhero";
 
 /**
  * Helper to find a resource server by identifier using the list query
@@ -396,6 +397,147 @@ describe("Tenant Sync Hooks Integration", () => {
     const permissionNames = permissions.map((p) => p.permission_name);
     expect(permissionNames).toContain("read:data");
     expect(permissionNames).toContain("write:data");
+  });
+
+  it("should create role on child tenant when updating role on control plane that doesn't exist on child", async () => {
+    // First, create a child tenant (without any synced roles initially)
+    await adapters.tenants.create({
+      id: "existing-tenant",
+      friendly_name: "Existing Tenant",
+      audience: "https://existing-tenant.example.com",
+      sender_email: "admin@existing-tenant.example.com",
+      sender_name: "Existing Tenant",
+    });
+
+    // Verify no role exists on child tenant yet
+    const beforeRole = await findRoleByName(
+      adapters,
+      "existing-tenant",
+      "NewRole",
+    );
+    expect(beforeRole).toBeNull();
+
+    // Create the sync hooks
+    const { entityHooks } = createSyncHooks({
+      controlPlaneTenantId,
+      getControlPlaneAdapters: async () => adapters,
+      getAdapters: async (_tenantId: string) => adapters,
+      getChildTenantIds: async () => {
+        const allTenants = await adapters.tenants.list({});
+        return allTenants.tenants
+          .map((t) => t.id)
+          .filter((id) => id !== controlPlaneTenantId);
+      },
+      sync: {
+        resourceServers: true,
+        roles: true,
+        connections: true,
+      },
+    });
+
+    // Create a role on the control plane (simulating that it was created after the child tenant)
+    const newRole = await adapters.roles.create(controlPlaneTenantId, {
+      name: "NewRole",
+      description: "A new role created after child tenant existed",
+    });
+
+    // Create a mock EntityHookContext
+    const mockCtx: EntityHookContext = {
+      tenantId: controlPlaneTenantId,
+      adapters: adapters as unknown as DataAdapters,
+    };
+
+    // Simulate an update to this role on the control plane
+    // The sync hook should create the role on the child tenant since it doesn't exist
+    await entityHooks.roles.afterUpdate?.(mockCtx, newRole.id, newRole);
+
+    // Verify the role was created on the child tenant
+    const afterRole = await findRoleByName(
+      adapters,
+      "existing-tenant",
+      "NewRole",
+    );
+    expect(afterRole).toBeDefined();
+    expect(afterRole?.name).toBe("NewRole");
+    expect(afterRole?.description).toBe(
+      "A new role created after child tenant existed",
+    );
+    expect(afterRole?.is_system).toBe(true);
+  });
+
+  it("should update existing role on child tenant when updating role on control plane", async () => {
+    // First, create a child tenant
+    await adapters.tenants.create({
+      id: "existing-tenant",
+      friendly_name: "Existing Tenant",
+      audience: "https://existing-tenant.example.com",
+      sender_email: "admin@existing-tenant.example.com",
+      sender_name: "Existing Tenant",
+    });
+
+    // Create a role on both control plane and child tenant
+    const controlPlaneRole = await adapters.roles.create(controlPlaneTenantId, {
+      name: "ExistingRole",
+      description: "Original description",
+    });
+
+    await adapters.roles.create("existing-tenant", {
+      name: "ExistingRole",
+      description: "Child tenant description",
+      is_system: true,
+    });
+
+    // Create the sync hooks
+    const { entityHooks } = createSyncHooks({
+      controlPlaneTenantId,
+      getControlPlaneAdapters: async () => adapters,
+      getAdapters: async (_tenantId: string) => adapters,
+      getChildTenantIds: async () => {
+        const allTenants = await adapters.tenants.list({});
+        return allTenants.tenants
+          .map((t) => t.id)
+          .filter((id) => id !== controlPlaneTenantId);
+      },
+      sync: {
+        resourceServers: true,
+        roles: true,
+        connections: true,
+      },
+    });
+
+    // Update the role on control plane
+    await adapters.roles.update(controlPlaneTenantId, controlPlaneRole.id, {
+      description: "Updated description from control plane",
+    });
+
+    // Get the updated role
+    const updatedControlPlaneRole = await adapters.roles.get(
+      controlPlaneTenantId,
+      controlPlaneRole.id,
+    );
+
+    // Create a mock EntityHookContext
+    const mockCtx: EntityHookContext = {
+      tenantId: controlPlaneTenantId,
+      adapters: adapters as unknown as DataAdapters,
+    };
+
+    // Trigger the afterUpdate hook
+    await entityHooks.roles.afterUpdate?.(
+      mockCtx,
+      controlPlaneRole.id,
+      updatedControlPlaneRole!,
+    );
+
+    // Verify the role was updated on the child tenant
+    const childRole = await findRoleByName(
+      adapters,
+      "existing-tenant",
+      "ExistingRole",
+    );
+    expect(childRole).toBeDefined();
+    expect(childRole?.description).toBe("Updated description from control plane");
+    expect(childRole?.is_system).toBe(true);
   });
 });
 
