@@ -149,55 +149,62 @@ Entity hooks are configured during AuthHero initialization:
 const authhero = new AuthHero({
   // ... other config
   entityHooks: {
-    roles: {
-      beforeCreate: async (context, insert) => {
-        console.log(`Creating role: ${insert.name}`);
-        // Validate or modify the insert data
-        return insert;
+    roles: [
+      {
+        beforeCreate: async (context, insert) => {
+          console.log(`Creating role: ${insert.name}`);
+          // Validate or modify the insert data
+          return insert;
+        },
+        afterCreate: async (context, entity) => {
+          console.log(`Role created: ${entity.name} (${entity.id})`);
+          // Perform post-creation tasks (e.g., audit logging)
+        },
+        beforeUpdate: async (context, id, update) => {
+          console.log(`Updating role ${id}`);
+          // Validate or modify the update data
+          return update;
+        },
+        afterUpdate: async (context, entity) => {
+          console.log(`Role updated: ${entity.name}`);
+        },
+        beforeDelete: async (context, id) => {
+          console.log(`Deleting role ${id}`);
+          // Validate deletion or cleanup
+        },
+        afterDelete: async (context, id) => {
+          console.log(`Role deleted: ${id}`);
+          // Perform post-deletion cleanup
+        },
       },
-      afterCreate: async (context, entity) => {
-        console.log(`Role created: ${entity.name} (${entity.id})`);
-        // Perform post-creation tasks (e.g., audit logging)
+    ],
+    connections: [
+      {
+        beforeCreate: async (context, insert) => {
+          // Validate connection settings
+          return insert;
+        },
+        afterCreate: async (context, entity) => {
+          // Sync to external systems
+        },
+        // ... other hooks
       },
-      beforeUpdate: async (context, id, update) => {
-        console.log(`Updating role ${id}`);
-        // Validate or modify the update data
-        return update;
+    ],
+    resourceServers: [
+      {
+        beforeCreate: async (context, insert) => {
+          // Validate resource server configuration
+          return insert;
+        },
+        afterCreate: async (context, entity) => {
+          // Initialize default permissions
+        },
+        // ... other hooks
       },
-      afterUpdate: async (context, entity) => {
-        console.log(`Role updated: ${entity.name}`);
-      },
-      beforeDelete: async (context, id) => {
-        console.log(`Deleting role ${id}`);
-        // Validate deletion or cleanup
-      },
-      afterDelete: async (context, id) => {
-        console.log(`Role deleted: ${id}`);
-        // Perform post-deletion cleanup
-      },
-    },
-    connections: {
-      beforeCreate: async (context, insert) => {
-        // Validate connection settings
-        return insert;
-      },
-      afterCreate: async (context, entity) => {
-        // Sync to external systems
-      },
-      // ... other hooks
-    },
-    resourceServers: {
-      beforeCreate: async (context, insert) => {
-        // Validate resource server configuration
-        return insert;
-      },
-      afterCreate: async (context, entity) => {
-        // Initialize default permissions
-      },
-      // ... other hooks
-    },
-    rolePermissions: {
-      beforeAssign: async (context, roleId, permissions) => {
+    ],
+    rolePermissions: [
+      {
+        beforeAssign: async (context, roleId, permissions) => {
         console.log(`Assigning permissions to role ${roleId}`);
         // Validate permissions before assignment
         return permissions;

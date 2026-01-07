@@ -16,13 +16,13 @@ import { createMultiTenancyMiddleware } from "./middleware";
 // Re-export all multi-tenancy types
 export * from "./types";
 
+// Main entry point - the simplest way to set up multi-tenancy
+export { initMultiTenant } from "./init";
+export type { MultiTenantConfig, MultiTenantResult } from "./init";
+
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
-export type {
-  EntitySyncConfig,
-  SyncHooksResult,
-  EntityHooks,
-} from "./hooks/sync";
+export type { EntitySyncConfig, SyncHooksResult } from "./hooks/sync";
 
 export { createTenantsOpenAPIRouter } from "./routes";
 
@@ -38,7 +38,10 @@ export {
   createSettingsInheritanceAdapter,
   withSettingsInheritance,
 } from "./middleware";
-export type { RuntimeFallbackConfig, SettingsInheritanceConfig } from "./middleware";
+export type {
+  RuntimeFallbackConfig,
+  SettingsInheritanceConfig,
+} from "./middleware";
 
 export { createMultiTenancyPlugin } from "./plugin";
 export type { AuthHeroPlugin } from "./plugin";

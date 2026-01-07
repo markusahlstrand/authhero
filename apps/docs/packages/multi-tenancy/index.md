@@ -37,6 +37,70 @@ npm install authhero @authhero/multi-tenancy
 ## Quick Start
 
 ```typescript
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
+
+const dataAdapter = createAdapters(db);
+
+const { app } = initMultiTenant({
+  dataAdapter,
+  // That's it! Everything else has sensible defaults:
+  // - controlPlaneTenantId: "control_plane"
+  // - Resource servers, roles, and connections sync enabled
+  // - Tenants API mounted at /tenants
+  // - Protected synced entities middleware applied
+});
+
+export default app;
+```
+
+This sets up a complete multi-tenant system where:
+
+- The `control_plane` tenant manages all other tenants
+- Resource servers created on `control_plane` are automatically synced to all child tenants
+- Roles created on `control_plane` are automatically synced to all child tenants
+- Each tenant has isolated users, applications, and configuration
+
+### Customization Options
+
+```typescript
+const { app } = initMultiTenant({
+  dataAdapter,
+
+  // Custom control plane tenant ID
+  controlPlaneTenantId: "main",
+
+  // Control which entities to sync
+  sync: {
+    resourceServers: true,
+    roles: true,
+    connections: false, // Don't sync connections
+  },
+
+  // Or disable syncing entirely - each tenant manages their own entities
+  // sync: false,
+
+  // Default permissions for new tenant organizations
+  defaultPermissions: ["tenant:admin", "tenant:read"],
+
+  // Custom database per tenant (for database isolation)
+  getAdapters: async (tenantId) =>
+    createAdapters(getDatabaseForTenant(tenantId)),
+
+  // Pass through any AuthHero config options
+  hooks: {
+    onExecutePostLogin: async (event, api) => {
+      /* ... */
+    },
+  },
+});
+```
+
+### Advanced Setup
+
+For more control over the setup, you can use the lower-level APIs directly:
+
+```typescript
 import { init, fetchAll } from "authhero";
 import {
   createSyncHooks,
@@ -55,7 +119,7 @@ const { entityHooks, tenantHooks } = createSyncHooks({
     const allTenants = await fetchAll(
       (params) => dataAdapter.tenants.list(params),
       "tenants",
-      { cursorField: "id", pageSize: 100 }
+      { cursorField: "id", pageSize: 100 },
     );
     return allTenants
       .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
@@ -79,18 +143,14 @@ const tenantsRouter = createTenantsOpenAPIRouter(
       defaultPermissions: ["tenant:admin"],
     },
   },
-  { tenants: tenantHooks }
+  { tenants: tenantHooks },
 );
 
 // Initialize AuthHero with sync hooks and tenant routes
 const { app } = init({
   dataAdapter,
   entityHooks,
-  managementApiExtensions: [
-    { path: "/tenants", router: tenantsRouter },
-  ],
-  emailProvider: myEmailProvider,
-  smsProvider: mySmsProvider,
+  managementApiExtensions: [{ path: "/tenants", router: tenantsRouter }],
 });
 
 // Add middleware to protect synced entities
@@ -98,13 +158,6 @@ app.use("/api/v2/*", createProtectSyncedMiddleware());
 
 export default app;
 ```
-
-This sets up a complete multi-tenant system where:
-
-- The `control_plane` tenant manages all other tenants
-- Resource servers created on `control_plane` are automatically synced to all child tenants
-- Roles created on `control_plane` are automatically synced to all child tenants
-- Each tenant has isolated users, applications, and configuration
 
 ## Entity Synchronization
 
@@ -204,15 +257,17 @@ Control which entities to sync using the `sync` option in `createSyncHooks`:
 ```typescript
 const { entityHooks, tenantHooks } = createSyncHooks({
   controlPlaneTenantId: "control_plane",
-  getChildTenantIds: async () => { /* ... */ },
+  getChildTenantIds: async () => {
+    /* ... */
+  },
   getAdapters: async () => dataAdapter,
   getControlPlaneAdapters: async () => dataAdapter,
-  
+
   // Control which entities to sync (all default to true)
   sync: {
-    resourceServers: true,  // Sync resource servers
-    roles: true,            // Sync roles and permissions
-    connections: true,      // Sync connections (without secrets)
+    resourceServers: true, // Sync resource servers
+    roles: true, // Sync roles and permissions
+    connections: true, // Sync connections (without secrets)
   },
 });
 ```

@@ -33,64 +33,71 @@ pnpm add authhero @authhero/multi-tenancy
 ## Quick Start
 
 ```typescript
-import { init, AuthHeroConfig, fetchAll } from "authhero";
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
+
+const dataAdapter = createAdapters(db);
+
+const { app } = initMultiTenant({
+  dataAdapter,
+  // That's it! Everything else has sensible defaults:
+  // - controlPlaneTenantId: "control_plane"
+  // - Resource servers, roles, and connections sync enabled
+  // - Tenants API mounted at /tenants
+  // - Protected synced entities middleware applied
+});
+
+export default app;
+```
+
+### Customization
+
+```typescript
+const { app } = initMultiTenant({
+  dataAdapter,
+  controlPlaneTenantId: "main",
+  sync: {
+    resourceServers: true,
+    roles: true,
+    connections: false, // Don't sync connections
+  },
+  defaultPermissions: ["tenant:admin", "tenant:read"],
+});
+```
+
+### Advanced Setup
+
+For more control, use the lower-level APIs:
+
+```typescript
+import { init, fetchAll } from "authhero";
 import {
   createSyncHooks,
   createTenantsOpenAPIRouter,
   createProtectSyncedMiddleware,
 } from "@authhero/multi-tenancy";
-import createAdapters from "@authhero/kysely-adapter";
 
-const CONTROL_PLANE_TENANT_ID = "control_plane";
-const dataAdapter = createAdapters(db);
-
-// Create sync hooks for syncing entities from control plane to child tenants
 const { entityHooks, tenantHooks } = createSyncHooks({
-  controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  controlPlaneTenantId: "control_plane",
   getChildTenantIds: async () => {
-    const allTenants = await fetchAll(
-      (params) => dataAdapter.tenants.list(params),
-      "tenants",
-      { cursorField: "id", pageSize: 100 }
-    );
-    return allTenants
-      .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
-      .map((t) => t.id);
+    /* ... */
   },
   getAdapters: async () => dataAdapter,
   getControlPlaneAdapters: async () => dataAdapter,
-  sync: {
-    resourceServers: true,
-    roles: true,
-    connections: true,
-  },
 });
 
-// Create tenants router
 const tenantsRouter = createTenantsOpenAPIRouter(
-  {
-    accessControl: {
-      controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
-      requireOrganizationMatch: false,
-      defaultPermissions: ["tenant:admin"],
-    },
-  },
-  { tenants: tenantHooks }
+  { accessControl: { controlPlaneTenantId: "control_plane" } },
+  { tenants: tenantHooks },
 );
 
-// Initialize AuthHero with sync hooks and tenant routes
 const { app } = init({
   dataAdapter,
   entityHooks,
-  managementApiExtensions: [
-    { path: "/tenants", router: tenantsRouter },
-  ],
+  managementApiExtensions: [{ path: "/tenants", router: tenantsRouter }],
 });
 
-// Add middleware to protect synced entities
 app.use("/api/v2/*", createProtectSyncedMiddleware());
-
-export default app;
 ```
 
 ## Key Concepts
@@ -147,7 +154,7 @@ const resourceServerHooks = createResourceServerSyncHooks({
 const config: AuthHeroConfig = {
   dataAdapter,
   entityHooks: {
-    resourceServers: resourceServerHooks,
+    resourceServers: [resourceServerHooks],
   },
 };
 ```

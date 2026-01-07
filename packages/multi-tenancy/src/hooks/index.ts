@@ -8,5 +8,4 @@ export {
   createSyncHooks,
   type EntitySyncConfig,
   type SyncHooksResult,
-  type EntityHooks,
 } from "./sync";

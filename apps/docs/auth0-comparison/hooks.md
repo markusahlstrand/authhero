@@ -136,20 +136,24 @@ const authhero = new AuthHero({
     // ... other user lifecycle hooks
   },
   entityHooks: {
-    roles: {
-      beforeCreate: async (context, insert) => {
-        // Validate or modify before creation
-        return insert;
+    roles: [
+      {
+        beforeCreate: async (context, insert) => {
+          // Validate or modify before creation
+          return insert;
+        },
+        afterCreate: async (context, entity) => {
+          // Post-creation tasks
+        },
       },
-      afterCreate: async (context, entity) => {
-        // Post-creation tasks
+    ],
+    rolePermissions: [
+      {
+        afterAssign: async (context, roleId, permissions) => {
+          // Sync to external systems
+        },
       },
-    },
-    rolePermissions: {
-      afterAssign: async (context, roleId, permissions) => {
-        // Sync to external systems
-      },
-    },
+    ],
   },
 });
 ````

@@ -183,75 +183,30 @@ main().catch(console.error);
 function generateLocalAppFileContent(multiTenant: boolean): string {
   if (multiTenant) {
     return `import { Context } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { swaggerUI } from "@hono/swagger-ui";
-import { init, AuthHeroConfig, fetchAll } from "authhero";
+import { AuthHeroConfig } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
-import {
-  createSyncHooks,
-  createTenantsOpenAPIRouter,
-  createProtectSyncedMiddleware,
-} from "@authhero/multi-tenancy";
+import { initMultiTenant } from "@authhero/multi-tenancy";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 
 // Control plane tenant ID - the tenant that manages all other tenants
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
-  // Create sync hooks for syncing entities from control plane to child tenants
-  const { entityHooks, tenantHooks } = createSyncHooks({
-    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
-    getChildTenantIds: async () => {
-      const allTenants = await fetchAll<{ id: string }>(
-        (params) => config.dataAdapter.tenants.list(params),
-        "tenants",
-        { cursorField: "id", pageSize: 100 },
-      );
-      return allTenants
-        .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
-        .map((t) => t.id);
-    },
-    getAdapters: async () => config.dataAdapter,
-    getControlPlaneAdapters: async () => config.dataAdapter,
-    sync: {
-      resourceServers: true,
-      roles: true,
-      connections: true,
-    },
-  });
-
-  // Create tenants router
-  const tenantsRouter = createTenantsOpenAPIRouter(
-    {
-      accessControl: {
-        controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
-        requireOrganizationMatch: false,
-        defaultPermissions: ["tenant:admin"],
-      },
-    },
-    { tenants: tenantHooks },
-  );
-
-  // Initialize AuthHero with sync hooks and tenant routes
-  const { app } = init({
+  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
+  const { app } = initMultiTenant({
     ...config,
-    entityHooks,
-    managementApiExtensions: [
-      ...(config.managementApiExtensions || []),
-      { path: "/tenants", router: tenantsRouter },
-    ],
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
   });
-
-  // Add middleware to protect synced entities from modification on child tenants
-  app.use("/api/v2/*", createProtectSyncedMiddleware());
 
   app
     .onError((err, ctx) => {
-      if (err instanceof HTTPException) {
-        return err.getResponse();
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
-      return ctx.text(err.message, 500);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
     })
     .get("/", async (ctx: Context) => {
       return ctx.json({
@@ -286,7 +241,6 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
   }
 
   return `import { Context } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serveStatic } from "@hono/node-server/serve-static";
@@ -296,11 +250,12 @@ export default function createApp(config: AuthHeroConfig) {
 
   app
     .onError((err, ctx) => {
-      if (err instanceof HTTPException) {
-        return err.getResponse();
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
-      return ctx.text(err.message, 500);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
     })
     .get("/", async (ctx: Context) => {
       return ctx.json({
@@ -411,74 +366,29 @@ export default {
 function generateCloudflareAppFileContent(multiTenant: boolean): string {
   if (multiTenant) {
     return `import { Context } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { swaggerUI } from "@hono/swagger-ui";
-import { init, AuthHeroConfig, fetchAll } from "authhero";
-import {
-  createSyncHooks,
-  createTenantsOpenAPIRouter,
-  createProtectSyncedMiddleware,
-} from "@authhero/multi-tenancy";
+import { AuthHeroConfig } from "authhero";
+import { initMultiTenant } from "@authhero/multi-tenancy";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 
 // Control plane tenant ID - the tenant that manages all other tenants
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
-  // Create sync hooks for syncing entities from control plane to child tenants
-  const { entityHooks, tenantHooks } = createSyncHooks({
-    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
-    getChildTenantIds: async () => {
-      const allTenants = await fetchAll<{ id: string }>(
-        (params) => config.dataAdapter.tenants.list(params),
-        "tenants",
-        { cursorField: "id", pageSize: 100 },
-      );
-      return allTenants
-        .filter((t) => t.id !== CONTROL_PLANE_TENANT_ID)
-        .map((t) => t.id);
-    },
-    getAdapters: async () => config.dataAdapter,
-    getControlPlaneAdapters: async () => config.dataAdapter,
-    sync: {
-      resourceServers: true,
-      roles: true,
-      connections: true,
-    },
-  });
-
-  // Create tenants router
-  const tenantsRouter = createTenantsOpenAPIRouter(
-    {
-      accessControl: {
-        controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
-        requireOrganizationMatch: false,
-        defaultPermissions: ["tenant:admin"],
-      },
-    },
-    { tenants: tenantHooks },
-  );
-
-  // Initialize AuthHero with sync hooks and tenant routes
-  const { app } = init({
+  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
+  const { app } = initMultiTenant({
     ...config,
-    entityHooks,
-    managementApiExtensions: [
-      ...(config.managementApiExtensions || []),
-      { path: "/tenants", router: tenantsRouter },
-    ],
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
   });
-
-  // Add middleware to protect synced entities from modification on child tenants
-  app.use("/api/v2/*", createProtectSyncedMiddleware());
 
   app
     .onError((err, ctx) => {
-      if (err instanceof HTTPException) {
-        return err.getResponse();
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
-      return ctx.text(err.message, 500);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
     })
     .get("/", async (ctx: Context) => {
       return ctx.json({
@@ -497,7 +407,6 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
   }
 
   return `import { Context } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -516,11 +425,12 @@ export default function createApp(config: AuthHeroConfig) {
 
   app
     .onError((err, ctx) => {
-      if (err instanceof HTTPException) {
-        return err.getResponse();
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
-      return ctx.text(err.message, 500);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
     })
     .get("/", async (ctx: Context) => {
       return ctx.json({

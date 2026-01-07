@@ -21,10 +21,12 @@ describe("Entity Hooks", () => {
 
       const { managementApp, env } = await getTestServer({
         entityHooks: {
-          roles: {
-            beforeCreate: beforeCreateMock,
-            afterCreate: afterCreateMock,
-          },
+          roles: [
+            {
+              beforeCreate: beforeCreateMock,
+              afterCreate: afterCreateMock,
+            },
+          ],
         },
       });
 
@@ -89,10 +91,12 @@ describe("Entity Hooks", () => {
 
       const { managementApp, env } = await getTestServer({
         entityHooks: {
-          roles: {
-            beforeUpdate: beforeUpdateMock,
-            afterUpdate: afterUpdateMock,
-          },
+          roles: [
+            {
+              beforeUpdate: beforeUpdateMock,
+              afterUpdate: afterUpdateMock,
+            },
+          ],
         },
       });
 
@@ -167,10 +171,12 @@ describe("Entity Hooks", () => {
 
       const { managementApp, env } = await getTestServer({
         entityHooks: {
-          roles: {
-            beforeDelete: beforeDeleteMock,
-            afterDelete: afterDeleteMock,
-          },
+          roles: [
+            {
+              beforeDelete: beforeDeleteMock,
+              afterDelete: afterDeleteMock,
+            },
+          ],
         },
       });
 
@@ -269,10 +275,12 @@ describe("Entity Hooks", () => {
 
       const { managementApp, env } = await getTestServer({
         entityHooks: {
-          rolePermissions: {
-            beforeAssign: beforeAssignMock,
-            afterAssign: afterAssignMock,
-          },
+          rolePermissions: [
+            {
+              beforeAssign: beforeAssignMock,
+              afterAssign: afterAssignMock,
+            },
+          ],
         },
       });
 
@@ -370,10 +378,12 @@ describe("Entity Hooks", () => {
 
       const { managementApp, env } = await getTestServer({
         entityHooks: {
-          rolePermissions: {
-            beforeRemove: beforeRemoveMock,
-            afterRemove: afterRemoveMock,
-          },
+          rolePermissions: [
+            {
+              beforeRemove: beforeRemoveMock,
+              afterRemove: afterRemoveMock,
+            },
+          ],
         },
       });
 
