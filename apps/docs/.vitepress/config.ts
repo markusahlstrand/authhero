@@ -28,7 +28,12 @@ export default withMermaid(
       ["link", { rel: "icon", href: "/favicon.ico" }],
       [
         "link",
-        { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon.ico" },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "32x32",
+          href: "/favicon.ico",
+        },
       ],
       ["link", { rel: "apple-touch-icon", href: "/favicon.ico" }],
 
@@ -73,7 +78,13 @@ export default withMermaid(
             "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
         },
       ],
-      ["meta", { property: "og:image", content: "https://www.authhero.net/og-image.png" }],
+      [
+        "meta",
+        {
+          property: "og:image",
+          content: "https://www.authhero.net/og-image.png",
+        },
+      ],
       ["meta", { property: "og:image:width", content: "1200" }],
       ["meta", { property: "og:image:height", content: "630" }],
 
@@ -95,7 +106,13 @@ export default withMermaid(
             "Self-host your authentication with Auth0 API compatibility. Enterprise-grade identity management that you control.",
         },
       ],
-      ["meta", { name: "twitter:image", content: "https://www.authhero.net/og-image.png" }],
+      [
+        "meta",
+        {
+          name: "twitter:image",
+          content: "https://www.authhero.net/og-image.png",
+        },
+      ],
 
       // Canonical URL
       ["link", { rel: "canonical", href: "https://www.authhero.net/" }],
@@ -276,6 +293,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/guides/database-migration",
             },
             { text: "Impersonation", link: "/guides/impersonation" },
+            {
+              text: "Multi-Tenant SaaS Setup",
+              link: "/guides/multi-tenant-saas-setup",
+            },
             { text: "RBAC and Scopes", link: "/guides/rbac-and-scopes" },
             { text: "SAML Migration", link: "/guides/saml-migration" },
             { text: "Troubleshooting", link: "/guides/troubleshooting" },
