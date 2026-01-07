@@ -109,4 +109,118 @@ describe("organizations management API endpoint", () => {
       expect(Array.isArray(data)).toBe(true);
     });
   });
+
+  describe("POST /api/v2/organizations", () => {
+    it("should create an organization with lowercase name", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `create-test-${Date.now()}`;
+
+      const response = await managementClient.organizations.$post(
+        {
+          json: {
+            name: "my-org-name",
+            display_name: "My Organization",
+          },
+          header: {
+            "tenant-id": tenantId,
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const org = (await response.json()) as any;
+      expect(org.name).toBe("my-org-name");
+    });
+
+    it("should reject organization name with uppercase letters", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `create-test-${Date.now()}`;
+
+      const response = await managementClient.organizations.$post(
+        {
+          json: {
+            name: "My-Org-Name",
+            display_name: "My Organization",
+          },
+          header: {
+            "tenant-id": tenantId,
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should reject organization name with spaces", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `create-test-${Date.now()}`;
+
+      const response = await managementClient.organizations.$post(
+        {
+          json: {
+            name: "my org name",
+            display_name: "My Organization",
+          },
+          header: {
+            "tenant-id": tenantId,
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should allow organization name with numbers, hyphens, and underscores", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `create-test-${Date.now()}`;
+
+      const response = await managementClient.organizations.$post(
+        {
+          json: {
+            name: "org-123_test",
+            display_name: "My Organization",
+          },
+          header: {
+            "tenant-id": tenantId,
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const org = (await response.json()) as any;
+      expect(org.name).toBe("org-123_test");
+    });
+  });
 });

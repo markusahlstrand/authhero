@@ -55,9 +55,17 @@ export const organizationTokenQuotaSchema = z
 
 export const organizationInsertSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(1).openapi({
-    description: "The name of the organization",
-  }),
+  name: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9_-]+$/, {
+      message:
+        "Organization name must be lowercase and can only contain letters, numbers, hyphens, and underscores",
+    })
+    .openapi({
+      description:
+        "The name of the organization. Must be lowercase and can only contain letters, numbers, hyphens, and underscores.",
+    }),
   display_name: z.string().optional().openapi({
     description: "The display name of the organization",
   }),
@@ -81,6 +89,10 @@ export const organizationSchema = z.object({
   ...organizationInsertSchema.shape,
   ...baseEntitySchema.shape,
   id: z.string(),
+  // Override name to be lenient when reading from database (to support existing uppercase names)
+  name: z.string().min(1).openapi({
+    description: "The name of the organization",
+  }),
 });
 
 export type Organization = z.infer<typeof organizationSchema>;

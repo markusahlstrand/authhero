@@ -143,7 +143,7 @@ Available entity types:
 
 ### Configuration
 
-Entity hooks are configured during AuthHero initialization:
+Entity hooks are configured during AuthHero initialization. Each entity type accepts an **array of hook objects**, allowing you to chain multiple hook handlers together:
 
 ```typescript
 const authhero = new AuthHero({
@@ -205,24 +205,25 @@ const authhero = new AuthHero({
     rolePermissions: [
       {
         beforeAssign: async (context, roleId, permissions) => {
-        console.log(`Assigning permissions to role ${roleId}`);
-        // Validate permissions before assignment
-        return permissions;
+          console.log(`Assigning permissions to role ${roleId}`);
+          // Validate permissions before assignment
+          return permissions;
+        },
+        afterAssign: async (context, roleId, permissions) => {
+          console.log(`Permissions assigned to role ${roleId}`);
+          // Sync role security to external systems (e.g., resource servers)
+        },
+        beforeRemove: async (context, roleId, permissionIds) => {
+          console.log(`Removing permissions from role ${roleId}`);
+          // Validate permission removal
+          return permissionIds;
+        },
+        afterRemove: async (context, roleId, permissionIds) => {
+          console.log(`Permissions removed from role ${roleId}`);
+          // Update external systems
+        },
       },
-      afterAssign: async (context, roleId, permissions) => {
-        console.log(`Permissions assigned to role ${roleId}`);
-        // Sync role security to external systems (e.g., resource servers)
-      },
-      beforeRemove: async (context, roleId, permissionIds) => {
-        console.log(`Removing permissions from role ${roleId}`);
-        // Validate permission removal
-        return permissionIds;
-      },
-      afterRemove: async (context, roleId, permissionIds) => {
-        console.log(`Permissions removed from role ${roleId}`);
-        // Update external systems
-      },
-    },
+    ],
   },
 });
 ```
@@ -306,75 +307,79 @@ interface RolePermissionHooks {
 
 #### Sync Role Permissions to Resource Servers
 
-```typescript
-rolePermissions: {
-  afterAssign: async (context, roleId, permissions) => {
-    // Get role details
-    const role = await dataAdapter.roles.get(context.tenantId, roleId);
+````typescript
+rolePermissions: [
+  {
+    afterAssign: async (context, roleId, permissions) => {
+      // Get role details
+      const role = await dataAdapter.roles.get(context.tenantId, roleId);
 
-    // For each unique resource server, sync the role's permissions
-    const resourceServers = new Set(
-      permissions.map(p => p.resource_server_identifier)
-    );
+      // For each unique resource server, sync the role's permissions
+      const resourceServers = new Set(
+        permissions.map(p => p.resource_server_identifier)
+      );
 
-    for (const identifier of resourceServers) {
-      const rolePermissions = permissions
-        .filter(p => p.resource_server_identifier === identifier)
-        .map(p => p.permission_name);
+      for (const identifier of resourceServers) {
+        const rolePermissions = permissions
+          .filter(p => p.resource_server_identifier === identifier)
+          .map(p => p.permission_name);
 
-      // Sync to external resource server
-      await fetch(`https://${identifier}/api/roles/${role.name}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissions: rolePermissions })
-      });
-    }
+        // Sync to external resource server
+        await fetch(`https://${identifier}/api/roles/${role.name}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ permissions: rolePermissions })
+        });
+      }
+    },
+    afterRemove: async (context, roleId, permissionIds) => {
+      // Similar logic to remove permissions from resource servers
+    },
   },
-  afterRemove: async (context, roleId, permissionIds) => {
-    // Similar logic to remove permissions from resource servers
-  }
-}
-```
+],
 
 #### Audit Logging for Role Changes
 
 ```typescript
-roles: {
-  afterCreate: async (context, entity) => {
-    await auditLog.log({
-      tenantId: context.tenantId,
-      action: 'role.created',
-      resourceType: 'role',
-      resourceId: entity.id,
-      details: { name: entity.name, description: entity.description }
-    });
+roles: [
+  {
+    afterCreate: async (context, entity) => {
+      await auditLog.log({
+        tenantId: context.tenantId,
+        action: 'role.created',
+        resourceType: 'role',
+        resourceId: entity.id,
+        details: { name: entity.name, description: entity.description }
+      });
+    },
+    afterUpdate: async (context, entity) => {
+      await auditLog.log({
+        tenantId: context.tenantId,
+        action: 'role.updated',
+        resourceType: 'role',
+        resourceId: entity.id,
+        details: { name: entity.name }
+      });
+    },
+    afterDelete: async (context, id) => {
+      await auditLog.log({
+        tenantId: context.tenantId,
+        action: 'role.deleted',
+        resourceType: 'role',
+        resourceId: id
+      });
+    },
   },
-  afterUpdate: async (context, entity) => {
-    await auditLog.log({
-      tenantId: context.tenantId,
-      action: 'role.updated',
-      resourceType: 'role',
-      resourceId: entity.id,
-      details: { name: entity.name }
-    });
-  },
-  afterDelete: async (context, id) => {
-    await auditLog.log({
-      tenantId: context.tenantId,
-      action: 'role.deleted',
-      resourceType: 'role',
-      resourceId: id
-    });
-  }
-}
-```
+],
+````
 
 #### Validate Connection Settings
 
 ```typescript
-connections: {
-  beforeCreate: async (context, insert) => {
-    // Validate required fields based on connection type
+connections: [
+  {
+    beforeCreate: async (context, insert) => {
+      // Validate required fields based on connection type
     if (insert.strategy === 'auth0' && !insert.options?.client_id) {
       throw new Error('Auth0 connections require a client_id');
     }
@@ -386,16 +391,18 @@ connections: {
       throw new Error('Connection must have at least one enabled client');
     }
     return update;
-  }
-}
+  },
+  },
+],
 ```
 
 #### Initialize Default Permissions for Resource Servers
 
 ```typescript
-resourceServers: {
-  afterCreate: async (context, entity) => {
-    // Create default permissions for new resource server
+resourceServers: [
+  {
+    afterCreate: async (context, entity) => {
+      // Create default permissions for new resource server
     const defaultPermissions = [
       { value: "read:all", description: "Read all resources" },
       { value: "write:all", description: "Write all resources" },
@@ -408,8 +415,9 @@ resourceServers: {
         ...permission,
       });
     }
-  };
-}
+  },
+  },
+],
 ```
 
 ### Differences from User Lifecycle Hooks

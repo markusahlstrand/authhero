@@ -11,7 +11,7 @@ describe("organization invitations management API endpoint", () => {
     const token = await getAdminToken();
 
     const organizationData: OrganizationInsert = {
-      name: "Test Organization",
+      name: "test-organization",
       display_name: "Test Organization Display Name",
     };
 
@@ -825,7 +825,7 @@ describe("organization invitations management API endpoint", () => {
       // Create organization in tenant1
       const org1Response = await managementClient.organizations.$post(
         {
-          json: { name: "Tenant 1 Org" },
+          json: { name: "tenant-1-org" },
           header: { "tenant-id": "tenant1" },
         },
         {
@@ -837,7 +837,7 @@ describe("organization invitations management API endpoint", () => {
       // Create organization in tenant2
       const org2Response = await managementClient.organizations.$post(
         {
-          json: { name: "Tenant 2 Org" },
+          json: { name: "tenant-2-org" },
           header: { "tenant-id": "tenant2" },
         },
         {

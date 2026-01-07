@@ -48,8 +48,9 @@ export function createAccessControlHooks(
           return false;
         }
 
-        // Organization name/id must match the target tenant
-        return orgIdentifier === targetTenantId;
+        // Organization name/id must match the target tenant (case-insensitive)
+        // Note: New organizations should be lowercase, but we support existing uppercase ones
+        return orgIdentifier.toLowerCase() === targetTenantId.toLowerCase();
       }
 
       // If organization matching is disabled, allow access
@@ -86,5 +87,7 @@ export function validateTenantAccess(
     return false;
   }
 
-  return orgIdentifier === targetTenantId;
+  // Case-insensitive comparison to support existing uppercase entities
+  // Note: New organizations should be lowercase
+  return orgIdentifier.toLowerCase() === targetTenantId.toLowerCase();
 }
