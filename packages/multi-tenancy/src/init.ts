@@ -20,13 +20,12 @@ export interface MultiTenantConfig extends Omit<
   /**
    * Control which entities to sync from control plane to child tenants.
    * Set to `false` to disable all syncing.
-   * @default { resourceServers: true, roles: true, connections: true }
+   * @default { resourceServers: true, roles: true }
    */
   sync?:
     | {
         resourceServers?: boolean;
         roles?: boolean;
-        connections?: boolean;
       }
     | false;
 
@@ -82,7 +81,7 @@ export interface MultiTenantResult {
  * Initialize a multi-tenant AuthHero application with sensible defaults.
  *
  * This is the easiest way to set up multi-tenancy. It automatically:
- * - Creates sync hooks for resource servers, roles, and connections
+ * - Creates sync hooks for resource servers and roles
  * - Mounts the tenants management API at `/tenants`
  * - Adds middleware to protect synced entities on child tenants
  * - Sets up organization-based access control
@@ -112,8 +111,7 @@ export interface MultiTenantResult {
  *   controlPlaneTenantId: "main",
  *   sync: {
  *     resourceServers: true,
- *     roles: true,
- *     connections: false, // Don't sync connections
+ *     roles: false, // Don't sync roles
  *   },
  *   defaultPermissions: ["tenant:admin", "tenant:read"],
  * });
@@ -131,7 +129,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const {
     dataAdapter,
     controlPlaneTenantId = "control_plane",
-    sync = { resourceServers: true, roles: true, connections: true },
+    sync = { resourceServers: true, roles: true },
     defaultPermissions = ["tenant:admin"],
     requireOrganizationMatch = false,
     managementApiExtensions = [],
@@ -147,9 +145,8 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     ? {
         resourceServers: sync.resourceServers ?? true,
         roles: sync.roles ?? true,
-        connections: sync.connections ?? true,
       }
-    : { resourceServers: false, roles: false, connections: false };
+    : { resourceServers: false, roles: false };
 
   // Create default getChildTenantIds if not provided
   const defaultGetChildTenantIds = async (): Promise<string[]> => {
