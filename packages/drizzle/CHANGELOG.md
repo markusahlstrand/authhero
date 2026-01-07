@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.12.0
+
+### Minor Changes
+
+- 3d3fcc0: Migrate connections
+
 ## 0.11.1
 
 ### Patch Changes

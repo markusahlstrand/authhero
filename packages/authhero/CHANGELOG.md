@@ -1,5 +1,15 @@
 # authhero
 
+## 4.0.0
+
+### Major Changes
+
+- 3d3fcc0: Move logic over to multi-tenancy
+
+### Minor Changes
+
+- 3d3fcc0: Migrate connections
+
 ## 3.6.0
 
 ### Minor Changes
