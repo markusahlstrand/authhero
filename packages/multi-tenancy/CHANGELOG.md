@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 13.20.0
+
+### Minor Changes
+
+- b7bb663: Make organizations lowercase
+
+### Patch Changes
+
+- Updated dependencies [b7bb663]
+  - @authhero/adapter-interfaces@0.118.0
+  - authhero@3.6.0
+
 ## 13.19.0
 
 ### Minor Changes

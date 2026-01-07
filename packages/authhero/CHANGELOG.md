@@ -1,5 +1,16 @@
 # authhero
 
+## 3.6.0
+
+### Minor Changes
+
+- b7bb663: Make organizations lowercase
+
+### Patch Changes
+
+- Updated dependencies [b7bb663]
+  - @authhero/adapter-interfaces@0.118.0
+
 ## 3.5.0
 
 ### Minor Changes
