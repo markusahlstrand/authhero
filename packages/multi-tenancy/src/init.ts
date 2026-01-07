@@ -182,16 +182,14 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   // Combine sync hooks with custom hooks using arrays
   // authhero will chain them with proper return value handling
   // Note: customEntityHooks already uses array format from AuthHeroConfig
+  // Note: Connections are NOT synced - they use runtime fallback by strategy instead
   const entityHooks: AuthHeroConfig["entityHooks"] = {
     resourceServers: [
       syncEntityHooks.resourceServers,
       ...(customEntityHooks?.resourceServers ?? []),
     ],
     roles: [syncEntityHooks.roles, ...(customEntityHooks?.roles ?? [])],
-    connections: [
-      syncEntityHooks.connections,
-      ...(customEntityHooks?.connections ?? []),
-    ],
+    connections: customEntityHooks?.connections ?? [],
     tenants: customEntityHooks?.tenants ?? [],
     rolePermissions: customEntityHooks?.rolePermissions ?? [],
   };

@@ -4,25 +4,10 @@ import {
   RoleInsert,
   ResourceServer,
   ResourceServerInsert,
-  Connection,
-  ConnectionInsert,
   Tenant,
 } from "@authhero/adapter-interfaces";
 import { TenantEntityHooks, TenantHookContext } from "../types";
 import { fetchAll, EntityHooks, EntityHookContext } from "authhero";
-
-/**
- * Fields that should be excluded from syncing connections as they contain tenant-specific secrets
- */
-const CONNECTION_SENSITIVE_FIELDS = [
-  "client_id",
-  "client_secret",
-  "app_secret",
-  "kid",
-  "team_id",
-  "twilio_sid",
-  "twilio_token",
-] as const;
 
 /**
  * Configuration for entity synchronization
@@ -50,11 +35,11 @@ export interface EntitySyncConfig {
 
   /**
    * Which entities to sync. All default to true.
+   * Note: Connections are NOT synced - they use runtime fallback by strategy instead.
    */
   sync?: {
     resourceServers?: boolean;
     roles?: boolean;
-    connections?: boolean;
   };
 
   /**
@@ -63,7 +48,6 @@ export interface EntitySyncConfig {
   filters?: {
     resourceServers?: (entity: ResourceServer) => boolean;
     roles?: (entity: Role) => boolean;
-    connections?: (entity: Connection) => boolean;
   };
 }
 
@@ -325,78 +309,31 @@ const roleAdapter = (
   }),
 });
 
-const connectionAdapter = (
-  adapters: DataAdapters,
-): EntitySyncAdapter<Connection, ConnectionInsert> => ({
-  list: async (tenantId, params) => {
-    const result = await adapters.connections.list(tenantId, params);
-    return result.connections;
-  },
-  listPaginated: (tenantId, params) =>
-    adapters.connections.list(tenantId, params),
-  get: (tenantId, id) => adapters.connections.get(tenantId, id),
-  create: (tenantId, data) => adapters.connections.create(tenantId, data),
-  update: (tenantId, id, data) =>
-    adapters.connections.update(tenantId, id, data),
-  remove: (tenantId, id) => adapters.connections.remove(tenantId, id),
-  listKey: "connections",
-  getId: (entity) => entity.id,
-  transform: (entity) => {
-    // Strip sensitive fields from options
-    const options = entity.options ? { ...entity.options } : {};
-    for (const field of CONNECTION_SENSITIVE_FIELDS) {
-      delete options[field];
-    }
-    return {
-      id: entity.id,
-      name: entity.name,
-      display_name: entity.display_name,
-      strategy: entity.strategy,
-      options,
-      response_type: entity.response_type,
-      response_mode: entity.response_mode,
-      is_domain_connection: entity.is_domain_connection,
-      show_as_button: entity.show_as_button,
-      metadata: entity.metadata,
-    };
-  },
-  preserveOnUpdate: (existing, synced) => {
-    // Preserve existing sensitive fields when updating
-    const existingOptions = existing.options || {};
-    return {
-      ...synced,
-      options: {
-        ...synced.options,
-        client_id: existingOptions.client_id,
-        client_secret: existingOptions.client_secret,
-        app_secret: existingOptions.app_secret,
-        kid: existingOptions.kid,
-        team_id: existingOptions.team_id,
-        twilio_sid: existingOptions.twilio_sid,
-        twilio_token: existingOptions.twilio_token,
-      },
-    };
-  },
-});
-
 /**
  * Result from createSyncHooks containing all entity and tenant hooks
+ *
+ * Note: Connections are NOT synced - they use runtime fallback by strategy instead.
+ * Tenants can define a connection with a strategy (e.g., "google") and leave keys blank,
+ * and the system will fallback to the control plane's connection with the same strategy.
  */
 export interface SyncHooksResult {
   entityHooks: {
     resourceServers?: EntityHooks<ResourceServer, ResourceServerInsert>;
     roles?: EntityHooks<Role, RoleInsert>;
-    connections?: EntityHooks<Connection, ConnectionInsert>;
   };
   tenantHooks: TenantEntityHooks;
 }
 
 /**
- * Creates all sync hooks for resource servers, roles, and connections.
+ * Creates all sync hooks for resource servers and roles.
  *
  * This is the main entry point for entity synchronization. It creates hooks that:
  * - Sync changes from control plane to all child tenants (create, update, delete)
  * - Copy entities to newly created tenants
+ *
+ * Note: Connections are NOT synced. Instead, they use runtime fallback by strategy.
+ * Tenants can define a connection with a strategy (e.g., "google") and leave keys blank,
+ * and the system will fallback to the control plane's connection with the same strategy.
  *
  * @param config - Sync configuration
  * @returns Object with entityHooks and tenantHooks ready to use
@@ -408,7 +345,7 @@ export interface SyncHooksResult {
  *   getChildTenantIds: async () => ["tenant1", "tenant2"],
  *   getAdapters: async () => dataAdapter,
  *   getControlPlaneAdapters: async () => dataAdapter,
- *   sync: { resourceServers: true, roles: true, connections: true },
+ *   sync: { resourceServers: true, roles: true },
  * });
  * ```
  */
@@ -417,7 +354,6 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
 
   const syncResourceServers = sync.resourceServers ?? true;
   const syncRoles = sync.roles ?? true;
-  const syncConnections = sync.connections ?? true;
 
   // Create entity hooks
   const resourceServerHooks = syncResourceServers
@@ -436,14 +372,6 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
       )
     : undefined;
 
-  const connectionHooks = syncConnections
-    ? createEntitySyncHooks<Connection, ConnectionInsert>(
-        config,
-        connectionAdapter,
-        filters.connections,
-      )
-    : undefined;
-
   // Create tenant sync hooks
   const tenantResourceServerHooks = syncResourceServers
     ? createTenantEntitySyncHooks<ResourceServer, ResourceServerInsert>(
@@ -458,14 +386,6 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
         config,
         roleAdapter,
         filters.roles,
-      )
-    : undefined;
-
-  const tenantConnectionHooks = syncConnections
-    ? createTenantEntitySyncHooks<Connection, ConnectionInsert>(
-        config,
-        connectionAdapter,
-        filters.connections,
       )
     : undefined;
 
@@ -574,7 +494,6 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
         tenantResourceServerHooks?.afterCreate,
         tenantRoleHooksWithPermissions?.afterCreate ??
           tenantRoleHooks?.afterCreate,
-        tenantConnectionHooks?.afterCreate,
       ];
 
       const errors: Error[] = [];
@@ -600,7 +519,6 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     entityHooks: {
       resourceServers: resourceServerHooks,
       roles: roleHooks,
-      connections: connectionHooks,
     },
     tenantHooks: chainedTenantHooks,
   };
