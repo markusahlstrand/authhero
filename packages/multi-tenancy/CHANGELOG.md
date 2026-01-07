@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 13.19.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
+### Patch Changes
+
+- Updated dependencies [8611a98]
+  - @authhero/adapter-interfaces@0.117.0
+  - authhero@3.5.0
+
 ## 13.18.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 10.76.1
+
+### Patch Changes
+
+- Updated dependencies [8611a98]
+  - @authhero/adapter-interfaces@0.117.0
+
 ## 10.76.0
 
 ### Minor Changes

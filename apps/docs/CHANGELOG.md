@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.26.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
 ## 1.25.0
 
 ### Minor Changes

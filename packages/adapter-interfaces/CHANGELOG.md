@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.117.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
 ## 0.116.0
 
 ### Minor Changes

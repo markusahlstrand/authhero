@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.6.0
+
+### Minor Changes
+
+- 8611a98: Improve the multi-tenancy setup
+
+### Patch Changes
+
+- Updated dependencies [8611a98]
+  - @authhero/adapter-interfaces@0.117.0
+
 ## 0.5.0
 
 ### Minor Changes
