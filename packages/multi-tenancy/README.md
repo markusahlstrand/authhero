@@ -154,7 +154,7 @@ const resourceServerHooks = createResourceServerSyncHooks({
 const config: AuthHeroConfig = {
   dataAdapter,
   entityHooks: {
-    resourceServers: resourceServerHooks,
+    resourceServers: [resourceServerHooks],
   },
 };
 ```

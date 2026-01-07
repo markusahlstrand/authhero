@@ -28,13 +28,20 @@ import {
  *
  * Use these to implement cross-tenant synchronization, audit logging,
  * webhooks, or any other side effects when entities are created/updated/deleted.
+ *
+ * Each hook type is an array of hooks that will be chained together.
+ * Arrays may contain undefined elements which will be filtered out.
+ * When chaining, "before" hooks pass their return values to the next hook in the chain.
  */
 export interface EntityHooksConfig {
-  resourceServers?: EntityHooks<ResourceServer, ResourceServerInsert>;
-  roles?: EntityHooks<Role, RoleInsert>;
-  rolePermissions?: RolePermissionHooks;
-  connections?: EntityHooks<Connection, ConnectionInsert>;
-  tenants?: EntityHooks<Tenant, CreateTenantParams>;
+  resourceServers?: (
+    | EntityHooks<ResourceServer, ResourceServerInsert>
+    | undefined
+  )[];
+  roles?: (EntityHooks<Role, RoleInsert> | undefined)[];
+  rolePermissions?: (RolePermissionHooks | undefined)[];
+  connections?: (EntityHooks<Connection, ConnectionInsert> | undefined)[];
+  tenants?: (EntityHooks<Tenant, CreateTenantParams> | undefined)[];
 }
 
 /**

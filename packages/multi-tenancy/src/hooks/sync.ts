@@ -9,7 +9,7 @@ import {
   Tenant,
 } from "@authhero/adapter-interfaces";
 import { TenantEntityHooks, TenantHookContext } from "../types";
-import { fetchAll } from "authhero";
+import { fetchAll, EntityHooks, EntityHookContext } from "authhero";
 
 /**
  * Fields that should be excluded from syncing connections as they contain tenant-specific secrets
@@ -65,11 +65,6 @@ export interface EntitySyncConfig {
     roles?: (entity: Role) => boolean;
     connections?: (entity: Connection) => boolean;
   };
-}
-
-interface EntityHookContext {
-  tenantId: string;
-  adapters: DataAdapters;
 }
 
 /**
@@ -387,23 +382,11 @@ const connectionAdapter = (
 /**
  * Result from createSyncHooks containing all entity and tenant hooks
  */
-/** Typed entity hooks for specific entity types */
-export type EntityHooks<TEntity> = {
-  afterCreate?: (ctx: EntityHookContext, entity: TEntity) => Promise<void>;
-  afterUpdate?: (
-    ctx: EntityHookContext,
-    id: string,
-    entity: TEntity,
-  ) => Promise<void>;
-  beforeDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
-  afterDelete?: (ctx: EntityHookContext, id: string) => Promise<void>;
-};
-
 export interface SyncHooksResult {
   entityHooks: {
-    resourceServers?: EntityHooks<ResourceServer>;
-    roles?: EntityHooks<Role>;
-    connections?: EntityHooks<Connection>;
+    resourceServers?: EntityHooks<ResourceServer, ResourceServerInsert>;
+    roles?: EntityHooks<Role, RoleInsert>;
+    connections?: EntityHooks<Connection, ConnectionInsert>;
   };
   tenantHooks: TenantEntityHooks;
 }

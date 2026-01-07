@@ -179,11 +179,22 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const { entityHooks: syncEntityHooks, tenantHooks } =
     createSyncHooks(syncHooksConfig);
 
-  // Merge sync hooks with custom hooks
-  const mergedEntityHooks = mergeEntityHooks(
-    syncEntityHooks,
-    customEntityHooks,
-  );
+  // Combine sync hooks with custom hooks using arrays
+  // authhero will chain them with proper return value handling
+  // Note: customEntityHooks already uses array format from AuthHeroConfig
+  const entityHooks: AuthHeroConfig["entityHooks"] = {
+    resourceServers: [
+      syncEntityHooks.resourceServers,
+      ...(customEntityHooks?.resourceServers ?? []),
+    ],
+    roles: [syncEntityHooks.roles, ...(customEntityHooks?.roles ?? [])],
+    connections: [
+      syncEntityHooks.connections,
+      ...(customEntityHooks?.connections ?? []),
+    ],
+    tenants: customEntityHooks?.tenants ?? [],
+    rolePermissions: customEntityHooks?.rolePermissions ?? [],
+  };
 
   // Create tenants router
   const tenantsRouter = createTenantsOpenAPIRouter(
@@ -201,7 +212,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const { app } = init({
     dataAdapter,
     ...restConfig,
-    entityHooks: mergedEntityHooks,
+    entityHooks,
     managementApiExtensions: [
       ...managementApiExtensions,
       { path: "/tenants", router: tenantsRouter },
@@ -214,63 +225,4 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   }
 
   return { app, controlPlaneTenantId };
-}
-
-/**
- * Merges two entity hooks configurations, calling both in sequence.
- */
-function mergeEntityHooks(
-  syncHooks: ReturnType<typeof createSyncHooks>["entityHooks"],
-  customHooks?: AuthHeroConfig["entityHooks"],
-): AuthHeroConfig["entityHooks"] {
-  if (!customHooks) {
-    return syncHooks;
-  }
-
-  return {
-    resourceServers: mergeHooks(
-      syncHooks.resourceServers,
-      customHooks.resourceServers,
-    ),
-    roles: mergeHooks(syncHooks.roles, customHooks.roles),
-    connections: mergeHooks(syncHooks.connections, customHooks.connections),
-    tenants: customHooks.tenants,
-    rolePermissions: customHooks.rolePermissions,
-  };
-}
-
-/**
- * Merges two hook objects, calling sync hooks first then custom hooks.
- */
-function mergeHooks<T>(
-  syncHook: T | undefined,
-  customHook: T | undefined,
-): T | undefined {
-  if (!syncHook && !customHook) return undefined;
-  if (!syncHook) return customHook;
-  if (!customHook) return syncHook;
-
-  // Both exist - merge them
-  const sync = syncHook as Record<string, Function | undefined>;
-  const custom = customHook as Record<string, Function | undefined>;
-
-  const merged: Record<string, Function> = {};
-
-  const allKeys = new Set([...Object.keys(sync), ...Object.keys(custom)]);
-
-  for (const key of allKeys) {
-    const syncFn = sync[key];
-    const customFn = custom[key];
-
-    if (syncFn && customFn) {
-      merged[key] = async (...args: unknown[]) => {
-        await syncFn(...args);
-        await customFn(...args);
-      };
-    } else {
-      merged[key] = (syncFn ?? customFn)!;
-    }
-  }
-
-  return merged as T;
 }

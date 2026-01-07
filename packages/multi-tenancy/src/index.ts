@@ -22,11 +22,7 @@ export type { MultiTenantConfig, MultiTenantResult } from "./init";
 
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
-export type {
-  EntitySyncConfig,
-  SyncHooksResult,
-  EntityHooks,
-} from "./hooks/sync";
+export type { EntitySyncConfig, SyncHooksResult } from "./hooks/sync";
 
 export { createTenantsOpenAPIRouter } from "./routes";
 
