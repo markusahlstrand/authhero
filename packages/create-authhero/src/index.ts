@@ -8,7 +8,7 @@ import { spawn } from "child_process";
 
 const program = new Command();
 
-type SetupType = "local" | "cloudflare-simple" | "cloudflare-multitenant";
+type SetupType = "local" | "cloudflare";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 interface CliOptions {
@@ -22,13 +22,14 @@ interface CliOptions {
   skipStart?: boolean;
   yes?: boolean;
   githubCi?: boolean;
+  multiTenant?: boolean;
 }
 
 interface SetupConfig {
   name: string;
   description: string;
   templateDir: string;
-  packageJson: (projectName: string) => object;
+  packageJson: (projectName: string, multiTenant: boolean) => object;
   seedFile?: string;
 }
 
@@ -43,7 +44,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName) => ({
+    packageJson: (projectName, multiTenant) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -55,6 +56,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       },
       dependencies: {
         "@authhero/kysely-adapter": "latest",
+        "@authhero/widget": "latest",
         "@hono/swagger-ui": "^0.5.0",
         "@hono/zod-openapi": "^0.19.0",
         "@hono/node-server": "latest",
@@ -62,6 +64,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         "better-sqlite3": "latest",
         hono: "^4.6.0",
         kysely: "latest",
+        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
       },
       devDependencies: {
         "@types/better-sqlite3": "^7.6.0",
@@ -72,11 +75,11 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     }),
     seedFile: "seed.ts",
   },
-  "cloudflare-simple": {
-    name: "Cloudflare Simple (Single Tenant)",
-    description: "Single-tenant Cloudflare Workers setup with D1 database",
-    templateDir: "cloudflare-simple",
-    packageJson: (projectName) => ({
+  cloudflare: {
+    name: "Cloudflare Workers (D1)",
+    description: "Cloudflare Workers setup with D1 database",
+    templateDir: "cloudflare",
+    packageJson: (projectName, multiTenant) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -107,54 +110,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         hono: "^4.6.0",
         kysely: "latest",
         "kysely-d1": "latest",
-      },
-      devDependencies: {
-        "@cloudflare/workers-types": "^4.0.0",
-        "drizzle-kit": "^0.31.0",
-        "drizzle-orm": "^0.44.0",
-        typescript: "^5.5.0",
-        wrangler: "^3.0.0",
-      },
-    }),
-    seedFile: "seed.ts",
-  },
-  "cloudflare-multitenant": {
-    name: "Cloudflare Multi-Tenant (Production)",
-    description:
-      "Production-grade multi-tenant setup with D1 database and tenant management",
-    templateDir: "cloudflare-multitenant",
-    packageJson: (projectName) => ({
-      name: projectName,
-      version: "1.0.0",
-      type: "module",
-      scripts: {
-        postinstall: "node copy-assets.js",
-        "copy-assets": "node copy-assets.js",
-        dev: "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-        deploy: "wrangler deploy --config wrangler.local.toml",
-        "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote":
-          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
-        migrate: "wrangler d1 migrations apply AUTH_DB --local",
-        "seed:local": "node seed-helper.js",
-        "seed:remote": "node seed-helper.js '' '' remote",
-        seed: "node seed-helper.js",
-        setup:
-          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
-      },
-      dependencies: {
-        "@authhero/drizzle": "latest",
-        "@authhero/kysely-adapter": "latest",
-        "@authhero/multi-tenancy": "latest",
-        "@authhero/widget": "latest",
-        "@hono/swagger-ui": "^0.5.0",
-        "@hono/zod-openapi": "^0.19.0",
-        authhero: "latest",
-        hono: "^4.6.0",
-        kysely: "latest",
-        "kysely-d1": "latest",
+        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
       },
       devDependencies: {
         "@cloudflare/workers-types": "^4.0.0",
@@ -182,7 +138,10 @@ function copyFiles(source: string, target: string): void {
   });
 }
 
-function generateSeedFileContent(): string {
+function generateLocalSeedFileContent(multiTenant: boolean): string {
+  const tenantId = multiTenant ? "control_plane" : "main";
+  const tenantName = multiTenant ? "Control Plane" : "Main";
+
   // TypeScript seed file for local setup - uses the seed function from authhero
   return `import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
@@ -209,12 +168,280 @@ async function main() {
   await seed(adapters, {
     adminEmail,
     adminPassword,
+    tenantId: "${tenantId}",
+    tenantName: "${tenantName}",
+    isControlPlane: ${multiTenant},
   });
 
   await db.destroy();
 }
 
 main().catch(console.error);
+`;
+}
+
+function generateLocalAppFileContent(multiTenant: boolean): string {
+  if (multiTenant) {
+    return `import { Context } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
+import { AuthHeroConfig } from "authhero";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import { DataAdapters } from "@authhero/adapter-interfaces";
+
+// Control plane tenant ID - the tenant that manages all other tenants
+const CONTROL_PLANE_TENANT_ID = "control_plane";
+
+export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
+  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
+  const { app } = initMultiTenant({
+    ...config,
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  });
+
+  app
+    .onError((err, ctx) => {
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Multi-Tenant Server",
+        version: "1.0.0",
+        status: "running",
+        docs: "/docs",
+        controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
+    // Serve widget assets from @authhero/widget package
+    .get(
+      "/u/widget/*",
+      serveStatic({
+        root: "./node_modules/@authhero/widget/dist/authhero-widget",
+        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
+      }),
+    )
+    // Serve static assets (CSS, JS) from authhero package
+    .get(
+      "/u/*",
+      serveStatic({
+        root: "./node_modules/authhero/dist/assets/u",
+        rewriteRequestPath: (path) => path.replace("/u", ""),
+      }),
+    );
+
+  return app;
+}
+`;
+  }
+
+  return `import { Context } from "hono";
+import { AuthHeroConfig, init } from "authhero";
+import { swaggerUI } from "@hono/swagger-ui";
+import { serveStatic } from "@hono/node-server/serve-static";
+
+export default function createApp(config: AuthHeroConfig) {
+  const { app } = init(config);
+
+  app
+    .onError((err, ctx) => {
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Server",
+        status: "running",
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
+    // Serve widget assets from @authhero/widget package
+    .get(
+      "/u/widget/*",
+      serveStatic({
+        root: "./node_modules/@authhero/widget/dist/authhero-widget",
+        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
+      }),
+    )
+    // Serve static assets (CSS, JS) from authhero package
+    .get(
+      "/u/*",
+      serveStatic({
+        root: "./node_modules/authhero/dist/assets/u",
+        rewriteRequestPath: (path) => path.replace("/u", ""),
+      }),
+    );
+
+  return app;
+}
+`;
+}
+
+function generateCloudflareSeedFileContent(multiTenant: boolean): string {
+  const tenantId = multiTenant ? "control_plane" : "main";
+  const tenantName = multiTenant ? "Control Plane" : "Main";
+
+  return `import { D1Dialect } from "kysely-d1";
+import { Kysely } from "kysely";
+import createAdapters from "@authhero/kysely-adapter";
+import { seed } from "authhero";
+
+interface Env {
+  AUTH_DB: D1Database;
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const adminEmail = url.searchParams.get("email");
+    const adminPassword = url.searchParams.get("password");
+    // Compute issuer from the request URL (for Management API identifier)
+    const issuer = \`\${url.protocol}//\${url.host}/\`;
+
+    if (!adminEmail || !adminPassword) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing email or password query parameters",
+          usage: "/?email=admin@example.com&password=yourpassword",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    try {
+      const dialect = new D1Dialect({ database: env.AUTH_DB });
+      const db = new Kysely<any>({ dialect });
+      const adapters = createAdapters(db);
+
+      const result = await seed(adapters, {
+        adminEmail,
+        adminPassword,
+        issuer,
+        tenantId: "${tenantId}",
+        tenantName: "${tenantName}",
+        isControlPlane: ${multiTenant},
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Database seeded successfully",
+          result,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Seed error:", error);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to seed database",
+          message: error instanceof Error ? error.message : String(error),
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  },
+};
+`;
+}
+
+function generateCloudflareAppFileContent(multiTenant: boolean): string {
+  if (multiTenant) {
+    return `import { Context } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
+import { AuthHeroConfig } from "authhero";
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import { DataAdapters } from "@authhero/adapter-interfaces";
+
+// Control plane tenant ID - the tenant that manages all other tenants
+const CONTROL_PLANE_TENANT_ID = "control_plane";
+
+export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
+  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
+  const { app } = initMultiTenant({
+    ...config,
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  });
+
+  app
+    .onError((err, ctx) => {
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Multi-Tenant Server",
+        version: "1.0.0",
+        status: "running",
+        docs: "/docs",
+        controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
+
+  return app;
+}
+`;
+  }
+
+  return `import { Context } from "hono";
+import { cors } from "hono/cors";
+import { AuthHeroConfig, init } from "authhero";
+import { swaggerUI } from "@hono/swagger-ui";
+
+export default function createApp(config: AuthHeroConfig) {
+  const { app } = init(config);
+
+  // Enable CORS for all origins in development
+  app.use("*", cors({
+    origin: (origin) => origin || "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "Auth0-Client"],
+    exposeHeaders: ["Content-Length"],
+    credentials: true,
+  }));
+
+  app
+    .onError((err, ctx) => {
+      // Use duck-typing to avoid instanceof issues with bundled dependencies
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Server",
+        status: "running",
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
+
+  return app;
+}
 `;
 }
 
@@ -403,20 +630,74 @@ function runCommandWithEnv(
   });
 }
 
+/**
+ * Generates app.ts and seed.ts files for cloudflare setup based on multi-tenant flag
+ */
+function generateCloudflareFiles(
+  projectPath: string,
+  multiTenant: boolean,
+): void {
+  const srcDir = path.join(projectPath, "src");
+
+  // Generate app.ts
+  fs.writeFileSync(
+    path.join(srcDir, "app.ts"),
+    generateCloudflareAppFileContent(multiTenant),
+  );
+
+  // Generate seed.ts
+  fs.writeFileSync(
+    path.join(srcDir, "seed.ts"),
+    generateCloudflareSeedFileContent(multiTenant),
+  );
+}
+
+/**
+ * Prints nice output at the end of setup for cloudflare
+ */
+function printCloudflareSuccessMessage(multiTenant: boolean): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("🔐 AuthHero server running at https://localhost:3000");
+  console.log("📚 API documentation available at https://localhost:3000/docs");
+  console.log("🌐 Portal available at https://local.authhero.net");
+  if (multiTenant) {
+    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
+  } else {
+    console.log("🏠 Single-tenant mode with 'main' tenant");
+  }
+  console.log("─".repeat(50) + "\n");
+}
+
+/**
+ * Prints nice output at the end of setup for local/sqlite
+ */
+function printLocalSuccessMessage(multiTenant: boolean): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("✅ Self-signed certificates generated with openssl");
+  console.log("⚠️  You may need to trust the certificate in your browser");
+  console.log("🔐 AuthHero server running at https://localhost:3000");
+  console.log("📚 API documentation available at https://localhost:3000/docs");
+  console.log("🌐 Portal available at https://local.authhero.net");
+  if (multiTenant) {
+    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
+  } else {
+    console.log("🏠 Single-tenant mode with 'main' tenant");
+  }
+  console.log("─".repeat(50) + "\n");
+}
+
 program
   .version("1.0.0")
   .description("Create a new AuthHero project")
   .argument("[project-name]", "name of the project")
-  .option(
-    "-t, --template <type>",
-    "template type: local, cloudflare-simple, or cloudflare-multitenant",
-  )
+  .option("-t, --template <type>", "template type: local or cloudflare")
   .option("-e, --email <email>", "admin email address")
   .option("-p, --password <password>", "admin password (min 8 characters)")
   .option(
     "--package-manager <pm>",
     "package manager to use: npm, yarn, pnpm, or bun",
   )
+  .option("--multi-tenant", "enable multi-tenant mode")
   .option("--skip-install", "skip installing dependencies")
   .option("--skip-migrate", "skip running database migrations")
   .option("--skip-seed", "skip seeding the database")
@@ -460,15 +741,9 @@ program
     // Validate template option if provided
     let setupType: SetupType;
     if (options.template) {
-      if (
-        !["local", "cloudflare-simple", "cloudflare-multitenant"].includes(
-          options.template,
-        )
-      ) {
+      if (!["local", "cloudflare"].includes(options.template)) {
         console.error(`❌ Invalid template: ${options.template}`);
-        console.error(
-          "Valid options: local, cloudflare-simple, cloudflare-multitenant",
-        );
+        console.error("Valid options: local, cloudflare");
         process.exit(1);
       }
       setupType = options.template;
@@ -486,14 +761,9 @@ program
               short: setupConfigs.local.name,
             },
             {
-              name: `${setupConfigs["cloudflare-simple"].name}\n     ${setupConfigs["cloudflare-simple"].description}`,
-              value: "cloudflare-simple",
-              short: setupConfigs["cloudflare-simple"].name,
-            },
-            {
-              name: `${setupConfigs["cloudflare-multitenant"].name}\n     ${setupConfigs["cloudflare-multitenant"].description}`,
-              value: "cloudflare-multitenant",
-              short: setupConfigs["cloudflare-multitenant"].name,
+              name: `${setupConfigs.cloudflare.name}\n     ${setupConfigs.cloudflare.description}`,
+              value: "cloudflare",
+              short: setupConfigs.cloudflare.name,
             },
           ],
         },
@@ -501,21 +771,43 @@ program
       setupType = answer.setupType;
     }
 
+    // Ask about multi-tenant setup
+    let multiTenant: boolean;
+    if (options.multiTenant !== undefined) {
+      multiTenant = options.multiTenant;
+      console.log(`Multi-tenant mode: ${multiTenant ? "enabled" : "disabled"}`);
+    } else if (isNonInteractive) {
+      multiTenant = false; // Default to single tenant
+    } else {
+      const multiTenantAnswer = await inquirer.prompt([
+        {
+          type: "confirm",
+          name: "multiTenant",
+          message:
+            "Would you like to enable multi-tenant mode?\n     (Allows managing multiple tenants from a control plane)",
+          default: false,
+        },
+      ]);
+      multiTenant = multiTenantAnswer.multiTenant;
+    }
+
     const config = setupConfigs[setupType];
 
     // Create project directory
     fs.mkdirSync(projectPath, { recursive: true });
 
-    // Write package.json
+    // Write package.json with multi-tenant option
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
-      JSON.stringify(config.packageJson(projectName), null, 2),
+      JSON.stringify(config.packageJson(projectName, multiTenant), null, 2),
     );
 
     // Copy template files
+    const templateDir = config.templateDir;
+
     const sourceDir = path.join(
       import.meta.url.replace("file://", "").replace("/create-authhero.js", ""),
-      config.templateDir,
+      templateDir,
     );
 
     if (fs.existsSync(sourceDir)) {
@@ -525,11 +817,13 @@ program
       process.exit(1);
     }
 
+    // For Cloudflare setups, generate app.ts and seed.ts based on multi-tenant flag
+    if (setupType === "cloudflare") {
+      generateCloudflareFiles(projectPath, multiTenant);
+    }
+
     // For Cloudflare setups, create local config files
-    if (
-      setupType === "cloudflare-simple" ||
-      setupType === "cloudflare-multitenant"
-    ) {
+    if (setupType === "cloudflare") {
       // Copy wrangler.toml to wrangler.local.toml for local development
       const wranglerPath = path.join(projectPath, "wrangler.toml");
       const wranglerLocalPath = path.join(projectPath, "wrangler.local.toml");
@@ -551,10 +845,7 @@ program
 
     // Ask about GitHub CI for cloudflare setups
     let includeGithubCi = false;
-    if (
-      setupType === "cloudflare-simple" ||
-      setupType === "cloudflare-multitenant"
-    ) {
+    if (setupType === "cloudflare") {
       if (options.githubCi !== undefined) {
         includeGithubCi = options.githubCi;
         if (includeGithubCi) {
@@ -579,16 +870,19 @@ program
       }
     }
 
-    // Generate seed file for local setup only
-    // cloudflare-simple and cloudflare-multitenant have seed.ts in the template
+    // Generate seed.ts and app.ts for local setup
+    // cloudflare setup generates app.ts and seed.ts via generateCloudflareFiles
     if (setupType === "local") {
-      const seedContent = generateSeedFileContent();
-      const seedFileName = "src/seed.ts";
-      fs.writeFileSync(path.join(projectPath, seedFileName), seedContent);
+      const seedContent = generateLocalSeedFileContent(multiTenant);
+      fs.writeFileSync(path.join(projectPath, "src/seed.ts"), seedContent);
+
+      const appContent = generateLocalAppFileContent(multiTenant);
+      fs.writeFileSync(path.join(projectPath, "src/app.ts"), appContent);
     }
 
+    const tenantType = multiTenant ? "multi-tenant" : "single-tenant";
     console.log(
-      `\n✅ Project "${projectName}" has been created with ${config.name} setup!\n`,
+      `\n✅ Project "${projectName}" has been created with ${config.name} (${tenantType}) setup!\n`,
     );
 
     // Determine if we should install
@@ -661,11 +955,7 @@ program
         console.log("\n✅ Dependencies installed successfully!\n");
 
         // For local and cloudflare setups, run migrations and seed
-        if (
-          setupType === "local" ||
-          setupType === "cloudflare-simple" ||
-          setupType === "cloudflare-multitenant"
-        ) {
+        if (setupType === "local" || setupType === "cloudflare") {
           // Determine if we should run migrations and seed
           let shouldSetup: boolean;
           if (options.skipMigrate && options.skipSeed) {
@@ -787,9 +1077,13 @@ program
         }
 
         if (shouldStart) {
-          console.log(
-            "\n🚀 Starting development server on https://localhost:3000 ...\n",
-          );
+          // Print nice success message before starting
+          if (setupType === "cloudflare") {
+            printCloudflareSuccessMessage(multiTenant);
+          } else {
+            printLocalSuccessMessage(multiTenant);
+          }
+          console.log("🚀 Starting development server...\n");
           await runCommand(`${packageManager} run dev`, projectPath);
         }
 
@@ -799,13 +1093,10 @@ program
           console.log(`\nTo start the development server:`);
           console.log(`  cd ${projectName}`);
           console.log(`  npm run dev`);
-          if (
-            setupType === "cloudflare-simple" ||
-            setupType === "cloudflare-multitenant"
-          ) {
-            console.log(
-              `\nServer will be available at: https://localhost:3000`,
-            );
+          if (setupType === "cloudflare") {
+            printCloudflareSuccessMessage(multiTenant);
+          } else {
+            printLocalSuccessMessage(multiTenant);
           }
         }
       } catch (error) {
@@ -825,10 +1116,7 @@ program
           "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
         );
         console.log("  npm run dev");
-      } else if (
-        setupType === "cloudflare-simple" ||
-        setupType === "cloudflare-multitenant"
-      ) {
+      } else if (setupType === "cloudflare") {
         console.log("  npm install");
         console.log(
           "  npm run migrate  # or npm run db:migrate:remote for production",
@@ -837,9 +1125,10 @@ program
           "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
-        console.log("\nServer will be available at: https://localhost:3000");
       }
 
+      console.log("\nServer will be available at: https://localhost:3000");
+      console.log("Portal available at: https://local.authhero.net");
       console.log("\nFor more information, visit: https://authhero.net/docs\n");
     }
   });

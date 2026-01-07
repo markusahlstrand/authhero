@@ -118,7 +118,7 @@ function createIdentifierScreen(state: string, baseUrl: string, settings: Dynami
     action: `${baseUrl}/u2/screen/identifier?state=${state}`,
     method: "POST",
     title: "Welcome",
-    description: "Sign in to continue",
+    description: "Log in to sesamy-test to continue to All Applications.",
     components: [
       ...socialButtons,
       {

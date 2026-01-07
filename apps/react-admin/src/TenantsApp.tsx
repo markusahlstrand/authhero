@@ -1,9 +1,9 @@
 import { Admin, Resource } from "react-admin";
 import { getDataprovider } from "./dataProvider";
-import { getAuthProvider } from "./authProvider";
+import { getAuthProvider, createAuth0Client } from "./authProvider";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@mui/material";
 import { DomainSelector } from "./components/DomainSelector";
 import { saveSelectedDomainToStorage } from "./utils/domainUtils";
@@ -24,6 +24,8 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
   const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
+  const [isCheckingSingleTenant, setIsCheckingSingleTenant] =
+    useState<boolean>(true);
 
   // Use useMemo to prevent recreating the auth provider on every render
   const authProvider = useMemo(
@@ -60,6 +62,70 @@ export function TenantsApp(props: TenantsAppProps = {}) {
     return wrappedProvider;
   }, [selectedDomain]);
 
+  // Check for single tenant mode on mount
+  useEffect(() => {
+    if (!selectedDomain) {
+      setIsCheckingSingleTenant(false);
+      return;
+    }
+
+    // Try to fetch tenants list
+    dataProvider
+      .getList("tenants", {
+        pagination: { page: 1, perPage: 2 }, // Only need to know if there's 1 or more
+        sort: { field: "id", order: "ASC" },
+        filter: {},
+      })
+      .then((result) => {
+        // Multi-tenant mode - tenants endpoint exists
+        // Mark as multi-tenant and show the tenants list (don't auto-redirect)
+        sessionStorage.setItem("isSingleTenant", `${selectedDomain}|false`);
+        setIsCheckingSingleTenant(false);
+      })
+      .catch(async (error) => {
+        console.log("Tenants endpoint check:", error);
+        // If we get a 404 or any error, the tenants endpoint doesn't exist
+        // In single-tenant mode without multi-tenancy package, the endpoint won't exist
+
+        // Mark as single-tenant mode immediately (before trying to fetch settings)
+        // This ensures subsequent requests won't try to use organization tokens
+        sessionStorage.setItem("isSingleTenant", `${selectedDomain}|true`);
+
+        // Try to use the /tenants/settings endpoint which works in single-tenant mode
+        // We need to get a token and make a direct fetch to avoid organization logic
+        try {
+          const apiUrl = selectedDomain.startsWith("http")
+            ? selectedDomain
+            : `https://${selectedDomain}`;
+
+          // Get a non-org token
+          const auth0Client = createAuth0Client(selectedDomain);
+          const token = await auth0Client.getTokenSilently();
+
+          const response = await fetch(`${apiUrl}/api/v2/tenants/settings`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const settings = await response.json();
+            if (settings?.id) {
+              window.location.href = `/${settings.id}`;
+              return;
+            }
+          }
+        } catch (settingsError) {
+          console.log("Settings endpoint also failed:", settingsError);
+        }
+
+        // If both endpoints fail, clear the flag and show the tenants list (which will show an error)
+        sessionStorage.removeItem("isSingleTenant");
+        setIsCheckingSingleTenant(false);
+      });
+  }, [selectedDomain, dataProvider]);
+
   const openDomainManager = () => {
     setShowDomainDialog(true);
   };
@@ -73,6 +139,22 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   const handleCloseCertError = () => {
     setCertErrorUrl(null);
   };
+
+  // Show loading while checking for single tenant
+  if (isCheckingSingleTenant) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        Checking tenant configuration...
+      </div>
+    );
+  }
 
   // Create the domain selector button that will be passed to the AppBar
   const DomainSelectorButton = (

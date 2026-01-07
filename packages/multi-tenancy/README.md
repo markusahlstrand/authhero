@@ -79,14 +79,16 @@ import {
 
 const { entityHooks, tenantHooks } = createSyncHooks({
   controlPlaneTenantId: "control_plane",
-  getChildTenantIds: async () => { /* ... */ },
+  getChildTenantIds: async () => {
+    /* ... */
+  },
   getAdapters: async () => dataAdapter,
   getControlPlaneAdapters: async () => dataAdapter,
 });
 
 const tenantsRouter = createTenantsOpenAPIRouter(
   { accessControl: { controlPlaneTenantId: "control_plane" } },
-  { tenants: tenantHooks }
+  { tenants: tenantHooks },
 );
 
 const { app } = init({

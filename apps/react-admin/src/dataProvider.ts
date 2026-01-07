@@ -34,15 +34,20 @@ export function getDataprovider(auth0Domain?: string) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
     const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedAuth0Domain,
+    );
 
     if (domainConfig?.restApiUrl) {
-      // Use the custom REST API URL if configured
-      baseUrl = domainConfig.restApiUrl;
+      // Use the custom REST API URL if configured (ensure HTTPS)
+      baseUrl = buildUrlWithProtocol(domainConfig.restApiUrl);
     } else {
       // Otherwise use the auth domain with HTTPS
       baseUrl = buildUrlWithProtocol(auth0Domain);
     }
+  } else if (baseUrl) {
+    // Ensure env variable URL also uses HTTPS
+    baseUrl = buildUrlWithProtocol(baseUrl);
   }
 
   // TODO - duplicate auth0DataProvider to tenantsDataProvider
@@ -73,31 +78,46 @@ export function getDataproviderForTenant(
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
     const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find((d) => formatDomain(d.url) === formattedAuth0Domain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedAuth0Domain,
+    );
 
     if (domainConfig?.restApiUrl) {
-      // Use the custom REST API URL if configured
-      apiUrl = domainConfig.restApiUrl;
+      // Use the custom REST API URL if configured (ensure HTTPS)
+      apiUrl = buildUrlWithProtocol(domainConfig.restApiUrl);
     } else {
       // Otherwise construct an API URL using the auth0Domain with HTTPS
       apiUrl = buildUrlWithProtocol(auth0Domain);
     }
   } else {
-    // Fallback to the environment variable
-    apiUrl = import.meta.env.VITE_AUTH0_API_URL;
+    // Fallback to the environment variable (ensure HTTPS)
+    apiUrl = buildUrlWithProtocol(import.meta.env.VITE_AUTH0_API_URL || "");
   }
 
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
 
-  // Create an organization-scoped HTTP client for this tenant
-  // This ensures the user has the correct permissions for accessing tenant resources
-  const organizationHttpClient = createOrganizationHttpClient(tenantId);
+  // Create a dynamic httpClient that checks single-tenant mode at REQUEST TIME
+  // This is important because the mode may not be known when the dataProvider is created
+  const dynamicHttpClient = (url: string, options?: any) => {
+    // Check single-tenant mode at request time, not at creation time
+    const storedFlag = sessionStorage.getItem("isSingleTenant");
+    const isSingleTenant =
+      storedFlag?.endsWith("|true") || storedFlag === "true";
 
-  // Create the auth0Provider with the API URL, tenant ID, domain, and org-scoped client
+    // In single-tenant mode, use the regular authorized client without organization scope
+    // In multi-tenant mode, use organization-scoped client for proper access control
+    if (isSingleTenant) {
+      return authorizedHttpClient(url, options);
+    } else {
+      return createOrganizationHttpClient(tenantId)(url, options);
+    }
+  };
+
+  // Create the auth0Provider with the API URL, tenant ID, domain, and dynamic client
   const auth0Provider = auth0DataProvider(
     apiUrl,
-    organizationHttpClient,
+    dynamicHttpClient,
     tenantId,
     auth0Domain,
   );

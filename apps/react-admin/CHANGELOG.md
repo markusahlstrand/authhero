@@ -1,5 +1,18 @@
 # @authhero/react-admin
 
+## 0.19.0
+
+### Minor Changes
+
+- 47fe928: Refactor create authhero
+- f4b74e7: Add widget to react-admin
+
+### Patch Changes
+
+- Updated dependencies [f4b74e7]
+- Updated dependencies [b6d3411]
+  - @authhero/widget@0.5.0
+
 ## 0.18.0
 
 ### Minor Changes

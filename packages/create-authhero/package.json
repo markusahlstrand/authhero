@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "0.20.0",
+  "version": "0.21.0",
   "type": "module",
   "main": "dist/create-authhero.js",
   "bin": {

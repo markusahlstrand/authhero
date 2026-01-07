@@ -269,6 +269,7 @@ const passwordField = fieldComponentBase.extend({
       placeholder: z.string().optional(),
       min_length: z.number().optional(),
       show_toggle: z.boolean().optional(),
+      forgot_password_link: z.string().optional(),
     })
     .optional(),
 });

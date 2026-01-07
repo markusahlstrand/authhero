@@ -161,8 +161,7 @@ The CLI generates seed data including:
 - `index.js` - CLI entry point
 - `src/index.ts` - Main CLI source code
 - `templates/local/` - Local SQLite template
-- `templates/cloudflare-simple/` - Cloudflare single-tenant template
-- `templates/cloudflare-multitenant/` - Cloudflare multi-tenant template
+- `templates/cloudflare/` - Cloudflare D1 template (supports multi-tenant via --multi-tenant flag)
 
 ## Related Packages
 

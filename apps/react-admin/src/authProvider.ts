@@ -189,8 +189,12 @@ export const createManagementClient = async (
 
   let token: string;
 
-  if (tenantId) {
-    // When accessing tenant-specific resources, use org-scoped token
+  // Check if we're in single-tenant mode
+  const storedFlag = sessionStorage.getItem("isSingleTenant");
+  const isSingleTenant = storedFlag?.endsWith("|true") || storedFlag === "true";
+
+  if (tenantId && !isSingleTenant) {
+    // When accessing tenant-specific resources in MULTI-TENANT mode, use org-scoped token
     if (domainConfig.connectionMethod === "login") {
       // For OAuth login, use organization-scoped client
       const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, tenantId);
@@ -221,9 +225,7 @@ export const createManagementClient = async (
         });
 
         // This won't be reached as loginWithRedirect redirects the page
-        throw new Error(
-          `Redirecting to login for organization ${tenantId}`,
-        );
+        throw new Error(`Redirecting to login for organization ${tenantId}`);
       }
     } else {
       // For token/client_credentials, use getOrganizationToken

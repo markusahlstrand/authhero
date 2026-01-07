@@ -39,5 +39,8 @@ jobs:
       - name: Build authhero
         run: pnpm authhero build
 
+      - name: Build widget
+        run: pnpm widget build
+
       - name: Run tests
         run: pnpm -r test

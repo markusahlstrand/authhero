@@ -7,8 +7,10 @@ import { createProtectSyncedMiddleware } from "./middleware";
 /**
  * Configuration for multi-tenant AuthHero initialization.
  */
-export interface MultiTenantConfig
-  extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
+export interface MultiTenantConfig extends Omit<
+  AuthHeroConfig,
+  "entityHooks" | "managementApiExtensions"
+> {
   /**
    * The control plane tenant ID - the tenant that manages all other tenants.
    * @default "control_plane"
@@ -178,7 +180,10 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     createSyncHooks(syncHooksConfig);
 
   // Merge sync hooks with custom hooks
-  const mergedEntityHooks = mergeEntityHooks(syncEntityHooks, customEntityHooks);
+  const mergedEntityHooks = mergeEntityHooks(
+    syncEntityHooks,
+    customEntityHooks,
+  );
 
   // Create tenants router
   const tenantsRouter = createTenantsOpenAPIRouter(
