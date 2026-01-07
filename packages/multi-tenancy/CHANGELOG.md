@@ -1,5 +1,21 @@
 # @authhero/multi-tenancy
 
+## 14.0.0
+
+### Major Changes
+
+- 3d3fcc0: Move logic over to multi-tenancy
+
+### Minor Changes
+
+- 3d3fcc0: Migrate connections
+
+### Patch Changes
+
+- Updated dependencies [3d3fcc0]
+- Updated dependencies [3d3fcc0]
+  - authhero@4.0.0
+
 ## 13.20.0
 
 ### Minor Changes
