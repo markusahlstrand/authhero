@@ -60,6 +60,7 @@ When prompted, select the **multi-tenant control-plane** option. This will set u
 - ✅ Pre-configured roles and permissions
 
 **Self-Serve Customer Onboarding**: When a customer signs up through the self-serve flow, the system automatically:
+
 1. Creates an organization in the control-plane tenant
 2. Creates a dedicated tenant for that customer
 3. Links the organization to the customer tenant
@@ -69,7 +70,7 @@ This means you don't need to manually create organizations and tenants - it's al
 
 ### Architecture Overview
 
-```
+````
 ┌─────────────────────────────────────────────────────┐
 │  Manual Setup (If Not Using create-authhero)
 
@@ -82,26 +83,27 @@ First, create a tenant that will serve as your central portal:
 ```typescript
 // In your AuthHero configuration
 const portalTenantId = "portal"; // Your main tenant ID
-```
+````
 
 ### Step 2: Set Up Organizations for Customers
 
 ::: tip
 If you used `create-authhero` with the multi-tenant option, this is handled automatically via the self-serve sign-up flow. You only need to implement this manually if you're building custom onboarding.
-:::       │
+::: │
 └─────────────────────────────────────────────────────┘
-         │                           │
-         │ Organization Token        │ Organization Token
-         │ (scoped access)           │ (scoped access)
-         ▼                           ▼
-┌─────────────────┐         ┌─────────────────┐
-│  Customer A     │         │  Customer B     │
-│  Tenant         │         │  Tenant         │
-│  (Different     │         │  (Different     │
-│   issuer,       │         │   issuer,       │
-│   keys, etc.)   │         │   keys, etc.)   │
-└─────────────────┘         └─────────────────┘
-```
+│ │
+│ Organization Token │ Organization Token
+│ (scoped access) │ (scoped access)
+▼ ▼
+┌─────────────────┐ ┌─────────────────┐
+│ Customer A │ │ Customer B │
+│ Tenant │ │ Tenant │
+│ (Different │ │ (Different │
+│ issuer, │ │ issuer, │
+│ keys, etc.) │ │ keys, etc.) │
+└─────────────────┘ └─────────────────┘
+
+````
 
 ### How It Works
 
@@ -131,7 +133,7 @@ The control-plane is a special tenant that:
 ```typescript
 // Example: Control-plane configuration in create-authhero
 const CONTROL_PLANE_TENANT_ID = "control-plane";
-```
+````
 
 ### Automatic Organization & Tenant Linking
 
@@ -148,11 +150,13 @@ This happens automatically through hooks - **you don't need to manually create o
 One of the most powerful features of the multi-tenant control-plane setup is **automatic synchronization** of resource servers and roles:
 
 **How It Works:**
+
 - Resource servers (APIs) and roles defined in the control-plane are automatically synced to all customer tenants
 - When you create or update a resource server or role in the control-plane, it's propagated to all customer tenants
 - This allows you to **manage all customers from a single place** instead of configuring each tenant individually
 
 **Example Use Case:**
+
 ```typescript
 // Define a resource server in the control-plane
 const customerAPI = await managementClient.resourceServers.create({
@@ -170,6 +174,7 @@ const customerAPI = await managementClient.resourceServers.create({
 ```
 
 **Role Synchronization:**
+
 ```typescript
 // Define roles in the control-plane
 const adminRole = await managementClient.roles.create({
@@ -187,6 +192,7 @@ const userRole = await managementClient.roles.create({
 ```
 
 **Benefits:**
+
 - ✅ Single source of truth for APIs and permissions across all customers
 - ✅ Consistent permission model across all customer tenants
 - ✅ Easy updates - change once in control-plane, applies everywhere
@@ -205,12 +211,9 @@ To add additional users to an organization (e.g., inviting team members):
 
 ```typescript
 // Add user to the organization
-await managementClient.organizations.addMembers(
-  organizationId,
-  {
-    members: ["user_id_123"],
-  }
-);
+await managementClient.organizations.addMembers(organizationId, {
+  members: ["user_id_123"],
+});
 
 // Assign roles to the user
 await managementClient.organizations.addMemberRoles(
@@ -218,7 +221,7 @@ await managementClient.organizations.addMemberRoles(
   "user_id_123",
   {
     roles: ["rol_admin"], // or "rol_viewer"
-  }
+  },
 );
 ```
 
@@ -249,10 +252,11 @@ In your portal, display organizations the user is a member of using the `/tenant
 
 ::: info AuthHero Extension
 The `/tenants` endpoint is an **AuthHero extension** not available in Auth0. It provides powerful multi-tenant capabilities:
+
 - List all organizations a user is a member of
 - Enable self-serve tenant creation
 - Allow users to create their own customer tenants directly from your portal
-:::
+  :::
 
 ```typescript
 // Get user's organizations from the control-plane using the /tenants endpoint
@@ -294,13 +298,13 @@ async function createTenant(tenantName: string, displayName: string) {
   });
 
   const newTenant = await response.json();
-  
+
   // The multi-tenancy plugin will automatically:
   // 1. Create the tenant
   // 2. Create an organization in the control-plane
   // 3. Link the organization to the tenant
   // 4. Add the user as an admin of the organization
-  
+
   return newTenant;
 }
 ```
@@ -416,7 +420,7 @@ function createOrganizationClient(domain: string, organizationId: string) {
 async function getOrganizationToken(organizationId: string): Promise<string> {
   const orgClient = createOrganizationClient(
     "auth.yourplatform.com",
-    organizationId
+    organizationId,
   );
 
   try {
@@ -452,11 +456,12 @@ const response = await fetch(
     headers: {
       Authorization: `Bearer ${organizationToken}`,
     },
-  }
+  },
 );
 ```
 
 The key here is that the organization token:
+
 - Has a different issuer
 - Uses different signing keys
 - Is scoped to the specific organization
@@ -470,7 +475,7 @@ When a user logs out, make sure to clear all organization-specific cached tokens
 ```typescript
 export function clearOrganizationTokenCache(): void {
   const keysToRemove = Object.keys(window.localStorage).filter(
-    (key) => key.startsWith(CACHE_KEY_PREFIX) && key.match(/:[^:]+$/)
+    (key) => key.startsWith(CACHE_KEY_PREFIX) && key.match(/:[^:]+$/),
   );
   keysToRemove.forEach((key) => localStorage.removeItem(key));
 }
@@ -512,14 +517,14 @@ export function OrganizationSelector() {
   async function loadOrganizations() {
     // Get user's organizations from the main tenant
     const token = await auth0Client.getTokenSilently();
-    
+
     const response = await fetch(
       "https://api.yourplatform.com/user/organizations",
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     const orgs = await response.json();
@@ -602,7 +607,7 @@ function CustomerManagement({ token, orgId }: CustomerManagementProps) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     const data = await response.json();
@@ -635,14 +640,14 @@ const auth = createAuthHero({
 // Middleware to verify organization token
 app.use("/customers/:orgId/*", async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
-  
+
   if (!token) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   // Verify the token and extract claims
   const claims = await auth.verifyToken(token);
-  
+
   // Check that the org_id in the token matches the requested organization
   const requestedOrgId = c.req.param("orgId");
   if (claims.org_id !== requestedOrgId) {
@@ -661,7 +666,7 @@ app.use("/customers/:orgId/*", async (c, next) => {
 // Example endpoint to list users in customer tenant
 app.get("/customers/:orgId/users", async (c) => {
   const orgId = c.req.param("orgId");
-  
+
   // Query users in the customer's tenant
   const users = await db
     .select()
@@ -745,6 +750,7 @@ When building a SaaS platform, you'll often need internal services and support s
 Keep internal and cross-tenant permissions **only** on the control plane (portal tenant). Don't sync these to customer tenants.
 
 **Use cases:**
+
 - Internal admin tools that need access to all customers
 - Support staff accessing multiple customer tenants
 - Internal services (analytics, monitoring, billing) that read data across tenants
@@ -758,8 +764,14 @@ const internalAPI = await managementClient.resourceServers.create({
   name: "Internal Platform API",
   identifier: "https://internal.yourplatform.com",
   scopes: [
-    { value: "read:all-tenants", description: "Read access to all customer data" },
-    { value: "write:all-tenants", description: "Write access to all customer data" },
+    {
+      value: "read:all-tenants",
+      description: "Read access to all customer data",
+    },
+    {
+      value: "write:all-tenants",
+      description: "Write access to all customer data",
+    },
     { value: "manage:billing", description: "Manage customer billing" },
     { value: "support:access", description: "Support staff access" },
   ],
@@ -779,7 +791,10 @@ const supportRole = await managementClient.roles.create({
 // Grant the role access to internal API
 await managementClient.roles.addPermissions(supportRole.id, {
   permissions: [
-    { resource_server_identifier: "https://internal.yourplatform.com", permission_name: "support:access" },
+    {
+      resource_server_identifier: "https://internal.yourplatform.com",
+      permission_name: "support:access",
+    },
   ],
 });
 ```
@@ -809,7 +824,7 @@ const response = await fetch(
     headers: {
       Authorization: `Bearer ${internalToken}`,
     },
-  }
+  },
 );
 ```
 
@@ -862,7 +877,7 @@ await managementClient.organizations.addMemberRoles(
   supportUser.user_id,
   {
     roles: ["rol_admin"], // Or a special support role
-  }
+  },
 );
 
 // Repeat for other customers
@@ -872,6 +887,7 @@ await managementClient.organizations.addMembers("org_customer_b", {
 ```
 
 Now the support user can:
+
 1. See all their organizations in the portal
 2. Select which customer to access
 3. Get an organization token for that customer
@@ -891,7 +907,7 @@ const resourceServer = await managementClient.resourceServers.create({
   name: "My API",
   identifier: "https://api.example.com",
   metadata: {
-    sync: false,  // Don't sync this to customer tenants
+    sync: false, // Don't sync this to customer tenants
     internal: true,
   },
 });
@@ -899,7 +915,7 @@ const resourceServer = await managementClient.resourceServers.create({
 // In your sync logic
 async function syncResourceServers(targetTenantId: string) {
   const resourceServers = await managementClient.resourceServers.getAll();
-  
+
   for (const rs of resourceServers) {
     // Skip resources marked as non-syncable
     if (rs.metadata?.sync === false || rs.metadata?.internal === true) {
@@ -920,7 +936,7 @@ Use a consistent prefix for internal resources:
 // Internal resources
 const internalAPI = await managementClient.resourceServers.create({
   name: "Internal: Platform API",
-  identifier: "https://internal.yourplatform.com",  // Starts with 'internal.'
+  identifier: "https://internal.yourplatform.com", // Starts with 'internal.'
 });
 
 const supportTools = await managementClient.resourceServers.create({
@@ -937,15 +953,15 @@ const customerAPI = await managementClient.resourceServers.create({
 // In your sync logic
 async function syncResourceServers(targetTenantId: string) {
   const resourceServers = await managementClient.resourceServers.getAll();
-  
+
   for (const rs of resourceServers) {
     // Skip resources with 'internal' in the identifier
-    if (rs.identifier.includes('internal')) {
+    if (rs.identifier.includes("internal")) {
       continue;
     }
 
     // Or check the name prefix
-    if (rs.name.startsWith('Internal:')) {
+    if (rs.name.startsWith("Internal:")) {
       continue;
     }
 
@@ -965,8 +981,8 @@ const INTERNAL_PREFIX = "internal:";
 async function createInternalResource(config) {
   return managementClient.resourceServers.create({
     ...config,
-    identifier: config.identifier.startsWith(INTERNAL_PREFIX) 
-      ? config.identifier 
+    identifier: config.identifier.startsWith(INTERNAL_PREFIX)
+      ? config.identifier
       : `${INTERNAL_PREFIX}${config.identifier}`,
     metadata: {
       ...(config.metadata || {}),
@@ -982,14 +998,14 @@ function isInternalResource(resourceServer) {
     resourceServer.metadata?.internal === true ||
     resourceServer.metadata?.sync === false ||
     resourceServer.identifier.startsWith(INTERNAL_PREFIX) ||
-    resourceServer.name.startsWith('Internal:')
+    resourceServer.name.startsWith("Internal:")
   );
 }
 
 // Use in sync logic
 async function syncResourceServers(targetTenantId: string) {
   const resourceServers = await managementClient.resourceServers.getAll();
-  
+
   for (const rs of resourceServers) {
     if (isInternalResource(rs)) {
       console.log(`Skipping internal resource: ${rs.name}`);
@@ -1028,13 +1044,13 @@ const supportRole = await managementClient.roles.create({
 
 await managementClient.roles.addPermissions(supportRole.id, {
   permissions: [
-    { 
+    {
       resource_server_identifier: "internal:platform-api",
-      permission_name: "support:read"
+      permission_name: "support:read",
     },
     {
       resource_server_identifier: "internal:platform-api",
-      permission_name: "support:write"
+      permission_name: "support:write",
     },
   ],
 });
@@ -1092,14 +1108,14 @@ app.get("/internal/customers/:customerId/users", async (c) => {
 
 ### Decision Matrix
 
-| Scenario | Recommended Pattern | Token Type |
-|----------|-------------------|------------|
-| Internal admin tools | Control plane resource server | Internal token (no org_id) |
+| Scenario                                  | Recommended Pattern           | Token Type                       |
+| ----------------------------------------- | ----------------------------- | -------------------------------- |
+| Internal admin tools                      | Control plane resource server | Internal token (no org_id)       |
 | Support staff accessing specific customer | Multi-organization membership | Organization token (with org_id) |
-| Cross-tenant analytics service | Control plane resource server | Internal token (no org_id) |
-| Customer managing their own users | Organization membership | Organization token (with org_id) |
-| Platform billing service | Control plane resource server | Internal token (no org_id) |
-| Support needs customer context | Multi-organization membership | Organization token (with org_id) |
+| Cross-tenant analytics service            | Control plane resource server | Internal token (no org_id)       |
+| Customer managing their own users         | Organization membership       | Organization token (with org_id) |
+| Platform billing service                  | Control plane resource server | Internal token (no org_id)       |
+| Support needs customer context            | Multi-organization membership | Organization token (with org_id) |
 
 ### Best Practices
 
@@ -1121,6 +1137,7 @@ app.get("/internal/customers/:customerId/users", async (c) => {
 AuthHero makes it easy to build sophisticated multi-tenant SaaS authentication solutions that would require significant custom development in other platforms. The organization-based architecture provides clean separation between your portal and customer tenants while maintaining a seamless user experience.
 
 **Getting Started:**
+
 - Use `create-authhero` with the multi-tenant control-plane option for automatic setup
 - Self-serve customer sign-up automatically creates organizations and linked tenants
 - The only custom code needed is the `OrgCache` implementation for proper token isolation (included in the scaffolded project)
