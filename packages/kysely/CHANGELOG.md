@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.77.0
+
+### Minor Changes
+
+- 3d3fcc0: Migrate connections
+
 ## 10.76.2
 
 ### Patch Changes
