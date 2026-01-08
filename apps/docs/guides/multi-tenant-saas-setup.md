@@ -1619,7 +1619,6 @@ app.get("/internal/customers/:customerId/users", async (c) => {
 - [Custom Domain Setup](./custom-domain-setup.md) - Configure `auth.coffeeshop.com` for customers
 - [RBAC and Scopes](./rbac-and-scopes.md) - Define granular permissions
 - [Hooks](./hooks.md) - Customize authentication flows
-- [Self-Serve Tenant Creation](./self-serve-tenants.md) - Let customers create their own tenants
 
 ## Need Help?
 
