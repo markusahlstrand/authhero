@@ -1,6 +1,6 @@
 import { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { DataAdapters } from "@authhero/adapter-interfaces";
+import type { DataAdapters } from "authhero";
 
 /**
  * Bindings for the protect system middleware

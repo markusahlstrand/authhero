@@ -5,9 +5,11 @@ import {
   ResourceServer,
   ResourceServerInsert,
   Tenant,
-} from "@authhero/adapter-interfaces";
+  fetchAll,
+  EntityHooks,
+  EntityHookContext,
+} from "authhero";
 import { TenantEntityHooks, TenantHookContext } from "../types";
-import { fetchAll, EntityHooks, EntityHookContext } from "authhero";
 
 /**
  * Configuration for entity synchronization

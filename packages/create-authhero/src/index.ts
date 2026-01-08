@@ -184,10 +184,9 @@ function generateLocalAppFileContent(multiTenant: boolean): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
-import { AuthHeroConfig } from "authhero";
+import { AuthHeroConfig, DataAdapters } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { initMultiTenant } from "@authhero/multi-tenancy";
-import { DataAdapters } from "@authhero/adapter-interfaces";
 
 // Control plane tenant ID - the tenant that manages all other tenants
 const CONTROL_PLANE_TENANT_ID = "control_plane";
@@ -367,9 +366,8 @@ function generateCloudflareAppFileContent(multiTenant: boolean): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
-import { AuthHeroConfig } from "authhero";
+import { AuthHeroConfig, DataAdapters } from "authhero";
 import { initMultiTenant } from "@authhero/multi-tenancy";
-import { DataAdapters } from "@authhero/adapter-interfaces";
 
 // Control plane tenant ID - the tenant that manages all other tenants
 const CONTROL_PLANE_TENANT_ID = "control_plane";
