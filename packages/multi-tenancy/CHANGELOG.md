@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 14.2.0
+
+### Minor Changes
+
+- fb3b47e: Remove hard coded control-plane tenant id
+
+### Patch Changes
+
+- Updated dependencies [fb3b47e]
+  - authhero@4.1.0
+
 ## 14.1.0
 
 ### Minor Changes

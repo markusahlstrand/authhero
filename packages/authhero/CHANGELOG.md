@@ -1,5 +1,11 @@
 # authhero
 
+## 4.1.0
+
+### Minor Changes
+
+- fb3b47e: Remove hard coded control-plane tenant id
+
 ## 4.0.0
 
 ### Major Changes
