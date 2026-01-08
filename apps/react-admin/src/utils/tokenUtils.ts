@@ -18,7 +18,8 @@ export class OrgCache implements ICache {
   private orgId: string;
 
   constructor(orgId: string) {
-    this.orgId = orgId;
+    // Normalize organization ID to lowercase to avoid casing mismatches
+    this.orgId = orgId.toLowerCase();
   }
 
   public set<T = Cacheable>(key: string, entry: T) {
@@ -77,8 +78,9 @@ async function fetchTokenWithClientCredentials(
   };
 
   // Add organization if specified - this will include org_id in the token
+  // Normalize to lowercase to avoid casing mismatches
   if (organizationId) {
-    body.organization = organizationId;
+    body.organization = organizationId.toLowerCase();
   }
 
   const response = await fetch(`https://proxy.authhe.ro/oauth/token`, {

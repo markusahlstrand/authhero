@@ -340,7 +340,7 @@ export default (
         if (Array.isArray(res.json)) {
           return {
             data: res.json.map((item) => ({
-              id: item.custom_domain_id || item.id,
+              id: item.id,
               ...item,
             })),
             total: res.json.length,
@@ -351,7 +351,7 @@ export default (
         return {
           data:
             res.json[resource]?.map((item: any) => ({
-              id: item.custom_domain_id || item.id,
+              id: item.id,
               ...item,
             })) || [],
           total: res.json.total || res.json.length || 0,
@@ -382,15 +382,30 @@ export default (
           fetch: (id) => (managementClient as any).customDomains.get(id),
           idKey: "custom_domain_id",
         },
+        flows: {
+          fetch: (id) => (managementClient as any).flows.get(id),
+          idKey: "id",
+        },
+        hooks: {
+          fetch: (id) => (managementClient as any).hooks.get(id),
+          idKey: "hook_id",
+        },
+        forms: {
+          fetch: (id) => managementClient.forms.get(id),
+          idKey: "id",
+        },
       };
 
       const handler = sdkGetHandlers[resource];
       if (handler) {
         const result = await handler.fetch(params.id as string);
+        // Unwrap SDK response wrapper if present
+        const data = (result as any).response || result;
+
         return {
           data: {
-            id: result[handler.idKey] || result.id,
-            ...result,
+            id: data[handler.idKey] || data.id,
+            ...data,
           },
         };
       }
@@ -926,8 +941,12 @@ export default (
         body: JSON.stringify(cleanParams.data),
       }).then(({ json }) => {
         if (!json.id) {
-          json.id = json[`${resource}_id`];
-          delete json[`${resource}_id`];
+          // Try singular form of resource name (e.g., hooks -> hook_id)
+          const singularResource = resource.endsWith("s")
+            ? resource.slice(0, -1)
+            : resource;
+          json.id =
+            json[`${singularResource}_id`] || json[`${resource}_id`] || json.id;
         }
         return { data: json };
       });
@@ -1073,10 +1092,17 @@ export default (
 
       // Default create (for endpoints not in SDK)
       const res = await post(resource, params.data);
+      // Try singular form of resource name (e.g., hooks -> hook_id)
+      const singularResource = resource.endsWith("s")
+        ? resource.slice(0, -1)
+        : resource;
       return {
         data: {
           ...res.json,
-          id: res.json.id,
+          id:
+            res.json[`${singularResource}_id`] ||
+            res.json[`${resource}_id`] ||
+            res.json.id,
         },
       };
     },

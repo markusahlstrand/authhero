@@ -89,9 +89,16 @@ export const FlowEdit = () => {
   return (
     <Edit
       queryOptions={{
-        select: (data) => ({
-          data: parseFlowData(data.data as Record<string, unknown>),
-        }),
+        select: (response) => {
+          const data = response?.data as Record<string, unknown>;
+          if (!data) {
+            console.error("FlowEdit: No data in response", response);
+            return response;
+          }
+          return {
+            data: parseFlowData(data),
+          };
+        },
       }}
       transform={(data: Record<string, unknown>) => {
         // Transform actions to include required fields
