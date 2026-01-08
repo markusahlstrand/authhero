@@ -29,6 +29,7 @@ export { createTenantsOpenAPIRouter } from "./routes";
 export {
   createMultiTenancyMiddleware,
   createAccessControlMiddleware,
+  createControlPlaneTenantMiddleware,
   createSubdomainMiddleware,
   createDatabaseMiddleware,
   createProtectSyncedMiddleware,
