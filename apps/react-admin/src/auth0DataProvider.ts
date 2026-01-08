@@ -2,7 +2,6 @@ import { fetchUtils, DataProvider } from "ra-core";
 import { UpdateParams } from "react-admin";
 import { createManagementClient } from "./authProvider";
 import { ManagementClient } from "auth0";
-import { forms } from "node_modules/auth0/dist/cjs/management/api";
 
 // Add this at the top of the file with other imports
 function stringify(obj: Record<string, any>): string {

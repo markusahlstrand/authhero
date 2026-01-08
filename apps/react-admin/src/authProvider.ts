@@ -171,7 +171,9 @@ export const createManagementClient = async (
 ): Promise<ManagementClient> => {
   // Normalize tenant ID to lowercase to avoid casing mismatches
   const normalizedTenantId = tenantId?.toLowerCase();
-  const cacheKey = normalizedTenantId ? `${apiDomain}:${normalizedTenantId}` : apiDomain;
+  const cacheKey = normalizedTenantId
+    ? `${apiDomain}:${normalizedTenantId}`
+    : apiDomain;
 
   // Check cache first
   if (managementClientCache.has(cacheKey)) {
@@ -201,7 +203,10 @@ export const createManagementClient = async (
     // When accessing tenant-specific resources in MULTI-TENANT mode, use org-scoped token
     if (domainConfig.connectionMethod === "login") {
       // For OAuth login, use organization-scoped client
-      const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, normalizedTenantId);
+      const orgAuth0Client = createAuth0ClientForOrg(
+        domainForAuth,
+        normalizedTenantId,
+      );
       const audience =
         import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
       try {
@@ -229,7 +234,9 @@ export const createManagementClient = async (
         });
 
         // This won't be reached as loginWithRedirect redirects the page
-        throw new Error(`Redirecting to login for organization ${normalizedTenantId}`);
+        throw new Error(
+          `Redirecting to login for organization ${normalizedTenantId}`,
+        );
       }
     } else {
       // For token/client_credentials, use getOrganizationToken
@@ -248,7 +255,9 @@ export const createManagementClient = async (
   const managementClient = new ManagementClient({
     domain: apiDomain,
     token,
-    headers: normalizedTenantId ? { "tenant-id": normalizedTenantId } : undefined,
+    headers: normalizedTenantId
+      ? { "tenant-id": normalizedTenantId }
+      : undefined,
   });
 
   managementClientCache.set(cacheKey, managementClient);
@@ -694,7 +703,7 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
 export const createOrganizationHttpClient = (organizationId: string) => {
   // Normalize organization ID to lowercase to avoid casing mismatches
   const normalizedOrgId = organizationId.toLowerCase();
-  
+
   return (url: string, options: HttpOptions = {}) => {
     const requestKey = `${normalizedOrgId}:${url}-${JSON.stringify(options)}`;
 
