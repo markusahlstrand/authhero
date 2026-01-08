@@ -14,13 +14,8 @@ export async function tenantMiddleware(
 ) {
   const user = ctx.var.user;
   if (user?.tenant_id) {
-    if (user.tenant_id === "control_plane" && user.org_name) {
-      ctx.set("tenant_id", user.org_name);
-      return await next();
-    } else if (user.tenant_id) {
-      ctx.set("tenant_id", user.tenant_id);
-      return await next();
-    }
+    ctx.set("tenant_id", user.tenant_id);
+    return await next();
   }
 
   // Check tenant-id header first (for API calls)

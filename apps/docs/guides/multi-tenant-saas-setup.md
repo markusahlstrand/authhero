@@ -1,38 +1,39 @@
 ---
 title: Multi-Tenant SaaS Authentication Setup
-description: Learn how to build a complete multi-tenant SaaS authentication solution with a central portal and customer-specific domains using AuthHero's organization-based architecture.
+description: Build a complete multi-tenant SaaS authentication solution with a central portal and customer-specific domains using AuthHero's organization-based architecture.
 ---
 
 # Multi-Tenant SaaS Authentication Setup
 
-This guide shows you how to build a multi-tenant SaaS authentication solution where you have a central portal for managing customer tenants, while each customer has their own authentication domain with first-party cookies.
+::: tip What You'll Learn
 
-## Problem Statement
+- How to set up a central management portal with customer-specific authentication domains
+- Why traditional solutions make this unnecessarily complex
+- How to implement this in **under 10 minutes** using AuthHero's organization architecture
+- How to handle internal access and cross-tenant permissions
+  :::
 
-When building a SaaS service, you often need to provide authentication as part of your solution. This typically involves:
+## The Problem: You Have 100 Customers, But You Don't Want 100 Auth Systems
 
-- **Central Portal**: A common portal where all your customers can manage their end-users
-- **Portal Authentication**: The portal uses authentication tied to your top-level domain for convenience
-- **Customer Domains**: Each customer wants authentication tied to their own domain using first-party cookies
-- **Complete Isolation**: Each customer should have their own tenant with no connection between tenants
+You're building a SaaS platform. Each customer signs up and wants:
 
-This is a fairly common scenario when building SaaS services, and it was one of the key reasons AuthHero was created.
+- **Their own login page** at `auth.coffeeshop.com` (not `auth.yourplatform.com`)
+- **First-party cookies** (for better security and privacy)
+- **Complete data isolation** (their users never see other customers' data)
 
-## The Challenge with Traditional Solutions
+But you also need:
 
-While this setup is theoretically possible with Auth0, it presents significant challenges:
+- **One central portal** where all customers manage their users
+- **Internal admin access** to help customers and monitor the system
+- **Support staff** who can access multiple customer accounts
 
-- No easy way to connect an organization in one tenant to another tenant
-- No straightforward way to grant users access to manage the portal and specific customer tenants
-- Complex custom implementation required with significant development effort
+**The Old Way (Auth0):** Build a complex custom solution connecting multiple tenants, organizations, and custom domains. Expect weeks of development and ongoing maintenance headaches.
 
-## The AuthHero Solution
+**The AuthHero Way:** It works out of the box. No custom code needed (except one cache helper). Setup time: 10 minutes.
 
-AuthHero provides this functionality **out of the box** using an organization-based architecture.
+## Quick Start: Get Running in 10 Minutes
 
-## Quick Start with create-authhero
-
-The easiest way to get started is using the [`create-authhero`](https://www.npmjs.com/package/create-authhero) scaffolding tool, which includes a **multi-tenant control-plane** option:
+The fastest way to get started is using the `create-authhero` scaffolding tool:
 
 ::: code-group
 
@@ -50,71 +51,62 @@ yarn create authhero my-saas-auth
 
 :::
 
-When prompted, select the **multi-tenant control-plane** option. This will set up:
+**When prompted, select:** "Multi-tenant control-plane"
 
-- ✅ A control-plane tenant for your portal
-- ✅ Self-serve customer sign-up flow
-- ✅ Automatic organization creation when customers sign up
-- ✅ Automatic tenant creation linked to the organization
-- ✅ Organization token handling with proper cache isolation
-- ✅ Pre-configured roles and permissions
+**What you get automatically:**
 
-**Self-Serve Customer Onboarding**: When a customer signs up through the self-serve flow, the system automatically:
+✅ Control-plane tenant for your portal  
+✅ Self-serve customer sign-up (customers create their own tenants)  
+✅ Organization auto-creation (linked to customer tenants)  
+✅ Token cache isolation (no token conflicts between customers)  
+✅ Pre-configured roles and permissions
 
-1. Creates an organization in the control-plane tenant
-2. Creates a dedicated tenant for that customer
-3. Links the organization to the customer tenant
-4. Adds the signing-up user as an admin of their organization
+**What happens when a customer signs up:**
 
-This means you don't need to manually create organizations and tenants - it's all handled automatically!
+1. System creates an **organization** in your control-plane
+2. System creates a dedicated **tenant** for that customer
+3. System **links** the organization to the customer tenant
+4. Signing-up user becomes an **admin** of their organization
 
-### Architecture Overview
+No manual setup required. Just run the scaffold and deploy.
 
-````
-┌─────────────────────────────────────────────────────┐
-│  Manual Setup (If Not Using create-authhero)
+## Architecture: How It Actually Works
 
-If you're adding multi-tenant capabilities to an existing AuthHero setup or want to understand how it works under the hood, follow these steps:
+Here's the flow when a user accesses a customer tenant:
 
-### Step 1: Create the Portal Tenant
+```mermaid
+graph TD
+    A[User logs into Portal] -->|Regular Token| B[Portal: auth.yourplatform.com]
+    B --> C[User sees list of customer organizations]
+    C --> D[User selects Customer A]
+    D -->|Organization Token Request| E[Silent Auth with org_id]
+    E -->|Organization Token| F[Customer A Tenant]
+    F --> G[Different issuer, keys, isolated data]
 
-First, create a tenant that will serve as your central portal:
-
-```typescript
-// In your AuthHero configuration
-const portalTenantId = "portal"; // Your main tenant ID
-````
-
-### Step 2: Set Up Organizations for Customers
-
-::: tip
-If you used `create-authhero` with the multi-tenant option, this is handled automatically via the self-serve sign-up flow. You only need to implement this manually if you're building custom onboarding.
-::: │
-└─────────────────────────────────────────────────────┘
-│ │
-│ Organization Token │ Organization Token
-│ (scoped access) │ (scoped access)
-▼ ▼
-┌─────────────────┐ ┌─────────────────┐
-│ Customer A │ │ Customer B │
-│ Tenant │ │ Tenant │
-│ (Different │ │ (Different │
-│ issuer, │ │ issuer, │
-│ keys, etc.) │ │ keys, etc.) │
-└─────────────────┘ └─────────────────┘
+    D2[User selects Customer B] -->|Organization Token Request| E2[Silent Auth with org_id]
+    E2 -->|Organization Token| F2[Customer B Tenant]
+    F2 --> G2[Different issuer, keys, isolated data]
+```
 
 ````
 
-### How It Works
+**Key insight:** Each customer tenant has:
+- ✅ Different cryptographic signing keys
+- ✅ Different token issuer
+- ✅ Completely isolated data
+- ✅ Independent configuration
 
-1. **Control-Plane Tenant**: You have one control-plane tenant that handles all users logging into your platform
-2. **Automatic Organization Creation**: When a customer tenant is created, the multi-tenancy plugin automatically creates a corresponding organization in the control-plane
-3. **Organization Members**: Customer users are automatically added as members of their organization during sign-up
-4. **Role-Based Access**: Define roles on the control-plane tenant (e.g., admin, viewer) that are assigned to users within organizations
-5. **Organization Selection**: Users see a list of organizations they're members of at the portal root
-6. **Organization Tokens**: When a user selects a customer organization, they request an organization token using silent authentication
-7. **Scoped Access**: The organization token is scoped to that specific organization with the user's specific permissions
-8. **Tenant Management**: Users can manage their customer tenant using the organization token, which uses completely different keys, issuer, and other settings
+## Choosing Your Data Isolation Strategy
+
+| Strategy | Cost | Security | Maintenance | Best For |
+|----------|------|----------|-------------|----------|
+| **Shared DB + Row-level filtering** | 💰 Low | ⚠️ Medium | ✅ Easy | Early-stage startups (<100 customers) |
+| **Schema per Tenant** | 💰💰 Medium | 🔒 High | ⚠️ Complex | Mid-sized SaaS (100-1000 customers) |
+| **Database per Tenant** | 💰💰💰 High | 🔒🔒 Maximum | ⚠️⚠️ Very Complex | Enterprise (regulated industries) |
+
+::: warning The Migration Trap
+Many startups start with Shared DB, then face a painful migration when they hit 50+ customers. Plan for Schema-per-Tenant from day one if you expect growth.
+:::
 
 ## Understanding the Architecture
 
@@ -311,38 +303,20 @@ async function createTenant(tenantName: string, displayName: string) {
 
 This makes it easy to build a completely self-serve multi-tenant platform where customers can sign up and start using your service immediately without any manual intervention.
 
-### Getting Organization-Scoped Tokens
+## The Critical Implementation Detail: Token Cache Isolation
 
-::: tip
-If you used `create-authhero` with the multi-tenant option, the `OrgCache` implementation and organization token handling is already included in the generated code.
+::: danger Common Mistake: Token Cache Clash
+The default Auth0 SDK cache will return the **wrong token** when switching between customer organizations. This is the #1 bug developers hit with multi-tenant setups.
 :::
 
-This is the critical piece. When a user selects an organization, you need to get an organization-scoped token. This requires understanding how token refresh and silent authentication work, and implementing a custom cache to avoid conflicts.
+**The Problem:**
 
-#### Understanding Refresh Tokens vs Silent Authentication
+1. User authenticates to **Customer A**, SDK caches the token
+2. User switches to **Customer B** with `getTokenSilently({ organization: 'org_b' })`
+3. SDK finds cached token from **Customer A** and returns it ❌
+4. User gets access denied or sees wrong data
 
-**Important distinction:**
-
-- **Refresh Tokens**: When you use a refresh token to get a new access token, you **cannot change the organization or scopes**. The new token will have the same parameters as the original authorization.
-
-- **Silent Authentication**: When you use `getTokenSilently()`, it can re-authenticate with **different parameters** (like a different organization). This is essential for switching between customer organizations.
-
-When switching organizations, you need to perform silent authentication with the new organization parameter, not just refresh the existing token.
-
-#### The Cache Clash Problem
-
-The auth0-spa-js library has a cache clash issue when switching between organizations:
-
-1. User authenticates to Organization A, cache stores the token
-2. User tries to switch to Organization B with `getTokenSilently({ organization: 'org_b' })`
-3. The library finds the cached token from Organization A and returns it
-4. User gets the wrong token for the wrong organization! ❌
-
-This happens because the default cache doesn't distinguish between tokens for different organizations.
-
-#### The Solution: Organization-Isolated Cache
-
-Create a custom cache that isolates tokens by organization:
+**The Solution:** Organization-isolated cache (included in `create-authhero` scaffolds)
 
 ```typescript
 import { ICache, Cacheable, MaybePromise } from "@auth0/auth0-spa-js";
@@ -413,34 +387,476 @@ function createOrganizationClient(domain: string, organizationId: string) {
 }
 ```
 
-#### Get Organization Token
+## Understanding Token Types: Internal vs. Organization Tokens
+
+AuthHero uses two distinct token types for different access patterns:
+
+| Token Type             | Has `org_id`? | Use Case                                         | Audience                  |
+| ---------------------- | ------------- | ------------------------------------------------ | ------------------------- |
+| **Internal Token**     | ❌ No         | Platform admin, support staff, internal services | `internal:platform-api`   |
+| **Organization Token** | ✅ Yes        | Customer managing their own tenant               | `urn:authhero:management` |
+
+**When to use each:**
 
 ```typescript
-// When user selects an organization
-async function getOrganizationToken(organizationId: string): Promise<string> {
-  const orgClient = createOrganizationClient(
-    "auth.yourplatform.com",
-    organizationId,
-  );
+// ❌ WRONG: Using organization token for internal access
+const token = await auth0Client.getTokenSilently({
+  authorizationParams: {
+    organization: "org_customer_a", // This scopes you to ONE customer
+    audience: "internal:platform-api",
+  },
+});
 
-  try {
-    // Use silent authentication to get organization-scoped token
-    const token = await orgClient.getTokenSilently({
-      authorizationParams: {
-        organization: organizationId,
-      },
-    });
+// ✅ CORRECT: Using internal token for cross-tenant access
+const internalToken = await auth0Client.getTokenSilently({
+  authorizationParams: {
+    // No organization parameter = internal token
+    audience: "internal:platform-api",
+  },
+});
+// This token can access ALL customers
 
-    return token;
-  } catch (error) {
-    // If silent auth fails, redirect to login with organization context
-    await orgClient.loginWithRedirect({
-      authorizationParams: {
-        organization: organizationId,
-      },
-    });
-    throw error;
+// ✅ CORRECT: Using organization token for customer-specific access
+const orgToken = await auth0Client.getTokenSilently({
+  authorizationParams: {
+    organization: "org_customer_a", // Scoped to Customer A only
+    audience: "urn:authhero:management",
+  },
+});
+```
+
+**Backend validation shows the difference:**
+
+```typescript
+app.get("/customers/:customerId/users", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  const claims = await auth.verifyToken(token);
+
+  // Check if this is an internal token (no org_id)
+  if (!claims.org_id) {
+    // This is an internal/support token
+    // Verify they have cross-tenant permissions
+    if (!claims.permissions?.includes("support:access")) {
+      return c.json({ error: "Insufficient permissions" }, 403);
+    }
+    // Allow access to any customer
+  } else {
+    // This is an organization token
+    // Verify it matches the requested customer
+    if (claims.org_id !== c.req.param("customerId")) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
   }
+
+  // Proceed with request...
+});
+```
+
+::: tip Pro Tip: Token Inspection
+Always decode tokens at [jwt.io](https://jwt.io) during development to verify they have the expected `org_id` claim (or lack thereof for internal tokens).
+:::
+
+## The Request Lifecycle: How a Customer Accesses Their Tenant
+
+Let's follow "Alice at The Coffee Shop" as she manages her users:
+
+**Step 1: Alice logs into your portal**
+
+```typescript
+// Alice authenticates to the control-plane
+// No organization parameter = portal access
+const portalToken = await auth0Client.getTokenSilently();
+```
+
+**Step 2: Portal shows Alice her organizations**
+
+```typescript
+// AuthHero-specific endpoint (not in Auth0)
+const response = await fetch("https://auth.yourplatform.com/api/v2/tenants", {
+  headers: { Authorization: `Bearer ${portalToken}` },
+});
+
+const organizations = await response.json();
+// Alice sees: [{ id: 'org_coffee_shop', name: 'The Coffee Shop' }]
+```
+
+**Step 3: Alice selects "The Coffee Shop"**
+
+```typescript
+// Create organization-specific client with isolated cache
+const coffeeShopClient = new Auth0Client({
+  domain: "auth.yourplatform.com",
+  clientId: "your-client-id",
+  authorizationParams: {
+    organization: "org_coffee_shop",
+    audience: "urn:authhero:management",
+  },
+  cache: new OrgCache("org_coffee_shop"), // ⭐ Critical for token isolation
+  cacheLocation: "localstorage",
+});
+
+// Get organization-scoped token
+const coffeeShopToken = await coffeeShopClient.getTokenSilently({
+  authorizationParams: {
+    organization: "org_coffee_shop",
+  },
+});
+```
+
+**Step 4: Alice manages her users**
+
+```typescript
+// This token is scoped to The Coffee Shop tenant only
+const response = await fetch(
+  "https://api.yourplatform.com/customers/org_coffee_shop/users",
+  {
+    headers: { Authorization: `Bearer ${coffeeShopToken}` },
+  },
+);
+```
+
+**Step 5: Backend validates the token**
+
+```typescript
+app.get("/customers/:orgId/users", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  const claims = await auth.verifyToken(token);
+
+  // Verify org_id matches the requested resource
+  if (claims.org_id !== c.req.param("orgId")) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  // Check permissions
+  if (!claims.permissions?.includes("read:users")) {
+    return c.json({ error: "Insufficient permissions" }, 403);
+  }
+
+  // Query users for this specific tenant
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.tenant_id, claims.org_id));
+
+  return c.json(users);
+});
+```
+
+## Internal Access: When Your Team Needs Cross-Tenant Permissions
+
+**The Scenario:** Your support engineer needs to help customers across multiple tenants, or your analytics service needs to read data from all customers.
+
+### Pattern 1: Control-Plane Resource Servers (Recommended)
+
+Keep internal permissions **only** on the control-plane. Don't sync them to customer tenants.
+
+**Setting up internal access:**
+
+```typescript
+// Create internal-only resource server on control-plane
+const internalAPI = await managementClient.resourceServers.create({
+  name: "Internal: Platform API",
+  identifier: "internal:platform-api",
+  scopes: [
+    { value: "support:access", description: "Support staff access" },
+    { value: "read:all-tenants", description: "Read all customer data" },
+    { value: "analytics:read", description: "Analytics service access" },
+  ],
+  metadata: {
+    sync: false, // ⭐ Don't sync to customer tenants
+    internal: true,
+  },
+});
+
+// Create support role
+const supportRole = await managementClient.roles.create({
+  name: "support-engineer",
+  description: "Cross-tenant support access",
+});
+
+await managementClient.roles.addPermissions(supportRole.id, {
+  permissions: [
+    {
+      resource_server_identifier: "internal:platform-api",
+      permission_name: "support:access",
+    },
+  ],
+});
+```
+
+**Support engineer accessing customer data:**
+
+```typescript
+// Support engineer gets internal token (no organization)
+const supportToken = await auth0Client.getTokenSilently({
+  authorizationParams: {
+    audience: "internal:platform-api",
+    scope: "support:access",
+  },
+});
+
+// Can access ANY customer
+const response = await fetch(
+  "https://api.yourplatform.com/internal/customers/org_coffee_shop/users",
+  {
+    headers: { Authorization: `Bearer ${supportToken}` },
+  },
+);
+```
+
+**Backend validates internal access:**
+
+```typescript
+app.get("/internal/customers/:customerId/users", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  const claims = await auth.verifyToken(token);
+
+  // Must be an internal token (no org_id)
+  if (claims.org_id) {
+    return c.json({ error: "This endpoint requires internal access" }, 403);
+  }
+
+  // Must have support permission
+  if (!claims.permissions?.includes("support:access")) {
+    return c.json({ error: "Insufficient permissions" }, 403);
+  }
+
+  // Log for audit trail
+  await auditLog({
+    action: "support_access",
+    user: claims.sub,
+    customer: c.req.param("customerId"),
+    timestamp: new Date(),
+  });
+
+  // Access any customer's data
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.tenant_id, c.req.param("customerId")));
+
+  return c.json(users);
+});
+```
+
+### Pattern 2: Multi-Organization Membership
+
+For support staff who need to act within customer contexts (e.g., impersonating users for debugging):
+
+```typescript
+// Add support engineer to multiple customer organizations
+await managementClient.organizations.addMembers("org_coffee_shop", {
+  members: ["user_support_alice"],
+});
+
+await managementClient.organizations.addMemberRoles(
+  "org_coffee_shop",
+  "user_support_alice",
+  {
+    roles: ["rol_admin"],
+  },
+);
+
+// Support engineer can now:
+// 1. See all their organizations in portal
+// 2. Select which customer to access
+// 3. Get organization token for that customer
+// 4. Act within customer context with full permissions
+```
+
+### Decision Matrix: Which Pattern to Use?
+
+| Scenario                                  | Pattern                       | Token Type                   | Example                       |
+| ----------------------------------------- | ----------------------------- | ---------------------------- | ----------------------------- |
+| Analytics service reads all customer data | Control-plane resource server | Internal (no `org_id`)       | Billing, metrics, monitoring  |
+| Support engineer helps specific customer  | Multi-organization membership | Organization (with `org_id`) | Debugging, user impersonation |
+| Admin panel shows all customer stats      | Control-plane resource server | Internal (no `org_id`)       | Dashboard, reports            |
+| Support needs customer-specific context   | Multi-organization membership | Organization (with `org_id`) | Testing features as customer  |
+
+### Preventing Internal Resources from Syncing to Customers
+
+When you sync resource servers from control-plane to customer tenants, exclude internal ones:
+
+::: code-group
+
+```typescript [Metadata Flag (Recommended)]
+// Mark resources as non-syncable
+const resourceServer = await managementClient.resourceServers.create({
+  name: "Internal: Support Tools",
+  identifier: "internal:support-tools",
+  metadata: {
+    sync: false, // Don't sync to customers
+    internal: true,
+  },
+});
+
+// In sync logic
+async function syncResourceServers(targetTenantId: string) {
+  const resourceServers = await managementClient.resourceServers.getAll();
+
+  for (const rs of resourceServers) {
+    // Skip internal resources
+    if (rs.metadata?.sync === false || rs.metadata?.internal === true) {
+      continue;
+    }
+
+    await syncToTenant(targetTenantId, rs);
+  }
+}
+```
+
+```typescript [Naming Convention]
+// Use consistent prefix
+const internalAPI = await managementClient.resourceServers.create({
+  name: "Internal: Platform API",
+  identifier: "internal:platform-api", // Prefix with 'internal:'
+});
+
+// In sync logic
+async function syncResourceServers(targetTenantId: string) {
+  const resourceServers = await managementClient.resourceServers.getAll();
+
+  for (const rs of resourceServers) {
+    // Skip resources with 'internal:' prefix
+    if (rs.identifier.startsWith("internal:")) {
+      continue;
+    }
+
+    await syncToTenant(targetTenantId, rs);
+  }
+}
+```
+
+```typescript [Hybrid Approach]
+const INTERNAL_PREFIX = "internal:";
+
+function isInternalResource(resourceServer) {
+  return (
+    resourceServer.metadata?.internal === true ||
+    resourceServer.metadata?.sync === false ||
+    resourceServer.identifier.startsWith(INTERNAL_PREFIX)
+  );
+}
+
+async function syncResourceServers(targetTenantId: string) {
+  const resourceServers = await managementClient.resourceServers.getAll();
+
+  for (const rs of resourceServers) {
+    if (isInternalResource(rs)) {
+      console.log(`Skipping internal resource: ${rs.name}`);
+      continue;
+    }
+
+    await syncToTenant(targetTenantId, rs);
+  }
+}
+```
+
+:::
+
+## Complete Working Example: Portal with Organization Management
+
+Here's a full React component showing organization selection and token management:
+
+```tsx
+import React, { useState, useEffect } from "react";
+import { Auth0Client } from "@auth0/auth0-spa-js";
+import { OrgCache } from "./utils/orgCache";
+
+interface Organization {
+  id: string;
+  name: string;
+  display_name: string;
+}
+
+export function OrganizationSelector() {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [orgToken, setOrgToken] = useState<string | null>(null);
+
+  // Main portal client (no organization)
+  const auth0Client = new Auth0Client({
+    domain: "auth.yourplatform.com",
+    clientId: "your-client-id",
+    authorizationParams: {
+      audience: "urn:authhero:management",
+    },
+  });
+
+  useEffect(() => {
+    loadOrganizations();
+  }, []);
+
+  async function loadOrganizations() {
+    const token = await auth0Client.getTokenSilently();
+
+    // AuthHero extension: /tenants endpoint
+    const response = await fetch(
+      "https://auth.yourplatform.com/api/v2/tenants",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    const orgs = await response.json();
+    setOrganizations(orgs);
+  }
+
+  async function selectOrganization(orgId: string) {
+    // Create org-specific client with isolated cache
+    const orgClient = new Auth0Client({
+      domain: "auth.yourplatform.com",
+      clientId: "your-client-id",
+      authorizationParams: {
+        organization: orgId,
+        audience: "urn:authhero:management",
+      },
+      cache: new OrgCache(orgId), // ⭐ Prevents cache conflicts
+      cacheLocation: "localstorage",
+    });
+
+    try {
+      // Silent auth with organization context
+      const token = await orgClient.getTokenSilently({
+        authorizationParams: {
+          organization: orgId,
+        },
+      });
+
+      setSelectedOrg(orgId);
+      setOrgToken(token);
+    } catch (error) {
+      console.error("Failed to get organization token", error);
+      // Redirect to login with org context if needed
+      await orgClient.loginWithRedirect({
+        authorizationParams: {
+          organization: orgId,
+        },
+      });
+    }
+  }
+
+  return (
+    <div>
+      <h2>Select Customer</h2>
+      <ul>
+        {organizations.map((org) => (
+          <li key={org.id}>
+            <button onClick={() => selectOrganization(org.id)}>
+              {org.display_name}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {selectedOrg && (
+        <div>
+          <h3>Managing: {selectedOrg}</h3>
+          <CustomerManagement token={orgToken!} orgId={selectedOrg} />
+        </div>
+      )}
+    </div>
+  );
 }
 ```
 
@@ -702,42 +1118,98 @@ export default app;
 
 ## Migration from Auth0
 
-If you're currently using Auth0 with a similar setup, migration is straightforward:
+Moving from Auth0 to AuthHero? Here's the migration path:
 
-1. Export your organizations from Auth0
-2. Create corresponding organizations in AuthHero
-3. Update your organization token fetching code to use the `OrgCache` implementation
-4. Point your application to AuthHero endpoints
-5. Test the organization selection and token flow
+**Before (Auth0 - Complex Custom Implementation):**
 
-The rest of your application logic can remain largely unchanged since AuthHero is Auth0-compatible.
+- ❌ Multiple disconnected tenants
+- ❌ Custom code to link organizations across tenants
+- ❌ Manual organization/tenant synchronization
+- ❌ Complex permission mapping
 
-## Troubleshooting
+**After (AuthHero - Works Out of the Box):**
 
-### Organization Token Not Working
+- ✅ Single control-plane tenant
+- ✅ Automatic organization-tenant linking
+- ✅ Built-in resource server synchronization
+- ✅ Organization-based access control
 
-If you're getting unauthorized errors with organization tokens:
+**Migration Steps:**
 
-1. Verify the `org_id` claim is in the token (decode it at jwt.io)
-2. Check that the organization exists in your portal tenant
-3. Ensure the user is a member of the organization
-4. Verify the user has the required roles
+1. Export organizations from Auth0 Management API
+2. Create corresponding organizations in AuthHero control-plane
+3. Update frontend to use `OrgCache` implementation
+4. Point API calls to AuthHero endpoints
+5. Test organization selection and token flows
 
-### Silent Authentication Failing
+Most of your application logic stays the same since AuthHero is Auth0-compatible.
 
-If `getTokenSilently()` fails:
+## Troubleshooting Guide
 
-1. The user may not have an active session - redirect to login
-2. Check that the organization ID is correct
-3. Verify the cache is properly isolating tokens by organization
+### Issue: Organization Token Returns 401 Unauthorized
 
-### Cache Conflicts
+**Check these in order:**
 
-If you're seeing token conflicts between organizations:
+1. **Decode the token at jwt.io** - Does it have the `org_id` claim?
+2. **Verify organization exists** - Call `/api/v2/organizations/{org_id}`
+3. **Check user membership** - Is the user a member of the organization?
+4. **Verify user roles** - Does the user have the required role in the organization?
 
-1. Ensure you're using the `OrgCache` implementation
-2. Verify each organization gets its own Auth0Client instance
-3. Clear the cache when switching organizations if needed
+```typescript
+// Debug helper
+async function debugOrganizationToken(token: string) {
+  const decoded = JSON.parse(atob(token.split(".")[1]));
+  console.log("Token claims:", decoded);
+  console.log("Organization ID:", decoded.org_id);
+  console.log("Permissions:", decoded.permissions);
+  console.log("Issuer:", decoded.iss);
+}
+```
+
+### Issue: Silent Authentication Fails When Switching Organizations
+
+**Symptoms:** `login_required` error when calling `getTokenSilently()` with a different organization
+
+**Solution:** This is usually because you're trying to use a refresh token to switch orgs. Refresh tokens cannot change the organization parameter.
+
+```typescript
+// ❌ WRONG: Trying to use cached refresh token for different org
+const token = await auth0Client.getTokenSilently({
+  authorizationParams: {
+    organization: "org_different", // This will fail if cached token is for different org
+  },
+});
+
+// ✅ CORRECT: Create new client instance with org-specific cache
+const orgClient = new Auth0Client({
+  domain: "auth.yourplatform.com",
+  clientId: "your-client-id",
+  authorizationParams: {
+    organization: "org_different",
+  },
+  cache: new OrgCache("org_different"), // Fresh cache for this org
+  cacheLocation: "localstorage",
+});
+
+const token = await orgClient.getTokenSilently();
+```
+
+### Issue: Getting Wrong Customer's Data
+
+**Symptoms:** User sees data from Customer A when they selected Customer B
+
+**Root Cause:** Cache clash - the SDK returned a cached token for the wrong organization
+
+**Solution:** Verify you're using `OrgCache` and creating separate Auth0Client instances per organization
+
+```typescript
+// ✅ Verify your implementation matches this pattern
+const orgClient = new Auth0Client({
+  // ...other config
+  cache: new OrgCache(organizationId), // Must be present
+  cacheLocation: "localstorage",
+});
+```
 
 ## Advanced Topics
 
@@ -1132,14 +1604,25 @@ app.get("/internal/customers/:customerId/users", async (c) => {
 - [RBAC and Scopes](./rbac-and-scopes.md) - Learn more about role-based access control
 - [Hooks](./hooks.md) - Customize authentication flows with hooks
 
-## Conclusion
+## Key Takeaways
 
-AuthHero makes it easy to build sophisticated multi-tenant SaaS authentication solutions that would require significant custom development in other platforms. The organization-based architecture provides clean separation between your portal and customer tenants while maintaining a seamless user experience.
+✅ **Use `create-authhero`** with multi-tenant option for automatic setup  
+✅ **Implement `OrgCache`** to prevent token conflicts (included in scaffold)  
+✅ **Use internal tokens** (no `org_id`) for cross-tenant access  
+✅ **Use organization tokens** (with `org_id`) for customer-specific access  
+✅ **Mark internal resources** with `metadata.sync = false`  
+✅ **Create org-specific Auth0Client instances** when switching customers  
+✅ **Always validate `org_id`** in your backend
 
-**Getting Started:**
+## Next Steps
 
-- Use `create-authhero` with the multi-tenant control-plane option for automatic setup
-- Self-serve customer sign-up automatically creates organizations and linked tenants
-- The only custom code needed is the `OrgCache` implementation for proper token isolation (included in the scaffolded project)
+- [Custom Domain Setup](./custom-domain-setup.md) - Configure `auth.coffeeshop.com` for customers
+- [RBAC and Scopes](./rbac-and-scopes.md) - Define granular permissions
+- [Hooks](./hooks.md) - Customize authentication flows
+- [Self-Serve Tenant Creation](./self-serve-tenants.md) - Let customers create their own tenants
 
-Everything else - organization management, tenant isolation, role-based access - works out of the box.
+## Need Help?
+
+- 📖 [AuthHero Documentation](/)
+- 💬 [Discord Community](https://discord.gg/authhero)
+- 🐛 [GitHub Issues](https://github.com/authhero/authhero/issues)

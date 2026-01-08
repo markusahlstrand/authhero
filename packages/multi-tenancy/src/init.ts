@@ -2,7 +2,10 @@ import { init, AuthHeroConfig, fetchAll } from "authhero";
 import { DataAdapters, Tenant } from "@authhero/adapter-interfaces";
 import { createSyncHooks, EntitySyncConfig } from "./hooks/sync";
 import { createTenantsOpenAPIRouter } from "./routes";
-import { createProtectSyncedMiddleware } from "./middleware";
+import {
+  createProtectSyncedMiddleware,
+  createControlPlaneTenantMiddleware,
+} from "./middleware";
 
 /**
  * Configuration for multi-tenant AuthHero initialization.
@@ -213,6 +216,9 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       { path: "/tenants", router: tenantsRouter },
     ],
   });
+
+  // Add middleware to resolve tenant from org_name for control plane users
+  app.use("/api/v2/*", createControlPlaneTenantMiddleware(controlPlaneTenantId));
 
   // Add middleware to protect synced entities
   if (syncEnabled) {

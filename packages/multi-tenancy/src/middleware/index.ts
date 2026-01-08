@@ -9,6 +9,42 @@ import {
 import { validateTenantAccess } from "../hooks/access-control";
 
 /**
+ * Creates middleware that resolves tenant_id from org_name for control plane users.
+ *
+ * When a user authenticates to the control plane tenant and has an org_name claim,
+ * this middleware sets the tenant_id to the org_name, allowing them to access
+ * that child tenant's resources.
+ *
+ * @param controlPlaneTenantId - The ID of the control plane tenant
+ * @returns Hono middleware handler
+ *
+ * @example
+ * ```typescript
+ * import { createControlPlaneTenantMiddleware } from "@authhero/multi-tenancy";
+ *
+ * const middleware = createControlPlaneTenantMiddleware("control_plane");
+ *
+ * app.use("/api/*", middleware);
+ * ```
+ */
+export function createControlPlaneTenantMiddleware(
+  controlPlaneTenantId: string,
+): MiddlewareHandler<{
+  Bindings: MultiTenancyBindings;
+  Variables: MultiTenancyVariables;
+}> {
+  return async (ctx, next) => {
+    const user = ctx.var.user as
+      | { tenant_id?: string; org_name?: string }
+      | undefined;
+    if (user?.tenant_id === controlPlaneTenantId && user.org_name) {
+      ctx.set("tenant_id", user.org_name);
+    }
+    return next();
+  };
+}
+
+/**
  * Creates middleware for validating organization-based tenant access.
  *
  * This middleware checks that the token's organization claim matches
