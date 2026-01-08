@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 14.3.0
+
+### Minor Changes
+
+- d7e8c95: Update dependencies
+
 ## 14.2.0
 
 ### Minor Changes
