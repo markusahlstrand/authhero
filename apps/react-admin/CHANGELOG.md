@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.21.0
+
+### Minor Changes
+
+- 1423254: Fix casing in the ui for organizations
+
 ## 0.20.0
 
 ### Minor Changes

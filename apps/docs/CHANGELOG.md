@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.29.0
+
+### Minor Changes
+
+- fb3b47e: Remove hard coded control-plane tenant id
+
 ## 1.28.0
 
 ### Minor Changes
