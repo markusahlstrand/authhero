@@ -5,7 +5,7 @@ import {
   tenantSchema,
   auth0QuerySchema,
   CreateTenantParams,
-} from "@authhero/adapter-interfaces";
+} from "authhero";
 import {
   MultiTenancyBindings,
   MultiTenancyVariables,

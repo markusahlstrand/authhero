@@ -186,6 +186,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
         {
           text: "Packages",
           items: [
+            { text: "Overview", link: "/packages/overview" },
             { text: "Core Library", link: "/packages/authhero/" },
             { text: "UI Widget", link: "/packages/ui-widget" },
             {

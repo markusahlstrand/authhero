@@ -1,5 +1,9 @@
-import { CreateTenantParams, Tenant } from "@authhero/adapter-interfaces";
-import { MANAGEMENT_API_SCOPES, MANAGEMENT_API_AUDIENCE } from "authhero";
+import {
+  CreateTenantParams,
+  Tenant,
+  MANAGEMENT_API_SCOPES,
+  MANAGEMENT_API_AUDIENCE,
+} from "authhero";
 
 /**
  * Generates the default audience URN for a tenant.

@@ -2,7 +2,7 @@ import {
   CreateTenantParams,
   DataAdapters,
   Tenant,
-} from "@authhero/adapter-interfaces";
+} from "authhero";
 import { Context } from "hono";
 
 /**

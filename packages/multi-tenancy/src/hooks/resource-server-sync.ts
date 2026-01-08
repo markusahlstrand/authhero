@@ -2,9 +2,9 @@ import {
   DataAdapters,
   ResourceServer,
   ResourceServerInsert,
-} from "@authhero/adapter-interfaces";
+  fetchAll,
+} from "authhero";
 import { TenantEntityHooks, TenantHookContext } from "../types";
-import { fetchAll } from "authhero";
 
 /**
  * Configuration for resource server synchronization

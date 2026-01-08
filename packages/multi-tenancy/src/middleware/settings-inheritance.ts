@@ -4,7 +4,7 @@ import {
   Connection,
   connectionSchema,
   connectionOptionsSchema,
-} from "@authhero/adapter-interfaces";
+} from "authhero";
 
 /**
  * Configuration for runtime settings fallback from a control plane tenant.

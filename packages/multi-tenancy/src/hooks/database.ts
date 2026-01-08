@@ -1,4 +1,4 @@
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { DataAdapters } from "authhero";
 import { DatabaseIsolationConfig, MultiTenancyHooks } from "../types";
 
 /**

@@ -1,5 +1,4 @@
-import { init, AuthHeroConfig, fetchAll } from "authhero";
-import { DataAdapters, Tenant } from "@authhero/adapter-interfaces";
+import { init, AuthHeroConfig, fetchAll, DataAdapters, Tenant } from "authhero";
 import { createSyncHooks, EntitySyncConfig } from "./hooks/sync";
 import { createTenantsOpenAPIRouter } from "./routes";
 import {
