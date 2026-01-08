@@ -122,7 +122,9 @@ export const createAuth0ClientForOrg = (
   domain: string,
   organizationId: string,
 ) => {
-  const cacheKey = `${domain}:${organizationId}`;
+  // Normalize organization ID to lowercase to avoid casing mismatches
+  const normalizedOrgId = organizationId.toLowerCase();
+  const cacheKey = `${domain}:${normalizedOrgId}`;
 
   // Check cache first
   if (auth0OrgClientCache.has(cacheKey)) {
@@ -147,12 +149,12 @@ export const createAuth0ClientForOrg = (
     useRefreshTokens: false,
     // Use organization-specific cache to isolate tokens
     // Note: Don't use cacheLocation when providing a custom cache
-    cache: new OrgCache(organizationId),
+    cache: new OrgCache(normalizedOrgId),
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
       scope: "openid profile email auth:read auth:write",
-      organization: organizationId,
+      organization: normalizedOrgId,
     },
   });
 
@@ -167,7 +169,9 @@ export const createManagementClient = async (
   tenantId?: string,
   oauthDomain?: string,
 ): Promise<ManagementClient> => {
-  const cacheKey = tenantId ? `${apiDomain}:${tenantId}` : apiDomain;
+  // Normalize tenant ID to lowercase to avoid casing mismatches
+  const normalizedTenantId = tenantId?.toLowerCase();
+  const cacheKey = normalizedTenantId ? `${apiDomain}:${normalizedTenantId}` : apiDomain;
 
   // Check cache first
   if (managementClientCache.has(cacheKey)) {
@@ -193,18 +197,18 @@ export const createManagementClient = async (
   const storedFlag = sessionStorage.getItem("isSingleTenant");
   const isSingleTenant = storedFlag?.endsWith("|true") || storedFlag === "true";
 
-  if (tenantId && !isSingleTenant) {
+  if (normalizedTenantId && !isSingleTenant) {
     // When accessing tenant-specific resources in MULTI-TENANT mode, use org-scoped token
     if (domainConfig.connectionMethod === "login") {
       // For OAuth login, use organization-scoped client
-      const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, tenantId);
+      const orgAuth0Client = createAuth0ClientForOrg(domainForAuth, normalizedTenantId);
       const audience =
         import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
       try {
         token = await orgAuth0Client.getTokenSilently({
           authorizationParams: {
             audience,
-            organization: tenantId,
+            organization: normalizedTenantId,
           },
         });
       } catch (error) {
@@ -216,7 +220,7 @@ export const createManagementClient = async (
         // Redirect to login with organization
         await orgAuth0Client.loginWithRedirect({
           authorizationParams: {
-            organization: tenantId,
+            organization: normalizedTenantId,
             login_hint: user?.email,
           },
           appState: {
@@ -225,11 +229,11 @@ export const createManagementClient = async (
         });
 
         // This won't be reached as loginWithRedirect redirects the page
-        throw new Error(`Redirecting to login for organization ${tenantId}`);
+        throw new Error(`Redirecting to login for organization ${normalizedTenantId}`);
       }
     } else {
       // For token/client_credentials, use getOrganizationToken
-      token = await getOrganizationToken(domainConfig, tenantId);
+      token = await getOrganizationToken(domainConfig, normalizedTenantId);
     }
   } else {
     // No tenantId - get non-org-scoped token for tenant management endpoints
@@ -244,7 +248,7 @@ export const createManagementClient = async (
   const managementClient = new ManagementClient({
     domain: apiDomain,
     token,
-    headers: tenantId ? { "tenant-id": tenantId } : undefined,
+    headers: normalizedTenantId ? { "tenant-id": normalizedTenantId } : undefined,
   });
 
   managementClientCache.set(cacheKey, managementClient);
@@ -688,8 +692,11 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
  * @returns An HTTP client function that uses organization-scoped tokens
  */
 export const createOrganizationHttpClient = (organizationId: string) => {
+  // Normalize organization ID to lowercase to avoid casing mismatches
+  const normalizedOrgId = organizationId.toLowerCase();
+  
   return (url: string, options: HttpOptions = {}) => {
-    const requestKey = `${organizationId}:${url}-${JSON.stringify(options)}`;
+    const requestKey = `${normalizedOrgId}:${url}-${JSON.stringify(options)}`;
 
     // If there's already a pending request for this URL and options, return it
     if (pendingRequests.has(requestKey)) {
@@ -728,7 +735,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
             !activeSessions.has(formattedSelectedDomain)
           ) {
             clearInterval(checkInterval);
-            createOrganizationHttpClient(organizationId)(url, options)
+            createOrganizationHttpClient(normalizedOrgId)(url, options)
               .then(resolve)
               .catch(reject);
           }
@@ -768,7 +775,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     ) {
       // For token/client_credentials, use organization-scoped token
       // This includes the org_id claim for accessing tenant-specific resources
-      request = getOrganizationToken(domainConfig, organizationId)
+      request = getOrganizationToken(domainConfig, normalizedOrgId)
         .catch((error) => {
           throw new Error(
             `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
@@ -838,7 +845,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       // For OAuth login, use an organization-specific client with isolated cache
       const orgAuth0Client = createAuth0ClientForOrg(
         selectedDomain,
-        organizationId,
+        normalizedOrgId,
       );
 
       // Use the management API audience for cross-tenant operations
@@ -851,7 +858,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
         .getTokenSilently({
           authorizationParams: {
             audience,
-            organization: organizationId,
+            organization: normalizedOrgId,
           },
         })
         .catch(async (_error) => {
@@ -863,7 +870,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           // Redirect to login with organization
           await orgAuth0Client.loginWithRedirect({
             authorizationParams: {
-              organization: organizationId,
+              organization: normalizedOrgId,
               login_hint: user?.email,
             },
             appState: {
@@ -873,7 +880,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
 
           // This won't be reached as loginWithRedirect redirects the page
           throw new Error(
-            `Redirecting to login for organization ${organizationId}`,
+            `Redirecting to login for organization ${normalizedOrgId}`,
           );
         })
         .then((token) => {
