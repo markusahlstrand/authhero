@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.23.0
+
+### Minor Changes
+
+- d7e8c95: Update dependencies
+
 ## 0.22.0
 
 ### Minor Changes
