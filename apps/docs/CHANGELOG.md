@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.30.0
+
+### Minor Changes
+
+- 58634b0: Expose all hooks
+
 ## 1.29.0
 
 ### Minor Changes
