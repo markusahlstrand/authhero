@@ -1,5 +1,11 @@
 # authhero
 
+## 4.2.0
+
+### Minor Changes
+
+- 742ef7c: Add tenant-id to token
+
 ## 4.1.0
 
 ### Minor Changes
