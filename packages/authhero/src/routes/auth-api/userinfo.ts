@@ -41,7 +41,7 @@ export const userinfoRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       if (!ctx.var.user) {
-        throw new HTTPException(404, { message: "User not found" });
+        throw new HTTPException(404, { message: "User not found 1" });
       }
 
       // Get tenant_id from token or fallback to context (from tenant middleware)
@@ -51,6 +51,7 @@ export const userinfoRoutes = new OpenAPIHono<{
       }
 
       const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
+
       if (!user) {
         throw new HTTPException(404, { message: "User not found" });
       }
@@ -66,12 +67,16 @@ export const userinfoRoutes = new OpenAPIHono<{
       if (onFetchUserInfo) {
         const customClaims: Record<string, unknown> = {};
 
+        // Get scope from token payload (ctx.var.user contains full JWT payload)
+        const tokenPayload = ctx.var.user as { scope?: string };
+        const scopes = tokenPayload?.scope?.split(" ") || [];
+
         await onFetchUserInfo(
           {
             ctx,
             user,
             tenant_id,
-            scopes: (ctx.var as { scope?: string }).scope?.split(" ") || [],
+            scopes,
           },
           {
             setCustomClaim: (claim: string, value: unknown) => {
