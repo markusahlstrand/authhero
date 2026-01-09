@@ -35,7 +35,6 @@ describe("pagehooks", () => {
       authParams: {
         client_id: "test-client",
       },
-      login_completed: false,
     };
 
     mockUser = {

@@ -42,19 +42,23 @@ function evaluateCondition(
     : "";
   const value = condition.value || "";
 
+  // Normalize strings for case-insensitive comparison (especially important for emails)
+  const fieldLower = field.toLowerCase();
+  const valueLower = value.toLowerCase();
+
   switch (operator) {
     case "ends_with":
-      return field.endsWith(value);
+      return fieldLower.endsWith(valueLower);
     case "starts_with":
-      return field.startsWith(value);
+      return fieldLower.startsWith(valueLower);
     case "contains":
-      return field.includes(value);
+      return fieldLower.includes(valueLower);
     case "equals":
     case "eq":
-      return field === value;
+      return fieldLower === valueLower;
     case "not_equals":
     case "neq":
-      return field !== value;
+      return fieldLower !== valueLower;
     default:
       // Also check nested operands for ENDS_WITH etc
       if (condition.operands && Array.isArray(condition.operands)) {
@@ -71,7 +75,8 @@ function evaluateCondition(
                 `{{context.user.${fieldName}}}`,
                 context,
               );
-              if (resolvedField.endsWith(matchValue)) {
+              // Case-insensitive comparison
+              if (resolvedField.toLowerCase().endsWith(matchValue.toLowerCase())) {
                 return true;
               }
             }
@@ -154,7 +159,7 @@ export type FlowFetcher = (flowId: string) => Promise<{
  */
 type ResolveNodeResult =
   | { type: "step"; nodeId: string }
-  | { type: "redirect"; target: string; customUrl?: string }
+  | { type: "redirect"; target: string; customUrl?: string; nextNode?: string }
   | { type: "end" }
   | null;
 
@@ -225,6 +230,7 @@ export async function resolveNode(
           type: "redirect",
           target: actionNode.config.target,
           customUrl: actionNode.config.custom_url,
+          nextNode: actionNode.config.next_node, // Where to continue after redirect completes
         };
       }
       // For other action types, move to next node
@@ -303,15 +309,24 @@ export async function resolveNode(
 }
 
 /**
- * Handles a form hook: validates the form exists and returns a redirect Response to the first node.
+ * Result type for handleFormHook
+ */
+export type FormHookResult =
+  | { type: "end" } // Flow ended, continue with normal auth
+  | { type: "step"; formId: string; nodeId: string } // Show form step node
+  | { type: "redirect"; target: string; customUrl?: string; formId: string; nextNode?: string }; // Redirect to change-email, account, or custom URL
+
+/**
+ * Handles a form hook: validates the form exists and determines what to do next.
+ * Returns null if the flow ends without requiring any action (continue with normal auth flow).
  * Throws if the form or start node is missing.
  */
 export async function handleFormHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   form_id: string,
-  loginSession: LoginSession,
+  _loginSession: LoginSession, // Kept for API compatibility, not used directly
   user?: User,
-): Promise<Response> {
+): Promise<FormHookResult | null> {
   const data = ctx.env.data;
   const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
   if (!tenant_id) {
@@ -374,39 +389,29 @@ export async function handleFormHook(
     // Handle different resolution results
     if (!result || result.type === "end") {
       // No step node to display - this means the flow should end
-      // Return a redirect that continues the auth flow without showing a form
-      return new Response(null, {
-        status: 302,
-        headers: {
-          location: `/u/login/identifier?state=${encodeURIComponent(loginSession.id)}`,
-        },
-      });
+      // Return null to indicate no redirect is needed, the auth flow should continue normally
+      return null;
     }
 
     if (result.type === "redirect") {
-      // ACTION or FLOW node with REDIRECT - redirect to the target
-      const redirectUrl = getRedirectUrl(
-        result.target as "change-email" | "account" | "custom",
-        result.customUrl,
-        loginSession.id,
-      );
-      return new Response(null, {
-        status: 302,
-        headers: { location: redirectUrl },
-      });
+      // ACTION or FLOW node with REDIRECT - return redirect info with form context
+      return {
+        type: "redirect",
+        target: result.target,
+        customUrl: result.customUrl,
+        formId: form.id,
+        nextNode: result.nextNode, // Where to continue after redirect completes
+      };
     }
 
     // result.type === "step" - continue with form display
     firstNodeId = result.nodeId;
   }
 
-  // If loginSession is provided, pass state as a query param if available
-  let url = `/u/forms/${form.id}/nodes/${firstNodeId}?state=${encodeURIComponent(
-    loginSession.id,
-  )}`;
-
-  return new Response(null, {
-    status: 302,
-    headers: { location: url },
-  });
+  // Return step info for form display
+  return {
+    type: "step",
+    formId: form.id,
+    nodeId: firstNodeId,
+  };
 }

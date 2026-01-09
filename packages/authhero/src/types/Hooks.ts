@@ -247,12 +247,47 @@ export type OnExecutePostLoginAPI = {
       tokenParameterName?: string;
     }) => Record<string, any> | null;
   };
+  authentication: {
+    recordMethod: (url: string) => void;
+  };
+  access: {
+    deny: (code: string, reason?: string) => void;
+  };
   token: TokenAPI;
 };
 
 export type OnExecutePostLogin = (
   event: HookEvent,
   api: OnExecutePostLoginAPI,
+) => Promise<void>;
+
+// API for onContinuePostLogin - called when user returns from redirect
+export type OnContinuePostLoginAPI = {
+  redirect: {
+    validateToken: (options: {
+      secret: string;
+      tokenParameterName?: string;
+    }) => Record<string, any> | null;
+  };
+  authentication: {
+    recordMethod: (url: string) => void;
+  };
+  access: {
+    deny: (code: string, reason?: string) => void;
+  };
+  accessToken: {
+    setCustomClaim: (claim: string, value: any) => void;
+  };
+  idToken: {
+    setCustomClaim: (claim: string, value: any) => void;
+  };
+  token: TokenAPI;
+};
+
+// Called when user returns from a redirect action
+export type OnContinuePostLogin = (
+  event: HookEvent,
+  api: OnContinuePostLoginAPI,
 ) => Promise<void>;
 
 export type OnExecutePreUserDeletionAPI = {

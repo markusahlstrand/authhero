@@ -521,7 +521,9 @@ export async function createFrontChannelAuthResponse(
     impersonatingUser: params.impersonatingUser,
   });
 
-  // If completeLogin returned a Response (from a hook redirect), return it directly
+  // If completeLogin returned a Response (from a hook redirect), return it WITHOUT setting the auth cookie.
+  // The user should not have a valid session until they complete all post-login hooks.
+  // The target page (e.g., change-email) can identify the user via loginSession.session_id.
   if (tokens instanceof Response) {
     return tokens;
   }

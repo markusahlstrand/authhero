@@ -84,6 +84,14 @@ export async function initJSXRoute(
 export async function initJSXRouteWithSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
+  options?: {
+    /** If set, only allow access if the user is on this specific hook */
+    allowedHook?: { type: "form" | "page" | "action"; id: string };
+    /** If set, allow access when pipeline_state.current.return_to matches this value */
+    allowedReturnTo?: string;
+    /** If true, skip pipeline state checks (for continue endpoint) */
+    skipPipelineCheck?: boolean;
+  },
 ) {
   const { theme, branding, client, tenant, loginSession } = await initJSXRoute(
     ctx,
@@ -91,33 +99,79 @@ export async function initJSXRouteWithSession(
     true,
   );
 
-  const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
-
-  const authSession = authCookie
-    ? await ctx.env.data.sessions.get(client.tenant.id, authCookie)
-    : null;
-
-  if (!authSession || !loginSession.session_id) {
+  // The loginSession.session_id links this login flow to a session.
+  // We use this to identify the user without requiring an auth cookie.
+  // This is important for post-login hooks (like change-email) where
+  // the user shouldn't have a valid session cookie yet.
+  if (!loginSession.session_id) {
     throw new RedirectException(
       `/u/login/identifier?state=${encodeURIComponent(state)}`,
     );
   }
 
-  // Check that the user in the session matches the cookie session user
+  // Security check: If user is in the middle of a post-login hook pipeline,
+  // only allow access to authorized pages. This prevents bypassing mandatory
+  // hooks (like privacy policy acceptance) by directly navigating to other URLs.
+  const currentHook = loginSession.pipeline_state?.current;
+  if (currentHook && !options?.skipPipelineCheck) {
+    const isAllowedHook =
+      options?.allowedHook &&
+      options.allowedHook.type === currentHook.type &&
+      options.allowedHook.id === currentHook.id;
+
+    const isAllowedReturnTo =
+      options?.allowedReturnTo && currentHook.return_to === options.allowedReturnTo;
+
+    if (!isAllowedHook && !isAllowedReturnTo) {
+      // User is trying to access a page they shouldn't - redirect to their current hook
+      if (currentHook.type === "form" && currentHook.step) {
+        throw new RedirectException(
+          `/u/forms/${currentHook.id}/nodes/${currentHook.step}?state=${encodeURIComponent(state)}`,
+        );
+      } else if (currentHook.type === "page") {
+        throw new RedirectException(
+          `/u/${currentHook.id}?state=${encodeURIComponent(state)}`,
+        );
+      }
+      // For action hooks or unknown types, redirect to continue endpoint
+      throw new RedirectException(
+        `/u/continue?state=${encodeURIComponent(state)}`,
+      );
+    }
+  }
+
   const session = await ctx.env.data.sessions.get(
     client.tenant.id,
     loginSession.session_id,
   );
 
-  const user = await ctx.env.data.users.get(
-    client.tenant.id,
-    authSession.user_id,
-  );
-
-  if (!user || session?.user_id !== authSession.user_id) {
+  if (!session) {
     throw new RedirectException(
       `/u/login/identifier?state=${encodeURIComponent(state)}`,
     );
+  }
+
+  const user = await ctx.env.data.users.get(client.tenant.id, session.user_id);
+
+  if (!user) {
+    throw new RedirectException(
+      `/u/login/identifier?state=${encodeURIComponent(state)}`,
+    );
+  }
+
+  // If there's an auth cookie, verify it matches the session user (extra security check)
+  const authCookie = getAuthCookie(client.tenant.id, ctx.req.header("cookie"));
+  if (authCookie) {
+    const authSession = await ctx.env.data.sessions.get(
+      client.tenant.id,
+      authCookie,
+    );
+    if (authSession && authSession.user_id !== session.user_id) {
+      // Cookie belongs to a different user - this shouldn't happen
+      throw new RedirectException(
+        `/u/login/identifier?state=${encodeURIComponent(state)}`,
+      );
+    }
   }
 
   return {

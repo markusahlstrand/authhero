@@ -55,7 +55,6 @@ describe("sessions", () => {
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
         ip: "127.0.0.1",
         useragent: "jest",
-        login_completed: false,
       });
 
       await data.sessions.create("tenantId", {

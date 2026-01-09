@@ -22,7 +22,7 @@ interface LoginSessionItem extends DynamoDBBaseItem {
   csrf_token: string;
   authParams: string; // JSON string of AuthParams
   expires_at: string;
-  login_completed: boolean;
+  pipeline_state?: string; // JSON string of PipelineState
   auth0Client?: string;
   deleted_at?: string;
   ip?: string;
@@ -32,11 +32,13 @@ interface LoginSessionItem extends DynamoDBBaseItem {
 }
 
 function toLoginSession(item: LoginSessionItem): LoginSession {
-  const { tenant_id, authParams, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, authParams, pipeline_state, ...rest } =
+    stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,
     authParams: JSON.parse(authParams),
+    pipeline_state: pipeline_state ? JSON.parse(pipeline_state) : undefined,
   });
 
   return loginSessionSchema.parse(data);
@@ -62,7 +64,9 @@ export function createLoginSessionsAdapter(
         csrf_token: session.csrf_token,
         authParams: JSON.stringify(session.authParams),
         expires_at: session.expires_at,
-        login_completed: session.login_completed ?? false,
+        pipeline_state: session.pipeline_state
+          ? JSON.stringify(session.pipeline_state)
+          : undefined,
         auth0Client: session.auth0Client,
         deleted_at: session.deleted_at,
         ip: session.ip,
@@ -108,6 +112,11 @@ export function createLoginSessionsAdapter(
       // Serialize authParams if present
       if (session.authParams !== undefined) {
         updates.authParams = JSON.stringify(session.authParams);
+      }
+
+      // Serialize pipeline_state if present
+      if (session.pipeline_state !== undefined) {
+        updates.pipeline_state = JSON.stringify(session.pipeline_state);
       }
 
       // Remove id from updates

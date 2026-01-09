@@ -97,7 +97,7 @@ export const loginSessions = sqliteTable(
     ip: text("ip", { length: 39 }),
     useragent: text("useragent"),
     auth0Client: text("auth0Client", { length: 255 }),
-    login_completed: integer("login_completed").default(0),
+    pipeline_state: text("pipeline_state"),
   },
   (table) => [
     primaryKey({
