@@ -230,11 +230,13 @@ describe("initJSXRoute", () => {
         },
       );
 
-      // Update the login session to have a session_id and pipeline_state.position > 0 (indicating it's closed)
+      // Update the login session to have a session_id.
+      // When session_id exists and allowSession=false (the default), initJSXRoute
+      // treats the login session as "closed" and redirects with an error.
+      // Note: pipeline_state is for post-login hook management, not session closure.
       const closedLoginSession = {
         ...mockLoginSession,
         session_id: mockSession.id,
-        pipeline_state: { position: 1, current: null, context: {} }, // Indicating the session is closed
       };
 
       await testServer.env.data.loginSessions.update(

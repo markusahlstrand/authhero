@@ -78,13 +78,20 @@ export const continueRoutes = new OpenAPIHono<{
         return continueResult;
       }
 
+      // Refetch loginSession to capture any mutations made by continuePostLogin
+      // (e.g., custom claims stored in pipeline_state.context by onContinuePostLogin)
+      const updatedLoginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        loginSession.id,
+      );
+
       // Complete the authentication flow with the (possibly updated) user
       // skipHooks: true because we don't want to re-run onExecutePostLogin
       return createFrontChannelAuthResponse(ctx, {
         authParams: loginSession.authParams,
         client,
         user: continueResult,
-        loginSession,
+        loginSession: updatedLoginSession || loginSession,
         skipHooks: true,
       });
     },
@@ -144,11 +151,18 @@ export const continueRoutes = new OpenAPIHono<{
         return continueResult;
       }
 
+      // Refetch loginSession to capture any mutations made by continuePostLogin
+      // (e.g., custom claims stored in pipeline_state.context by onContinuePostLogin)
+      const updatedLoginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        loginSession.id,
+      );
+
       return createFrontChannelAuthResponse(ctx, {
         authParams: loginSession.authParams,
         client,
         user: continueResult,
-        loginSession,
+        loginSession: updatedLoginSession || loginSession,
         skipHooks: true,
       });
     },

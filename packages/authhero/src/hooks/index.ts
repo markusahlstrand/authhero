@@ -24,6 +24,51 @@ import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook, getRedirectUrl } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { createServiceToken } from "../helpers/service-token";
+import { base64url } from "oslo/encoding";
+
+// HMAC-SHA256 token signing utilities for redirect tokens
+async function hmacSign(payload: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(payload),
+  );
+  return base64url.encode(new Uint8Array(signature), { includePadding: false });
+}
+
+async function hmacVerify(
+  payload: string,
+  signature: string,
+  secret: string,
+): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  try {
+    const sigBytes = base64url.decode(signature);
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes.buffer as ArrayBuffer,
+      encoder.encode(payload),
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Helper function to create token API
 function createTokenAPI(
@@ -838,24 +883,31 @@ export async function postUserLoginHook(
 
           redirectUrl = urlObj.toString();
         },
-        encodeToken: (options: {
+        encodeToken: async (options: {
           secret: string;
           payload: Record<string, any>;
           expiresInSeconds?: number;
-        }) => {
-          // Implement JWT token encoding here
-          // For now, return a placeholder - you'd implement proper JWT signing
-          return JSON.stringify({
+        }): Promise<string> => {
+          // Create token payload with expiration
+          const tokenData = {
             payload: options.payload,
             exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
-          });
+          };
+          const payloadStr = JSON.stringify(tokenData);
+          const encodedPayload = base64url.encode(
+            new TextEncoder().encode(payloadStr),
+            { includePadding: false },
+          );
+          // Sign with HMAC-SHA256
+          const signature = await hmacSign(encodedPayload, options.secret);
+          return `${encodedPayload}.${signature}`;
         },
-        validateToken: (_options: {
+        validateToken: async (_options: {
           secret: string;
           tokenParameterName?: string;
-        }) => {
-          // Implement JWT token validation here
-          // For now, return null - you'd implement proper JWT verification
+        }): Promise<Record<string, any> | null> => {
+          // validateToken in onExecutePostLogin always returns null
+          // (validation only happens in onContinuePostLogin)
           return null;
         },
       },
@@ -890,7 +942,10 @@ export async function postUserLoginHook(
         denyReason || denyCode || "Access denied by hook",
       );
       if (loginSession.authParams.state) {
-        errorRedirectUrl.searchParams.set("state", loginSession.authParams.state);
+        errorRedirectUrl.searchParams.set(
+          "state",
+          loginSession.authParams.state,
+        );
       }
 
       return new Response(null, {
@@ -927,10 +982,16 @@ export async function postUserLoginHook(
   });
 
   // Handle form hook (redirect) if we have a login session
-  if (loginSession) {
+  // Only run form hooks if pipeline position is 0 or 1 (not yet processed or actively processing)
+  if (loginSession && pipelinePosition <= 1) {
     const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
     if (formHook && isFormHook(formHook)) {
-      const formHookResult = await handleFormHook(ctx, formHook.form_id, loginSession, user);
+      const formHookResult = await handleFormHook(
+        ctx,
+        formHook.form_id,
+        loginSession,
+        user,
+      );
       // If handleFormHook returns a result, handle it based on type
       // If it returns null, the flow ended without requiring any action - continue with normal auth flow
       if (formHookResult) {
@@ -980,7 +1041,11 @@ export async function postUserLoginHook(
     }
 
     // Handle page hook (redirect) if we have a login session
-    const pageHook = hooks.find((h: any) => h.enabled && isPageHook(h));
+    // Only run page hooks if pipeline position is <= 2 (not yet processed or actively processing)
+    const pageHook =
+      pipelinePosition <= 2
+        ? hooks.find((h: any) => h.enabled && isPageHook(h))
+        : undefined;
     if (pageHook && isPageHook(pageHook)) {
       // Suspend pipeline with page hook state
       await data.loginSessions.update(tenant_id, loginSession.id, {
@@ -1067,11 +1132,16 @@ export async function continuePostLogin(
   if (type === "form") {
     // If there's a step to continue to and it's not the ending
     if (step && step !== "$ending") {
-      // Clear the current suspension and advance position
+      // Update current to point to the form step we're redirecting to
+      // This keeps the pipeline enforcement active so users can't bypass
       await data.loginSessions.update(tenant_id, loginSession.id, {
         pipeline_state: {
           position: pipelineState.position,
-          current: null,
+          current: {
+            type: "form",
+            id,
+            step,
+          },
           context: pipelineState.context,
         },
       });
@@ -1098,7 +1168,8 @@ export async function continuePostLogin(
     let denyReason = "";
     const customAccessTokenClaims: Record<string, unknown> = {};
     const customIdTokenClaims: Record<string, unknown> = {};
-    const authenticationMethods: Array<{ name: string; timestamp: string }> = [];
+    const authenticationMethods: Array<{ name: string; timestamp: string }> =
+      [];
 
     // Build enhanced event object
     const eventObject = await buildEnhancedEventObject(
@@ -1115,10 +1186,10 @@ export async function continuePostLogin(
 
     await ctx.env.hooks.onContinuePostLogin(eventObject, {
       redirect: {
-        validateToken: (options: {
+        validateToken: async (options: {
           secret: string;
           tokenParameterName?: string;
-        }) => {
+        }): Promise<Record<string, any> | null> => {
           // Get the token from query params
           const tokenParamName = options.tokenParameterName || "session_token";
           const url = new URL(ctx.req.url);
@@ -1129,12 +1200,35 @@ export async function continuePostLogin(
           }
 
           try {
-            // Parse and validate the token
-            // In production, this should verify JWT signature with the secret
-            const parsed = JSON.parse(token);
+            // Token format: base64url(payload).base64url(signature)
+            const parts = token.split(".");
+            if (parts.length !== 2) {
+              return null;
+            }
+
+            const encodedPayload = parts[0]!;
+            const signature = parts[1]!;
+
+            // Verify HMAC signature
+            const isValid = await hmacVerify(
+              encodedPayload,
+              signature,
+              options.secret,
+            );
+            if (!isValid) {
+              return null;
+            }
+
+            // Decode and parse the payload
+            const payloadBytes = base64url.decode(encodedPayload);
+            const payloadStr = new TextDecoder().decode(payloadBytes);
+            const parsed = JSON.parse(payloadStr);
+
+            // Check expiration
             if (parsed.exp && parsed.exp < Date.now()) {
               return null; // Token expired
             }
+
             return parsed.payload || parsed;
           } catch {
             return null;
@@ -1195,11 +1289,18 @@ export async function continuePostLogin(
 
     // Store any recorded authentication methods in user metadata
     if (authenticationMethods.length > 0) {
-      const existingMethods = (user.app_metadata?.authentication_methods as Array<{ name: string; timestamp: string }>) || [];
+      const existingMethods =
+        (user.app_metadata?.authentication_methods as Array<{
+          name: string;
+          timestamp: string;
+        }>) || [];
       await data.users.update(tenant_id, user.user_id, {
         app_metadata: {
           ...user.app_metadata,
-          authentication_methods: [...existingMethods, ...authenticationMethods],
+          authentication_methods: [
+            ...existingMethods,
+            ...authenticationMethods,
+          ],
         },
       });
     }
@@ -1234,9 +1335,19 @@ export async function continuePostLogin(
 
   // Continue running the rest of the pipeline (form hooks, page hooks, etc.)
   // by calling postUserLoginHook with the updated session
-  const updatedSession = await data.loginSessions.get(tenant_id, loginSession.id);
+  const updatedSession = await data.loginSessions.get(
+    tenant_id,
+    loginSession.id,
+  );
   if (updatedSession) {
-    return postUserLoginHook(ctx, data, tenant_id, user, updatedSession, params);
+    return postUserLoginHook(
+      ctx,
+      data,
+      tenant_id,
+      user,
+      updatedSession,
+      params,
+    );
   }
 
   return user;

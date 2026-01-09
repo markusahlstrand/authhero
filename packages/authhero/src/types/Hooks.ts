@@ -241,11 +241,11 @@ export type OnExecutePostLoginAPI = {
       secret: string;
       payload: Record<string, any>;
       expiresInSeconds?: number;
-    }) => string;
+    }) => Promise<string>;
     validateToken: (options: {
       secret: string;
       tokenParameterName?: string;
-    }) => Record<string, any> | null;
+    }) => Promise<Record<string, any> | null>;
   };
   authentication: {
     recordMethod: (url: string) => void;
@@ -267,7 +267,7 @@ export type OnContinuePostLoginAPI = {
     validateToken: (options: {
       secret: string;
       tokenParameterName?: string;
-    }) => Record<string, any> | null;
+    }) => Promise<Record<string, any> | null>;
   };
   authentication: {
     recordMethod: (url: string) => void;

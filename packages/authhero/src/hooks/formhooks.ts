@@ -76,7 +76,9 @@ function evaluateCondition(
                 context,
               );
               // Case-insensitive comparison
-              if (resolvedField.toLowerCase().endsWith(matchValue.toLowerCase())) {
+              if (
+                resolvedField.toLowerCase().endsWith(matchValue.toLowerCase())
+              ) {
                 return true;
               }
             }
@@ -310,11 +312,17 @@ export async function resolveNode(
 
 /**
  * Result type for handleFormHook
+ * Note: When the flow ends (no action needed), handleFormHook returns null, not a result object.
  */
 export type FormHookResult =
-  | { type: "end" } // Flow ended, continue with normal auth
   | { type: "step"; formId: string; nodeId: string } // Show form step node
-  | { type: "redirect"; target: string; customUrl?: string; formId: string; nextNode?: string }; // Redirect to change-email, account, or custom URL
+  | {
+      type: "redirect";
+      target: string;
+      customUrl?: string;
+      formId: string;
+      nextNode?: string;
+    }; // Redirect to change-email, account, or custom URL
 
 /**
  * Handles a form hook: validates the form exists and determines what to do next.

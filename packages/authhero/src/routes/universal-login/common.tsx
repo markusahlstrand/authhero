@@ -120,7 +120,8 @@ export async function initJSXRouteWithSession(
       options.allowedHook.id === currentHook.id;
 
     const isAllowedReturnTo =
-      options?.allowedReturnTo && currentHook.return_to === options.allowedReturnTo;
+      options?.allowedReturnTo &&
+      currentHook.return_to === options.allowedReturnTo;
 
     if (!isAllowedHook && !isAllowedReturnTo) {
       // User is trying to access a page they shouldn't - redirect to their current hook
