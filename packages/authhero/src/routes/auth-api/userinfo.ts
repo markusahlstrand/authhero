@@ -41,7 +41,7 @@ export const userinfoRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       if (!ctx.var.user) {
-        throw new HTTPException(404, { message: "User not found 1" });
+        throw new HTTPException(404, { message: "User not found" });
       }
 
       // Get tenant_id from token or fallback to context (from tenant middleware)
