@@ -9,19 +9,11 @@ import {
   RoleInsert,
   Tenant,
 } from "@authhero/adapter-interfaces";
-import type { RolePermissionHooks } from "./Hooks";
+import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler } from "hono";
-import {
-  EntityHooks,
-  OnExecuteCredentialsExchange,
-  OnExecutePreUserRegistration,
-  OnExecutePostUserRegistration,
-  OnExecutePreUserUpdate,
-  OnExecutePostLogin,
-  OnFetchUserInfo,
-} from "./Hooks";
+import { EntityHooks } from "./Hooks";
 
 /**
  * Entity hooks configuration for CRUD operations.
@@ -70,18 +62,7 @@ export interface AuthHeroConfig {
   /**
    * Auth0-style action hooks for auth flow events.
    */
-  hooks?: {
-    onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
-    onExecutePreUserRegistration?: OnExecutePreUserRegistration;
-    onExecutePostUserRegistration?: OnExecutePostUserRegistration;
-    onExecutePreUserUpdate?: OnExecutePreUserUpdate;
-    onExecutePostLogin?: OnExecutePostLogin;
-    /**
-     * Called when the /userinfo endpoint is accessed.
-     * Use this to add custom claims to the userinfo response.
-     */
-    onFetchUserInfo?: OnFetchUserInfo;
-  };
+  hooks?: Hooks;
 
   /**
    * Entity CRUD hooks for when resources are created/updated/deleted.

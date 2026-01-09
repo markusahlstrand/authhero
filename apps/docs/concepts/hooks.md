@@ -20,40 +20,52 @@ Defined directly in your application code during initialization. These provide s
 - `onExecutePostUserDeletion` - After a user is deleted (AuthHero-specific)
 - `onExecutePostLogin` - After successful authentication
 - `onExecuteCredentialsExchange` - Before tokens are issued
+- `onExecuteValidateRegistrationUsername` - Validate signup eligibility
 - `onFetchUserInfo` - When the /userinfo endpoint is accessed (AuthHero-specific)
+
+All hooks can be configured at initialization time using the `init()` function:
 
 **Example:**
 
 ```typescript
-import { Authhero } from "authhero";
+import { init } from "authhero";
 
-const auth = new Authhero({
+const { app } = init({
+  dataAdapter: myDataAdapter,
   hooks: {
-    onExecutePreUserRegistration: async (user, ctx) => {
+    onExecutePreUserRegistration: async (event, api) => {
       // Validate user data
-      if (!user.email.endsWith("@company.com")) {
+      if (!event.user.email.endsWith("@company.com")) {
         throw new Error("Only company emails allowed");
       }
 
       // Enrich user profile
-      user.app_metadata = {
-        department: "sales",
-        onboarding_completed: false,
-      };
-
-      return user;
+      api.user.setUserMetadata("department", "sales");
+      api.user.setUserMetadata("onboarding_completed", false);
     },
 
-    onExecutePostLogin: async (user, ctx) => {
+    onExecutePostLogin: async (event, api) => {
       // Log authentication event
       await analytics.track("user_login", {
-        user_id: user.user_id,
-        ip_address: ctx.ip,
+        user_id: event.user.user_id,
+        ip_address: event.request.ip,
       });
+    },
+
+    onExecuteValidateRegistrationUsername: async (event, api) => {
+      // Check if email is allowed to sign up
+      const domain = event.user.email.split("@")[1];
+      if (!allowedDomains.includes(domain)) {
+        api.deny("Email domain not allowed");
+      }
     },
   },
 });
 ```
+
+::: tip
+All hooks are now configured at initialization. The legacy pattern of passing hooks via runtime environment bindings is deprecated and will be removed in a future version.
+:::
 
 ### URL Hooks
 
@@ -126,19 +138,42 @@ interface HookContext {
 Validate user data before account creation:
 
 ```typescript
-onExecutePreUserRegistration: async (user) => {
+onExecutePreUserRegistration: async (event, api) => {
   // Check email domain
-  if (!isAllowedDomain(user.email)) {
+  const domain = event.user.email.split("@")[1];
+  if (!isAllowedDomain(domain)) {
     throw new Error("Email domain not allowed");
   }
 
   // Check for existing account in external system
-  const exists = await externalSystem.checkUser(user.email);
+  const exists = await externalSystem.checkUser(event.user.email);
   if (exists) {
     throw new Error("Account already exists in main system");
   }
 
-  return user;
+  // Add custom metadata
+  api.user.setUserMetadata("verified_at", new Date().toISOString());
+};
+```
+
+You can also use `onExecuteValidateRegistrationUsername` to reject signups before the user is created:
+
+```typescript
+onExecuteValidateRegistrationUsername: async (event, api) => {
+  const { email, connection } = event.user;
+  
+  // Only allow specific domains for certain connections
+  if (connection === "enterprise-db") {
+    const domain = email.split("@")[1];
+    if (!enterpriseDomains.includes(domain)) {
+      api.deny("This connection is only for enterprise users");
+    }
+  }
+  
+  // Check against a blocklist
+  if (await isBlocklisted(email)) {
+    api.deny("Account creation not allowed");
+  }
 };
 ```
 
@@ -147,12 +182,14 @@ onExecutePreUserRegistration: async (user) => {
 Add metadata from external systems:
 
 ```typescript
-onExecutePostUserRegistration: async (user) => {
+onExecutePostUserRegistration: async (event, api) => {
+  const user = event.user;
+  
   // Fetch additional data from CRM
   const crmData = await crm.getUserData(user.email);
 
-  // Update user metadata
-  await auth.users.update(user.tenant_id, user.user_id, {
+  // The user is already created at this point, so we update via the data adapter
+  await event.ctx.env.data.users.update(user.tenant_id, user.user_id, {
     app_metadata: {
       crm_id: crmData.id,
       account_tier: crmData.tier,
@@ -166,15 +203,21 @@ onExecutePostUserRegistration: async (user) => {
 Add custom claims to tokens:
 
 ```typescript
-onExecuteCredentialsExchange: async (ctx) => {
-  const user = ctx.user;
+onExecuteCredentialsExchange: async (event, api) => {
+  const user = event.user;
 
-  return {
-    customClaims: {
-      "https://example.com/department": user.app_metadata.department,
-      "https://example.com/roles": user.app_metadata.roles,
-    },
-  };
+  // Add custom claims to access token
+  api.accessToken.setCustomClaim(
+    "https://example.com/department",
+    user.app_metadata.department
+  );
+  api.accessToken.setCustomClaim(
+    "https://example.com/roles",
+    user.app_metadata.roles
+  );
+
+  // Add custom claims to ID token
+  api.idToken.setCustomClaim("tier", user.app_metadata.tier);
 };
 ```
 
@@ -220,18 +263,54 @@ The `api.setCustomClaim()` method adds or overrides claims in the response. Cust
 Track authentication events:
 
 ```typescript
-onExecutePostLogin: async (user, ctx) => {
+onExecutePostLogin: async (event, api) => {
   await analytics.track("user_login", {
-    user_id: user.user_id,
-    ip_address: ctx.ip,
-    user_agent: ctx.user_agent,
-    connection: ctx.connection,
+    user_id: event.user.user_id,
+    ip_address: event.request.ip,
+    user_agent: event.request.user_agent,
+    connection: event.connection?.name,
   });
 
   // Alert on suspicious activity
-  if (await isSuspicious(user, ctx)) {
-    await security.alert("Suspicious login detected", { user, ctx });
+  if (await isSuspicious(event.user, event.request)) {
+    await security.alert("Suspicious login detected", {
+      user: event.user,
+      request: event.request,
+    });
   }
+};
+```
+
+### User Deletion
+
+Handle cleanup before or after user deletion:
+
+```typescript
+onExecutePreUserDeletion: async (event, api) => {
+  // Check if deletion should be allowed
+  const user = await event.ctx.env.data.users.get(
+    event.tenant.id,
+    event.user_id
+  );
+  
+  if (user.app_metadata.protected) {
+    // Cancel the deletion
+    api.cancel();
+  }
+  
+  // Notify external systems
+  await externalSystem.prepareUserDeletion(event.user_id);
+},
+
+onExecutePostUserDeletion: async (event, api) => {
+  // Clean up related data in external systems
+  await externalSystem.deleteUserData(event.user_id);
+  
+  // Log the deletion
+  await auditLog.record("user_deleted", {
+    user_id: event.user_id,
+    tenant_id: event.tenant.id,
+  });
 };
 ```
 

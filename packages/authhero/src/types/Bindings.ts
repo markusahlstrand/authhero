@@ -1,16 +1,6 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
-import {
-  OnExecuteCredentialsExchange,
-  OnExecutePreUserRegistration,
-  OnExecutePostUserRegistration,
-  OnExecutePreUserUpdate,
-  OnExecutePostLogin,
-  OnExecutePreUserDeletion,
-  OnExecutePostUserDeletion,
-  OnExecuteValidateRegistrationUsername,
-  OnFetchUserInfo,
-} from "./Hooks";
+import { Hooks } from "./Hooks";
 import { EntityHooksConfig } from "./AuthHeroConfig";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
@@ -31,18 +21,7 @@ export type Bindings = {
 
   data: DataAdapters;
 
-  hooks?: {
-    onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
-    onExecutePreUserRegistration?: OnExecutePreUserRegistration;
-    onExecutePostUserRegistration?: OnExecutePostUserRegistration;
-    onExecutePreUserUpdate?: OnExecutePreUserUpdate;
-    onExecutePostLogin?: OnExecutePostLogin;
-    onExecutePreUserDeletion?: OnExecutePreUserDeletion;
-    onExecutePostUserDeletion?: OnExecutePostUserDeletion;
-    onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;
-    /** Called when /userinfo endpoint is accessed to add custom claims */
-    onFetchUserInfo?: OnFetchUserInfo;
-  };
+  hooks?: Hooks;
 
   /**
    * Entity CRUD hooks for when resources are created/updated/deleted.

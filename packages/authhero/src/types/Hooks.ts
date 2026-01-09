@@ -306,3 +306,24 @@ export type OnFetchUserInfo = (
   event: UserInfoEvent,
   api: OnFetchUserInfoAPI,
 ) => Promise<void>;
+
+// ============================================================================
+// Shared Hooks Type
+// ============================================================================
+
+/**
+ * All available auth flow hooks.
+ * This type is shared between AuthHeroConfig and Bindings to ensure consistency.
+ */
+export type Hooks = {
+  onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
+  onExecutePreUserRegistration?: OnExecutePreUserRegistration;
+  onExecutePostUserRegistration?: OnExecutePostUserRegistration;
+  onExecutePreUserUpdate?: OnExecutePreUserUpdate;
+  onExecutePostLogin?: OnExecutePostLogin;
+  onExecutePreUserDeletion?: OnExecutePreUserDeletion;
+  onExecutePostUserDeletion?: OnExecutePostUserDeletion;
+  onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;
+  /** Called when /userinfo endpoint is accessed to add custom claims */
+  onFetchUserInfo?: OnFetchUserInfo;
+};
