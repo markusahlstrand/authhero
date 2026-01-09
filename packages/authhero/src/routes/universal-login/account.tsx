@@ -50,8 +50,9 @@ export const accountRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
+      // Allow access if user is in a hook with return_to: "account"
       const { theme, branding, client, user, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, { allowedReturnTo: "account" });
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -144,8 +145,9 @@ export const accountRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
+      // Allow access if user is in a hook with return_to: "account"
       const { theme, branding, client, user, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, { allowedReturnTo: "account" });
 
       let error: string | undefined;
       let success: string | undefined;

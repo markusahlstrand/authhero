@@ -32,7 +32,6 @@ const sqlThemeSchema = flattenSchema(themeSchema).extend({
 
 const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   tenant_id: z.string(),
-  login_completed: z.number().optional().default(0),
 });
 
 const sqlConnectionSchema = flattenSchema(connectionSchema).extend({

@@ -40,7 +40,6 @@ describe("loginSessions", () => {
       expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       ip: "127.0.0.1",
       useragent: "jest",
-      login_completed: false,
     });
 
     expect(createdLoginSession).toMatchObject({
@@ -53,7 +52,7 @@ describe("loginSessions", () => {
       }),
       ip: "127.0.0.1",
       useragent: "jest",
-      login_completed: false,
+      pipeline_state: { position: 0, current: null, context: {} },
       id: expect.any(String),
       created_at: expect.any(String),
       updated_at: expect.any(String),
@@ -67,7 +66,7 @@ describe("loginSessions", () => {
       "tenantId",
       createdLoginSession.id,
       {
-        login_completed: true,
+        pipeline_state: { position: 1, current: null, context: {} },
       },
     );
     expect(updateLoginSessionResult).toBe(true);
@@ -87,7 +86,7 @@ describe("loginSessions", () => {
         scope: "openid profile",
         state: "state123",
       }),
-      login_completed: true,
+      pipeline_state: { position: 1, current: null, context: {} },
       id: createdLoginSession.id,
     });
 

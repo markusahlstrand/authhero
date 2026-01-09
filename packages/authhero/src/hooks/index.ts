@@ -21,9 +21,54 @@ import { logMessage } from "../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
-import { isFormHook, handleFormHook } from "./formhooks";
+import { isFormHook, handleFormHook, getRedirectUrl } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { createServiceToken } from "../helpers/service-token";
+import { base64url } from "oslo/encoding";
+
+// HMAC-SHA256 token signing utilities for redirect tokens
+async function hmacSign(payload: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(payload),
+  );
+  return base64url.encode(new Uint8Array(signature), { includePadding: false });
+}
+
+async function hmacVerify(
+  payload: string,
+  signature: string,
+  secret: string,
+): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  try {
+    const sigBytes = base64url.decode(signature);
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes.buffer as ArrayBuffer,
+      encoder.encode(payload),
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Helper function to create token API
 function createTokenAPI(
@@ -746,6 +791,17 @@ export async function postUserLoginHook(
     authStrategy?: { strategy: string; strategy_type: string };
   },
 ): Promise<User | Response> {
+  // If pipeline is already suspended (user is returning from a hook),
+  // skip running hooks - the continue handler will be called separately.
+  // We check for explicit presence of current (not null) to distinguish from
+  // a fresh login session where pipeline_state may be undefined or have current: null.
+  if (
+    loginSession?.pipeline_state?.current !== undefined &&
+    loginSession?.pipeline_state?.current !== null
+  ) {
+    return user;
+  }
+
   // Determine strategy_type based on explicit auth strategy or user's is_social flag
   // Use authStrategy if provided (actual authentication method), otherwise infer from user
   const strategy_type = params?.authStrategy?.strategy_type
@@ -774,8 +830,13 @@ export async function postUserLoginHook(
     login_count: user.login_count + 1,
   });
 
+  // Get current pipeline position (0 if not set)
+  const pipelinePosition = loginSession?.pipeline_state?.position ?? 0;
+
   // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
+  // Only run if we're at position 0 (first hook in pipeline)
   if (
+    pipelinePosition === 0 &&
     ctx.env.hooks?.onExecutePostLogin &&
     params?.client &&
     params?.authParams &&
@@ -795,6 +856,10 @@ export async function postUserLoginHook(
         authParams: params.authParams,
       },
     );
+
+    let accessDenied = false;
+    let denyCode = "";
+    let denyReason = "";
 
     await ctx.env.hooks.onExecutePostLogin(eventObject, {
       prompt: {
@@ -818,32 +883,90 @@ export async function postUserLoginHook(
 
           redirectUrl = urlObj.toString();
         },
-        encodeToken: (options: {
+        encodeToken: async (options: {
           secret: string;
           payload: Record<string, any>;
           expiresInSeconds?: number;
-        }) => {
-          // Implement JWT token encoding here
-          // For now, return a placeholder - you'd implement proper JWT signing
-          return JSON.stringify({
+        }): Promise<string> => {
+          // Create token payload with expiration
+          const tokenData = {
             payload: options.payload,
             exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
-          });
+          };
+          const payloadStr = JSON.stringify(tokenData);
+          const encodedPayload = base64url.encode(
+            new TextEncoder().encode(payloadStr),
+            { includePadding: false },
+          );
+          // Sign with HMAC-SHA256
+          const signature = await hmacSign(encodedPayload, options.secret);
+          return `${encodedPayload}.${signature}`;
         },
-        validateToken: (_options: {
+        validateToken: async (_options: {
           secret: string;
           tokenParameterName?: string;
-        }) => {
-          // Implement JWT token validation here
-          // For now, return null - you'd implement proper JWT verification
+        }): Promise<Record<string, any> | null> => {
+          // validateToken in onExecutePostLogin always returns null
+          // (validation only happens in onContinuePostLogin)
           return null;
+        },
+      },
+      authentication: {
+        recordMethod: (_url: string) => {
+          // Recording methods is only available in onContinuePostLogin
+          // This is a no-op in onExecutePostLogin (matches Auth0 behavior)
+        },
+      },
+      access: {
+        deny: (code: string, reason?: string) => {
+          accessDenied = true;
+          denyCode = code;
+          denyReason = reason || "";
         },
       },
       token: createTokenAPI(ctx, tenant_id),
     });
 
-    // If a redirect was requested, return it immediately
+    // If access was denied, return error response
+    if (accessDenied) {
+      if (!loginSession.authParams.redirect_uri) {
+        throw new HTTPException(403, {
+          message: denyReason || "Access denied",
+        });
+      }
+
+      const errorRedirectUrl = new URL(loginSession.authParams.redirect_uri);
+      errorRedirectUrl.searchParams.set("error", "access_denied");
+      errorRedirectUrl.searchParams.set(
+        "error_description",
+        denyReason || denyCode || "Access denied by hook",
+      );
+      if (loginSession.authParams.state) {
+        errorRedirectUrl.searchParams.set(
+          "state",
+          loginSession.authParams.state,
+        );
+      }
+
+      return new Response(null, {
+        status: 302,
+        headers: { location: errorRedirectUrl.toString() },
+      });
+    }
+
+    // If a redirect was requested, suspend the pipeline and store hook state
     if (redirectUrl) {
+      // Suspend pipeline with action hook state
+      await data.loginSessions.update(tenant_id, loginSession.id, {
+        pipeline_state: {
+          position: 0,
+          current: {
+            type: "action",
+            id: "onExecutePostLogin",
+          },
+          context: loginSession.pipeline_state?.context ?? {},
+        },
+      });
       return new Response(null, {
         status: 302,
         headers: { location: redirectUrl },
@@ -859,15 +982,82 @@ export async function postUserLoginHook(
   });
 
   // Handle form hook (redirect) if we have a login session
-  if (loginSession) {
+  // Only run form hooks if pipeline position is 0 or 1 (not yet processed or actively processing)
+  if (loginSession && pipelinePosition <= 1) {
     const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
     if (formHook && isFormHook(formHook)) {
-      return handleFormHook(ctx, formHook.form_id, loginSession, user);
+      const formHookResult = await handleFormHook(
+        ctx,
+        formHook.form_id,
+        loginSession,
+        user,
+      );
+      // If handleFormHook returns a result, handle it based on type
+      // If it returns null, the flow ended without requiring any action - continue with normal auth flow
+      if (formHookResult) {
+        if (formHookResult.type === "step") {
+          // Show form step node - suspend pipeline
+          await data.loginSessions.update(tenant_id, loginSession.id, {
+            pipeline_state: {
+              position: 1,
+              current: {
+                type: "form",
+                id: formHookResult.formId,
+                step: formHookResult.nodeId,
+              },
+              context: loginSession.pipeline_state?.context ?? {},
+            },
+          });
+          const url = `/u/forms/${formHookResult.formId}/nodes/${formHookResult.nodeId}?state=${encodeURIComponent(loginSession.id)}`;
+          return new Response(null, {
+            status: 302,
+            headers: { location: url },
+          });
+        } else if (formHookResult.type === "redirect") {
+          // Redirect to change-email, account, or custom URL - suspend pipeline with form context
+          await data.loginSessions.update(tenant_id, loginSession.id, {
+            pipeline_state: {
+              position: 1,
+              current: {
+                type: "form",
+                id: formHookResult.formId,
+                step: formHookResult.nextNode, // Where to continue after redirect completes
+                return_to: formHookResult.target,
+              },
+              context: loginSession.pipeline_state?.context ?? {},
+            },
+          });
+          const redirectUrl = getRedirectUrl(
+            formHookResult.target as "change-email" | "account" | "custom",
+            formHookResult.customUrl,
+            loginSession.id,
+          );
+          return new Response(null, {
+            status: 302,
+            headers: { location: redirectUrl },
+          });
+        }
+      }
     }
 
     // Handle page hook (redirect) if we have a login session
-    const pageHook = hooks.find((h: any) => h.enabled && isPageHook(h));
+    // Only run page hooks if pipeline position is <= 2 (not yet processed or actively processing)
+    const pageHook =
+      pipelinePosition <= 2
+        ? hooks.find((h: any) => h.enabled && isPageHook(h))
+        : undefined;
     if (pageHook && isPageHook(pageHook)) {
+      // Suspend pipeline with page hook state
+      await data.loginSessions.update(tenant_id, loginSession.id, {
+        pipeline_state: {
+          position: 2, // Page hooks are after form hooks
+          current: {
+            type: "page",
+            id: pageHook.page_id,
+          },
+          context: loginSession.pipeline_state?.context ?? {},
+        },
+      });
       return handlePageHook(
         ctx,
         pageHook.page_id,
@@ -903,6 +1093,263 @@ export async function postUserLoginHook(
   }
 
   // If no form hook, just return the user
+  return user;
+}
+
+/**
+ * Auth0-style continue handler - called when user returns from a redirect action.
+ * This resumes the suspended pipeline by calling onContinuePostLogin.
+ *
+ * @param ctx - Hono context
+ * @param data - Data adapters
+ * @param tenant_id - Tenant ID
+ * @param user - The authenticated user
+ * @param loginSession - The login session (must have pipeline_state.current set)
+ * @param params - Additional parameters including client and authParams
+ * @returns Updated user or Response (if redirect to form node or access denied)
+ */
+export async function continuePostLogin(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+  tenant_id: string,
+  user: User,
+  loginSession: LoginSession,
+  params?: {
+    client?: LegacyClient;
+    authParams?: any;
+  },
+): Promise<User | Response> {
+  const pipelineState = loginSession.pipeline_state;
+
+  // Only proceed if the pipeline was suspended
+  if (!pipelineState?.current) {
+    return user;
+  }
+
+  const { type, id, step } = pipelineState.current;
+
+  // Handle form redirects - check if we need to continue to a form node
+  if (type === "form") {
+    // If there's a step to continue to and it's not the ending
+    if (step && step !== "$ending") {
+      // Update current to point to the form step we're redirecting to
+      // This keeps the pipeline enforcement active so users can't bypass
+      await data.loginSessions.update(tenant_id, loginSession.id, {
+        pipeline_state: {
+          position: pipelineState.position,
+          current: {
+            type: "form",
+            id,
+            step,
+          },
+          context: pipelineState.context,
+        },
+      });
+
+      const url = `/u/forms/${id}/nodes/${step}?state=${encodeURIComponent(loginSession.id)}`;
+      return new Response(null, {
+        status: 302,
+        headers: { location: url },
+      });
+    }
+    // If step is $ending or missing, fall through to advance the pipeline
+  }
+
+  // Handle onContinuePostLogin for code-based action hooks
+  if (
+    type === "action" &&
+    id === "onExecutePostLogin" &&
+    ctx.env.hooks?.onContinuePostLogin &&
+    params?.client &&
+    params?.authParams
+  ) {
+    let accessDenied = false;
+    let denyCode = "";
+    let denyReason = "";
+    const customAccessTokenClaims: Record<string, unknown> = {};
+    const customIdTokenClaims: Record<string, unknown> = {};
+    const authenticationMethods: Array<{ name: string; timestamp: string }> =
+      [];
+
+    // Build enhanced event object
+    const eventObject = await buildEnhancedEventObject(
+      ctx,
+      data,
+      tenant_id,
+      user,
+      loginSession,
+      {
+        client: params.client,
+        authParams: params.authParams,
+      },
+    );
+
+    await ctx.env.hooks.onContinuePostLogin(eventObject, {
+      redirect: {
+        validateToken: async (options: {
+          secret: string;
+          tokenParameterName?: string;
+        }): Promise<Record<string, any> | null> => {
+          // Get the token from query params
+          const tokenParamName = options.tokenParameterName || "session_token";
+          const url = new URL(ctx.req.url);
+          const token = url.searchParams.get(tokenParamName);
+
+          if (!token) {
+            return null;
+          }
+
+          try {
+            // Token format: base64url(payload).base64url(signature)
+            const parts = token.split(".");
+            if (parts.length !== 2) {
+              return null;
+            }
+
+            const encodedPayload = parts[0]!;
+            const signature = parts[1]!;
+
+            // Verify HMAC signature
+            const isValid = await hmacVerify(
+              encodedPayload,
+              signature,
+              options.secret,
+            );
+            if (!isValid) {
+              return null;
+            }
+
+            // Decode and parse the payload
+            const payloadBytes = base64url.decode(encodedPayload);
+            const payloadStr = new TextDecoder().decode(payloadBytes);
+            const parsed = JSON.parse(payloadStr);
+
+            // Check expiration
+            if (parsed.exp && parsed.exp < Date.now()) {
+              return null; // Token expired
+            }
+
+            return parsed.payload || parsed;
+          } catch {
+            return null;
+          }
+        },
+      },
+      authentication: {
+        recordMethod: (url: string) => {
+          authenticationMethods.push({
+            name: url,
+            timestamp: new Date().toISOString(),
+          });
+        },
+      },
+      access: {
+        deny: (code: string, reason?: string) => {
+          accessDenied = true;
+          denyCode = code;
+          denyReason = reason || "";
+        },
+      },
+      accessToken: {
+        setCustomClaim: (claim: string, value: unknown) => {
+          customAccessTokenClaims[claim] = value;
+        },
+      },
+      idToken: {
+        setCustomClaim: (claim: string, value: unknown) => {
+          customIdTokenClaims[claim] = value;
+        },
+      },
+      token: createTokenAPI(ctx, tenant_id),
+    });
+
+    // If access was denied, return error response
+    if (accessDenied) {
+      if (!loginSession.authParams.redirect_uri) {
+        throw new HTTPException(403, {
+          message: denyReason || "Access denied",
+        });
+      }
+
+      const redirectUrl = new URL(loginSession.authParams.redirect_uri);
+      redirectUrl.searchParams.set("error", "access_denied");
+      redirectUrl.searchParams.set(
+        "error_description",
+        denyReason || denyCode || "Access denied by hook",
+      );
+      if (loginSession.authParams.state) {
+        redirectUrl.searchParams.set("state", loginSession.authParams.state);
+      }
+
+      return new Response(null, {
+        status: 302,
+        headers: { location: redirectUrl.toString() },
+      });
+    }
+
+    // Store any recorded authentication methods in user metadata
+    if (authenticationMethods.length > 0) {
+      const existingMethods =
+        (user.app_metadata?.authentication_methods as Array<{
+          name: string;
+          timestamp: string;
+        }>) || [];
+      await data.users.update(tenant_id, user.user_id, {
+        app_metadata: {
+          ...user.app_metadata,
+          authentication_methods: [
+            ...existingMethods,
+            ...authenticationMethods,
+          ],
+        },
+      });
+    }
+
+    // Store custom claims in pipeline context to be added to tokens
+    if (
+      Object.keys(customAccessTokenClaims).length > 0 ||
+      Object.keys(customIdTokenClaims).length > 0
+    ) {
+      await data.loginSessions.update(tenant_id, loginSession.id, {
+        pipeline_state: {
+          ...pipelineState,
+          context: {
+            ...pipelineState.context,
+            customAccessTokenClaims,
+            customIdTokenClaims,
+          },
+        },
+      });
+    }
+  }
+
+  // Advance the pipeline: clear current suspension and increment position
+  const newPosition = pipelineState.position + 1;
+  await data.loginSessions.update(tenant_id, loginSession.id, {
+    pipeline_state: {
+      position: newPosition,
+      current: null,
+      context: pipelineState.context,
+    },
+  });
+
+  // Continue running the rest of the pipeline (form hooks, page hooks, etc.)
+  // by calling postUserLoginHook with the updated session
+  const updatedSession = await data.loginSessions.get(
+    tenant_id,
+    loginSession.id,
+  );
+  if (updatedSession) {
+    return postUserLoginHook(
+      ctx,
+      data,
+      tenant_id,
+      user,
+      updatedSession,
+      params,
+    );
+  }
+
   return user;
 }
 

@@ -6,6 +6,7 @@ import {
   OnExecutePostUserRegistration,
   OnExecutePreUserUpdate,
   OnExecutePostLogin,
+  OnContinuePostLogin,
   OnExecutePreUserDeletion,
   OnExecutePostUserDeletion,
   OnExecuteValidateRegistrationUsername,
@@ -37,6 +38,7 @@ export type Bindings = {
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
     onExecutePreUserUpdate?: OnExecutePreUserUpdate;
     onExecutePostLogin?: OnExecutePostLogin;
+    onContinuePostLogin?: OnContinuePostLogin;
     onExecutePreUserDeletion?: OnExecutePreUserDeletion;
     onExecutePostUserDeletion?: OnExecutePostUserDeletion;
     onExecuteValidateRegistrationUsername?: OnExecuteValidateRegistrationUsername;

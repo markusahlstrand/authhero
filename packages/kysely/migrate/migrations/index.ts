@@ -113,6 +113,7 @@ import * as o014_client_connections from "./2025-12-12T10:00:00_client_connectio
 import * as o015_flows from "./2025-12-19T10:00:00_actions";
 import * as o016_add_is_system_column from "./2025-12-20T10:00:00_add_is_system_column";
 import * as o017_connections_composite_key from "./2026-01-07T10:00:00_connections_composite_key";
+import * as o018_pipeline_state from "./2026-01-09T10:00:00_pipeline_state";
 
 // These need to be in alphabetic order
 export default {
@@ -231,4 +232,5 @@ export default {
   o015_flows,
   o016_add_is_system_column,
   o017_connections_composite_key,
+  o018_pipeline_state,
 };

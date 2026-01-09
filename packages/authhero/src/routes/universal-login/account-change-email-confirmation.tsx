@@ -49,8 +49,9 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
       const { state, email } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
+      // Allow access if user is in a hook with return_to: "change-email"
       const { theme, branding, client, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, { allowedReturnTo: "change-email" });
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -72,15 +73,20 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         );
       }
 
-      // Check if the authorization_url contains screen_hint=change-email
-      let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
+      // Determine redirect URL based on how the user got here:
+      // - If screen_hint=change-email was in the original request, redirect to the app's redirect_uri
+      // - Otherwise, redirect back to the account page
+      let redirectUrl: string;
+      const authorizationUrl = loginSession.authorization_url;
+      const hasChangeEmailHint =
+        authorizationUrl?.includes("screen_hint=change-email");
 
-      if (loginSession?.authorization_url) {
-        const authUrl = new URL(loginSession.authorization_url);
-        if (authUrl.searchParams.get("screen_hint") === "change-email") {
-          // User came directly to change-email, redirect to original redirect_uri
-          redirectUrl = loginSession.authParams?.redirect_uri || redirectUrl;
-        }
+      if (hasChangeEmailHint && loginSession.authParams.redirect_uri) {
+        // User explicitly requested email change - redirect to their app
+        redirectUrl = loginSession.authParams.redirect_uri;
+      } else {
+        // User came from account management - redirect back to account page
+        redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
       }
 
       return ctx.html(

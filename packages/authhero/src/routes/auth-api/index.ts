@@ -4,6 +4,7 @@ import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { registerComponent } from "../../middlewares/register-component";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 import { callbackRoutes } from "./callback";
+import { continueRoutes } from "../universal-login/continue";
 import { logoutRoutes } from "./logout";
 import { userinfoRoutes } from "./userinfo";
 import { wellKnownRoutes } from "./well-known";
@@ -101,7 +102,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/co/authenticate", authenticateRoutes)
     .route("/authorize", authorizeRoutes)
     .route("/account", accountRoutes)
-    .route("/callback", callbackRoutes);
+    .route("/callback", callbackRoutes)
+    .route("/continue", continueRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",

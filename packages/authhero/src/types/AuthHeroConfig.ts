@@ -20,6 +20,7 @@ import {
   OnExecutePostUserRegistration,
   OnExecutePreUserUpdate,
   OnExecutePostLogin,
+  OnContinuePostLogin,
   OnFetchUserInfo,
 } from "./Hooks";
 
@@ -76,6 +77,11 @@ export interface AuthHeroConfig {
     onExecutePostUserRegistration?: OnExecutePostUserRegistration;
     onExecutePreUserUpdate?: OnExecutePreUserUpdate;
     onExecutePostLogin?: OnExecutePostLogin;
+    /**
+     * Called when user returns from a redirect action (Auth0-style).
+     * Use this to validate data passed back from the external site.
+     */
+    onContinuePostLogin?: OnContinuePostLogin;
     /**
      * Called when the /userinfo endpoint is accessed.
      * Use this to add custom claims to the userinfo response.

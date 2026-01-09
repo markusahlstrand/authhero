@@ -100,7 +100,11 @@ const mockLoginSession: LoginSession = {
   updated_at: new Date().toISOString(),
   expires_at: new Date(Date.now() + 3600000).toISOString(),
   csrf_token: "mock-csrf-token",
-  login_completed: false,
+  pipeline_state: {
+    position: 0,
+    current: null,
+    context: {},
+  },
 };
 
 const mockTheme: Theme = {

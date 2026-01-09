@@ -16,11 +16,21 @@ export function get(db: Kysely<Database>) {
 
     if (!login) return null;
 
+    // Parse pipeline_state if it's a string (from JSON storage)
+    let pipeline_state = login.pipeline_state;
+    if (typeof pipeline_state === "string") {
+      try {
+        pipeline_state = JSON.parse(pipeline_state);
+      } catch {
+        pipeline_state = undefined;
+      }
+    }
+
     return loginSessionSchema.parse(
       unflattenObject(
         removeNullProperties({
           ...login,
-          login_completed: Boolean(login.login_completed),
+          pipeline_state,
         }),
         ["authParams"],
       ),
