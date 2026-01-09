@@ -14,7 +14,13 @@ export type Variables = {
   custom_domain?: string;
   host?: string;
   // This is set by auth middleware
-  user?: { sub: string; tenant_id: string; org_name?: string; org_id?: string };
+  user?: {
+    sub: string;
+    tenant_id: string;
+    org_name?: string;
+    org_id?: string;
+    scope?: string;
+  };
   // Organization claims from token (set by auth middleware)
   organization_id?: string;
   org_name?: string;

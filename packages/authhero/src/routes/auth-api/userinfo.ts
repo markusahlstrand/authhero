@@ -68,7 +68,7 @@ export const userinfoRoutes = new OpenAPIHono<{
         const customClaims: Record<string, unknown> = {};
 
         // Get scope from token payload (ctx.var.user contains full JWT payload)
-        const tokenPayload = ctx.var.user as { scope?: string };
+        const tokenPayload = ctx.var.user;
         const scopes = tokenPayload?.scope?.split(" ") || [];
 
         await onFetchUserInfo(
