@@ -10,6 +10,7 @@ import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { verifyRequestOrigin } from "oslo/request";
 import { HTTPException } from "hono/http-exception";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const accountRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -69,7 +70,7 @@ export const accountRoutes = new OpenAPIHono<{
 
       const client = await getClientWithDefaults(env, client_id);
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const authParams: AuthParams = {
         redirect_uri: redirect_url || ctx.req.url,

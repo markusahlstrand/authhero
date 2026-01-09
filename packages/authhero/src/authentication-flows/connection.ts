@@ -16,6 +16,7 @@ import { getStrategy } from "../strategies";
 import { getClientWithDefaults } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
+import { setTenantId } from "../helpers/set-tenant-id";
 import { nanoid } from "nanoid";
 
 export async function connectionAuth(
@@ -146,7 +147,7 @@ export async function connectionCallback(
   );
 
   ctx.set("client_id", client.client_id);
-  ctx.set("tenant_id", client.tenant.id);
+  setTenantId(ctx, client.tenant.id);
 
   const connection = client.connections.find(
     (p) => p.id === auth0state.connection_id,

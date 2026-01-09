@@ -94,15 +94,15 @@ describe("initJSXRoute", () => {
       // Check that required context variables were set
       expect(setCalls.some(([key]) => key === "loginSession")).toBe(true);
       expect(setCalls.some(([key]) => key === "client_id")).toBe(true);
-      expect(setCalls.some(([key]) => key === "tenant_id")).toBe(true);
+      // tenant_id is already set in ctx.var and matches, so setTenantId won't call ctx.set again
+      // This is the expected behavior to prevent unnecessary overwrites
+      expect(ctx.var.tenant_id).toBe("tenantId");
 
       const loginSessionCall = setCalls.find(([key]) => key === "loginSession");
       const clientIdCall = setCalls.find(([key]) => key === "client_id");
-      const tenantIdCall = setCalls.find(([key]) => key === "tenant_id");
 
       expect(loginSessionCall?.[1].id).toBe(state);
       expect(clientIdCall?.[1]).toBe("clientId");
-      expect(tenantIdCall?.[1]).toBe("tenantId");
     });
 
     it("should handle UI locales correctly", async () => {

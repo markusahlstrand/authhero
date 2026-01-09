@@ -44,10 +44,13 @@ export const userinfoRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "User not found" });
       }
 
-      const user = await ctx.env.data.users.get(
-        ctx.var.user.tenant_id,
-        ctx.var.user.sub,
-      );
+      // Get tenant_id from token or fallback to context (from tenant middleware)
+      const tenant_id = ctx.var.user.tenant_id || ctx.var.tenant_id;
+      if (!tenant_id) {
+        throw new HTTPException(400, { message: "Unable to determine tenant" });
+      }
+
+      const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
       if (!user) {
         throw new HTTPException(404, { message: "User not found" });
       }
@@ -67,7 +70,7 @@ export const userinfoRoutes = new OpenAPIHono<{
           {
             ctx,
             user,
-            tenant_id: ctx.var.user.tenant_id,
+            tenant_id,
             scopes: (ctx.var as { scope?: string }).scope?.split(" ") || [],
           },
           {

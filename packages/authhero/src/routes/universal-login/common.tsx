@@ -10,6 +10,7 @@ import {
 import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -33,7 +34,7 @@ export async function initJSXRoute(
     loginSession.authParams.client_id,
   );
   ctx.set("client_id", client.client_id);
-  ctx.set("tenant_id", client.tenant.id);
+  setTenantId(ctx, client.tenant.id);
 
   const tenant = await env.data.tenants.get(client.tenant.id);
   if (!tenant) {

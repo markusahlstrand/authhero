@@ -7,6 +7,7 @@ import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { nanoid } from "nanoid";
 import { TokenResponse } from "@authhero/adapter-interfaces";
 import { stringifyAuth0Client } from "../../utils/client-info";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -67,7 +68,7 @@ export const authenticateRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const email = username.toLocaleLowerCase();
       const ip = ctx.get("ip");
