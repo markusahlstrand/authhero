@@ -1119,6 +1119,183 @@ const UserRolesTable = ({
   );
 };
 
+// Add organization management: add user to organizations
+const AddOrganizationButton = () => {
+  const [open, setOpen] = useState(false);
+  const [availableOrganizations, setAvailableOrganizations] = useState<any[]>([]);
+  const [selectedOrganizations, setSelectedOrganizations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+
+  const { id: userId } = useParams();
+
+  const handleOpen = async () => {
+    setOpen(true);
+    await loadAvailableOrganizations();
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedOrganizations([]);
+    setAvailableOrganizations([]);
+    setSearchText("");
+  };
+
+  const loadAvailableOrganizations = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      // Load all organizations
+      const allOrgsRes = await dataProvider.getList("organizations", {
+        pagination: { page: 1, perPage: 1000 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      });
+
+      // Load organizations the user is already a member of
+      const userOrgsRes = await dataProvider.getList("user-organizations", {
+        pagination: { page: 1, perPage: 1000 },
+        sort: { field: "name", order: "ASC" },
+        filter: { user_id: userId },
+      });
+
+      const userOrgIds = new Set(userOrgsRes.data.map((org: any) => org.id));
+      const available = allOrgsRes.data.filter((org: any) => !userOrgIds.has(org.id));
+      
+      setAvailableOrganizations(available);
+    } catch (error) {
+      console.error("Error loading organizations:", error);
+      notify("Error loading organizations", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddOrganizations = async () => {
+    if (!userId || selectedOrganizations.length === 0) {
+      notify("Please select at least one organization", { type: "warning" });
+      return;
+    }
+
+    try {
+      // Add user to each selected organization
+      for (const org of selectedOrganizations) {
+        await dataProvider.create("organization-members", {
+          data: {
+            organization_id: org.id,
+            user_ids: [userId],
+          },
+        });
+      }
+
+      notify(
+        `Added user to ${selectedOrganizations.length} organization(s) successfully`,
+        { type: "success" }
+      );
+      handleClose();
+      refresh();
+    } catch (error) {
+      console.error("Error adding user to organizations:", error);
+      notify("Error adding user to organizations", { type: "error" });
+    }
+  };
+
+  if (!userId) return null;
+
+  const filteredOrganizations = availableOrganizations.filter(
+    (org) =>
+      !searchText ||
+      org.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      org.display_name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      org.id?.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={handleOpen}
+        sx={{ mb: 2 }}
+      >
+        Add to Organization
+      </Button>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Add to Organizations</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 3 }}>
+            Select one or more organizations to add this user to
+          </Typography>
+
+          <Autocomplete
+            multiple
+            options={filteredOrganizations}
+            getOptionLabel={(option) => option.display_name || option.name || option.id}
+            value={selectedOrganizations}
+            onChange={(_, value) => setSelectedOrganizations(value)}
+            loading={loading}
+            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+            onInputChange={(_, value) => setSearchText(value)}
+            renderInput={(params) => (
+              <MuiTextField
+                {...params}
+                label="Organizations"
+                variant="outlined"
+                fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loading ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                <Box>
+                  <Typography variant="body2" fontWeight="medium">
+                    {option.display_name || option.name || option.id}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ID: {option.id}
+                  </Typography>
+                </Box>
+              </li>
+            )}
+          />
+
+          {selectedOrganizations.length > 0 && (
+            <Typography variant="caption" sx={{ mt: 2, display: "block" }}>
+              {selectedOrganizations.length} organization(s) selected
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={handleAddOrganizations}
+            variant="contained"
+            color="primary"
+            disabled={selectedOrganizations.length === 0 || loading}
+          >
+            Add to Organizations
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 // Add roles management: add roles and remove roles for a user
 const AddRoleButton = ({ onRolesChanged }: { onRolesChanged?: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -1672,6 +1849,7 @@ export function UserEdit() {
           <RolesManagement />
         </TabbedForm.Tab>
         <TabbedForm.Tab label="organizations">
+          <AddOrganizationButton />
           <ReferenceManyField
             reference="user-organizations"
             target="user_id"

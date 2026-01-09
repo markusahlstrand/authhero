@@ -50,15 +50,18 @@ export const createAuth0Client = (domain: string) => {
   const audience =
     import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
+  const clientId = getClientIdFromStorage(domain);
+  console.log("[createAuth0Client] Creating client for domain:", domain, "with clientId:", clientId);
+
   const auth0Client = new Auth0Client({
     domain: fullDomain,
-    clientId: getClientIdFromStorage(domain),
+    clientId,
     cacheLocation: "localstorage",
     useRefreshTokens: false,
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
-      scope: "openid profile email auth:read auth:write",
+      scope: "openid profile email",
     },
   });
 
@@ -143,9 +146,12 @@ export const createAuth0ClientForOrg = (
   const audience =
     import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
+  const clientId = getClientIdFromStorage(domain);
+  console.log("[createAuth0ClientForOrg] Creating client for domain:", domain, "org:", normalizedOrgId, "with clientId:", clientId);
+
   const auth0Client = new Auth0Client({
     domain: fullDomain,
-    clientId: getClientIdFromStorage(domain),
+    clientId,
     useRefreshTokens: false,
     // Use organization-specific cache to isolate tokens
     // Note: Don't use cacheLocation when providing a custom cache
@@ -153,7 +159,7 @@ export const createAuth0ClientForOrg = (
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
-      scope: "openid profile email auth:read auth:write",
+      scope: "openid profile email",
       organization: normalizedOrgId,
     },
   });

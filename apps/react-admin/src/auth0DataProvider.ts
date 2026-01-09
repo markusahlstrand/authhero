@@ -124,6 +124,9 @@ export default (
   let managementClientPromise: Promise<ManagementClient> | null = null;
   const getManagementClient = async () => {
     if (!managementClientPromise) {
+      if (!apiUrl) {
+        throw new Error("API URL is not configured. Please set restApiUrl in domain configuration or VITE_SIMPLE_REST_URL environment variable.");
+      }
       // Extract API domain from apiUrl
       const apiDomain = apiUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
       // Pass both API domain and OAuth domain for authentication
@@ -233,6 +236,11 @@ export default (
           resourceKey: "custom_domains",
           idKey: "custom_domain_id",
         },
+        hooks: {
+          fetch: (client: any) => client.hooks.list(),
+          resourceKey: "hooks",
+          idKey: "hook_id",
+        },
       };
 
       // Handle SDK resources (only for top-level resources, not nested paths like users/{id}/roles)
@@ -315,6 +323,49 @@ export default (
           console.error("Error fetching daily stats:", error);
           return { data: [], total: 0 };
         }
+      }
+
+      // User organizations - when filtering by user_id
+      if (resource === "user-organizations" && params.filter?.user_id) {
+        const userId = params.filter.user_id;
+        const result = await managementClient.users.organizations.list(
+          userId,
+          {
+            page: page - 1,
+            per_page: perPage,
+          },
+        );
+        const response = (result as any).response || result;
+
+        let organizationsData: any[];
+        let total: number;
+
+        if (Array.isArray(response)) {
+          organizationsData = response;
+          total = response.length;
+        } else if (response.organizations) {
+          organizationsData = response.organizations;
+          total = response.total || organizationsData.length;
+        } else {
+          organizationsData = [];
+          total = 0;
+        }
+
+        return {
+          data: organizationsData.map((org: any) => ({
+            id: org.id || org.organization_id,
+            user_id: userId,
+            name: org.name,
+            display_name: org.display_name,
+            branding: org.branding,
+            metadata: org.metadata || {},
+            token_quota: org.token_quota,
+            created_at: org.created_at,
+            updated_at: org.updated_at,
+            ...org,
+          })),
+          total,
+        };
       }
 
       // Use HTTP client for all other list operations

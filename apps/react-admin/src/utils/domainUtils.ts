@@ -23,45 +23,97 @@ export interface DomainConfig {
 }
 
 /**
+ * Formats a domain string (removes protocol if present)
+ */
+export const formatDomain = (domain: string): string => {
+  return domain.trim().replace(/^https?:\/\//, "");
+};
+
+/**
+ * Gets default domain configuration from environment variables
+ */
+const getDefaultDomainFromEnv = (): DomainConfig | null => {
+  const domain = import.meta.env.VITE_AUTH0_DOMAIN;
+  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
+  const apiUrl = import.meta.env.VITE_AUTH0_API_URL;
+
+  if (!domain) {
+    return null;
+  }
+
+  return {
+    url: formatDomain(domain),
+    connectionMethod: "login",
+    clientId: clientId || undefined,
+    restApiUrl: apiUrl || undefined,
+  };
+};
+
+/**
  * Gets domains from localStorage
  * Handles both formats (array of objects or array of strings) for backward compatibility
+ * Includes default domain from environment variables if not already in storage
  */
 export const getDomainFromStorage = (): DomainConfig[] => {
   try {
     const storedValue = localStorage.getItem(DOMAINS_STORAGE_KEY);
-    if (!storedValue) return [];
+    let domains: DomainConfig[] = [];
 
-    const parsedData = JSON.parse(storedValue);
+    if (storedValue) {
+      const parsedData = JSON.parse(storedValue);
 
-    // Handle both formats: array of objects with url property or array of strings
-    if (Array.isArray(parsedData)) {
-      return parsedData
-        .filter((item) => item !== null && item !== undefined)
-        .map((item) => {
-          if (typeof item === "object" && item !== null && "url" in item) {
-            // Add connectionMethod if it doesn't exist (for backward compatibility)
-            if (!("connectionMethod" in item)) {
+      // Handle both formats: array of objects with url property or array of strings
+      if (Array.isArray(parsedData)) {
+        domains = parsedData
+          .filter((item) => item !== null && item !== undefined)
+          .map((item) => {
+            if (typeof item === "object" && item !== null && "url" in item) {
+              // Add connectionMethod if it doesn't exist (for backward compatibility)
+              if (!("connectionMethod" in item)) {
+                return {
+                  ...item,
+                  connectionMethod: "login" as ConnectionMethod, // Assume login for existing entries
+                } as DomainConfig;
+              }
+              return item as DomainConfig;
+            } else {
+              // Convert string domains to DomainConfig format (backward compatibility)
               return {
-                ...item,
-                connectionMethod: "login" as ConnectionMethod, // Assume login for existing entries
-              } as DomainConfig;
+                url: String(item),
+                connectionMethod: "login" as ConnectionMethod,
+                clientId: "", // Empty clientId for legacy entries
+              };
             }
-            return item as DomainConfig;
-          } else {
-            // Convert string domains to DomainConfig format (backward compatibility)
-            return {
-              url: String(item),
-              connectionMethod: "login" as ConnectionMethod,
-              clientId: "", // Empty clientId for legacy entries
-            };
-          }
-        })
-        .filter((domain) => domain.url.trim() !== ""); // Remove empty domains
+          })
+          .filter((domain) => domain.url.trim() !== ""); // Remove empty domains
+      }
     }
-    return [];
+
+    // Add or update default domain from environment if configured
+    const defaultDomain = getDefaultDomainFromEnv();
+    if (defaultDomain) {
+      const existingIndex = domains.findIndex(
+        (d) => formatDomain(d.url) === defaultDomain.url
+      );
+      
+      if (existingIndex >= 0) {
+        // Update existing domain with environment config (env takes precedence)
+        domains[existingIndex] = {
+          ...domains[existingIndex],
+          ...defaultDomain,
+        };
+      } else {
+        // Add new domain at the beginning
+        domains.unshift(defaultDomain);
+      }
+    }
+
+    return domains;
   } catch (e) {
     console.error("Failed to parse domains from localStorage", e);
-    return [];
+    // Return default domain from env if storage fails
+    const defaultDomain = getDefaultDomainFromEnv();
+    return defaultDomain ? [defaultDomain] : [];
   }
 };
 
@@ -70,7 +122,6 @@ export const getDomainFromStorage = (): DomainConfig[] => {
  */
 export const saveDomainToStorage = (domains: DomainConfig[]): void => {
   try {
-    console.log("Saving domains to localStorage:", domains);
     localStorage.setItem(DOMAINS_STORAGE_KEY, JSON.stringify(domains));
   } catch (e) {
     console.error("Failed to save domains to localStorage", e);
@@ -100,7 +151,6 @@ export const getSelectedDomainFromStorage = (): string => {
  */
 export const saveSelectedDomainToStorage = (domain: string): void => {
   try {
-    console.log("Saving selected domain to localStorage:", domain);
     localStorage.setItem(SELECTED_DOMAIN_STORAGE_KEY, domain);
   } catch (e) {
     console.error("Failed to save selected domain to localStorage", e);
@@ -130,29 +180,13 @@ export const getClientIdFromStorage = (domain: string): string => {
 };
 
 /**
- * Formats a domain string (removes protocol if present)
- */
-export const formatDomain = (domain: string): string => {
-  return domain.trim().replace(/^https?:\/\//, "");
-};
-
-/**
  * Constructs a full URL with HTTPS protocol
- * - If domain starts with "local.", connects to https://localhost:3000
  * - Always uses https:// for all domains (including localhost with self-signed certs)
  * - Preserves existing https:// protocol if already present
  * - Converts http:// to https://
  */
 export const buildUrlWithProtocol = (domain: string): string => {
   const trimmedDomain = domain.trim();
-
-  // Extract hostname without protocol for local. check
-  const hostnameOnly = trimmedDomain.replace(/^https?:\/\//, "");
-
-  // If hostname starts with "local.", redirect to local development server
-  if (hostnameOnly.startsWith("local.")) {
-    return "https://localhost:3000";
-  }
 
   // Check if it already has a protocol
   if (trimmedDomain.startsWith("https://")) {
