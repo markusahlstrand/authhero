@@ -17,6 +17,7 @@ import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
 import { getClientWithDefaults } from "../../helpers/client";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
 
@@ -136,7 +137,7 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       const client = await getClientWithDefaults(env, client_id);
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const authParams: AuthParams = {
         redirect_uri: redirect_uri.split("#")[0], // Remove fragment if present

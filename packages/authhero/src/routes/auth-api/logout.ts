@@ -5,6 +5,7 @@ import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const logoutRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -46,7 +47,7 @@ export const logoutRoutes = new OpenAPIHono<{
         await ctx.env.data.legacyClients.get("DEFAULT_CLIENT");
 
       ctx.set("client_id", client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const redirectUri = returnTo || ctx.req.header("referer");
       if (!redirectUri) {

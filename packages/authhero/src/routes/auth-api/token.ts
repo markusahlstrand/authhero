@@ -23,6 +23,7 @@ import { serializeAuthCookie } from "../../utils/cookies";
 import { calculateScopesAndPermissions } from "../../helpers/scopes-permissions";
 import { GrantFlowResult } from "src/types/GrantFlowResult";
 import { JSONHTTPException } from "../../errors/json-http-exception";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -205,6 +206,9 @@ export const tokenRoutes = new OpenAPIHono<{
             400,
           );
       }
+
+      // Set tenant_id in context (or validate it matches if already set)
+      setTenantId(ctx, grantResult.client.tenant.id);
 
       const passwordlessHeaders = new Headers();
 

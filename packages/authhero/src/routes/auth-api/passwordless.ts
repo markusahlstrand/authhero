@@ -14,6 +14,7 @@ import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { getUniversalLoginUrl } from "../../variables";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const passwordlessRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -68,7 +69,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const username = connection === "email" ? body.email : body.phone_number;
 
@@ -194,7 +195,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const client = await getClientWithDefaults(env, client_id);
 
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
       ctx.set("connection", "email");
 
       const authParams: AuthParams = {

@@ -7,6 +7,7 @@ import { Bindings, Variables } from "../../types";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { createSamlMetadata, parseSamlRequestQuery } from "../../helpers/saml";
 import { stringifyAuth0Client } from "../../utils/client-info";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const samlpRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -124,7 +125,7 @@ export const samlpRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       // TODO: Validate the Signature and SigAlg if provided
 

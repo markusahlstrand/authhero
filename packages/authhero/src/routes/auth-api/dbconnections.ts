@@ -16,8 +16,8 @@ import {
 } from "../../helpers/password-policy";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
-
 import { stringifyAuth0Client } from "../../utils/client-info";
+import { setTenantId } from "../../helpers/set-tenant-id";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -72,7 +72,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       // Find the password connection from the client's connections to get the correct password policy
       const passwordConnection = client.connections.find(
@@ -188,7 +188,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         });
       }
       ctx.set("client_id", client.client_id);
-      ctx.set("tenant_id", client.tenant.id);
+      setTenantId(ctx, client.tenant.id);
 
       const existingUser = await getUserByProvider({
         userAdapter: ctx.env.data.users,
