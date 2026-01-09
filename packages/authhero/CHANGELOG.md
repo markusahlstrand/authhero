@@ -1,5 +1,11 @@
 # authhero
 
+## 4.4.0
+
+### Minor Changes
+
+- 58634b0: Expose all hooks
+
 ## 4.3.0
 
 ### Minor Changes
