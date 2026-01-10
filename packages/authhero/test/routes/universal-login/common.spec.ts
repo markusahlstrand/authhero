@@ -45,7 +45,7 @@ describe("initJSXRoute", () => {
       expires_at: new Date(Date.now() + 3600000).toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      login_completed: false,
+      state: "pending",
     };
 
     // Store the login session
@@ -235,7 +235,7 @@ describe("initJSXRoute", () => {
       const closedLoginSession = {
         ...mockLoginSession,
         session_id: mockSession.id,
-        login_completed: true, // Indicating the session is closed
+        state: "completed", // Indicating the session is closed
       };
 
       await testServer.env.data.loginSessions.update(

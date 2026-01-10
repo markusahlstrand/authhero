@@ -310,6 +310,9 @@ importers:
       ua-parser-js:
         specifier: ^2.0.0
         version: 2.0.7
+      xstate:
+        specifier: ^5.25.0
+        version: 5.25.0
     devDependencies:
       '@ape-egg/tailwind-rows-columns':
         specifier: ^1.0.2
@@ -9027,6 +9030,9 @@ packages:
   xpath@0.0.33:
     resolution: {integrity: sha512-NNXnzrkDrAzalLhIUc01jO2mOzXGXh1JwPgkihcLLzw98c0WgYDmmjSh1Kl3wzaxSVWMuA+fe0WTWOBDWCBmNA==}
     engines: {node: '>=0.6.0'}
+
+  xstate@5.25.0:
+    resolution: {integrity: sha512-yyWzfhVRoTHNLjLoMmdwZGagAYfmnzpm9gPjlX2MhJZsDojXGqRxODDOi4BsgGRKD46NZRAdcLp6CKOyvQS0Bw==}
 
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
@@ -18653,6 +18659,8 @@ snapshots:
 
   xpath@0.0.33:
     optional: true
+
+  xstate@5.25.0: {}
 
   xtend@4.0.2: {}
 

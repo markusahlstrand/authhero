@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { LoginSession, Node, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
+import { startLoginSessionHook } from "../authentication-flows/common";
 
 // Type guard for form hooks
 export function isFormHook(
@@ -390,6 +391,8 @@ export async function handleFormHook(
         result.customUrl,
         loginSession.id,
       );
+      // Mark login session as awaiting hook before redirecting
+      await startLoginSessionHook(ctx, tenant_id, loginSession, `form:${form_id}`);
       return new Response(null, {
         status: 302,
         headers: { location: redirectUrl },
@@ -399,6 +402,9 @@ export async function handleFormHook(
     // result.type === "step" - continue with form display
     firstNodeId = result.nodeId;
   }
+
+  // Mark login session as awaiting hook before redirecting to form
+  await startLoginSessionHook(ctx, tenant_id, loginSession, `form:${form_id}`);
 
   // If loginSession is provided, pass state as a query param if available
   let url = `/u/forms/${form.id}/nodes/${firstNodeId}?state=${encodeURIComponent(

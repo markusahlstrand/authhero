@@ -1,4 +1,4 @@
-import { LoginSession, LoginSessionInsert } from "@authhero/adapter-interfaces";
+import { LoginSession, LoginSessionInsert, LoginSessionState } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { nanoid } from "nanoid";
 import { Database } from "../db";
@@ -12,7 +12,9 @@ export function create(db: Kysely<Database>) {
       authorization_url: login.authorization_url?.slice(0, 1024),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      login_completed: !!login.login_completed,
+      state: login.state || LoginSessionState.PENDING,
+      state_data: login.state_data,
+      failure_reason: login.failure_reason,
     };
 
     await db

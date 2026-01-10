@@ -1,5 +1,5 @@
 import { Kysely } from "kysely";
-import { LoginSession, loginSessionSchema } from "@authhero/adapter-interfaces";
+import { LoginSession, loginSessionSchema, LoginSessionState } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";
@@ -20,7 +20,9 @@ export function get(db: Kysely<Database>) {
       unflattenObject(
         removeNullProperties({
           ...login,
-          login_completed: Boolean(login.login_completed),
+          state: login.state || LoginSessionState.PENDING,
+          state_data: login.state_data,
+          failure_reason: login.failure_reason,
         }),
         ["authParams"],
       ),
