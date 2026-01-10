@@ -97,7 +97,7 @@ export const loginSessions = sqliteTable(
     ip: text("ip", { length: 39 }),
     useragent: text("useragent"),
     auth0Client: text("auth0Client", { length: 255 }),
-    state: text("state", { length: 50 }).default("pending"),
+    state: text("state", { length: 50 }).notNull().default("pending"),
     state_data: text("state_data"),
     failure_reason: text("failure_reason"),
     user_id: text("user_id", { length: 255 }),

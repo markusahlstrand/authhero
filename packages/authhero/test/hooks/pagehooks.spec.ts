@@ -10,11 +10,27 @@ describe("pagehooks", () => {
   let mockUser: User;
 
   beforeEach(() => {
+    mockLoginSession = {
+      id: "login-session-id",
+      created_at: "2023-01-01T00:00:00Z",
+      updated_at: "2023-01-01T00:00:00Z",
+      expires_at: "2023-01-01T01:00:00Z",
+      csrf_token: "csrf-token",
+      authParams: {
+        client_id: "test-client",
+      },
+      state: LoginSessionState.AUTHENTICATED,
+    };
+
     mockCtx = {
       env: {
         data: {
           userPermissions: {
             list: vi.fn(),
+          },
+          loginSessions: {
+            get: vi.fn().mockResolvedValue(mockLoginSession),
+            update: vi.fn().mockResolvedValue(true),
           },
         },
       },
@@ -25,18 +41,6 @@ describe("pagehooks", () => {
         header: vi.fn().mockReturnValue("test-tenant"),
       },
     } as any;
-
-    mockLoginSession = {
-      id: "login-session-id",
-      created_at: "2023-01-01T00:00:00Z",
-      updated_at: "2023-01-01T00:00:00Z",
-      expires_at: "2023-01-01T01:00:00Z",
-      csrf_token: "csrf-token",
-      authParams: {
-        client_id: "test-client",
-      },
-      state: LoginSessionState.PENDING,
-    };
 
     mockUser = {
       user_id: "test|user123",

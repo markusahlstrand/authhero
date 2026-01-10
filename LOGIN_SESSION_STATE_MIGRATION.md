@@ -1,208 +1,212 @@
-# Login Session State Machine - Phase 1 Implementation
+# Login Session State Machine Implementation
 
 ## Overview
 
-This is the first phase of migrating from a simple `login_completed` boolean flag to a proper state machine for tracking login session progress. This provides better visibility, debugging capabilities, and sets the foundation for XState integration.
+This document describes the XState-based state machine for tracking login session progress. It provides better visibility, debugging capabilities, and clear state transitions for the authentication flow.
 
-## Changes Made
+## State Machine
 
-### 1. **Type System Updates** (`adapter-interfaces`)
-
-Added new state enum and fields to `LoginSession`:
+### States
 
 ```typescript
 enum LoginSessionState {
+  /** Initial state - awaiting user authentication */
   PENDING = "pending",
-  VALIDATING_ORG = "validating_org", 
-  CALCULATING_PERMISSIONS = "calculating_permissions",
-  UPDATING_METADATA = "updating_metadata",
-  CREATING_SESSION = "creating_session",
-  CREATING_REFRESH_TOKEN = "creating_refresh_token",
-  RUNNING_HOOKS = "running_hooks",
-  ISSUING_TOKENS = "issuing_tokens",
+  /** User credentials validated, session created */
+  AUTHENTICATED = "authenticated",
+  /** Waiting for email verification */
+  AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
+  /** Waiting for hook/flow completion (form, page redirect) */
+  AWAITING_HOOK = "awaiting_hook",
+  /** Tokens issued successfully */
   COMPLETED = "completed",
+  /** Authentication failed (wrong password, blocked, etc.) */
   FAILED = "failed",
-  REDIRECTED = "redirected",
+  /** Session timed out */
   EXPIRED = "expired",
 }
 ```
 
-New fields added to `LoginSession`:
-- `state: LoginSessionState` - Current state (defaults to "pending")
-- `state_data?: string` - JSON-serialized state machine context
-- `failure_reason?: string` - Error message if state is "failed"
+### State Flow Diagram
 
-**Backwards Compatibility**: The `login_completed` boolean is kept for now.
+```
+                              ┌─────────────────────────────────────┐
+                              │                                     │
+                              ▼                                     │
+┌─────────┐  AUTHENTICATE  ┌──────────────┐  START_HOOK  ┌─────────────────┐
+│ PENDING │───────────────▶│ AUTHENTICATED │────────────▶│  AWAITING_HOOK  │
+└─────────┘                └──────────────┘              └─────────────────┘
+     │                           │    │                         │
+     │ FAIL                      │    │ REQUIRE_EMAIL_          │ COMPLETE_HOOK
+     │                           │    │ VERIFICATION            │
+     ▼                           │    ▼                         ▼
+┌──────────┐                     │  ┌────────────────────────┐  │
+│  FAILED  │◀────────────────────┼──│AWAITING_EMAIL_VERIFY   │  │
+└──────────┘                     │  └────────────────────────┘  │
+                                 │             │                │
+                                 │  COMPLETE   │ COMPLETE       │
+                                 ▼             ▼                │
+                           ┌───────────┐◀──────────────────────┘
+                           │ COMPLETED │
+                           └───────────┘
 
-### 2. **Database Migration** (`kysely`)
-
-Created migration: `2026-01-10T10:00:00_login_session_state.ts`
-
-- Adds three new columns: `state`, `state_data`, `failure_reason`
-- Backfills existing data:
-  - `login_completed = 1` → `state = 'completed'`
-  - `expires_at < NOW()` → `state = 'expired'`
-  - Otherwise → `state = 'pending'`
-- Adds indexes for efficient querying:
-  - `login_sessions_state_idx` on `state`
-  - `login_sessions_state_updated_idx` on `(state, updated_at)`
-
-### 3. **Database Adapters Updated**
-
-**Kysely** (`packages/kysely/src/`):
-- Updated schema in `db.ts`
-- Modified `create()` to set state fields
-- Modified `get()` to return state fields
-
-**Drizzle** (`packages/drizzle/src/schema/sqlite/sessions.ts`):
-- Added state columns to schema
-
-**AWS DynamoDB** (`packages/aws/src/adapters/loginSessions.ts`):
-- Updated `LoginSessionItem` interface
-- Modified create operation to include state
-
-### 4. **Helper Functions** (`authhero/src/helpers/login-session-state.ts`)
-
-Backwards-compatible utility functions:
-
-```typescript
-// Check if login is completed (uses state if available, falls back to login_completed)
-isLoginCompleted(loginSession): boolean
-
-// Check if login has failed
-isLoginFailed(loginSession): boolean
-
-// Check if login is still in progress
-isLoginInProgress(loginSession): boolean
-
-// Check if login has expired
-isLoginExpired(loginSession): boolean
-
-// Get human-readable state description
-getLoginStateDescription(loginSession): string
+Any state can transition to FAILED or EXPIRED
 ```
 
-## Benefits
+### Events
 
-### Immediate Improvements
+| Event | Description |
+|-------|-------------|
+| `AUTHENTICATE` | User credentials validated, session created |
+| `REQUIRE_EMAIL_VERIFICATION` | Email verification required before completion |
+| `START_HOOK` | Redirecting to form, page, or external URL |
+| `COMPLETE_HOOK` | Returned from hook, back to authenticated |
+| `COMPLETE` | Tokens successfully issued |
+| `FAIL` | Authentication failed |
+| `EXPIRE` | Session timed out |
 
-1. **Better Debugging**: Know exactly where a login is stuck
-   ```sql
-   SELECT id, state, updated_at 
-   FROM login_sessions 
-   WHERE state = 'creating_refresh_token' 
-   AND updated_at < NOW() - INTERVAL '5 minutes';
-   -- Shows logins stuck at this specific step
-   ```
+### Valid Transitions
 
-2. **Rich Analytics**: Understand login flow performance
-   ```sql
-   SELECT state, COUNT(*), AVG(duration) 
-   FROM login_sessions 
-   GROUP BY state;
-   ```
+| From State | Valid Events |
+|------------|--------------|
+| `PENDING` | `AUTHENTICATE`, `FAIL`, `EXPIRE` |
+| `AUTHENTICATED` | `REQUIRE_EMAIL_VERIFICATION`, `START_HOOK`, `COMPLETE`, `FAIL`, `EXPIRE` |
+| `AWAITING_EMAIL_VERIFICATION` | `COMPLETE`, `FAIL`, `EXPIRE` |
+| `AWAITING_HOOK` | `COMPLETE_HOOK`, `COMPLETE`, `FAIL`, `EXPIRE` |
+| `COMPLETED` | (final state) |
+| `FAILED` | (final state) |
+| `EXPIRED` | (final state) |
 
-3. **Explicit Failure Tracking**: `failure_reason` provides context
+## Database Schema
 
-4. **Backwards Compatible**: Existing code using `login_completed` continues to work
+### New Columns
 
-### Foundation for Future Work
+| Column | Type | Description |
+|--------|------|-------------|
+| `state` | `varchar(50)` | Current state, defaults to "pending" |
+| `state_data` | `text` | JSON context (e.g., hook ID) |
+| `failure_reason` | `text` | Error message if failed |
+| `user_id` | `varchar(255)` | Set once user is authenticated |
 
-This sets up for:
-- **Phase 2**: XState integration in `completeLogin()` and `createFrontChannelAuthResponse()`
-- **Phase 3**: Compensation/rollback logic for consistency
-- **Phase 4**: Resumable login flows
+### Indexes
 
-## Migration Path
+- `login_sessions_state_idx` on `(state)` - efficient state queries
+- `login_sessions_state_updated_idx` on `(state, updated_at)` - finding stuck sessions
+- `login_sessions_tenant_user_idx` on `(tenant_id, user_id)` - user session lookups
 
-### Current State (Phase 1) ✅
+## Helper Functions
 
-- State columns added to database
-- All adapters updated
-- Helper functions available
-- `login_completed` still present and functional
+Located in `packages/authhero/src/authentication-flows/common.ts`:
 
-### Next Steps (Phase 2)
+```typescript
+// Mark session as failed
+await failLoginSession(ctx, tenantId, loginSession, "Wrong password");
 
-- Integrate XState into `completeLogin()` function
-- Update state as login progresses through each step
-- Add state persistence in state_data
+// Mark session as awaiting hook (before redirect)
+await startLoginSessionHook(ctx, tenantId, loginSession, "form:mfa");
 
-### Future (Phase 3)
+// Mark session as returned from hook
+await completeLoginSessionHook(ctx, tenantId, loginSession);
 
-- Track created resources in `state_data`
-- Add rollback logic for failed states
-- Eventually deprecate and remove `login_completed`
+// Mark session as completed (tokens issued)
+await completeLoginSession(ctx, tenantId, loginSession);
+```
+
+## Where State Transitions Occur
+
+### AUTHENTICATE
+- `createSession()` in `common.ts` - when session is created after credential validation
+
+### FAIL
+- `password.ts` - wrong password, blocked user, unverified email, user not found
+
+### START_HOOK
+- `hooks/index.ts` - `onExecutePostLogin` redirect
+- `hooks/formhooks.ts` - form hook redirect
+- `hooks/pagehooks.ts` - page hook redirect
+
+### COMPLETE_HOOK
+- `flow-api.ts` - form flow completion
+- `form-node.tsx` - form node completion
+- `screen-api.ts` - screen completion
+
+### COMPLETE
+- `completeLogin()` in `common.ts` - when tokens are issued
 
 ## Usage Examples
 
-### Checking Login Status (New Way)
+### Finding Stuck Sessions
 
-```typescript
-import { LoginSessionState, isLoginCompleted } from '@authhero/adapter-interfaces';
-
-// Instead of:
-if (loginSession.login_completed) { ... }
-
-// Use:
-if (isLoginCompleted(loginSession)) { ... }
-// or
-if (loginSession.state === LoginSessionState.COMPLETED) { ... }
+```sql
+-- Sessions stuck in a hook for over 5 minutes
+SELECT id, state, state_data, updated_at 
+FROM login_sessions 
+WHERE state = 'awaiting_hook' 
+AND updated_at < NOW() - INTERVAL '5 minutes';
 ```
 
-### Finding Stuck Logins
+### Analytics
 
-```typescript
-// Old way - can't tell if stuck or in progress
-const incomplete = await loginSessions.list({ 
-  where: { login_completed: false } 
-});
+```sql
+-- State distribution
+SELECT state, COUNT(*) 
+FROM login_sessions 
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY state;
 
-// New way - precisely identify stuck logins
-const stuck = await loginSessions.list({
-  where: { 
-    state: ['creating_session', 'running_hooks'],
-    updated_at: { lt: fiveMinutesAgo }
-  }
-});
+-- Failed login reasons
+SELECT failure_reason, COUNT(*) 
+FROM login_sessions 
+WHERE state = 'failed'
+GROUP BY failure_reason
+ORDER BY COUNT(*) DESC;
 ```
 
-### User-Facing Error Messages
+### Checking Session State
 
 ```typescript
-import { getLoginStateDescription } from '@authhero/authhero';
+import { LoginSessionState } from '@authhero/adapter-interfaces';
 
-const message = getLoginStateDescription(loginSession);
-// "Running post-login hooks" or "Login failed: User not in organization"
+// Check if authenticated
+if (loginSession.state === LoginSessionState.AUTHENTICATED) {
+  // User is authenticated but tokens not yet issued
+}
+
+// Check if waiting for hook
+if (loginSession.state === LoginSessionState.AWAITING_HOOK) {
+  // Session is waiting for form/page completion
+  const hookData = JSON.parse(loginSession.state_data || '{}');
+  console.log('Waiting for:', hookData.hookId);
+}
 ```
-
-## Testing
-
-After migration, verify:
-
-1. **Backfill worked correctly**:
-   ```sql
-   SELECT state, COUNT(*) FROM login_sessions GROUP BY state;
-   ```
-
-2. **New logins get proper state**:
-   - Create a new login session
-   - Verify `state = 'pending'`
-
-3. **Backwards compatibility**:
-   - Code checking `login_completed` still works
-   - Helper functions work for both old and new records
 
 ## Files Modified
 
-- `packages/adapter-interfaces/src/types/LoginSession.ts`
-- `packages/adapter-interfaces/src/index.ts`
+### Type System
+- `packages/adapter-interfaces/src/types/LoginSession.ts` - enum and schema
+
+### State Machine
+- `packages/authhero/src/state-machines/login-session.ts` - XState machine and pure transition functions
+- `packages/authhero/test/state-machines/login-session.spec.ts` - 22 tests
+
+### Authentication Flows
+- `packages/authhero/src/authentication-flows/common.ts` - helper functions, state transitions
+- `packages/authhero/src/authentication-flows/password.ts` - FAIL transitions
+
+### Hooks
+- `packages/authhero/src/hooks/index.ts` - START_HOOK on post-login redirect
+- `packages/authhero/src/hooks/formhooks.ts` - START_HOOK before form redirect
+- `packages/authhero/src/hooks/pagehooks.ts` - START_HOOK before page redirect
+
+### Form/Screen Completion
+- `packages/authhero/src/routes/universal-login/flow-api.ts` - COMPLETE_HOOK
+- `packages/authhero/src/routes/universal-login/form-node.tsx` - COMPLETE_HOOK
+- `packages/authhero/src/routes/universal-login/screen-api.ts` - COMPLETE_HOOK
+
+### Database
 - `packages/kysely/migrate/migrations/2026-01-10T10:00:00_login_session_state.ts`
-- `packages/kysely/migrate/migrations/index.ts`
 - `packages/kysely/src/db.ts`
 - `packages/kysely/src/loginSessions/create.ts`
 - `packages/kysely/src/loginSessions/get.ts`
 - `packages/drizzle/src/schema/sqlite/sessions.ts`
 - `packages/aws/src/adapters/loginSessions.ts`
-- `packages/authhero/src/helpers/login-session-state.ts` (new)
-- `packages/adapter-interfaces/src/exports-login-session.ts` (new)

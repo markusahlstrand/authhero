@@ -3,7 +3,10 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import FormNodePage from "../../components/FormNodePage";
 import { HTTPException } from "hono/http-exception";
-import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import {
+  createFrontChannelAuthResponse,
+  completeLoginSessionHook,
+} from "../../authentication-flows/common";
 import {
   resolveNode,
   getRedirectUrl,
@@ -243,6 +246,9 @@ export const formNodeRoutes = new OpenAPIHono<{
         }
 
         // No next_node or reached end - complete the auth flow
+        // Transition from AWAITING_HOOK back to AUTHENTICATED
+        await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
+
         const result = await createFrontChannelAuthResponse(ctx, {
           authParams: loginSession.authParams,
           client,
