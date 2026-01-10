@@ -4,6 +4,7 @@ import {
   AuthParams,
   LegacyClient,
   LoginSession,
+  LoginSessionState,
   User,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
@@ -27,6 +28,7 @@ import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { GrantType } from "@authhero/adapter-interfaces";
+import { transitionLoginSession } from "../state-machines/login-session";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -339,12 +341,89 @@ export async function createSession(
     clients: [client.client_id],
   });
 
-  // Store the session id in the login session
+  // Transition login session state to AUTHENTICATED (user validated, session created)
+  // Note: COMPLETED state is set when tokens are actually issued
+  const { state: newState } = transitionLoginSession(
+    loginSession.state || LoginSessionState.PENDING,
+    { type: "AUTHENTICATE", userId: user.user_id },
+  );
+
+  // Store the session id and updated state in the login session
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id: session.id,
+    state: newState,
+    user_id: user.user_id,
   });
 
   return session;
+}
+
+/**
+ * Mark a login session as failed
+ * This should be called when authentication fails (wrong password, blocked user, etc.)
+ */
+export async function failLoginSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+  reason: string,
+): Promise<void> {
+  const { state: newState, context } = transitionLoginSession(
+    loginSession.state || LoginSessionState.PENDING,
+    { type: "FAIL", reason },
+  );
+
+  // Only update if state actually changed (prevents unnecessary DB writes)
+  if (newState !== loginSession.state) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      failure_reason: context.failureReason,
+    });
+  }
+}
+
+/**
+ * Mark a login session as awaiting hook completion
+ * This should be called when redirecting to a form, page, or external URL
+ */
+export async function startLoginSessionHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+  hookId?: string,
+): Promise<void> {
+  const { state: newState, context } = transitionLoginSession(
+    loginSession.state || LoginSessionState.PENDING,
+    { type: "START_HOOK", hookId },
+  );
+
+  if (newState !== loginSession.state) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      state_data: context.hookId ? JSON.stringify({ hookId: context.hookId }) : undefined,
+    });
+  }
+}
+
+/**
+ * Mark a login session as completed (tokens issued)
+ * This should be called when tokens are successfully returned to the client
+ */
+export async function completeLoginSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+): Promise<void> {
+  const { state: newState } = transitionLoginSession(
+    loginSession.state || LoginSessionState.PENDING,
+    { type: "COMPLETE" },
+  );
+
+  if (newState !== loginSession.state) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+    });
+  }
 }
 
 export interface CreateAuthResponseParams {
@@ -744,6 +823,11 @@ export async function completeLogin(
 
     // Use the updated user
     user = hookResult;
+  }
+
+  // Mark login session as completed (tokens about to be issued)
+  if (params.loginSession) {
+    await completeLoginSession(ctx, params.client.tenant.id, params.loginSession);
   }
 
   // Return either code data or tokens based on response type

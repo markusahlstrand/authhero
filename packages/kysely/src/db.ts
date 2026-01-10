@@ -35,6 +35,7 @@ const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   state: z.string().optional().default("pending"),
   state_data: z.string().optional(),
   failure_reason: z.string().optional(),
+  user_id: z.string().optional(),
 });
 
 const sqlConnectionSchema = flattenSchema(connectionSchema).extend({

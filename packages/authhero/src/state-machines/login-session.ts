@@ -9,7 +9,9 @@ export interface LoginSessionContext {
   userId?: string;
   /** Error/failure reason if login failed */
   failureReason?: string;
-  /** Additional state data (e.g., MFA step, etc.) */
+  /** Hook/flow ID if waiting for completion */
+  hookId?: string;
+  /** Additional state data */
   stateData?: Record<string, unknown>;
 }
 
@@ -17,16 +19,30 @@ export interface LoginSessionContext {
  * Events that can trigger state transitions
  */
 export type LoginSessionEvent =
-  | { type: "COMPLETE"; userId: string }
+  | { type: "AUTHENTICATE"; userId: string }
+  | { type: "REQUIRE_EMAIL_VERIFICATION" }
+  | { type: "START_HOOK"; hookId?: string }
+  | { type: "COMPLETE_HOOK" }
+  | { type: "COMPLETE" }
   | { type: "FAIL"; reason: string }
   | { type: "EXPIRE" };
 
 /**
  * Login session state machine
  *
+ * Flow:
+ *   pending → authenticated → completed (happy path)
+ *                          → awaiting_email_verification → completed (after verification)
+ *                          → awaiting_hook → completed (after hook/flow completes)
+ *
+ * Any state can transition to failed or expired
+ *
  * States:
- * - pending: Initial state, awaiting authentication
- * - completed: Successfully authenticated
+ * - pending: Initial state, awaiting user authentication
+ * - authenticated: Credentials validated, user identified
+ * - awaiting_email_verification: Blocked on email verification
+ * - awaiting_hook: Waiting for hook/flow completion (form, page, impersonate)
+ * - completed: Tokens issued successfully
  * - failed: Authentication failed (wrong password, blocked, etc.)
  * - expired: Session timed out
  */
@@ -38,11 +54,22 @@ export const loginSessionMachine = setup({
   actions: {
     setUserId: assign({
       userId: ({ event }) => {
-        if (event.type === "COMPLETE") {
+        if (event.type === "AUTHENTICATE") {
           return event.userId;
         }
         return undefined;
       },
+    }),
+    setHookId: assign({
+      hookId: ({ event }) => {
+        if (event.type === "START_HOOK") {
+          return event.hookId;
+        }
+        return undefined;
+      },
+    }),
+    clearHookId: assign({
+      hookId: () => undefined,
     }),
     setFailureReason: assign({
       failureReason: ({ event }) => {
@@ -60,9 +87,63 @@ export const loginSessionMachine = setup({
   states: {
     [LoginSessionState.PENDING]: {
       on: {
+        AUTHENTICATE: {
+          target: LoginSessionState.AUTHENTICATED,
+          actions: "setUserId",
+        },
+        FAIL: {
+          target: LoginSessionState.FAILED,
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: LoginSessionState.EXPIRED,
+        },
+      },
+    },
+    [LoginSessionState.AUTHENTICATED]: {
+      on: {
+        REQUIRE_EMAIL_VERIFICATION: {
+          target: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
+        },
+        START_HOOK: {
+          target: LoginSessionState.AWAITING_HOOK,
+          actions: "setHookId",
+        },
         COMPLETE: {
           target: LoginSessionState.COMPLETED,
-          actions: "setUserId",
+        },
+        FAIL: {
+          target: LoginSessionState.FAILED,
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: LoginSessionState.EXPIRED,
+        },
+      },
+    },
+    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: {
+      on: {
+        COMPLETE: {
+          target: LoginSessionState.COMPLETED,
+        },
+        FAIL: {
+          target: LoginSessionState.FAILED,
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: LoginSessionState.EXPIRED,
+        },
+      },
+    },
+    [LoginSessionState.AWAITING_HOOK]: {
+      on: {
+        COMPLETE_HOOK: {
+          target: LoginSessionState.AUTHENTICATED,
+          actions: "clearHookId",
+        },
+        COMPLETE: {
+          target: LoginSessionState.COMPLETED,
+          actions: "clearHookId",
         },
         FAIL: {
           target: LoginSessionState.FAILED,
@@ -91,6 +172,9 @@ export const loginSessionMachine = setup({
 export function getLoginSessionState(stateValue: string): LoginSessionState {
   const stateMap: Record<string, LoginSessionState> = {
     pending: LoginSessionState.PENDING,
+    authenticated: LoginSessionState.AUTHENTICATED,
+    awaiting_email_verification: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
+    awaiting_hook: LoginSessionState.AWAITING_HOOK,
     completed: LoginSessionState.COMPLETED,
     failed: LoginSessionState.FAILED,
     expired: LoginSessionState.EXPIRED,
@@ -112,6 +196,24 @@ export function transitionLoginSession(
     Partial<Record<LoginSessionEvent["type"], LoginSessionState>>
   > = {
     [LoginSessionState.PENDING]: {
+      AUTHENTICATE: LoginSessionState.AUTHENTICATED,
+      FAIL: LoginSessionState.FAILED,
+      EXPIRE: LoginSessionState.EXPIRED,
+    },
+    [LoginSessionState.AUTHENTICATED]: {
+      REQUIRE_EMAIL_VERIFICATION: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
+      START_HOOK: LoginSessionState.AWAITING_HOOK,
+      COMPLETE: LoginSessionState.COMPLETED,
+      FAIL: LoginSessionState.FAILED,
+      EXPIRE: LoginSessionState.EXPIRED,
+    },
+    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: {
+      COMPLETE: LoginSessionState.COMPLETED,
+      FAIL: LoginSessionState.FAILED,
+      EXPIRE: LoginSessionState.EXPIRED,
+    },
+    [LoginSessionState.AWAITING_HOOK]: {
+      COMPLETE_HOOK: LoginSessionState.AUTHENTICATED,
       COMPLETE: LoginSessionState.COMPLETED,
       FAIL: LoginSessionState.FAILED,
       EXPIRE: LoginSessionState.EXPIRED,
@@ -124,13 +226,23 @@ export function transitionLoginSession(
 
   const nextState = transitions[currentState]?.[event.type] ?? currentState;
 
-  // Build context updates based on event
+  // Build context updates based on event - only if transition is valid
   const contextUpdates: Partial<LoginSessionContext> = {};
-  if (event.type === "COMPLETE" && nextState === LoginSessionState.COMPLETED) {
-    contextUpdates.userId = event.userId;
-  }
-  if (event.type === "FAIL" && nextState === LoginSessionState.FAILED) {
-    contextUpdates.failureReason = event.reason;
+  const transitionOccurred = nextState !== currentState;
+  
+  if (transitionOccurred) {
+    if (event.type === "AUTHENTICATE") {
+      contextUpdates.userId = event.userId;
+    }
+    if (event.type === "START_HOOK") {
+      contextUpdates.hookId = event.hookId;
+    }
+    if (event.type === "COMPLETE_HOOK" || event.type === "COMPLETE") {
+      contextUpdates.hookId = undefined;
+    }
+    if (event.type === "FAIL") {
+      contextUpdates.failureReason = event.reason;
+    }
   }
 
   return { state: nextState, context: contextUpdates };
@@ -147,7 +259,10 @@ export function canTransition(
     LoginSessionState,
     LoginSessionEvent["type"][]
   > = {
-    [LoginSessionState.PENDING]: ["COMPLETE", "FAIL", "EXPIRE"],
+    [LoginSessionState.PENDING]: ["AUTHENTICATE", "FAIL", "EXPIRE"],
+    [LoginSessionState.AUTHENTICATED]: ["REQUIRE_EMAIL_VERIFICATION", "START_HOOK", "COMPLETE", "FAIL", "EXPIRE"],
+    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: ["COMPLETE", "FAIL", "EXPIRE"],
+    [LoginSessionState.AWAITING_HOOK]: ["COMPLETE_HOOK", "COMPLETE", "FAIL", "EXPIRE"],
     [LoginSessionState.COMPLETED]: [],
     [LoginSessionState.FAILED]: [],
     [LoginSessionState.EXPIRED]: [],

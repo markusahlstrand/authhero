@@ -16,15 +16,25 @@ describe("loginSessionMachine", () => {
     expect(actor.getSnapshot().value).toBe(LoginSessionState.PENDING);
   });
 
-  it("should transition to completed on COMPLETE event", () => {
+  it("should transition to authenticated on AUTHENTICATE event", () => {
     const actor = createActor(loginSessionMachine);
     actor.start();
 
-    actor.send({ type: "COMPLETE", userId: "user123" });
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
 
     const snapshot = actor.getSnapshot();
-    expect(snapshot.value).toBe(LoginSessionState.COMPLETED);
+    expect(snapshot.value).toBe(LoginSessionState.AUTHENTICATED);
     expect(snapshot.context.userId).toBe("user123");
+  });
+
+  it("should transition from authenticated to completed", () => {
+    const actor = createActor(loginSessionMachine);
+    actor.start();
+
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
+    actor.send({ type: "COMPLETE" });
+
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.COMPLETED);
   });
 
   it("should transition to failed on FAIL event", () => {
@@ -51,17 +61,66 @@ describe("loginSessionMachine", () => {
     const actor = createActor(loginSessionMachine);
     actor.start();
 
-    actor.send({ type: "COMPLETE", userId: "user123" });
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
+    actor.send({ type: "COMPLETE" });
     actor.send({ type: "FAIL", reason: "Should not work" });
 
     // Should still be completed, not failed
     expect(actor.getSnapshot().value).toBe(LoginSessionState.COMPLETED);
+  });
+
+  it("should handle hook flow: authenticated -> awaiting_hook -> completed", () => {
+    const actor = createActor(loginSessionMachine);
+    actor.start();
+
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.AUTHENTICATED);
+
+    actor.send({ type: "START_HOOK", hookId: "hook123" });
+    const afterHook = actor.getSnapshot();
+    expect(afterHook.value).toBe(LoginSessionState.AWAITING_HOOK);
+    expect(afterHook.context.hookId).toBe("hook123");
+
+    actor.send({ type: "COMPLETE" });
+    const final = actor.getSnapshot();
+    expect(final.value).toBe(LoginSessionState.COMPLETED);
+    expect(final.context.hookId).toBeUndefined();
+  });
+
+  it("should handle email verification flow", () => {
+    const actor = createActor(loginSessionMachine);
+    actor.start();
+
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
+    actor.send({ type: "REQUIRE_EMAIL_VERIFICATION" });
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.AWAITING_EMAIL_VERIFICATION);
+
+    actor.send({ type: "COMPLETE" });
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.COMPLETED);
+  });
+
+  it("should allow COMPLETE_HOOK to return to authenticated for chained hooks", () => {
+    const actor = createActor(loginSessionMachine);
+    actor.start();
+
+    actor.send({ type: "AUTHENTICATE", userId: "user123" });
+    actor.send({ type: "START_HOOK", hookId: "hook1" });
+    actor.send({ type: "COMPLETE_HOOK" });
+
+    // Back to authenticated, can start another hook
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.AUTHENTICATED);
+    
+    actor.send({ type: "START_HOOK", hookId: "hook2" });
+    expect(actor.getSnapshot().value).toBe(LoginSessionState.AWAITING_HOOK);
   });
 });
 
 describe("getLoginSessionState", () => {
   it("should map state values to LoginSessionState enum", () => {
     expect(getLoginSessionState("pending")).toBe(LoginSessionState.PENDING);
+    expect(getLoginSessionState("authenticated")).toBe(LoginSessionState.AUTHENTICATED);
+    expect(getLoginSessionState("awaiting_email_verification")).toBe(LoginSessionState.AWAITING_EMAIL_VERIFICATION);
+    expect(getLoginSessionState("awaiting_hook")).toBe(LoginSessionState.AWAITING_HOOK);
     expect(getLoginSessionState("completed")).toBe(LoginSessionState.COMPLETED);
     expect(getLoginSessionState("failed")).toBe(LoginSessionState.FAILED);
     expect(getLoginSessionState("expired")).toBe(LoginSessionState.EXPIRED);
@@ -73,14 +132,22 @@ describe("getLoginSessionState", () => {
 });
 
 describe("transitionLoginSession", () => {
-  it("should transition from pending to completed", () => {
+  it("should transition from pending to authenticated", () => {
     const result = transitionLoginSession(LoginSessionState.PENDING, {
-      type: "COMPLETE",
+      type: "AUTHENTICATE",
       userId: "user123",
     });
 
-    expect(result.state).toBe(LoginSessionState.COMPLETED);
+    expect(result.state).toBe(LoginSessionState.AUTHENTICATED);
     expect(result.context.userId).toBe("user123");
+  });
+
+  it("should transition from authenticated to completed", () => {
+    const result = transitionLoginSession(LoginSessionState.AUTHENTICATED, {
+      type: "COMPLETE",
+    });
+
+    expect(result.state).toBe(LoginSessionState.COMPLETED);
   });
 
   it("should transition from pending to failed", () => {
@@ -114,7 +181,7 @@ describe("transitionLoginSession", () => {
 
   it("should not transition from failed state", () => {
     const result = transitionLoginSession(LoginSessionState.FAILED, {
-      type: "COMPLETE",
+      type: "AUTHENTICATE",
       userId: "user123",
     });
 
@@ -122,21 +189,55 @@ describe("transitionLoginSession", () => {
     expect(result.state).toBe(LoginSessionState.FAILED);
     expect(result.context.userId).toBeUndefined();
   });
+
+  it("should handle hook transitions", () => {
+    // Start hook
+    const result1 = transitionLoginSession(LoginSessionState.AUTHENTICATED, {
+      type: "START_HOOK",
+      hookId: "form123",
+    });
+    expect(result1.state).toBe(LoginSessionState.AWAITING_HOOK);
+    expect(result1.context.hookId).toBe("form123");
+
+    // Complete hook back to authenticated
+    const result2 = transitionLoginSession(LoginSessionState.AWAITING_HOOK, {
+      type: "COMPLETE_HOOK",
+    });
+    expect(result2.state).toBe(LoginSessionState.AUTHENTICATED);
+    expect(result2.context.hookId).toBeUndefined();
+
+    // Complete directly from awaiting_hook
+    const result3 = transitionLoginSession(LoginSessionState.AWAITING_HOOK, {
+      type: "COMPLETE",
+    });
+    expect(result3.state).toBe(LoginSessionState.COMPLETED);
+  });
 });
 
 describe("canTransition", () => {
   it("should return true for valid transitions from pending", () => {
-    expect(canTransition(LoginSessionState.PENDING, "COMPLETE")).toBe(true);
+    expect(canTransition(LoginSessionState.PENDING, "AUTHENTICATE")).toBe(true);
     expect(canTransition(LoginSessionState.PENDING, "FAIL")).toBe(true);
     expect(canTransition(LoginSessionState.PENDING, "EXPIRE")).toBe(true);
+  });
+
+  it("should return true for valid transitions from authenticated", () => {
+    expect(canTransition(LoginSessionState.AUTHENTICATED, "REQUIRE_EMAIL_VERIFICATION")).toBe(true);
+    expect(canTransition(LoginSessionState.AUTHENTICATED, "START_HOOK")).toBe(true);
+    expect(canTransition(LoginSessionState.AUTHENTICATED, "COMPLETE")).toBe(true);
+    expect(canTransition(LoginSessionState.AUTHENTICATED, "FAIL")).toBe(true);
+  });
+
+  it("should return true for valid transitions from awaiting_hook", () => {
+    expect(canTransition(LoginSessionState.AWAITING_HOOK, "COMPLETE_HOOK")).toBe(true);
+    expect(canTransition(LoginSessionState.AWAITING_HOOK, "COMPLETE")).toBe(true);
+    expect(canTransition(LoginSessionState.AWAITING_HOOK, "FAIL")).toBe(true);
   });
 
   it("should return false for transitions from final states", () => {
     expect(canTransition(LoginSessionState.COMPLETED, "FAIL")).toBe(false);
     expect(canTransition(LoginSessionState.COMPLETED, "EXPIRE")).toBe(false);
-    expect(canTransition(LoginSessionState.FAILED, "COMPLETE")).toBe(false);
-    expect(canTransition(LoginSessionState.EXPIRED, "COMPLETE")).toBe(false);
+    expect(canTransition(LoginSessionState.FAILED, "AUTHENTICATE")).toBe(false);
+    expect(canTransition(LoginSessionState.EXPIRED, "AUTHENTICATE")).toBe(false);
   });
 });
-
-

@@ -25,6 +25,7 @@ interface LoginSessionItem extends DynamoDBBaseItem {
   state?: string;
   state_data?: string;
   failure_reason?: string;
+  user_id?: string;
   auth0Client?: string;
   deleted_at?: string;
   ip?: string;

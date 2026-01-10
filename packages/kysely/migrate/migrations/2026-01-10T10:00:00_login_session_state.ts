@@ -30,6 +30,22 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("failure_reason", "text")
     .execute();
 
+  await db.schema
+    .alterTable("login_sessions")
+    .addColumn("user_id", "varchar(255)")
+    .execute();
+
+  // Note: SQLite doesn't support adding foreign keys via ALTER TABLE.
+  // Ideally this would be: FOREIGN KEY (tenant_id, user_id) REFERENCES users(tenant_id, user_id)
+  // For PostgreSQL deployments, consider adding this constraint manually.
+
+  // Add composite index for user lookups (also serves as pseudo-FK documentation)
+  await db.schema
+    .createIndex("login_sessions_tenant_user_idx")
+    .on("login_sessions")
+    .columns(["tenant_id", "user_id"])
+    .execute();
+
   // Backfill state based on existing login_completed values
   await db
     .updateTable("login_sessions")
@@ -82,13 +98,11 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .execute();
 
   // Drop indexes
-  await db.schema
-    .dropIndex("login_sessions_state_updated_idx")
-    .execute();
+  await db.schema.dropIndex("login_sessions_state_updated_idx").execute();
 
-  await db.schema
-    .dropIndex("login_sessions_state_idx")
-    .execute();
+  await db.schema.dropIndex("login_sessions_state_idx").execute();
+
+  await db.schema.dropIndex("login_sessions_tenant_user_idx").execute();
 
   // Drop state columns
   await db.schema
@@ -96,5 +110,6 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .dropColumn("state")
     .dropColumn("state_data")
     .dropColumn("failure_reason")
+    .dropColumn("user_id")
     .execute();
 }
