@@ -13,7 +13,7 @@ import type {
   Theme,
   Branding,
 } from "@authhero/adapter-interfaces";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
 
 // Mock data for stories
 const mockLoginSession: LoginSession = {
@@ -29,7 +29,7 @@ const mockLoginSession: LoginSession = {
   updated_at: new Date().toISOString(),
   expires_at: new Date(Date.now() + 3600000).toISOString(),
   csrf_token: "mock-csrf-token",
-  login_completed: false,
+  state: LoginSessionState.PENDING,
 };
 
 const mockTheme: Theme = {

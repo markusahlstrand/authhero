@@ -10,7 +10,7 @@ import type {
   LoginSession,
   LegacyClient,
 } from "@authhero/adapter-interfaces";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 
 // Initialize i18next for stories
@@ -100,7 +100,7 @@ const mockLoginSession: LoginSession = {
   updated_at: new Date().toISOString(),
   expires_at: new Date(Date.now() + 3600000).toISOString(),
   csrf_token: "mock-csrf-token",
-  login_completed: false,
+  state: LoginSessionState.PENDING,
 };
 
 const mockTheme: Theme = {

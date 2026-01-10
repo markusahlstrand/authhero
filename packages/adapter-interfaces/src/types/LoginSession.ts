@@ -1,6 +1,16 @@
 import { z } from "@hono/zod-openapi";
 import { authParamsSchema } from "./AuthParams";
 
+// Login session state machine states
+export enum LoginSessionState {
+  PENDING = "pending",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  EXPIRED = "expired",
+}
+
+export const loginSessionStateSchema = z.nativeEnum(LoginSessionState);
+
 export const loginSessionInsertSchema = z
   .object({
     csrf_token: z.string(),
@@ -12,7 +22,9 @@ export const loginSessionInsertSchema = z
     useragent: z.string().optional(),
     session_id: z.string().optional(),
     authorization_url: z.string().optional(),
-    login_completed: z.boolean().optional().default(false),
+    state: loginSessionStateSchema.optional().default(LoginSessionState.PENDING),
+    state_data: z.string().optional(), // JSON string of state machine context
+    failure_reason: z.string().optional(),
   })
   .openapi({
     description: "This represents a login sesion",

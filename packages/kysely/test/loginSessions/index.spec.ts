@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
 
 describe("loginSessions", () => {
   it("should support crud operations", async () => {
@@ -40,7 +40,7 @@ describe("loginSessions", () => {
       expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       ip: "127.0.0.1",
       useragent: "jest",
-      login_completed: false,
+      state: LoginSessionState.PENDING,
     });
 
     expect(createdLoginSession).toMatchObject({
@@ -53,7 +53,7 @@ describe("loginSessions", () => {
       }),
       ip: "127.0.0.1",
       useragent: "jest",
-      login_completed: false,
+      state: LoginSessionState.PENDING,
       id: expect.any(String),
       created_at: expect.any(String),
       updated_at: expect.any(String),
@@ -67,7 +67,7 @@ describe("loginSessions", () => {
       "tenantId",
       createdLoginSession.id,
       {
-        login_completed: true,
+        state: LoginSessionState.COMPLETED,
       },
     );
     expect(updateLoginSessionResult).toBe(true);
@@ -87,7 +87,7 @@ describe("loginSessions", () => {
         scope: "openid profile",
         state: "state123",
       }),
-      login_completed: true,
+      state: LoginSessionState.COMPLETED,
       id: createdLoginSession.id,
     });
 
