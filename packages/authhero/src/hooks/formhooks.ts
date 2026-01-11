@@ -2,6 +2,10 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { LoginSession, Node, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
+import {
+  startLoginSessionHook,
+  startLoginSessionContinuation,
+} from "../authentication-flows/common";
 
 // Type guard for form hooks
 export function isFormHook(
@@ -385,11 +389,35 @@ export async function handleFormHook(
 
     if (result.type === "redirect") {
       // ACTION or FLOW node with REDIRECT - redirect to the target
+      const target = result.target as "change-email" | "account" | "custom";
       const redirectUrl = getRedirectUrl(
-        result.target as "change-email" | "account" | "custom",
+        target,
         result.customUrl,
         loginSession.id,
       );
+
+      // For account pages (change-email, account), use continuation state
+      // This allows the user to access the page without full auth, but with scope validation
+      if (target === "change-email" || target === "account") {
+        // Return URL is /u/continue which will resume the login flow
+        const returnUrl = `/u/continue?state=${encodeURIComponent(loginSession.id)}`;
+        await startLoginSessionContinuation(
+          ctx,
+          tenant_id,
+          loginSession,
+          [target], // Scope limited to the specific target
+          returnUrl,
+        );
+      } else {
+        // For custom URLs, use the regular hook mechanism
+        await startLoginSessionHook(
+          ctx,
+          tenant_id,
+          loginSession,
+          `form:${form_id}`,
+        );
+      }
+
       return new Response(null, {
         status: 302,
         headers: { location: redirectUrl },
@@ -399,6 +427,9 @@ export async function handleFormHook(
     // result.type === "step" - continue with form display
     firstNodeId = result.nodeId;
   }
+
+  // Mark login session as awaiting hook before redirecting to form
+  await startLoginSessionHook(ctx, tenant_id, loginSession, `form:${form_id}`);
 
   // If loginSession is provided, pass state as a query param if available
   let url = `/u/forms/${form.id}/nodes/${firstNodeId}?state=${encodeURIComponent(

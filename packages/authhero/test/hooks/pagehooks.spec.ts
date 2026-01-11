@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Context } from "hono";
 import { handlePageHook, isPageHook } from "../../src/hooks/pagehooks";
 import { Bindings, Variables } from "../../src/types";
-import { LoginSession, User } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  User,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 describe("pagehooks", () => {
   let mockCtx: Partial<Context<{ Bindings: Bindings; Variables: Variables }>>;
@@ -10,11 +14,27 @@ describe("pagehooks", () => {
   let mockUser: User;
 
   beforeEach(() => {
+    mockLoginSession = {
+      id: "login-session-id",
+      created_at: "2023-01-01T00:00:00Z",
+      updated_at: "2023-01-01T00:00:00Z",
+      expires_at: "2023-01-01T01:00:00Z",
+      csrf_token: "csrf-token",
+      authParams: {
+        client_id: "test-client",
+      },
+      state: LoginSessionState.AUTHENTICATED,
+    };
+
     mockCtx = {
       env: {
         data: {
           userPermissions: {
             list: vi.fn(),
+          },
+          loginSessions: {
+            get: vi.fn().mockResolvedValue(mockLoginSession),
+            update: vi.fn().mockResolvedValue(true),
           },
         },
       },
@@ -25,18 +45,6 @@ describe("pagehooks", () => {
         header: vi.fn().mockReturnValue("test-tenant"),
       },
     } as any;
-
-    mockLoginSession = {
-      id: "login-session-id",
-      created_at: "2023-01-01T00:00:00Z",
-      updated_at: "2023-01-01T00:00:00Z",
-      expires_at: "2023-01-01T01:00:00Z",
-      csrf_token: "csrf-token",
-      authParams: {
-        client_id: "test-client",
-      },
-      login_completed: false,
-    };
 
     mockUser = {
       user_id: "test|user123",

@@ -24,6 +24,7 @@ import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { createServiceToken } from "../helpers/service-token";
+import { startLoginSessionHook } from "../authentication-flows/common";
 
 // Helper function to create token API
 function createTokenAPI(
@@ -842,8 +843,14 @@ export async function postUserLoginHook(
       token: createTokenAPI(ctx, tenant_id),
     });
 
-    // If a redirect was requested, return it immediately
+    // If a redirect was requested, mark session as awaiting hook and return redirect
     if (redirectUrl) {
+      await startLoginSessionHook(
+        ctx,
+        tenant_id,
+        loginSession,
+        "onExecutePostLogin",
+      );
       return new Response(null, {
         status: 302,
         headers: { location: redirectUrl },

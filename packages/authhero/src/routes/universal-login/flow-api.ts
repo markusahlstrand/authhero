@@ -2,7 +2,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
-import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import {
+  createFrontChannelAuthResponse,
+  completeLoginSessionHook,
+} from "../../authentication-flows/common";
 import {
   resolveNode,
   getRedirectUrl,
@@ -446,6 +449,9 @@ async function handlePostScreen(
       );
 
       if (user) {
+        // Transition from AWAITING_HOOK back to AUTHENTICATED
+        await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
+
         // Create auth response
         const result = await createFrontChannelAuthResponse(ctx, {
           authParams: loginSession.authParams,

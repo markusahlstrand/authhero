@@ -4,6 +4,7 @@ import {
   AuthParams,
   LegacyClient,
   LoginSession,
+  LoginSessionState,
   User,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
@@ -27,6 +28,11 @@ import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { GrantType } from "@authhero/adapter-interfaces";
+import {
+  transitionLoginSession,
+  LoginSessionEventType,
+} from "../state-machines/login-session";
+import { createServiceToken } from "../helpers/service-token";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -181,9 +187,6 @@ export async function createAuthTokens(
             scope: string;
             expiresInSeconds?: number;
           }) => {
-            const { createServiceToken } = await import(
-              "../helpers/service-token"
-            );
             const tokenResponse = await createServiceToken(
               ctx,
               ctx.var.tenant_id,
@@ -315,10 +318,40 @@ export interface CreateSessionParams {
   loginSession: LoginSession;
 }
 
+/**
+ * Create a new session for a user
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ * and guards against creating sessions for terminal states (FAILED, EXPIRED, COMPLETED)
+ */
 export async function createSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   { user, client, loginSession }: CreateSessionParams,
 ) {
+  // Re-fetch current state to prevent stale overwrites
+  const currentLoginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    loginSession.id,
+  );
+  if (!currentLoginSession) {
+    throw new HTTPException(400, {
+      message: `Login session ${loginSession.id} not found`,
+    });
+  }
+
+  const currentState = currentLoginSession.state || LoginSessionState.PENDING;
+
+  // Guard against terminal states - don't create sessions for failed/expired/completed logins
+  if (
+    currentState === LoginSessionState.FAILED ||
+    currentState === LoginSessionState.EXPIRED ||
+    currentState === LoginSessionState.COMPLETED
+  ) {
+    throw new HTTPException(400, {
+      message: `Cannot create session for login session in ${currentState} state`,
+    });
+  }
+
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
@@ -339,12 +372,306 @@ export async function createSession(
     clients: [client.client_id],
   });
 
-  // Store the session id in the login session
-  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-    session_id: session.id,
+  // Transition login session state to AUTHENTICATED (user validated, session created)
+  // Note: COMPLETED state is set when tokens are actually issued
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.AUTHENTICATE,
+    userId: user.user_id,
   });
 
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    // Store the session id and updated state in the login session
+    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      session_id: session.id,
+      state: newState,
+      user_id: user.user_id,
+    });
+  } else {
+    // State didn't change (invalid transition), but still store session_id and user_id
+    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      session_id: session.id,
+      user_id: user.user_id,
+    });
+  }
+
   return session;
+}
+
+/**
+ * Mark a login session as failed
+ * This should be called when authentication fails (wrong password, blocked user, etc.)
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function failLoginSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+  reason: string,
+): Promise<void> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to mark as failed`,
+    );
+    return;
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState, context } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.FAIL,
+    reason,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      failure_reason: context.failureReason,
+    });
+  }
+}
+
+/**
+ * Mark a login session as awaiting hook completion
+ * This should be called when redirecting to a form, page, or external URL
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function startLoginSessionHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+  hookId?: string,
+): Promise<void> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to start hook`,
+    );
+    return;
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState, context } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.START_HOOK,
+    hookId,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      state_data: context.hookId
+        ? JSON.stringify({ hookId: context.hookId })
+        : undefined,
+    });
+  }
+}
+
+/**
+ * Mark a login session as returning from a hook
+ * This should be called when the user returns via /u/continue after a form/page redirect
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function completeLoginSessionHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+): Promise<void> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to complete hook`,
+    );
+    return;
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.COMPLETE_HOOK,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      state_data: undefined, // Clear hook data
+    });
+  }
+}
+
+/**
+ * Mark a login session as completed (tokens issued)
+ * This should be called when tokens are successfully returned to the client
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function completeLoginSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+): Promise<void> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to mark as completed`,
+    );
+    return;
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.COMPLETE,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+    });
+  }
+}
+
+/**
+ * Start a continuation - user is redirected to an account page (change-email, etc.)
+ * This transitions to AWAITING_CONTINUATION and stores the allowed scope and return URL
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function startLoginSessionContinuation(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+  scope: string[],
+  returnUrl: string,
+): Promise<void> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to start continuation`,
+    );
+    return;
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.START_CONTINUATION,
+    scope,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      state_data: JSON.stringify({
+        continuationScope: scope,
+        continuationReturnUrl: returnUrl,
+      }),
+    });
+  }
+}
+
+/**
+ * Complete a continuation - user finished the account page action
+ * This transitions back to AUTHENTICATED so the login flow can continue
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ */
+export async function completeLoginSessionContinuation(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSession: LoginSession,
+): Promise<string | undefined> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSession.id,
+  );
+  if (!currentSession) {
+    console.warn(
+      `Login session ${loginSession.id} not found when trying to complete continuation`,
+    );
+    return undefined;
+  }
+
+  // Parse state_data to get return URL
+  let returnUrl: string | undefined;
+  if (currentSession.state_data) {
+    try {
+      const data = JSON.parse(currentSession.state_data);
+      returnUrl = data.continuationReturnUrl;
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  const currentState = currentSession.state || LoginSessionState.PENDING;
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.COMPLETE_CONTINUATION,
+  });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      state: newState,
+      state_data: undefined, // Clear continuation data
+    });
+  }
+
+  return returnUrl;
+}
+
+/**
+ * Parse state_data JSON to get continuation scope
+ */
+function getContinuationScope(loginSession: LoginSession): string[] | null {
+  if (!loginSession.state_data) return null;
+  try {
+    const data = JSON.parse(loginSession.state_data);
+    return data.continuationScope || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if a login session allows access to a given scope during continuation
+ */
+export function hasValidContinuationScope(
+  loginSession: LoginSession,
+  requiredScope: string,
+): boolean {
+  if (loginSession.state !== LoginSessionState.AWAITING_CONTINUATION) {
+    return false;
+  }
+
+  const scopes = getContinuationScope(loginSession);
+  if (!scopes) return false;
+
+  return scopes.includes(requiredScope);
 }
 
 export interface CreateAuthResponseParams {
@@ -747,24 +1074,46 @@ export async function completeLogin(
   }
 
   // Return either code data or tokens based on response type
+  // Note: completeLoginSession is called AFTER successful creation to avoid
+  // marking session as COMPLETED if token/code creation fails
   if (responseType === AuthorizationResponseType.CODE) {
     if (!user || !params.loginSession) {
       throw new JSONHTTPException(500, {
         message: "User and loginSession is required for code flow",
       });
     }
-    return await createCodeData(ctx, {
+    const codeData = await createCodeData(ctx, {
       user,
       client: params.client,
       authParams: updatedAuthParams,
       login_id: params.loginSession.id,
     });
+
+    // Mark login session as completed after successful code creation
+    await completeLoginSession(
+      ctx,
+      params.client.tenant.id,
+      params.loginSession,
+    );
+
+    return codeData;
   } else {
-    return createAuthTokens(ctx, {
+    const tokens = await createAuthTokens(ctx, {
       ...params,
       user,
       authParams: updatedAuthParams,
       permissions: calculatedPermissions,
     });
+
+    // Mark login session as completed after successful token creation
+    if (params.loginSession) {
+      await completeLoginSession(
+        ctx,
+        params.client.tenant.id,
+        params.loginSession,
+      );
+    }
+
+    return tokens;
   }
 }

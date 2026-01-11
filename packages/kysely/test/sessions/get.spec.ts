@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { nanoid } from "nanoid";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 describe("sessions", () => {
   describe("get", () => {
@@ -55,7 +58,7 @@ describe("sessions", () => {
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
         ip: "127.0.0.1",
         useragent: "jest",
-        login_completed: false,
+        state: LoginSessionState.PENDING,
       });
 
       await data.sessions.create("tenantId", {

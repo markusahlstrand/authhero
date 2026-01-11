@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { LoginSession, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
+import { startLoginSessionHook } from "../authentication-flows/common";
 
 // Type guard for page hooks
 export function isPageHook(
@@ -43,6 +44,9 @@ export async function handlePageHook(
       return user;
     }
   }
+
+  // Mark login session as awaiting hook before redirecting to page
+  await startLoginSessionHook(ctx, tenant_id, loginSession, `page:${page_id}`);
 
   // If user has permission or no permission is required, redirect to the page
   let url = `/u/${page_id}?state=${encodeURIComponent(loginSession.id)}`;

@@ -1,6 +1,31 @@
 import { z } from "@hono/zod-openapi";
 import { authParamsSchema } from "./AuthParams";
 
+// Login session state machine states
+export enum LoginSessionState {
+  /** Initial state - awaiting user authentication */
+  PENDING = "pending",
+  /** User credentials validated, but may need additional steps */
+  AUTHENTICATED = "authenticated",
+  /** Waiting for email verification */
+  AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
+  /** Waiting for hook/flow completion (form, page redirect) */
+  AWAITING_HOOK = "awaiting_hook",
+  /** Waiting for user to complete action on continuation page (change-email, account, etc.) */
+  AWAITING_CONTINUATION = "awaiting_continuation",
+  /** Tokens issued successfully */
+  COMPLETED = "completed",
+  /** Authentication failed (wrong password, blocked, etc.) */
+  FAILED = "failed",
+  /** Session timed out */
+  EXPIRED = "expired",
+}
+
+export const loginSessionStateSchema = z.nativeEnum(LoginSessionState);
+
+/** Continuation scope - which pages/actions are allowed during continuation */
+export type ContinuationScope = "change-email" | "account" | "custom";
+
 export const loginSessionInsertSchema = z
   .object({
     csrf_token: z.string(),
@@ -12,7 +37,12 @@ export const loginSessionInsertSchema = z
     useragent: z.string().optional(),
     session_id: z.string().optional(),
     authorization_url: z.string().optional(),
-    login_completed: z.boolean().optional().default(false),
+    state: loginSessionStateSchema
+      .optional()
+      .default(LoginSessionState.PENDING),
+    state_data: z.string().optional(), // JSON: { hookId?, continuationScope?, continuationReturnUrl? }
+    failure_reason: z.string().optional(),
+    user_id: z.string().optional(), // Set once user is authenticated
   })
   .openapi({
     description: "This represents a login sesion",

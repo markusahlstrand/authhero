@@ -24,7 +24,10 @@ import {
   listScreenIds,
 } from "./screens/registry";
 import type { ScreenContext, ScreenBranding } from "./screens/types";
-import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import {
+  createFrontChannelAuthResponse,
+  completeLoginSessionHook,
+} from "../../authentication-flows/common";
 import {
   resolveNode,
   getRedirectUrl,
@@ -605,6 +608,9 @@ export const screenApiRoutes = new OpenAPIHono<{
           );
 
           if (user) {
+            // Complete any pending hook (idempotent - no-ops if not in AWAITING_HOOK state)
+            await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
+
             const result = await createFrontChannelAuthResponse(ctx, {
               authParams: loginSession.authParams,
               client,

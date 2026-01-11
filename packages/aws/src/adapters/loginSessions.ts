@@ -3,6 +3,7 @@ import {
   LoginSessionsAdapter,
   LoginSession,
   LoginSessionInsert,
+  LoginSessionState,
   loginSessionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -22,7 +23,10 @@ interface LoginSessionItem extends DynamoDBBaseItem {
   csrf_token: string;
   authParams: string; // JSON string of AuthParams
   expires_at: string;
-  login_completed: boolean;
+  state?: string;
+  state_data?: string;
+  failure_reason?: string;
+  user_id?: string;
   auth0Client?: string;
   deleted_at?: string;
   ip?: string;
@@ -62,7 +66,10 @@ export function createLoginSessionsAdapter(
         csrf_token: session.csrf_token,
         authParams: JSON.stringify(session.authParams),
         expires_at: session.expires_at,
-        login_completed: session.login_completed ?? false,
+        state: session.state ?? LoginSessionState.PENDING,
+        state_data: session.state_data,
+        failure_reason: session.failure_reason,
+        user_id: session.user_id,
         auth0Client: session.auth0Client,
         deleted_at: session.deleted_at,
         ip: session.ip,

@@ -13,7 +13,7 @@ import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
 import { sendResetPassword, sendValidateEmailAddress } from "../emails";
 import { stringifyAuth0Client } from "../utils/client-info";
-import { createFrontChannelAuthResponse } from "./common";
+import { createFrontChannelAuthResponse, failLoginSession } from "./common";
 import {
   LOGIN_SESSION_EXPIRATION_TIME,
   PASSWORD_RESET_EXPIRATION_TIME,
@@ -83,6 +83,8 @@ export async function passwordGrant(
       description: "Invalid user",
     });
 
+    // Note: Not marking session as FAILED - user can retry with correct credentials
+
     throw new AuthError(403, {
       message: "User not found",
       code: "USER_NOT_FOUND",
@@ -113,6 +115,16 @@ export async function passwordGrant(
       description: "Too many failed login attempts",
     });
 
+    // Mark login session as failed
+    if (loginSession) {
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "Too many failed login attempts",
+      );
+    }
+
     throw new AuthError(403, {
       message: "Too many failed login attempts",
       code: "TOO_MANY_FAILED_LOGINS",
@@ -133,6 +145,8 @@ export async function passwordGrant(
 
     // Record failed login attempt in app_metadata
     recordFailedLogin(data, client.tenant.id, primaryUser);
+
+    // Note: Not marking session as FAILED - user can retry with correct password
 
     throw new AuthError(403, {
       message: "Invalid password",
@@ -155,6 +169,16 @@ export async function passwordGrant(
       type: LogTypes.FAILED_LOGIN,
       description: "Email not verified",
     });
+
+    // Mark login session as failed
+    if (loginSession) {
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "Email not verified",
+      );
+    }
 
     throw new AuthError(403, {
       message: "Email not verified",

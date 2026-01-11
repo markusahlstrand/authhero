@@ -11,6 +11,7 @@ import { RedirectException } from "../../errors/redirect-exception";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { hasValidContinuationScope } from "../../authentication-flows/common";
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -82,9 +83,19 @@ export async function initJSXRoute(
   };
 }
 
+export interface InitJSXRouteWithSessionOptions {
+  /**
+   * Required continuation scope - if set, the function will also accept
+   * login sessions in AWAITING_CONTINUATION state with matching scope.
+   * This allows account pages (change-email, etc.) to be accessed mid-login.
+   */
+  continuationScope?: string;
+}
+
 export async function initJSXRouteWithSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
+  options?: InitJSXRouteWithSessionOptions,
 ) {
   const { theme, branding, client, tenant, loginSession } = await initJSXRoute(
     ctx,
@@ -98,6 +109,53 @@ export async function initJSXRouteWithSession(
     ? await ctx.env.data.sessions.get(client.tenant.id, authCookie)
     : null;
 
+  // Check if this is a continuation session (mid-login redirect to account page)
+  const isContinuation =
+    options?.continuationScope &&
+    hasValidContinuationScope(loginSession, options.continuationScope);
+
+  // For continuation sessions, we don't require a full auth session cookie
+  // The user is mid-login and we validate via the continuation scope instead
+  if (isContinuation) {
+    // For continuation, we get the user from the login session's user_id
+    if (!loginSession.user_id) {
+      throw new RedirectException(
+        `/u/login/identifier?state=${encodeURIComponent(state)}`,
+      );
+    }
+
+    const user = await ctx.env.data.users.get(
+      client.tenant.id,
+      loginSession.user_id,
+    );
+
+    if (!user) {
+      throw new RedirectException(
+        `/u/login/identifier?state=${encodeURIComponent(state)}`,
+      );
+    }
+
+    // Get session if it exists (it might not for continuation flows)
+    const session = loginSession.session_id
+      ? await ctx.env.data.sessions.get(
+          client.tenant.id,
+          loginSession.session_id,
+        )
+      : null;
+
+    return {
+      theme,
+      branding,
+      client,
+      user,
+      tenant,
+      loginSession,
+      session,
+      isContinuation: true,
+    };
+  }
+
+  // Normal authenticated session flow
   if (!authSession || !loginSession.session_id) {
     throw new RedirectException(
       `/u/login/identifier?state=${encodeURIComponent(state)}`,
@@ -129,6 +187,7 @@ export async function initJSXRouteWithSession(
     tenant,
     loginSession,
     session,
+    isContinuation: false,
   };
 }
 
