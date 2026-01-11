@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.8.0
+
+### Minor Changes
+
+- 8ab8c0b: Start adding xstate
+
+### Patch Changes
+
+- Updated dependencies [8ab8c0b]
+  - @authhero/adapter-interfaces@0.119.0
+
 ## 0.7.3
 
 ### Patch Changes

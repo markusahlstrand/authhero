@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.119.0
+
+### Minor Changes
+
+- 8ab8c0b: Start adding xstate
+
 ## 0.118.0
 
 ### Minor Changes

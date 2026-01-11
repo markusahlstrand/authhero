@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.78.0
+
+### Minor Changes
+
+- 8ab8c0b: Start adding xstate
+
+### Patch Changes
+
+- Updated dependencies [8ab8c0b]
+  - @authhero/adapter-interfaces@0.119.0
+
 ## 10.77.0
 
 ### Minor Changes
