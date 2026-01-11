@@ -845,7 +845,12 @@ export async function postUserLoginHook(
 
     // If a redirect was requested, mark session as awaiting hook and return redirect
     if (redirectUrl) {
-      await startLoginSessionHook(ctx, tenant_id, loginSession, "onExecutePostLogin");
+      await startLoginSessionHook(
+        ctx,
+        tenant_id,
+        loginSession,
+        "onExecutePostLogin",
+      );
       return new Response(null, {
         status: 302,
         headers: { location: redirectUrl },

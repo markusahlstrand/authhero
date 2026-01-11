@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { nanoid } from "nanoid";
-import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 describe("sessions", () => {
   describe("get", () => {

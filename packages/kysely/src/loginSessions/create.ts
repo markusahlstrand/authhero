@@ -1,4 +1,8 @@
-import { LoginSession, LoginSessionInsert, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  LoginSessionInsert,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { nanoid } from "nanoid";
 import { Database } from "../db";

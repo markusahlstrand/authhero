@@ -11,6 +11,8 @@ export enum LoginSessionState {
   AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
   /** Waiting for hook/flow completion (form, page redirect) */
   AWAITING_HOOK = "awaiting_hook",
+  /** Waiting for user to complete action on continuation page (change-email, account, etc.) */
+  AWAITING_CONTINUATION = "awaiting_continuation",
   /** Tokens issued successfully */
   COMPLETED = "completed",
   /** Authentication failed (wrong password, blocked, etc.) */
@@ -20,6 +22,9 @@ export enum LoginSessionState {
 }
 
 export const loginSessionStateSchema = z.nativeEnum(LoginSessionState);
+
+/** Continuation scope - which pages/actions are allowed during continuation */
+export type ContinuationScope = "change-email" | "account" | "custom";
 
 export const loginSessionInsertSchema = z
   .object({
@@ -32,8 +37,10 @@ export const loginSessionInsertSchema = z
     useragent: z.string().optional(),
     session_id: z.string().optional(),
     authorization_url: z.string().optional(),
-    state: loginSessionStateSchema.optional().default(LoginSessionState.PENDING),
-    state_data: z.string().optional(), // JSON string of state machine context
+    state: loginSessionStateSchema
+      .optional()
+      .default(LoginSessionState.PENDING),
+    state_data: z.string().optional(), // JSON: { hookId?, continuationScope?, continuationReturnUrl? }
     failure_reason: z.string().optional(),
     user_id: z.string().optional(), // Set once user is authenticated
   })

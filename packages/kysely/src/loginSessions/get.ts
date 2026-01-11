@@ -1,5 +1,9 @@
 import { Kysely } from "kysely";
-import { LoginSession, loginSessionSchema, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  loginSessionSchema,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";

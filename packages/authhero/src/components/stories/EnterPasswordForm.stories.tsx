@@ -10,7 +10,10 @@ import type {
   LoginSession,
   LegacyClient,
 } from "@authhero/adapter-interfaces";
-import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 
 // Initialize i18next for stories

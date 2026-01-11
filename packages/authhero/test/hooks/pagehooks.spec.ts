@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Context } from "hono";
 import { handlePageHook, isPageHook } from "../../src/hooks/pagehooks";
 import { Bindings, Variables } from "../../src/types";
-import { LoginSession, User, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  User,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 describe("pagehooks", () => {
   let mockCtx: Partial<Context<{ Bindings: Bindings; Variables: Variables }>>;

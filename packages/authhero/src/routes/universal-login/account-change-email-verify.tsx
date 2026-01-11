@@ -49,9 +49,11 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
       const { state, email, change_id } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         state,
+        { continuationScope: "change-email" },
       );
 
       // Verify the change_id belongs to this user
@@ -128,9 +130,11 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
       const { code } = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         state,
+        { continuationScope: "change-email" },
       );
 
       let error: string | undefined;

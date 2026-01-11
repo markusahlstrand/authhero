@@ -85,7 +85,12 @@ export async function passwordGrant(
 
     // Mark login session as failed
     if (loginSession) {
-      await failLoginSession(ctx, client.tenant.id, loginSession, "User not found");
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "User not found",
+      );
     }
 
     throw new AuthError(403, {
@@ -120,7 +125,12 @@ export async function passwordGrant(
 
     // Mark login session as failed
     if (loginSession) {
-      await failLoginSession(ctx, client.tenant.id, loginSession, "Too many failed login attempts");
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "Too many failed login attempts",
+      );
     }
 
     throw new AuthError(403, {
@@ -146,7 +156,12 @@ export async function passwordGrant(
 
     // Mark login session as failed
     if (loginSession) {
-      await failLoginSession(ctx, client.tenant.id, loginSession, "Invalid password");
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "Invalid password",
+      );
     }
 
     throw new AuthError(403, {
@@ -173,7 +188,12 @@ export async function passwordGrant(
 
     // Mark login session as failed
     if (loginSession) {
-      await failLoginSession(ctx, client.tenant.id, loginSession, "Email not verified");
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "Email not verified",
+      );
     }
 
     throw new AuthError(403, {

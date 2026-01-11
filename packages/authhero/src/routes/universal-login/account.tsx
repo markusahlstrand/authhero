@@ -50,8 +50,11 @@ export const accountRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, {
+          continuationScope: "account",
+        });
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -144,8 +147,11 @@ export const accountRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, {
+          continuationScope: "account",
+        });
 
       let error: string | undefined;
       let success: string | undefined;

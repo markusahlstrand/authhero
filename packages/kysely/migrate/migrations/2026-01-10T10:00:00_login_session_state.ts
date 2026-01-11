@@ -3,7 +3,7 @@ import { Database } from "../../src/db";
 
 /**
  * Migration: Replace login_completed with state machine columns
- * 
+ *
  * This migration:
  * 1. Adds state machine columns (state, state_data, failure_reason)
  * 2. Backfills state from login_completed

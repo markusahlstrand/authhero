@@ -98,7 +98,7 @@ export const loginSessions = sqliteTable(
     useragent: text("useragent"),
     auth0Client: text("auth0Client", { length: 255 }),
     state: text("state", { length: 50 }).notNull().default("pending"),
-    state_data: text("state_data"),
+    state_data: text("state_data"), // JSON: { hookId?, continuationScope?, continuationReturnUrl? }
     failure_reason: text("failure_reason"),
     user_id: text("user_id", { length: 255 }),
   },

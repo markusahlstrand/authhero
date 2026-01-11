@@ -51,9 +51,11 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user } = await initJSXRouteWithSession(
         ctx,
         state,
+        { continuationScope: "change-email" },
       );
 
       return ctx.html(
@@ -117,8 +119,11 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
       const { email } = ctx.req.valid("form");
 
       // Get theme, branding and user from initJSXRoute
+      // Pass continuationScope to allow mid-login access
       const { theme, branding, client, user, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+        await initJSXRouteWithSession(ctx, state, {
+          continuationScope: "change-email",
+        });
 
       // Check if email is already taken by checking existing users
       const existingUsers = await env.data.users.list(client.tenant.id, {

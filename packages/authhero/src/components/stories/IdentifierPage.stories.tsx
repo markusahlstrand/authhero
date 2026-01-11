@@ -11,7 +11,10 @@ import type {
   Theme,
   Branding,
 } from "@authhero/adapter-interfaces";
-import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 // Mock data for stories
 const mockLoginSession: LoginSession = {

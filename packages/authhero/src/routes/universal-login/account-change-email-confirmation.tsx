@@ -4,6 +4,7 @@ import { initJSXRouteWithSession } from "./common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
+import { completeLoginSessionContinuation } from "../../authentication-flows/common";
 
 export const changeEmailConfirmationRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -49,8 +50,11 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
       const { state, email } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
-      const { theme, branding, client, loginSession } =
-        await initJSXRouteWithSession(ctx, state);
+      // Pass continuationScope to allow mid-login access
+      const { theme, branding, client, loginSession, isContinuation } =
+        await initJSXRouteWithSession(ctx, state, {
+          continuationScope: "change-email",
+        });
 
       if (!client || !client.tenant?.id) {
         console.error(
@@ -72,10 +76,21 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         );
       }
 
-      // Check if the authorization_url contains screen_hint=change-email
+      // Determine the redirect URL based on context
       let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
 
-      if (loginSession?.authorization_url) {
+      // If this is a continuation session (mid-login), complete it and redirect to continue URL
+      if (isContinuation) {
+        const returnUrl = await completeLoginSessionContinuation(
+          ctx,
+          client.tenant.id,
+          loginSession,
+        );
+        if (returnUrl) {
+          redirectUrl = returnUrl;
+        }
+      } else if (loginSession?.authorization_url) {
+        // Check if the authorization_url contains screen_hint=change-email
         const authUrl = new URL(loginSession.authorization_url);
         if (authUrl.searchParams.get("screen_hint") === "change-email") {
           // User came directly to change-email, redirect to original redirect_uri

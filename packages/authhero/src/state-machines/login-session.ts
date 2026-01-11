@@ -11,21 +11,40 @@ export interface LoginSessionContext {
   failureReason?: string;
   /** Hook/flow ID if waiting for completion */
   hookId?: string;
+  /** Continuation scope - which pages are allowed during AWAITING_CONTINUATION */
+  continuationScope?: string[];
   /** Additional state data */
   stateData?: Record<string, unknown>;
+}
+
+/**
+ * Event types for the login session state machine
+ */
+export enum LoginSessionEventType {
+  AUTHENTICATE = "AUTHENTICATE",
+  REQUIRE_EMAIL_VERIFICATION = "REQUIRE_EMAIL_VERIFICATION",
+  START_HOOK = "START_HOOK",
+  COMPLETE_HOOK = "COMPLETE_HOOK",
+  START_CONTINUATION = "START_CONTINUATION",
+  COMPLETE_CONTINUATION = "COMPLETE_CONTINUATION",
+  COMPLETE = "COMPLETE",
+  FAIL = "FAIL",
+  EXPIRE = "EXPIRE",
 }
 
 /**
  * Events that can trigger state transitions
  */
 export type LoginSessionEvent =
-  | { type: "AUTHENTICATE"; userId: string }
-  | { type: "REQUIRE_EMAIL_VERIFICATION" }
-  | { type: "START_HOOK"; hookId?: string }
-  | { type: "COMPLETE_HOOK" }
-  | { type: "COMPLETE" }
-  | { type: "FAIL"; reason: string }
-  | { type: "EXPIRE" };
+  | { type: LoginSessionEventType.AUTHENTICATE; userId: string }
+  | { type: LoginSessionEventType.REQUIRE_EMAIL_VERIFICATION }
+  | { type: LoginSessionEventType.START_HOOK; hookId?: string }
+  | { type: LoginSessionEventType.COMPLETE_HOOK }
+  | { type: LoginSessionEventType.START_CONTINUATION; scope: string[] }
+  | { type: LoginSessionEventType.COMPLETE_CONTINUATION }
+  | { type: LoginSessionEventType.COMPLETE }
+  | { type: LoginSessionEventType.FAIL; reason: string }
+  | { type: LoginSessionEventType.EXPIRE };
 
 /**
  * Login session state machine
@@ -34,6 +53,7 @@ export type LoginSessionEvent =
  *   pending → authenticated → completed (happy path)
  *                          → awaiting_email_verification → completed (after verification)
  *                          → awaiting_hook → completed (after hook/flow completes)
+ *                          → awaiting_continuation → authenticated (after account page action)
  *
  * Any state can transition to failed or expired
  *
@@ -42,6 +62,7 @@ export type LoginSessionEvent =
  * - authenticated: Credentials validated, user identified
  * - awaiting_email_verification: Blocked on email verification
  * - awaiting_hook: Waiting for hook/flow completion (form, page, impersonate)
+ * - awaiting_continuation: Waiting for user to complete action on account page (change-email, etc.)
  * - completed: Tokens issued successfully
  * - failed: Authentication failed (wrong password, blocked, etc.)
  * - expired: Session timed out
@@ -70,6 +91,17 @@ export const loginSessionMachine = setup({
     }),
     clearHookId: assign({
       hookId: () => undefined,
+    }),
+    setContinuationScope: assign({
+      continuationScope: ({ event }) => {
+        if (event.type === "START_CONTINUATION") {
+          return event.scope;
+        }
+        return undefined;
+      },
+    }),
+    clearContinuationScope: assign({
+      continuationScope: () => undefined,
     }),
     setFailureReason: assign({
       failureReason: ({ event }) => {
@@ -108,6 +140,10 @@ export const loginSessionMachine = setup({
         START_HOOK: {
           target: LoginSessionState.AWAITING_HOOK,
           actions: "setHookId",
+        },
+        START_CONTINUATION: {
+          target: LoginSessionState.AWAITING_CONTINUATION,
+          actions: "setContinuationScope",
         },
         COMPLETE: {
           target: LoginSessionState.COMPLETED,
@@ -154,6 +190,25 @@ export const loginSessionMachine = setup({
         },
       },
     },
+    [LoginSessionState.AWAITING_CONTINUATION]: {
+      on: {
+        COMPLETE_CONTINUATION: {
+          target: LoginSessionState.AUTHENTICATED,
+          actions: "clearContinuationScope",
+        },
+        COMPLETE: {
+          target: LoginSessionState.COMPLETED,
+          actions: "clearContinuationScope",
+        },
+        FAIL: {
+          target: LoginSessionState.FAILED,
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: LoginSessionState.EXPIRED,
+        },
+      },
+    },
     [LoginSessionState.COMPLETED]: {
       type: "final",
     },
@@ -175,6 +230,7 @@ export function getLoginSessionState(stateValue: string): LoginSessionState {
     authenticated: LoginSessionState.AUTHENTICATED,
     awaiting_email_verification: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
     awaiting_hook: LoginSessionState.AWAITING_HOOK,
+    awaiting_continuation: LoginSessionState.AWAITING_CONTINUATION,
     completed: LoginSessionState.COMPLETED,
     failed: LoginSessionState.FAILED,
     expired: LoginSessionState.EXPIRED,
@@ -203,6 +259,7 @@ export function transitionLoginSession(
     [LoginSessionState.AUTHENTICATED]: {
       REQUIRE_EMAIL_VERIFICATION: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
       START_HOOK: LoginSessionState.AWAITING_HOOK,
+      START_CONTINUATION: LoginSessionState.AWAITING_CONTINUATION,
       COMPLETE: LoginSessionState.COMPLETED,
       FAIL: LoginSessionState.FAILED,
       EXPIRE: LoginSessionState.EXPIRED,
@@ -218,6 +275,12 @@ export function transitionLoginSession(
       FAIL: LoginSessionState.FAILED,
       EXPIRE: LoginSessionState.EXPIRED,
     },
+    [LoginSessionState.AWAITING_CONTINUATION]: {
+      COMPLETE_CONTINUATION: LoginSessionState.AUTHENTICATED,
+      COMPLETE: LoginSessionState.COMPLETED,
+      FAIL: LoginSessionState.FAILED,
+      EXPIRE: LoginSessionState.EXPIRED,
+    },
     // Final states - no transitions allowed
     [LoginSessionState.COMPLETED]: {},
     [LoginSessionState.FAILED]: {},
@@ -229,7 +292,7 @@ export function transitionLoginSession(
   // Build context updates based on event - only if transition is valid
   const contextUpdates: Partial<LoginSessionContext> = {};
   const transitionOccurred = nextState !== currentState;
-  
+
   if (transitionOccurred) {
     if (event.type === "AUTHENTICATE") {
       contextUpdates.userId = event.userId;
@@ -239,6 +302,12 @@ export function transitionLoginSession(
     }
     if (event.type === "COMPLETE_HOOK" || event.type === "COMPLETE") {
       contextUpdates.hookId = undefined;
+    }
+    if (event.type === "START_CONTINUATION") {
+      contextUpdates.continuationScope = event.scope;
+    }
+    if (event.type === "COMPLETE_CONTINUATION") {
+      contextUpdates.continuationScope = undefined;
     }
     if (event.type === "FAIL") {
       contextUpdates.failureReason = event.reason;
@@ -259,10 +328,36 @@ export function canTransition(
     LoginSessionState,
     LoginSessionEvent["type"][]
   > = {
-    [LoginSessionState.PENDING]: ["AUTHENTICATE", "FAIL", "EXPIRE"],
-    [LoginSessionState.AUTHENTICATED]: ["REQUIRE_EMAIL_VERIFICATION", "START_HOOK", "COMPLETE", "FAIL", "EXPIRE"],
-    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: ["COMPLETE", "FAIL", "EXPIRE"],
-    [LoginSessionState.AWAITING_HOOK]: ["COMPLETE_HOOK", "COMPLETE", "FAIL", "EXPIRE"],
+    [LoginSessionState.PENDING]: [
+      LoginSessionEventType.AUTHENTICATE,
+      LoginSessionEventType.FAIL,
+      LoginSessionEventType.EXPIRE,
+    ],
+    [LoginSessionState.AUTHENTICATED]: [
+      LoginSessionEventType.REQUIRE_EMAIL_VERIFICATION,
+      LoginSessionEventType.START_HOOK,
+      LoginSessionEventType.START_CONTINUATION,
+      LoginSessionEventType.COMPLETE,
+      LoginSessionEventType.FAIL,
+      LoginSessionEventType.EXPIRE,
+    ],
+    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: [
+      LoginSessionEventType.COMPLETE,
+      LoginSessionEventType.FAIL,
+      LoginSessionEventType.EXPIRE,
+    ],
+    [LoginSessionState.AWAITING_HOOK]: [
+      LoginSessionEventType.COMPLETE_HOOK,
+      LoginSessionEventType.COMPLETE,
+      LoginSessionEventType.FAIL,
+      LoginSessionEventType.EXPIRE,
+    ],
+    [LoginSessionState.AWAITING_CONTINUATION]: [
+      LoginSessionEventType.COMPLETE_CONTINUATION,
+      LoginSessionEventType.COMPLETE,
+      LoginSessionEventType.FAIL,
+      LoginSessionEventType.EXPIRE,
+    ],
     [LoginSessionState.COMPLETED]: [],
     [LoginSessionState.FAILED]: [],
     [LoginSessionState.EXPIRED]: [],

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
-import { AuthorizationResponseType, LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LoginSessionState,
+} from "@authhero/adapter-interfaces";
 
 describe("loginSessions", () => {
   it("should support crud operations", async () => {
