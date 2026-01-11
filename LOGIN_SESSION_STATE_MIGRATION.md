@@ -4,20 +4,35 @@
 
 This document describes the XState-based state machine for tracking login session progress. It provides better visibility, debugging capabilities, and clear state transitions for the authentication flow.
 
-## State Machine
+The state machine uses XState v5's `getNextSnapshot` for a **single source of truth** - all transitions are defined in the machine definition, and helper functions derive valid transitions from it.
 
-### States
+## Architecture: Hub Pattern
+
+The `AUTHENTICATED` state acts as a "hub" that decides the next step. After completing verification, hooks, or continuations, the flow returns to `AUTHENTICATED` so the backend can check if additional steps are needed.
+
+```
+Flow examples:
+  pending → authenticated → completed (simple login)
+  pending → authenticated → awaiting_email_verification → authenticated → completed
+  pending → authenticated → awaiting_hook → authenticated → awaiting_continuation → authenticated → completed
+```
+
+This enables **chaining**: email verification → hook → another hook → continuation → completed
+
+## States
 
 ```typescript
 enum LoginSessionState {
   /** Initial state - awaiting user authentication */
   PENDING = "pending",
-  /** User credentials validated, session created */
+  /** User credentials validated, session created - HUB state that decides next steps */
   AUTHENTICATED = "authenticated",
   /** Waiting for email verification */
   AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
-  /** Waiting for hook/flow completion (form, page redirect) */
+  /** Waiting for hook/flow completion (form, page redirect, impersonate) */
   AWAITING_HOOK = "awaiting_hook",
+  /** Waiting for user to complete action on account page (change-email, etc.) */
+  AWAITING_CONTINUATION = "awaiting_continuation",
   /** Tokens issued successfully */
   COMPLETED = "completed",
   /** Authentication failed (wrong password, blocked, etc.) */
@@ -27,55 +42,69 @@ enum LoginSessionState {
 }
 ```
 
-### State Flow Diagram
+## State Flow Diagram
 
 ```
-                              ┌─────────────────────────────────────┐
-                              │                                     │
-                              ▼                                     │
-┌─────────┐  AUTHENTICATE  ┌──────────────┐  START_HOOK  ┌─────────────────┐
-│ PENDING │───────────────▶│ AUTHENTICATED │────────────▶│  AWAITING_HOOK  │
-└─────────┘                └──────────────┘              └─────────────────┘
-     │                           │    │                         │
-     │ FAIL                      │    │ REQUIRE_EMAIL_          │ COMPLETE_HOOK
-     │                           │    │ VERIFICATION            │
-     ▼                           │    ▼                         ▼
-┌──────────┐                     │  ┌────────────────────────┐  │
-│  FAILED  │◀────────────────────┼──│AWAITING_EMAIL_VERIFY   │  │
-└──────────┘                     │  └────────────────────────┘  │
-                                 │             │                │
-                                 │  COMPLETE   │ COMPLETE       │
-                                 ▼             ▼                │
-                           ┌───────────┐◀──────────────────────┘
-                           │ COMPLETED │
-                           └───────────┘
+                                       START_CONTINUATION
+                              ┌─────────────────────────────────────────────────────────┐
+                              │                                                         │
+                              ▼                                                         │
+┌─────────┐  AUTHENTICATE  ┌──────────────┐  START_HOOK  ┌─────────────────┐            │
+│ PENDING │───────────────▶│ AUTHENTICATED │────────────▶│  AWAITING_HOOK  │            │
+└─────────┘                └──────────────┘              └─────────────────┘            │
+     │                      ▲    │    │ ▲                        │                      │
+     │ FAIL                 │    │    │ │ COMPLETE_HOOK          │ FAIL                 │
+     │                      │    │    │ └────────────────────────┘                      │
+     ▼                      │    │    │                                                 │
+┌──────────┐                │    │    │ REQUIRE_EMAIL_                                  │
+│  FAILED  │◀───────────────┼────┼────│ VERIFICATION                                    │
+└──────────┘                │    │    ▼                                                 │
+                            │    │  ┌────────────────────────┐                          │
+    COMPLETE                │    │  │AWAITING_EMAIL_VERIFY   │                          │
+       │                    │    │  └────────────────────────┘                          │
+       │                    │    │             │                                        │
+       ▼                    │    │  COMPLETE   │                                        │
+┌───────────┐               │    │             │                                        │
+│ COMPLETED │               │    └─────────────┴────────────────────────────────────────┤
+└───────────┘               │                                                           │
+                            │                  ┌────────────────────────┐               │
+                            │                  │ AWAITING_CONTINUATION  │◀──────────────┘
+                            │                  └────────────────────────┘
+                            │                             │
+                            │  COMPLETE_CONTINUATION      │
+                            └─────────────────────────────┘
 
-Any state can transition to FAILED or EXPIRED
+Any non-final state can transition to FAILED or EXPIRED
 ```
 
-### Events
+## Events
 
-| Event                        | Description                                   |
-| ---------------------------- | --------------------------------------------- |
-| `AUTHENTICATE`               | User credentials validated, session created   |
-| `REQUIRE_EMAIL_VERIFICATION` | Email verification required before completion |
-| `START_HOOK`                 | Redirecting to form, page, or external URL    |
-| `COMPLETE_HOOK`              | Returned from hook, back to authenticated     |
-| `COMPLETE`                   | Tokens successfully issued                    |
-| `FAIL`                       | Authentication failed                         |
-| `EXPIRE`                     | Session timed out                             |
+| Event                        | Description                                       |
+| ---------------------------- | ------------------------------------------------- |
+| `AUTHENTICATE`               | User credentials validated, session created       |
+| `REQUIRE_EMAIL_VERIFICATION` | Email verification required before completion     |
+| `START_HOOK`                 | Redirecting to form, page, or external URL        |
+| `COMPLETE_HOOK`              | Returned from hook → back to AUTHENTICATED hub    |
+| `START_CONTINUATION`         | Redirecting to account page (change-email, etc.)  |
+| `COMPLETE_CONTINUATION`      | Returned from account page → back to AUTHENTICATED hub |
+| `COMPLETE`                   | Tokens successfully issued (only from AUTHENTICATED or AWAITING_EMAIL_VERIFICATION) |
+| `FAIL`                       | Authentication failed                             |
+| `EXPIRE`                     | Session timed out                                 |
 
-### Valid Transitions
+## Valid Transitions
 
-| From State                    | Valid Events                                                             |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| `PENDING`                     | `AUTHENTICATE`, `FAIL`, `EXPIRE`                                         |
-| `AUTHENTICATED`               | `REQUIRE_EMAIL_VERIFICATION`, `START_HOOK`, `COMPLETE`, `FAIL`, `EXPIRE` |
-| `AWAITING_EMAIL_VERIFICATION` | `COMPLETE`, `FAIL`, `EXPIRE`                                             |
-| `AWAITING_HOOK`               | `COMPLETE_HOOK`, `COMPLETE`, `FAIL`, `EXPIRE`                            |
-| `COMPLETED`                   | (final state)                                                            |
-| `FAILED`                      | (final state)                                                            |
-| `EXPIRED`                     | (final state)                                                            |
+| From State                    | Valid Events                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `PENDING`                     | `AUTHENTICATE`, `FAIL`, `EXPIRE`                                                     |
+| `AUTHENTICATED`               | `REQUIRE_EMAIL_VERIFICATION`, `START_HOOK`, `START_CONTINUATION`, `COMPLETE`, `FAIL`, `EXPIRE` |
+| `AWAITING_EMAIL_VERIFICATION` | `COMPLETE` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                       |
+| `AWAITING_HOOK`               | `COMPLETE_HOOK` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                  |
+| `AWAITING_CONTINUATION`       | `COMPLETE_CONTINUATION` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                          |
+| `COMPLETED`                   | (final state)                                                                        |
+| `FAILED`                      | (final state)                                                                        |
+| `EXPIRED`                     | (final state)                                                                        |
+
+**Important**: `AWAITING_HOOK` does NOT accept `COMPLETE` - you must use `COMPLETE_HOOK` which returns to `AUTHENTICATED`, then `COMPLETE` from there.
 
 ## Database Schema
 
@@ -107,6 +136,12 @@ await startLoginSessionHook(ctx, tenantId, loginSession, "form:mfa");
 
 // Mark session as returned from hook
 await completeLoginSessionHook(ctx, tenantId, loginSession);
+
+// Mark session as awaiting continuation (before redirecting to account page)
+await startLoginSessionContinuation(ctx, tenantId, loginSession, ["/u/account/change-email"], returnUrl);
+
+// Mark session as returned from continuation (account page)
+await completeLoginSessionContinuation(ctx, tenantId, loginSession);
 
 // Mark session as completed (tokens issued)
 await completeLoginSession(ctx, tenantId, loginSession);
