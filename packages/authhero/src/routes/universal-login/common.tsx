@@ -137,7 +137,10 @@ export async function initJSXRouteWithSession(
 
     // Get session if it exists (it might not for continuation flows)
     const session = loginSession.session_id
-      ? await ctx.env.data.sessions.get(client.tenant.id, loginSession.session_id)
+      ? await ctx.env.data.sessions.get(
+          client.tenant.id,
+          loginSession.session_id,
+        )
       : null;
 
     return {

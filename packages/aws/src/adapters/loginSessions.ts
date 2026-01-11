@@ -3,6 +3,7 @@ import {
   LoginSessionsAdapter,
   LoginSession,
   LoginSessionInsert,
+  LoginSessionState,
   loginSessionSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -65,7 +66,7 @@ export function createLoginSessionsAdapter(
         csrf_token: session.csrf_token,
         authParams: JSON.stringify(session.authParams),
         expires_at: session.expires_at,
-        state: session.state ?? "pending",
+        state: session.state ?? LoginSessionState.PENDING,
         state_data: session.state_data,
         failure_reason: session.failure_reason,
         user_id: session.user_id,

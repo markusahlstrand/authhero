@@ -83,15 +83,7 @@ export async function passwordGrant(
       description: "Invalid user",
     });
 
-    // Mark login session as failed
-    if (loginSession) {
-      await failLoginSession(
-        ctx,
-        client.tenant.id,
-        loginSession,
-        "User not found",
-      );
-    }
+    // Note: Not marking session as FAILED - user can retry with correct credentials
 
     throw new AuthError(403, {
       message: "User not found",
@@ -154,15 +146,7 @@ export async function passwordGrant(
     // Record failed login attempt in app_metadata
     recordFailedLogin(data, client.tenant.id, primaryUser);
 
-    // Mark login session as failed
-    if (loginSession) {
-      await failLoginSession(
-        ctx,
-        client.tenant.id,
-        loginSession,
-        "Invalid password",
-      );
-    }
+    // Note: Not marking session as FAILED - user can retry with correct password
 
     throw new AuthError(403, {
       message: "Invalid password",

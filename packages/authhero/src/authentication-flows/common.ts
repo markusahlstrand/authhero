@@ -318,10 +318,40 @@ export interface CreateSessionParams {
   loginSession: LoginSession;
 }
 
+/**
+ * Create a new session for a user
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ * and guards against creating sessions for terminal states (FAILED, EXPIRED, COMPLETED)
+ */
 export async function createSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   { user, client, loginSession }: CreateSessionParams,
 ) {
+  // Re-fetch current state to prevent stale overwrites
+  const currentLoginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    loginSession.id,
+  );
+  if (!currentLoginSession) {
+    throw new HTTPException(400, {
+      message: `Login session ${loginSession.id} not found`,
+    });
+  }
+
+  const currentState = currentLoginSession.state || LoginSessionState.PENDING;
+
+  // Guard against terminal states - don't create sessions for failed/expired/completed logins
+  if (
+    currentState === LoginSessionState.FAILED ||
+    currentState === LoginSessionState.EXPIRED ||
+    currentState === LoginSessionState.COMPLETED
+  ) {
+    throw new HTTPException(400, {
+      message: `Cannot create session for login session in ${currentState} state`,
+    });
+  }
+
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
@@ -344,17 +374,26 @@ export async function createSession(
 
   // Transition login session state to AUTHENTICATED (user validated, session created)
   // Note: COMPLETED state is set when tokens are actually issued
-  const { state: newState } = transitionLoginSession(
-    loginSession.state || LoginSessionState.PENDING,
-    { type: LoginSessionEventType.AUTHENTICATE, userId: user.user_id },
-  );
-
-  // Store the session id and updated state in the login session
-  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-    session_id: session.id,
-    state: newState,
-    user_id: user.user_id,
+  const { state: newState } = transitionLoginSession(currentState, {
+    type: LoginSessionEventType.AUTHENTICATE,
+    userId: user.user_id,
   });
+
+  // Only update if transition is valid and state changed
+  if (newState !== currentState) {
+    // Store the session id and updated state in the login session
+    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      session_id: session.id,
+      state: newState,
+      user_id: user.user_id,
+    });
+  } else {
+    // State didn't change (invalid transition), but still store session_id and user_id
+    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      session_id: session.id,
+      user_id: user.user_id,
+    });
+  }
 
   return session;
 }
@@ -1034,34 +1073,47 @@ export async function completeLogin(
     user = hookResult;
   }
 
-  // Mark login session as completed (tokens about to be issued)
-  if (params.loginSession) {
-    await completeLoginSession(
-      ctx,
-      params.client.tenant.id,
-      params.loginSession,
-    );
-  }
-
   // Return either code data or tokens based on response type
+  // Note: completeLoginSession is called AFTER successful creation to avoid
+  // marking session as COMPLETED if token/code creation fails
   if (responseType === AuthorizationResponseType.CODE) {
     if (!user || !params.loginSession) {
       throw new JSONHTTPException(500, {
         message: "User and loginSession is required for code flow",
       });
     }
-    return await createCodeData(ctx, {
+    const codeData = await createCodeData(ctx, {
       user,
       client: params.client,
       authParams: updatedAuthParams,
       login_id: params.loginSession.id,
     });
+
+    // Mark login session as completed after successful code creation
+    await completeLoginSession(
+      ctx,
+      params.client.tenant.id,
+      params.loginSession,
+    );
+
+    return codeData;
   } else {
-    return createAuthTokens(ctx, {
+    const tokens = await createAuthTokens(ctx, {
       ...params,
       user,
       authParams: updatedAuthParams,
       permissions: calculatedPermissions,
     });
+
+    // Mark login session as completed after successful token creation
+    if (params.loginSession) {
+      await completeLoginSession(
+        ctx,
+        params.client.tenant.id,
+        params.loginSession,
+      );
+    }
+
+    return tokens;
   }
 }

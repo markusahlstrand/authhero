@@ -608,7 +608,7 @@ export const screenApiRoutes = new OpenAPIHono<{
           );
 
           if (user) {
-            // Transition from AWAITING_HOOK back to AUTHENTICATED
+            // Complete any pending hook (idempotent - no-ops if not in AWAITING_HOOK state)
             await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
 
             const result = await createFrontChannelAuthResponse(ctx, {

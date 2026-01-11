@@ -1,5 +1,25 @@
 import { setup, assign } from "xstate";
-import { LoginSession, LoginSessionState } from "@authhero/adapter-interfaces";
+import { LoginSession } from "@authhero/adapter-interfaces";
+
+// This is a local version of the enum so that we can visualize the state machine
+export enum LoginSessionState {
+  /** Initial state - awaiting user authentication */
+  PENDING = "pending",
+  /** User credentials validated, but may need additional steps */
+  AUTHENTICATED = "authenticated",
+  /** Waiting for email verification */
+  AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
+  /** Waiting for hook/flow completion (form, page redirect) */
+  AWAITING_HOOK = "awaiting_hook",
+  /** Waiting for user to complete action on continuation page (change-email, account, etc.) */
+  AWAITING_CONTINUATION = "awaiting_continuation",
+  /** Tokens issued successfully */
+  COMPLETED = "completed",
+  /** Authentication failed (wrong password, blocked, etc.) */
+  FAILED = "failed",
+  /** Session timed out */
+  EXPIRED = "expired",
+}
 
 /**
  * Context for the login session state machine
