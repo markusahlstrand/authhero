@@ -77,14 +77,17 @@ export interface ScreenResult {
 
 /**
  * A screen factory creates a UiScreen from context
+ * Always async for consistency (even if the implementation is sync)
  */
-export type ScreenFactory = (context: ScreenContext) => ScreenResult;
+export type ScreenFactory = (
+  context: ScreenContext,
+) => Promise<ScreenResult>;
 
 /**
  * Handler for screen form submissions
  */
 export interface ScreenHandler {
-  /** Handle GET request - returns the screen */
+  /** Handle GET request - returns the screen (can be sync or async) */
   get: ScreenFactory;
   /** Handle POST request - process form data and return next screen or redirect */
   post?: (

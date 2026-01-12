@@ -58,7 +58,7 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 /**
  * Create the signup screen
  */
-export function signupScreen(context: ScreenContext): ScreenResult {
+export async function signupScreen(context: ScreenContext): Promise<ScreenResult> {
   const { client, branding, state, baseUrl, prefill, errors } = context;
 
   const socialButtons = buildSocialButtons(context);

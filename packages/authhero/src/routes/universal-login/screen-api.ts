@@ -23,7 +23,7 @@ import {
   isValidScreenId,
   listScreenIds,
 } from "./screens/registry";
-import type { ScreenContext, ScreenBranding } from "./screens/types";
+import type { ScreenContext, ScreenBranding, ScreenResult } from "./screens/types";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionHook,
@@ -153,27 +153,9 @@ async function buildScreenContext(
 
   const baseUrl = new URL(ctx.req.url).origin;
 
-  // Get connections for this client
-  const connectionsResult = await ctx.env.data.connections.list(
-    client.tenant.id,
-    {
-      page: 1,
-      per_page: 100,
-    },
-  );
-
-  // Filter connections based on client's enabled connections
-  const enabledConnectionIds = client.connections?.map((c: any) =>
-    typeof c === "string" ? c : c.connection_id,
-  );
-
-  const connections = enabledConnectionIds
-    ? connectionsResult.connections.filter(
-        (c: any) =>
-          enabledConnectionIds.includes(c.id) ||
-          enabledConnectionIds.includes(c.name),
-      )
-    : connectionsResult.connections;
+  // Use client.connections directly - LegacyClient already has full Connection objects
+  // populated by getClientWithDefaults, so no need to re-fetch from the database
+  const connections = client.connections || [];
 
   return {
     ctx,
@@ -195,12 +177,21 @@ async function buildScreenContext(
 
 /**
  * Get screen from built-in registry
+ * Returns null if screen not found, or the screen result (may be a Promise for async screens)
  */
-function getBuiltInScreen(screenId: string, context: ScreenContext) {
+async function getBuiltInScreen(
+  screenId: string,
+  context: ScreenContext,
+): Promise<ScreenResult | null> {
   if (!isValidScreenId(screenId)) {
     return null;
   }
-  return getScreen(screenId, context);
+  const result = getScreen(screenId, context);
+  if (!result) {
+    return null;
+  }
+  // Handle both sync and async screen factories
+  return await result;
 }
 
 /**
@@ -321,7 +312,7 @@ export const screenApiRoutes = new OpenAPIHono<{
       const screenContext = await buildScreenContext(ctx, state);
 
       // 1. Try built-in screens first
-      const builtInResult = getBuiltInScreen(screenId, screenContext);
+      const builtInResult = await getBuiltInScreen(screenId, screenContext);
       if (builtInResult) {
         // Override the action URL and links to use the u2 routes
         const screen = {

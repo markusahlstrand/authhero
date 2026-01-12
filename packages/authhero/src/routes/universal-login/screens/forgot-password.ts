@@ -10,7 +10,9 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 /**
  * Create the forgot-password screen
  */
-export function forgotPasswordScreen(context: ScreenContext): ScreenResult {
+export async function forgotPasswordScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
   const { branding, state, baseUrl, prefill, errors, messages } = context;
 
   const components: FormNodeComponent[] = [

@@ -286,13 +286,16 @@ export const widgetRoutes = new OpenAPIHono<{
         },
       };
 
-      const result = getScreen(screenId, screenContext);
+      const screenResult = getScreen(screenId, screenContext);
 
-      if (!result) {
+      if (!screenResult) {
         throw new HTTPException(404, {
           message: `Screen not found: ${screenId}`,
         });
       }
+
+      // Handle both sync and async screen factories
+      const result = await screenResult;
 
       const html = renderWidgetPage({
         screen: result.screen as unknown as Record<string, unknown>,
@@ -435,11 +438,14 @@ export const widgetRoutes = new OpenAPIHono<{
       };
 
       const targetScreenId = errors ? screenId : nextScreenId || screenId;
-      const result = getScreen(targetScreenId, screenContext);
+      const screenResult = getScreen(targetScreenId, screenContext);
 
-      if (!result) {
+      if (!screenResult) {
         return ctx.json({ redirect: `${baseUrl}/callback?state=${state}` });
       }
+
+      // Handle both sync and async screen factories
+      const result = await screenResult;
 
       return ctx.json({
         screen: result.screen,
