@@ -244,6 +244,13 @@ async function handleImpersonateSubmit(
   const targetUser = await ctx.env.data.users.get(tenant.id, userIdToImpersonate);
 
   if (!targetUser) {
+    // Log failed impersonation attempt for security auditing
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.FAILED_IMPERSONATION,
+      description: `User ${currentUser.email} failed to impersonate non-existent user: ${userIdToImpersonate}`,
+      userId: currentUser.user_id,
+    });
+
     return {
       error: "User not found",
       screen: await impersonateScreen({
