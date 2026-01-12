@@ -27,6 +27,7 @@ import type { ScreenContext, ScreenBranding } from "./screens/types";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionHook,
+  startLoginSessionContinuation,
 } from "../../authentication-flows/common";
 import {
   resolveNode,
@@ -568,11 +569,27 @@ export const screenApiRoutes = new OpenAPIHono<{
 
         if (resolveResult) {
           if (resolveResult.type === "redirect") {
+            const target = resolveResult.target as "change-email" | "account" | "custom";
             const redirectUrl = getRedirectUrl(
-              resolveResult.target as "change-email" | "account" | "custom",
+              target,
               resolveResult.customUrl,
               state,
             );
+
+            // For account pages (change-email, account), use continuation state
+            // This allows the user to access the page without full auth, but with scope validation
+            if (target === "change-email" || target === "account") {
+              // Return URL is /u/continue which will resume the login flow
+              const returnUrl = `/u/continue?state=${encodeURIComponent(state)}`;
+              await startLoginSessionContinuation(
+                ctx,
+                client.tenant.id,
+                loginSession,
+                [target], // Scope limited to the specific target
+                returnUrl,
+              );
+            }
+
             return ctx.json({ redirect: redirectUrl });
           }
 
