@@ -5,6 +5,11 @@ import createAdapters from "@authhero/aws";
 import createApp from "./app";
 import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
 
+// Validate required environment variables
+if (!process.env.TABLE_NAME) {
+  throw new Error("TABLE_NAME environment variable is required");
+}
+
 // Initialize DynamoDB client outside handler for connection reuse
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client, {
@@ -15,7 +20,7 @@ const docClient = DynamoDBDocumentClient.from(client, {
 
 // Create adapters - reused across invocations
 const dataAdapter = createAdapters(docClient, {
-  tableName: process.env.TABLE_NAME!,
+  tableName: process.env.TABLE_NAME,
 });
 
 export async function handler(event: APIGatewayProxyEventV2, context: Context) {
@@ -30,20 +35,43 @@ export async function handler(event: APIGatewayProxyEventV2, context: Context) {
   // Widget URL from environment (set by SST)
   const widgetUrl = process.env.WIDGET_URL || "";
 
-  const app = createApp({
+  // CORS configuration
+  // SECURITY: Configure ALLOWED_ORIGINS environment variable in production
+  // to restrict origins. Comma-separated list of allowed origins.
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : [
+        // WARNING: These localhost origins are for development only
+        // Remove or override via ALLOWED_ORIGINS env var in production
+        "http://localhost:5173",
+        "https://localhost:3000",
+        origin,
+      ].filter(Boolean);
+
+  // Create app instance per request to avoid issuer contamination
+  // Lambda containers are reused, so we can't mutate process.env.ISSUER globally
+  const appWithIssuer = createApp({
     dataAdapter,
-    allowedOrigins: [
-      "http://localhost:5173",
-      "https://localhost:3000",
-      "https://manage.authhero.net",
-      "https://local.authhero.net",
-      origin,
-    ].filter(Boolean),
+    allowedOrigins,
     widgetUrl,
   });
 
-  // Add issuer to environment for the app
-  process.env.ISSUER = issuer;
+  // Set issuer in a request-scoped way via middleware
+  appWithIssuer.use("*", async (c, next) => {
+    // Store issuer in context for this request
+    const originalIssuer = process.env.ISSUER;
+    process.env.ISSUER = issuer;
+    try {
+      await next();
+    } finally {
+      // Restore original value to prevent contamination
+      if (originalIssuer !== undefined) {
+        process.env.ISSUER = originalIssuer;
+      } else {
+        delete process.env.ISSUER;
+      }
+    }
+  });
 
-  return handle(app)(event, context);
+  return handle(appWithIssuer)(event, context);
 }

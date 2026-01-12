@@ -240,8 +240,8 @@ ALLOWED_ORIGINS=https://app.example.com
    ```
 
 4. **Access the application**
-   - AuthHero API: http://localhost:3000
-   - Widget test page: http://localhost:3000/demo
+   - AuthHero API: `http://localhost:3000`
+   - Widget test page: `http://localhost:3000/demo`
 
 ## Troubleshooting
 
@@ -285,5 +285,5 @@ mysql -h localhost -u user -p -e "SELECT 1;"
 ## Next Steps
 
 - [Configure widget assets](./widget-assets)
-- [Set up database adapters](../../adapters/)
+- [Set up database adapters](../adapters/)
 - [Deploy to production](./multi-cloud)

@@ -182,11 +182,11 @@ wrangler d1 migrations apply authhero-db --remote
 npm run dev
 ```
 
-Access at: http://localhost:8787
+Access at: `http://localhost:8787`
 
 ### Test Widget Loading
 
-Visit: http://localhost:8787/u2/login/identifier?state=test
+Visit: `http://localhost:8787/u2/login/identifier?state=test`
 
 If the widget doesn't load, check:
 1. `copy-assets.js` ran successfully
@@ -336,6 +336,6 @@ Very cost-effective for authentication workloads!
 ## Next Steps
 
 - [Configure widget assets](./widget-assets)
-- [Set up custom domains](../../guides/custom-domains)
+- [Set up custom domains](../guides/custom-domain-setup)
 - [Multi-cloud deployment](./multi-cloud)
-- [Cloudflare adapter docs](../../adapters/cloudflare/)
+- [Cloudflare adapter docs](../adapters/cloudflare/)

@@ -164,6 +164,9 @@ const dataAdapter = createKyselyAdapter({
 Global MySQL with branching:
 
 ```typescript
+import { createKyselyAdapter } from "@authhero/kysely";
+import { MysqlDialect } from "kysely";
+
 const dataAdapter = createKyselyAdapter({
   dialect: new MysqlDialect({
     connection: {
@@ -392,12 +395,13 @@ app.use("*", async (c, next) => {
 
 // Centralized logging
 app.use("*", async (c, next) => {
+  const start = performance.now();
   await next();
   
   await analytics.track({
     provider: c.get("provider"),
     path: c.req.path,
-    duration: performance.now(),
+    duration: performance.now() - start,
   });
 });
 ```
@@ -531,4 +535,4 @@ Moving from single-cloud to multi-cloud:
 - [Cloudflare deployment](./cloudflare)
 - [AWS deployment](./aws)
 - [Widget assets configuration](./widget-assets)
-- [Database adapters](../../adapters/)
+- [Database adapters](../adapters/)

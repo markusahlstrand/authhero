@@ -37,7 +37,7 @@ npm run dev  # Deploys to AWS in development mode
 
 ### Project Structure
 
-```
+```text
 ├── sst.config.ts      # Infrastructure as code
 ├── src/
 │   ├── index.ts       # Lambda handler
@@ -772,6 +772,6 @@ Ensure Lambda/ECS has IAM permissions for DynamoDB:
 
 ## Next Steps
 
-- [AWS Adapter documentation](../../adapters/aws/)
+- [AWS Adapter documentation](../adapters/aws/)
 - [Multi-cloud setup](./multi-cloud)
 - [Widget assets configuration](./widget-assets)

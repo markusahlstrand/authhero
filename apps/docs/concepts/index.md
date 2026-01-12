@@ -18,7 +18,8 @@ This section explains the core concepts and terminology used in AuthHero.
 - **[Tokens](/concepts/tokens)** - Various types of authentication and authorization tokens
 - **[Hooks](/concepts/hooks)** - Extensibility mechanism to customize authentication flows
 - **[Adapters](/concepts/adapters)** - Data storage and platform integrations
-- **[Deployment Targets](/concepts/deployment-targets/)** - Platform-specific deployment guides (Local, Cloudflare, AWS, Multi-Cloud) and widget asset configuration
+
+See [Deployment Targets](/deployment-targets/) for platform-specific deployment guides.
 
 ## Architecture
 

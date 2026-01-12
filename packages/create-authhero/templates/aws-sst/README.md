@@ -51,7 +51,7 @@ A serverless AuthHero deployment using [SST](https://sst.dev) with AWS Lambda an
 
 ## Project Structure
 
-```
+```text
 ├── sst.config.ts      # SST configuration (Lambda, DynamoDB, API Gateway)
 ├── src/
 │   ├── index.ts       # Lambda handler
@@ -76,6 +76,8 @@ Set these in SST or AWS Systems Manager:
 |----------|-------------|
 | `TABLE_NAME` | DynamoDB table name (auto-set by SST) |
 | `WIDGET_URL` | URL to widget assets (auto-set by SST) |
+| `ADMIN_EMAIL` | Admin user email (required for initial seeding) |
+| `ADMIN_PASSWORD` | Admin user password (required for initial seeding) |
 
 ## Widget Assets
 

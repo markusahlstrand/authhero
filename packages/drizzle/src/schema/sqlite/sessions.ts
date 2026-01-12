@@ -108,6 +108,9 @@ export const loginSessions = sqliteTable(
       name: "login_sessions_pk",
     }),
     index("login_sessions_id_index").on(table.id),
+    index("login_sessions_state_idx").on(table.state),
+    index("login_sessions_state_updated_idx").on(table.state, table.updated_at),
+    index("login_sessions_tenant_user_idx").on(table.tenant_id, table.user_id),
   ],
 );
 

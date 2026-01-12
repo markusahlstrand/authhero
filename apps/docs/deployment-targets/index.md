@@ -77,15 +77,14 @@ Then select your deployment target:
 Different platforms work best with different databases:
 
 - **Cloudflare Workers** → Cloudflare D1 (SQLite-compatible)
-- **AWS Lambda** → RDS PostgreSQL/MySQL, Aurora Serverless
-- **AWS ECS** → RDS PostgreSQL/MySQL, Aurora
-- **Local/VPS** → PostgreSQL, MySQL, SQLite
+- **AWS** → DynamoDB (via @authhero/aws adapter)
+- **Local/VPS** → PostgreSQL, MySQL, SQLite (via Kysely/Drizzle adapters)
 
-See [Adapters](../adapters) for database integration details.
+See [Adapters](/adapters/) for database integration details.
 
 ## Next Steps
 
 1. Choose your deployment target from the menu
 2. Follow the platform-specific setup guide
 3. Configure [widget assets](./widget-assets) for your platform
-4. Review [security best practices](../../security-model)
+4. Review [security best practices](../security-model)
