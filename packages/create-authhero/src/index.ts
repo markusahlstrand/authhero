@@ -8,7 +8,7 @@ import { spawn } from "child_process";
 
 const program = new Command();
 
-type SetupType = "local" | "cloudflare";
+type SetupType = "local" | "cloudflare" | "aws-sst";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 interface CliOptions {
@@ -118,6 +118,42 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         "drizzle-orm": "^0.44.0",
         typescript: "^5.5.0",
         wrangler: "^3.0.0",
+      },
+    }),
+    seedFile: "seed.ts",
+  },
+  "aws-sst": {
+    name: "AWS SST (Lambda + DynamoDB)",
+    description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
+    templateDir: "aws-sst",
+    packageJson: (projectName, multiTenant) => ({
+      name: projectName,
+      version: "1.0.0",
+      type: "module",
+      scripts: {
+        dev: "sst dev",
+        deploy: "sst deploy --stage production",
+        remove: "sst remove",
+        seed: "npx tsx src/seed.ts",
+        "copy-assets": "node copy-assets.js",
+      },
+      dependencies: {
+        "@authhero/aws": "latest",
+        "@authhero/widget": "latest",
+        "@aws-sdk/client-dynamodb": "^3.0.0",
+        "@aws-sdk/lib-dynamodb": "^3.0.0",
+        "@hono/swagger-ui": "^0.5.0",
+        "@hono/zod-openapi": "^0.19.0",
+        authhero: "latest",
+        hono: "^4.6.0",
+        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+      },
+      devDependencies: {
+        "@types/aws-lambda": "^8.10.0",
+        "@types/node": "^20.0.0",
+        sst: "^3.0.0",
+        tsx: "^4.0.0",
+        typescript: "^5.5.0",
       },
     }),
     seedFile: "seed.ts",
@@ -443,6 +479,192 @@ export default function createApp(config: AuthHeroConfig) {
 `;
 }
 
+function generateAwsSstAppFileContent(multiTenant: boolean): string {
+  if (multiTenant) {
+    return `import { Context } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
+import { AuthHeroConfig, DataAdapters } from "authhero";
+import { initMultiTenant } from "@authhero/multi-tenancy";
+
+// Control plane tenant ID - the tenant that manages all other tenants
+const CONTROL_PLANE_TENANT_ID = "control_plane";
+
+interface AppConfig extends AuthHeroConfig {
+  dataAdapter: DataAdapters;
+  widgetUrl: string;
+}
+
+export default function createApp(config: AppConfig) {
+  // Initialize multi-tenant AuthHero
+  const { app } = initMultiTenant({
+    ...config,
+    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+  });
+
+  app
+    .onError((err, ctx) => {
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Multi-Tenant Server (AWS)",
+        version: "1.0.0",
+        status: "running",
+        docs: "/docs",
+        controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
+    // Redirect widget requests to S3/CloudFront
+    .get("/u/widget/*", async (ctx) => {
+      const file = ctx.req.path.replace("/u/widget/", "");
+      return ctx.redirect(\`\${config.widgetUrl}/u/widget/\${file}\`);
+    })
+    .get("/u/*", async (ctx) => {
+      const file = ctx.req.path.replace("/u/", "");
+      return ctx.redirect(\`\${config.widgetUrl}/u/\${file}\`);
+    });
+
+  return app;
+}
+`;
+  }
+
+  return `import { Context } from "hono";
+import { cors } from "hono/cors";
+import { AuthHeroConfig, init, DataAdapters } from "authhero";
+import { swaggerUI } from "@hono/swagger-ui";
+
+interface AppConfig extends AuthHeroConfig {
+  dataAdapter: DataAdapters;
+  widgetUrl: string;
+}
+
+export default function createApp(config: AppConfig) {
+  const { app } = init(config);
+
+  // Enable CORS for all origins in development
+  app.use("*", cors({
+    origin: (origin) => origin || "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "Auth0-Client"],
+    exposeHeaders: ["Content-Length"],
+    credentials: true,
+  }));
+
+  app
+    .onError((err, ctx) => {
+      if (err && typeof err === "object" && "getResponse" in err) {
+        return (err as { getResponse: () => Response }).getResponse();
+      }
+      console.error(err);
+      return ctx.text(err instanceof Error ? err.message : "Internal Server Error", 500);
+    })
+    .get("/", async (ctx: Context) => {
+      return ctx.json({
+        name: "AuthHero Server (AWS)",
+        status: "running",
+      });
+    })
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
+    // Redirect widget requests to S3/CloudFront
+    .get("/u/widget/*", async (ctx) => {
+      const file = ctx.req.path.replace("/u/widget/", "");
+      return ctx.redirect(\`\${config.widgetUrl}/u/widget/\${file}\`);
+    })
+    .get("/u/*", async (ctx) => {
+      const file = ctx.req.path.replace("/u/", "");
+      return ctx.redirect(\`\${config.widgetUrl}/u/\${file}\`);
+    });
+
+  return app;
+}
+`;
+}
+
+function generateAwsSstSeedFileContent(multiTenant: boolean): string {
+  const tenantId = multiTenant ? "control_plane" : "main";
+  const tenantName = multiTenant ? "Control Plane" : "Main";
+
+  return `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import createAdapters from "@authhero/aws";
+import { seed } from "authhero";
+
+async function main() {
+  const adminEmail = process.argv[2] || process.env.ADMIN_EMAIL;
+  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD;
+  const tableName = process.argv[4] || process.env.TABLE_NAME;
+
+  if (!adminEmail || !adminPassword) {
+    console.error("Usage: npm run seed <email> <password>");
+    console.error("   or: ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed");
+    process.exit(1);
+  }
+
+  if (!tableName) {
+    console.error("TABLE_NAME environment variable is required");
+    console.error("Run 'sst dev' first to get the table name from outputs");
+    process.exit(1);
+  }
+
+  const client = new DynamoDBClient({});
+  const docClient = DynamoDBDocumentClient.from(client, {
+    marshallOptions: {
+      removeUndefinedValues: true,
+    },
+  });
+
+  const adapters = createAdapters(docClient, { tableName });
+
+  await seed(adapters, {
+    adminEmail,
+    adminPassword,
+    tenantId: "${tenantId}",
+    tenantName: "${tenantName}",
+    isControlPlane: ${multiTenant},
+  });
+
+  console.log("✅ Database seeded successfully!");
+}
+
+main().catch(console.error);
+`;
+}
+
+function generateAwsSstFiles(projectPath: string, multiTenant: boolean): void {
+  const srcDir = path.join(projectPath, "src");
+
+  // Generate app.ts
+  fs.writeFileSync(
+    path.join(srcDir, "app.ts"),
+    generateAwsSstAppFileContent(multiTenant),
+  );
+
+  // Generate seed.ts
+  fs.writeFileSync(
+    path.join(srcDir, "seed.ts"),
+    generateAwsSstSeedFileContent(multiTenant),
+  );
+}
+
+function printAwsSstSuccessMessage(multiTenant: boolean): void {
+  console.log("\\n" + "─".repeat(50));
+  console.log("🔐 AuthHero deployed to AWS!");
+  console.log("📚 Check SST output for your API URL");
+  console.log("🌐 Portal available at https://local.authhero.net");
+  if (multiTenant) {
+    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
+  } else {
+    console.log("🏠 Single-tenant mode with 'main' tenant");
+  }
+  console.log("─".repeat(50) + "\\n");
+}
+
 function createGithubWorkflows(projectPath: string): void {
   const workflowsDir = path.join(projectPath, ".github", "workflows");
   fs.mkdirSync(workflowsDir, { recursive: true });
@@ -739,9 +961,9 @@ program
     // Validate template option if provided
     let setupType: SetupType;
     if (options.template) {
-      if (!["local", "cloudflare"].includes(options.template)) {
+      if (!["local", "cloudflare", "aws-sst"].includes(options.template)) {
         console.error(`❌ Invalid template: ${options.template}`);
-        console.error("Valid options: local, cloudflare");
+        console.error("Valid options: local, cloudflare, aws-sst");
         process.exit(1);
       }
       setupType = options.template;
@@ -762,6 +984,11 @@ program
               name: `${setupConfigs.cloudflare.name}\n     ${setupConfigs.cloudflare.description}`,
               value: "cloudflare",
               short: setupConfigs.cloudflare.name,
+            },
+            {
+              name: `${setupConfigs["aws-sst"].name}\n     ${setupConfigs["aws-sst"].description}`,
+              value: "aws-sst",
+              short: setupConfigs["aws-sst"].name,
             },
           ],
         },
@@ -876,6 +1103,11 @@ program
 
       const appContent = generateLocalAppFileContent(multiTenant);
       fs.writeFileSync(path.join(projectPath, "src/app.ts"), appContent);
+    }
+
+    // Generate seed.ts and app.ts for AWS SST setup
+    if (setupType === "aws-sst") {
+      generateAwsSstFiles(projectPath, multiTenant);
     }
 
     const tenantType = multiTenant ? "multi-tenant" : "single-tenant";
@@ -1078,6 +1310,8 @@ program
           // Print nice success message before starting
           if (setupType === "cloudflare") {
             printCloudflareSuccessMessage(multiTenant);
+          } else if (setupType === "aws-sst") {
+            printAwsSstSuccessMessage(multiTenant);
           } else {
             printLocalSuccessMessage(multiTenant);
           }
@@ -1093,6 +1327,8 @@ program
           console.log(`  npm run dev`);
           if (setupType === "cloudflare") {
             printCloudflareSuccessMessage(multiTenant);
+          } else if (setupType === "aws-sst") {
+            printAwsSstSuccessMessage(multiTenant);
           } else {
             printLocalSuccessMessage(multiTenant);
           }
@@ -1123,6 +1359,13 @@ program
           "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
+      } else if (setupType === "aws-sst") {
+        console.log("  npm install");
+        console.log("  npm run dev  # Deploys to AWS in development mode");
+        console.log("  # After deploy, get TABLE_NAME from output, then:");
+        console.log(
+          "  TABLE_NAME=<your-table> ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+        );
       }
 
       console.log("\nServer will be available at: https://localhost:3000");

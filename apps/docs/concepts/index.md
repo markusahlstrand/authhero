@@ -19,6 +19,8 @@ This section explains the core concepts and terminology used in AuthHero.
 - **[Hooks](/concepts/hooks)** - Extensibility mechanism to customize authentication flows
 - **[Adapters](/concepts/adapters)** - Data storage and platform integrations
 
+See [Deployment Targets](/deployment-targets/) for platform-specific deployment guides.
+
 ## Architecture
 
 For a deeper understanding of how these concepts work together, see the [Architecture](/architecture) and [Security Model](/security-model) documentation.
