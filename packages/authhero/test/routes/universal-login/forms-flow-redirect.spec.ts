@@ -172,6 +172,20 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
 
     // Should redirect to the change-email page (from the FLOW redirect action)
     expect(postLocation).toBe(`/u/account/change-email?state=${state}`);
+
+    // Verify that the login session is properly set to awaiting_continuation state
+    // This ensures the user can access the change-email page and return to the auth flow
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    expect(loginSession).toBeTruthy();
+    expect(loginSession?.state).toBe("awaiting_continuation");
+
+    // Verify the continuation data is properly set
+    expect(loginSession?.state_data).toBeTruthy();
+    const stateData = JSON.parse(loginSession!.state_data!);
+    expect(stateData.continuationScope).toEqual(["change-email"]);
+    expect(stateData.continuationReturnUrl).toBe(
+      `/u/continue?state=${encodeURIComponent(state)}`,
+    );
   });
 
   it("should execute FLOW redirect to account page after STEP", async () => {
@@ -316,5 +330,19 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
 
     // Should redirect to the account page (from the FLOW redirect action)
     expect(postLocation).toBe(`/u/account?state=${state}`);
+
+    // Verify that the login session is properly set to awaiting_continuation state
+    // This ensures the user can access the account page and return to the auth flow
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    expect(loginSession).toBeTruthy();
+    expect(loginSession?.state).toBe("awaiting_continuation");
+
+    // Verify the continuation data is properly set
+    expect(loginSession?.state_data).toBeTruthy();
+    const stateData = JSON.parse(loginSession!.state_data!);
+    expect(stateData.continuationScope).toEqual(["account"]);
+    expect(stateData.continuationReturnUrl).toBe(
+      `/u/continue?state=${encodeURIComponent(state)}`,
+    );
   });
 });

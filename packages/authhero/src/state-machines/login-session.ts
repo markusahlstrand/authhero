@@ -175,6 +175,11 @@ export const loginSessionMachine = setup({
           target: LoginSessionState.AUTHENTICATED,
           actions: "clearHookId",
         },
+        // Allow transitioning to continuation (e.g., form redirects to change-email page)
+        [LoginSessionEventType.START_CONTINUATION]: {
+          target: LoginSessionState.AWAITING_CONTINUATION,
+          actions: "setContinuationScope",
+        },
         [LoginSessionEventType.FAIL]: {
           target: LoginSessionState.FAILED,
           actions: "setFailureReason",
