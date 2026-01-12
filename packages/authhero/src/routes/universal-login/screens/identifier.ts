@@ -70,7 +70,7 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 /**
  * Create the identifier screen
  */
-export function identifierScreen(context: ScreenContext): ScreenResult {
+export async function identifierScreen(context: ScreenContext): Promise<ScreenResult> {
   const { client, branding, state, baseUrl, prefill, errors } = context;
 
   const socialButtons = buildSocialButtons(context);
@@ -162,7 +162,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       if (!username) {
         return {
           error: "Email is required",
-          screen: identifierScreen({
+          screen: await identifierScreen({
             ...context,
             errors: { username: "Email is required" },
           }),
@@ -177,7 +177,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       if (!normalized) {
         return {
           error: "Invalid identifier",
-          screen: identifierScreen({
+          screen: await identifierScreen({
             ...context,
             prefill: { username },
             errors: { username: "Invalid identifier" },
@@ -207,7 +207,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       if (!hasValidConnection) {
         return {
           error: "Invalid identifier",
-          screen: identifierScreen({
+          screen: await identifierScreen({
             ...context,
             prefill: { username },
             errors: { username: "Invalid identifier" },
@@ -228,7 +228,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         if (!validation.allowed) {
           return {
             error: validation.reason || "Account does not exist",
-            screen: identifierScreen({
+            screen: await identifierScreen({
               ...context,
               prefill: { username },
               errors: { username: "Account does not exist" },
@@ -246,7 +246,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       if (!loginSession) {
         return {
           error: "Session expired",
-          screen: identifierScreen({
+          screen: await identifierScreen({
             ...context,
             prefill: { username },
             errors: { username: "Session expired. Please try again." },

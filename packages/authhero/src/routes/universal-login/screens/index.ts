@@ -11,6 +11,7 @@
  * - signup: /u/signup
  * - forgot-password: /u/forgot-password
  * - reset-password: /u/reset-password
+ * - impersonate: /u/impersonate
  * - pre-signup: /u/pre-signup
  * - pre-signup-sent: /u/pre-signup-sent
  */
@@ -21,6 +22,7 @@ export { enterPasswordScreen } from "./enter-password";
 export { signupScreen } from "./signup";
 export { forgotPasswordScreen } from "./forgot-password";
 export { resetPasswordScreen } from "./reset-password";
+export { impersonateScreen } from "./impersonate";
 
 // Export types
 export type { ScreenContext, ScreenFactory, ScreenResult } from "./types";

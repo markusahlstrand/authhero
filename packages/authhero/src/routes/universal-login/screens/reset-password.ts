@@ -10,7 +10,9 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 /**
  * Create the reset-password screen
  */
-export function resetPasswordScreen(context: ScreenContext): ScreenResult {
+export async function resetPasswordScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
   const { branding, state, baseUrl, errors, messages } = context;
 
   const components: FormNodeComponent[] = [

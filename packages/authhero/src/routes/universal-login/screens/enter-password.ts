@@ -10,7 +10,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 /**
  * Create the enter-password screen
  */
-export function enterPasswordScreen(context: ScreenContext): ScreenResult {
+export async function enterPasswordScreen(context: ScreenContext): Promise<ScreenResult> {
   const { branding, state, baseUrl, errors, data } = context;
 
   const email = data?.email as string | undefined;

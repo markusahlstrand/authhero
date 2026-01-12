@@ -9,6 +9,7 @@ import { enterPasswordScreenDefinition } from "./enter-password";
 import { signupScreenDefinition } from "./signup";
 import { forgotPasswordScreenDefinition } from "./forgot-password";
 import { resetPasswordScreenDefinition } from "./reset-password";
+import { impersonateScreenDefinition } from "./impersonate";
 
 /**
  * Registry of all built-in screens
@@ -20,6 +21,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["signup", signupScreenDefinition],
   ["forgot-password", forgotPasswordScreenDefinition],
   ["reset-password", resetPasswordScreenDefinition],
+  ["impersonate", impersonateScreenDefinition],
 ]);
 
 /**
@@ -36,12 +38,12 @@ export function getScreenDefinition(
  *
  * @param screenId - The screen ID (e.g., "identifier", "enter-code")
  * @param context - The screen context with tenant, client, branding, etc.
- * @returns The screen result or undefined if not found
+ * @returns The screen result promise or undefined if not found
  */
 export function getScreen(
   screenId: string,
   context: ScreenContext,
-): ScreenResult | undefined {
+): Promise<ScreenResult> | undefined {
   const definition = screenRegistry.get(screenId);
   if (!definition) {
     return undefined;

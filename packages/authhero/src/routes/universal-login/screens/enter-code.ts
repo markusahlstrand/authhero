@@ -12,7 +12,7 @@ import { getPrimaryUserByProvider } from "../../../helpers/users";
 /**
  * Create the enter-code screen
  */
-export function enterCodeScreen(context: ScreenContext): ScreenResult {
+export async function enterCodeScreen(context: ScreenContext): Promise<ScreenResult> {
   const { branding, state, baseUrl, errors, messages, data } = context;
 
   const email = data?.email as string | undefined;
@@ -111,7 +111,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       if (!code) {
         return {
           error: "Verification code is required",
-          screen: enterCodeScreen({
+          screen: await enterCodeScreen({
             ...context,
             errors: { code: "Verification code is required" },
           }),
@@ -127,7 +127,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       if (!loginSession || !loginSession.authParams?.username) {
         return {
           error: "Session expired",
-          screen: enterCodeScreen({
+          screen: await enterCodeScreen({
             ...context,
             errors: { code: "Session expired. Please start over." },
           }),
@@ -153,7 +153,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
         // If we got here, something went wrong
         return {
           error: "Unexpected error",
-          screen: enterCodeScreen({
+          screen: await enterCodeScreen({
             ...context,
             errors: { code: "An unexpected error occurred. Please try again." },
           }),
@@ -177,7 +177,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
 
         return {
           error: errorMessage,
-          screen: enterCodeScreen({
+          screen: await enterCodeScreen({
             ...context,
             errors: { code: errorMessage },
             data: {

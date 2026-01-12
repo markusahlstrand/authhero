@@ -11,6 +11,7 @@
  * - GET /u2/signup - New user registration
  * - GET /u2/forgot-password - Password reset request
  * - GET /u2/reset-password - Set new password
+ * - GET /u2/impersonate - User impersonation
  *
  * Each route serves an HTML page that:
  * 1. Loads the authhero-widget web component
@@ -389,6 +390,17 @@ export const u2Routes = new OpenAPIHono<{
       "Reset password screen",
     ),
     createScreenRouteHandler("reset-password"),
+  )
+  // --------------------------------
+  // GET /u2/impersonate - User impersonation
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "impersonate",
+      "/impersonate",
+      "Impersonate screen - allows users with permission to impersonate other users",
+    ),
+    createScreenRouteHandler("impersonate"),
   );
 
 // OpenAPI documentation
