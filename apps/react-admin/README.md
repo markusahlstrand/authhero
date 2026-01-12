@@ -31,6 +31,7 @@ VITE_AUTH0_API_URL=https://localhost:3000
 See `.env.example` for more details.
 
 **Notes:**
+
 - If `VITE_AUTH0_DOMAIN` is set, it will be automatically added to the domain list
 - Users can still add additional domains through the UI
 

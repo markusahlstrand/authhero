@@ -13,12 +13,13 @@ AuthHero can be deployed to:
 
 ::: tip Coming Soon
 Documentation for additional platforms:
+
 - Vercel
 - Google Cloud Platform (GCP)
 - Docker/Kubernetes
 - Azure
 - Railway, Render, Fly.io
-:::
+  :::
 
 ## Widget Assets
 
@@ -26,12 +27,12 @@ All deployment targets must serve the AuthHero widget assets. Learn more about [
 
 ## Quick Comparison
 
-| Platform | Startup Time | Scaling | Cost Model | Best For |
-|----------|-------------|---------|------------|----------|
-| [Local/Node](./local) | Instant | Manual | Fixed | Development, VPS |
-| [Cloudflare](./cloudflare) | ~0ms (warm) | Automatic | Pay-per-use | Global edge |
-| [AWS Lambda + SST](./aws#lambda) | 100-500ms | Automatic | Pay-per-use | Serverless |
-| [AWS ECS](./aws#ecs) | Instant | Manual/Auto | Fixed | Long-running |
+| Platform                         | Startup Time | Scaling     | Cost Model  | Best For         |
+| -------------------------------- | ------------ | ----------- | ----------- | ---------------- |
+| [Local/Node](./local)            | Instant      | Manual      | Fixed       | Development, VPS |
+| [Cloudflare](./cloudflare)       | ~0ms (warm)  | Automatic   | Pay-per-use | Global edge      |
+| [AWS Lambda + SST](./aws#lambda) | 100-500ms    | Automatic   | Pay-per-use | Serverless       |
+| [AWS ECS](./aws#ecs)             | Instant      | Manual/Auto | Fixed       | Long-running     |
 
 ## Quick Start with `create-authhero`
 
@@ -42,6 +43,7 @@ npx create-authhero my-auth-server
 ```
 
 Then select your deployment target:
+
 - **Local (SQLite)** - Development and VPS deployments
 - **Cloudflare Workers (D1)** - Edge deployment
 - **AWS SST (Lambda + DynamoDB)** - Serverless AWS deployment
@@ -49,24 +51,28 @@ Then select your deployment target:
 ## Choosing a Deployment Target
 
 **Choose Cloudflare Workers if:**
+
 - Global user base with low latency requirements
 - Pay-per-use cost model preferred
 - Simple deployment desired
 - Edge computing benefits needed
 
 **Choose AWS Lambda if:**
+
 - Already on AWS ecosystem
 - Need complex AWS service integrations
 - Variable traffic patterns
 - Serverless architecture preferred
 
 **Choose AWS ECS/Fargate if:**
+
 - Long-running processes required
 - Predictable, consistent traffic
 - Need full control over environment
 - Complex dependencies
 
 **Choose Local/VPS if:**
+
 - Self-hosted requirement
 - Existing infrastructure
 - Cost predictability important

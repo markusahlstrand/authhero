@@ -181,10 +181,16 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "Overview", link: "/deployment-targets/" },
             { text: "Local Development", link: "/deployment-targets/local" },
-            { text: "Cloudflare Workers", link: "/deployment-targets/cloudflare" },
+            {
+              text: "Cloudflare Workers",
+              link: "/deployment-targets/cloudflare",
+            },
             { text: "AWS", link: "/deployment-targets/aws" },
             { text: "Multi-Cloud", link: "/deployment-targets/multi-cloud" },
-            { text: "Widget Assets", link: "/deployment-targets/widget-assets" },
+            {
+              text: "Widget Assets",
+              link: "/deployment-targets/widget-assets",
+            },
           ],
         },
         {

@@ -93,9 +93,9 @@ export const getDomainFromStorage = (): DomainConfig[] => {
     const defaultDomain = getDefaultDomainFromEnv();
     if (defaultDomain) {
       const existingIndex = domains.findIndex(
-        (d) => formatDomain(d.url) === defaultDomain.url
+        (d) => formatDomain(d.url) === defaultDomain.url,
       );
-      
+
       if (existingIndex >= 0) {
         // Update existing domain with environment config (env takes precedence)
         domains[existingIndex] = {

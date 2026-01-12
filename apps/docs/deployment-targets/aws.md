@@ -190,7 +190,7 @@ Alternative setup using AWS SAM with DynamoDB.
 **template.yaml:**
 
 ```yaml
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
@@ -320,10 +320,7 @@ const dataAdapter = createAdapters(docClient, {
 
 const { app } = init({
   dataAdapter,
-  allowedOrigins: [
-    "http://localhost:5173",
-    "https://manage.authhero.net",
-  ],
+  allowedOrigins: ["http://localhost:5173", "https://manage.authhero.net"],
 });
 
 // Redirect widget requests to S3
@@ -415,10 +412,7 @@ const dataAdapter = createAdapters(docClient, {
 
 const { app } = init({
   dataAdapter,
-  allowedOrigins: [
-    "http://localhost:5173",
-    "https://manage.authhero.net",
-  ],
+  allowedOrigins: ["http://localhost:5173", "https://manage.authhero.net"],
 });
 
 // Serve widget from node_modules (available in container)
@@ -441,9 +435,9 @@ app.get(
 // Health check endpoint
 app.get("/health", (c) => c.json({ status: "ok" }));
 
-serve({ 
-  fetch: app.fetch, 
-  port: 3000 
+serve({
+  fetch: app.fetch,
+  port: 3000,
 });
 ```
 
@@ -641,11 +635,13 @@ aws application-autoscaling register-scalable-target \
 ### CloudWatch Logs
 
 View Lambda logs:
+
 ```bash
 aws logs tail /aws/lambda/authhero --follow
 ```
 
 View ECS logs:
+
 ```bash
 aws logs tail /ecs/authhero --follow
 ```
@@ -653,6 +649,7 @@ aws logs tail /ecs/authhero --follow
 ### CloudWatch Metrics
 
 Key metrics to monitor:
+
 - **Lambda**: Invocations, Duration, Errors, Throttles
 - **DynamoDB**: ConsumedReadCapacity, ConsumedWriteCapacity, ThrottledRequests
 - **ECS**: CPUUtilization, MemoryUtilization
@@ -677,22 +674,22 @@ aws cloudwatch put-metric-alarm \
 
 ### Lambda + DynamoDB
 
-| Component | Free Tier | After Free Tier |
-|-----------|-----------|-----------------|
-| Lambda | 1M requests/month | $0.20/1M requests |
-| DynamoDB | 25 WCU/RCU | ~$0.25/1M requests |
-| API Gateway | 1M requests/month | $1.00/1M requests |
-| S3 + CloudFront | 1GB + 50GB | ~$5/month |
+| Component       | Free Tier         | After Free Tier    |
+| --------------- | ----------------- | ------------------ |
+| Lambda          | 1M requests/month | $0.20/1M requests  |
+| DynamoDB        | 25 WCU/RCU        | ~$0.25/1M requests |
+| API Gateway     | 1M requests/month | $1.00/1M requests  |
+| S3 + CloudFront | 1GB + 50GB        | ~$5/month          |
 
 **Estimate for 1M auth requests/month**: ~$10-15/month
 
 ### ECS Fargate + DynamoDB
 
-| Component | Cost |
-|-----------|------|
-| Fargate (0.25 vCPU, 0.5GB) | ~$10/month |
+| Component                  | Cost         |
+| -------------------------- | ------------ |
+| Fargate (0.25 vCPU, 0.5GB) | ~$10/month   |
 | DynamoDB (PAY_PER_REQUEST) | ~$5-10/month |
-| ALB | ~$20/month |
+| ALB                        | ~$20/month   |
 
 **Estimate**: ~$35-50/month
 
@@ -730,11 +727,13 @@ See [Multi-Cloud Deployment](./multi-cloud) for detailed strategies.
 Increase timeout in your configuration:
 
 **SST:**
+
 ```typescript
 timeout: "30 seconds",
 ```
 
 **SAM:**
+
 ```yaml
 Timeout: 30
 ```

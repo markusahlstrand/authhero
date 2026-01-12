@@ -18,21 +18,22 @@ Deploy to multiple regions/providers simultaneously with traffic distributed glo
 ```mermaid
 graph TB
     User[Users Worldwide]
-    
+
     User --> LB[Global Load Balancer]
-    
+
     LB --> CF[Cloudflare Workers<br/>Global Edge]
     LB --> AWS_US[AWS Lambda<br/>US-EAST-1]
     LB --> AWS_EU[AWS Lambda<br/>EU-WEST-1]
-    
+
     CF --> DB_PRIMARY[(Primary DB<br/>US-EAST-1)]
     AWS_US --> DB_PRIMARY
     AWS_EU --> DB_REPLICA[(Replica DB<br/>EU-WEST-1)]
-    
+
     DB_PRIMARY -.Replication.-> DB_REPLICA
 ```
 
 **Use Cases:**
+
 - Global user base
 - < 100ms latency requirement
 - 24/7 uptime critical
@@ -40,13 +41,14 @@ graph TB
 **Setup:**
 
 1. **Deploy to multiple providers**
+
    ```bash
    # Cloudflare (edge)
    cd cloudflare && wrangler deploy
-   
+
    # AWS US-EAST-1
    cd aws && sam deploy --region us-east-1
-   
+
    # AWS EU-WEST-1
    cd aws && sam deploy --region eu-west-1
    ```
@@ -68,19 +70,20 @@ Primary in one provider, automatic failover to another.
 ```mermaid
 graph TB
     User[Users]
-    
+
     User --> DNS[DNS with Health Checks]
-    
+
     DNS -->|Primary| CF[Cloudflare Workers<br/>Active]
     DNS -.->|Failover| AWS[AWS Lambda<br/>Standby]
-    
+
     CF --> DB_PRIMARY[(Primary DB)]
     AWS --> DB_STANDBY[(Standby DB)]
-    
+
     DB_PRIMARY -.Continuous Backup.-> DB_STANDBY
 ```
 
 **Use Cases:**
+
 - Cost-sensitive deployments
 - Disaster recovery requirement
 - Less critical latency needs
@@ -88,6 +91,7 @@ graph TB
 **Setup:**
 
 1. **Deploy primary and standby**
+
    ```typescript
    // Primary: Cloudflare Workers
    export default {
@@ -96,7 +100,7 @@ graph TB
          dataAdapter: createCloudflareD1Adapter(env.AUTH_DB),
        });
        return app.fetch(request);
-     }
+     },
    };
    ```
 
@@ -109,6 +113,7 @@ graph TB
    ```
 
 2. **Configure health checks**
+
    ```typescript
    // Add health endpoint to both
    app.get("/health", async (c) => {
@@ -148,12 +153,14 @@ const dataAdapter = createKyselyAdapter({
 ```
 
 **Benefits:**
+
 - Automatic replication
 - Geo-partitioning for data locality
 - Strong consistency
 - Automatic failover
 
 **Setup:**
+
 1. Create CockroachDB cluster
 2. Configure regions
 3. Set up geo-partitioning rules
@@ -179,6 +186,7 @@ const dataAdapter = createKyselyAdapter({
 ```
 
 **Benefits:**
+
 - Global read replicas
 - Branch-based workflows
 - Automatic backups
@@ -197,6 +205,7 @@ const dataAdapter = createAwsAdapter({
 ```
 
 **Benefits:**
+
 - < 1 second cross-region replication
 - Automatic failover
 - Up to 5 secondary regions
@@ -217,17 +226,19 @@ const awsAdapter = createAwsAdapter(rdsConfig);
 **Sync Strategies:**
 
 1. **Event-driven sync**
+
    ```typescript
    // On data change, publish event
    await eventBridge.publish({
      type: "user.created",
      data: user,
    });
-   
+
    // Sync service listens and replicates
    ```
 
 2. **Periodic sync**
+
    ```bash
    # Cron job every 5 minutes
    0 */5 * * * /usr/bin/sync-databases.sh
@@ -274,11 +285,13 @@ const { app } = initMultiTenant({
 ```
 
 **Benefits:**
+
 - No shared infrastructure needed
 - Works across all providers
 - Scales infinitely
 
 **Tradeoffs:**
+
 - Cannot revoke tokens immediately
 - Larger token size
 - Security considerations
@@ -290,6 +303,7 @@ const { app } = initMultiTenant({
 Route users to nearest deployment:
 
 **Cloudflare Load Balancer:**
+
 ```javascript
 {
   "pools": [
@@ -316,6 +330,7 @@ Route users to nearest deployment:
 ```
 
 **Route 53 Geolocation Routing:**
+
 ```bash
 aws route53 change-resource-record-sets \
   --hosted-zone-id Z123456 \
@@ -337,6 +352,7 @@ Gradually shift traffic:
 ```
 
 **Use for:**
+
 - Blue-green deployments
 - Canary releases
 - A/B testing
@@ -372,13 +388,13 @@ User Request
 
 **Cost Breakdown:**
 
-| Workload | Best Provider | Monthly Cost (est.) |
-|----------|--------------|---------------------|
-| Auth requests (10M) | Cloudflare | $5 |
-| Database (100GB) | AWS RDS | $100 |
-| Email sending | AWS SES | $10 |
-| File storage | R2/S3 | $5 |
-| **Total** | | **$120** |
+| Workload            | Best Provider | Monthly Cost (est.) |
+| ------------------- | ------------- | ------------------- |
+| Auth requests (10M) | Cloudflare    | $5                  |
+| Database (100GB)    | AWS RDS       | $100                |
+| Email sending       | AWS SES       | $10                 |
+| File storage        | R2/S3         | $5                  |
+| **Total**           |               | **$120**            |
 
 Compare to single-provider: ~$200/month
 
@@ -397,7 +413,7 @@ app.use("*", async (c, next) => {
 app.use("*", async (c, next) => {
   const start = performance.now();
   await next();
-  
+
   await analytics.track({
     provider: c.get("provider"),
     path: c.req.path,
@@ -407,6 +423,7 @@ app.use("*", async (c, next) => {
 ```
 
 **Tools:**
+
 - Datadog - Multi-cloud monitoring
 - New Relic - Application performance
 - Grafana Cloud - Metrics aggregation
@@ -424,7 +441,7 @@ export default {
       dataAdapter: createCloudflareD1Adapter(env.AUTH_DB),
     });
     return app.fetch(request);
-  }
+  },
 };
 ```
 

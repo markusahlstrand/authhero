@@ -51,7 +51,12 @@ export const createAuth0Client = (domain: string) => {
     import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
-  console.log("[createAuth0Client] Creating client for domain:", domain, "with clientId:", clientId);
+  console.log(
+    "[createAuth0Client] Creating client for domain:",
+    domain,
+    "with clientId:",
+    clientId,
+  );
 
   const auth0Client = new Auth0Client({
     domain: fullDomain,
@@ -147,7 +152,14 @@ export const createAuth0ClientForOrg = (
     import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
-  console.log("[createAuth0ClientForOrg] Creating client for domain:", domain, "org:", normalizedOrgId, "with clientId:", clientId);
+  console.log(
+    "[createAuth0ClientForOrg] Creating client for domain:",
+    domain,
+    "org:",
+    normalizedOrgId,
+    "with clientId:",
+    clientId,
+  );
 
   const auth0Client = new Auth0Client({
     domain: fullDomain,

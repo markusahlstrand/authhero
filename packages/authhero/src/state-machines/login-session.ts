@@ -1,4 +1,4 @@
-import { setup, assign, getNextSnapshot } from "xstate";
+import { setup, assign, transition } from "xstate";
 import { LoginSession, LoginSessionState } from "@authhero/adapter-interfaces";
 
 /**
@@ -108,117 +108,122 @@ export const loginSessionMachine = setup({
     }),
   },
 }).createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgBssoBLDAZTlhKw3xAActqAXGupEAD0QEYAmdAE8+-ZOORA */
   id: "loginSession",
-  initial: LoginSessionState.PENDING,
+  // Note: Using string literals instead of enum references so the XState visual editor
+  // (Stately Studio / VS Code extension) can parse the machine. The editor does static
+  // analysis and cannot resolve computed property names or enum values at design time.
+  // The string values match LoginSessionState and LoginSessionEventType enums.
+  initial: "pending",
   context: {},
   states: {
-    [LoginSessionState.PENDING]: {
+    pending: {
       on: {
-        [LoginSessionEventType.AUTHENTICATE]: {
-          target: LoginSessionState.AUTHENTICATED,
+        AUTHENTICATE: {
+          target: "authenticated",
           actions: "setUserId",
         },
-        [LoginSessionEventType.FAIL]: {
-          target: LoginSessionState.FAILED,
+        FAIL: {
+          target: "failed",
           actions: "setFailureReason",
         },
-        [LoginSessionEventType.EXPIRE]: {
-          target: LoginSessionState.EXPIRED,
+        EXPIRE: {
+          target: "expired",
         },
       },
     },
-    [LoginSessionState.AUTHENTICATED]: {
+    authenticated: {
       on: {
-        [LoginSessionEventType.REQUIRE_EMAIL_VERIFICATION]: {
-          target: LoginSessionState.AWAITING_EMAIL_VERIFICATION,
+        REQUIRE_EMAIL_VERIFICATION: {
+          target: "awaiting_email_verification",
         },
-        [LoginSessionEventType.START_HOOK]: {
-          target: LoginSessionState.AWAITING_HOOK,
+        START_HOOK: {
+          target: "awaiting_hook",
           actions: "setHookId",
         },
-        [LoginSessionEventType.START_CONTINUATION]: {
-          target: LoginSessionState.AWAITING_CONTINUATION,
+        START_CONTINUATION: {
+          target: "awaiting_continuation",
           actions: "setContinuationScope",
         },
-        [LoginSessionEventType.COMPLETE]: {
-          target: LoginSessionState.COMPLETED,
+        COMPLETE: {
+          target: "completed",
         },
-        [LoginSessionEventType.FAIL]: {
-          target: LoginSessionState.FAILED,
+        FAIL: {
+          target: "failed",
           actions: "setFailureReason",
         },
-        [LoginSessionEventType.EXPIRE]: {
-          target: LoginSessionState.EXPIRED,
+        EXPIRE: {
+          target: "expired",
         },
       },
     },
-    [LoginSessionState.AWAITING_EMAIL_VERIFICATION]: {
+    awaiting_email_verification: {
       on: {
         // Return to AUTHENTICATED hub to check if more steps are needed
         // Also support COMPLETE for backward compatibility (direct completion)
-        [LoginSessionEventType.COMPLETE]: {
-          target: LoginSessionState.AUTHENTICATED,
+        COMPLETE: {
+          target: "authenticated",
         },
-        [LoginSessionEventType.FAIL]: {
-          target: LoginSessionState.FAILED,
+        FAIL: {
+          target: "failed",
           actions: "setFailureReason",
         },
-        [LoginSessionEventType.EXPIRE]: {
-          target: LoginSessionState.EXPIRED,
+        EXPIRE: {
+          target: "expired",
         },
       },
     },
-    [LoginSessionState.AWAITING_HOOK]: {
+    awaiting_hook: {
       on: {
         // Return to AUTHENTICATED hub to check if more steps are needed
-        [LoginSessionEventType.COMPLETE_HOOK]: {
-          target: LoginSessionState.AUTHENTICATED,
+        COMPLETE_HOOK: {
+          target: "authenticated",
           actions: "clearHookId",
         },
         // Allow transitioning to continuation (e.g., form redirects to change-email page)
-        [LoginSessionEventType.START_CONTINUATION]: {
-          target: LoginSessionState.AWAITING_CONTINUATION,
+        START_CONTINUATION: {
+          target: "awaiting_continuation",
           actions: "setContinuationScope",
         },
-        [LoginSessionEventType.FAIL]: {
-          target: LoginSessionState.FAILED,
+        FAIL: {
+          target: "failed",
           actions: "setFailureReason",
         },
-        [LoginSessionEventType.EXPIRE]: {
-          target: LoginSessionState.EXPIRED,
+        EXPIRE: {
+          target: "expired",
         },
       },
     },
-    [LoginSessionState.AWAITING_CONTINUATION]: {
+    awaiting_continuation: {
       on: {
         // Return to AUTHENTICATED hub to check if more steps are needed
-        [LoginSessionEventType.COMPLETE_CONTINUATION]: {
-          target: LoginSessionState.AUTHENTICATED,
+        COMPLETE_CONTINUATION: {
+          target: "authenticated",
           actions: "clearContinuationScope",
         },
-        [LoginSessionEventType.FAIL]: {
-          target: LoginSessionState.FAILED,
+        FAIL: {
+          target: "failed",
           actions: "setFailureReason",
         },
-        [LoginSessionEventType.EXPIRE]: {
-          target: LoginSessionState.EXPIRED,
+        EXPIRE: {
+          target: "expired",
         },
       },
     },
-    [LoginSessionState.COMPLETED]: {
+    completed: {
       type: "final",
     },
-    [LoginSessionState.FAILED]: {
+    failed: {
       type: "final",
     },
-    [LoginSessionState.EXPIRED]: {
+    expired: {
       type: "final",
     },
   },
 });
 
 /**
- * Create a snapshot from a state value for use with getNextSnapshot
+ * Create a snapshot from a state value for use with transition
  */
 function createSnapshot(
   stateValue: LoginSessionState,
@@ -235,7 +240,7 @@ function createSnapshot(
 /**
  * Transition a login session and return the new state
  *
- * Uses XState's getNextSnapshot for a single source of truth - the machine
+ * Uses XState's transition for a single source of truth - the machine
  * definition determines all valid transitions.
  */
 export function transitionLoginSession(
@@ -244,7 +249,7 @@ export function transitionLoginSession(
   context: LoginSessionContext = {},
 ): { state: LoginSessionState; context: Partial<LoginSessionContext> } {
   const currentSnapshot = createSnapshot(currentState, context);
-  const nextSnapshot = getNextSnapshot(
+  const [nextSnapshot] = transition(
     loginSessionMachine,
     currentSnapshot,
     event,
@@ -277,7 +282,7 @@ export function transitionLoginSession(
 /**
  * Check if a login session can transition with the given event
  *
- * Uses XState's getNextSnapshot - if the state changes, the transition is valid.
+ * Uses XState's transition - if the state changes, the transition is valid.
  */
 export function canTransition(
   currentState: LoginSessionState,
@@ -301,7 +306,7 @@ export function canTransition(
   }
 
   const currentSnapshot = createSnapshot(currentState, context);
-  const nextSnapshot = getNextSnapshot(
+  const [nextSnapshot] = transition(
     loginSessionMachine,
     currentSnapshot,
     event,

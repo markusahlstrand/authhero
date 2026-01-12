@@ -125,7 +125,9 @@ export default (
   const getManagementClient = async () => {
     if (!managementClientPromise) {
       if (!apiUrl) {
-        throw new Error("API URL is not configured. Please set restApiUrl in domain configuration or VITE_SIMPLE_REST_URL environment variable.");
+        throw new Error(
+          "API URL is not configured. Please set restApiUrl in domain configuration or VITE_SIMPLE_REST_URL environment variable.",
+        );
       }
       // Extract API domain from apiUrl
       const apiDomain = apiUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
@@ -328,13 +330,10 @@ export default (
       // User organizations - when filtering by user_id
       if (resource === "user-organizations" && params.filter?.user_id) {
         const userId = params.filter.user_id;
-        const result = await managementClient.users.organizations.list(
-          userId,
-          {
-            page: page - 1,
-            per_page: perPage,
-          },
-        );
+        const result = await managementClient.users.organizations.list(userId, {
+          page: page - 1,
+          per_page: perPage,
+        });
         const response = (result as any).response || result;
 
         let organizationsData: any[];
