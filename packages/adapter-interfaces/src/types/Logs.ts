@@ -53,6 +53,7 @@ export const LogTypes = {
   FAILED_EXCHANGE_ROTATING_REFRESH_TOKEN: "ferrt",
   FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "fertft",
   FAILED_HOOK: "fh", // Custom AuthHero-specific
+  FAILED_IMPERSONATION: "fimp", // Custom AuthHero-specific
   FAILED_INVITE_ACCEPT: "fi",
   FAILED_LOGOUT: "flo",
   FLOWS_EXECUTION_COMPLETED: "flows_execution_completed",
@@ -161,6 +162,7 @@ export const LogTypes = {
   SUCCESS_EXCHANGE_PASSKEY_MFA_RECOVERY_FOR_ACCESS_TOKEN: "sepkrcft",
   SUCCESS_EXCHANGE_PASSWORD_MFA_RECOVERY_FOR_ACCESS_TOKEN: "sercft",
   SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "sertft",
+  SUCCESS_IMPERSONATION: "simp", // Custom AuthHero-specific
   SUCCESSFULLY_ACCEPTED_USER_INVITE: "si",
   BREACHED_PASSWORD_ON_SIGNUP: "signup_pwd_leak",
   SUCCESS_LOGOUT: "slo",

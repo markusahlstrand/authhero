@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { escapeHtml } from "../sanitization-utils";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 
@@ -28,7 +29,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
       category: "BLOCK",
       visible: true,
       config: {
-        content: `We sent a code to ${maskedEmail}. Enter it below to continue.`,
+        content: `We sent a code to ${escapeHtml(maskedEmail)}. Enter it below to continue.`,
       },
       order: 0,
     },

@@ -8,6 +8,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { HTTPException } from "hono/http-exception";
+import { escapeHtml } from "../sanitization-utils";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import { logMessage } from "../../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
@@ -101,7 +102,7 @@ export async function impersonateScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="current-user-info"><strong>Current user:</strong> ${user.email || user.user_id}</div>`,
+        content: `<div class="current-user-info"><strong>Current user:</strong> ${escapeHtml(user.email || user.user_id)}</div>`,
       },
       order: 1,
     },
@@ -145,7 +146,7 @@ export async function impersonateScreen(
     method: "POST",
     title: "Impersonation",
     description: client.name
-      ? `Impersonation for ${client.name}`
+      ? `Impersonation for ${escapeHtml(client.name)}`
       : "User impersonation",
     components,
   };
@@ -252,13 +253,6 @@ async function handleImpersonateSubmit(
     };
   }
 
-  // Log the impersonation attempt
-  logMessage(ctx, tenant.id, {
-    type: LogTypes.SUCCESS_LOGIN,
-    description: `User ${currentUser.email} impersonating ${targetUser.email || targetUser.user_id}`,
-    userId: targetUser.user_id,
-  });
-
   // Create auth response with impersonated user
   const response = await createFrontChannelAuthResponse(ctx, {
     client,
@@ -272,11 +266,18 @@ async function handleImpersonateSubmit(
 
   // Extract redirect URL from response
   const location = response.headers.get("Location");
-  if (location) {
-    return { redirect: location };
+  if (!location) {
+    throw new HTTPException(500, { message: "Failed to generate redirect" });
   }
 
-  throw new HTTPException(500, { message: "Failed to generate redirect" });
+  // Log successful impersonation after auth response is confirmed
+  logMessage(ctx, tenant.id, {
+    type: LogTypes.SUCCESS_IMPERSONATION,
+    description: `User ${currentUser.email} impersonating ${targetUser.email || targetUser.user_id}`,
+    userId: targetUser.user_id,
+  });
+
+  return { redirect: location };
 }
 
 /**

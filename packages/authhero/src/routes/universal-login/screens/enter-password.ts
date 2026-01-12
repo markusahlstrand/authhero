@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { escapeHtml } from "../sanitization-utils";
 
 /**
  * Create the enter-password screen
@@ -25,7 +26,7 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
             category: "BLOCK",
             visible: true,
             config: {
-              content: `Signing in as <strong>${email}</strong>`,
+              content: `Signing in as <strong>${escapeHtml(email)}</strong>`,
             },
             order: 0,
           } as FormNodeComponent,
