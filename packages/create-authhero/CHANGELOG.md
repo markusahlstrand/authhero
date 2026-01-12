@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.24.0
+
+### Minor Changes
+
+- 881d33b: Add aws deployment target
+
 ## 0.23.0
 
 ### Minor Changes
