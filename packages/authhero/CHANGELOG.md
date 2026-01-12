@@ -1,5 +1,12 @@
 # authhero
 
+## 4.5.0
+
+### Minor Changes
+
+- 5ecc8ad: Add impersonation in stencil component
+- 26fe324: Fix the awaiting continuation
+
 ## 4.4.1
 
 ### Patch Changes
