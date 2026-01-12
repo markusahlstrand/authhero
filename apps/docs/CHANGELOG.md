@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.31.0
+
+### Minor Changes
+
+- 881d33b: Add aws deployment target
+
 ## 1.30.0
 
 ### Minor Changes
