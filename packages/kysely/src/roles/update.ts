@@ -11,11 +11,12 @@ export function update(db: Kysely<Database>) {
     roleId: string,
     params: Partial<Role>,
   ): Promise<boolean> => {
-    const { is_system, ...rest } = params;
+    const { is_system, metadata, ...rest } = params;
 
     const updates: RoleDbUpdate = {
       ...rest,
       is_system: is_system !== undefined ? (is_system ? 1 : 0) : undefined,
+      metadata: metadata !== undefined ? JSON.stringify(metadata) : undefined,
       updated_at: new Date().toISOString(),
     };
 

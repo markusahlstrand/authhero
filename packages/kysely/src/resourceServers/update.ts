@@ -19,6 +19,7 @@ export function update(db: Kysely<Database>) {
       skip_consent_for_verifiable_first_party_clients,
       allow_offline_access,
       is_system,
+      metadata,
       ...rest
     } = params;
 
@@ -52,6 +53,9 @@ export function update(db: Kysely<Database>) {
 
       const mergedOptions = { ...existingOptions, ...options };
       updates.options = JSON.stringify(mergedOptions);
+    }
+    if (metadata !== undefined) {
+      updates.metadata = JSON.stringify(metadata);
     }
 
     // Handle boolean to integer conversion

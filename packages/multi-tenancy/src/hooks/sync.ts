@@ -351,18 +351,39 @@ export interface SyncHooksResult {
  * });
  * ```
  */
+/**
+ * Default filter that checks if an entity should be synced based on its metadata.
+ * Returns false if metadata.sync is explicitly set to false.
+ */
+function defaultSyncFilter(
+  entity: { metadata?: Record<string, unknown> },
+): boolean {
+  return entity.metadata?.sync !== false;
+}
+
 export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
   const { sync = {}, filters = {} } = config;
 
   const syncResourceServers = sync.resourceServers ?? true;
   const syncRoles = sync.roles ?? true;
 
+  // Combine user filters with default metadata sync filter
+  const resourceServerFilter = (entity: ResourceServer): boolean => {
+    if (!defaultSyncFilter(entity)) return false;
+    return filters.resourceServers ? filters.resourceServers(entity) : true;
+  };
+
+  const roleFilter = (entity: Role): boolean => {
+    if (!defaultSyncFilter(entity)) return false;
+    return filters.roles ? filters.roles(entity) : true;
+  };
+
   // Create entity hooks
   const resourceServerHooks = syncResourceServers
     ? createEntitySyncHooks<ResourceServer, ResourceServerInsert>(
         config,
         resourceServerAdapter,
-        filters.resourceServers,
+        resourceServerFilter,
       )
     : undefined;
 
@@ -370,7 +391,7 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     ? createEntitySyncHooks<Role, RoleInsert>(
         config,
         roleAdapter,
-        filters.roles,
+        roleFilter,
       )
     : undefined;
 
@@ -379,7 +400,7 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     ? createTenantEntitySyncHooks<ResourceServer, ResourceServerInsert>(
         config,
         resourceServerAdapter,
-        filters.resourceServers,
+        resourceServerFilter,
       )
     : undefined;
 
@@ -387,7 +408,7 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     ? createTenantEntitySyncHooks<Role, RoleInsert>(
         config,
         roleAdapter,
-        filters.roles,
+        roleFilter,
       )
     : undefined;
 

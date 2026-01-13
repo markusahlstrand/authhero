@@ -25,14 +25,16 @@ interface RoleItem extends DynamoDBBaseItem {
   name: string;
   description?: string;
   is_system?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 function toRole(item: RoleItem): Role {
-  const { tenant_id, is_system, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, is_system, metadata, ...rest } = stripDynamoDBFields(item);
   return roleSchema.parse(
     removeNullProperties({
       ...rest,
       is_system: is_system ? true : undefined,
+      metadata,
     }),
   );
 }
@@ -52,6 +54,7 @@ export function createRolesAdapter(ctx: DynamoDBContext): RolesAdapter {
         name: role.name,
         description: role.description,
         is_system: role.is_system ?? false,
+        metadata: role.metadata,
         created_at: now,
         updated_at: now,
       };

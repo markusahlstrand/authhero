@@ -4,6 +4,7 @@ import {
   integer,
   index,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { tenants } from "./tenants";
 
@@ -30,6 +31,8 @@ export const connections = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.tenant_id, table.id] }),
     index("connections_tenant_id_index").on(table.tenant_id),
+    // Required for keys.connection foreign key reference
+    uniqueIndex("connections_id_unique").on(table.id),
   ],
 );
 

@@ -159,12 +159,18 @@ CREATE TABLE `login_sessions` (
 	`ip` text(39),
 	`useragent` text,
 	`auth0Client` text(255),
-	`login_completed` integer DEFAULT 0,
+	`state` text(50) DEFAULT 'pending' NOT NULL,
+	`state_data` text,
+	`failure_reason` text,
+	`user_id` text(255),
 	PRIMARY KEY(`tenant_id`, `id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `login_sessions_id_index` ON `login_sessions` (`id`);--> statement-breakpoint
+CREATE INDEX `login_sessions_state_idx` ON `login_sessions` (`state`);--> statement-breakpoint
+CREATE INDEX `login_sessions_state_updated_idx` ON `login_sessions` (`state`,`updated_at`);--> statement-breakpoint
+CREATE INDEX `login_sessions_tenant_user_idx` ON `login_sessions` (`tenant_id`,`user_id`);--> statement-breakpoint
 CREATE TABLE `otps` (
 	`tenant_id` text(191) NOT NULL,
 	`id` text(255) PRIMARY KEY NOT NULL,
@@ -317,13 +323,13 @@ CREATE TABLE `clients` (
 );
 --> statement-breakpoint
 CREATE TABLE `connections` (
-	`id` text(255) PRIMARY KEY NOT NULL,
+	`id` text(255) NOT NULL,
 	`tenant_id` text(191) NOT NULL,
 	`name` text(255) NOT NULL,
 	`response_type` text(255),
 	`response_mode` text(255),
 	`strategy` text(64),
-	`options` text(2048) DEFAULT '{}' NOT NULL,
+	`options` text(8192) DEFAULT '{}' NOT NULL,
 	`created_at` text(35) NOT NULL,
 	`updated_at` text(35) NOT NULL,
 	`display_name` text(255),
@@ -331,10 +337,12 @@ CREATE TABLE `connections` (
 	`show_as_button` integer,
 	`is_system` integer DEFAULT 0 NOT NULL,
 	`metadata` text(4096),
+	PRIMARY KEY(`tenant_id`, `id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `connections_tenant_id_index` ON `connections` (`tenant_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `connections_id_unique` ON `connections` (`id`);--> statement-breakpoint
 CREATE TABLE `custom_domains` (
 	`custom_domain_id` text(256) PRIMARY KEY NOT NULL,
 	`tenant_id` text(191) NOT NULL,

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "2e08570c-9165-450c-898f-ebfcbc10cf32",
+  "id": "18d1a52e-e035-4e11-8380-4010025f05a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -1114,13 +1114,34 @@
           "notNull": false,
           "autoincrement": false
         },
-        "login_completed": {
-          "name": "login_completed",
-          "type": "integer",
+        "state": {
+          "name": "state",
+          "type": "text(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "state_data": {
+          "name": "state_data",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": 0
+          "autoincrement": false
+        },
+        "failure_reason": {
+          "name": "failure_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -1128,6 +1149,29 @@
           "name": "login_sessions_id_index",
           "columns": [
             "id"
+          ],
+          "isUnique": false
+        },
+        "login_sessions_state_idx": {
+          "name": "login_sessions_state_idx",
+          "columns": [
+            "state"
+          ],
+          "isUnique": false
+        },
+        "login_sessions_state_updated_idx": {
+          "name": "login_sessions_state_updated_idx",
+          "columns": [
+            "state",
+            "updated_at"
+          ],
+          "isUnique": false
+        },
+        "login_sessions_tenant_user_idx": {
+          "name": "login_sessions_tenant_user_idx",
+          "columns": [
+            "tenant_id",
+            "user_id"
           ],
           "isUnique": false
         }
@@ -2223,7 +2267,7 @@
         "id": {
           "name": "id",
           "type": "text(255)",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -2264,7 +2308,7 @@
         },
         "options": {
           "name": "options",
-          "type": "text(2048)",
+          "type": "text(8192)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -2328,6 +2372,13 @@
             "tenant_id"
           ],
           "isUnique": false
+        },
+        "connections_id_unique": {
+          "name": "connections_id_unique",
+          "columns": [
+            "id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -2345,7 +2396,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "connections_tenant_id_id_pk": {
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
+          "name": "connections_tenant_id_id_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
