@@ -1,5 +1,17 @@
 # authhero
 
+## 4.6.0
+
+### Minor Changes
+
+- 00d2f83: Update versions to get latest build
+- edcb62d: Fix a state bug in the login flow
+
+### Patch Changes
+
+- Updated dependencies [00d2f83]
+  - @authhero/adapter-interfaces@0.120.0
+
 ## 4.5.0
 
 ### Minor Changes

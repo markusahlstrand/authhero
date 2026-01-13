@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.22.0
+
+### Minor Changes
+
+- 00d2f83: Update versions to get latest build
+
+### Patch Changes
+
+- Updated dependencies [00d2f83]
+  - @authhero/adapter-interfaces@0.120.0
+  - @authhero/widget@0.6.3
+
 ## 0.21.0
 
 ### Minor Changes
