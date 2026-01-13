@@ -27,6 +27,7 @@ import { tailwindCss } from "../../styles";
 import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
 import { impersonateRoutes } from "./impersonate";
+import { continueRoutes } from "./continue";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
 
@@ -148,7 +149,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/validate-email", validateEmailRoutes)
     .route("/signup", signupRoutes)
     .route("/impersonate", impersonateRoutes)
-    .route("/forms", formNodeRoutes);
+    .route("/forms", formNodeRoutes)
+    .route("/continue", continueRoutes);
 
   universalApp.doc("/spec", {
     openapi: "3.0.0",
