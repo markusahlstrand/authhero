@@ -1,5 +1,11 @@
 # authhero
 
+## 4.7.0
+
+### Minor Changes
+
+- 7277798: Improve logging for changing emails
+
 ## 4.6.0
 
 ### Minor Changes
