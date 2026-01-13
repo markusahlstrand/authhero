@@ -411,15 +411,23 @@ export async function authenticateLoginSession(
   // Determine the session ID - either use existing or create new
   let session_id: string;
   if (existingSessionId) {
-    // Reuse existing session
-    session_id = existingSessionId;
-
-    // Ensure the client is associated with the existing session
+    // Verify the existing session exists
     const existingSession = await ctx.env.data.sessions.get(
       client.tenant.id,
       existingSessionId,
     );
-    if (existingSession && !existingSession.clients.includes(client.client_id)) {
+
+    if (!existingSession) {
+      throw new HTTPException(400, {
+        message: `Session ${existingSessionId} not found or has expired`,
+      });
+    }
+
+    // Reuse existing session
+    session_id = existingSessionId;
+
+    // Ensure the client is associated with the existing session
+    if (!existingSession.clients.includes(client.client_id)) {
       await ctx.env.data.sessions.update(client.tenant.id, existingSessionId, {
         clients: [...existingSession.clients, client.client_id],
       });

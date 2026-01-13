@@ -271,6 +271,15 @@ describe("transitionLoginSession", () => {
     );
     expect(result.state).toBe(LoginSessionState.AUTHENTICATED);
   });
+
+  it("should transition from AWAITING_HOOK to AWAITING_CONTINUATION via START_CONTINUATION", () => {
+    const result = transitionLoginSession(LoginSessionState.AWAITING_HOOK, {
+      type: LoginSessionEventType.START_CONTINUATION,
+      scope: ["change-email"],
+    });
+    expect(result.state).toBe(LoginSessionState.AWAITING_CONTINUATION);
+    expect(result.context.continuationScope).toEqual(["change-email"]);
+  });
 });
 
 describe("canTransition", () => {
@@ -336,15 +345,6 @@ describe("canTransition", () => {
         LoginSessionEventType.START_CONTINUATION,
       ),
     ).toBe(true);
-  });
-
-  it("should transition from AWAITING_HOOK to AWAITING_CONTINUATION via START_CONTINUATION", () => {
-    const result = transitionLoginSession(LoginSessionState.AWAITING_HOOK, {
-      type: LoginSessionEventType.START_CONTINUATION,
-      scope: ["change-email"],
-    });
-    expect(result.state).toBe(LoginSessionState.AWAITING_CONTINUATION);
-    expect(result.context.continuationScope).toEqual(["change-email"]);
   });
 
   it("should return false for COMPLETE from awaiting_hook (must use COMPLETE_HOOK)", () => {
