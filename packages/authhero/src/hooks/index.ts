@@ -193,6 +193,11 @@ function createUserUpdateHooks(
           },
         );
       } catch (err) {
+        logMessage(ctx, tenant_id, {
+          type: LogTypes.ACTIONS_EXECUTION_FAILED,
+          description: `Pre user update hook failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          userId: user_id,
+        });
         throw new JSONHTTPException(400, {
           message: "Pre user update hook failed",
         });

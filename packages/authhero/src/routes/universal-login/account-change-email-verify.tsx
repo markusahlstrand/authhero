@@ -3,6 +3,8 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRouteWithSession } from "./common";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
+import { logMessage } from "../../helpers/logging";
+import { LogTypes } from "@authhero/adapter-interfaces";
 
 export const changeEmailVerifyRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -177,37 +179,51 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
             await env.data.codes.used(client.tenant.id, code);
 
             // Update user's email and set it as verified
-            await env.data.users.update(client.tenant.id, user.user_id, {
-              email,
-              email_verified: true,
-            });
+            const userUpdated = await env.data.users.update(
+              client.tenant.id,
+              user.user_id,
+              {
+                email,
+                email_verified: true,
+              },
+            );
 
-            // Also update all linked users' emails
-            const linkedUsers = await env.data.users.list(client.tenant.id, {
-              page: 0,
-              per_page: 100,
-              include_totals: false,
-              q: `linked_to:${user.user_id}`,
-            });
+            if (!userUpdated) {
+              error = i18next.t("user_not_found") || "User not found";
+            } else {
+              // Also update all linked users' emails
+              const linkedUsers = await env.data.users.list(client.tenant.id, {
+                page: 0,
+                per_page: 100,
+                include_totals: false,
+                q: `linked_to:${user.user_id}`,
+              });
 
-            for (const linkedUser of linkedUsers.users) {
-              await env.data.users.update(
-                client.tenant.id,
-                linkedUser.user_id,
-                {
-                  email,
-                  email_verified: true,
-                },
+              for (const linkedUser of linkedUsers.users) {
+                await env.data.users.update(
+                  client.tenant.id,
+                  linkedUser.user_id,
+                  {
+                    email,
+                    email_verified: true,
+                  },
+                );
+              }
+
+              // Redirect to confirmation page
+              return ctx.redirect(
+                `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
               );
             }
-
-            // Redirect to confirmation page
-            return ctx.redirect(
-              `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
-            );
           }
         }
       } catch (err) {
+        console.error("Change email verification error:", err);
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_CHANGE_EMAIL,
+          description: `Change email failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          userId: user.user_id,
+        });
         error = i18next.t("operation_failed");
       }
 

@@ -241,7 +241,10 @@ async function handleImpersonateSubmit(
   }
 
   // Switch to impersonate another user
-  const targetUser = await ctx.env.data.users.get(tenant.id, userIdToImpersonate);
+  const targetUser = await ctx.env.data.users.get(
+    tenant.id,
+    userIdToImpersonate,
+  );
 
   if (!targetUser) {
     // Log failed impersonation attempt for security auditing

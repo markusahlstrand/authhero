@@ -371,7 +371,12 @@ export interface AuthenticateLoginSessionParams {
  */
 export async function authenticateLoginSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  { user, client, loginSession, existingSessionId }: AuthenticateLoginSessionParams,
+  {
+    user,
+    client,
+    loginSession,
+    existingSessionId,
+  }: AuthenticateLoginSessionParams,
 ): Promise<string> {
   // Re-fetch current state to prevent stale overwrites
   const currentLoginSession = await ctx.env.data.loginSessions.get(
@@ -434,7 +439,11 @@ export async function authenticateLoginSession(
     }
   } else {
     // Create a new session
-    const newSession = await createNewSession(ctx, { user, client, loginSession });
+    const newSession = await createNewSession(ctx, {
+      user,
+      client,
+      loginSession,
+    });
     session_id = newSession.id;
   }
 
@@ -917,7 +926,8 @@ export async function createFrontChannelAuthResponse(
   } else {
     // No login session provided - this is an error for front-channel responses
     throw new JSONHTTPException(500, {
-      message: "loginSession must be provided for front-channel auth responses.",
+      message:
+        "loginSession must be provided for front-channel auth responses.",
     });
   }
 

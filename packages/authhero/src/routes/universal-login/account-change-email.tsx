@@ -7,6 +7,8 @@ import { sendCode } from "../../emails";
 import generateOTP from "../../utils/otp";
 import { nanoid } from "nanoid";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
+import { logMessage } from "../../helpers/logging";
+import { LogTypes } from "@authhero/adapter-interfaces";
 
 export const accountChangeEmailRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -185,6 +187,13 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         to: email,
         code,
         language,
+      });
+
+      // Log the change email request
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.CODE_SENT,
+        description: `Change email verification code sent to ${email}`,
+        userId: user.user_id,
       });
 
       // Redirect to verification page
