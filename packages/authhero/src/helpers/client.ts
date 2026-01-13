@@ -30,14 +30,27 @@ export async function getClientWithDefaults(
       ? await env.data.legacyClients.get(env.DEFAULT_CLIENT_ID)
       : undefined;
 
-    // TODO: This is not really correct. The connections are not part of a client, but it will be fixed in a later version
+    // Get connections that are enabled for this client
+    // If no connections are explicitly defined, use all connections from the tenant
+    const hasDefinedConnections =
+      client.connections && client.connections.length > 0;
+    const enabledConnectionIds = hasDefinedConnections
+      ? new Set(client.connections.map((c) => c.id))
+      : null;
+
     const clientConnections = await env.data.connections.list(client.tenant.id);
 
     const defaultConnections = env.DEFAULT_TENANT_ID
       ? await env.data.connections.list(env.DEFAULT_TENANT_ID)
       : { connections: [] };
 
-    const connections = clientConnections.connections
+    // Filter and merge connections
+    const allConnections = clientConnections.connections
+      .filter((connection) =>
+        enabledConnectionIds === null
+          ? true
+          : enabledConnectionIds.has(connection.id || ""),
+      )
       .map((connection) => {
         const defaultConnection = defaultConnections.connections?.find(
           (c) => c.name === connection.name,
@@ -61,6 +74,15 @@ export async function getClientWithDefaults(
         return mergedConnection;
       })
       .filter((c) => c);
+
+    // Preserve the order from the client's enabled connections
+    const connections = hasDefinedConnections
+      ? client.connections
+          .map((enabledConn) =>
+            allConnections.find((c) => c.id === enabledConn.id),
+          )
+          .filter((c): c is NonNullable<typeof c> => c !== undefined)
+      : allConnections;
 
     processedClient = {
       ...client,

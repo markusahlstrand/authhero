@@ -27,6 +27,12 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
         throw new HTTPException(404, { message: "Tenant not found" });
       }
 
+      // Get the client's enabled connection IDs (preserves order)
+      const clientConnectionIds: string[] = JSON.parse(
+        client.connections || "[]",
+      );
+
+      // Fetch all connections for the tenant
       const connections = await db
         .selectFrom("connections")
         .where("tenant_id", "=", client.tenant_id)
@@ -36,6 +42,36 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
       const clientMetadata = client.client_metadata
         ? JSON.parse(client.client_metadata)
         : {};
+
+      // Build a map of connections for efficient lookup
+      const connectionMap = new Map(
+        connections.map((connection) => {
+          const { is_system, ...rest } = connection;
+          return [
+            connection.id,
+            connectionSchema.parse(
+              removeNullProperties({
+                ...rest,
+                is_system: is_system ? true : undefined,
+                options: connection.options
+                  ? JSON.parse(connection.options)
+                  : {},
+              }),
+            ),
+          ];
+        }),
+      );
+
+      // Return connections in the order specified by clientConnectionIds,
+      // filtering to only enabled ones. If no connections defined, return all.
+      const orderedConnections =
+        clientConnectionIds.length > 0
+          ? clientConnectionIds
+              .map((id) => connectionMap.get(id))
+              .filter(
+                (c): c is NonNullable<typeof c> => c !== undefined && c !== null,
+              )
+          : Array.from(connectionMap.values());
 
       const legacyClient: LegacyClient = {
         ...client,
@@ -50,17 +86,8 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
         require_pushed_authorization_requests:
           !!client.require_pushed_authorization_requests,
         require_proof_of_possession: !!client.require_proof_of_possession,
-        // Parse JSON string fields back to objects/arrays
-        connections: connections.map((connection) => {
-          const { is_system, ...rest } = connection;
-          return connectionSchema.parse(
-            removeNullProperties({
-              ...rest,
-              is_system: is_system ? true : undefined,
-              options: connection.options ? JSON.parse(connection.options) : {},
-            }),
-          );
-        }),
+        // Use the ordered connections
+        connections: orderedConnections,
         addons: client.addons ? JSON.parse(client.addons) : {},
         callbacks: client.callbacks ? JSON.parse(client.callbacks) : [],
         allowed_origins: client.allowed_origins
