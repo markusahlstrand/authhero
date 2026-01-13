@@ -35,10 +35,7 @@ export const resourceServerInsertSchema = z.object({
   verificationKey: z.string().optional(),
   options: resourceServerOptionsSchema.optional(),
   is_system: z.boolean().optional(),
-  metadata: z.record(z.any()).optional().openapi({
-    description:
-      "Metadata associated with the resource server. Can be used to control sync behavior in multi-tenancy scenarios.",
-  }),
+  metadata: z.record(z.any()).optional(),
 });
 export type ResourceServerInsert = z.input<typeof resourceServerInsertSchema>;
 
