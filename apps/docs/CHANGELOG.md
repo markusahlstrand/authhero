@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.32.0
+
+### Minor Changes
+
+- 00d2f83: Update versions to get latest build
+
 ## 1.31.0
 
 ### Minor Changes

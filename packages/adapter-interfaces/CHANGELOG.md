@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.120.0
+
+### Minor Changes
+
+- 00d2f83: Update versions to get latest build
+
 ## 0.119.0
 
 ### Minor Changes
