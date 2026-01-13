@@ -167,6 +167,8 @@ export const sqlResourceServerSchema = z
     skip_consent_for_verifiable_first_party_clients: z.number().optional(),
     allow_offline_access: z.number().optional(),
     is_system: z.number().optional(),
+    // Store metadata as JSON string in SQL
+    metadata: z.string().optional(),
     // Handle verification_key as snake_case in database but verificationKey in interface
     verification_key: z.string().optional(),
     // Timestamp fields
@@ -180,6 +182,8 @@ export const sqlRoleSchema = z.object({
   tenant_id: z.string(),
   // Store booleans as integers in SQL
   is_system: z.number().optional(),
+  // Store metadata as JSON string in SQL
+  metadata: z.string().optional(),
   // Timestamp fields
   created_at: z.string(),
   updated_at: z.string(),

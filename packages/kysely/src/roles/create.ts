@@ -15,13 +15,14 @@ export function create(db: Kysely<Database>) {
     // Use provided id or generate a new one
     const id = params.id || nanoid();
 
-    const { is_system, id: _providedId, ...rest } = params;
+    const { is_system, id: _providedId, metadata, ...rest } = params;
 
     const dbRole: RoleDbInsert = {
       id,
       ...rest,
       tenant_id: tenantId,
       is_system: is_system ? 1 : 0,
+      metadata: metadata ? JSON.stringify(metadata) : undefined,
       created_at: now,
       updated_at: now,
     };
@@ -32,6 +33,7 @@ export function create(db: Kysely<Database>) {
       id,
       ...rest,
       is_system: is_system ? true : undefined,
+      metadata,
       created_at: now,
       updated_at: now,
     };

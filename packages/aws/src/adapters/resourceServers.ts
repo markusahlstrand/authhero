@@ -36,10 +36,11 @@ interface ResourceServerItem extends DynamoDBBaseItem {
   options?: string; // JSON string
   verification_key?: string;
   is_system?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 function toResourceServer(item: ResourceServerItem): ResourceServer {
-  const { tenant_id, verification_key, is_system, ...rest } =
+  const { tenant_id, verification_key, is_system, metadata, ...rest } =
     stripDynamoDBFields(item);
 
   const data = removeNullProperties({
@@ -48,6 +49,7 @@ function toResourceServer(item: ResourceServerItem): ResourceServer {
     scopes: item.scopes ? JSON.parse(item.scopes) : undefined,
     options: item.options ? JSON.parse(item.options) : undefined,
     is_system: is_system ? true : undefined,
+    metadata,
   });
 
   return resourceServerSchema.parse(data);
@@ -87,6 +89,7 @@ export function createResourceServersAdapter(
         options: params.options ? JSON.stringify(params.options) : undefined,
         verification_key: params.verificationKey,
         is_system: params.is_system ?? false,
+        metadata: params.metadata,
         created_at: now,
         updated_at: now,
       };
