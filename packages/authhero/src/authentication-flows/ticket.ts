@@ -3,7 +3,7 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getOrCreateUserByProvider } from "../helpers/users";
-import { createFrontChannelAuthResponse, createSession } from "./common";
+import { createFrontChannelAuthResponse } from "./common";
 
 function getProviderFromRealm(realm: string) {
   if (realm === "Username-Password-Authentication") {
@@ -75,18 +75,14 @@ export async function ticketAuth(
   ctx.set("username", user.email || user.phone_number);
   ctx.set("user_id", user.user_id);
 
-  const session = await createSession(ctx, {
-    user,
-    client,
-    loginSession,
-  });
+  // Let createFrontChannelAuthResponse handle session creation and state transitions
+  // It will authenticate the login session and create/link a session as needed
   return createFrontChannelAuthResponse(ctx, {
     authParams: {
       scope: loginSession.authParams?.scope,
       ...authParams,
     },
     loginSession: loginSession,
-    sessionId: session.id,
     user,
     client,
     authStrategy: {

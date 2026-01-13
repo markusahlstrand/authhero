@@ -178,7 +178,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         authParams: loginSession.authParams,
         loginSession,
         user,
-        sessionId: session.id,
+        existingSessionIdToLink: session.id,
         skipHooks: true, // Skip post-login hooks during impersonation
       });
     },
@@ -318,7 +318,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         authParams: loginSession.authParams,
         loginSession,
         user: targetUser,
-        sessionId: currentSession.id,
+        existingSessionIdToLink: currentSession.id,
         skipHooks: true, // Skip post-login hooks during impersonation
         impersonatingUser: currentUser, // Set the act claim to identify the original user
       });

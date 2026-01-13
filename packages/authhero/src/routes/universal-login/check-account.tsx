@@ -187,17 +187,14 @@ export const checkAccountRoutes = new OpenAPIHono<{
         return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
-      // Link the existing session to the login session
-      await env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-        session_id: authSession.id,
-      });
-
+      // Let createFrontChannelAuthResponse handle session linking and state transitions
+      // It will authenticate the login session with the existing session
       const authResult = await createFrontChannelAuthResponse(ctx, {
         user,
         authParams: loginSession.authParams,
         client,
-        loginSession: { ...loginSession, session_id: authSession.id },
-        sessionId: authSession.id,
+        loginSession,
+        existingSessionIdToLink: authSession.id,
       });
 
       if (!(authResult instanceof Response)) {
