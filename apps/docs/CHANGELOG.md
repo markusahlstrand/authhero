@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.33.0
+
+### Minor Changes
+
+- 7277798: Improve logging for changing emails
+
 ## 1.32.0
 
 ### Minor Changes
