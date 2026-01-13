@@ -50,6 +50,7 @@ interface DynamicSettings {
   strategy: "code" | "password";
   showSocial: boolean;
   allowSignup: boolean;
+  socialProviders: string[];
 }
 
 // ============================================
@@ -75,10 +76,17 @@ function getSession(state: string): SessionState {
 
 // Parse settings from query params
 function parseSettings(query: Record<string, string | undefined>): DynamicSettings {
+  // Parse providers from query param (comma-separated) or use default
+  const defaultProviders = ["google-oauth2"];
+  const providers = query.providers 
+    ? query.providers.split(",").map(p => p.trim())
+    : defaultProviders;
+
   return {
     strategy: (query.strategy === "password" ? "password" : "code"),
     showSocial: query.showSocial !== "false",
     allowSignup: query.allowSignup !== "false",
+    socialProviders: providers,
   };
 }
 
@@ -87,7 +95,7 @@ function parseSettings(query: Record<string, string | undefined>): DynamicSettin
 // ============================================
 
 function buildSocialButtons(settings: DynamicSettings): FormComponent[] {
-  if (!settings.showSocial) return [];
+  if (!settings.showSocial || settings.socialProviders.length === 0) return [];
 
   return [
     {
@@ -96,7 +104,7 @@ function buildSocialButtons(settings: DynamicSettings): FormComponent[] {
       category: "FIELD",
       visible: true,
       config: {
-        providers: ["google-oauth2"],
+        providers: settings.socialProviders,
       },
       order: 0,
     },
@@ -469,6 +477,11 @@ function getScreen(
   switch (screenId) {
     case "identifier":
       return { screen: createIdentifierScreen(state, baseUrl, settings), branding };
+    case "identifier-social": {
+      // Override settings to use 3 social providers
+      const socialSettings = { ...settings, socialProviders: ["google-oauth2", "facebook", "apple"] };
+      return { screen: createIdentifierScreen(state, baseUrl, socialSettings), branding };
+    }
     case "enter-password":
       return {
         screen: createEnterPasswordScreen(state, baseUrl, session.email),
@@ -669,8 +682,9 @@ function renderWidgetPage(options: {
   state: string;
   baseUrl: string;
   urlMode: "path" | "query";
+  providers?: string;
 }): string {
-  const { screenId, state, baseUrl, urlMode } = options;
+  const { screenId, state, baseUrl, urlMode, providers } = options;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -923,6 +937,82 @@ function renderWidgetPage(options: {
       margin-top: 0.5rem;
     }
     
+    /* Device Preview Frame */
+    .device-frame {
+      background: #1a1a2e;
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+    .device-frame .device-screen {
+      border-radius: 16px;
+      overflow: hidden;
+      background: white;
+      display: flex;
+      flex-direction: column;
+    }
+    .device-frame.mobile {
+      width: 375px;
+      height: 667px;
+    }
+    .device-frame.mobile .device-screen {
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+    }
+    .device-frame.mobile authhero-widget {
+      max-width: none;
+    }
+    .preview-area.mobile-preview {
+      padding: 2rem;
+      background: #1a1a2e;
+    }
+    .preview-area:not(.mobile-preview) .device-frame {
+      background: transparent;
+      padding: 0;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    .preview-area:not(.mobile-preview) .device-frame .device-screen {
+      border-radius: 0;
+      background: transparent;
+    }
+    
+    /* Viewport toggle buttons */
+    .viewport-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .viewport-btn {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid #3d3d5c;
+      background: #1a1a2e;
+      color: #b0b0c0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      transition: all 0.2s;
+    }
+    .viewport-btn:hover {
+      background: #252540;
+    }
+    .viewport-btn.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+    }
+    .viewport-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
     /* Responsive */
     @media (max-width: 900px) {
       body {
@@ -937,6 +1027,25 @@ function renderWidgetPage(options: {
       }
       .preview-area {
         min-height: 60vh;
+      }
+    }
+
+    /* Small screens - hide settings panel completely */
+    @media (max-width: 480px) {
+      .settings-panel {
+        display: none;
+      }
+      .preview-area {
+        height: 100vh;
+        min-height: 100vh;
+        padding: 0;
+      }
+      .status-bar,
+      .event-log {
+        display: none;
+      }
+      authhero-widget {
+        max-width: none;
       }
     }
   </style>
@@ -954,6 +1063,7 @@ function renderWidgetPage(options: {
           <label for="screen-select">Current Screen</label>
           <select id="screen-select">
             <option value="identifier">Identifier (Email Input)</option>
+            <option value="identifier-social">Identifier (3 Social Buttons)</option>
             <option value="enter-password">Enter Password</option>
             <option value="enter-code">Enter Code (OTP)</option>
             <option value="signup">Sign Up</option>
@@ -968,6 +1078,19 @@ function renderWidgetPage(options: {
             <option value="query">Query-based (?screen=enter-code)</option>
             <option value="ssr">Server-Side Rendered (Full Page)</option>
           </select>
+        </div>
+        <div class="setting-row">
+          <label>Preview Viewport</label>
+          <div class="viewport-toggle">
+            <button type="button" class="viewport-btn active" data-viewport="desktop">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Desktop
+            </button>
+            <button type="button" class="viewport-btn" data-viewport="mobile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+              Mobile
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1398,7 +1521,11 @@ function renderWidgetPage(options: {
       <div class="status-badge">Mode: <strong id="mode-display">${urlMode}</strong></div>
     </div>
     
-    <authhero-widget id="widget"></authhero-widget>
+    <div class="device-frame" id="device-frame">
+      <div class="device-screen">
+        <authhero-widget id="widget"></authhero-widget>
+      </div>
+    </div>
     
     <div class="event-log">
       <h4>Event Log</h4>
@@ -1472,6 +1599,7 @@ function renderWidgetPage(options: {
     let loginStrategy = savedSettings?.loginStrategy || 'code';
     let showSocial = savedSettings?.showSocial ?? true;
     let allowSignup = savedSettings?.allowSignup ?? true;
+    let socialProviders = '${providers || "google-oauth2"}';
     
     // Branding state - now includes full theme options
     let branding = savedSettings?.branding || getDefaultBranding();
@@ -1572,6 +1700,7 @@ function renderWidgetPage(options: {
     function extractScreenFromPath(pathname) {
       // Map of path patterns to screen names
       const pathToScreen = {
+        '/u2/login/identifier-social': 'identifier-social',
         '/u2/login/identifier': 'identifier',
         '/u2/enter-password': 'enter-password',
         '/u2/enter-code': 'enter-code',
@@ -1592,6 +1721,7 @@ function renderWidgetPage(options: {
       if (urlMode === 'path' || urlMode === 'ssr') {
         const pathMap = {
           'identifier': '/u2/login/identifier',
+          'identifier-social': '/u2/login/identifier-social',
           'enter-password': '/u2/enter-password',
           'enter-code': '/u2/enter-code',
           'signup': '/u2/signup',
@@ -1615,6 +1745,7 @@ function renderWidgetPage(options: {
           strategy: loginStrategy,
           showSocial: showSocial,
           allowSignup: allowSignup,
+          providers: socialProviders,
         });
         
         const response = await fetch(baseUrl + '/u2/screen/' + screenId + '?' + params, {
@@ -1943,6 +2074,27 @@ function renderWidgetPage(options: {
     // Settings Panel Event Listeners
     // =========================================
     
+    // Viewport toggle
+    const viewportBtns = document.querySelectorAll('.viewport-btn');
+    const deviceFrame = document.getElementById('device-frame');
+    
+    viewportBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const viewport = btn.dataset.viewport;
+        viewportBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        if (viewport === 'mobile') {
+          previewArea.classList.add('mobile-preview');
+          deviceFrame.classList.add('mobile');
+        } else {
+          previewArea.classList.remove('mobile-preview');
+          deviceFrame.classList.remove('mobile');
+        }
+        log('Viewport → ' + viewport);
+      });
+    });
+    
     // Screen selector
     document.getElementById('screen-select').addEventListener('change', (e) => {
       navigateTo(e.target.value);
@@ -2202,6 +2354,7 @@ app.post("/u2/screen/:screenId", async (c) => {
 
   switch (screenId) {
     case "identifier":
+    case "identifier-social":
       result = handleIdentifierPost(data, state, baseUrl, settings);
       break;
     case "enter-password":
@@ -2231,6 +2384,19 @@ app.get("/u2/login/identifier", (c) => {
   const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
   const baseUrl = new URL(c.req.url).origin;
   return c.html(renderWidgetPage({ screenId: "identifier", state, baseUrl, urlMode: "path" }));
+});
+
+// Identifier with 3 social providers (Google, Facebook, Apple)
+app.get("/u2/login/identifier-social", (c) => {
+  const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const baseUrl = new URL(c.req.url).origin;
+  return c.html(renderWidgetPage({ 
+    screenId: "identifier", 
+    state, 
+    baseUrl, 
+    urlMode: "path",
+    providers: "google-oauth2,facebook,apple"
+  }));
 });
 
 app.get("/u2/enter-password", (c) => {
@@ -2316,6 +2482,7 @@ console.log(`
 🚀 AuthHero Widget Demo Server
    
    Path-based:  http://localhost:${port}/u2/login/identifier
+   With social: http://localhost:${port}/u2/login/identifier-social
    Query-based: http://localhost:${port}/u2/login?screen=identifier
    
    API Endpoints:
