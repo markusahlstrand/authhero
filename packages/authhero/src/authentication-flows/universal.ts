@@ -59,17 +59,14 @@ export async function universalAuth({
     );
 
     if (user?.email === login_hint) {
-      // Link the existing session to the login session
-      await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-        session_id: session.id,
-      });
-
+      // Let createFrontChannelAuthResponse handle the session linking and state transitions
+      // It will authenticate the login session with the existing session
       return createFrontChannelAuthResponse(ctx, {
         client,
-        loginSession: { ...loginSession, session_id: session.id },
+        loginSession,
         authParams,
         user,
-        sessionId: session.id,
+        existingSessionIdToLink: session.id,
       });
     }
   }

@@ -294,7 +294,7 @@ describe("common", () => {
     });
   });
 
-  it("should reuse an existing session when loginSession already has a session_id", async () => {
+  it("should reuse an existing session when existingSessionIdToLink is provided", async () => {
     const { env } = await getTestServer();
 
     // Setup a mock context with minimal requirements
@@ -342,10 +342,6 @@ describe("common", () => {
       },
     });
 
-    await env.data.loginSessions.update("tenantId", loginSession.id, {
-      session_id: session.id,
-    });
-
     const client = await env.data.legacyClients.get("clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
@@ -358,6 +354,7 @@ describe("common", () => {
     }
 
     // Call createAuthResponse which should reuse the existing session
+    // We explicitly pass existingSessionIdToLink to indicate we want to link this session
     const authResponse = (await createFrontChannelAuthResponse(ctx, {
       authParams: {
         client_id: "clientId",
@@ -368,7 +365,7 @@ describe("common", () => {
       client,
       user,
       loginSession,
-      sessionId: session.id,
+      existingSessionIdToLink: session.id,
     })) as Response;
 
     // Verify that no new session was created

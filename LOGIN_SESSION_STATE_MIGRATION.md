@@ -151,7 +151,9 @@ await completeLoginSession(ctx, tenantId, loginSession);
 
 ### AUTHENTICATE
 
-- `createSession()` in `common.ts` - when session is created after credential validation
+- `authenticateLoginSession()` in `common.ts` - the single source of truth for authentication
+- Called automatically by `createFrontChannelAuthResponse()` when state is PENDING
+- Creates or links a session and transitions to AUTHENTICATED
 
 ### FAIL
 
@@ -172,6 +174,29 @@ await completeLoginSession(ctx, tenantId, loginSession);
 ### COMPLETE
 
 - `completeLogin()` in `common.ts` - when tokens are issued
+
+## State as Single Source of Truth
+
+The login session state is the **single source of truth** for where a login flow is in its lifecycle.
+Code should check the state rather than checking if `session_id` or `user_id` is set.
+
+```typescript
+// ❌ Bad: Checking properties instead of state
+if (loginSession.session_id) {
+  // Assume authenticated
+}
+
+// ✅ Good: Checking state
+if (loginSession.state === LoginSessionState.AUTHENTICATED) {
+  // Actually authenticated
+}
+```
+
+The `createFrontChannelAuthResponse()` function enforces this by:
+1. Re-fetching the login session to get current state
+2. Rejecting terminal states (COMPLETED, FAILED, EXPIRED)
+3. Calling `authenticateLoginSession()` if state is PENDING
+4. Using the session_id from the login session if already AUTHENTICATED
 
 ## Usage Examples
 

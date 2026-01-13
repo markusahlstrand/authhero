@@ -227,7 +227,7 @@ async function handleImpersonateSubmit(
       authParams: loginSession.authParams,
       loginSession,
       user: currentUser,
-      sessionId: currentSession.id,
+      existingSessionIdToLink: currentSession.id,
       skipHooks: true, // Skip post-login hooks during impersonation
     });
 
@@ -266,7 +266,7 @@ async function handleImpersonateSubmit(
     authParams: loginSession.authParams,
     loginSession,
     user: targetUser,
-    sessionId: currentSession.id,
+    existingSessionIdToLink: currentSession.id,
     impersonatingUser: currentUser,
     skipHooks: true, // Skip post-login hooks during impersonation
   });

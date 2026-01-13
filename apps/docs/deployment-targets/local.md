@@ -26,7 +26,10 @@ const { app } = initMultiTenant({
   dataAdapter,
   // Widget asset handler for Node.js
   widgetHandler: serveStatic({
-    root: path.resolve(__dirname, "../node_modules/authhero/dist/assets/u/widget"),
+    root: path.resolve(
+      __dirname,
+      "../node_modules/authhero/dist/assets/u/widget",
+    ),
     rewriteRequestPath: (p) => p.replace("/u/widget", ""),
   }),
 });
@@ -44,6 +47,7 @@ serve({ fetch: app.fetch, port: 3000 });
 For production on VPS or dedicated servers:
 
 1. **Use a process manager** (PM2, systemd)
+
    ```bash
    # PM2
    pm2 start dist/index.js --name authhero
@@ -52,12 +56,13 @@ For production on VPS or dedicated servers:
    ```
 
 2. **Set up reverse proxy** (nginx, Caddy)
+
    ```nginx
    # nginx
    server {
      listen 80;
      server_name auth.example.com;
-     
+
      location / {
        proxy_pass http://localhost:3000;
        proxy_set_header Host $host;
@@ -95,9 +100,9 @@ const { app } = initMultiTenant({
   }),
 });
 
-export default { 
-  fetch: app.fetch, 
-  port: 3000 
+export default {
+  fetch: app.fetch,
+  port: 3000,
 };
 ```
 
@@ -170,7 +175,7 @@ CMD ["node", "dist/index.js"]
 ### Docker Compose
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   authhero:
@@ -181,7 +186,7 @@ services:
       - DATABASE_URL=postgresql://user:pass@db:5432/authhero
     depends_on:
       - db
-  
+
   db:
     image: postgres:15
     environment:
@@ -221,6 +226,7 @@ ALLOWED_ORIGINS=https://app.example.com
 ## Development Workflow
 
 1. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -230,11 +236,13 @@ ALLOWED_ORIGINS=https://app.example.com
    ```
 
 2. **Run database migrations**
+
    ```bash
    npm run migrate
    ```
 
 3. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -255,9 +263,12 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 widgetHandler: serveStatic({
-  root: path.resolve(__dirname, "../node_modules/authhero/dist/assets/u/widget"),
+  root: path.resolve(
+    __dirname,
+    "../node_modules/authhero/dist/assets/u/widget",
+  ),
   rewriteRequestPath: (p) => p.replace("/u/widget", ""),
-})
+});
 ```
 
 ### Port already in use

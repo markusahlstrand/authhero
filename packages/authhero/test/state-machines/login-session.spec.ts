@@ -271,12 +271,24 @@ describe("transitionLoginSession", () => {
     );
     expect(result.state).toBe(LoginSessionState.AUTHENTICATED);
   });
+
+  it("should transition from AWAITING_HOOK to AWAITING_CONTINUATION via START_CONTINUATION", () => {
+    const result = transitionLoginSession(LoginSessionState.AWAITING_HOOK, {
+      type: LoginSessionEventType.START_CONTINUATION,
+      scope: ["change-email"],
+    });
+    expect(result.state).toBe(LoginSessionState.AWAITING_CONTINUATION);
+    expect(result.context.continuationScope).toEqual(["change-email"]);
+  });
 });
 
 describe("canTransition", () => {
   it("should return true for valid transitions from pending", () => {
     expect(
-      canTransition(LoginSessionState.PENDING, LoginSessionEventType.AUTHENTICATE),
+      canTransition(
+        LoginSessionState.PENDING,
+        LoginSessionEventType.AUTHENTICATE,
+      ),
     ).toBe(true);
     expect(
       canTransition(LoginSessionState.PENDING, LoginSessionEventType.FAIL),
@@ -306,7 +318,10 @@ describe("canTransition", () => {
       ),
     ).toBe(true);
     expect(
-      canTransition(LoginSessionState.AUTHENTICATED, LoginSessionEventType.FAIL),
+      canTransition(
+        LoginSessionState.AUTHENTICATED,
+        LoginSessionEventType.FAIL,
+      ),
     ).toBe(true);
   });
 
@@ -318,7 +333,17 @@ describe("canTransition", () => {
       ),
     ).toBe(true);
     expect(
-      canTransition(LoginSessionState.AWAITING_HOOK, LoginSessionEventType.FAIL),
+      canTransition(
+        LoginSessionState.AWAITING_HOOK,
+        LoginSessionEventType.FAIL,
+      ),
+    ).toBe(true);
+    // START_CONTINUATION is also valid from AWAITING_HOOK (for form redirects)
+    expect(
+      canTransition(
+        LoginSessionState.AWAITING_HOOK,
+        LoginSessionEventType.START_CONTINUATION,
+      ),
     ).toBe(true);
   });
 
@@ -339,10 +364,16 @@ describe("canTransition", () => {
       canTransition(LoginSessionState.COMPLETED, LoginSessionEventType.EXPIRE),
     ).toBe(false);
     expect(
-      canTransition(LoginSessionState.FAILED, LoginSessionEventType.AUTHENTICATE),
+      canTransition(
+        LoginSessionState.FAILED,
+        LoginSessionEventType.AUTHENTICATE,
+      ),
     ).toBe(false);
     expect(
-      canTransition(LoginSessionState.EXPIRED, LoginSessionEventType.AUTHENTICATE),
+      canTransition(
+        LoginSessionState.EXPIRED,
+        LoginSessionEventType.AUTHENTICATE,
+      ),
     ).toBe(false);
   });
 });

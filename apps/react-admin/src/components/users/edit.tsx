@@ -1122,7 +1122,9 @@ const UserRolesTable = ({
 // Add organization management: add user to organizations
 const AddOrganizationButton = () => {
   const [open, setOpen] = useState(false);
-  const [availableOrganizations, setAvailableOrganizations] = useState<any[]>([]);
+  const [availableOrganizations, setAvailableOrganizations] = useState<any[]>(
+    [],
+  );
   const [selectedOrganizations, setSelectedOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -1163,8 +1165,10 @@ const AddOrganizationButton = () => {
       });
 
       const userOrgIds = new Set(userOrgsRes.data.map((org: any) => org.id));
-      const available = allOrgsRes.data.filter((org: any) => !userOrgIds.has(org.id));
-      
+      const available = allOrgsRes.data.filter(
+        (org: any) => !userOrgIds.has(org.id),
+      );
+
       setAvailableOrganizations(available);
     } catch (error) {
       console.error("Error loading organizations:", error);
@@ -1193,7 +1197,7 @@ const AddOrganizationButton = () => {
 
       notify(
         `Added user to ${selectedOrganizations.length} organization(s) successfully`,
-        { type: "success" }
+        { type: "success" },
       );
       handleClose();
       refresh();
@@ -1210,7 +1214,7 @@ const AddOrganizationButton = () => {
       !searchText ||
       org.name?.toLowerCase().includes(searchText.toLowerCase()) ||
       org.display_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      org.id?.toLowerCase().includes(searchText.toLowerCase())
+      org.id?.toLowerCase().includes(searchText.toLowerCase()),
   );
 
   return (
@@ -1235,7 +1239,9 @@ const AddOrganizationButton = () => {
           <Autocomplete
             multiple
             options={filteredOrganizations}
-            getOptionLabel={(option) => option.display_name || option.name || option.id}
+            getOptionLabel={(option) =>
+              option.display_name || option.name || option.id
+            }
             value={selectedOrganizations}
             onChange={(_, value) => setSelectedOrganizations(value)}
             loading={loading}

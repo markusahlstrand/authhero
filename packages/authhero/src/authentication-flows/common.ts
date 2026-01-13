@@ -319,39 +319,13 @@ export interface CreateSessionParams {
 }
 
 /**
- * Create a new session for a user
- *
- * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
- * and guards against creating sessions for terminal states (FAILED, EXPIRED, COMPLETED)
+ * Create a new session for a user (internal helper)
+ * This is called by authenticateLoginSession when no existing session is available
  */
-export async function createSession(
+async function createNewSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   { user, client, loginSession }: CreateSessionParams,
 ) {
-  // Re-fetch current state to prevent stale overwrites
-  const currentLoginSession = await ctx.env.data.loginSessions.get(
-    client.tenant.id,
-    loginSession.id,
-  );
-  if (!currentLoginSession) {
-    throw new HTTPException(400, {
-      message: `Login session ${loginSession.id} not found`,
-    });
-  }
-
-  const currentState = currentLoginSession.state || LoginSessionState.PENDING;
-
-  // Guard against terminal states - don't create sessions for failed/expired/completed logins
-  if (
-    currentState === LoginSessionState.FAILED ||
-    currentState === LoginSessionState.EXPIRED ||
-    currentState === LoginSessionState.COMPLETED
-  ) {
-    throw new HTTPException(400, {
-      message: `Cannot create session for login session in ${currentState} state`,
-    });
-  }
-
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: nanoid(),
@@ -372,30 +346,130 @@ export async function createSession(
     clients: [client.client_id],
   });
 
-  // Transition login session state to AUTHENTICATED (user validated, session created)
-  // Note: COMPLETED state is set when tokens are actually issued
+  return session;
+}
+
+export interface AuthenticateLoginSessionParams {
+  user: User;
+  client: LegacyClient;
+  loginSession: LoginSession;
+  /** Optional existing session to reuse instead of creating a new one */
+  existingSessionId?: string;
+}
+
+/**
+ * Authenticate a login session - transitions from PENDING to AUTHENTICATED
+ *
+ * This is the single source of truth for authentication state transitions.
+ * It either creates a new session or links an existing one, and always
+ * transitions the state to AUTHENTICATED.
+ *
+ * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ * and guards against terminal states (FAILED, EXPIRED, COMPLETED)
+ *
+ * @returns The session ID (either newly created or existing)
+ */
+export async function authenticateLoginSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  { user, client, loginSession, existingSessionId }: AuthenticateLoginSessionParams,
+): Promise<string> {
+  // Re-fetch current state to prevent stale overwrites
+  const currentLoginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    loginSession.id,
+  );
+  if (!currentLoginSession) {
+    throw new HTTPException(400, {
+      message: `Login session ${loginSession.id} not found`,
+    });
+  }
+
+  const currentState = currentLoginSession.state || LoginSessionState.PENDING;
+
+  // Guard against terminal states
+  if (
+    currentState === LoginSessionState.FAILED ||
+    currentState === LoginSessionState.EXPIRED ||
+    currentState === LoginSessionState.COMPLETED
+  ) {
+    throw new HTTPException(400, {
+      message: `Cannot authenticate login session in ${currentState} state`,
+    });
+  }
+
+  // If already authenticated, return the existing session_id
+  if (currentState === LoginSessionState.AUTHENTICATED) {
+    if (currentLoginSession.session_id) {
+      return currentLoginSession.session_id;
+    }
+    // State is authenticated but no session_id - this shouldn't happen, but handle it
+    throw new HTTPException(500, {
+      message: `Login session is authenticated but has no session_id`,
+    });
+  }
+
+  // Determine the session ID - either use existing or create new
+  let session_id: string;
+  if (existingSessionId) {
+    // Verify the existing session exists
+    const existingSession = await ctx.env.data.sessions.get(
+      client.tenant.id,
+      existingSessionId,
+    );
+
+    if (!existingSession) {
+      throw new HTTPException(400, {
+        message: `Session ${existingSessionId} not found or has expired`,
+      });
+    }
+
+    // Reuse existing session
+    session_id = existingSessionId;
+
+    // Ensure the client is associated with the existing session
+    if (!existingSession.clients.includes(client.client_id)) {
+      await ctx.env.data.sessions.update(client.tenant.id, existingSessionId, {
+        clients: [...existingSession.clients, client.client_id],
+      });
+    }
+  } else {
+    // Create a new session
+    const newSession = await createNewSession(ctx, { user, client, loginSession });
+    session_id = newSession.id;
+  }
+
+  // Transition to AUTHENTICATED state
   const { state: newState } = transitionLoginSession(currentState, {
     type: LoginSessionEventType.AUTHENTICATE,
     userId: user.user_id,
   });
 
-  // Only update if transition is valid and state changed
-  if (newState !== currentState) {
-    // Store the session id and updated state in the login session
-    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-      session_id: session.id,
-      state: newState,
-      user_id: user.user_id,
-    });
-  } else {
-    // State didn't change (invalid transition), but still store session_id and user_id
-    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-      session_id: session.id,
-      user_id: user.user_id,
-    });
-  }
+  // Update the login session with session_id, user_id, and new state
+  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+    session_id,
+    state: newState,
+    user_id: user.user_id,
+  });
 
-  return session;
+  return session_id;
+}
+
+/**
+ * @deprecated Use authenticateLoginSession instead.
+ * This function is kept for backward compatibility but will be removed.
+ */
+export async function createSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  { user, client, loginSession }: CreateSessionParams,
+) {
+  const session_id = await authenticateLoginSession(ctx, {
+    user,
+    client,
+    loginSession,
+  });
+
+  // Return a session-like object for backward compatibility
+  return { id: session_id };
 }
 
 /**
@@ -679,7 +753,14 @@ export interface CreateAuthResponseParams {
   client: LegacyClient;
   user: User;
   loginSession?: LoginSession;
-  sessionId?: string;
+  /**
+   * An existing session ID to link to the login session instead of creating a new one.
+   * Use this when the user already has a valid session (e.g., from a cookie) that should be reused.
+   *
+   * If not provided and loginSession is in PENDING state, a new session will be created.
+   * If provided, this session will be linked and the state will transition to AUTHENTICATED.
+   */
+  existingSessionIdToLink?: string;
   refreshToken?: string;
   ticketAuth?: boolean;
   authStrategy?: { strategy: string; strategy_type: string };
@@ -762,41 +843,82 @@ export async function createFrontChannelAuthResponse(
     });
   }
 
-  // Initialize with params.refreshToken, may be updated based on offline_access scope and session status.
-  let refresh_token = params.refreshToken;
-  let session_id = params.sessionId;
+  // ============================================================================
+  // STATE-BASED SESSION HANDLING
+  // ============================================================================
+  // The login session state is the single source of truth:
+  // - PENDING: User hasn't authenticated yet, need to create/link session
+  // - AUTHENTICATED: User is authenticated, session exists, ready for tokens
+  // - COMPLETED: Tokens have been issued (terminal state)
+  // - FAILED/EXPIRED: Terminal error states
+  //
+  // We always ensure the session is in AUTHENTICATED state before proceeding
+  // to issue tokens, which will transition it to COMPLETED.
+  // ============================================================================
 
-  if (!session_id && params.loginSession?.session_id) {
-    // Scenario 1: Reusing an existing session indicated by loginSession.session_id
-    session_id = params.loginSession.session_id;
-    const existingSession = await ctx.env.data.sessions.get(
+  let refresh_token = params.refreshToken;
+  let session_id: string | undefined;
+
+  // If we have a login session, use state-based logic to determine what to do
+  if (params.loginSession) {
+    // Re-fetch the login session to get the current state
+    const currentLoginSession = await ctx.env.data.loginSessions.get(
       client.tenant.id,
-      session_id,
+      params.loginSession.id,
     );
 
-    // Ensure the client is associated with the existing session
-    if (
-      existingSession &&
-      !existingSession.clients.includes(client.client_id)
-    ) {
-      await ctx.env.data.sessions.update(client.tenant.id, session_id, {
-        clients: [...existingSession.clients, client.client_id],
-      });
-    }
-  } else if (!session_id) {
-    // Scenario 2: Creating a new session
-    if (!params.loginSession) {
+    if (!currentLoginSession) {
       throw new JSONHTTPException(500, {
-        message: "Login session not found for creating a new session.",
+        message: "Login session not found.",
       });
     }
 
-    const newSession = await createSession(ctx, {
-      user,
-      client,
-      loginSession: params.loginSession,
+    const currentState = currentLoginSession.state || LoginSessionState.PENDING;
+
+    // Guard against terminal states
+    if (currentState === LoginSessionState.COMPLETED) {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request",
+        error_description: "Login session has already been completed",
+      });
+    }
+    if (currentState === LoginSessionState.FAILED) {
+      throw new JSONHTTPException(400, {
+        error: "access_denied",
+        error_description: `Login session failed: ${currentLoginSession.failure_reason || "unknown reason"}`,
+      });
+    }
+    if (currentState === LoginSessionState.EXPIRED) {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request",
+        error_description: "Login session has expired",
+      });
+    }
+
+    // If state is PENDING (or any pre-authenticated state), we need to authenticate
+    if (currentState === LoginSessionState.PENDING) {
+      session_id = await authenticateLoginSession(ctx, {
+        user,
+        client,
+        loginSession: params.loginSession,
+        existingSessionId: params.existingSessionIdToLink,
+      });
+    } else {
+      // State is AUTHENTICATED (or AWAITING_* states that allow completion)
+      // Use the session_id from the login session
+      session_id = currentLoginSession.session_id;
+
+      if (!session_id) {
+        throw new JSONHTTPException(500, {
+          message: `Login session in ${currentState} state but has no session_id`,
+        });
+      }
+    }
+  } else {
+    // No login session provided - this is an error for front-channel responses
+    throw new JSONHTTPException(500, {
+      message: "loginSession must be provided for front-channel auth responses.",
     });
-    session_id = newSession.id;
   }
 
   // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
