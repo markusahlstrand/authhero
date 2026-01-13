@@ -84,7 +84,9 @@
   border: 1px solid var(--ah-color-border, #c9cace);
   border-radius: var(--ah-input-radius, 3px);
   outline: none;
-  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
   box-sizing: border-box;
 }
 
@@ -203,7 +205,7 @@
   margin-bottom: 16px;
 }
 
-.checkbox-wrapper input[type='checkbox'] {
+.checkbox-wrapper input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin: 0;
@@ -239,7 +241,10 @@
   border: none;
   border-radius: var(--ah-btn-radius, 3px);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
   box-sizing: border-box;
 }
 
@@ -261,12 +266,11 @@
 .btn-primary {
   background-color: var(--ah-color-primary, #635dff);
   color: var(--ah-color-text-on-primary, #ffffff);
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .btn-primary:not(:disabled):hover {
-  background-color: var(--ah-color-primary-hover);
-  filter: brightness(0.9);
+  filter: brightness(0.85);
 }
 
 /* Secondary Button (Social/OIDC) */
@@ -295,6 +299,13 @@
   text-decoration: underline;
 }
 
+/* Social buttons container */
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Social button */
 .btn-social {
   display: flex;
@@ -308,6 +319,33 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+/* Small screen: collapse social buttons to icon-only in a row only if 3+ buttons */
+@media (max-width: 480px) {
+  /* Only apply icon-only layout when there are 3 or more social buttons */
+  .social-buttons:has(.btn-social:nth-child(3)) {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(3)) .btn-social {
+    width: auto;
+    min-width: 0;
+    padding: 12px;
+    flex: 1 1 0;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(3)) .btn-social span {
+    display: none;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(3)) .social-icon {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 .btn-icon {
@@ -426,7 +464,7 @@
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   flex: 1;
   border-bottom: 1px solid var(--ah-color-border-muted, #c9cace);
 }

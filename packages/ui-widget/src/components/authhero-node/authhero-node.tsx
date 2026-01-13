@@ -831,7 +831,7 @@ export class AuthheroNode {
             part="button button-secondary button-social"
             data-provider={provider}
             disabled={this.disabled}
-            onClick={(e) => this.handleButtonClick(e, "social", provider)}
+            onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
             key={provider}
           >
             {getProviderIcon(provider)}
