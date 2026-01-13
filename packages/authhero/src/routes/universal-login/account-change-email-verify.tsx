@@ -218,7 +218,6 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
           }
         }
       } catch (err) {
-        console.error("Change email verification error:", err);
         logMessage(ctx, client.tenant.id, {
           type: LogTypes.FAILED_CHANGE_EMAIL,
           description: `Change email failed: ${err instanceof Error ? err.message : "Unknown error"}`,
