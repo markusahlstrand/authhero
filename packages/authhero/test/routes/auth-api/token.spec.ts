@@ -173,7 +173,7 @@ describe("token", () => {
       expect(payload.scope).not.toContain("read:posts"); // This wasn't granted
     });
 
-    it("should return only requested scopes when scope is specified in client_credentials", async () => {
+    it("should return ALL granted scopes regardless of requested scope (Auth0 behavior)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -224,10 +224,10 @@ describe("token", () => {
         aud: "https://test-api.example.com",
       });
 
-      // Should only include the requested scope
+      // Auth0 behavior: token ALWAYS includes ALL granted scopes, not just requested
       const payload2 = accessToken?.payload as any;
       expect(payload2.scope).toContain("read:users");
-      expect(payload2.scope).not.toContain("write:users"); // This was granted but not requested
+      expect(payload2.scope).toContain("write:users"); // Auth0 includes ALL granted scopes
     });
   });
 
@@ -1869,7 +1869,7 @@ describe("token", () => {
         await env.data.users.remove("tenantId", user.user_id);
       });
 
-      it("should include permissions when token_dialect is access_token (default) and RBAC is enabled", async () => {
+      it("should NOT include permissions when token_dialect is access_token (default) even with RBAC enabled", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
 
@@ -1885,7 +1885,7 @@ describe("token", () => {
             ],
             options: {
               enforce_policies: true, // RBAC enabled
-              token_dialect: "access_token", // Should include both scopes and permissions
+              token_dialect: "access_token", // Auth0: NO permissions with default dialect
             },
           },
         );
@@ -1954,9 +1954,9 @@ describe("token", () => {
 
         expect(accessToken).not.toBeNull();
 
-        // For access_token dialect with RBAC enabled, should include both scopes and permissions
-        expect(payload.permissions).toBeDefined();
-        expect(payload.permissions).toEqual(["read:users"]); // Only the permission user has
+        // Auth0 behavior: permissions are ONLY included when token_dialect is access_token_authz
+        // With default token_dialect (access_token), permissions should NOT be in the token
+        expect(payload.permissions).toBeUndefined();
         expect(payload.scope).toBe("read:users"); // Only the scope user has permission for
 
         // Clean up

@@ -113,6 +113,12 @@ async function getTenantPermissionsForOrganization(
 
 /**
  * Calculates scopes and permissions for client_credentials grant type based on client grants.
+ *
+ * Auth0 behavior for client_credentials:
+ * 1. The token ALWAYS includes ALL scopes from the client grant, regardless of what's requested
+ * 2. If any requested scope is NOT in the client grant, a 403 error is returned
+ * 3. When RBAC is enabled, permissions claim contains all client grant scopes
+ *
  * This implementation only considers client grants, the audience, and the resource server configuration.
  */
 async function calculateClientCredentialsScopes(
@@ -124,6 +130,11 @@ async function calculateClientCredentialsScopes(
   // Handle default OIDC scopes first - these are always available
   const defaultOidcScopes = requestedScopes.filter((scope) =>
     DEFAULT_OIDC_SCOPES.includes(scope),
+  );
+
+  // Non-OIDC requested scopes that need to be validated against client grants
+  const nonOidcRequestedScopes = requestedScopes.filter(
+    (scope) => !DEFAULT_OIDC_SCOPES.includes(scope),
   );
 
   // Get all resource servers for the tenant
@@ -169,64 +180,51 @@ async function calculateClientCredentialsScopes(
     (scope) => scope.value,
   );
 
-  // If RBAC is not enabled, return requested scopes that are both:
-  // 1. Defined on the resource server
-  // 2. Granted to the client via client grants
-  // Special case: if no scopes are requested, return all granted scopes
-  if (!rbacEnabled) {
-    let allowedScopes: string[];
+  // Auth0 behavior: If any non-OIDC requested scope is NOT in the client grant, return 403
+  // This validates that the client is authorized for all requested scopes
+  if (nonOidcRequestedScopes.length > 0) {
+    const unauthorizedScopes = nonOidcRequestedScopes.filter(
+      (scope) => !grantedScopes.includes(scope),
+    );
 
-    if (requestedScopes.length === 0) {
-      // No specific scopes requested - return all granted scopes that are defined on the resource server
-      allowedScopes = grantedScopes.filter((scope) =>
-        definedScopes.includes(scope),
-      );
-    } else {
-      // Specific scopes requested - return intersection of requested, defined, and granted
-      allowedScopes = requestedScopes.filter(
-        (scope) =>
-          definedScopes.includes(scope) && grantedScopes.includes(scope),
-      );
+    if (unauthorizedScopes.length > 0) {
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: `Client is not authorized for scope(s): ${unauthorizedScopes.join(", ")}`,
+      });
     }
+  }
 
+  // Auth0 behavior: Always return ALL scopes from the client grant that are defined on the resource server
+  // The requested scopes only serve as validation - the token always gets all granted scopes
+  const allGrantedScopes = grantedScopes.filter((scope) =>
+    definedScopes.includes(scope),
+  );
+
+  // If RBAC is not enabled, return all granted scopes (no permissions claim)
+  if (!rbacEnabled) {
     const allAllowedScopes = [
-      ...new Set([...defaultOidcScopes, ...allowedScopes]),
+      ...new Set([...defaultOidcScopes, ...allGrantedScopes]),
     ];
     return { scopes: allAllowedScopes, permissions: [] };
   }
 
-  // RBAC is enabled - permissions are based on the granted scopes in the client grant
-  // For client_credentials, we consider the granted scopes as permissions since there's no user context
-  const allowedPermissions = grantedScopes.filter((scope) =>
-    definedScopes.includes(scope),
-  );
+  // RBAC is enabled - but permissions are ONLY added to the token when token_dialect is access_token_authz
+  // For client_credentials, the granted scopes become the permissions since there's no user context
+  const allowedPermissions = allGrantedScopes;
 
   if (tokenDialect === "access_token_authz") {
-    // Return permissions that are defined as scopes on the resource server and granted to the client
+    // For access_token_authz dialect: permissions in permissions claim, no API scopes (except OIDC)
     return { scopes: defaultOidcScopes, permissions: allowedPermissions };
   }
 
-  // For access_token dialect, return scopes that are requested, defined, and granted
-  // Special case: if no scopes are requested, return all granted scopes
-  let allowedScopes: string[];
-
-  if (requestedScopes.length === 0) {
-    // No specific scopes requested - return all granted scopes that are defined on the resource server
-    allowedScopes = grantedScopes.filter((scope) =>
-      definedScopes.includes(scope),
-    );
-  } else {
-    // Specific scopes requested - return intersection of requested, defined, and granted
-    allowedScopes = requestedScopes.filter(
-      (scope) => definedScopes.includes(scope) && grantedScopes.includes(scope),
-    );
-  }
-
+  // For access_token dialect (default): scopes in scope claim, NO permissions claim
+  // Auth0 only includes permissions claim when token_dialect is access_token_authz
   const allAllowedScopes = [
-    ...new Set([...defaultOidcScopes, ...allowedScopes]),
+    ...new Set([...defaultOidcScopes, ...allGrantedScopes]),
   ];
 
-  return { scopes: allAllowedScopes, permissions: allowedPermissions };
+  return { scopes: allAllowedScopes, permissions: [] };
 }
 
 /**
@@ -425,7 +423,8 @@ export async function calculateScopesAndPermissions(
 
   const userPermissionsList = Array.from(allUserPermissions);
 
-  // When RBAC is enabled, permissions should always be included
+  // When RBAC is enabled, permissions are calculated based on user's permissions
+  // BUT they are only included in the token when token_dialect is access_token_authz
   const allowedPermissions = userPermissionsList.filter((permission) =>
     definedScopes.includes(permission),
   );
@@ -442,10 +441,11 @@ export async function calculateScopesAndPermissions(
     return { scopes: allScopes, permissions: allowedPermissions };
   }
 
-  // For access_token dialect:
+  // For access_token dialect (default):
   // - Include OIDC scopes (always available)
   // - Include scopes defined on resource server that user has permission for
   // - Include scopes NOT defined on resource server (pass through)
+  // - NO permissions claim (Auth0 only includes it with access_token_authz)
   const resourceServerScopes = requestedScopes.filter(
     (scope) =>
       definedScopes.includes(scope) && userPermissionsList.includes(scope),
@@ -458,5 +458,5 @@ export async function calculateScopesAndPermissions(
     ]),
   ];
 
-  return { scopes: allAllowedScopes, permissions: allowedPermissions };
+  return { scopes: allAllowedScopes, permissions: [] };
 }

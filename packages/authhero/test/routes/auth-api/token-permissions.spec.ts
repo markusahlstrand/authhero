@@ -203,9 +203,9 @@ describe("token endpoint - permissions in JWT", () => {
 
       expect(accessToken).not.toBeNull();
 
-      // For access_token dialect with RBAC enabled, should include both scopes and permissions
-      expect(payload.permissions).toBeDefined();
-      expect(payload.permissions).toEqual(["read:users"]); // Only the permission user has
+      // Auth0 behavior: permissions are ONLY included when token_dialect is access_token_authz
+      // With default token_dialect (access_token), permissions should NOT be in the token
+      expect(payload.permissions).toBeUndefined();
       expect(payload.scope).toBe("read:users"); // Only the scope user has permission for
 
       // Clean up
@@ -278,7 +278,7 @@ describe("token endpoint - permissions in JWT", () => {
   });
 
   describe("client_credentials flow with RBAC enabled (default token_dialect)", () => {
-    it("should include permissions in JWT token for client_credentials grant", async () => {
+    it("should NOT include permissions in JWT token for client_credentials grant with default token_dialect", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -328,11 +328,9 @@ describe("token endpoint - permissions in JWT", () => {
         "https://client-permissions-default-api.example.com",
       );
 
-      // THIS IS THE KEY TEST: Verify permissions are included even with default token_dialect when RBAC is enabled
-      expect(payload.permissions).toBeDefined();
-      expect(payload.permissions).toEqual(
-        expect.arrayContaining(["read:data", "write:data"]),
-      );
+      // Auth0 behavior: permissions are ONLY included when token_dialect is access_token_authz
+      // With default token_dialect (access_token), permissions should NOT be in the token
+      expect(payload.permissions).toBeUndefined();
 
       // For default token_dialect, scopes should be included in scope claim
       expect(payload.scope).toBe("read:data write:data");
@@ -455,11 +453,9 @@ describe("token endpoint - permissions in JWT", () => {
       expect(payload.sub).toBe("clientId");
       expect(payload.aud).toBe("https://default-audience-api.example.com");
 
-      // Permissions should be included because RBAC is enabled and default_audience was used
-      expect(payload.permissions).toBeDefined();
-      expect(payload.permissions).toEqual(
-        expect.arrayContaining(["read:data", "write:data"]),
-      );
+      // Auth0 behavior: permissions are ONLY included when token_dialect is access_token_authz
+      // With default token_dialect (access_token), permissions should NOT be in the token
+      expect(payload.permissions).toBeUndefined();
 
       // Scopes should be included
       expect(payload.scope).toBe("read:data write:data");
@@ -470,6 +466,120 @@ describe("token endpoint - permissions in JWT", () => {
       await env.data.tenants.update("tenantId", {
         default_audience: undefined,
       });
+    });
+  });
+
+  describe("client_credentials flow with unauthorized scopes", () => {
+    it("should return 403 when requesting unauthorized scopes", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        identifier: "https://unauthorized-scopes-api.example.com",
+        name: "Unauthorized Scopes API",
+        scopes: [
+          { value: "read:data", description: "Read data" },
+          { value: "write:data", description: "Write data" },
+          { value: "admin:data", description: "Admin data" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create a client grant with limited scopes
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://unauthorized-scopes-api.example.com",
+        scope: ["read:data", "write:data"], // admin:data is NOT granted
+      });
+
+      // Make client_credentials token request with unauthorized scope
+      // @ts-expect-error - testClient type requires both form and json
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://unauthorized-scopes-api.example.com",
+          scope: "read:data admin:data", // admin:data is not in client grant
+        },
+      });
+
+      // Auth0 behavior: return 403 for unauthorized scopes
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as { error: string; error_description: string };
+      expect(body.error).toBe("access_denied");
+      expect(body.error_description).toContain("admin:data");
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+    });
+  });
+
+  describe("client_credentials flow with no scopes requested", () => {
+    it("should return ALL granted scopes when no scopes are requested", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        identifier: "https://all-scopes-api.example.com",
+        name: "All Scopes API",
+        scopes: [
+          { value: "read:data", description: "Read data" },
+          { value: "write:data", description: "Write data" },
+          { value: "delete:data", description: "Delete data" },
+        ],
+        options: {
+          enforce_policies: true, // RBAC enabled
+          token_dialect: "access_token",
+        },
+      });
+
+      // Create a client grant with all scopes
+      await env.data.clientGrants.create("tenantId", {
+        client_id: "clientId",
+        audience: "https://all-scopes-api.example.com",
+        scope: ["read:data", "write:data", "delete:data"],
+      });
+
+      // Make client_credentials token request WITHOUT specifying scopes
+      // @ts-expect-error - testClient type requires both form and json
+      const response = await client.oauth.token.$post({
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://all-scopes-api.example.com",
+          // No scope parameter - should return ALL granted scopes
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      // Parse the access token
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+
+      expect(accessToken).not.toBeNull();
+      expect(payload.sub).toBe("clientId");
+      expect(payload.aud).toBe("https://all-scopes-api.example.com");
+
+      // Auth0 behavior: ALL granted scopes should be returned
+      expect(payload.scope).toContain("read:data");
+      expect(payload.scope).toContain("write:data");
+      expect(payload.scope).toContain("delete:data");
+
+      // Auth0 behavior: permissions are ONLY included when token_dialect is access_token_authz
+      // With default token_dialect (access_token), permissions should NOT be in the token
+      expect(payload.permissions).toBeUndefined();
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
   });
 });
