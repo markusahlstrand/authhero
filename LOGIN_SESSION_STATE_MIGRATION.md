@@ -79,30 +79,30 @@ Any non-final state can transition to FAILED or EXPIRED
 
 ## Events
 
-| Event                        | Description                                       |
-| ---------------------------- | ------------------------------------------------- |
-| `AUTHENTICATE`               | User credentials validated, session created       |
-| `REQUIRE_EMAIL_VERIFICATION` | Email verification required before completion     |
-| `START_HOOK`                 | Redirecting to form, page, or external URL        |
-| `COMPLETE_HOOK`              | Returned from hook → back to AUTHENTICATED hub    |
-| `START_CONTINUATION`         | Redirecting to account page (change-email, etc.)  |
-| `COMPLETE_CONTINUATION`      | Returned from account page → back to AUTHENTICATED hub |
+| Event                        | Description                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `AUTHENTICATE`               | User credentials validated, session created                                         |
+| `REQUIRE_EMAIL_VERIFICATION` | Email verification required before completion                                       |
+| `START_HOOK`                 | Redirecting to form, page, or external URL                                          |
+| `COMPLETE_HOOK`              | Returned from hook → back to AUTHENTICATED hub                                      |
+| `START_CONTINUATION`         | Redirecting to account page (change-email, etc.)                                    |
+| `COMPLETE_CONTINUATION`      | Returned from account page → back to AUTHENTICATED hub                              |
 | `COMPLETE`                   | Tokens successfully issued (only from AUTHENTICATED or AWAITING_EMAIL_VERIFICATION) |
-| `FAIL`                       | Authentication failed                             |
-| `EXPIRE`                     | Session timed out                                 |
+| `FAIL`                       | Authentication failed                                                               |
+| `EXPIRE`                     | Session timed out                                                                   |
 
 ## Valid Transitions
 
-| From State                    | Valid Events                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------ |
-| `PENDING`                     | `AUTHENTICATE`, `FAIL`, `EXPIRE`                                                     |
+| From State                    | Valid Events                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PENDING`                     | `AUTHENTICATE`, `FAIL`, `EXPIRE`                                                               |
 | `AUTHENTICATED`               | `REQUIRE_EMAIL_VERIFICATION`, `START_HOOK`, `START_CONTINUATION`, `COMPLETE`, `FAIL`, `EXPIRE` |
-| `AWAITING_EMAIL_VERIFICATION` | `COMPLETE` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                       |
-| `AWAITING_HOOK`               | `COMPLETE_HOOK` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                  |
-| `AWAITING_CONTINUATION`       | `COMPLETE_CONTINUATION` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                          |
-| `COMPLETED`                   | (final state)                                                                        |
-| `FAILED`                      | (final state)                                                                        |
-| `EXPIRED`                     | (final state)                                                                        |
+| `AWAITING_EMAIL_VERIFICATION` | `COMPLETE` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                                 |
+| `AWAITING_HOOK`               | `COMPLETE_HOOK` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                            |
+| `AWAITING_CONTINUATION`       | `COMPLETE_CONTINUATION` (→ AUTHENTICATED), `FAIL`, `EXPIRE`                                    |
+| `COMPLETED`                   | (final state)                                                                                  |
+| `FAILED`                      | (final state)                                                                                  |
+| `EXPIRED`                     | (final state)                                                                                  |
 
 **Important**: `AWAITING_HOOK` does NOT accept `COMPLETE` - you must use `COMPLETE_HOOK` which returns to `AUTHENTICATED`, then `COMPLETE` from there.
 
@@ -138,7 +138,13 @@ await startLoginSessionHook(ctx, tenantId, loginSession, "form:mfa");
 await completeLoginSessionHook(ctx, tenantId, loginSession);
 
 // Mark session as awaiting continuation (before redirecting to account page)
-await startLoginSessionContinuation(ctx, tenantId, loginSession, ["/u/account/change-email"], returnUrl);
+await startLoginSessionContinuation(
+  ctx,
+  tenantId,
+  loginSession,
+  ["/u/account/change-email"],
+  returnUrl,
+);
 
 // Mark session as returned from continuation (account page)
 await completeLoginSessionContinuation(ctx, tenantId, loginSession);
@@ -193,6 +199,7 @@ if (loginSession.state === LoginSessionState.AUTHENTICATED) {
 ```
 
 The `createFrontChannelAuthResponse()` function enforces this by:
+
 1. Re-fetching the login session to get current state
 2. Rejecting terminal states (COMPLETED, FAILED, EXPIRED)
 3. Calling `authenticateLoginSession()` if state is PENDING

@@ -1,6 +1,10 @@
 import { Context } from "hono";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
-import { AuthParams, LegacyClient, Session } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LegacyClient,
+  Session,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { createFrontChannelAuthResponse } from "./common";
 import { sendLink } from "../emails";
