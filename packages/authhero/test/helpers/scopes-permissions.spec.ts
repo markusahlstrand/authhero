@@ -172,7 +172,7 @@ describe("scopes-permissions helper", () => {
 
       expect(result).toEqual({
         scopes: ["read:users"], // Only the scope the user has permission for
-        permissions: ["read:users"], // Permissions should be included when RBAC is enabled
+        permissions: [], // Auth0: permissions only included with access_token_authz dialect
       }); // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
@@ -264,7 +264,7 @@ describe("scopes-permissions helper", () => {
         // "impersonate" - defined on resource server AND user has permission, included
         // "entitlement" - not defined on resource server, passes through
         scopes: ["openid", "impersonate", "entitlement"],
-        permissions: ["impersonate"],
+        permissions: [], // Auth0: permissions only included with access_token_authz dialect
       });
 
       // Clean up
@@ -393,7 +393,7 @@ describe("scopes-permissions helper", () => {
 
       expect(result).toEqual({
         scopes: ["read:users"], // Only the requested scope
-        permissions: ["read:users", "write:users", "delete:users"], // All user permissions
+        permissions: [], // Auth0: permissions only included with access_token_authz dialect
       });
 
       // Clean up
@@ -972,7 +972,7 @@ describe("scopes-permissions helper", () => {
     });
 
     describe("client_credentials grant", () => {
-      it("should return only scopes granted via client grants table", async () => {
+      it("should throw 403 when requesting unauthorized scopes", async () => {
         const { env } = await getTestServer();
         const ctx = {
           env,
@@ -1013,24 +1013,22 @@ describe("scopes-permissions helper", () => {
           scope: ["read:users", "write:users"], // delete:users is NOT granted
         });
 
-        const result = await calculateScopesAndPermissions(ctx, {
-          grantType: GrantType.ClientCredential,
-          tenantId: "tenantId",
-          clientId: "test-client-id",
-          audience: "https://client-credentials-api.example.com",
-          requestedScopes: ["read:users", "write:users", "delete:users"], // Requesting all scopes
-        });
-
-        expect(result).toEqual({
-          scopes: ["read:users", "write:users"], // Only granted scopes returned, delete:users excluded
-          permissions: ["read:users", "write:users"], // Should include permissions when RBAC is enabled
-        });
+        // Auth0 behavior: requesting an unauthorized scope returns 403
+        await expect(
+          calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            audience: "https://client-credentials-api.example.com",
+            requestedScopes: ["read:users", "write:users", "delete:users"], // Requesting unauthorized scope
+          }),
+        ).rejects.toThrow();
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
       });
 
-      it("should return only requested scopes but all permissions when client has more permissions than requested", async () => {
+      it("should return ALL granted scopes regardless of what is requested", async () => {
         const { env } = await getTestServer();
         const ctx = {
           env,
@@ -1079,9 +1077,11 @@ describe("scopes-permissions helper", () => {
           requestedScopes: ["read:users"], // Only requesting read permission
         });
 
+        // Auth0 behavior: token ALWAYS gets ALL granted scopes
+        // Permissions are only included when token_dialect is access_token_authz
         expect(result).toEqual({
-          scopes: ["read:users"], // Only the requested scope
-          permissions: ["read:users", "write:users", "delete:users"], // All granted permissions
+          scopes: ["read:users", "write:users", "delete:users"], // All granted scopes, not just requested
+          permissions: [], // No permissions with default token_dialect (access_token)
         });
 
         // Clean up
@@ -1121,24 +1121,36 @@ describe("scopes-permissions helper", () => {
           name: "Test Client",
         });
 
-        // Create a client grant
+        // Create a client grant with only read:data
         await env.data.clientGrants.create("tenantId", {
           client_id: "test-client-id",
           audience: "https://authz-api.example.com",
           scope: ["read:data"],
         });
 
+        // Auth0 behavior: requesting unauthorized scope (write:data) throws 403
+        await expect(
+          calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            audience: "https://authz-api.example.com",
+            requestedScopes: ["read:data", "write:data"], // write:data is not granted
+          }),
+        ).rejects.toThrow();
+
+        // When only requesting authorized scope, should succeed
         const result = await calculateScopesAndPermissions(ctx, {
           grantType: GrantType.ClientCredential,
           tenantId: "tenantId",
           clientId: "test-client-id",
           audience: "https://authz-api.example.com",
-          requestedScopes: ["read:data", "write:data"],
+          requestedScopes: ["read:data"], // Only requesting authorized scope
         });
 
         expect(result).toEqual({
           scopes: [], // No scopes for access_token_authz
-          permissions: ["read:data"], // Only granted permissions returned
+          permissions: ["read:data"], // All granted permissions returned
         });
 
         // Clean up
@@ -1194,7 +1206,7 @@ describe("scopes-permissions helper", () => {
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
       });
 
-      it("should return scopes but no permissions when RBAC is disabled for client_credentials", async () => {
+      it("should return all granted scopes but no permissions when RBAC is disabled for client_credentials", async () => {
         const { env } = await getTestServer();
         const ctx = {
           env,
@@ -1227,7 +1239,7 @@ describe("scopes-permissions helper", () => {
           name: "Test Client",
         });
 
-        // Create a client grant
+        // Create a client grant with both scopes
         await env.data.clientGrants.create("tenantId", {
           client_id: "test-client-id",
           audience: "https://no-rbac-api.example.com",
@@ -1239,13 +1251,70 @@ describe("scopes-permissions helper", () => {
           tenantId: "tenantId",
           clientId: "test-client-id",
           audience: "https://no-rbac-api.example.com",
-          requestedScopes: ["read:data"],
+          requestedScopes: ["read:data"], // Only requesting one scope
         });
 
+        // Auth0 behavior: ALL granted scopes are returned, not just requested
         expect(result).toEqual({
-          scopes: ["read:data"], // Requested scope returned
+          scopes: ["read:data", "write:data"], // All granted scopes returned
           permissions: [], // No permissions when RBAC is disabled
         });
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+
+      it("should throw 403 for unauthorized scopes even when RBAC is disabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server with RBAC disabled
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://no-rbac-unauthorized-api.example.com",
+            name: "No RBAC Unauthorized API",
+            scopes: [
+              { value: "read:data", description: "Read data" },
+              { value: "write:data", description: "Write data" },
+              { value: "admin:data", description: "Admin data" },
+            ],
+            options: {
+              enforce_policies: false, // RBAC disabled
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        // Create a test client
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        // Create a client grant with limited scopes
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://no-rbac-unauthorized-api.example.com",
+          scope: ["read:data", "write:data"], // admin:data is NOT granted
+        });
+
+        // Auth0 behavior: requesting unauthorized scope throws 403 even with RBAC disabled
+        await expect(
+          calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            audience: "https://no-rbac-unauthorized-api.example.com",
+            requestedScopes: ["read:data", "admin:data"], // admin:data is unauthorized
+          }),
+        ).rejects.toThrow();
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
