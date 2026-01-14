@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.121.0
+
+### Minor Changes
+
+- 2853db0: Only show the selected connections for a client
+- 967d470: Add a metadata field to roles and resource-servers
+
 ## 0.120.0
 
 ### Minor Changes

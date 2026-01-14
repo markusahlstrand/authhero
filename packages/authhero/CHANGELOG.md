@@ -1,5 +1,20 @@
 # authhero
 
+## 4.8.0
+
+### Minor Changes
+
+- 2853db0: Only show the selected connections for a client
+- 8315e5c: Add the continue endpoint
+- a98dbc4: Update scopes and permissions for client credentials
+- 58ca131: Add cors for the screens endpoints
+
+### Patch Changes
+
+- Updated dependencies [2853db0]
+- Updated dependencies [967d470]
+  - @authhero/adapter-interfaces@0.121.0
+
 ## 4.7.0
 
 ### Minor Changes

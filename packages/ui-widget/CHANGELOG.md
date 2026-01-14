@@ -1,5 +1,17 @@
 # @authhero/widget
 
+## 0.7.0
+
+### Minor Changes
+
+- a98dbc4: Widget styling updated
+
+### Patch Changes
+
+- Updated dependencies [2853db0]
+- Updated dependencies [967d470]
+  - @authhero/adapter-interfaces@0.121.0
+
 ## 0.6.3
 
 ### Patch Changes

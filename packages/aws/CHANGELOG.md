@@ -1,5 +1,17 @@
 # @authhero/aws-adapter
 
+## 0.9.0
+
+### Minor Changes
+
+- 967d470: Add a metadata field to roles and resource-servers
+
+### Patch Changes
+
+- Updated dependencies [2853db0]
+- Updated dependencies [967d470]
+  - @authhero/adapter-interfaces@0.121.0
+
 ## 0.8.1
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @authhero/kysely-adapter
 
+## 10.80.0
+
+### Minor Changes
+
+- 2853db0: Only show the selected connections for a client
+- 967d470: Add a metadata field to roles and resource-servers
+
+### Patch Changes
+
+- Updated dependencies [2853db0]
+- Updated dependencies [967d470]
+  - @authhero/adapter-interfaces@0.121.0
+
 ## 10.79.0
 
 ### Minor Changes
