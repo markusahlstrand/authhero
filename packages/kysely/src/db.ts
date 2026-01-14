@@ -30,12 +30,22 @@ const sqlThemeSchema = flattenSchema(themeSchema).extend({
   tenant_id: z.string(),
 });
 
+// During migration, date fields can be either ISO strings or bigint timestamps
+// Use union type to allow both formats during transition
+const sqlDateField = z.union([z.string(), z.number()]);
+// Optional date fields can be string, number, null, or undefined
+const sqlOptionalDateField = z.union([z.string(), z.number()]).nullable().optional();
+
 const sqlLoginSchema = flattenSchema(loginSessionSchema).extend({
   tenant_id: z.string(),
   state: z.string().optional().default("pending"),
   state_data: z.string().optional(),
   failure_reason: z.string().optional(),
   user_id: z.string().optional(),
+  // Date fields - can be ISO string or bigint during migration
+  created_at: sqlDateField,
+  updated_at: sqlDateField,
+  expires_at: sqlDateField,
 });
 
 const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
@@ -104,6 +114,15 @@ const sqlSessionSchema = z.object({
   tenant_id: z.string(),
   device: z.string(),
   clients: z.string(),
+  // Date fields - can be ISO string or bigint during migration
+  created_at: sqlDateField,
+  updated_at: sqlDateField,
+  expires_at: sqlOptionalDateField,
+  idle_expires_at: sqlOptionalDateField,
+  authenticated_at: sqlOptionalDateField,
+  last_interaction_at: sqlOptionalDateField,
+  used_at: sqlOptionalDateField,
+  revoked_at: sqlOptionalDateField,
 });
 
 const sqlRefreshTokensSchema = z.object({
@@ -112,6 +131,11 @@ const sqlRefreshTokensSchema = z.object({
   device: z.string(),
   resource_servers: z.string(),
   rotating: z.number(),
+  // Date fields - can be ISO string or bigint during migration
+  created_at: sqlDateField,
+  expires_at: sqlOptionalDateField,
+  idle_expires_at: sqlOptionalDateField,
+  last_exchanged_at: sqlOptionalDateField,
 });
 
 const sqlCustomDomainSchema = z.object({

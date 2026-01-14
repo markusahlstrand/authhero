@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "18d1a52e-e035-4e11-8380-4010025f05a2",
+  "id": "e23a8232-7310-495e-a88e-c153ca437174",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -1074,21 +1074,21 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -1172,6 +1172,13 @@
           "columns": [
             "tenant_id",
             "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_login_sessions_expires_at": {
+          "name": "idx_login_sessions_expires_at",
+          "columns": [
+            "expires_at"
           ],
           "isUnique": false
         }
@@ -1429,34 +1436,57 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "idle_expires_at": {
           "name": "idle_expires_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "last_exchanged_at": {
           "name": "last_exchanged_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_refresh_tokens_user_id": {
+          "name": "idx_refresh_tokens_user_id",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_refresh_tokens_session_id": {
+          "name": "idx_refresh_tokens_session_id",
+          "columns": [
+            "session_id"
+          ],
+          "isUnique": false
+        },
+        "idx_refresh_tokens_expires_at": {
+          "name": "idx_refresh_tokens_expires_at",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "refresh_tokens_tenant_id_tenants_id_fk": {
           "name": "refresh_tokens_tenant_id_tenants_id_fk",
@@ -1510,56 +1540,56 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "idle_expires_at": {
           "name": "idle_expires_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "authenticated_at": {
           "name": "authenticated_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "last_interaction_at": {
           "name": "last_interaction_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "used_at": {
           "name": "used_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "revoked_at": {
           "name": "revoked_at",
-          "type": "text(35)",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1591,6 +1621,21 @@
           "name": "IDX_sessions_login_session_id",
           "columns": [
             "login_session_id"
+          ],
+          "isUnique": false
+        },
+        "idx_sessions_user_id": {
+          "name": "idx_sessions_user_id",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_sessions_expires_at": {
+          "name": "idx_sessions_expires_at",
+          "columns": [
+            "expires_at"
           ],
           "isUnique": false
         }
@@ -3035,6 +3080,13 @@
           "autoincrement": false,
           "default": 0
         },
+        "metadata": {
+          "name": "metadata",
+          "type": "text(4096)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text(35)",
@@ -3175,6 +3227,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text(4096)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",

@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { RefreshToken } from "@authhero/adapter-interfaces";
+import { isoToDbDate } from "../utils/dateConversion";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -17,6 +18,16 @@ export function update(db: Kysely<Database>) {
         ? JSON.stringify(refresh_token.resource_servers)
         : undefined,
       rotating: refresh_token.rotating ? 1 : 0,
+      // Convert date fields to bigint format
+      expires_at: refresh_token.expires_at
+        ? isoToDbDate(refresh_token.expires_at)
+        : undefined,
+      idle_expires_at: refresh_token.idle_expires_at
+        ? isoToDbDate(refresh_token.idle_expires_at)
+        : undefined,
+      last_exchanged_at: refresh_token.last_exchanged_at
+        ? isoToDbDate(refresh_token.last_exchanged_at)
+        : undefined,
     };
 
     const results = await db

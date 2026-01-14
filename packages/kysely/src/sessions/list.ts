@@ -6,6 +6,7 @@ import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -33,11 +34,36 @@ export function list(db: Kysely<Database>) {
 
     const sessions = await filteredQuery.selectAll().execute();
 
-    const mappedSessions = sessions.map((session) => ({
-      ...session,
-      device: JSON.parse(session.device),
-      clients: JSON.parse(session.clients),
-    }));
+    const mappedSessions = sessions.map((session) => {
+      const {
+        tenant_id: _,
+        device,
+        clients,
+        created_at,
+        updated_at,
+        expires_at,
+        idle_expires_at,
+        authenticated_at,
+        last_interaction_at,
+        used_at,
+        revoked_at,
+        ...rest
+      } = session;
+
+      // Convert dates from DB format (either string or bigint) to ISO strings
+      const dates = convertDatesToAdapter(
+        { created_at, updated_at, expires_at, idle_expires_at, authenticated_at, last_interaction_at, used_at, revoked_at },
+        ["created_at", "updated_at", "authenticated_at", "last_interaction_at"],
+        ["expires_at", "idle_expires_at", "used_at", "revoked_at"],
+      );
+
+      return {
+        ...rest,
+        ...dates,
+        device: JSON.parse(device),
+        clients: JSON.parse(clients),
+      };
+    });
 
     if (!include_totals) {
       return {

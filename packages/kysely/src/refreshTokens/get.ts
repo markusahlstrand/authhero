@@ -1,6 +1,7 @@
 import { RefreshToken } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function get(db: Kysely<Database>) {
   return async (
@@ -18,8 +19,25 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
+    const {
+      tenant_id: _,
+      created_at,
+      expires_at,
+      idle_expires_at,
+      last_exchanged_at,
+      ...rest
+    } = refreshToken;
+
+    // Convert dates from DB format (either string or bigint) to ISO strings
+    const dates = convertDatesToAdapter(
+      { created_at, expires_at, idle_expires_at, last_exchanged_at },
+      ["created_at"],
+      ["expires_at", "idle_expires_at", "last_exchanged_at"],
+    );
+
     return {
-      ...refreshToken,
+      ...rest,
+      ...dates,
       rotating: !!refreshToken.rotating,
       device: refreshToken.device ? JSON.parse(refreshToken.device) : {},
       resource_servers: refreshToken.resource_servers

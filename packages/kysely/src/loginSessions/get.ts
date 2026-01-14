@@ -7,6 +7,7 @@ import {
 import { Database } from "../db";
 import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function get(db: Kysely<Database>) {
   return async (_: string, login_id: string): Promise<LoginSession | null> => {
@@ -20,10 +21,19 @@ export function get(db: Kysely<Database>) {
 
     if (!login) return null;
 
+    const { created_at, updated_at, expires_at, ...rest } = login;
+
+    // Convert dates from DB format (either string or bigint) to ISO strings
+    const dates = convertDatesToAdapter(
+      { created_at, updated_at, expires_at },
+      ["created_at", "updated_at", "expires_at"],
+    );
+
     return loginSessionSchema.parse(
       unflattenObject(
         removeNullProperties({
-          ...login,
+          ...rest,
+          ...dates,
           state: login.state || LoginSessionState.PENDING,
           state_data: login.state_data,
           failure_reason: login.failure_reason,

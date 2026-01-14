@@ -6,6 +6,7 @@ import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -33,14 +34,33 @@ export function list(db: Kysely<Database>) {
 
     const refresh_tokens = await filteredQuery.selectAll().execute();
 
-    const mappedTokens = refresh_tokens.map((refresh_token) => ({
-      ...refresh_token,
-      rotating: !!refresh_token.rotating,
-      device: refresh_token.device ? JSON.parse(refresh_token.device) : {},
-      resource_servers: refresh_token.resource_servers
-        ? JSON.parse(refresh_token.resource_servers)
-        : [],
-    }));
+    const mappedTokens = refresh_tokens.map((refresh_token) => {
+      const {
+        tenant_id: _,
+        created_at,
+        expires_at,
+        idle_expires_at,
+        last_exchanged_at,
+        ...rest
+      } = refresh_token;
+
+      // Convert dates from DB format (either string or bigint) to ISO strings
+      const dates = convertDatesToAdapter(
+        { created_at, expires_at, idle_expires_at, last_exchanged_at },
+        ["created_at"],
+        ["expires_at", "idle_expires_at", "last_exchanged_at"],
+      );
+
+      return {
+        ...rest,
+        ...dates,
+        rotating: !!refresh_token.rotating,
+        device: refresh_token.device ? JSON.parse(refresh_token.device) : {},
+        resource_servers: refresh_token.resource_servers
+          ? JSON.parse(refresh_token.resource_servers)
+          : [],
+      };
+    });
 
     if (!include_totals) {
       return {

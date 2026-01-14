@@ -15,14 +15,14 @@ export const sessions = sqliteTable(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     user_id: text("user_id", { length: 255 }),
-    created_at: text("created_at", { length: 35 }).notNull(),
-    updated_at: text("updated_at", { length: 35 }).notNull(),
-    expires_at: text("expires_at", { length: 35 }),
-    idle_expires_at: text("idle_expires_at", { length: 35 }),
-    authenticated_at: text("authenticated_at", { length: 35 }),
-    last_interaction_at: text("last_interaction_at", { length: 35 }),
-    used_at: text("used_at", { length: 35 }),
-    revoked_at: text("revoked_at", { length: 35 }),
+    created_at: integer("created_at").notNull(),
+    updated_at: integer("updated_at").notNull(),
+    expires_at: integer("expires_at"),
+    idle_expires_at: integer("idle_expires_at"),
+    authenticated_at: integer("authenticated_at"),
+    last_interaction_at: integer("last_interaction_at"),
+    used_at: integer("used_at"),
+    revoked_at: integer("revoked_at"),
     device: text("device").notNull(),
     clients: text("clients").notNull(),
     login_session_id: text("login_session_id", { length: 21 }),
@@ -30,6 +30,8 @@ export const sessions = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.tenant_id, table.id], name: "sessions_pk" }),
     index("IDX_sessions_login_session_id").on(table.login_session_id),
+    index("idx_sessions_user_id").on(table.tenant_id, table.user_id),
+    index("idx_sessions_expires_at").on(table.expires_at),
   ],
 );
 
@@ -46,16 +48,19 @@ export const refreshTokens = sqliteTable(
     resource_servers: text("resource_servers").notNull(),
     device: text("device").notNull(),
     rotating: integer("rotating", { mode: "boolean" }).notNull(),
-    created_at: text("created_at", { length: 35 }).notNull(),
-    expires_at: text("expires_at", { length: 35 }),
-    idle_expires_at: text("idle_expires_at", { length: 35 }),
-    last_exchanged_at: text("last_exchanged_at", { length: 35 }),
+    created_at: integer("created_at").notNull(),
+    expires_at: integer("expires_at"),
+    idle_expires_at: integer("idle_expires_at"),
+    last_exchanged_at: integer("last_exchanged_at"),
   },
   (table) => [
     primaryKey({
       columns: [table.tenant_id, table.id],
       name: "refresh_tokens_pk",
     }),
+    index("idx_refresh_tokens_user_id").on(table.tenant_id, table.user_id),
+    index("idx_refresh_tokens_session_id").on(table.session_id),
+    index("idx_refresh_tokens_expires_at").on(table.expires_at),
   ],
 );
 
@@ -91,9 +96,9 @@ export const loginSessions = sqliteTable(
     authParams_act_as: text("authParams_act_as", { length: 256 }),
     authParams_ui_locales: text("authParams_ui_locales", { length: 32 }),
     authorization_url: text("authorization_url"),
-    created_at: text("created_at", { length: 35 }).notNull(),
-    updated_at: text("updated_at", { length: 35 }).notNull(),
-    expires_at: text("expires_at", { length: 35 }).notNull(),
+    created_at: integer("created_at").notNull(),
+    updated_at: integer("updated_at").notNull(),
+    expires_at: integer("expires_at").notNull(),
     ip: text("ip", { length: 39 }),
     useragent: text("useragent"),
     auth0Client: text("auth0Client", { length: 255 }),
@@ -111,6 +116,7 @@ export const loginSessions = sqliteTable(
     index("login_sessions_state_idx").on(table.state),
     index("login_sessions_state_updated_idx").on(table.state, table.updated_at),
     index("login_sessions_tenant_user_idx").on(table.tenant_id, table.user_id),
+    index("idx_login_sessions_expires_at").on(table.expires_at),
   ],
 );
 
