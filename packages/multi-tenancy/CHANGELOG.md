@@ -1,5 +1,21 @@
 # @authhero/multi-tenancy
 
+## 14.4.0
+
+### Minor Changes
+
+- 967d470: Add a metadata field to roles and resource-servers
+
+### Patch Changes
+
+- Updated dependencies [2853db0]
+- Updated dependencies [967d470]
+- Updated dependencies [8315e5c]
+- Updated dependencies [a98dbc4]
+- Updated dependencies [58ca131]
+  - @authhero/adapter-interfaces@0.121.0
+  - authhero@4.8.0
+
 ## 14.3.0
 
 ### Minor Changes
