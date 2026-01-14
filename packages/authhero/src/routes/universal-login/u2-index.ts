@@ -16,6 +16,7 @@
  */
 
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
@@ -55,6 +56,17 @@ export default function createU2App(config: AuthHeroConfig) {
     }
     return c.text("Unexpected error", 500);
   });
+
+  // CORS middleware for screen API - allow requests from any origin
+  app.use(
+    "/screen/*",
+    cors({
+      origin: "*",
+      allowHeaders: ["Content-Type", "Tenant-Id"],
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      maxAge: 600,
+    }),
+  );
 
   // Data adapter middleware
   app
