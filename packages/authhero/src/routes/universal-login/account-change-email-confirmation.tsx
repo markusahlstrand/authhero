@@ -4,7 +4,6 @@ import { initJSXRouteWithSession } from "./common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
-import { completeLoginSessionContinuation } from "../../authentication-flows/common";
 
 export const changeEmailConfirmationRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -79,15 +78,16 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
       // Determine the redirect URL based on context
       let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
 
-      // If this is a continuation session (mid-login), complete it and redirect to continue URL
-      if (isContinuation) {
-        const returnUrl = await completeLoginSessionContinuation(
-          ctx,
-          client.tenant.id,
-          loginSession,
-        );
-        if (returnUrl) {
-          redirectUrl = returnUrl;
+      // If this is a continuation session (mid-login), get the return URL from state_data
+      // Don't complete the continuation here - let /u/continue handle the state transition
+      if (isContinuation && loginSession.state_data) {
+        try {
+          const stateData = JSON.parse(loginSession.state_data);
+          if (stateData.continuationReturnUrl) {
+            redirectUrl = stateData.continuationReturnUrl;
+          }
+        } catch {
+          // Ignore parse errors, use default redirect
         }
       } else if (loginSession?.authorization_url) {
         // Check if the authorization_url contains screen_hint=change-email
