@@ -107,10 +107,13 @@ export function createTenantsOpenAPIRouter(
         return ctx.json({ tenants: result.tenants });
       }
 
-      // If access control is enabled, filter tenants based on user's organization memberships
-      if (config.accessControl && user?.sub) {
-        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
+      // Get control plane tenant ID from config or from adapters' multiTenancyConfig
+      const controlPlaneTenantId =
+        config.accessControl?.controlPlaneTenantId ??
+        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
 
+      // If access control is enabled, filter tenants based on user's organization memberships
+      if (controlPlaneTenantId && user?.sub) {
         // Get all organizations the user belongs to on the control plane
         const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
@@ -309,10 +312,14 @@ export function createTenantsOpenAPIRouter(
     async (ctx) => {
       const { id } = ctx.req.valid("param");
 
+      // Get control plane tenant ID from config or from adapters' multiTenancyConfig
+      const controlPlaneTenantId =
+        config.accessControl?.controlPlaneTenantId ??
+        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
+
       // Validate access and prevent deleting the control plane
-      if (config.accessControl) {
+      if (controlPlaneTenantId) {
         const user = ctx.var.user;
-        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
         if (!user?.sub) {
           throw new HTTPException(401, {

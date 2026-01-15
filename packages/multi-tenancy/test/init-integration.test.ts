@@ -580,7 +580,10 @@ describe("initMultiTenant", () => {
 
     const { controlPlaneTenantId: cpId } = initMultiTenant({
       dataAdapter: adapters,
-      controlPlaneTenantId: "main",
+      controlPlane: {
+        tenantId: "main",
+        clientId: "main_client",
+      },
     });
 
     expect(cpId).toBe("main");

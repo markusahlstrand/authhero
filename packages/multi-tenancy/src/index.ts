@@ -11,14 +11,21 @@ import {
   createProvisioningHooks,
 } from "./hooks";
 import { createTenantsOpenAPIRouter } from "./routes";
-import { createMultiTenancyMiddleware } from "./middleware";
+import {
+  createMultiTenancyMiddleware,
+  withRuntimeFallback,
+} from "./middleware";
 
 // Re-export all multi-tenancy types
 export * from "./types";
 
 // Main entry point - the simplest way to set up multi-tenancy
 export { initMultiTenant } from "./init";
-export type { MultiTenantConfig, MultiTenantResult } from "./init";
+export type {
+  MultiTenantConfig,
+  MultiTenantResult,
+  ControlPlaneConfig,
+} from "./init";
 
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
@@ -147,7 +154,7 @@ export function createMultiTenancy(config: MultiTenancyConfig) {
  * integrate multi-tenancy into an AuthHero application.
  *
  * @param config - Multi-tenancy configuration
- * @returns Object with hooks, middleware, and routes
+ * @returns Object with hooks, middleware, routes, and wrapAdapters helper
  *
  * @example
  * ```typescript
@@ -160,6 +167,11 @@ export function createMultiTenancy(config: MultiTenancyConfig) {
  *   subdomainRouting: {
  *     baseDomain: "auth.example.com",
  *   },
+ * });
+ *
+ * // Wrap your adapters with runtime fallback (uses same controlPlaneTenantId)
+ * const dataAdapter = multiTenancy.wrapAdapters(baseAdapters, {
+ *   controlPlaneClientId: "default_client", // optional additional config
  * });
  *
  * // Use the middleware
@@ -180,5 +192,21 @@ export function setupMultiTenancy(config: MultiTenancyConfig) {
     middleware: createMultiTenancyMiddleware(config),
     app: createMultiTenancy(config),
     config,
+    /**
+     * Wraps data adapters with runtime fallback from the control plane.
+     * Uses the controlPlaneTenantId from the multi-tenancy config.
+     *
+     * @param adapters - Base data adapters to wrap
+     * @param additionalConfig - Additional config (controlPlaneClientId, etc.)
+     * @returns Wrapped adapters with runtime fallback
+     */
+    wrapAdapters: (
+      adapters: import("authhero").DataAdapters,
+      additionalConfig?: { controlPlaneClientId?: string },
+    ) =>
+      withRuntimeFallback(adapters, {
+        controlPlaneTenantId: config.accessControl?.controlPlaneTenantId,
+        controlPlaneClientId: additionalConfig?.controlPlaneClientId,
+      }),
   };
 }

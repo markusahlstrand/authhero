@@ -44,8 +44,12 @@ const dataAdapter = createAdapters(db);
 
 const { app } = initMultiTenant({
   dataAdapter,
+  // Optional: Configure control plane for runtime fallback and access control
+  controlPlane: {
+    tenantId: "control_plane",
+    clientId: "default_client",
+  },
   // That's it! Everything else has sensible defaults:
-  // - controlPlaneTenantId: "control_plane"
   // - Resource servers, roles, and connections sync enabled
   // - Tenants API mounted at /tenants
   // - Protected synced entities middleware applied
@@ -67,8 +71,11 @@ This sets up a complete multi-tenant system where:
 const { app } = initMultiTenant({
   dataAdapter,
 
-  // Custom control plane tenant ID
-  controlPlaneTenantId: "main",
+  // Control plane configuration for runtime fallback and access control
+  controlPlane: {
+    tenantId: "main",
+    clientId: "main_client",
+  },
 
   // Control which entities to sync
   sync: {
