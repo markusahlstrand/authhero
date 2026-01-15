@@ -312,10 +312,14 @@ export function createTenantsOpenAPIRouter(
     async (ctx) => {
       const { id } = ctx.req.valid("param");
 
+      // Get control plane tenant ID from config or from adapters' multiTenancyConfig
+      const controlPlaneTenantId =
+        config.accessControl?.controlPlaneTenantId ??
+        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
+
       // Validate access and prevent deleting the control plane
-      if (config.accessControl) {
+      if (controlPlaneTenantId) {
         const user = ctx.var.user;
-        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
 
         if (!user?.sub) {
           throw new HTTPException(401, {

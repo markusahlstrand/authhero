@@ -287,7 +287,7 @@ function setupMultiTenancy(config: MultiTenancyConfig): {
 ```typescript
 const multiTenancy = setupMultiTenancy({
   accessControl: {
-    mainTenantId: "main",
+    controlPlaneTenantId: "main",
   },
 });
 
@@ -316,7 +316,7 @@ function createMultiTenancyHooks(config: MultiTenancyConfig): MultiTenancyHooks;
 
 ```typescript
 const hooks = createMultiTenancyHooks({
-  accessControl: { mainTenantId: "main" },
+  accessControl: { controlPlaneTenantId: "main" },
   databaseIsolation: { getAdapters: factory.getAdapters },
 });
 
@@ -348,7 +348,7 @@ function createMultiTenancy(config: MultiTenancyConfig): Hono;
 
 ```typescript
 const tenantApp = createMultiTenancy({
-  accessControl: { mainTenantId: "main" },
+  accessControl: { controlPlaneTenantId: "main" },
 });
 
 app.route("/management", tenantApp);
@@ -378,7 +378,7 @@ function createMultiTenancyMiddleware(
 
 ```typescript
 const middleware = createMultiTenancyMiddleware({
-  accessControl: { mainTenantId: "main" },
+  accessControl: { controlPlaneTenantId: "main" },
   subdomainRouting: { baseDomain: "auth.example.com" },
 });
 
@@ -400,7 +400,7 @@ function createAccessControlMiddleware(
 ```typescript
 const accessControl = createAccessControlMiddleware({
   accessControl: {
-    mainTenantId: "main",
+    controlPlaneTenantId: "main",
     requireOrganizationMatch: true,
   },
 });
