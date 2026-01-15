@@ -1,5 +1,11 @@
 # authhero
 
+## 4.9.0
+
+### Minor Changes
+
+- e005714: Remove the complete login session
+
 ## 4.8.0
 
 ### Minor Changes
