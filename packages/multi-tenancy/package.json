@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "14.4.0",
+  "version": "14.5.0",
   "description": "Multi-tenancy support for AuthHero with organization-based access control and per-tenant database isolation",
   "files": [
     "dist"

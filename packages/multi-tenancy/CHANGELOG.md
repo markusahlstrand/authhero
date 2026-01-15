@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.5.0
+
+### Minor Changes
+
+- 9d6cfb8: Wrap adapters as part of the multi-tenant package
+
+### Patch Changes
+
+- Updated dependencies [9d6cfb8]
+  - @authhero/adapter-interfaces@0.122.0
+  - authhero@4.9.1
+
 ## 14.4.0
 
 ### Minor Changes
