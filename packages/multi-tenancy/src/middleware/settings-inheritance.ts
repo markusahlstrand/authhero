@@ -71,6 +71,12 @@ export function createRuntimeFallbackAdapter(
   return {
     ...baseAdapters,
 
+    // Store config for use by tenants route access control
+    multiTenancyConfig: {
+      controlPlaneTenantId,
+      controlPlaneClientId,
+    },
+
     legacyClients: {
       ...baseAdapters.legacyClients,
 

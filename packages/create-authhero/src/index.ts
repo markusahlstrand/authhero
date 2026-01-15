@@ -224,14 +224,18 @@ import { AuthHeroConfig, DataAdapters } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { initMultiTenant } from "@authhero/multi-tenancy";
 
-// Control plane tenant ID - the tenant that manages all other tenants
+// Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
+const CONTROL_PLANE_CLIENT_ID = "default_client";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
   const { app } = initMultiTenant({
     ...config,
-    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    controlPlane: {
+      tenantId: CONTROL_PLANE_TENANT_ID,
+      clientId: CONTROL_PLANE_CLIENT_ID,
+    },
   });
 
   app
@@ -405,14 +409,18 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { AuthHeroConfig, DataAdapters } from "authhero";
 import { initMultiTenant } from "@authhero/multi-tenancy";
 
-// Control plane tenant ID - the tenant that manages all other tenants
+// Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
+const CONTROL_PLANE_CLIENT_ID = "default_client";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
   const { app } = initMultiTenant({
     ...config,
-    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    controlPlane: {
+      tenantId: CONTROL_PLANE_TENANT_ID,
+      clientId: CONTROL_PLANE_CLIENT_ID,
+    },
   });
 
   app
@@ -486,8 +494,9 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { AuthHeroConfig, DataAdapters } from "authhero";
 import { initMultiTenant } from "@authhero/multi-tenancy";
 
-// Control plane tenant ID - the tenant that manages all other tenants
+// Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
+const CONTROL_PLANE_CLIENT_ID = "default_client";
 
 interface AppConfig extends AuthHeroConfig {
   dataAdapter: DataAdapters;
@@ -498,7 +507,10 @@ export default function createApp(config: AppConfig) {
   // Initialize multi-tenant AuthHero
   const { app } = initMultiTenant({
     ...config,
-    controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    controlPlane: {
+      tenantId: CONTROL_PLANE_TENANT_ID,
+      clientId: CONTROL_PLANE_CLIENT_ID,
+    },
   });
 
   app

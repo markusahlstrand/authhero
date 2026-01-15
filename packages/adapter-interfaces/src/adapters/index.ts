@@ -66,6 +66,14 @@ export interface DataAdapters {
   userRoles: UserRolesAdapter;
   organizations: OrganizationsAdapter;
   userOrganizations: UserOrganizationsAdapter;
+  /**
+   * Multi-tenancy configuration set by withRuntimeFallback.
+   * Used by the tenants route for access control.
+   */
+  multiTenancyConfig?: {
+    controlPlaneTenantId?: string;
+    controlPlaneClientId?: string;
+  };
 }
 
 export * from "./Flows";

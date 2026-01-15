@@ -7,11 +7,111 @@ description: Complete API reference for @authhero/multi-tenancy including config
 
 Complete API reference for the `@authhero/multi-tenancy` package.
 
-## Configuration Types
+## High-Level API
+
+### initMultiTenant()
+
+The easiest way to set up multi-tenancy. Automatically configures sync hooks, tenants API, middleware, and runtime fallback.
+
+```typescript
+function initMultiTenant(config: MultiTenantConfig): MultiTenantResult
+```
+
+**Parameters:**
+
+- `config`: `MultiTenantConfig` - Multi-tenant configuration
+
+**Returns:**
+
+- `app`: Hono app instance with multi-tenancy configured
+- `controlPlaneTenantId`: The control plane tenant ID
+
+**Example:**
+
+```typescript
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import createAdapters from "@authhero/kysely-adapter";
+
+const { app } = initMultiTenant({
+  dataAdapter: createAdapters(db),
+  controlPlane: {
+    tenantId: "control_plane",
+    clientId: "default_client",
+  },
+});
+
+export default app;
+```
+
+### MultiTenantConfig
+
+Configuration for `initMultiTenant()`.
+
+```typescript
+interface MultiTenantConfig extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
+  // Control plane configuration (optional but recommended)
+  controlPlane?: ControlPlaneConfig;
+
+  // Entity sync configuration (default: { resourceServers: true, roles: true })
+  sync?: { resourceServers?: boolean; roles?: boolean } | false;
+
+  // Default permissions for new tenant organizations
+  defaultPermissions?: string[];
+
+  // Whether to require organization match for tenant access
+  requireOrganizationMatch?: boolean;
+
+  // Custom function to get child tenant IDs
+  getChildTenantIds?: () => Promise<string[]>;
+
+  // Custom function to get adapters for a specific tenant
+  getAdapters?: (tenantId: string) => Promise<DataAdapters>;
+
+  // Additional management API extensions
+  managementApiExtensions?: AuthHeroConfig["managementApiExtensions"];
+
+  // Additional entity hooks
+  entityHooks?: AuthHeroConfig["entityHooks"];
+}
+```
+
+### ControlPlaneConfig
+
+Control plane configuration for runtime fallback and access control.
+
+```typescript
+interface ControlPlaneConfig {
+  // The control plane tenant ID - manages all other tenants
+  tenantId: string;
+
+  // The control plane client ID for fallback client settings
+  // (web_origins, callbacks, etc. are merged with child tenant clients)
+  clientId: string;
+}
+```
+
+**Example:**
+
+```typescript
+const { app } = initMultiTenant({
+  dataAdapter,
+  controlPlane: {
+    tenantId: "main",
+    clientId: "main_client",
+  },
+});
+```
+
+When `controlPlane` is configured:
+- **Runtime Fallback**: Connection secrets, OAuth credentials, and client settings fallback to control plane without copying
+- **Access Control**: `/api/v2/tenants` endpoint filters based on user's organization memberships
+- **Organization Sync**: Organizations are automatically created on control plane when tenants are created
+
+## Lower-Level APIs
 
 ### MultiTenancyConfig
 
-Main configuration object for multi-tenancy setup.
+Main configuration object for lower-level multi-tenancy setup using `setupMultiTenancy()`.
 
 ```typescript
 interface MultiTenancyConfig {
@@ -27,8 +127,8 @@ Configure organization-based access control.
 
 ```typescript
 interface AccessControlConfig {
-  // ID of the main tenant that manages other tenants
-  mainTenantId: string;
+  // ID of the control plane tenant that manages other tenants
+  controlPlaneTenantId: string;
 
   // Require org_id in token to match tenant being accessed (default: true)
   requireOrganizationMatch?: boolean;
@@ -45,7 +145,7 @@ interface AccessControlConfig {
 
 ```typescript
 {
-  mainTenantId: "main",
+  controlPlaneTenantId: "main",
   requireOrganizationMatch: true,
   defaultPermissions: ["tenant:admin", "users:read", "users:write"],
   defaultRoles: ["tenant-admin"],

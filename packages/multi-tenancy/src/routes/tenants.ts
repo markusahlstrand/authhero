@@ -107,10 +107,13 @@ export function createTenantsOpenAPIRouter(
         return ctx.json({ tenants: result.tenants });
       }
 
-      // If access control is enabled, filter tenants based on user's organization memberships
-      if (config.accessControl && user?.sub) {
-        const controlPlaneTenantId = config.accessControl.controlPlaneTenantId;
+      // Get control plane tenant ID from config or from adapters' multiTenancyConfig
+      const controlPlaneTenantId =
+        config.accessControl?.controlPlaneTenantId ??
+        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
 
+      // If access control is enabled, filter tenants based on user's organization memberships
+      if (controlPlaneTenantId && user?.sub) {
         // Get all organizations the user belongs to on the control plane
         const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>

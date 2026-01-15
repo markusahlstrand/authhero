@@ -88,6 +88,65 @@ function createHeaders(tenantId?: string): Headers {
   return headers;
 }
 
+// Helper for client-side paging, sorting, and search on pre-fetched data
+interface ClientSideListParams {
+  data: any[];
+  page: number;
+  perPage: number;
+  sortField?: string;
+  sortOrder?: "ASC" | "DESC";
+  searchQuery?: string;
+  searchFields?: string[];
+  idKey?: string;
+}
+
+function clientSideListHandler({
+  data,
+  page,
+  perPage,
+  sortField,
+  sortOrder,
+  searchQuery,
+  searchFields = ["name"],
+  idKey = "id",
+}: ClientSideListParams): { data: any[]; total: number } {
+  let filtered = data;
+
+  // Apply client-side search filter
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filtered = data.filter((item: any) =>
+      searchFields.some((field) =>
+        item[field]?.toString().toLowerCase().includes(query),
+      ),
+    );
+  }
+
+  // Apply client-side sorting
+  if (sortField) {
+    filtered = [...filtered].sort((a: any, b: any) => {
+      const aVal = a[sortField] || "";
+      const bVal = b[sortField] || "";
+      const comparison = String(aVal).localeCompare(String(bVal));
+      return sortOrder === "DESC" ? -comparison : comparison;
+    });
+  }
+
+  // Apply client-side pagination
+  const total = filtered.length;
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paged = filtered.slice(startIndex, endIndex);
+
+  return {
+    data: paged.map((item: any) => ({
+      id: item[idKey] || item.id,
+      ...item,
+    })),
+    total,
+  };
+}
+
 // Helper to handle singleton resource fetching
 async function fetchSingleton(
   resource: string,
@@ -201,15 +260,7 @@ export default (
           resourceKey: "resource_servers",
           idKey: "id",
         },
-        organizations: {
-          fetch: (client) =>
-            client.organizations.list({
-              from: String((page - 1) * (perPage || 10)),
-              take: perPage || 10,
-            }),
-          resourceKey: "organizations",
-          idKey: "id",
-        },
+        // Organizations handled separately with client-side paging/search
         // Logs removed from SDK handlers - using HTTP directly for full control
         rules: {
           fetch: (client) => client.rules.list(),
@@ -271,6 +322,26 @@ export default (
         return fetchSingleton(resource, () =>
           managementClient.tenants.settings.get(),
         );
+      }
+
+      // Handle organizations with client-side paging and search (fetch 500, filter locally)
+      if (resource === "organizations" && !resourcePath.includes("/")) {
+        const result = await managementClient.organizations.list({
+          from: "0",
+          take: 500,
+        });
+        const { data: allOrgs } = normalizeSDKResponse(result, "organizations");
+
+        return clientSideListHandler({
+          data: allOrgs,
+          page,
+          perPage: perPage || 10,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["name", "display_name"],
+          idKey: "id",
+        });
       }
 
       // Handle logs with direct HTTP for full control over query params

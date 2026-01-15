@@ -4,7 +4,25 @@ import { createTenantsOpenAPIRouter } from "./routes";
 import {
   createProtectSyncedMiddleware,
   createControlPlaneTenantMiddleware,
+  withRuntimeFallback,
 } from "./middleware";
+
+/**
+ * Control plane configuration for multi-tenancy.
+ */
+export interface ControlPlaneConfig {
+  /**
+   * The control plane tenant ID - the tenant that manages all other tenants.
+   */
+  tenantId: string;
+
+  /**
+   * The control plane client ID used for fallback client settings.
+   * This client's configuration (web_origins, callbacks, etc.) will
+   * be merged with child tenant clients at runtime.
+   */
+  clientId: string;
+}
 
 /**
  * Configuration for multi-tenant AuthHero initialization.
@@ -14,10 +32,12 @@ export interface MultiTenantConfig extends Omit<
   "entityHooks" | "managementApiExtensions"
 > {
   /**
-   * The control plane tenant ID - the tenant that manages all other tenants.
-   * @default "control_plane"
+   * Control plane configuration. If provided, enables:
+   * - Runtime fallback for connections, clients, and tenant settings
+   * - Organization-based access control for the tenants API
+   * - Automatic organization creation when tenants are created
    */
-  controlPlaneTenantId?: string;
+  controlPlane?: ControlPlaneConfig;
 
   /**
    * Control which entities to sync from control plane to child tenants.
@@ -86,12 +106,13 @@ export interface MultiTenantResult {
  * - Creates sync hooks for resource servers and roles
  * - Mounts the tenants management API at `/tenants`
  * - Adds middleware to protect synced entities on child tenants
- * - Sets up organization-based access control
+ * - Sets up organization-based access control (when controlPlane is configured)
+ * - Wraps adapters with runtime fallback from control plane
  *
  * @param config - Multi-tenant configuration
  * @returns The configured app and control plane tenant ID
  *
- * @example
+ * @example Basic setup
  * ```typescript
  * import { initMultiTenant } from "@authhero/multi-tenancy";
  * import createAdapters from "@authhero/kysely-adapter";
@@ -100,7 +121,10 @@ export interface MultiTenantResult {
  *
  * const { app } = initMultiTenant({
  *   dataAdapter,
- *   // That's it! Everything else has sensible defaults.
+ *   controlPlane: {
+ *     tenantId: "main",
+ *     clientId: "default_client",
+ *   },
  * });
  *
  * export default app;
@@ -110,7 +134,10 @@ export interface MultiTenantResult {
  * ```typescript
  * const { app } = initMultiTenant({
  *   dataAdapter,
- *   controlPlaneTenantId: "main",
+ *   controlPlane: {
+ *     tenantId: "main",
+ *     clientId: "default_client",
+ *   },
  *   sync: {
  *     resourceServers: true,
  *     roles: false, // Don't sync roles
@@ -123,14 +150,18 @@ export interface MultiTenantResult {
  * ```typescript
  * const { app } = initMultiTenant({
  *   dataAdapter,
+ *   controlPlane: {
+ *     tenantId: "main",
+ *     clientId: "default_client",
+ *   },
  *   sync: false, // Each tenant manages their own entities
  * });
  * ```
  */
 export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const {
-    dataAdapter,
-    controlPlaneTenantId = "control_plane",
+    dataAdapter: rawDataAdapter,
+    controlPlane,
     sync = { resourceServers: true, roles: true },
     defaultPermissions = ["tenant:admin"],
     requireOrganizationMatch = false,
@@ -140,6 +171,17 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     getAdapters,
     ...restConfig
   } = config;
+
+  const controlPlaneTenantId = controlPlane?.tenantId ?? "control_plane";
+  const controlPlaneClientId = controlPlane?.clientId;
+
+  // Wrap adapters with runtime fallback from control plane (only if controlPlane is configured)
+  const dataAdapter = controlPlane
+    ? withRuntimeFallback(rawDataAdapter, {
+        controlPlaneTenantId,
+        controlPlaneClientId,
+      })
+    : rawDataAdapter;
 
   // Determine sync settings
   const syncEnabled = sync !== false;
