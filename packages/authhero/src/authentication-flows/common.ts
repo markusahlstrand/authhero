@@ -674,6 +674,13 @@ export async function startLoginSessionContinuation(
         continuationReturnUrl: returnUrl,
       }),
     });
+  } else {
+    // Log when state transition is invalid (state didn't change)
+    console.warn(
+      `Failed to start continuation for login session ${loginSession.id}: ` +
+        `cannot transition from ${currentState} to AWAITING_CONTINUATION. ` +
+        `Scope: ${JSON.stringify(scope)}, Return URL: ${returnUrl}`,
+    );
   }
 }
 
@@ -720,8 +727,12 @@ export async function completeLoginSessionContinuation(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
-      state_data: undefined, // Clear continuation data
+      state_data: null, // Clear continuation data (use null, not undefined, to actually clear the field)
     });
+  } else {
+    console.warn(
+      `completeLoginSessionContinuation: State transition from ${currentState} with COMPLETE_CONTINUATION was invalid or no-op`,
+    );
   }
 
   return returnUrl;

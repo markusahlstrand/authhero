@@ -139,8 +139,28 @@ export const authorizeRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 
+      // Sanitize redirect_uri: remove fragment and OAuth-related query params
+      // This prevents issues when users start a new login from a page that already
+      // has error/code params from a previous authentication attempt
+      let sanitizedRedirectUri = redirect_uri.split("#")[0]; // Remove fragment
+      try {
+        const redirectUrl = new URL(sanitizedRedirectUri);
+        // Remove OAuth response parameters that might be left over from previous attempts
+        const oauthParams = [
+          "code",
+          "error",
+          "error_description",
+          "error_uri",
+          "state",
+        ];
+        oauthParams.forEach((param) => redirectUrl.searchParams.delete(param));
+        sanitizedRedirectUri = redirectUrl.toString();
+      } catch {
+        // If URL parsing fails, use the original (fragment-stripped) value
+      }
+
       const authParams: AuthParams = {
-        redirect_uri: redirect_uri.split("#")[0], // Remove fragment if present
+        redirect_uri: sanitizedRedirectUri,
         scope,
         state,
         client_id,
