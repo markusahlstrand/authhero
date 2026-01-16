@@ -10,11 +10,11 @@ AuthHero can be deployed to:
 - **[Cloudflare Workers](./cloudflare)** - Edge computing platform
 - **[AWS](./aws)** - Lambda, ECS, or EC2
 - **[Multi-Cloud](./multi-cloud)** - Run across multiple providers for resilience
+- **[Vercel](./vercel)** - React Admin interface deployment (frontend only)
 
 ::: tip Coming Soon
 Documentation for additional platforms:
 
-- Vercel
 - Google Cloud Platform (GCP)
 - Docker/Kubernetes
 - Azure

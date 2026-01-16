@@ -11,9 +11,20 @@ import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 const isLocalDevelopment = window.location.hostname.startsWith("local.");
 const LOCAL_DOMAIN = "localhost:3000";
 
+// Check if single domain mode is enabled - skips the domain selector entirely
+const isSingleDomainMode = import.meta.env.VITE_SINGLE_DOMAIN_MODE === "true";
+const envDomain = import.meta.env.VITE_AUTH0_DOMAIN;
+
 function Root() {
+  // In single domain mode, always use the configured domain from env
+  const getInitialDomain = () => {
+    if (isLocalDevelopment) return LOCAL_DOMAIN;
+    if (isSingleDomainMode && envDomain) return envDomain;
+    return null;
+  };
+
   const [selectedDomain, setSelectedDomain] = useState<string | null>(
-    isLocalDevelopment ? LOCAL_DOMAIN : null,
+    getInitialDomain(),
   );
   const currentPath = location.pathname;
   const isAuthCallback = currentPath === "/auth-callback";
@@ -24,10 +35,10 @@ function Root() {
     currentPath.startsWith("/tenants/create") ||
     currentPath === "/tenants/";
 
-  // Load domain from cookies on component mount (skip for local development)
+  // Load domain from cookies on component mount (skip for local development and single domain mode)
   useEffect(() => {
-    if (isLocalDevelopment) {
-      // For local development, always use localhost:3000
+    if (isLocalDevelopment || isSingleDomainMode) {
+      // For local development or single domain mode, always use the configured domain
       return;
     }
     const savedDomain = getSelectedDomainFromStorage();
@@ -48,14 +59,20 @@ function Root() {
   }
 
   // Show domain selector on root path or if no domain is selected
-  // Skip for local development - redirect to /tenants instead
-  if (!isLocalDevelopment && (isRootPath || !selectedDomain)) {
+  // Skip for local development and single domain mode - redirect to /tenants instead
+  if (!isLocalDevelopment && !isSingleDomainMode && (isRootPath || !selectedDomain)) {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
         disableCloseOnRootPath={isRootPath}
       />
     );
+  }
+
+  // For single domain mode on root path, redirect to /tenants
+  if (isSingleDomainMode && isRootPath) {
+    window.location.href = "/tenants";
+    return null;
   }
 
   // For local development on root path, redirect to /tenants
