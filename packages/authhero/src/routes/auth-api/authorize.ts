@@ -142,21 +142,25 @@ export const authorizeRoutes = new OpenAPIHono<{
       // Sanitize redirect_uri: remove fragment and OAuth-related query params
       // This prevents issues when users start a new login from a page that already
       // has error/code params from a previous authentication attempt
-      let sanitizedRedirectUri = redirect_uri.split("#")[0]; // Remove fragment
-      try {
-        const redirectUrl = new URL(sanitizedRedirectUri);
-        // Remove OAuth response parameters that might be left over from previous attempts
-        const oauthParams = [
-          "code",
-          "error",
-          "error_description",
-          "error_uri",
-          "state",
-        ];
-        oauthParams.forEach((param) => redirectUrl.searchParams.delete(param));
-        sanitizedRedirectUri = redirectUrl.toString();
-      } catch {
-        // If URL parsing fails, use the original (fragment-stripped) value
+      let sanitizedRedirectUri: string | undefined = redirect_uri;
+      if (typeof redirect_uri === "string") {
+        const fragmentStripped = redirect_uri.split("#")[0]!;
+        try {
+          const redirectUrl = new URL(fragmentStripped);
+          // Remove OAuth response parameters that might be left over from previous attempts
+          const oauthParams = [
+            "code",
+            "error",
+            "error_description",
+            "error_uri",
+            "state",
+          ];
+          oauthParams.forEach((param) => redirectUrl.searchParams.delete(param));
+          sanitizedRedirectUri = redirectUrl.toString();
+        } catch {
+          // If URL parsing fails, use the original (fragment-stripped) value
+          sanitizedRedirectUri = fragmentStripped;
+        }
       }
 
       const authParams: AuthParams = {

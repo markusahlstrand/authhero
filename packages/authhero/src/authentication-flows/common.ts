@@ -727,7 +727,7 @@ export async function completeLoginSessionContinuation(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
-      state_data: null, // Clear continuation data (use null, not undefined, to actually clear the field)
+      state_data: "", // Clear continuation data (use empty string since interface doesn't allow null)
     });
   } else {
     console.warn(
