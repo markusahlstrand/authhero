@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.34.0
+
+### Minor Changes
+
+- 9d6cfb8: Wrap adapters as part of the multi-tenant package
+
 ## 1.33.0
 
 ### Minor Changes

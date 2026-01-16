@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.25.0
+
+### Minor Changes
+
+- 9d6cfb8: Wrap adapters as part of the multi-tenant package
+
 ## 0.24.0
 
 ### Minor Changes
