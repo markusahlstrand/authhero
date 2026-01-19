@@ -27,6 +27,7 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
+  safeJsonStringify,
 } from "./sanitization-utils";
 
 /**
@@ -76,10 +77,16 @@ function renderWidgetPage(options: {
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const safeClientName = escapeHtml(clientName);
+  
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
+  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
+  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
 
-  // Serialize screen for JavaScript (will be hydrated on client)
-  const screenJson = JSON.stringify(screen);
-  const brandingJson = branding ? JSON.stringify(branding) : "null";
+  // Serialize screen and branding for JavaScript (will be hydrated on client)
+  // Use safeJsonStringify to prevent script injection
+  const screenJson = safeJsonStringify(screen);
+  const brandingJson = branding ? safeJsonStringify(branding) : "null";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -154,7 +161,7 @@ function renderWidgetPage(options: {
     const widget = document.getElementById('widget');
     const baseUrl = '${escapeJs(baseUrl)}';
     const state = '${escapeJs(state)}';
-    const authParams = ${JSON.stringify(authParams)};
+    const authParams = ${safeJsonStringify(authParams)};
     
     // Initial screen data (hydration)
     const initialScreen = ${screenJson};
@@ -243,11 +250,11 @@ function renderWidgetPage(options: {
       }
     });
   </script>
-  ${poweredByLogo ? `
+  ${safePoweredByUrl ? `
   <div class="powered-by">
-    ${poweredByLogo.href ? `<a href="${escapeHtml(poweredByLogo.href)}" target="_blank" rel="noopener noreferrer">` : ""}
-      <img src="${escapeHtml(poweredByLogo.url)}" alt="${escapeHtml(poweredByLogo.alt)}" height="${poweredByLogo.height || 20}">
-    ${poweredByLogo.href ? `</a>` : ""}
+    ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
+      <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
+    ${safePoweredByHref ? `</a>` : ""}
   </div>
   ` : ""}
 </body>

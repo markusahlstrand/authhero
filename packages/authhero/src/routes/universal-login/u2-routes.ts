@@ -29,6 +29,7 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
+  safeJsonStringify,
 } from "./sanitization-utils";
 
 /**
@@ -82,6 +83,11 @@ function renderWidgetPage(options: {
   const safeScreenId = escapeJs(screenId);
   const safeState = escapeJs(state);
   const safeBaseUrl = escapeJs(baseUrl);
+  
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
+  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
+  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -157,7 +163,7 @@ function renderWidgetPage(options: {
     const baseUrl = '${safeBaseUrl}';
     const screenId = '${safeScreenId}';
     const state = '${safeState}';
-    const authParams = ${JSON.stringify(authParams)};
+    const authParams = ${safeJsonStringify(authParams)};
     
     // Current screen ID for navigation
     let currentScreenId = screenId;
@@ -258,9 +264,9 @@ function renderWidgetPage(options: {
           connection: value,
           state: state,
           client_id: authParams.client_id,
-          redirect_uri: authParams.redirect_uri,
         };
         // Add optional params if present
+        if (authParams.redirect_uri) params.redirect_uri = authParams.redirect_uri;
         if (authParams.scope) params.scope = authParams.scope;
         if (authParams.audience) params.audience = authParams.audience;
         if (authParams.nonce) params.nonce = authParams.nonce;
@@ -293,11 +299,11 @@ function renderWidgetPage(options: {
     // Initial load
     fetchScreen(screenId);
   </script>
-  ${poweredByLogo ? `
+  ${safePoweredByUrl ? `
   <div class="powered-by">
-    ${poweredByLogo.href ? `<a href="${escapeHtml(poweredByLogo.href)}" target="_blank" rel="noopener noreferrer">` : ""}
-      <img src="${escapeHtml(poweredByLogo.url)}" alt="${escapeHtml(poweredByLogo.alt)}" height="${poweredByLogo.height || 20}">
-    ${poweredByLogo.href ? `</a>` : ""}
+    ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
+      <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
+    ${safePoweredByHref ? `</a>` : ""}
   </div>
   ` : ""}
 </body>
@@ -332,11 +338,11 @@ function createScreenRouteHandler(screenId: string) {
       baseUrl,
       authParams: {
         client_id: loginSession.authParams.client_id,
-        redirect_uri: loginSession.authParams.redirect_uri,
-        scope: loginSession.authParams.scope,
-        audience: loginSession.authParams.audience,
-        nonce: loginSession.authParams.nonce,
-        response_type: loginSession.authParams.response_type,
+        ...(loginSession.authParams.redirect_uri && { redirect_uri: loginSession.authParams.redirect_uri }),
+        ...(loginSession.authParams.scope && { scope: loginSession.authParams.scope }),
+        ...(loginSession.authParams.audience && { audience: loginSession.authParams.audience }),
+        ...(loginSession.authParams.nonce && { nonce: loginSession.authParams.nonce }),
+        ...(loginSession.authParams.response_type && { response_type: loginSession.authParams.response_type }),
       },
       poweredByLogo: ctx.env.poweredByLogo,
     });
