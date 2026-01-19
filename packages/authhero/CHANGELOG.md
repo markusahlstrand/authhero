@@ -1,5 +1,11 @@
 # authhero
 
+## 4.11.0
+
+### Minor Changes
+
+- be0ac26: Fixed and issue with email users not being logged in after form hook
+
 ## 4.10.0
 
 ### Minor Changes

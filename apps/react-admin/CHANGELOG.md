@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.26.0
+
+### Minor Changes
+
+- c89fb59: Skip dialog if there is a env varitable for environment
+
 ## 0.25.0
 
 ### Minor Changes
