@@ -33,6 +33,7 @@ import {
   LoginSessionEventType,
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
+import { redactUrlForLogging } from "../utils/url";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -679,7 +680,7 @@ export async function startLoginSessionContinuation(
     console.warn(
       `Failed to start continuation for login session ${loginSession.id}: ` +
         `cannot transition from ${currentState} to AWAITING_CONTINUATION. ` +
-        `Scope: ${JSON.stringify(scope)}, Return URL: ${returnUrl}`,
+        `Scope: ${JSON.stringify(scope)}, Return URL: ${redactUrlForLogging(returnUrl)}`,
     );
   }
 }
