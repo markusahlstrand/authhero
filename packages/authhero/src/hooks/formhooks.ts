@@ -308,6 +308,7 @@ export async function resolveNode(
 
 /**
  * Handles a form hook: validates the form exists and returns a redirect Response to the first node.
+ * If the form resolves to 'end' or no step node is found, returns the user to continue normal auth flow.
  * Throws if the form or start node is missing.
  */
 export async function handleFormHook(
@@ -315,7 +316,7 @@ export async function handleFormHook(
   form_id: string,
   loginSession: LoginSession,
   user?: User,
-): Promise<Response> {
+): Promise<User | Response> {
   const data = ctx.env.data;
   const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
   if (!tenant_id) {
@@ -378,13 +379,8 @@ export async function handleFormHook(
     // Handle different resolution results
     if (!result || result.type === "end") {
       // No step node to display - this means the flow should end
-      // Return a redirect that continues the auth flow without showing a form
-      return new Response(null, {
-        status: 302,
-        headers: {
-          location: `/u/login/identifier?state=${encodeURIComponent(loginSession.id)}`,
-        },
-      });
+      // Return the user to continue normal auth flow without showing a form
+      return user;
     }
 
     if (result.type === "redirect") {
