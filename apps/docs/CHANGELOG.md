@@ -1,5 +1,13 @@
 # @authhero/docs
 
+## 1.35.0
+
+### Minor Changes
+
+- a5f451a: Update the state logic for the continue endpoint
+- 2cb9fc0: Add a powered-by logo
+- 7bf78f7: Add deploy buttons for react-admin
+
 ## 1.34.0
 
 ### Minor Changes
