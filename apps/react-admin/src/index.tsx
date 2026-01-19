@@ -7,19 +7,20 @@ import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 
-// Check if running on local.authhero.net - if so, auto-connect to localhost:3000
-const isLocalDevelopment = window.location.hostname.startsWith("local.");
-const LOCAL_DOMAIN = "localhost:3000";
-
 // Check if single domain mode is enabled - skips the domain selector entirely
 const isSingleDomainMode = import.meta.env.VITE_SINGLE_DOMAIN_MODE === "true";
 const envDomain = import.meta.env.VITE_AUTH0_DOMAIN;
 
 function Root() {
-  // In single domain mode, always use the configured domain from env
+  // In single domain mode or when env domain is configured, use the configured domain
   const getInitialDomain = () => {
-    if (isLocalDevelopment) return LOCAL_DOMAIN;
-    if (isSingleDomainMode && envDomain) return envDomain;
+    if (isSingleDomainMode && envDomain) {
+      return envDomain;
+    }
+    // If environment domain is configured (but not single domain mode), use it
+    if (envDomain) {
+      return envDomain;
+    }
     return null;
   };
 
@@ -35,15 +36,18 @@ function Root() {
     currentPath.startsWith("/tenants/create") ||
     currentPath === "/tenants/";
 
-  // Load domain from cookies on component mount (skip for local development and single domain mode)
+  // Load domain from cookies on component mount (skip for single domain mode)
   useEffect(() => {
-    if (isLocalDevelopment || isSingleDomainMode) {
-      // For local development or single domain mode, always use the configured domain
+    if (isSingleDomainMode) {
+      // For single domain mode, always use the configured domain
       return;
     }
     const savedDomain = getSelectedDomainFromStorage();
     if (savedDomain) {
       setSelectedDomain(savedDomain);
+    } else if (envDomain) {
+      // If no saved domain but env domain is set, use it and save it
+      setSelectedDomain(envDomain);
     }
   }, []);
 
@@ -58,9 +62,9 @@ function Root() {
     );
   }
 
-  // Show domain selector on root path or if no domain is selected
-  // Skip for local development and single domain mode - redirect to /tenants instead
-  if (!isLocalDevelopment && !isSingleDomainMode && (isRootPath || !selectedDomain)) {
+  // Show domain selector only if no domain is selected
+  // Skip for single domain mode and when env domain is configured
+  if (!isSingleDomainMode && !selectedDomain) {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
@@ -71,12 +75,6 @@ function Root() {
 
   // For single domain mode on root path, redirect to /tenants
   if (isSingleDomainMode && isRootPath) {
-    window.location.href = "/tenants";
-    return null;
-  }
-
-  // For local development on root path, redirect to /tenants
-  if (isLocalDevelopment && isRootPath) {
     window.location.href = "/tenants";
     return null;
   }
@@ -106,12 +104,7 @@ function Root() {
     );
   }
 
-  // Fallback to domain selector (or redirect for local development)
-  if (isLocalDevelopment) {
-    window.location.href = "/tenants";
-    return null;
-  }
-
+  // Fallback to domain selector
   return (
     <DomainSelector
       onDomainSelected={(domain) => setSelectedDomain(domain)}
