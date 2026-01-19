@@ -51,4 +51,13 @@ export type Bindings = {
   // Optional SAML signer instance (takes precedence over SAML_SIGN_URL)
   // Set via init({ samlSigner: ... }) to use a custom signer
   samlSigner?: SamlSigner;
+
+  // Optional powered-by logo for the login widget
+  // Set via init({ poweredByLogo: ... })
+  poweredByLogo?: {
+    url: string;
+    alt: string;
+    href?: string;
+    height?: number;
+  };
 };

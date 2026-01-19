@@ -27,6 +27,7 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
+  safeJsonStringify,
 } from "./sanitization-utils";
 
 /**
@@ -48,8 +49,22 @@ function renderWidgetPage(options: {
   clientName: string;
   baseUrl: string;
   state: string;
+  authParams: {
+    client_id: string;
+    redirect_uri?: string;
+    scope?: string;
+    audience?: string;
+    nonce?: string;
+    response_type?: string;
+  };
+  poweredByLogo?: {
+    url: string;
+    alt: string;
+    href?: string;
+    height?: number;
+  };
 }): string {
-  const { screen, branding, clientName, baseUrl, state } = options;
+  const { screen, branding, clientName, baseUrl, state, authParams, poweredByLogo } = options;
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -62,10 +77,16 @@ function renderWidgetPage(options: {
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const safeClientName = escapeHtml(clientName);
+  
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
+  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
+  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
 
-  // Serialize screen for JavaScript (will be hydrated on client)
-  const screenJson = JSON.stringify(screen);
-  const brandingJson = branding ? JSON.stringify(branding) : "null";
+  // Serialize screen and branding for JavaScript (will be hydrated on client)
+  // Use safeJsonStringify to prevent script injection
+  const screenJson = safeJsonStringify(screen);
+  const brandingJson = branding ? safeJsonStringify(branding) : "null";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -112,6 +133,22 @@ function renderWidgetPage(options: {
       border-radius: 8px;
       margin-bottom: 16px;
     }
+    
+    .powered-by {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    
+    .powered-by:hover {
+      opacity: 1;
+    }
+    
+    .powered-by img {
+      display: block;
+    }
   </style>
   <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
 </head>
@@ -124,6 +161,7 @@ function renderWidgetPage(options: {
     const widget = document.getElementById('widget');
     const baseUrl = '${escapeJs(baseUrl)}';
     const state = '${escapeJs(state)}';
+    const authParams = ${safeJsonStringify(authParams)};
     
     // Initial screen data (hydration)
     const initialScreen = ${screenJson};
@@ -178,11 +216,20 @@ function renderWidgetPage(options: {
       const { id, type, value } = event.detail;
       
       if (type === 'SOCIAL' && value) {
-        // Redirect to social provider
-        const socialUrl = baseUrl + '/authorize?' + new URLSearchParams({
+        // Redirect to social provider with all required auth params
+        const params = {
           connection: value,
           state: state,
-        }).toString();
+          client_id: authParams.client_id,
+          redirect_uri: authParams.redirect_uri,
+        };
+        // Add optional params if present
+        if (authParams.scope) params.scope = authParams.scope;
+        if (authParams.audience) params.audience = authParams.audience;
+        if (authParams.nonce) params.nonce = authParams.nonce;
+        if (authParams.response_type) params.response_type = authParams.response_type;
+        
+        const socialUrl = baseUrl + '/authorize?' + new URLSearchParams(params).toString();
         window.location.href = socialUrl;
       }
       
@@ -203,6 +250,13 @@ function renderWidgetPage(options: {
       }
     });
   </script>
+  ${safePoweredByUrl ? `
+  <div class="powered-by">
+    ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
+      <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
+    ${safePoweredByHref ? `</a>` : ""}
+  </div>
+  ` : ""}
 </body>
 </html>`;
 }
@@ -303,6 +357,15 @@ export const widgetRoutes = new OpenAPIHono<{
         clientName: client.name || "AuthHero",
         baseUrl,
         state,
+        authParams: {
+          client_id: loginSession.authParams.client_id,
+          redirect_uri: loginSession.authParams.redirect_uri,
+          scope: loginSession.authParams.scope,
+          audience: loginSession.authParams.audience,
+          nonce: loginSession.authParams.nonce,
+          response_type: loginSession.authParams.response_type,
+        },
+        poweredByLogo: ctx.env.poweredByLogo,
       });
 
       return ctx.html(html);

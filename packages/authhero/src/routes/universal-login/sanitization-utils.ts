@@ -96,3 +96,17 @@ export function buildPageBackground(
 
   return "#f5f5f5";
 }
+
+/**
+ * Safely serialize JSON for embedding in <script> tags
+ * Escapes characters that could break out of script context
+ */
+export function safeJsonStringify(obj: unknown): string {
+  const json = JSON.stringify(obj);
+  return json
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}

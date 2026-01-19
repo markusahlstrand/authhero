@@ -29,6 +29,7 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
+  safeJsonStringify,
 } from "./sanitization-utils";
 
 /**
@@ -50,8 +51,23 @@ function renderWidgetPage(options: {
   };
   clientName: string;
   baseUrl: string;
+  authParams: {
+    client_id: string;
+    redirect_uri?: string;
+    scope?: string;
+    audience?: string;
+    nonce?: string;
+    response_type?: string;
+  };
+  poweredByLogo?: {
+    url: string;
+    alt: string;
+    href?: string;
+    height?: number;
+  };
 }): string {
-  const { screenId, state, branding, clientName, baseUrl } = options;
+  const { screenId, state, branding, clientName, baseUrl, authParams, poweredByLogo } =
+    options;
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -67,6 +83,11 @@ function renderWidgetPage(options: {
   const safeScreenId = escapeJs(screenId);
   const safeState = escapeJs(state);
   const safeBaseUrl = escapeJs(baseUrl);
+  
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
+  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
+  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -113,6 +134,22 @@ function renderWidgetPage(options: {
       border-radius: 8px;
       margin-bottom: 16px;
     }
+    
+    .powered-by {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    
+    .powered-by:hover {
+      opacity: 1;
+    }
+    
+    .powered-by img {
+      display: block;
+    }
   </style>
   <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
 </head>
@@ -126,6 +163,7 @@ function renderWidgetPage(options: {
     const baseUrl = '${safeBaseUrl}';
     const screenId = '${safeScreenId}';
     const state = '${safeState}';
+    const authParams = ${safeJsonStringify(authParams)};
     
     // Current screen ID for navigation
     let currentScreenId = screenId;
@@ -221,11 +259,20 @@ function renderWidgetPage(options: {
       const { id, type, value } = event.detail;
       
       if (type === 'SOCIAL' && value) {
-        // Redirect to social provider authorization
-        const socialUrl = baseUrl + '/authorize?' + new URLSearchParams({
+        // Redirect to social provider with all required auth params
+        const params = {
           connection: value,
           state: state,
-        }).toString();
+          client_id: authParams.client_id,
+        };
+        // Add optional params if present
+        if (authParams.redirect_uri) params.redirect_uri = authParams.redirect_uri;
+        if (authParams.scope) params.scope = authParams.scope;
+        if (authParams.audience) params.audience = authParams.audience;
+        if (authParams.nonce) params.nonce = authParams.nonce;
+        if (authParams.response_type) params.response_type = authParams.response_type;
+        
+        const socialUrl = baseUrl + '/authorize?' + new URLSearchParams(params).toString();
         window.location.href = socialUrl;
       }
       
@@ -252,6 +299,13 @@ function renderWidgetPage(options: {
     // Initial load
     fetchScreen(screenId);
   </script>
+  ${safePoweredByUrl ? `
+  <div class="powered-by">
+    ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
+      <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
+    ${safePoweredByHref ? `</a>` : ""}
+  </div>
+  ` : ""}
 </body>
 </html>`;
 }
@@ -262,7 +316,11 @@ function renderWidgetPage(options: {
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
     const { state } = ctx.req.valid("query");
-    const { branding, client } = await initJSXRoute(ctx, state, true);
+    const { branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+      true,
+    );
     const baseUrl = new URL(ctx.req.url).origin;
 
     const html = renderWidgetPage({
@@ -278,6 +336,15 @@ function createScreenRouteHandler(screenId: string) {
         : undefined,
       clientName: client.name || "AuthHero",
       baseUrl,
+      authParams: {
+        client_id: loginSession.authParams.client_id,
+        ...(loginSession.authParams.redirect_uri && { redirect_uri: loginSession.authParams.redirect_uri }),
+        ...(loginSession.authParams.scope && { scope: loginSession.authParams.scope }),
+        ...(loginSession.authParams.audience && { audience: loginSession.authParams.audience }),
+        ...(loginSession.authParams.nonce && { nonce: loginSession.authParams.nonce }),
+        ...(loginSession.authParams.response_type && { response_type: loginSession.authParams.response_type }),
+      },
+      poweredByLogo: ctx.env.poweredByLogo,
     });
 
     return ctx.html(html);

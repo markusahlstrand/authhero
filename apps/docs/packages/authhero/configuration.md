@@ -70,6 +70,35 @@ const config: AuthHeroConfig = {
 
 For detailed SAML configuration options, see the [SAML Package Documentation](../saml/).
 
+### `poweredByLogo` (optional)
+
+An optional powered-by logo to display at the bottom left of the login widget. This is only configurable in code and is not stored in the database.
+
+The logo appears with reduced opacity (70%) and increases to full opacity on hover. It can optionally be made clickable by providing an `href`.
+
+```typescript
+const config: AuthHeroConfig = {
+  dataAdapter: adapter,
+  poweredByLogo: {
+    url: "https://example.com/logo.svg",
+    alt: "Powered by Example",
+    href: "https://example.com", // Optional - makes the logo clickable
+    height: 24, // Optional - defaults to 20 pixels
+  },
+};
+```
+
+**Configuration Options:**
+
+- `url` (required): URL of the logo image (SVG, PNG, etc.)
+- `alt` (required): Alt text for accessibility
+- `href` (optional): If provided, the logo becomes a clickable link that opens in a new tab
+- `height` (optional): Height of the logo in pixels. Defaults to 20px if not specified
+
+::: tip
+This option is different from `powered_by_logo_url` in the branding API. The `poweredByLogo` config option is set in code at initialization time and applies to all tenants, while the branding API field is stored in the database per tenant. Use this config option when you want to enforce a consistent powered-by logo across all tenants.
+:::
+
 ## Hooks Configuration
 
 Hooks allow you to customize authentication logic at various points in the authentication flow. All hooks are optional.
@@ -273,6 +302,14 @@ const config: AuthHeroConfig = {
 
   // Optional: CORS configuration
   allowedOrigins: ["https://app.example.com", "https://example.com"],
+
+  // Optional: Powered-by logo in login widget
+  poweredByLogo: {
+    url: "https://cdn.example.com/powered-by-logo.svg",
+    alt: "Powered by Example",
+    href: "https://example.com",
+    height: 20,
+  },
 
   // Optional: Hooks for custom logic
   hooks: {
