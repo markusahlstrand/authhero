@@ -1,6 +1,6 @@
 {
   "name": "@authhero/react-admin",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "packageManager": "pnpm@10.20.0",
   "private": false,
   "repository": {

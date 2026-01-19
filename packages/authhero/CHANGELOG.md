@@ -1,5 +1,13 @@
 # authhero
 
+## 4.10.0
+
+### Minor Changes
+
+- a5f451a: Update the state logic for the continue endpoint
+- 2cb9fc0: Fix the social links in the login-widget
+- 2cb9fc0: Add a powered-by logo
+
 ## 4.9.1
 
 ### Patch Changes
