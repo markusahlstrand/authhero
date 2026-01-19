@@ -160,6 +160,6 @@ This would require creating a custom Vercel adapter for AuthHero, which is not c
 
 ## Next Steps
 
-- Review [React Admin documentation](../../apps/react-admin) for app-specific configuration
+- Review [React Admin documentation](../apps/react-admin/) for app-specific configuration
 - Set up your AuthHero API server on a [supported platform](./index)
 - Configure authentication between React Admin and your API server
