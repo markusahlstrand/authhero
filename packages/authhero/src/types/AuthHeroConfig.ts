@@ -135,4 +135,32 @@ export interface AuthHeroConfig {
    * ```
    */
   managementApiExtensions?: ManagementApiExtension[];
+
+  /**
+   * Optional powered-by logo to display at the bottom left of the login widget.
+   * This is only configurable in code, not stored in the database.
+   *
+   * @example
+   * ```typescript
+   * const { app } = init({
+   *   dataAdapter,
+   *   poweredByLogo: {
+   *     url: "https://example.com/logo.svg",
+   *     alt: "Powered by Example",
+   *     href: "https://example.com", // optional link
+   *     height: 24, // optional height in pixels (default: 20)
+   *   },
+   * });
+   * ```
+   */
+  poweredByLogo?: {
+    /** URL of the logo image */
+    url: string;
+    /** Alt text for the logo */
+    alt: string;
+    /** Optional link URL - if provided, the logo will be clickable */
+    href?: string;
+    /** Optional height in pixels (default: 20) */
+    height?: number;
+  };
 }

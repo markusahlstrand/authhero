@@ -83,6 +83,11 @@ export function init(config: AuthHeroConfig) {
       ctx.env.samlSigner = config.samlSigner;
     }
 
+    // Add poweredByLogo from config if provided
+    if (config.poweredByLogo) {
+      ctx.env.poweredByLogo = config.poweredByLogo;
+    }
+
     await next();
   });
 
