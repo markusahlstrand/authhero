@@ -33,6 +33,7 @@ import {
   LoginSessionEventType,
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
+import { redactUrlForLogging } from "../utils/url";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -674,6 +675,13 @@ export async function startLoginSessionContinuation(
         continuationReturnUrl: returnUrl,
       }),
     });
+  } else {
+    // Log when state transition is invalid (state didn't change)
+    console.warn(
+      `Failed to start continuation for login session ${loginSession.id}: ` +
+        `cannot transition from ${currentState} to AWAITING_CONTINUATION. ` +
+        `Scope: ${JSON.stringify(scope)}, Return URL: ${redactUrlForLogging(returnUrl)}`,
+    );
   }
 }
 
@@ -722,6 +730,10 @@ export async function completeLoginSessionContinuation(
       state: newState,
       state_data: undefined, // Clear continuation data
     });
+  } else {
+    console.warn(
+      `completeLoginSessionContinuation: State transition from ${currentState} with COMPLETE_CONTINUATION was invalid or no-op`,
+    );
   }
 
   return returnUrl;

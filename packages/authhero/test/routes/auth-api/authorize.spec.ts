@@ -152,6 +152,52 @@ describe("authorize", () => {
     );
   });
 
+  it("should strip OAuth error and code params from redirect_uri to prevent stale params", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Simulate a user starting a new login from a page that has error params from a previous failed attempt
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri:
+            "https://example.com/callback?error=access_denied&error_description=Login+session+closed&code=old_code&state=old_state",
+          state: "new_state",
+          scope: "openid",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    const redirectUri = new URL("https://example.com" + location);
+
+    // Fetch the login session
+    const login = await env.data.loginSessions.get(
+      "clientId",
+      redirectUri.searchParams.get("state")!,
+    );
+
+    if (!login) {
+      throw new Error("Login session not found");
+    }
+
+    // Verify that OAuth params are stripped from redirect_uri
+    expect(login.authParams.redirect_uri).toEqual(
+      "https://example.com/callback",
+    );
+    expect(login.authParams.redirect_uri).not.toContain("error");
+    expect(login.authParams.redirect_uri).not.toContain("code");
+    expect(login.authParams.redirect_uri).not.toContain("old_state");
+  });
+
   describe("silent authentication", () => {
     it("should return a web_message response with login required if no valid session exists", async () => {
       const { oauthApp, env } = await getTestServer();

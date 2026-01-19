@@ -53,18 +53,16 @@ export const continueRoutes = new OpenAPIHono<{
         return ctx.text("Configuration error", 500);
       }
 
-      // Verify the session is in awaiting_continuation state
+      // Only handle AWAITING_CONTINUATION state - the expected state after a hook redirect
       if (loginSession.state !== LoginSessionState.AWAITING_CONTINUATION) {
         console.warn(
-          `Continue endpoint called but session ${loginSession.id} is in state ${loginSession.state}`,
+          `Continue endpoint called but session ${loginSession.id} is in unexpected state ${loginSession.state}`,
         );
-        // Redirect to identifier page if session is not in the expected state
         return ctx.redirect(
           `/u/login/identifier?state=${encodeURIComponent(state)}`,
         );
       }
 
-      // Complete the continuation - this transitions state back to AUTHENTICATED
       await completeLoginSessionContinuation(
         ctx,
         client.tenant.id,

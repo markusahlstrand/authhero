@@ -14,6 +14,7 @@ Or deploy to Cloudflare Pages:
 
 ::: details Cloudflare Pages Setup
 During setup:
+
 1. Select **Pages** as the deployment type
 2. Set **Root directory** to `apps/react-admin`
 3. Set **Build command** to `pnpm run build`
@@ -23,9 +24,10 @@ During setup:
    - `VITE_AUTH0_CLIENT_ID` - Client ID (usually `auth-admin`)
    - `VITE_AUTH0_API_URL` - Your AuthHero API URL
    - `VITE_SINGLE_DOMAIN_MODE` - Set to `true` to skip domain selector
-:::
+     :::
 
 This will:
+
 - Clone the repository to your GitHub account
 - Set up the project with the correct root directory (`apps/react-admin`)
 - Configure the build commands with proper pnpm compatibility
@@ -56,16 +58,16 @@ The React Admin interface is a Vite-based single-page application that can be de
 3. **Set Environment Variables**
 
    Required environment variables in Vercel:
-   
+
    ```bash
    # Enable corepack for pnpm compatibility
    ENABLE_EXPERIMENTAL_COREPACK=1
-   
+
    # AuthHero configuration
    VITE_AUTH0_DOMAIN=your-authhero-domain.com
    VITE_AUTH0_CLIENT_ID=auth-admin
    VITE_AUTH0_API_URL=https://your-authhero-api.com
-   
+
    # Optional: Skip domain selector and use configured domain directly
    VITE_SINGLE_DOMAIN_MODE=true
    ```
@@ -111,6 +113,7 @@ The project includes a `vercel.json` file with the necessary configuration:
 #### Build Fails with ERR_INVALID_THIS
 
 If you see errors like:
+
 ```
 ERR_PNPM_META_FETCH_FAIL  GET https://registry.npmjs.org/...
 Value of "this" must be of type URLSearchParams
@@ -123,6 +126,7 @@ This error occurs due to a compatibility issue between certain pnpm versions and
 #### Domain Selection
 
 The React Admin app supports multiple domains through a domain selector UI. Users can:
+
 - Add domains via the UI
 - Store domain configurations in browser cookies
 - Switch between different AuthHero instances
@@ -141,6 +145,7 @@ To add a custom domain:
 ### Automatic Deployments
 
 Vercel automatically deploys:
+
 - **Production deployments** from your main/master branch
 - **Preview deployments** from pull requests and other branches
 
@@ -153,6 +158,7 @@ Vercel automatically deploys:
 ## Alternative: Full Stack on Vercel
 
 While the current setup only supports React Admin, you could potentially deploy the full AuthHero stack to Vercel using:
+
 - **Vercel Serverless Functions** for the API
 - **Vercel Postgres** or **Vercel KV** for storage
 
@@ -160,6 +166,6 @@ This would require creating a custom Vercel adapter for AuthHero, which is not c
 
 ## Next Steps
 
-- Review [React Admin documentation](../../apps/react-admin) for app-specific configuration
+- Review [React Admin documentation](../apps/react-admin/) for app-specific configuration
 - Set up your AuthHero API server on a [supported platform](./index)
 - Configure authentication between React Admin and your API server
