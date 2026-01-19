@@ -7,25 +7,12 @@ import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 
-// Check if single domain mode is enabled - skips the domain selector entirely
-const isSingleDomainMode = import.meta.env.VITE_SINGLE_DOMAIN_MODE === "true";
+// If a domain is configured via env, use single-domain mode automatically
 const envDomain = import.meta.env.VITE_AUTH0_DOMAIN;
 
 function Root() {
-  // In single domain mode or when env domain is configured, use the configured domain
-  const getInitialDomain = () => {
-    if (isSingleDomainMode && envDomain) {
-      return envDomain;
-    }
-    // If environment domain is configured (but not single domain mode), use it
-    if (envDomain) {
-      return envDomain;
-    }
-    return null;
-  };
-
   const [selectedDomain, setSelectedDomain] = useState<string | null>(
-    getInitialDomain(),
+    envDomain || null,
   );
   const currentPath = location.pathname;
   const isAuthCallback = currentPath === "/auth-callback";
@@ -36,18 +23,14 @@ function Root() {
     currentPath.startsWith("/tenants/create") ||
     currentPath === "/tenants/";
 
-  // Load domain from cookies on component mount (skip for single domain mode)
+  // Load domain from cookies on component mount (only when no env domain configured)
   useEffect(() => {
-    if (isSingleDomainMode) {
-      // For single domain mode, always use the configured domain
+    if (envDomain) {
       return;
     }
     const savedDomain = getSelectedDomainFromStorage();
     if (savedDomain) {
       setSelectedDomain(savedDomain);
-    } else if (envDomain) {
-      // If no saved domain but env domain is set, use it and save it
-      setSelectedDomain(envDomain);
     }
   }, []);
 
@@ -63,8 +46,7 @@ function Root() {
   }
 
   // Show domain selector only if no domain is selected
-  // Skip for single domain mode and when env domain is configured
-  if (!isSingleDomainMode && !selectedDomain) {
+  if (!selectedDomain) {
     return (
       <DomainSelector
         onDomainSelected={(domain) => setSelectedDomain(domain)}
@@ -73,8 +55,8 @@ function Root() {
     );
   }
 
-  // For single domain mode on root path, redirect to /tenants
-  if (isSingleDomainMode && isRootPath) {
+  // For env-configured domain on root path, redirect to /tenants
+  if (envDomain && isRootPath) {
     window.location.href = "/tenants";
     return null;
   }
