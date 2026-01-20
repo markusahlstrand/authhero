@@ -38,13 +38,30 @@ function isoToTimestamp(isoString: string | null | undefined): number | null {
 }
 
 /**
- * Convert Unix timestamp in milliseconds to ISO date string
+ * Convert Unix timestamp in milliseconds to ISO date string.
+ * Handles various types returned by database drivers:
+ * - number: standard JS number
+ * - bigint: BigInt objects (common with Postgres pg driver for BIGINT columns)
+ * - string: string representation of numbers (MySQL and some Postgres configs)
  */
-function timestampToIso(timestamp: number | null | undefined): string | null {
+function timestampToIso(
+  timestamp: number | bigint | string | null | undefined,
+): string | null {
   if (timestamp === null || timestamp === undefined) {
     return null;
   }
-  return new Date(timestamp).toISOString();
+  // Coerce bigint and string to number for Date constructor
+  const numValue =
+    typeof timestamp === "bigint"
+      ? Number(timestamp)
+      : typeof timestamp === "string"
+        ? parseInt(timestamp, 10)
+        : timestamp;
+
+  if (Number.isNaN(numValue)) {
+    return null;
+  }
+  return new Date(numValue).toISOString();
 }
 
 const BATCH_SIZE = 1000;
@@ -542,14 +559,10 @@ export async function down(db: Kysely<Database>): Promise<void> {
       await db
         .updateTable("refresh_tokens")
         .set({
-          created_at_str: timestampToIso(row.created_at as unknown as number),
-          expires_at_str: timestampToIso(row.expires_at as unknown as number),
-          idle_expires_at_str: timestampToIso(
-            row.idle_expires_at as unknown as number,
-          ),
-          last_exchanged_at_str: timestampToIso(
-            row.last_exchanged_at as unknown as number,
-          ),
+          created_at_str: timestampToIso(row.created_at),
+          expires_at_str: timestampToIso(row.expires_at),
+          idle_expires_at_str: timestampToIso(row.idle_expires_at),
+          last_exchanged_at_str: timestampToIso(row.last_exchanged_at),
         })
         .where("tenant_id", "=", row.tenant_id)
         .where("id", "=", row.id)
@@ -587,20 +600,14 @@ export async function down(db: Kysely<Database>): Promise<void> {
       await db
         .updateTable("sessions")
         .set({
-          created_at_str: timestampToIso(row.created_at as unknown as number),
-          updated_at_str: timestampToIso(row.updated_at as unknown as number),
-          expires_at_str: timestampToIso(row.expires_at as unknown as number),
-          idle_expires_at_str: timestampToIso(
-            row.idle_expires_at as unknown as number,
-          ),
-          authenticated_at_str: timestampToIso(
-            row.authenticated_at as unknown as number,
-          ),
-          last_interaction_at_str: timestampToIso(
-            row.last_interaction_at as unknown as number,
-          ),
-          used_at_str: timestampToIso(row.used_at as unknown as number),
-          revoked_at_str: timestampToIso(row.revoked_at as unknown as number),
+          created_at_str: timestampToIso(row.created_at),
+          updated_at_str: timestampToIso(row.updated_at),
+          expires_at_str: timestampToIso(row.expires_at),
+          idle_expires_at_str: timestampToIso(row.idle_expires_at),
+          authenticated_at_str: timestampToIso(row.authenticated_at),
+          last_interaction_at_str: timestampToIso(row.last_interaction_at),
+          used_at_str: timestampToIso(row.used_at),
+          revoked_at_str: timestampToIso(row.revoked_at),
         })
         .where("tenant_id", "=", row.tenant_id)
         .where("id", "=", row.id)
@@ -627,9 +634,9 @@ export async function down(db: Kysely<Database>): Promise<void> {
       await db
         .updateTable("login_sessions")
         .set({
-          created_at_str: timestampToIso(row.created_at as unknown as number),
-          updated_at_str: timestampToIso(row.updated_at as unknown as number),
-          expires_at_str: timestampToIso(row.expires_at as unknown as number),
+          created_at_str: timestampToIso(row.created_at),
+          updated_at_str: timestampToIso(row.updated_at),
+          expires_at_str: timestampToIso(row.expires_at),
         })
         .where("tenant_id", "=", row.tenant_id)
         .where("id", "=", row.id)
@@ -754,6 +761,40 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema
     .alterTable("login_sessions")
     .renameColumn("expires_at_str", "expires_at")
+    .execute();
+
+  // ========================================
+  // STEP 6: Restore NOT NULL constraints
+  // ========================================
+
+  // --- refresh_tokens ---
+  await db.schema
+    .alterTable("refresh_tokens")
+    .alterColumn("created_at", (col) => col.setNotNull())
+    .execute();
+
+  // --- sessions ---
+  await db.schema
+    .alterTable("sessions")
+    .alterColumn("created_at", (col) => col.setNotNull())
+    .execute();
+  await db.schema
+    .alterTable("sessions")
+    .alterColumn("updated_at", (col) => col.setNotNull())
+    .execute();
+
+  // --- login_sessions ---
+  await db.schema
+    .alterTable("login_sessions")
+    .alterColumn("created_at", (col) => col.setNotNull())
+    .execute();
+  await db.schema
+    .alterTable("login_sessions")
+    .alterColumn("updated_at", (col) => col.setNotNull())
+    .execute();
+  await db.schema
+    .alterTable("login_sessions")
+    .alterColumn("expires_at", (col) => col.setNotNull())
     .execute();
 
   // Recreate the login_sessions_state_updated_idx after renaming columns back
