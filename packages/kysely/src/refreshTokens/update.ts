@@ -9,24 +9,32 @@ export function update(db: Kysely<Database>) {
     id: string,
     refresh_token: Partial<RefreshToken>,
   ) => {
+    // Exclude old date fields from refresh token object
+    const {
+      created_at,
+      expires_at,
+      idle_expires_at,
+      last_exchanged_at,
+      device,
+      resource_servers,
+      rotating,
+      ...tokenWithoutDates
+    } = refresh_token;
+
     const updateData = {
-      ...refresh_token,
-      device: refresh_token.device
-        ? JSON.stringify(refresh_token.device)
+      ...tokenWithoutDates,
+      device: device ? JSON.stringify(device) : undefined,
+      resource_servers: resource_servers
+        ? JSON.stringify(resource_servers)
         : undefined,
-      resource_servers: refresh_token.resource_servers
-        ? JSON.stringify(refresh_token.resource_servers)
-        : undefined,
-      rotating: refresh_token.rotating ? 1 : 0,
+      rotating: rotating !== undefined ? (rotating ? 1 : 0) : undefined,
       // Convert date fields to bigint format
-      expires_at: refresh_token.expires_at
-        ? isoToDbDate(refresh_token.expires_at)
+      expires_at_ts: expires_at ? isoToDbDate(expires_at) : undefined,
+      idle_expires_at_ts: idle_expires_at
+        ? isoToDbDate(idle_expires_at)
         : undefined,
-      idle_expires_at: refresh_token.idle_expires_at
-        ? isoToDbDate(refresh_token.idle_expires_at)
-        : undefined,
-      last_exchanged_at: refresh_token.last_exchanged_at
-        ? isoToDbDate(refresh_token.last_exchanged_at)
+      last_exchanged_at_ts: last_exchanged_at
+        ? isoToDbDate(last_exchanged_at)
         : undefined,
     };
 
