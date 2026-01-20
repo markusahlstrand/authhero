@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.81.0
+
+### Minor Changes
+
+- 168b585: Update the schemas for the sessions
+
 ## 10.80.1
 
 ### Patch Changes
