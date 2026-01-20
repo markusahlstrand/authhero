@@ -1,15 +1,44 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { Session } from "@authhero/adapter-interfaces";
+import { nowDbDate, isoToDbDate } from "../utils/dateConversion";
 
 export function update(db: Kysely<Database>) {
   return async (tenant_id: string, id: string, session: Partial<Session>) => {
-    const sqlSession = {
-      ...session,
-      updated_at: new Date().toISOString(),
+    // Convert ISO date strings to bigint timestamps for DB
+    const sqlSession: Record<string, unknown> = {
+      updated_at: nowDbDate(),
       device: session.device ? JSON.stringify(session.device) : undefined,
       clients: session.clients ? JSON.stringify(session.clients) : undefined,
     };
+
+    // Convert date fields if provided
+    if (session.expires_at !== undefined) {
+      sqlSession.expires_at = isoToDbDate(session.expires_at);
+    }
+    if (session.idle_expires_at !== undefined) {
+      sqlSession.idle_expires_at = isoToDbDate(session.idle_expires_at);
+    }
+    if (session.authenticated_at !== undefined) {
+      sqlSession.authenticated_at = isoToDbDate(session.authenticated_at);
+    }
+    if (session.last_interaction_at !== undefined) {
+      sqlSession.last_interaction_at = isoToDbDate(session.last_interaction_at);
+    }
+    if (session.used_at !== undefined) {
+      sqlSession.used_at = isoToDbDate(session.used_at);
+    }
+    if (session.revoked_at !== undefined) {
+      sqlSession.revoked_at = isoToDbDate(session.revoked_at);
+    }
+
+    // Copy non-date fields
+    if (session.user_id !== undefined) {
+      sqlSession.user_id = session.user_id;
+    }
+    if (session.login_session_id !== undefined) {
+      sqlSession.login_session_id = session.login_session_id;
+    }
 
     const results = await db
       .updateTable("sessions")

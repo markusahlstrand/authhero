@@ -115,6 +115,7 @@ import * as o016_add_is_system_column from "./2025-12-20T10:00:00_add_is_system_
 import * as o017_connections_composite_key from "./2026-01-07T10:00:00_connections_composite_key";
 import * as o018_login_session_state from "./2026-01-10T10:00:00_login_session_state";
 import * as o019_roles_resource_servers_metadata from "./2026-01-14T10:00:00_roles_resource_servers_metadata";
+import * as o020_session_performance_optimization from "./2026-01-15T10:00:00_session_performance_optimization";
 
 // These need to be in alphabetic order
 export default {
@@ -235,4 +236,5 @@ export default {
   o017_connections_composite_key,
   o018_login_session_state,
   o019_roles_resource_servers_metadata,
+  o020_session_performance_optimization,
 };
