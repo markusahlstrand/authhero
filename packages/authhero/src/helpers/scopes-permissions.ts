@@ -115,9 +115,10 @@ async function getTenantPermissionsForOrganization(
  * Calculates scopes and permissions for client_credentials grant type based on client grants.
  *
  * Auth0 behavior for client_credentials:
- * 1. The token ALWAYS includes ALL scopes from the client grant, regardless of what's requested
- * 2. If any requested scope is NOT in the client grant, a 403 error is returned
- * 3. When RBAC is enabled, permissions claim contains all client grant scopes
+ * 1. If NO scopes are requested: Return ALL authorized scopes from the client grant
+ * 2. If scopes ARE requested: Return intersection of requested and authorized scopes
+ * 3. If any requested scope is NOT in the client grant, a 403 error is returned
+ * 4. When RBAC is enabled with access_token_authz, permissions claim contains the scopes
  *
  * This implementation only considers client grants, the audience, and the resource server configuration.
  */
@@ -195,33 +196,43 @@ async function calculateClientCredentialsScopes(
     }
   }
 
-  // Auth0 behavior: Always return ALL scopes from the client grant that are defined on the resource server
-  // The requested scopes only serve as validation - the token always gets all granted scopes
+  // All granted scopes that are defined on the resource server
   const allGrantedScopes = grantedScopes.filter((scope) =>
     definedScopes.includes(scope),
   );
 
-  // If RBAC is not enabled, return all granted scopes (no permissions claim)
+  // Auth0 behavior:
+  // - If NO scopes requested: return ALL granted scopes
+  // - If scopes ARE requested: return intersection of requested and granted scopes
+  const resultScopes =
+    nonOidcRequestedScopes.length === 0
+      ? allGrantedScopes // No scopes requested - return all granted
+      : nonOidcRequestedScopes.filter((scope) => allGrantedScopes.includes(scope)); // Intersection
+
+  // If RBAC is not enabled, return scopes (no permissions claim)
   if (!rbacEnabled) {
     const allAllowedScopes = [
-      ...new Set([...defaultOidcScopes, ...allGrantedScopes]),
+      ...new Set([...defaultOidcScopes, ...resultScopes]),
     ];
     return { scopes: allAllowedScopes, permissions: [] };
   }
 
-  // RBAC is enabled - but permissions are ONLY added to the token when token_dialect is access_token_authz
-  // For client_credentials, the granted scopes become the permissions since there's no user context
-  const allowedPermissions = allGrantedScopes;
+  // RBAC is enabled - permissions are added to the token when token_dialect is access_token_authz
+  // For client_credentials, the result scopes become the permissions since there's no user context
+  const allowedPermissions = resultScopes;
 
   if (tokenDialect === "access_token_authz") {
-    // For access_token_authz dialect: permissions in permissions claim, no API scopes (except OIDC)
-    return { scopes: defaultOidcScopes, permissions: allowedPermissions };
+    // For access_token_authz dialect: scopes in scope claim AND permissions in permissions claim
+    const allAllowedScopes = [
+      ...new Set([...defaultOidcScopes, ...resultScopes]),
+    ];
+    return { scopes: allAllowedScopes, permissions: allowedPermissions };
   }
 
   // For access_token dialect (default): scopes in scope claim, NO permissions claim
   // Auth0 only includes permissions claim when token_dialect is access_token_authz
   const allAllowedScopes = [
-    ...new Set([...defaultOidcScopes, ...allGrantedScopes]),
+    ...new Set([...defaultOidcScopes, ...resultScopes]),
   ];
 
   return { scopes: allAllowedScopes, permissions: [] };
