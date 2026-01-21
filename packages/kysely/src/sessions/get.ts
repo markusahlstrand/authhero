@@ -20,23 +20,32 @@ export function get(db: Kysely<Database>) {
       tenant_id: _,
       device,
       clients,
-      created_at,
-      updated_at,
-      expires_at,
-      idle_expires_at,
-      authenticated_at,
-      last_interaction_at,
-      used_at,
-      revoked_at,
+      created_at_ts,
+      updated_at_ts,
+      expires_at_ts,
+      idle_expires_at_ts,
+      authenticated_at_ts,
+      last_interaction_at_ts,
+      used_at_ts,
+      revoked_at_ts,
       ...rest
     } = session;
 
-    // Convert dates from DB format (either string or bigint) to ISO strings
+    // Convert dates from DB format (bigint) to ISO strings
     const dates = convertDatesToAdapter(
-      { created_at, updated_at, expires_at, idle_expires_at, authenticated_at, last_interaction_at, used_at, revoked_at },
-      ["created_at", "updated_at", "authenticated_at", "last_interaction_at"],
-      ["expires_at", "idle_expires_at", "used_at", "revoked_at"],
-    );
+      { created_at_ts, updated_at_ts, expires_at_ts, idle_expires_at_ts, authenticated_at_ts, last_interaction_at_ts, used_at_ts, revoked_at_ts },
+      ["created_at_ts", "updated_at_ts", "authenticated_at_ts", "last_interaction_at_ts"],
+      ["expires_at_ts", "idle_expires_at_ts", "used_at_ts", "revoked_at_ts"],
+    ) as {
+      created_at: string;
+      updated_at: string;
+      authenticated_at: string;
+      last_interaction_at: string;
+      expires_at?: string;
+      idle_expires_at?: string;
+      used_at?: string;
+      revoked_at?: string;
+    };
 
     return {
       ...rest,

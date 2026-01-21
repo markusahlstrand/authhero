@@ -21,12 +21,12 @@ export function get(db: Kysely<Database>) {
 
     if (!login) return null;
 
-    const { created_at, updated_at, expires_at, ...rest } = login;
+    const { created_at_ts, updated_at_ts, expires_at_ts, ...rest } = login;
 
-    // Convert dates from DB format (either string or bigint) to ISO strings
+    // Convert dates from DB format (bigint) to ISO strings
     const dates = convertDatesToAdapter(
-      { created_at, updated_at, expires_at },
-      ["created_at", "updated_at", "expires_at"],
+      { created_at_ts, updated_at_ts, expires_at_ts },
+      ["created_at_ts", "updated_at_ts", "expires_at_ts"],
     );
 
     return loginSessionSchema.parse(

@@ -81,13 +81,6 @@ export function isoToDbDate(
 }
 
 /**
- * Get current timestamp in the NEW format (bigint)
- */
-export function nowDbDate(): number {
-  return Date.now();
-}
-
-/**
  * Get current timestamp as ISO string (for adapter interface)
  */
 export function nowIso(): string {
@@ -96,10 +89,11 @@ export function nowIso(): string {
 
 /**
  * Convert date fields from DB format to adapter format (ISO strings)
+ * Strips the _ts suffix from column names (e.g., created_at_ts -> created_at)
  * @param row - The database row object
  * @param requiredColumns - Columns that must have a value (will use fallback if null)
  * @param optionalColumns - Columns that can be undefined
- * @returns Object with converted date fields
+ * @returns Object with converted date fields (with _ts suffix stripped)
  */
 export function convertDatesToAdapter<
   T extends Record<string, DbDateField>,
@@ -109,17 +103,21 @@ export function convertDatesToAdapter<
   row: T,
   requiredColumns: R[],
   optionalColumns: O[] = [] as O[],
-): { [K in R]: string } & { [K in O]?: string } {
+): Record<string, string | undefined> {
   const result: Record<string, string | undefined> = {};
 
   for (const col of requiredColumns) {
-    result[col as string] = dbDateToIsoRequired(row[col]);
+    // Strip _ts suffix from column name for adapter output
+    const outputName = (col as string).replace(/_ts$/, "");
+    result[outputName] = dbDateToIsoRequired(row[col]);
   }
 
   for (const col of optionalColumns) {
-    result[col as string] = dbDateToIso(row[col]);
+    // Strip _ts suffix from column name for adapter output
+    const outputName = (col as string).replace(/_ts$/, "");
+    result[outputName] = dbDateToIso(row[col]);
   }
 
-  return result as { [K in R]: string } & { [K in O]?: string };
+  return result;
 }
 

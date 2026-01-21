@@ -37,19 +37,24 @@ export function list(db: Kysely<Database>) {
     const mappedTokens = refresh_tokens.map((refresh_token) => {
       const {
         tenant_id: _,
-        created_at,
-        expires_at,
-        idle_expires_at,
-        last_exchanged_at,
+        created_at_ts,
+        expires_at_ts,
+        idle_expires_at_ts,
+        last_exchanged_at_ts,
         ...rest
       } = refresh_token;
 
-      // Convert dates from DB format (either string or bigint) to ISO strings
+      // Convert dates from DB format (bigint) to ISO strings
       const dates = convertDatesToAdapter(
-        { created_at, expires_at, idle_expires_at, last_exchanged_at },
-        ["created_at"],
-        ["expires_at", "idle_expires_at", "last_exchanged_at"],
-      );
+        { created_at_ts, expires_at_ts, idle_expires_at_ts, last_exchanged_at_ts },
+        ["created_at_ts"],
+        ["expires_at_ts", "idle_expires_at_ts", "last_exchanged_at_ts"],
+      ) as {
+        created_at: string;
+        expires_at?: string;
+        idle_expires_at?: string;
+        last_exchanged_at?: string;
+      };
 
       return {
         ...rest,

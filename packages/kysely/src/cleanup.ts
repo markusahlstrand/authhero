@@ -2,13 +2,7 @@ import { Kysely } from "kysely";
 import { Database } from "./db";
 
 /**
- * During the migration transition period, date fields can be either:
- * - ISO string: "2024-01-15T10:00:00.000Z"
- * - Bigint timestamp: 1705315200000
- *
- * This cleanup handles both formats by checking if the value starts with "20" (ISO year).
- * For numeric comparisons, we compare directly since SQLite/MySQL handle numeric strings.
- * Once migration is complete, this can be simplified to just use bigint comparisons.
+ * Cleanup expired sessions and tokens using bigint timestamps (_ts columns).
  */
 export function createCleanup(db: Kysely<Database>) {
   return async () => {
@@ -17,15 +11,9 @@ export function createCleanup(db: Kysely<Database>) {
     const oneWeekAgoMs = now - 1000 * 60 * 60 * 24 * 7;
     const threeMonthsAgoMs = now - 1000 * 60 * 60 * 24 * 30 * 3;
 
-    // ISO strings for comparison with varchar dates (before migration)
+    // ISO strings for comparison with varchar dates (codes table still uses varchar)
     const oneDayAgoIso = new Date(oneDayAgoMs).toISOString();
-    const oneWeekAgoIso = new Date(oneWeekAgoMs).toISOString();
     const threeMonthsAgoIso = new Date(threeMonthsAgoMs).toISOString();
-
-    // String representations of timestamps for numeric comparison
-    // When stored as varchar, numeric comparison works because timestamps
-    // have consistent length and lexicographic ordering matches numeric ordering
-    const oneWeekAgoStr = String(oneWeekAgoMs);
 
     console.log("delete codes");
     await db
@@ -35,25 +23,10 @@ export function createCleanup(db: Kysely<Database>) {
       .execute();
 
     console.log("delete login_sessions");
-    // Handle both ISO strings and bigint timestamps for login_sessions
-    // ISO strings start with "20" (year), timestamps start with "1" (Unix epoch)
+    // Use bigint timestamp column for login_sessions
     await db
       .deleteFrom("login_sessions")
-      .where((eb) =>
-        eb.or([
-          // For ISO string dates (before migration) - lexicographic comparison works
-          eb.and([
-            eb("created_at", "like", "20%"),
-            eb("created_at", "<", oneWeekAgoIso),
-          ]),
-          // For bigint timestamps (after migration) - stored as varchar, numeric string comparison
-          // works because all timestamps have same length (13 digits) and start with "1"
-          eb.and([
-            eb("created_at", "not like", "20%"),
-            eb("created_at", "<", oneWeekAgoStr),
-          ]),
-        ]),
-      )
+      .where("created_at_ts", "<", oneWeekAgoMs)
       .where("session_id", "is", null)
       .limit(100000)
       .execute();
@@ -66,31 +39,13 @@ export function createCleanup(db: Kysely<Database>) {
       .execute();
 
     console.log("delete refresh tokens");
-    // Handle both date formats for refresh_tokens
+    // Use bigint timestamp columns for refresh_tokens
     await db
       .deleteFrom("refresh_tokens")
       .where((eb) =>
         eb.or([
-          // For ISO string dates - expires_at
-          eb.and([
-            eb("expires_at", "like", "20%"),
-            eb("expires_at", "<", oneWeekAgoIso),
-          ]),
-          // For bigint timestamps - expires_at
-          eb.and([
-            eb("expires_at", "not like", "20%"),
-            eb("expires_at", "<", oneWeekAgoStr),
-          ]),
-          // For ISO string dates - idle_expires_at
-          eb.and([
-            eb("idle_expires_at", "like", "20%"),
-            eb("idle_expires_at", "<", oneWeekAgoIso),
-          ]),
-          // For bigint timestamps - idle_expires_at
-          eb.and([
-            eb("idle_expires_at", "not like", "20%"),
-            eb("idle_expires_at", "<", oneWeekAgoStr),
-          ]),
+          eb("expires_at_ts", "<", oneWeekAgoMs),
+          eb("idle_expires_at_ts", "<", oneWeekAgoMs),
         ]),
       )
       .limit(10000)
@@ -98,32 +53,14 @@ export function createCleanup(db: Kysely<Database>) {
 
     console.log("delete sessions");
     // Cleanup sessions that are older than one week and have no associated refresh_tokens
-    // Handle both date formats
+    // Use bigint timestamp columns
     const expiredSessionIds = await db
       .selectFrom("sessions")
       .select("id")
       .where((eb) =>
         eb.or([
-          // For ISO string dates - expires_at
-          eb.and([
-            eb("expires_at", "like", "20%"),
-            eb("expires_at", "<", oneWeekAgoIso),
-          ]),
-          // For bigint timestamps - expires_at
-          eb.and([
-            eb("expires_at", "not like", "20%"),
-            eb("expires_at", "<", oneWeekAgoStr),
-          ]),
-          // For ISO string dates - idle_expires_at
-          eb.and([
-            eb("idle_expires_at", "like", "20%"),
-            eb("idle_expires_at", "<", oneWeekAgoIso),
-          ]),
-          // For bigint timestamps - idle_expires_at
-          eb.and([
-            eb("idle_expires_at", "not like", "20%"),
-            eb("idle_expires_at", "<", oneWeekAgoStr),
-          ]),
+          eb("expires_at_ts", "<", oneWeekAgoMs),
+          eb("idle_expires_at_ts", "<", oneWeekAgoMs),
         ]),
       )
       .where(

@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { RefreshToken, RefreshTokenInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { nowDbDate, nowIso, isoToDbDate } from "../utils/dateConversion";
+import { nowIso, isoToDbDate } from "../utils/dateConversion";
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -15,22 +15,32 @@ export function create(db: Kysely<Database>) {
     };
 
     // Write to DB with bigint timestamps
-    const dbNow = nowDbDate();
+    // Exclude old date fields from refresh token object
+    const {
+      expires_at,
+      idle_expires_at,
+      last_exchanged_at,
+      device,
+      resource_servers,
+      rotating,
+      ...tokenWithoutDates
+    } = refreshToken;
+    const nowTs = Date.now();
     await db
       .insertInto("refresh_tokens")
       .values({
-        ...createdRefreshToken,
+        ...tokenWithoutDates,
         tenant_id,
-        rotating: refreshToken.rotating ? 1 : 0,
-        device: JSON.stringify(refreshToken.device),
-        resource_servers: JSON.stringify(refreshToken.resource_servers),
-        created_at: dbNow,
-        expires_at: isoToDbDate(refreshToken.expires_at),
-        idle_expires_at: refreshToken.idle_expires_at
-          ? isoToDbDate(refreshToken.idle_expires_at)
+        rotating: rotating ? 1 : 0,
+        device: JSON.stringify(device),
+        resource_servers: JSON.stringify(resource_servers),
+        created_at_ts: nowTs,
+        expires_at_ts: isoToDbDate(expires_at),
+        idle_expires_at_ts: idle_expires_at
+          ? isoToDbDate(idle_expires_at)
           : null,
-        last_exchanged_at: refreshToken.last_exchanged_at
-          ? isoToDbDate(refreshToken.last_exchanged_at)
+        last_exchanged_at_ts: last_exchanged_at
+          ? isoToDbDate(last_exchanged_at)
           : null,
       })
       .execute();
