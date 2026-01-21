@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.27.0
+
+### Minor Changes
+
+- 76510cd: Fixes for branding page and endpoint
+
 ## 0.26.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.83.0
+
+### Minor Changes
+
+- 76510cd: Fixes for branding page and endpoint
+
 ## 10.82.0
 
 ### Minor Changes

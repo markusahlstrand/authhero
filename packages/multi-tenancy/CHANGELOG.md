@@ -10,6 +10,7 @@
 
 - Updated dependencies [5519225]
 - Updated dependencies [829afab]
+- Updated dependencies [76510cd]
   - authhero@4.12.0
 
 ## 14.5.0

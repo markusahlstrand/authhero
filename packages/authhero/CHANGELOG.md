@@ -6,6 +6,7 @@
 
 - 5519225: Patch the scopes for client credentials
 - 829afab: Hide sensistive info in management api
+- 76510cd: Fixes for branding page and endpoint
 
 ## 4.11.0
 
