@@ -67,9 +67,12 @@ export default function create(config: AuthHeroConfig) {
 
   registerComponent(app);
 
+  // Use managementDataAdapter if provided, otherwise fall back to dataAdapter
+  const managementAdapter = config.managementDataAdapter ?? config.dataAdapter;
+
   app.use(async (ctx, next) => {
     // First add data hooks (for user operations)
-    const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
+    const dataWithHooks = addDataHooks(ctx, managementAdapter);
 
     // Management API always uses request-scoped caching for data freshness
     const cacheAdapter = createInMemoryCache({

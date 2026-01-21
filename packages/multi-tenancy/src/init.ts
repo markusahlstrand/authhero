@@ -162,6 +162,10 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const {
     dataAdapter: rawDataAdapter,
     controlPlane,
+    controlPlane: {
+      tenantId: controlPlaneTenantId = "control_plane",
+      clientId: controlPlaneClientId,
+    } = {},
     sync = { resourceServers: true, roles: true },
     defaultPermissions = ["tenant:admin"],
     requireOrganizationMatch = false,
@@ -172,16 +176,24 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     ...restConfig
   } = config;
 
-  const controlPlaneTenantId = controlPlane?.tenantId ?? "control_plane";
-  const controlPlaneClientId = controlPlane?.clientId;
-
   // Wrap adapters with runtime fallback from control plane (only if controlPlane is configured)
-  const dataAdapter = controlPlane
-    ? withRuntimeFallback(rawDataAdapter, {
-        controlPlaneTenantId,
-        controlPlaneClientId,
-      })
-    : rawDataAdapter;
+  // - dataAdapter: Full fallback with secrets (for auth flows)
+  // - managementDataAdapter: Fallback with sensitive fields excluded (for management API)
+  let dataAdapter = rawDataAdapter;
+  let managementDataAdapter = rawDataAdapter;
+
+  if (controlPlane) {
+    dataAdapter = withRuntimeFallback(rawDataAdapter, {
+      controlPlaneTenantId,
+      controlPlaneClientId,
+    });
+
+    managementDataAdapter = withRuntimeFallback(rawDataAdapter, {
+      controlPlaneTenantId,
+      controlPlaneClientId,
+      excludeSensitiveFields: true,
+    });
+  }
 
   // Determine sync settings
   const syncEnabled = sync !== false;
@@ -250,6 +262,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   // Initialize AuthHero
   const { app } = init({
     dataAdapter,
+    managementDataAdapter,
     ...restConfig,
     entityHooks,
     managementApiExtensions: [

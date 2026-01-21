@@ -56,6 +56,28 @@ export interface ManagementApiExtension {
 
 export interface AuthHeroConfig {
   dataAdapter: DataAdapters;
+
+  /**
+   * Optional separate data adapter for the management API.
+   * If provided, the management API will use this adapter instead of `dataAdapter`.
+   *
+   * This is useful when you want different behavior for auth flows vs management API,
+   * such as excluding sensitive fields from control plane fallback in management API
+   * while keeping them for authentication flows.
+   *
+   * @example
+   * ```typescript
+   * const { app } = init({
+   *   dataAdapter: withRuntimeFallback(baseAdapters, { controlPlaneTenantId: "main" }),
+   *   managementDataAdapter: withRuntimeFallback(baseAdapters, {
+   *     controlPlaneTenantId: "main",
+   *     excludeSensitiveFields: true, // Don't expose control plane secrets in management API
+   *   }),
+   * });
+   * ```
+   */
+  managementDataAdapter?: DataAdapters;
+
   allowedOrigins?: string[];
   samlSigner?: SamlSigner;
 

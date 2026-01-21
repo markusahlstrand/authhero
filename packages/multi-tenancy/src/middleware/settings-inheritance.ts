@@ -5,6 +5,35 @@ import {
   connectionSchema,
   connectionOptionsSchema,
 } from "authhero";
+import { z } from "@hono/zod-openapi";
+
+type ConnectionOptions = z.infer<typeof connectionOptionsSchema>;
+
+/**
+ * Sensitive fields in connection options that should not be exposed
+ * through the management API when using control plane fallback.
+ */
+const SENSITIVE_CONNECTION_FIELDS: (keyof ConnectionOptions)[] = [
+  "client_secret",
+  "app_secret",
+  "twilio_token",
+];
+
+/**
+ * Strips sensitive fields from connection options.
+ * Used to prevent control plane secrets from being exposed through the management API.
+ */
+function stripSensitiveFields(
+  options: ConnectionOptions | undefined,
+): ConnectionOptions | undefined {
+  if (!options) return options;
+
+  const result = { ...options };
+  for (const field of SENSITIVE_CONNECTION_FIELDS) {
+    delete result[field];
+  }
+  return result;
+}
 
 /**
  * Configuration for runtime settings fallback from a control plane tenant.
@@ -25,6 +54,15 @@ export interface RuntimeFallbackConfig {
    * be merged with child tenant clients at runtime.
    */
   controlPlaneClientId?: string;
+
+  /**
+   * When true, excludes sensitive fields (client_secret, app_secret, twilio_token)
+   * from the control plane fallback. Use this for management API adapters to prevent
+   * tenants from accessing control plane secrets.
+   *
+   * @default false
+   */
+  excludeSensitiveFields?: boolean;
 }
 
 /**
@@ -66,7 +104,11 @@ export function createRuntimeFallbackAdapter(
   baseAdapters: DataAdapters,
   config: RuntimeFallbackConfig,
 ): DataAdapters {
-  const { controlPlaneTenantId, controlPlaneClientId } = config;
+  const {
+    controlPlaneTenantId,
+    controlPlaneClientId,
+    excludeSensitiveFields = false,
+  } = config;
 
   return {
     ...baseAdapters,
@@ -121,8 +163,12 @@ export function createRuntimeFallbackAdapter(
             });
 
             // Merge connection options with fallback
+            // If excludeSensitiveFields is true, strip sensitive fields from control plane options
+            const controlPlaneOptions = excludeSensitiveFields
+              ? stripSensitiveFields(controlPlaneConnection.options)
+              : controlPlaneConnection.options;
             mergedConnection.options = connectionOptionsSchema.parse({
-              ...(controlPlaneConnection.options || {}),
+              ...(controlPlaneOptions || {}),
               ...connection.options,
             });
 
@@ -200,8 +246,12 @@ export function createRuntimeFallbackAdapter(
         });
 
         // Merge options with fallback
+        // If excludeSensitiveFields is true, strip sensitive fields from control plane options
+        const controlPlaneOptions = excludeSensitiveFields
+          ? stripSensitiveFields(controlPlaneConnection.options)
+          : controlPlaneConnection.options;
         mergedConnection.options = connectionOptionsSchema.parse({
-          ...(controlPlaneConnection.options || {}),
+          ...(controlPlaneOptions || {}),
           ...connection.options,
         });
 
@@ -237,8 +287,12 @@ export function createRuntimeFallbackAdapter(
           });
 
           // Merge options with fallback
+          // If excludeSensitiveFields is true, strip sensitive fields from control plane options
+          const controlPlaneOptions = excludeSensitiveFields
+            ? stripSensitiveFields(controlPlaneConnection.options)
+            : controlPlaneConnection.options;
           mergedConnection.options = connectionOptionsSchema.parse({
-            ...(controlPlaneConnection.options || {}),
+            ...(controlPlaneOptions || {}),
             ...connection.options,
           });
 
@@ -287,19 +341,3 @@ export function withRuntimeFallback(
 ): DataAdapters {
   return createRuntimeFallbackAdapter(baseAdapters, config);
 }
-
-// Legacy aliases for backward compatibility
-/**
- * @deprecated Use `RuntimeFallbackConfig` instead
- */
-export type SettingsInheritanceConfig = RuntimeFallbackConfig;
-
-/**
- * @deprecated Use `createRuntimeFallbackAdapter` instead
- */
-export const createSettingsInheritanceAdapter = createRuntimeFallbackAdapter;
-
-/**
- * @deprecated Use `withRuntimeFallback` instead
- */
-export const withSettingsInheritance = withRuntimeFallback;

@@ -317,12 +317,5 @@ export { createProtectSyncedMiddleware } from "./protect-synced";
 export {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
-  // Legacy aliases for backward compatibility
-  createSettingsInheritanceAdapter,
-  withSettingsInheritance,
 } from "./settings-inheritance";
-export type {
-  RuntimeFallbackConfig,
-  // Legacy type alias
-  SettingsInheritanceConfig,
-} from "./settings-inheritance";
+export type { RuntimeFallbackConfig } from "./settings-inheritance";
