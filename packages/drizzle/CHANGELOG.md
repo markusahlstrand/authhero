@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.16.0
+
+### Minor Changes
+
+- 846a92c: Split the migrations
+
 ## 0.15.0
 
 ### Minor Changes

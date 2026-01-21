@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.82.0
+
+### Minor Changes
+
+- 846a92c: Split the migrations
+
 ## 10.81.0
 
 ### Minor Changes
