@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.6.0
+
+### Minor Changes
+
+- 829afab: Hide sensistive info in management api
+
+### Patch Changes
+
+- Updated dependencies [5519225]
+- Updated dependencies [829afab]
+  - authhero@4.12.0
+
 ## 14.5.0
 
 ### Minor Changes
