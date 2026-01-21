@@ -1,5 +1,12 @@
 # authhero
 
+## 4.12.0
+
+### Minor Changes
+
+- 5519225: Patch the scopes for client credentials
+- 829afab: Hide sensistive info in management api
+
 ## 4.11.0
 
 ### Minor Changes
