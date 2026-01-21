@@ -74,6 +74,11 @@ export const brandingRoutes = new OpenAPIHono<{
       ],
       responses: {
         200: {
+          content: {
+            "application/json": {
+              schema: brandingSchema,
+            },
+          },
           description: "Branding settings",
         },
       },
@@ -83,7 +88,10 @@ export const brandingRoutes = new OpenAPIHono<{
 
       await ctx.env.data.branding.set(ctx.var.tenant_id, branding);
 
-      return ctx.text("OK");
+      // Return the updated branding (like Auth0 does)
+      const updatedBranding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+
+      return ctx.json(updatedBranding || DEFAULT_BRANDING);
     },
   )
   // --------------------------------
