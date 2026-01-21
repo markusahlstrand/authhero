@@ -173,7 +173,7 @@ describe("token", () => {
       expect(payload.scope).not.toContain("read:posts"); // This wasn't granted
     });
 
-    it("should return ALL granted scopes regardless of requested scope (Auth0 behavior)", async () => {
+    it("should return intersection of requested and granted scopes when scopes are requested (Auth0 behavior)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -224,10 +224,10 @@ describe("token", () => {
         aud: "https://test-api.example.com",
       });
 
-      // Auth0 behavior: token ALWAYS includes ALL granted scopes, not just requested
+      // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
       const payload2 = accessToken?.payload as any;
       expect(payload2.scope).toContain("read:users");
-      expect(payload2.scope).toContain("write:users"); // Auth0 includes ALL granted scopes
+      expect(payload2.scope).not.toContain("write:users"); // Only requested scope is returned
     });
   });
 
@@ -2025,8 +2025,8 @@ describe("token", () => {
           expect.arrayContaining(["read:data", "write:data"]),
         );
 
-        // For access_token_authz dialect, scopes should be empty
-        expect(payload.scope).toBe("");
+        // Auth0 behavior: scopes should also be in the scope claim
+        expect(payload.scope).toBe("read:data write:data");
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);

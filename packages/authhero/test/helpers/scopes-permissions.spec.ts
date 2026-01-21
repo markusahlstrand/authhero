@@ -1028,7 +1028,7 @@ describe("scopes-permissions helper", () => {
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
       });
 
-      it("should return ALL granted scopes regardless of what is requested", async () => {
+      it("should return intersection of requested and granted scopes when scopes are requested", async () => {
         const { env } = await getTestServer();
         const ctx = {
           env,
@@ -1077,10 +1077,69 @@ describe("scopes-permissions helper", () => {
           requestedScopes: ["read:users"], // Only requesting read permission
         });
 
-        // Auth0 behavior: token ALWAYS gets ALL granted scopes
+        // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
         // Permissions are only included when token_dialect is access_token_authz
         expect(result).toEqual({
-          scopes: ["read:users", "write:users", "delete:users"], // All granted scopes, not just requested
+          scopes: ["read:users"], // Only the requested scope (intersection)
+          permissions: [], // No permissions with default token_dialect (access_token)
+        });
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+
+      it("should return ALL granted scopes when no scopes are requested", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Create a resource server
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://client-all-scopes-api.example.com",
+            name: "Client All Scopes API",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "delete:users", description: "Delete users" },
+            ],
+            options: {
+              enforce_policies: true, // RBAC enabled
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        // Create a test client
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        // Create a client grant that allows all scopes
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://client-all-scopes-api.example.com",
+          scope: ["read:users", "write:users", "delete:users"],
+        });
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          grantType: GrantType.ClientCredential,
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          audience: "https://client-all-scopes-api.example.com",
+          requestedScopes: [], // No scopes requested
+        });
+
+        // Auth0 behavior: when NO scopes are requested, return ALL granted scopes
+        expect(result).toEqual({
+          scopes: ["read:users", "write:users", "delete:users"], // All granted scopes
           permissions: [], // No permissions with default token_dialect (access_token)
         });
 
@@ -1148,9 +1207,10 @@ describe("scopes-permissions helper", () => {
           requestedScopes: ["read:data"], // Only requesting authorized scope
         });
 
+        // Auth0 behavior: scopes go in scope claim, permissions go in permissions claim
         expect(result).toEqual({
-          scopes: [], // No scopes for access_token_authz
-          permissions: ["read:data"], // All granted permissions returned
+          scopes: ["read:data"], // Requested scope in scope claim
+          permissions: ["read:data"], // Permissions in permissions claim
         });
 
         // Clean up
@@ -1254,9 +1314,9 @@ describe("scopes-permissions helper", () => {
           requestedScopes: ["read:data"], // Only requesting one scope
         });
 
-        // Auth0 behavior: ALL granted scopes are returned, not just requested
+        // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
         expect(result).toEqual({
-          scopes: ["read:data", "write:data"], // All granted scopes returned
+          scopes: ["read:data"], // Only the requested scope (intersection)
           permissions: [], // No permissions when RBAC is disabled
         });
 
