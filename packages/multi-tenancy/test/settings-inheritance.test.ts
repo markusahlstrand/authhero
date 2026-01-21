@@ -2,9 +2,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
-  // Legacy aliases
-  createSettingsInheritanceAdapter,
-  withSettingsInheritance,
 } from "../src/middleware/settings-inheritance";
 import {
   DataAdapters,
@@ -323,6 +320,135 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     });
   });
 
+  describe("excludeSensitiveFields option", () => {
+    let safeAdapter: DataAdapters;
+
+    beforeEach(() => {
+      safeAdapter = createRuntimeFallbackAdapter(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        controlPlaneClientId: "control-plane-client",
+        excludeSensitiveFields: true,
+      });
+    });
+
+    it("should exclude client_secret from control plane fallback in connections.get", async () => {
+      const connection = await safeAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      // Tenant's own 'from' value should be present
+      expect(connection!.options?.from).toBe("tenant@example.com");
+      // client_secret should NOT be inherited from control plane
+      expect(connection!.options?.client_secret).toBeUndefined();
+    });
+
+    it("should exclude client_secret from control plane fallback in connections.list", async () => {
+      const result = await safeAdapter.connections.list("tenant-1");
+
+      expect(result.connections).toHaveLength(1);
+      const connection = result.connections[0];
+      // Tenant's own 'from' value should be present
+      expect(connection?.options?.from).toBe("tenant@example.com");
+      // client_secret should NOT be inherited from control plane
+      expect(connection?.options?.client_secret).toBeUndefined();
+    });
+
+    it("should still include sensitive fields when tenant has them", async () => {
+      // Create a mock adapter where tenant has its own client_secret
+      const tenantWithSecretAdapters = {
+        ...mockAdapters,
+        connections: {
+          ...mockAdapters.connections,
+          get: async (
+            tenantId: string,
+            connectionId: string,
+          ): Promise<Connection | null> => {
+            if (tenantId === "tenant-1" && connectionId === "email-connection") {
+              return {
+                id: "email-connection",
+                name: "email",
+                strategy: "email",
+                options: {
+                  from: "tenant@example.com",
+                  client_secret: "tenant-own-secret", // Tenant has its own secret
+                },
+                created_at: "2023-01-01T00:00:00Z",
+                updated_at: "2023-01-01T00:00:00Z",
+              };
+            }
+            return mockAdapters.connections.get(tenantId, connectionId);
+          },
+          list: async (tenantId: string) => {
+            if (tenantId === "tenant-1") {
+              return {
+                connections: [
+                  {
+                    id: "email-connection",
+                    name: "email",
+                    strategy: "email",
+                    options: {
+                      from: "tenant@example.com",
+                      client_secret: "tenant-own-secret",
+                    },
+                    created_at: "2023-01-01T00:00:00Z",
+                    updated_at: "2023-01-01T00:00:00Z",
+                  },
+                ],
+                start: 0,
+                limit: 10,
+                length: 1,
+              };
+            }
+            return mockAdapters.connections.list(tenantId);
+          },
+        },
+      };
+
+      const adapterWithTenantSecret = createRuntimeFallbackAdapter(
+        tenantWithSecretAdapters as DataAdapters,
+        {
+          controlPlaneTenantId: "control-plane",
+          controlPlaneClientId: "control-plane-client",
+          excludeSensitiveFields: true,
+        },
+      );
+
+      const connection = await adapterWithTenantSecret.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      // Tenant's own client_secret should be preserved
+      expect(connection!.options?.client_secret).toBe("tenant-own-secret");
+    });
+
+    it("should not affect control plane tenant itself", async () => {
+      const connection = await safeAdapter.connections.get(
+        "control-plane",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      // Control plane should see its own secret
+      expect(connection!.options?.client_secret).toBe("control-plane-api-key");
+    });
+
+    it("should include sensitive fields when excludeSensitiveFields is false", async () => {
+      // Verify the default behavior still works
+      const connection = await fallbackAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      // client_secret SHOULD be inherited when excludeSensitiveFields is false
+      expect(connection!.options?.client_secret).toBe("control-plane-api-key");
+    });
+  });
+
   describe("withRuntimeFallback helper", () => {
     it("should be equivalent to createRuntimeFallbackAdapter", async () => {
       const helperAdapter = withRuntimeFallback(mockAdapters, {
@@ -331,30 +457,6 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
       });
 
       const client = await helperAdapter.legacyClients.get("tenant-client");
-      expect(client).toBeDefined();
-      expect(client!.web_origins).toContain("https://control-plane.example.com");
-    });
-  });
-
-  describe("legacy aliases", () => {
-    it("createSettingsInheritanceAdapter should work as alias", async () => {
-      const adapter = createSettingsInheritanceAdapter(mockAdapters, {
-        controlPlaneTenantId: "control-plane",
-        controlPlaneClientId: "control-plane-client",
-      });
-
-      const client = await adapter.legacyClients.get("tenant-client");
-      expect(client).toBeDefined();
-      expect(client!.web_origins).toContain("https://control-plane.example.com");
-    });
-
-    it("withSettingsInheritance should work as alias", async () => {
-      const adapter = withSettingsInheritance(mockAdapters, {
-        controlPlaneTenantId: "control-plane",
-        controlPlaneClientId: "control-plane-client",
-      });
-
-      const client = await adapter.legacyClients.get("tenant-client");
       expect(client).toBeDefined();
       expect(client!.web_origins).toContain("https://control-plane.example.com");
     });
