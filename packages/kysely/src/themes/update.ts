@@ -9,8 +9,11 @@ export function update(db: Kysely<Database>) {
     themeId: string,
     theme: Partial<ThemeInsert>,
   ): Promise<boolean> => {
+    // Remove themeId if present - it shouldn't be updated as it's part of the primary key
+    const { themeId: _, ...themeWithoutId } = theme as any;
+
     const sqlTheme = flattenObject({
-      ...theme,
+      ...themeWithoutId,
       updated_at: new Date().toISOString(),
     });
 

@@ -1,17 +1,58 @@
-import {
-  DateField,
-  Edit,
-  FieldTitle,
-  Labeled,
-  TextInput,
-  TabbedForm,
-} from "react-admin";
+import { Edit, TextInput, TabbedForm } from "react-admin";
 import { ColorInput } from "react-admin-color-picker";
 import { useInput, useRecordContext } from "react-admin";
 import { useState, useEffect } from "react";
 import { Box } from "@mui/material";
 import { ThemesTab } from "./ThemesTab";
 import { BrandingPreview } from "./BrandingPreview";
+
+// Helper to recursively remove null values and empty objects from data
+// This is needed because react-admin sends null for empty form fields,
+// but the server schema expects fields to be omitted rather than null
+function cleanObject(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    // Skip null and undefined values
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    // Recursively clean nested objects (but not arrays)
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const cleaned = cleanObject(value as Record<string, unknown>);
+      // Only include non-empty objects
+      if (Object.keys(cleaned).length > 0) {
+        result[key] = cleaned;
+      }
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
+// Transform function to clean up empty objects and null values before sending to server
+// The server schema has strict requirements:
+// - font.url is required if font object is present
+// - page_background must be an object or omitted, not null
+// - Many fields cannot be null, only omitted
+const transformBranding = (data: Record<string, unknown>) => {
+  // First, recursively clean all null values and empty objects
+  const result = cleanObject(data);
+
+  // Remove font object if url is not set (font.url is required if font exists)
+  if (
+    result.font &&
+    typeof result.font === "object" &&
+    !(result.font as Record<string, unknown>).url
+  ) {
+    delete result.font;
+  }
+
+  return result;
+};
 
 function PageBackgroundInput(props) {
   const { field } = useInput(props);
@@ -128,16 +169,6 @@ function BrandingFormContent() {
       {/* Form Section */}
       <Box sx={{ flex: "1 1 60%", minWidth: 0 }}>
         <TabbedForm>
-          <TabbedForm.Tab label="Info">
-            <TextInput source="id" />
-            <TextInput source="name" />
-            <Labeled label={<FieldTitle source="created_at" />}>
-              <DateField source="created_at" showTime={true} />
-            </Labeled>
-            <Labeled label={<FieldTitle source="updated_at" />}>
-              <DateField source="updated_at" showTime={true} />
-            </Labeled>
-          </TabbedForm.Tab>
           <TabbedForm.Tab label="Style">
             <ColorInput source="colors.primary" label="Primary Color" />
             <PageBackgroundInput source="colors.page_background" />
@@ -184,7 +215,7 @@ function BrandingFormContent() {
 
 export function BrandingEdit() {
   return (
-    <Edit>
+    <Edit transform={transformBranding}>
       <BrandingFormContent />
     </Edit>
   );

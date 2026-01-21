@@ -315,7 +315,29 @@ export default (
 
       // Handle singleton resources
       if (resource === "branding") {
-        return fetchSingleton(resource, () => managementClient.branding.get());
+        const branding = await managementClient.branding.get();
+        // Also fetch themes to include in branding data
+        const headers = createHeaders(tenantId);
+        let themes = null;
+        try {
+          const themesResponse = await httpClient(
+            `${apiUrl}/api/v2/branding/themes/default`,
+            { headers },
+          );
+          themes = themesResponse.json;
+        } catch (e) {
+          // Themes might not exist yet, that's ok
+        }
+        return {
+          data: [
+            {
+              ...branding,
+              themes,
+              id: resource,
+            },
+          ],
+          total: 1,
+        };
       }
 
       if (resource === "settings") {
@@ -534,9 +556,22 @@ export default (
       // Handle singleton resources
       if (resource === "branding") {
         const result = await managementClient.branding.get();
+        // Also fetch themes to include in branding data
+        const headers = createHeaders(tenantId);
+        let themes = null;
+        try {
+          const themesResponse = await httpClient(
+            `${apiUrl}/api/v2/branding/themes/default`,
+            { headers },
+          );
+          themes = themesResponse.json;
+        } catch (e) {
+          // Themes might not exist yet, that's ok
+        }
         return {
           data: {
             ...result,
+            themes,
             id: resource,
           },
         };
@@ -915,9 +950,12 @@ export default (
 
       // Special handling for branding to update theme data separately
       if (resource === "branding") {
-        // Update branding
+        // Extract themes from the payload - it's updated via a separate endpoint
+        const { themes, ...brandingData } = cleanParams.data;
+
+        // Update branding (without themes)
         const brandingResult = await managementClient.branding.update(
-          cleanParams.data,
+          brandingData,
         );
 
         // Update themes if provided
@@ -926,12 +964,17 @@ export default (
           ...brandingResult,
         };
 
-        if (cleanParams.data.themes) {
-          const themeUpdateResult = await (
-            managementClient.branding.themes as any
-          ).default.patch(cleanParams.data.themes);
-          result.themes =
-            (themeUpdateResult as any).response || themeUpdateResult;
+        if (themes) {
+          // Use HTTP directly since the SDK doesn't have this method
+          const themeResponse = await httpClient(
+            `${apiUrl}/api/v2/branding/themes/default`,
+            {
+              headers,
+              method: "PATCH",
+              body: JSON.stringify(themes),
+            },
+          );
+          result.themes = themeResponse.json;
         }
 
         return { data: result };
