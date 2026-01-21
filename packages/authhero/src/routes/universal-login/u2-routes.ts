@@ -66,8 +66,15 @@ function renderWidgetPage(options: {
     height?: number;
   };
 }): string {
-  const { screenId, state, branding, clientName, baseUrl, authParams, poweredByLogo } =
-    options;
+  const {
+    screenId,
+    state,
+    branding,
+    clientName,
+    baseUrl,
+    authParams,
+    poweredByLogo,
+  } = options;
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -83,11 +90,17 @@ function renderWidgetPage(options: {
   const safeScreenId = escapeJs(screenId);
   const safeState = escapeJs(state);
   const safeBaseUrl = escapeJs(baseUrl);
-  
+
   // Sanitize powered-by logo URLs
-  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
-  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
-  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
+  const safePoweredByUrl = poweredByLogo?.url
+    ? sanitizeUrl(poweredByLogo.url)
+    : null;
+  const safePoweredByHref = poweredByLogo?.href
+    ? sanitizeUrl(poweredByLogo.href)
+    : null;
+  const safePoweredByAlt = poweredByLogo?.alt
+    ? escapeHtml(poweredByLogo.alt)
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -299,13 +312,17 @@ function renderWidgetPage(options: {
     // Initial load
     fetchScreen(screenId);
   </script>
-  ${safePoweredByUrl ? `
+  ${
+    safePoweredByUrl
+      ? `
   <div class="powered-by">
     ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
       <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
     ${safePoweredByHref ? `</a>` : ""}
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 </body>
 </html>`;
 }
@@ -338,11 +355,21 @@ function createScreenRouteHandler(screenId: string) {
       baseUrl,
       authParams: {
         client_id: loginSession.authParams.client_id,
-        ...(loginSession.authParams.redirect_uri && { redirect_uri: loginSession.authParams.redirect_uri }),
-        ...(loginSession.authParams.scope && { scope: loginSession.authParams.scope }),
-        ...(loginSession.authParams.audience && { audience: loginSession.authParams.audience }),
-        ...(loginSession.authParams.nonce && { nonce: loginSession.authParams.nonce }),
-        ...(loginSession.authParams.response_type && { response_type: loginSession.authParams.response_type }),
+        ...(loginSession.authParams.redirect_uri && {
+          redirect_uri: loginSession.authParams.redirect_uri,
+        }),
+        ...(loginSession.authParams.scope && {
+          scope: loginSession.authParams.scope,
+        }),
+        ...(loginSession.authParams.audience && {
+          audience: loginSession.authParams.audience,
+        }),
+        ...(loginSession.authParams.nonce && {
+          nonce: loginSession.authParams.nonce,
+        }),
+        ...(loginSession.authParams.response_type && {
+          response_type: loginSession.authParams.response_type,
+        }),
       },
       poweredByLogo: ctx.env.poweredByLogo,
     });

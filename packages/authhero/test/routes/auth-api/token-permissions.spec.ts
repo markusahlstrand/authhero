@@ -269,8 +269,8 @@ describe("token endpoint - permissions in JWT", () => {
         expect.arrayContaining(["read:data", "write:data"]),
       );
 
-      // For access_token_authz dialect, scopes should be empty
-      expect(payload.scope).toBe("");
+      // Auth0 behavior: scopes should also be in the scope claim
+      expect(payload.scope).toBe("read:data write:data");
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
