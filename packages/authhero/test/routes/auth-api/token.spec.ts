@@ -300,7 +300,7 @@ describe("token", () => {
           authParams: {
             client_id: "clientId",
             username: "foo@exampl.com",
-            scope: "openid",
+            scope: "openid profile email",
             audience: "http://example.com",
           },
         });

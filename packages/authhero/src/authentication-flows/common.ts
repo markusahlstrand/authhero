@@ -115,8 +115,15 @@ export async function createAuthTokens(
     permissions,
   };
 
+  // Parse scopes to determine which claims to include in id_token
+  // Following OIDC Core spec section 5.4 for standard claims
+  const scopes = authParams.scope?.split(" ") || [];
+  const hasOpenidScope = scopes.includes("openid");
+  const hasProfileScope = scopes.includes("profile");
+  const hasEmailScope = scopes.includes("email");
+
   const idTokenPayload =
-    user && authParams.scope?.split(" ").includes("openid")
+    user && hasOpenidScope
       ? {
           // The audience for an id token is the client id
           aud: authParams.client_id,
@@ -124,14 +131,20 @@ export async function createAuthTokens(
           iss,
           sid: session_id,
           nonce: authParams.nonce,
-          given_name: user.given_name,
-          family_name: user.family_name,
-          nickname: user.nickname,
-          picture: user.picture,
-          locale: user.locale,
-          name: user.name,
-          email: user.email,
-          email_verified: user.email_verified,
+          // Profile scope claims (OIDC Core 5.4)
+          ...(hasProfileScope && {
+            given_name: user.given_name,
+            family_name: user.family_name,
+            nickname: user.nickname,
+            picture: user.picture,
+            locale: user.locale,
+            name: user.name,
+          }),
+          // Email scope claims (OIDC Core 5.4)
+          ...(hasEmailScope && {
+            email: user.email,
+            email_verified: user.email_verified,
+          }),
           act: impersonatingUser
             ? { sub: impersonatingUser.user_id }
             : undefined,
@@ -241,7 +254,7 @@ export async function createCodeData(
   params: CreateCodeParams,
 ) {
   const code = await ctx.env.data.codes.create(params.client.tenant.id, {
-    code_id: nanoid(),
+    code_id: nanoid(32), // 32 chars = 192 bits of entropy (RFC6749-10.10 requires high entropy)
     user_id: params.user.user_id,
     code_type: "authorization_code",
     login_id: params.login_id,
@@ -847,7 +860,7 @@ export async function createFrontChannelAuthResponse(
     const co_id = nanoid(12);
 
     const code = await ctx.env.data.codes.create(client.tenant.id, {
-      code_id: nanoid(),
+      code_id: nanoid(32), // Use high entropy for security
       code_type: "ticket",
       login_id: params.loginSession.id,
       expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),

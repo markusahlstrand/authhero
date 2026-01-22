@@ -1,0 +1,18 @@
+{
+  "alias": "authhero-local",
+  "description": "AuthHero Local Development Test",
+  "server": {
+    "discoveryUrl": "http://host.docker.internal:3000/.well-known/openid-configuration"
+  },
+  "client": {
+    "client_id": "conformance-test",
+    "client_secret": "conformanceTestSecret123"
+  },
+  "client2": {
+    "client_id": "conformance-test2",
+    "client_secret": "conformanceTestSecret456"
+  },
+  "resource": {
+    "resourceUrl": "http://host.docker.internal:3000/userinfo"
+  }
+}

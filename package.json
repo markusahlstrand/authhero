@@ -22,6 +22,10 @@
     "vitepress": "pnpm --filter @authhero/docs",
     "multi-tenancy": "pnpm --filter @authhero/multi-tenancy",
     "widget": "pnpm --filter @authhero/widget",
+    "conformance:setup": "./scripts/conformance-suite.sh setup",
+    "conformance:start": "./scripts/conformance-suite.sh start",
+    "conformance:stop": "./scripts/conformance-suite.sh stop",
+    "conformance:env": "./scripts/setup-conformance-env.sh",
     "prepare": "husky"
   },
   "keywords": [],
