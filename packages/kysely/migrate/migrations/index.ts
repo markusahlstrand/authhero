@@ -116,7 +116,7 @@ import * as o017_connections_composite_key from "./2026-01-07T10:00:00_connectio
 import * as o018_login_session_state from "./2026-01-10T10:00:00_login_session_state";
 import * as o019_roles_resource_servers_metadata from "./2026-01-14T10:00:00_roles_resource_servers_metadata";
 import * as o020_session_add_timestamp_columns from "./2026-01-15T10:00:00_session_add_timestamp_columns";
-import * as o021_session_remove_old_date_columns from "./2026-01-20T10:00:00_session_remove_old_date_columns";
+import * as o021_session_cleanup_and_ulid from "./2026-01-22T10:00:00_session_cleanup_and_ulid";
 
 // These need to be in alphabetic order
 export default {
@@ -238,5 +238,5 @@ export default {
   o018_login_session_state,
   o019_roles_resource_servers_metadata,
   o020_session_add_timestamp_columns,
-  o021_session_remove_old_date_columns,
+  o021_session_cleanup_and_ulid,
 };

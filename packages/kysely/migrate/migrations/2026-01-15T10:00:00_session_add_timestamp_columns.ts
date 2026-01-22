@@ -1,317 +1,255 @@
 // @ts-nocheck - Migration uses temporary columns not in the Database type
-import { Kysely } from "kysely";
+import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
 
 /**
  * Migration: Session Tables - Add Timestamp Columns (Part 1 of 2)
  *
- * This migration adds new bigint timestamp columns (_ts suffix) to the session tables:
- * - login_sessions
- * - sessions
- * - refresh_tokens
- *
- * The new columns store Unix timestamps in milliseconds for better performance.
- * After this migration, deploy the updated code that writes to both old and new columns,
- * then run the second migration to remove the old columns.
+ * This migration adds new bigint timestamp columns alongside existing varchar columns.
+ * This allows the code to be updated to use the new columns before removing the old ones.
  *
  * Changes:
- * 1. Add new bigint columns with _ts suffix
- * 2. Migrate existing data from varchar to bigint
+ * 1. Add new bigint columns (*_ts) to all session tables
+ * 2. Migrate data from varchar to bigint
+ * 3. Add performance indexes
+ *
+ * After running this migration and deploying code that uses the new columns,
+ * run the second migration to remove the old varchar columns.
  */
 
-/**
- * Convert ISO date string to Unix timestamp in milliseconds
- */
-function isoToTimestamp(isoString: string | null | undefined): number | null {
-  if (!isoString || isoString === "") {
-    return null;
+// Helper function to detect database type
+async function getDatabaseType(
+  db: Kysely<Database>,
+): Promise<"mysql" | "sqlite"> {
+  try {
+    // Try MySQL-specific query
+    await sql`SELECT VERSION()`.execute(db);
+    return "mysql";
+  } catch {
+    // If MySQL query fails, assume SQLite
+    return "sqlite";
   }
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) {
-    return null;
-  }
-  return date.getTime();
 }
 
-/**
- * Convert Unix timestamp in milliseconds to ISO date string.
- */
-function timestampToIso(
-  timestamp: number | bigint | string | null | undefined,
-): string | null {
-  if (timestamp === null || timestamp === undefined) {
-    return null;
+// Helper to safely add a column (ignores "duplicate column" errors)
+async function safeAddColumn(
+  db: Kysely<Database>,
+  tableName: string,
+  columnName: string,
+  columnType: "bigint",
+): Promise<void> {
+  try {
+    await db.schema
+      .alterTable(tableName)
+      .addColumn(columnName, columnType)
+      .execute();
+  } catch (error: unknown) {
+    // Ignore "duplicate column" errors (errno 1060 for MySQL, "duplicate column" for SQLite)
+    if (
+      error instanceof Error &&
+      (error.message.includes("1060") ||
+        error.message.includes("duplicate column"))
+    ) {
+      console.log(
+        `  Column ${tableName}.${columnName} already exists, skipping`,
+      );
+      return;
+    }
+    throw error;
   }
-  const numValue =
-    typeof timestamp === "bigint"
-      ? Number(timestamp)
-      : typeof timestamp === "string"
-        ? parseInt(timestamp, 10)
-        : timestamp;
-
-  if (Number.isNaN(numValue)) {
-    return null;
-  }
-  return new Date(numValue).toISOString();
 }
-
-const BATCH_SIZE = 1000;
 
 export async function up(db: Kysely<Database>): Promise<void> {
+  const dbType = await getDatabaseType(db);
+
   // ========================================
   // STEP 1: Add new bigint columns to all tables
   // ========================================
 
   // --- refresh_tokens ---
-  await db.schema
-    .alterTable("refresh_tokens")
-    .addColumn("created_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .addColumn("expires_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .addColumn("idle_expires_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .addColumn("last_exchanged_at_ts", "bigint")
-    .execute();
+  await safeAddColumn(db, "refresh_tokens", "created_at_ts", "bigint");
+  await safeAddColumn(db, "refresh_tokens", "expires_at_ts", "bigint");
+  await safeAddColumn(db, "refresh_tokens", "idle_expires_at_ts", "bigint");
+  await safeAddColumn(db, "refresh_tokens", "last_exchanged_at_ts", "bigint");
 
   // --- sessions ---
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("created_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("updated_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("expires_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("idle_expires_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("authenticated_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("last_interaction_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("used_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .addColumn("revoked_at_ts", "bigint")
-    .execute();
+  await safeAddColumn(db, "sessions", "created_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "updated_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "expires_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "idle_expires_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "authenticated_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "last_interaction_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "used_at_ts", "bigint");
+  await safeAddColumn(db, "sessions", "revoked_at_ts", "bigint");
 
   // --- login_sessions ---
-  await db.schema
-    .alterTable("login_sessions")
-    .addColumn("created_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("login_sessions")
-    .addColumn("updated_at_ts", "bigint")
-    .execute();
-  await db.schema
-    .alterTable("login_sessions")
-    .addColumn("expires_at_ts", "bigint")
-    .execute();
+  await safeAddColumn(db, "login_sessions", "created_at_ts", "bigint");
+  await safeAddColumn(db, "login_sessions", "updated_at_ts", "bigint");
+  await safeAddColumn(db, "login_sessions", "expires_at_ts", "bigint");
 
   // ========================================
-  // STEP 2: Migrate data from varchar to bigint (in batches)
+  // Make old varchar columns nullable so app can use new *_ts columns
+  // Note: SQLite doesn't support MODIFY COLUMN, but SQLite columns are
+  // already flexible about nullability, so we skip this for SQLite
   // ========================================
 
-  // --- refresh_tokens ---
-  let hasMoreRefreshTokens = true;
-  while (hasMoreRefreshTokens) {
-    const rows = await db
-      .selectFrom("refresh_tokens")
-      .select([
-        "tenant_id",
-        "id",
-        "created_at",
-        "expires_at",
-        "idle_expires_at",
-        "last_exchanged_at",
-      ])
-      .where("created_at_ts", "is", null)
-      .limit(BATCH_SIZE)
+  if (dbType === "mysql") {
+    // --- refresh_tokens ---
+    await db.schema
+      .alterTable("refresh_tokens")
+      .modifyColumn("created_at", "varchar(35)")
+      .execute();
+    await db.schema
+      .alterTable("refresh_tokens")
+      .modifyColumn("expires_at", "varchar(35)")
       .execute();
 
-    if (rows.length === 0) {
-      hasMoreRefreshTokens = false;
-      break;
-    }
+    // --- sessions ---
+    await db.schema
+      .alterTable("sessions")
+      .modifyColumn("created_at", "varchar(35)")
+      .execute();
+    await db.schema
+      .alterTable("sessions")
+      .modifyColumn("updated_at", "varchar(35)")
+      .execute();
+    await db.schema
+      .alterTable("sessions")
+      .modifyColumn("expires_at", "varchar(35)")
+      .execute();
 
-    for (const row of rows) {
-      await db
-        .updateTable("refresh_tokens")
-        .set({
-          created_at_ts: isoToTimestamp(row.created_at),
-          expires_at_ts: isoToTimestamp(row.expires_at),
-          idle_expires_at_ts: isoToTimestamp(row.idle_expires_at),
-          last_exchanged_at_ts: isoToTimestamp(row.last_exchanged_at),
-        })
-        .where("tenant_id", "=", row.tenant_id)
-        .where("id", "=", row.id)
-        .execute();
-    }
+    // --- login_sessions ---
+    await db.schema
+      .alterTable("login_sessions")
+      .modifyColumn("created_at", "varchar(35)")
+      .execute();
+    await db.schema
+      .alterTable("login_sessions")
+      .modifyColumn("updated_at", "varchar(35)")
+      .execute();
+    await db.schema
+      .alterTable("login_sessions")
+      .modifyColumn("expires_at", "varchar(35)")
+      .execute();
   }
 
-  // --- sessions ---
-  let hasMoreSessions = true;
-  while (hasMoreSessions) {
-    const rows = await db
-      .selectFrom("sessions")
-      .select([
-        "tenant_id",
-        "id",
-        "created_at",
-        "updated_at",
-        "expires_at",
-        "idle_expires_at",
-        "authenticated_at",
-        "last_interaction_at",
-        "used_at",
-        "revoked_at",
-      ])
-      .where("created_at_ts", "is", null)
-      .limit(BATCH_SIZE)
-      .execute();
+  // ========================================
+  // STEP 2: Add indexes for efficient cleanup (on new columns)
+  // Data migration is handled by scripts/backfill-timestamps.ts separately
+  // to avoid timeouts on large tables
+  // ========================================
 
-    if (rows.length === 0) {
-      hasMoreSessions = false;
-      break;
-    }
+  // User ID indexes for lazy cleanup by user
+  await db.schema
+    .createIndex("idx_sessions_user_id")
+    .on("sessions")
+    .columns(["tenant_id", "user_id"])
+    .execute();
 
-    for (const row of rows) {
-      await db
-        .updateTable("sessions")
-        .set({
-          created_at_ts: isoToTimestamp(row.created_at),
-          updated_at_ts: isoToTimestamp(row.updated_at),
-          expires_at_ts: isoToTimestamp(row.expires_at),
-          idle_expires_at_ts: isoToTimestamp(row.idle_expires_at),
-          authenticated_at_ts: isoToTimestamp(row.authenticated_at),
-          last_interaction_at_ts: isoToTimestamp(row.last_interaction_at),
-          used_at_ts: isoToTimestamp(row.used_at),
-          revoked_at_ts: isoToTimestamp(row.revoked_at),
-        })
-        .where("tenant_id", "=", row.tenant_id)
-        .where("id", "=", row.id)
-        .execute();
+  await db.schema
+    .createIndex("idx_refresh_tokens_user_id")
+    .on("refresh_tokens")
+    .columns(["tenant_id", "user_id"])
+    .execute();
+
+  // Session ID index on refresh_tokens for cleanup queries
+  await db.schema
+    .createIndex("idx_refresh_tokens_session_id")
+    .on("refresh_tokens")
+    .column("session_id")
+    .execute();
+
+  // Expires_at indexes for efficient expiration queries (on new _ts columns)
+  await db.schema
+    .createIndex("idx_refresh_tokens_expires_at_ts")
+    .on("refresh_tokens")
+    .column("expires_at_ts")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_sessions_expires_at_ts")
+    .on("sessions")
+    .column("expires_at_ts")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_login_sessions_expires_at_ts")
+    .on("login_sessions")
+    .column("expires_at_ts")
+    .execute();
+}
+
+// Helper to safely drop an index (PlanetScale doesn't support IF EXISTS)
+async function safeDropIndex(
+  db: Kysely<Database>,
+  indexName: string,
+  tableName: string,
+): Promise<void> {
+  try {
+    await db.schema.dropIndex(indexName).on(tableName).execute();
+  } catch (error: unknown) {
+    // Ignore "index/column doesn't exist" errors (errno 1091)
+    if (error instanceof Error && error.message.includes("1091")) {
+      return;
     }
+    throw error;
   }
+}
 
-  // --- login_sessions ---
-  let hasMoreLoginSessions = true;
-  while (hasMoreLoginSessions) {
-    const rows = await db
-      .selectFrom("login_sessions")
-      .select(["tenant_id", "id", "created_at", "updated_at", "expires_at"])
-      .where("created_at_ts", "is", null)
-      .limit(BATCH_SIZE)
-      .execute();
-
-    if (rows.length === 0) {
-      hasMoreLoginSessions = false;
-      break;
+// Helper to safely drop a column (PlanetScale doesn't support IF EXISTS)
+async function safeDropColumn(
+  db: Kysely<Database>,
+  tableName: string,
+  columnName: string,
+): Promise<void> {
+  try {
+    await db.schema.alterTable(tableName).dropColumn(columnName).execute();
+  } catch (error: unknown) {
+    // Ignore "column doesn't exist" errors (errno 1091)
+    if (error instanceof Error && error.message.includes("1091")) {
+      return;
     }
-
-    for (const row of rows) {
-      await db
-        .updateTable("login_sessions")
-        .set({
-          created_at_ts: isoToTimestamp(row.created_at),
-          updated_at_ts: isoToTimestamp(row.updated_at),
-          expires_at_ts: isoToTimestamp(row.expires_at),
-        })
-        .where("tenant_id", "=", row.tenant_id)
-        .where("id", "=", row.id)
-        .execute();
-    }
+    throw error;
   }
 }
 
 export async function down(db: Kysely<Database>): Promise<void> {
   // ========================================
-  // Drop the new _ts columns
+  // STEP 1: Drop indexes (if they exist)
+  // ========================================
+  await safeDropIndex(db, "idx_sessions_user_id", "sessions");
+  await safeDropIndex(db, "idx_refresh_tokens_user_id", "refresh_tokens");
+  await safeDropIndex(db, "idx_refresh_tokens_session_id", "refresh_tokens");
+  await safeDropIndex(db, "idx_refresh_tokens_expires_at_ts", "refresh_tokens");
+  await safeDropIndex(db, "idx_sessions_expires_at_ts", "sessions");
+  await safeDropIndex(db, "idx_login_sessions_expires_at_ts", "login_sessions");
+
+  // ========================================
+  // STEP 2: Drop the new bigint columns (if they exist)
   // ========================================
 
   // --- refresh_tokens ---
-  await db.schema
-    .alterTable("refresh_tokens")
-    .dropColumn("created_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .dropColumn("expires_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .dropColumn("idle_expires_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("refresh_tokens")
-    .dropColumn("last_exchanged_at_ts")
-    .execute();
+  await safeDropColumn(db, "refresh_tokens", "created_at_ts");
+  await safeDropColumn(db, "refresh_tokens", "expires_at_ts");
+  await safeDropColumn(db, "refresh_tokens", "idle_expires_at_ts");
+  await safeDropColumn(db, "refresh_tokens", "last_exchanged_at_ts");
 
   // --- sessions ---
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("created_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("updated_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("expires_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("idle_expires_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("authenticated_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("last_interaction_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("used_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("sessions")
-    .dropColumn("revoked_at_ts")
-    .execute();
+  await safeDropColumn(db, "sessions", "created_at_ts");
+  await safeDropColumn(db, "sessions", "updated_at_ts");
+  await safeDropColumn(db, "sessions", "expires_at_ts");
+  await safeDropColumn(db, "sessions", "idle_expires_at_ts");
+  await safeDropColumn(db, "sessions", "authenticated_at_ts");
+  await safeDropColumn(db, "sessions", "last_interaction_at_ts");
+  await safeDropColumn(db, "sessions", "used_at_ts");
+  await safeDropColumn(db, "sessions", "revoked_at_ts");
 
   // --- login_sessions ---
-  await db.schema
-    .alterTable("login_sessions")
-    .dropColumn("created_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("login_sessions")
-    .dropColumn("updated_at_ts")
-    .execute();
-  await db.schema
-    .alterTable("login_sessions")
-    .dropColumn("expires_at_ts")
-    .execute();
+  await safeDropColumn(db, "login_sessions", "created_at_ts");
+  await safeDropColumn(db, "login_sessions", "updated_at_ts");
+  await safeDropColumn(db, "login_sessions", "expires_at_ts");
+
+  // Note: NOT NULL constraints on old varchar columns are not restored
+  // because MySQL doesn't support ALTER COLUMN SET NOT NULL syntax.
+  // If needed, restore manually with: ALTER TABLE x MODIFY COLUMN y VARCHAR(35) NOT NULL
 }
