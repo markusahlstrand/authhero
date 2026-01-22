@@ -58,12 +58,23 @@ function PageBackgroundInput(props) {
   const { field } = useInput(props);
   const record = useRecordContext();
   const value = field.value ?? record?.colors?.page_background;
-  const [mode, setMode] = useState(
-    typeof value === "string" || !value ? "color" : "gradient",
-  );
-  const [color, setColor] = useState(typeof value === "string" ? value : "");
+  
+  // Determine if it's a solid color or gradient
+  // Solid can be: a string, or an object with type "solid"
+  const isSolidColor = typeof value === "string" || !value || (typeof value === "object" && value.type === "solid");
+  
+  const [mode, setMode] = useState(isSolidColor ? "color" : "gradient");
+  
+  // Extract color value - could be a string or object with start property
+  const extractColor = (val: unknown): string => {
+    if (typeof val === "string") return val;
+    if (typeof val === "object" && val && "start" in val) return (val as { start?: string }).start || "";
+    return "";
+  };
+  
+  const [color, setColor] = useState(extractColor(value));
   const [gradient, setGradient] = useState(
-    typeof value === "object" && value
+    typeof value === "object" && value && value.type === "linear-gradient"
       ? {
           type: value.type || "linear-gradient",
           start: value.start || "",
@@ -97,20 +108,21 @@ function PageBackgroundInput(props) {
         </select>
       </div>
       {mode === "color" ? (
-        <>
-          <ColorInput
-            key="page-background-solid"
-            source={props.source}
-            label="Solid Color"
-            // No value prop, uncontrolled
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="color"
+            value={color || "#ffffff"}
+            onChange={(e) => setColor(e.target.value)}
+            style={{ width: 40, height: 40, border: "1px solid #ccc", borderRadius: 4, cursor: "pointer" }}
           />
-          <TextInput
-            source="_page_background_color_helper"
-            style={{ display: "none" }}
+          <input
+            type="text"
             value={color}
             onChange={(e) => setColor(e.target.value)}
+            placeholder="#ffffff"
+            style={{ flex: 1, padding: "8px 12px", border: "1px solid #ccc", borderRadius: 4 }}
           />
-        </>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <TextInput

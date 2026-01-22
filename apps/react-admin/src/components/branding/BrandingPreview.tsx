@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { useWatch } from "react-hook-form";
 import {
   Box,
@@ -7,7 +7,6 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
-import { useState } from "react";
 import { defineCustomElements } from "@authhero/widget/loader";
 
 // Initialize the widget custom elements
@@ -273,15 +272,21 @@ interface WidgetTheme {
 }
 
 export function BrandingPreview() {
-  const widgetRef = useRef<HTMLElement>(null);
   const [previewScreen, setPreviewScreen] = useState<PreviewScreen>("login");
 
-  // Watch for form changes
+  // Watch for form changes - watch specific nested paths to ensure updates trigger
   const colors = useWatch({ name: "colors" });
   const logoUrl = useWatch({ name: "logo_url" });
   const faviconUrl = useWatch({ name: "favicon_url" });
   const font = useWatch({ name: "font" });
   const themes = useWatch({ name: "themes" });
+  
+  // Watch specific widget settings to ensure nested changes are detected
+  const themesWidget = useWatch({ name: "themes.widget" });
+  const themesColors = useWatch({ name: "themes.colors" });
+  const themesBorders = useWatch({ name: "themes.borders" });
+  const themesFonts = useWatch({ name: "themes.fonts" });
+  const themesPageBackground = useWatch({ name: "themes.page_background" });
 
   // Convert form values to widget branding format
   const branding: WidgetBranding = {
@@ -297,14 +302,14 @@ export function BrandingPreview() {
     font: font,
   };
 
-  // Convert themes to widget theme format
+  // Convert themes to widget theme format - use specific watched values
   const theme: WidgetTheme | undefined = themes
     ? {
-        borders: themes.borders,
-        colors: themes.colors,
-        fonts: themes.fonts,
-        page_background: themes.page_background,
-        widget: themes.widget,
+        borders: themesBorders,
+        colors: themesColors,
+        fonts: themesFonts,
+        page_background: themesPageBackground,
+        widget: themesWidget,
       }
     : undefined;
 
@@ -336,26 +341,6 @@ export function BrandingPreview() {
 
     return { background: "#f5f5f5" };
   };
-
-  // Update widget props when values change
-  useEffect(() => {
-    if (widgetRef.current) {
-      const widget = widgetRef.current.querySelector(
-        "authhero-widget",
-      ) as HTMLElement & {
-        screen?: UiScreen;
-        branding?: WidgetBranding;
-        theme?: WidgetTheme;
-      };
-      if (widget) {
-        widget.screen = screenConfigs[previewScreen];
-        widget.branding = branding;
-        if (theme) {
-          widget.theme = theme;
-        }
-      }
-    }
-  }, [branding, theme, previewScreen]);
 
   return (
     <Paper
@@ -405,14 +390,26 @@ export function BrandingPreview() {
         }}
       >
         {/* Using dangerouslySetInnerHTML to bypass JSX type issues with web components */}
+        {/* Key forces re-render when theme/branding changes since Stencil @Watch doesn't trigger from JS property sets */}
         <div
-          ref={widgetRef as React.RefObject<HTMLDivElement>}
-          dangerouslySetInnerHTML={{
-            __html: `<authhero-widget
-              screen='${JSON.stringify(screenConfigs[previewScreen]).replace(/'/g, "&apos;")}'
-              branding='${JSON.stringify(branding).replace(/'/g, "&apos;")}'
-              ${theme ? `theme='${JSON.stringify(theme).replace(/'/g, "&apos;")}'` : ""}
-            ></authhero-widget>`,
+          key={JSON.stringify({ branding, theme, previewScreen })}
+          ref={(el) => {
+            if (el) {
+              // Clear and recreate the widget
+              el.innerHTML = '';
+              const widget = document.createElement('authhero-widget') as HTMLElement & {
+                screen?: UiScreen;
+                branding?: WidgetBranding;
+                theme?: WidgetTheme;
+              };
+              // Set properties directly instead of attributes for better Stencil compatibility
+              widget.screen = screenConfigs[previewScreen];
+              widget.branding = branding;
+              if (theme) {
+                widget.theme = theme;
+              }
+              el.appendChild(widget);
+            }
           }}
         />
       </Box>
