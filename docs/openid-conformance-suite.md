@@ -7,7 +7,7 @@ This guide explains how to run the [OpenID Foundation Conformance Suite](https:/
 - Docker and Docker Compose installed
 - Git
 - Node.js 18+
-- Java 17+ (optional - can use Docker for build)
+- macOS: Additional Docker networking configuration required (see below)
 
 ## Quick Start (Recommended)
 
@@ -20,17 +20,25 @@ npx create-authhero my-conformance-test --template local --conformance
 # Or with a custom alias for the conformance suite
 npx create-authhero my-conformance-test --template local --conformance --conformance-alias my-test-alias
 
-# 2. Start the AuthHero server
+# 2. Start the AuthHero server (runs on https://localhost:3000 with self-signed certs)
 cd my-conformance-test
 npm run dev
 
 # 3. Set up the conformance suite (one-time, in another terminal)
-git clone https://gitlab.com/openid/conformance-suite.git
-cd conformance-suite
-mvn clean package  # or use Docker: MAVEN_CACHE=./m2 docker-compose -f builder-compose.yml run builder
-docker-compose up -d
+git clone https://gitlab.com/openid/conformance-suite.git ~/conformance-suite
+cd ~/conformance-suite
+
+# macOS ONLY: Fix Docker networking to allow container to reach host
+# Add this to docker-compose-dev-mac.yml under the 'server' service:
+#   extra_hosts:
+#     - "host.docker.internal:host-gateway"
+
+docker-compose -f docker-compose-dev-mac.yml up -d  # macOS
+# OR
+docker-compose -f docker-compose-dev.yml up -d      # Linux
 
 # 4. Open https://localhost.emobix.co.uk:8443 in your browser
+# (You may need to bypass certificate warnings - in Chrome type "thisisunsafe")
 ```
 
 ### Using package.json scripts (in the monorepo)
@@ -61,119 +69,113 @@ The `create-authhero --conformance` command generates a `conformance-config.json
 
 ---
 
-## Alternative: Using the Demo App
-
-You can also run conformance tests using the demo app in this monorepo:
-
-```bash
-# Delete existing database to get fresh conformance clients
-rm apps/demo/db.sqlite
-
-# Start the demo server (includes conformance clients)
-pnpm demo dev
-
-# In another terminal, start conformance suite
-pnpm conformance:start
-```
-
-The demo app automatically creates conformance test clients when the database is first initialized.
-
----
-
 ## Manual Setup
 
 If you prefer to set things up manually:
 
-### 1. Start AuthHero Demo
-
-First, ensure AuthHero is running locally:
-
-```bash
-# From the authhero root directory
-pnpm demo dev
-```
-
-This starts AuthHero at `http://localhost:3000` (or the configured port in bun.ts).
-
-### 2. Clone and Build the Conformance Suite
+### 1. Clone the Conformance Suite
 
 ```bash
 # Clone the conformance suite (outside the authhero directory)
-cd ~/Projects
+cd ~
 git clone https://gitlab.com/openid/conformance-suite.git
 cd conformance-suite
 ```
 
-#### Option A: Build with Docker (No Java Required)
+### 2. Configure Docker Networking (macOS ONLY)
 
-```bash
-# Build using Docker
-MAVEN_CACHE=./m2 docker-compose -f builder-compose.yml run builder
+On macOS, Docker containers cannot reach `host.docker.internal` by default. You need to add extra host configuration:
+
+Edit `docker-compose-dev-mac.yml` and add under the `server` service:
+
+```yaml
+services:
+  server:
+    # ... existing configuration ...
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
-#### Option B: Build with Local Java
-
-```bash
-# Requires Java 17+ and Maven
-mvn clean package
-```
+This allows the conformance suite container to access your local AuthHero server at `host.docker.internal:3000`.
 
 ### 3. Start the Conformance Suite
+
+**No build step required!** The conformance suite uses pre-built Docker images.
 
 For macOS:
 
 ```bash
-docker-compose -f docker-compose-dev-mac.yml up
+docker-compose -f docker-compose-dev-mac.yml up -d
 ```
 
 For Linux:
 
 ```bash
-docker-compose -f docker-compose-dev.yml up
+docker-compose -f docker-compose-dev.yml up -d
 ```
 
-The conformance suite will be available at `https://localhost:8443/`
+The conformance suite will be available at `https://localhost.emobix.co.uk:8443/`
 
-> **Note**: You'll get a certificate warning. In Chrome on Mac, you can type `thisisunsafe` to bypass it. Alternatively, export the certificate and add it to your keychain.
+> **Note**: You'll get a certificate warning. In Chrome on Mac, you can type `thisisunsafe` to bypass it.
 
-### 4. Configure the Test
+### 4. Start AuthHero with HTTPS
 
-1. Visit `https://localhost:8443/`
+AuthHero must run with HTTPS and include `host.docker.internal` in the certificate for Docker access:
+
+Using `create-authhero`:
+
+```bash
+npx create-authhero auth-server --template local --conformance
+cd auth-server
+npm run dev  # Automatically generates proper certificates
+```
+
+The auth-server automatically:
+
+- Generates self-signed certificates with `host.docker.internal` as a Subject Alternative Name
+- Configures the issuer as `https://host.docker.internal:3000/` for Docker compatibility
+- Creates conformance test clients with proper callback URLs
+
+### 5. Configure the Test
+
+1. Visit `https://localhost.emobix.co.uk:8443/`
 2. Select "OIDCC: OpenID Provider Certification" test plan
 3. Switch to the "JSON" tab
-4. Paste the AuthHero configuration (see below)
+4. Paste the AuthHero configuration from `conformance-config.json` (auto-generated by `create-authhero --conformance`)
 5. Click "Start Test Plan"
 
 ## AuthHero Test Configuration
 
-Use this configuration for testing against a local AuthHero instance:
+If you used `create-authhero --conformance`, a `conformance-config.json` file was generated with the correct configuration. Otherwise, use this:
 
 ```json
 {
   "alias": "authhero-local",
-  "description": "AuthHero Local Development",
+  "description": "AuthHero Conformance Test",
   "server": {
-    "discoveryUrl": "http://host.docker.internal:3000/.well-known/openid-configuration"
+    "discoveryUrl": "https://host.docker.internal:3000/.well-known/openid-configuration"
   },
   "client": {
-    "client_id": "default",
-    "client_secret": "clientSecret"
+    "client_id": "conformance-test",
+    "client_secret": "conformanceTestSecret123"
   },
   "client2": {
-    "client_id": "conformance-client2",
-    "client_secret": "conformanceSecret2"
+    "client_id": "conformance-test2",
+    "client_secret": "conformanceTestSecret456"
   },
   "resource": {
-    "resourceUrl": "http://host.docker.internal:3000/userinfo"
+    "resourceUrl": "https://host.docker.internal:3000/userinfo"
   }
 }
 ```
 
 ### Important Notes
 
+- **HTTPS required**: AuthHero must run with HTTPS (not HTTP) for conformance tests
 - `host.docker.internal` allows the Docker container to reach your local machine
+- The certificate must include `host.docker.internal` as a Subject Alternative Name (SAN)
+- On macOS, you must add `extra_hosts` to docker-compose configuration (see Manual Setup above)
 - Make sure the client IDs and secrets match what's configured in AuthHero
-- The discovery URL should return the OpenID Connect Discovery document
 
 ## Setting Up Additional Clients
 
@@ -203,117 +205,193 @@ https://localhost.emobix.co.uk:8443/test/a/authhero-local/callback
 https://localhost:8443/test/a/authhero-local/callback
 ```
 
+### Callback URLs
+
+For the conformance suite to work properly, these callback URLs are automatically configured when using `create-authhero --conformance`:
+
+```
+https://localhost.emobix.co.uk:8443/test/a/authhero-local/callback
+https://localhost:8443/test/a/authhero-local/callback
+```
+
+Replace `authhero-local` with your custom alias if you used `--conformance-alias`.
+
 ## Network Configuration
 
-### Option 1: Using host.docker.internal (Recommended for Mac/Windows)
+### macOS Docker Networking
 
-Docker Desktop on Mac and Windows automatically provides `host.docker.internal` to reach the host machine.
+Docker Desktop on Mac requires special configuration for containers to reach the host:
 
-### Option 2: Using a Tunnel (For Full HTTPS)
+1. **Add extra_hosts** to docker-compose-dev-mac.yml:
 
-If you need proper HTTPS and domain names:
+   ```yaml
+   services:
+     server:
+       extra_hosts:
+         - "host.docker.internal:host-gateway"
+   ```
 
-1. Use ngrok or similar:
+2. **Use host.docker.internal** in conformance config instead of localhost:
+   ```json
+   "discoveryUrl": "https://host.docker.internal:3000/.well-known/openid-configuration"
+   ```
+
+### Linux Docker Networking
+
+On Linux, `host.docker.internal` is not available by default. Options:
+
+1. **Use host network mode** (simplest):
 
    ```bash
-   ngrok http 3000
+   docker-compose -f docker-compose-dev.yml up -d
    ```
 
-2. Update the conformance suite configuration with the ngrok URL
+   Then use `http://localhost:3000` in your config.
 
-### Option 3: Local Hostname (localhost.emobix.co.uk)
-
-The conformance suite uses `localhost.emobix.co.uk` which resolves to `127.0.0.1`. To use this:
-
-1. Add to `/etc/hosts`:
-
-   ```
-   127.0.0.1 localhost.emobix.co.uk
+2. **Add extra_hosts** (similar to macOS):
+   ```yaml
+   extra_hosts:
+     - "host.docker.internal:172.17.0.1"
    ```
 
-2. Run AuthHero on port 443 (requires sudo or port forwarding):
-   ```bash
-   sudo -s ssh -L 443:localhost:3000 $USER@localhost -N
-   ```
+### Using localhost.emobix.co.uk
+
+The conformance suite uses `localhost.emobix.co.uk` which automatically resolves to `127.0.0.1`. No `/etc/hosts` modification needed.
 
 ## Running Specific Test Plans
 
-### OpenID Connect Core
+### Basic OpenID Connect Core
 
-1. Select "OIDCC: OpenID Provider Certification"
-2. Configure as shown above
-3. Run individual tests or the full suite
+1. Open `https://localhost.emobix.co.uk:8443`
+2. Select "OIDCC: Basic Certification Profile Authorization server test"
+3. Switch to "JSON" tab
+4. Paste configuration from `conformance-config.json`
+5. Click "Start Test Plan"
 
-### FAPI 1.0 (Financial-grade API)
+### Implicit Flow
 
-For FAPI testing, you'll need additional configuration:
+For implicit flow testing, use "OIDCC: Implicit Certification Profile Authorization server test"
+
+### Hybrid Flow
+
+For hybrid flow testing, use "OIDCC: Hybrid Certification Profile Authorization server test"
+
+## Troubleshooting
+
+### macOS: Conformance Suite Can't Reach AuthHero
+
+**Problem**: Tests fail with connection errors or "cannot resolve host.docker.internal"
+
+**Solution**: Add extra host configuration to docker-compose-dev-mac.yml:
+
+```yaml
+services:
+  server:
+    # ... existing configuration ...
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+```
+
+Then restart the conformance suite:
+
+```bash
+docker-compose -f docker-compose-dev-mac.yml down
+docker-compose -f docker-compose-dev-mac.yml up -d
+```
+
+### Certificate/SSL Errors
+
+**Problem**: Conformance tests fail with SSL/TLS errors
+
+**Solution**: Ensure your AuthHero server certificates include `host.docker.internal` as a Subject Alternative Name (SAN):
+
+```bash
+# Using create-authhero (handles this automatically)
+npx create-authhero auth-server --template local --conformance
+cd auth-server
+npm run dev
+
+# Manual certificate generation
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,DNS:host.docker.internal,IP:127.0.0.1"
+```
+
+### Browser Certificate Warnings
+
+The conformance suite UI uses self-signed certificates. Options:
+
+1. **Chrome/Edge**: Type `thisisunsafe` when blocked (nothing appears on screen, just type it)
+2. **Firefox**: Click "Advanced" → "Accept the Risk and Continue"
+3. **Safari**: Click "Show Details" → "visit this website"
+
+### Tests Failing with "EnsureMinimumAuthorizationCodeEntropy"
+
+**Problem**: Authorization code entropy is too low
+
+**Solution**: AuthHero 4.12.0+ automatically generates high-entropy codes (192 bits). Make sure you're using workspace packages, not npm published versions:
 
 ```json
 {
-  "alias": "authhero-fapi",
-  "description": "AuthHero FAPI Test",
-  "server": {
-    "discoveryUrl": "http://host.docker.internal:3000/.well-known/openid-configuration"
-  },
-  "client": {
-    "client_id": "fapi-client",
-    "client_secret": "fapiSecret"
-  },
-  "mtls": {
-    "cert": "...",
-    "key": "..."
+  "dependencies": {
+    "authhero": "workspace:*",
+    "@authhero/kysely-adapter": "workspace:*"
   }
 }
 ```
 
-## Troubleshooting
+### Tests Failing with "EnsureIdTokenDoesNotContainNonRequestedClaims"
 
-### Conformance Suite Can't Reach AuthHero
+**Problem**: id_token contains claims that weren't requested via scopes
 
-1. Ensure AuthHero is running and accessible
-2. Check that `host.docker.internal` resolves correctly
-3. Try using your machine's local IP instead:
-   ```json
-   "discoveryUrl": "http://192.168.x.x:3000/.well-known/openid-configuration"
-   ```
+**Solution**: AuthHero 4.12.0+ properly respects OIDC scope-to-claim mapping:
+- `openid` scope: Only `sub`, `iss`, `aud`, and standard JWT claims
+- `profile` scope: Adds `name`, `nickname`, `picture`, `given_name`, `family_name`, `locale`
+- `email` scope: Adds `email`, `email_verified`
 
-### Certificate Errors
-
-The conformance suite uses self-signed certificates. Options:
-
-1. In Chrome, type `thisisunsafe` when blocked
-2. Export the certificate from Docker and add to your system trust store:
-   ```bash
-   docker exec -it conformance-suite-httpdlocal-1 cat /etc/ssl/certs/ssl-cert-snakeoil.pem > ~/Downloads/localhost-cert.pem
-   ```
-   Then import to Keychain Access and mark as trusted.
+Make sure your test configuration requests the appropriate scopes.
 
 ### Tests Failing with Redirect Errors
 
 Ensure callback URLs are properly configured in both:
 
-- AuthHero client configuration
-- Conformance suite test configuration
+- AuthHero client configuration (automatically set with `--conformance`)
+- Conformance suite test configuration (use the alias from `--conformance-alias`)
 
 ### Discovery Document Issues
 
 Verify your AuthHero instance returns a valid discovery document:
 
 ```bash
-curl http://localhost:3000/.well-known/openid-configuration | jq
+curl -k https://localhost:3000/.well-known/openid-configuration | jq
 ```
 
-## Automated Testing
+The `-k` flag bypasses certificate verification for self-signed certificates.
 
-For CI/CD integration, you can run tests via command line:
+## Test Clients
 
-```bash
-# From conformance-suite directory
-docker-compose -f docker-compose-localtest.yml run test
-```
+When using `create-authhero --conformance`, these test clients are automatically created:
+
+| Client ID          | Client Secret            | Authentication Method |
+| ------------------ | ------------------------ | --------------------- |
+| conformance-test   | conformanceTestSecret123 | client_secret_post    |
+| conformance-test2  | conformanceTestSecret456 | client_secret_post    |
+
+Both clients are pre-configured with:
+
+- Callback URLs for localhost.emobix.co.uk:8443
+- Allowed logout URLs
+- Web origins for CORS
+
+## Common Issues & Solutions
+
+### INFO: ValidateClientJWKsPrivatePart - Skipped
+
+This is normal! This check only applies to clients using `private_key_jwt` authentication. The conformance test clients use `client_secret_post`, so this validation is correctly skipped.
 
 ## Resources
 
 - [Conformance Suite Wiki](https://gitlab.com/openid/conformance-suite/-/wikis/home)
 - [OpenID Certification Instructions](https://openid.net/certification/instructions/)
-- [Conformance Suite Build & Run Guide](https://gitlab.com/openid/conformance-suite/-/wikis/Developers/Build-&-Run)
+- [Conformance Suite Docker Guide](https://gitlab.com/openid/conformance-suite/-/wikis/Developers/Build-&-Run)
+- [OIDC Core Specification](https://openid.net/specs/openid-connect-core-1_0.html)
