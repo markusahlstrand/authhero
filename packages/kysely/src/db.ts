@@ -80,6 +80,7 @@ const sqlPasswordSchema = z.object({
 export const sqlUserSchema = z.object({
   ...userSchema.shape,
   email_verified: z.number(),
+  phone_verified: z.number().optional().nullable(),
   is_social: z.number(),
   app_metadata: z.string(),
   user_metadata: z.string(),

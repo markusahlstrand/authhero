@@ -20,9 +20,12 @@ type Props = {
 const UserNotFound: FC<Props> = (params) => {
   const { theme, branding, client, authParams } = params;
 
-  const linkParams = new URLSearchParams({
-    ...authParams,
-  });
+  // Convert authParams to URL-safe string values
+  const linkParams = new URLSearchParams(
+    Object.entries(authParams)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [key, String(value)]),
+  );
   const restartFlowLink = `/authorize?${linkParams}`;
 
   return (

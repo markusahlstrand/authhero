@@ -21,6 +21,9 @@ const userInfoSchema = z.object({
   sub: z.string(),
   email: z.string().optional(),
   email_verified: z.boolean(),
+  // Phone scope claims (OIDC Core 5.4)
+  phone_number: z.string().optional(),
+  phone_number_verified: z.boolean().optional(),
   // Profile scope claims (OIDC Core 5.4)
   name: z.string().optional(),
   family_name: z.string().optional(),
@@ -49,16 +52,19 @@ type UserInfoResponse = z.infer<typeof userInfoSchema>;
  * @returns Filtered userinfo object containing only claims for requested scopes
  */
 function buildUserInfoResponse(user: User, scopes: string[]) {
+  // sub is the only claim always included (OIDC Core 5.3.2)
   const userInfo: Record<string, unknown> = {
     sub: user.user_id,
-    // email_verified is always included as a base claim
-    email_verified: user.email_verified,
   };
 
-  // Add email claims if email scope is present
+  // Add email claims if email scope is present (OIDC Core 5.4)
   if (scopes.includes("email")) {
     if (user.email) {
       userInfo.email = user.email;
+    }
+    // email_verified should only be returned with email scope
+    if (user.email_verified !== undefined) {
+      userInfo.email_verified = user.email_verified;
     }
   }
 
@@ -89,6 +95,18 @@ function buildUserInfoResponse(user: User, scopes: string[]) {
   if (scopes.includes("address")) {
     if (user.address) {
       userInfo.address = user.address;
+    }
+  }
+
+  // Add phone claims if phone scope is present (OIDC Core 5.4)
+  if (scopes.includes("phone")) {
+    if (user.phone_number) {
+      userInfo.phone_number = user.phone_number;
+    }
+    // phone_number_verified is the OIDC standard claim name (OIDC Core 5.4)
+    // We store it as phone_verified internally
+    if (user.phone_verified !== undefined) {
+      userInfo.phone_number_verified = user.phone_verified;
     }
   }
 

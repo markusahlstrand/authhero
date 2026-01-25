@@ -22,6 +22,23 @@ interface UniversalAuthParams {
   login_hint?: string;
 }
 
+// Helper function to check if session has exceeded max_age
+function isSessionExpiredByMaxAge(
+  session: Session | undefined,
+  maxAge: number | undefined,
+): boolean {
+  if (!session || maxAge === undefined) {
+    return false;
+  }
+  
+  // Check if session's authenticated_at is older than max_age seconds
+  const authenticatedAt = new Date(session.authenticated_at).getTime();
+  const maxAgeMs = maxAge * 1000;
+  const now = Date.now();
+  
+  return now - authenticatedAt > maxAgeMs;
+}
+
 export async function universalAuth({
   ctx,
   session,
@@ -39,6 +56,12 @@ export async function universalAuth({
 
   // Convert structured auth0_client back to string for storage
   const auth0Client = stringifyAuth0Client(auth0_client);
+
+  // OIDC Core 3.1.2.1: If max_age is present and session is older than max_age,
+  // we must re-authenticate the user (treat as if there's no session)
+  if (isSessionExpiredByMaxAge(session, authParams.max_age)) {
+    session = undefined;
+  }
 
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,

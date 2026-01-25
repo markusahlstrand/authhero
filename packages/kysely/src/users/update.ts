@@ -19,6 +19,12 @@ export function update(db: Kysely<Database>) {
         ? JSON.stringify(user.user_metadata)
         : undefined,
       address: user.address ? JSON.stringify(user.address) : undefined,
+      phone_verified:
+        user.phone_verified !== undefined
+          ? user.phone_verified
+            ? 1
+            : 0
+          : undefined,
     });
 
     const results = await db

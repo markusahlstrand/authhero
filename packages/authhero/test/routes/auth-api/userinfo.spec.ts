@@ -304,10 +304,9 @@ describe("userinfo", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
 
-      // With only openid scope, should only return sub (and email_verified which is always included)
+      // With only openid scope, should only return sub (OIDC Core 5.3.2)
       expect(body).toEqual({
         sub: "email|userId",
-        email_verified: true,
       });
     });
 
@@ -333,10 +332,9 @@ describe("userinfo", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
 
-      // With profile scope, should return all OIDC profile claims
+      // With profile scope, should return all OIDC profile claims (but not email_verified)
       expect(body).toEqual({
         sub: "email|userId",
-        email_verified: true,
         name: "Test User",
         given_name: "Test",
         family_name: "User",
@@ -471,10 +469,9 @@ describe("userinfo", () => {
       const body = await response.json();
 
       // Should return the address claim as per OIDC Core 5.1.1
-      // Also returns email_verified since it's true (per OIDC spec)
+      // email_verified is NOT returned since email scope was not requested
       expect(body).toEqual({
         sub: "email|addressUserId",
-        email_verified: true,
         address: {
           formatted: "123 Main St, London, UK",
           street_address: "123 Main St",
@@ -529,6 +526,95 @@ describe("userinfo", () => {
         email_verified: true,
       });
       expect(body.address).toBeUndefined();
+    });
+
+    it("should return phone claims when phone scope is requested (OIDC Core 5.4)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a user with phone data
+      await env.data.users.create("tenantId", {
+        email: "phonetest@example.com",
+        email_verified: true,
+        name: "Phone Test User",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|phoneUserId",
+        phone_number: "+1234567890",
+        phone_verified: true,
+      });
+
+      const accessToken = await createToken({
+        userId: "email|phoneUserId",
+        tenantId: "tenantId",
+        scope: "openid phone",
+      });
+
+      const response = await client.userinfo.$get(
+        {},
+        {
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      // Should return phone claims as per OIDC Core 5.4
+      // email_verified is NOT returned since email scope was not requested
+      expect(body).toEqual({
+        sub: "email|phoneUserId",
+        phone_number: "+1234567890",
+        phone_number_verified: true,
+      });
+    });
+
+    it("should not return phone claims when phone scope is not present", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a user with phone data
+      await env.data.users.create("tenantId", {
+        email: "nophone@example.com",
+        email_verified: true,
+        name: "No Phone Scope User",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|noPhoneUserId",
+        phone_number: "+0987654321",
+        phone_verified: false,
+      });
+
+      const accessToken = await createToken({
+        userId: "email|noPhoneUserId",
+        tenantId: "tenantId",
+        scope: "openid email", // No phone scope
+      });
+
+      const response = await client.userinfo.$get(
+        {},
+        {
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      // Should NOT return phone claims
+      expect(body).toEqual({
+        sub: "email|noPhoneUserId",
+        email: "nophone@example.com",
+        email_verified: true,
+      });
+      expect(body.phone_number).toBeUndefined();
+      expect(body.phone_number_verified).toBeUndefined();
     });
   });
 });

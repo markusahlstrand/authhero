@@ -47,6 +47,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           connection: z.string().optional(),
           nonce: z.string().optional(),
           max_age: z.string().optional(),
+          acr_values: z.string().optional(),
           login_ticket: z.string().optional(),
           code_challenge_method: z.nativeEnum(CodeChallengeMethod).optional(),
           code_challenge: z.string().optional(),
@@ -125,6 +126,8 @@ export const authorizeRoutes = new OpenAPIHono<{
         code_challenge,
         code_challenge_method,
         prompt,
+        max_age,
+        acr_values,
         login_ticket,
         realm,
         auth0Client,
@@ -207,6 +210,8 @@ export const authorizeRoutes = new OpenAPIHono<{
         username: login_hint,
         ui_locales,
         organization,
+        max_age: max_age ? parseInt(max_age, 10) : undefined,
+        acr_values,
       };
 
       if (authParams.redirect_uri) {
@@ -248,6 +253,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           redirect_uri,
           state,
           response_type,
+          response_mode,
           client,
           nonce,
           code_challenge_method,
@@ -255,6 +261,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           audience,
           scope,
           organization,
+          max_age: max_age ? parseInt(max_age, 10) : undefined,
         });
       }
 

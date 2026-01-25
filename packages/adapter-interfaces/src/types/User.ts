@@ -23,6 +23,7 @@ export const baseUserSchema = z.object({
     .transform((val) => (val ? val.toLowerCase() : val)),
   username: z.string().optional(),
   phone_number: z.string().optional(),
+  phone_verified: z.boolean().optional(), // OIDC phone scope claim (phone_number_verified)
   given_name: z.string().optional(),
   family_name: z.string().optional(),
   nickname: z.string().optional(),

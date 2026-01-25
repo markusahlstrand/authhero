@@ -49,6 +49,8 @@ export interface CreateAuthTokensParams {
   permissions?: string[];
   grantType?: GrantType;
   impersonatingUser?: User; // The original user who is impersonating
+  // OIDC Core 2.1: auth_time is required when max_age is used in authorization request
+  auth_time?: number; // Unix timestamp of when the user was authenticated
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -65,6 +67,7 @@ export async function createAuthTokens(
     organization,
     permissions,
     impersonatingUser,
+    auth_time,
   } = params;
 
   const { signingKeys } = await ctx.env.data.keys.list({
@@ -141,6 +144,16 @@ export async function createAuthTokens(
           iss,
           sid: session_id,
           nonce: authParams.nonce,
+          // OIDC Core 2.1: auth_time is REQUIRED when max_age was used in authorization request
+          // It's the time when the End-User authentication occurred (Unix timestamp)
+          ...(authParams.max_age !== undefined && auth_time !== undefined
+            ? { auth_time }
+            : {}),
+          // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
+          // an acr claim with one of the requested values
+          ...(authParams.acr_values
+            ? { acr: authParams.acr_values.split(" ")[0] }
+            : {}),
           // Profile scope claims - only include in id_token for response_type=id_token
           // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
           ...(hasProfileScope &&

@@ -46,6 +46,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: "web_message",
         },
       },
       {
@@ -71,6 +72,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.CODE,
+          response_mode: "web_message",
           code_challenge: "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
         },
       },
@@ -157,6 +159,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: "web_message",
         },
       },
       {
@@ -212,6 +215,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: "web_message",
         },
       },
       {
@@ -240,5 +244,112 @@ describe("silent", () => {
       (log) => log.type === LogTypes.FAILED_SILENT_AUTH,
     );
     expect(failedLogsAfter.length).toEqual(failedLogsBefore.length);
+  });
+
+  it("should redirect with login_required error when prompt=none without session (no response_mode)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Call silent auth without any session cookie and without response_mode
+    // This should redirect back with error (OIDC conformance behavior)
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "test-state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          // No cookie header
+        },
+      },
+    );
+
+    // Should get a 302 redirect
+    expect(response.status).toEqual(302);
+
+    // Check the Location header contains the error
+    const locationHeader = response.headers.get("location");
+    expect(locationHeader).toBeTruthy();
+    
+    const redirectUrl = new URL(locationHeader!);
+    expect(redirectUrl.origin).toEqual("https://example.com");
+    expect(redirectUrl.pathname).toEqual("/callback");
+    expect(redirectUrl.searchParams.get("error")).toEqual("login_required");
+    expect(redirectUrl.searchParams.get("error_description")).toEqual("Login required");
+    expect(redirectUrl.searchParams.get("state")).toEqual("test-state");
+  });
+
+  it("should redirect with token in fragment when prompt=none with valid session (no response_mode, token response)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+      },
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    // Call silent auth with valid session but without response_mode
+    // This should redirect back with tokens in the fragment
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "test-state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    // Should get a 302 redirect
+    expect(response.status).toEqual(302);
+
+    // Check the Location header contains the tokens in the fragment
+    const locationHeader = response.headers.get("location");
+    expect(locationHeader).toBeTruthy();
+    
+    const redirectUrl = new URL(locationHeader!);
+    expect(redirectUrl.origin).toEqual("https://example.com");
+    expect(redirectUrl.pathname).toEqual("/callback");
+    
+    // Parse the fragment
+    const fragmentParams = new URLSearchParams(redirectUrl.hash.slice(1));
+    expect(fragmentParams.get("access_token")).toBeTruthy();
+    expect(fragmentParams.get("state")).toEqual("test-state");
   });
 });
