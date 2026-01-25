@@ -83,6 +83,7 @@ export const sqlUserSchema = z.object({
   is_social: z.number(),
   app_metadata: z.string(),
   user_metadata: z.string(),
+  address: z.string().optional().nullable(),
   tenant_id: z.string(),
 });
 

@@ -17,6 +17,7 @@ export function create(db: Kysely<Database>) {
       is_social: user.is_social ? 1 : 0,
       app_metadata: JSON.stringify(user.app_metadata),
       user_metadata: JSON.stringify(user.user_metadata),
+      address: user.address ? JSON.stringify(user.address) : null,
     };
 
     try {
@@ -37,6 +38,7 @@ export function create(db: Kysely<Database>) {
       email: sqlUser.email || "",
       email_verified: sqlUser.email_verified === 1,
       is_social: sqlUser.is_social === 1,
+      address: user.address, // Return original address object, not serialized string
     };
   };
 }

@@ -1,98 +1,15 @@
-import { OpenAPIHono, z } from "@hono/zod-openapi";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
-import { decode, verify } from "hono/jwt";
-import { getJwksFromDatabase } from "../utils/jwks";
-
-const JwksKeySchema = z.object({
-  alg: z.literal("RS256"),
-  kty: z.literal("RSA"),
-  use: z.literal("sig"),
-  n: z.string(),
-  e: z.string(),
-  kid: z.string(),
-  x5t: z.string(),
-  x5c: z.array(z.string()),
-});
-type JwksKey = z.infer<typeof JwksKeySchema>;
-
-interface JwtPayload {
-  sub: string;
-  iss: string;
-  aud: string | string[];
-  iat: number;
-  exp: number;
-  scope: string;
-  permissions?: string[];
-  azp?: string;
-  tenant_id?: string;
-  org_id?: string;
-  org_name?: string;
-}
+import { validateJwtToken } from "../utils/jwt";
 
 /**
  * Management API audience for cross-tenant operations.
  * Used when managing tenants from the main tenant with org-scoped tokens.
  */
 export const MANAGEMENT_API_AUDIENCE = "urn:authhero:management";
-
-async function getJwks(bindings: Bindings) {
-  if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
-    const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
-
-    if (!response.ok) {
-      // If remote JWKS fails, fall back to database
-      console.warn(
-        `JWKS fetch failed with status ${response.status}, falling back to database`,
-      );
-      return await getJwksFromDatabase(bindings.data);
-    }
-
-    const responseBody: { keys: JwksKey[] } = await response.json();
-
-    return responseBody.keys;
-  }
-
-  return await getJwksFromDatabase(bindings.data);
-}
-
-async function validateJwtToken(
-  ctx: Context,
-  token: string,
-): Promise<JwtPayload> {
-  try {
-    // First decode the JWT to get the header and find the right key
-    const { header } = decode(token);
-
-    const jwksKeys = await getJwks(ctx.env);
-    const jwksKey = jwksKeys.find((key) => key.kid === header.kid);
-
-    if (!jwksKey) {
-      throw new JSONHTTPException(401, { message: "No matching kid found" });
-    }
-
-    // Convert JWKS key to CryptoKey for verification
-    const cryptoKey = await crypto.subtle.importKey(
-      "jwk",
-      jwksKey,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false,
-      ["verify"],
-    );
-
-    // Verify the token using hono/jwt with the CryptoKey
-    const verifiedPayload = await verify(token, cryptoKey, "RS256");
-
-    return verifiedPayload as unknown as JwtPayload;
-  } catch (error) {
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-    throw new JSONHTTPException(403, { message: "Invalid JWT signature" });
-  }
-}
 
 function convertRouteSyntax(route: string) {
   return route.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, "{$1}");

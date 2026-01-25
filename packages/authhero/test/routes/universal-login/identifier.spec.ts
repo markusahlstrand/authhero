@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("login identifier page", () => {
   it("should return an invalid email error when entering an invalid email", async () => {
@@ -18,6 +19,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -76,6 +79,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -136,6 +141,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -186,6 +193,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -250,6 +259,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -309,6 +320,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -364,6 +377,8 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 

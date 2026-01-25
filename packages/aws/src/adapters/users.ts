@@ -45,6 +45,14 @@ interface UserItem extends DynamoDBBaseItem {
   login_count: number;
   app_metadata: string; // JSON string
   user_metadata: string; // JSON string
+  // OIDC profile claims (OIDC Core 5.1)
+  middle_name?: string;
+  preferred_username?: string;
+  profile?: string;
+  website?: string;
+  gender?: string;
+  birthdate?: string;
+  zoneinfo?: string;
 }
 
 function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
@@ -105,6 +113,14 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
         login_count: 0,
         app_metadata: JSON.stringify(user.app_metadata || {}),
         user_metadata: JSON.stringify(user.user_metadata || {}),
+        // OIDC profile claims
+        middle_name: user.middle_name,
+        preferred_username: user.preferred_username,
+        profile: user.profile,
+        website: user.website,
+        gender: user.gender,
+        birthdate: user.birthdate,
+        zoneinfo: user.zoneinfo,
         created_at: now,
         updated_at: now,
       };

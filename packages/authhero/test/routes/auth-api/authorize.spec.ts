@@ -32,6 +32,65 @@ describe("authorize", () => {
     expect(responseText).toEqual("Origin https://invalid.org not allowed");
   });
 
+  it("should redirect with invalid_request error when response_type is missing", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "test-state",
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+
+    const redirectUrl = new URL(location!);
+    expect(redirectUrl.origin + redirectUrl.pathname).toEqual(
+      "https://example.com/callback",
+    );
+    expect(redirectUrl.searchParams.get("error")).toEqual("invalid_request");
+    expect(redirectUrl.searchParams.get("error_description")).toEqual(
+      "Missing required parameter: response_type",
+    );
+    expect(redirectUrl.searchParams.get("state")).toEqual("test-state");
+  });
+
+  it("should throw 400 error when response_type is missing and no redirect_uri", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          // @ts-ignore - intentionally testing with empty redirect_uri
+          redirect_uri: "",
+          state: "test-state",
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    expect(response.status).toEqual(400);
+    const responseText = await response.text();
+    expect(responseText).toContain("Missing required parameter: response_type");
+  });
+
   it("should return a redirect to the universal login", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
@@ -486,6 +545,7 @@ describe("authorize", () => {
           state: "state",
           nonce: "nonce",
           scope: "openid email profile",
+          response_type: AuthorizationResponseType.CODE,
           login_hint: "foo@example.com", // This matches the user's email
         },
       },

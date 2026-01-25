@@ -213,8 +213,8 @@ function generateLocalSeedFileContent(
   // Generate conformance client creation code
   const conformanceClientCode = conformance
     ? `
-  // Create OpenID Conformance Suite test clients
-  console.log("Creating conformance test clients...");
+  // Create OpenID Conformance Suite test clients and user
+  console.log("Creating conformance test clients and user...");
   
   const conformanceCallbacks = [
     "https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback",
@@ -260,6 +260,57 @@ function generateLocalSeedFileContent(
   } catch (e: any) {
     if (e.message?.includes("UNIQUE constraint")) {
       console.log("ℹ️  conformance-test2 client already exists");
+    } else {
+      throw e;
+    }
+  }
+
+  // Create a conformance test user with ALL OIDC profile claims populated
+  // This is required for OIDCC-5.4 (VerifyScopesReturnedInUserInfoClaims) test
+  try {
+    await adapters.users.create("${tenantId}", {
+      user_id: "email|conformance-user",
+      email: "conformance@example.com",
+      email_verified: true,
+      name: "Conformance Test User",
+      given_name: "Conformance",
+      family_name: "User",
+      middle_name: "Test",
+      nickname: "conformance",
+      username: "conformance_user",
+      picture: "https://example.com/conformance.png",
+      profile: "https://example.com/conformance",
+      website: "https://example.com",
+      gender: "other",
+      birthdate: "2000-01-01",
+      zoneinfo: "Europe/London",
+      locale: "en-US",
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+      is_social: false,
+    });
+    console.log("✅ Created conformance test user (conformance@example.com)");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance test user already exists");
+    } else {
+      throw e;
+    }
+  }
+
+  // Create password for conformance test user
+  // Password: ConformanceTest123!
+  try {
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash("ConformanceTest123!", 10);
+    await adapters.passwords.create("${tenantId}", {
+      user_id: "auth2|conformance-user",
+      password: hashedPassword,
+    });
+    console.log("✅ Created password for conformance test user");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance test user password already exists");
     } else {
       throw e;
     }

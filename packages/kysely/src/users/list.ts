@@ -55,6 +55,7 @@ export function list(db: Kysely<Database>) {
         is_social: user.is_social === 1,
         app_metadata: JSON.parse(user.app_metadata),
         user_metadata: JSON.parse(user.user_metadata),
+        address: user.address ? JSON.parse(user.address) : undefined,
         identities: [
           {
             connection: user.connection,

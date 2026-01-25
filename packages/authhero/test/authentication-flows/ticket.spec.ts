@@ -3,6 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import { nanoid } from "nanoid";
 import { generateCodeVerifier } from "oslo/oauth2";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("ticket", () => {
   it("should return a auth response for a valid ticket", async () => {
@@ -38,6 +39,7 @@ describe("ticket", () => {
           state: "state",
           login_ticket: ticket.code_id,
           realm: "email",
+          response_type: AuthorizationResponseType.CODE,
         },
       },
       {

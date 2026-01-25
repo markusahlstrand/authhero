@@ -347,16 +347,20 @@ describe("token", () => {
 
         const idToken = parseJWT(body.id_token);
 
+        // Per OIDC Core 5.4: email and profile claims should come from userinfo endpoint
+        // when response_type=code (authorization code flow), not from the id_token.
+        // The id_token should only contain the basic identity claims.
         expect(idToken?.payload).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "clientId",
-          nickname: "Test User",
-          picture: "https://example.com/test.png",
-          name: "Test User",
-          email: "foo@example.com",
-          email_verified: true,
         });
+
+        // Verify email/profile claims are NOT in id_token per OIDC 5.4
+        expect((idToken?.payload as Record<string, unknown>).nickname).toBeUndefined();
+        expect((idToken?.payload as Record<string, unknown>).name).toBeUndefined();
+        expect((idToken?.payload as Record<string, unknown>).email).toBeUndefined();
+        expect((idToken?.payload as Record<string, unknown>).email_verified).toBeUndefined();
       });
 
       it("should return a 403 if the code is wrong", async () => {

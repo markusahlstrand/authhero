@@ -163,6 +163,34 @@ export const authorizeRoutes = new OpenAPIHono<{
         }
       }
 
+      const origin = ctx.req.header("origin");
+      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
+        throw new HTTPException(403, {
+          message: `Origin ${origin} not allowed`,
+        });
+      }
+
+      // Validate required parameter: response_type (per OIDC Core 3.1.2.1)
+      if (!response_type) {
+        // If redirect_uri is valid, redirect back with error as per OIDC spec
+        if (sanitizedRedirectUri) {
+          const redirectUrl = new URL(sanitizedRedirectUri);
+          redirectUrl.searchParams.set("error", "invalid_request");
+          redirectUrl.searchParams.set(
+            "error_description",
+            "Missing required parameter: response_type",
+          );
+          if (state) {
+            redirectUrl.searchParams.set("state", state);
+          }
+          return ctx.redirect(redirectUrl.toString());
+        }
+        // No redirect_uri, throw HTTP exception
+        throw new HTTPException(400, {
+          message: "Missing required parameter: response_type",
+        });
+      }
+
       const authParams: AuthParams = {
         redirect_uri: sanitizedRedirectUri,
         scope,
@@ -180,13 +208,6 @@ export const authorizeRoutes = new OpenAPIHono<{
         ui_locales,
         organization,
       };
-
-      const origin = ctx.req.header("origin");
-      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
-        throw new HTTPException(403, {
-          message: `Origin ${origin} not allowed`,
-        });
-      }
 
       if (authParams.redirect_uri) {
         const validCallbacks = client.callbacks || [];
@@ -221,12 +242,6 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       // Silent authentication with iframe
       if (prompt == "none") {
-        if (!response_type) {
-          throw new HTTPException(400, {
-            message: "Missing response_type",
-          });
-        }
-
         return silentAuth({
           ctx,
           session: validSession || undefined,

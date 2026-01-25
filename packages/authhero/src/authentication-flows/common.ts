@@ -122,6 +122,16 @@ export async function createAuthTokens(
   const hasProfileScope = scopes.includes("profile");
   const hasEmailScope = scopes.includes("email");
 
+  // Per OIDC Core section 5.4: Claims requested by profile, email, address, and phone
+  // scopes are returned from the UserInfo Endpoint, EXCEPT for response_type=id_token
+  // where there is no access token issued to access the userinfo endpoint.
+  // For all other response types (code, token, token id_token, etc.), these claims
+  // should be fetched from the userinfo endpoint using the access token.
+  // Note: We cast to string to handle the case where response_type could be "id_token"
+  // which is a valid OIDC value but not in our enum
+  const isIdTokenOnlyFlow =
+    (authParams.response_type as string | undefined) === "id_token";
+
   const idTokenPayload =
     user && hasOpenidScope
       ? {
@@ -131,20 +141,24 @@ export async function createAuthTokens(
           iss,
           sid: session_id,
           nonce: authParams.nonce,
-          // Profile scope claims (OIDC Core 5.4)
-          ...(hasProfileScope && {
-            given_name: user.given_name,
-            family_name: user.family_name,
-            nickname: user.nickname,
-            picture: user.picture,
-            locale: user.locale,
-            name: user.name,
-          }),
-          // Email scope claims (OIDC Core 5.4)
-          ...(hasEmailScope && {
-            email: user.email,
-            email_verified: user.email_verified,
-          }),
+          // Profile scope claims - only include in id_token for response_type=id_token
+          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          ...(hasProfileScope &&
+            isIdTokenOnlyFlow && {
+              given_name: user.given_name,
+              family_name: user.family_name,
+              nickname: user.nickname,
+              picture: user.picture,
+              locale: user.locale,
+              name: user.name,
+            }),
+          // Email scope claims - only include in id_token for response_type=id_token
+          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          ...(hasEmailScope &&
+            isIdTokenOnlyFlow && {
+              email: user.email,
+              email_verified: user.email_verified,
+            }),
           act: impersonatingUser
             ? { sub: impersonatingUser.user_id }
             : undefined,

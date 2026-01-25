@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -91,6 +92,8 @@ describe("forms - legal consent post-login flow", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);

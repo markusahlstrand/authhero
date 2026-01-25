@@ -18,6 +18,7 @@ export function update(db: Kysely<Database>) {
       user_metadata: user.user_metadata
         ? JSON.stringify(user.user_metadata)
         : undefined,
+      address: user.address ? JSON.stringify(user.address) : undefined,
     });
 
     const results = await db
