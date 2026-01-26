@@ -7,16 +7,25 @@ import { getJwksFromDatabase } from "./jwks";
 import { Bindings } from "../types";
 
 const JwksKeySchema = z.object({
-  alg: z.literal("RS256"),
-  kty: z.literal("RSA"),
-  use: z.literal("sig"),
+  alg: z.enum([
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512",
+    "HS256",
+    "HS384",
+    "HS512",
+  ]),
+  kty: z.enum(["RSA", "EC", "oct"]),
+  use: z.enum(["sig", "enc"]).optional(),
   n: z.string(),
   e: z.string(),
   kid: z.string(),
-  x5t: z.string(),
-  x5c: z.array(z.string()),
+  x5t: z.string().optional(),
+  x5c: z.array(z.string()).optional(),
 });
-type JwksKey = z.infer<typeof JwksKeySchema>;
 
 export interface JwtPayload {
   sub: string;
@@ -43,9 +52,12 @@ async function getJwks(bindings: Bindings) {
       return await getJwksFromDatabase(bindings.data);
     }
 
-    const responseBody: { keys: JwksKey[] } = await response.json();
+    const responseBody = await response.json();
+    const parsed = z
+      .object({ keys: z.array(JwksKeySchema) })
+      .parse(responseBody);
 
-    return responseBody.keys;
+    return parsed.keys;
   }
 
   return await getJwksFromDatabase(bindings.data);

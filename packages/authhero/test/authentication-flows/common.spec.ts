@@ -183,7 +183,7 @@ describe("common", () => {
       const tokens = await createAuthTokens(ctx, {
         authParams: {
           client_id: "clientId",
-          response_type: "id_token" as AuthorizationResponseType,
+          response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid email", // Request email scope
         },
         client,
@@ -280,7 +280,7 @@ describe("common", () => {
       const tokens = await createAuthTokens(ctx, {
         authParams: {
           client_id: "clientId",
-          response_type: "id_token" as AuthorizationResponseType,
+          response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid profile", // Request profile scope
         },
         client,
@@ -376,7 +376,7 @@ describe("common", () => {
       const tokens = await createAuthTokens(ctx, {
         authParams: {
           client_id: "clientId",
-          response_type: "id_token" as AuthorizationResponseType,
+          response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid profile email", // Request both scopes
         },
         client,

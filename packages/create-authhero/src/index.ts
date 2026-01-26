@@ -269,7 +269,7 @@ function generateLocalSeedFileContent(
   // This is required for OIDCC-5.4 (VerifyScopesReturnedInUserInfoClaims) test
   try {
     await adapters.users.create("${tenantId}", {
-      user_id: "email|conformance-user",
+      user_id: "auth2|conformance-user",
       email: "conformance@example.com",
       email_verified: true,
       name: "Conformance Test User",
@@ -1078,7 +1078,10 @@ program
   .option("--skip-start", "skip starting the development server")
   .option("--github-ci", "include GitHub CI workflows with semantic versioning")
   .option("--conformance", "add OpenID conformance suite test clients")
-  .option("--conformance-alias <alias>", "alias for conformance suite (default: authhero-local)")
+  .option(
+    "--conformance-alias <alias>",
+    "alias for conformance suite (default: authhero-local)",
+  )
   .option("-y, --yes", "skip all prompts and use defaults/provided options")
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
@@ -1304,7 +1307,9 @@ program
         path.join(projectPath, "conformance-config.json"),
         JSON.stringify(conformanceConfig, null, 2),
       );
-      console.log("📝 Created conformance-config.json for OpenID Conformance Suite");
+      console.log(
+        "📝 Created conformance-config.json for OpenID Conformance Suite",
+      );
     }
 
     const tenantType = multiTenant ? "multi-tenant" : "single-tenant";
@@ -1579,7 +1584,9 @@ program
         console.log("     cd conformance-suite && mvn clean package");
         console.log("     docker-compose up -d");
         console.log("  2. Open https://localhost.emobix.co.uk:8443");
-        console.log("  3. Create a test plan and use conformance-config.json for settings");
+        console.log(
+          "  3. Create a test plan and use conformance-config.json for settings",
+        );
         console.log(`  4. Use alias: ${conformanceAlias}`);
       }
 

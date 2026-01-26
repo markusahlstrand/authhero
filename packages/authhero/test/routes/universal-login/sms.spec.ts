@@ -50,7 +50,6 @@ describe("sms", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 

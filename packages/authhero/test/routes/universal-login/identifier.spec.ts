@@ -20,7 +20,6 @@ describe("login identifier page", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 

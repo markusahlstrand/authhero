@@ -20,7 +20,7 @@ const addressClaimSchema = z
 const userInfoSchema = z.object({
   sub: z.string(),
   email: z.string().optional(),
-  email_verified: z.boolean(),
+  email_verified: z.boolean().optional(),
   // Phone scope claims (OIDC Core 5.4)
   phone_number: z.string().optional(),
   phone_number_verified: z.boolean().optional(),

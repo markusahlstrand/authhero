@@ -54,12 +54,13 @@ export async function silentAuth({
 
   // Determine if we should use iframe/postMessage or redirect
   // web_message response_mode means the request came from an iframe
-  const useIframeResponse = response_mode === AuthorizationResponseMode.WEB_MESSAGE;
+  const useIframeResponse =
+    response_mode === AuthorizationResponseMode.WEB_MESSAGE;
 
   // Helper function to handle login required scenarios
   async function handleLoginRequired(description: string = "Login required") {
     const headers = new Headers();
-    
+
     // Only log and clear the session cookie if there was actually a session
     if (session) {
       logMessage(ctx, client.tenant.id, {
@@ -91,9 +92,10 @@ export async function silentAuth({
     // For other response modes, redirect back with error
     // Use fragment for token responses, query for code responses
     const errorUrl = new URL(redirect_uri);
-    const useFragment = response_type === AuthorizationResponseType.TOKEN || 
-                        response_type === AuthorizationResponseType.TOKEN_ID_TOKEN;
-    
+    const useFragment =
+      response_type === AuthorizationResponseType.TOKEN ||
+      response_type === AuthorizationResponseType.TOKEN_ID_TOKEN;
+
     if (useFragment) {
       const params = new URLSearchParams();
       params.set("error", "login_required");
@@ -110,9 +112,9 @@ export async function silentAuth({
     const responseHeaders: Record<string, string> = {
       Location: errorUrl.toString(),
     };
-    const setCookieHeader = headers.get('set-cookie');
+    const setCookieHeader = headers.get("set-cookie");
     if (setCookieHeader) {
-      responseHeaders['set-cookie'] = setCookieHeader;
+      responseHeaders["set-cookie"] = setCookieHeader;
     }
     return new Response(null, {
       status: 302,
@@ -253,8 +255,9 @@ export async function silentAuth({
 
   // For other response modes, redirect back with the token/code
   const successUrl = new URL(redirect_uri);
-  const useFragment = response_type === AuthorizationResponseType.TOKEN || 
-                      response_type === AuthorizationResponseType.TOKEN_ID_TOKEN;
+  const useFragment =
+    response_type === AuthorizationResponseType.TOKEN ||
+    response_type === AuthorizationResponseType.TOKEN_ID_TOKEN;
 
   if (useFragment) {
     const params = new URLSearchParams();
@@ -273,9 +276,9 @@ export async function silentAuth({
   const responseHeaders: Record<string, string> = {
     Location: successUrl.toString(),
   };
-  const redirectCookie = headers.get('set-cookie');
+  const redirectCookie = headers.get("set-cookie");
   if (redirectCookie) {
-    responseHeaders['set-cookie'] = redirectCookie;
+    responseHeaders["set-cookie"] = redirectCookie;
   }
   return new Response(null, {
     status: 302,

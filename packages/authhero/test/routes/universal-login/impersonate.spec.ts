@@ -71,8 +71,7 @@ describe("impersonation routes", () => {
             state: "auth-state",
             nonce: "nonce",
             scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
+            response_type: AuthorizationResponseType.CODE,
           },
         },
         {
@@ -578,8 +577,6 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
           response_type: AuthorizationResponseType.CODE,
         },
       });
@@ -677,8 +674,6 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
           response_type: AuthorizationResponseType.CODE,
         },
       });
@@ -784,8 +779,6 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           state: "auth-state",
           scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
           response_type: AuthorizationResponseType.CODE,
         },
       });
@@ -1282,8 +1275,7 @@ describe("impersonation routes", () => {
           state: "auth-state",
           nonce: "nonce",
           scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
+          response_type: AuthorizationResponseType.CODE,
         },
       });
 

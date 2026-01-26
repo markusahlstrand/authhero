@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 
 export enum AuthorizationResponseType {
   TOKEN = "token",
+  ID_TOKEN = "id_token",
   TOKEN_ID_TOKEN = "token id_token",
   CODE = "code",
 }
