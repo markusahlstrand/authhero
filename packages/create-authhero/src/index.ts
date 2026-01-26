@@ -31,7 +31,7 @@ interface SetupConfig {
   name: string;
   description: string;
   templateDir: string;
-  packageJson: (projectName: string, multiTenant: boolean) => object;
+  packageJson: (projectName: string, multiTenant: boolean, conformance?: boolean) => object;
   seedFile?: string;
 }
 
@@ -46,7 +46,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -67,6 +67,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         hono: "^4.6.0",
         kysely: "latest",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@types/better-sqlite3": "^7.6.0",
@@ -81,7 +82,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "Cloudflare Workers (D1)",
     description: "Cloudflare Workers setup with D1 database",
     templateDir: "cloudflare",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -113,6 +114,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         kysely: "latest",
         "kysely-d1": "latest",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@cloudflare/workers-types": "^4.0.0",
@@ -128,7 +130,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "AWS SST (Lambda + DynamoDB)",
     description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
     templateDir: "aws-sst",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -149,6 +151,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         authhero: "latest",
         hono: "^4.6.0",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@types/aws-lambda": "^8.10.0",
@@ -1192,7 +1195,7 @@ program
     // Write package.json with multi-tenant option
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
-      JSON.stringify(config.packageJson(projectName, multiTenant), null, 2),
+      JSON.stringify(config.packageJson(projectName, multiTenant, conformance), null, 2),
     );
 
     // Copy template files

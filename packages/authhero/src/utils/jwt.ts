@@ -43,21 +43,28 @@ export interface JwtPayload {
 
 async function getJwks(bindings: Bindings) {
   if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
-    const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
+    try {
+      const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
 
-    if (!response.ok) {
+      if (!response.ok) {
+        console.warn(
+          `JWKS fetch failed with status ${response.status}, falling back to database`,
+        );
+        return await getJwksFromDatabase(bindings.data);
+      }
+
+      const responseBody = await response.json();
+      const parsed = z
+        .object({ keys: z.array(JwksKeySchema) })
+        .parse(responseBody);
+
+      return parsed.keys;
+    } catch (error) {
       console.warn(
-        `JWKS fetch failed with status ${response.status}, falling back to database`,
+        `JWKS fetch error: ${error instanceof Error ? error.message : "Unknown error"}, falling back to database`,
       );
       return await getJwksFromDatabase(bindings.data);
     }
-
-    const responseBody = await response.json();
-    const parsed = z
-      .object({ keys: z.array(JwksKeySchema) })
-      .parse(responseBody);
-
-    return parsed.keys;
   }
 
   return await getJwksFromDatabase(bindings.data);
