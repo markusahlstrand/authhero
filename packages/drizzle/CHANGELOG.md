@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.17.0
+
+### Minor Changes
+
+- 49039c0: Add profile data for primary user in indentities
+
 ## 0.16.0
 
 ### Minor Changes
