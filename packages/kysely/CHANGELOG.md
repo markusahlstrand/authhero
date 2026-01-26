@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.84.0
+
+### Minor Changes
+
+- 49039c0: Add profile data for primary user in indentities
+
 ## 10.83.0
 
 ### Minor Changes
