@@ -29,10 +29,14 @@ vi.mock("./utils/domainUtils", () => ({
   buildUrlWithProtocol: (url: string) => `https://${url}`,
 }));
 
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/" }),
-}));
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: "/" }),
+  };
+});
 
 // Mock color picker to avoid CSS import issues in tests
 vi.mock("react-admin-color-picker", () => ({
