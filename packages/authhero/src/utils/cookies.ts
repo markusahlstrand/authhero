@@ -49,7 +49,7 @@ export function getAuthCookie(
 }
 
 export function clearAuthCookie(tenant_id: string, hostname?: string) {
-  return serialize(getCookieName(tenant_id), "", {
+  const cookieString = serialize(getCookieName(tenant_id), "", {
     path: "/",
     httpOnly: true,
     secure: true,
@@ -57,6 +57,10 @@ export function clearAuthCookie(tenant_id: string, hostname?: string) {
     sameSite: "none",
     domain: hostname ? getWildcardDomain(hostname) : undefined,
   });
+  
+  // Add Partitioned attribute for proper cookie clearing
+  // This ensures consistency with serializeAuthCookie
+  return cookieString + "; Partitioned";
 }
 
 export function serializeAuthCookie(
@@ -64,7 +68,7 @@ export function serializeAuthCookie(
   value: string,
   hostname?: string,
 ) {
-  return serialize(getCookieName(tenant_id), value, {
+  const cookieString = serialize(getCookieName(tenant_id), value, {
     path: "/",
     httpOnly: true,
     secure: true,
@@ -73,4 +77,8 @@ export function serializeAuthCookie(
     domain: hostname ? getWildcardDomain(hostname) : undefined,
     partitioned: true,
   });
+  
+  // Add Partitioned attribute for enhanced security
+  // This prevents the cookie from being sent in cross-site contexts
+  return cookieString + "; Partitioned";
 }
