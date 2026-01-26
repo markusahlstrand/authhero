@@ -38,16 +38,14 @@ export const users = sqliteTable(
     app_metadata: text("app_metadata", { length: 4096 })
       .notNull()
       .default("{}"),
-    user_metadata: text("user_metadata", { length: 4096 })
-      .notNull()
-      .default("{}"),
+    user_metadata: text("user_metadata").notNull().default("{}"),
     profileData: text("profileData", { length: 2048 }),
     locale: text("locale", { length: 255 }),
     // Additional OIDC profile claims (OIDC Core 5.1)
-    middle_name: text("middle_name", { length: 255 }),
+    middle_name: text("middle_name", { length: 100 }),
     preferred_username: text("preferred_username", { length: 255 }), // Shorthand name user wishes to be referred to
-    profile: text("profile", { length: 2083 }), // URL of profile page
-    website: text("website", { length: 2083 }),
+    profile: text("profile"), // URL of profile page
+    website: text("website"),
     gender: text("gender", { length: 50 }),
     birthdate: text("birthdate", { length: 10 }), // ISO 8601:2004 YYYY-MM-DD
     zoneinfo: text("zoneinfo", { length: 100 }), // e.g., "Europe/Paris"
