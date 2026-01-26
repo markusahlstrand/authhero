@@ -77,7 +77,7 @@ export async function authorizationCodeGrantUser(
       description: "Invalid authorization code",
       userId: code.user_id,
     });
-    throw new JSONHTTPException(403, {
+    throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Invalid authorization code",
     });
@@ -200,6 +200,19 @@ export async function authorizationCodeGrantUser(
     }
   }
 
+  // OIDC Core 2.1: When max_age was used in authorization request, auth_time is required in ID token
+  // Fetch the session to get the authenticated_at timestamp
+  let auth_time: number | undefined;
+  if (loginSession.authParams.max_age !== undefined && loginSession.session_id) {
+    const session = await ctx.env.data.sessions.get(
+      client.tenant.id,
+      loginSession.session_id,
+    );
+    if (session?.authenticated_at) {
+      auth_time = Math.floor(new Date(session.authenticated_at).getTime() / 1000);
+    }
+  }
+
   return {
     user,
     client,
@@ -207,6 +220,7 @@ export async function authorizationCodeGrantUser(
     session_id: loginSession.session_id,
     refresh_token: refreshToken?.id,
     organization,
+    auth_time,
     authParams: {
       ...loginSession.authParams,
       // Use the state and nonce from the code as it might differ if it's a silent auth login

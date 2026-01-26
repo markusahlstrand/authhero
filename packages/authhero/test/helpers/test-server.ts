@@ -118,13 +118,23 @@ export async function getTestServer(
     options: {},
   });
 
-  // Add a test user
+  // Add a test user with OIDC profile claims for testing
   await data.users.create("tenantId", {
     email: "foo@example.com",
     email_verified: true,
     name: "Test User",
+    given_name: "Test",
+    family_name: "User",
+    middle_name: "Middle",
     nickname: "Test User",
+    username: "testuser",
     picture: "https://example.com/test.png",
+    profile: "https://example.com/profile",
+    website: "https://example.com",
+    gender: "other",
+    birthdate: "1990-01-15",
+    zoneinfo: "America/Los_Angeles",
+    locale: "en-US",
     connection: "email",
     provider: "email",
     is_social: false,

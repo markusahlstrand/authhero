@@ -99,6 +99,348 @@ describe("common", () => {
       });
     });
 
+    it("should NOT include email claims in id_token when only openid scope is requested (OIDC compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid", // Only openid scope, no email scope
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Should have basic claims
+      expect(payload.sub).toBeDefined();
+      expect(payload.aud).toBeDefined();
+      expect(payload.iss).toBeDefined();
+
+      // Should NOT have email claims when email scope is not requested
+      expect(payload.email).toBeUndefined();
+      expect(payload.email_verified).toBeUndefined();
+
+      // Should NOT have profile claims when profile scope is not requested
+      expect(payload.name).toBeUndefined();
+      expect(payload.nickname).toBeUndefined();
+      expect(payload.picture).toBeUndefined();
+      expect(payload.given_name).toBeUndefined();
+      expect(payload.family_name).toBeUndefined();
+      expect(payload.locale).toBeUndefined();
+    });
+
+    it("should include email claims in id_token when email scope is requested with response_type=id_token only (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: email claims should only be in id_token for response_type=id_token
+      // (where no access token is issued to use with userinfo endpoint)
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.ID_TOKEN,
+          scope: "openid email", // Request email scope
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Should have email claims when email scope is requested with response_type=id_token
+      expect(payload.email).toBe("foo@example.com");
+      expect(payload.email_verified).toBeDefined();
+
+      // Should NOT have profile claims when profile scope is not requested
+      expect(payload.name).toBeUndefined();
+      expect(payload.nickname).toBeUndefined();
+    });
+
+    it("should NOT include email claims in id_token when email scope is requested with TOKEN_ID_TOKEN (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: email claims should come from userinfo endpoint when access token is issued
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid email", // Request email scope
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Per OIDC Core 5.4: email claims should NOT be in id_token when access token is issued
+      // They should be retrieved from the userinfo endpoint instead
+      expect(payload.email).toBeUndefined();
+      expect(payload.email_verified).toBeUndefined();
+
+      // Should NOT have profile claims when profile scope is not requested
+      expect(payload.name).toBeUndefined();
+      expect(payload.nickname).toBeUndefined();
+    });
+
+    it("should include profile claims in id_token when profile scope is requested with response_type=id_token only (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: profile claims should only be in id_token for response_type=id_token
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.ID_TOKEN,
+          scope: "openid profile", // Request profile scope
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Should have profile claims when profile scope is requested with response_type=id_token
+      expect(payload.nickname).toBeDefined();
+      expect(payload.name).toBeDefined();
+
+      // Should NOT have email claims when email scope is not requested
+      expect(payload.email).toBeUndefined();
+      expect(payload.email_verified).toBeUndefined();
+    });
+
+    it("should NOT include profile claims in id_token when profile scope is requested with TOKEN_ID_TOKEN (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: profile claims should come from userinfo endpoint when access token is issued
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid profile", // Request profile scope
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Per OIDC Core 5.4: profile claims should NOT be in id_token when access token is issued
+      expect(payload.nickname).toBeUndefined();
+      expect(payload.name).toBeUndefined();
+
+      // Should NOT have email claims when email scope is not requested
+      expect(payload.email).toBeUndefined();
+      expect(payload.email_verified).toBeUndefined();
+    });
+
+    it("should include both email and profile claims when both scopes are requested with response_type=id_token only (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: claims should only be in id_token for response_type=id_token
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.ID_TOKEN,
+          scope: "openid profile email", // Request both scopes
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Should have both email and profile claims with response_type=id_token
+      expect(payload.email).toBe("foo@example.com");
+      expect(payload.email_verified).toBeDefined();
+      expect(payload.nickname).toBeDefined();
+      expect(payload.name).toBeDefined();
+    });
+
+    it("should NOT include email or profile claims in id_token when requested with TOKEN_ID_TOKEN (OIDC 5.4 compliance)", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await env.data.legacyClients.get("clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Per OIDC Core 5.4: claims should come from userinfo endpoint when access token is issued
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          scope: "openid profile email", // Request both scopes
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      expect(tokens.id_token).toBeDefined();
+      const parsed = parseJWT(tokens.id_token!);
+      const payload = parsed?.payload as Record<string, unknown>;
+
+      // Per OIDC Core 5.4: claims should NOT be in id_token when access token is issued
+      expect(payload.email).toBeUndefined();
+      expect(payload.email_verified).toBeUndefined();
+      expect(payload.nickname).toBeUndefined();
+      expect(payload.name).toBeUndefined();
+    });
+
     it("should create tokens with 1-hour expiration for impersonated users", async () => {
       const { env } = await getTestServer();
       const ctx = {

@@ -52,9 +52,12 @@ export function list(db: Kysely<Database>) {
       return removeNullProperties({
         ...user,
         email_verified: user.email_verified === 1,
+        phone_verified:
+          user.phone_verified !== null ? user.phone_verified === 1 : undefined,
         is_social: user.is_social === 1,
         app_metadata: JSON.parse(user.app_metadata),
         user_metadata: JSON.parse(user.user_metadata),
+        address: user.address ? JSON.parse(user.address) : undefined,
         identities: [
           {
             connection: user.connection,

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -117,6 +118,7 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);
@@ -295,6 +297,7 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
         state: "continue-test-state",
         nonce: "continue-test-nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);
@@ -458,6 +461,7 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
         state: "state2",
         nonce: "nonce2",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);

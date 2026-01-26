@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -142,6 +143,7 @@ describe("forms - router node with user context", () => {
         state: "state1",
         nonce: "nonce1",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse1.status).toBe(302);
@@ -306,6 +308,7 @@ describe("forms - router node with user context", () => {
         state: "state_fallback",
         nonce: "nonce_fallback",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);
@@ -465,6 +468,7 @@ describe("forms - router node with user context", () => {
         state: "state_admin",
         nonce: "nonce_admin",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     const location = authorizeResponse.headers.get("location");
@@ -622,6 +626,7 @@ describe("forms - router node with user context", () => {
         state: "state_contains",
         nonce: "nonce_contains",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     const location = authorizeResponse.headers.get("location");

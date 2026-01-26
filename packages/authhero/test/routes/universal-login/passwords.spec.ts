@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("passwords", () => {
@@ -40,6 +40,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -128,6 +129,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -219,6 +221,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -293,6 +296,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -395,6 +399,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     const initialLocation = initialAuthorize.headers.get("location");
@@ -421,6 +426,7 @@ describe("passwords", () => {
         state: "state2",
         nonce: "nonce2",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -484,6 +490,7 @@ describe("passwords", () => {
         state: "state3",
         nonce: "nonce3",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     const newLocation = newAuthorize.headers.get("location");
@@ -512,6 +519,7 @@ describe("passwords", () => {
         state: "state4",
         nonce: "nonce4",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
     const oldLocation = oldAuthorize.headers.get("location");
@@ -568,6 +576,7 @@ describe("passwords", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 

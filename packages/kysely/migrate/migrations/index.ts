@@ -117,6 +117,10 @@ import * as o018_login_session_state from "./2026-01-10T10:00:00_login_session_s
 import * as o019_roles_resource_servers_metadata from "./2026-01-14T10:00:00_roles_resource_servers_metadata";
 import * as o020_session_add_timestamp_columns from "./2026-01-15T10:00:00_session_add_timestamp_columns";
 import * as o021_session_cleanup_and_ulid from "./2026-01-22T10:00:00_session_cleanup_and_ulid";
+import * as o022_oidc_profile_claims from "./2026-01-28T10:00:00_oidc_profile_claims";
+import * as o023_preferred_username from "./2026-01-28T11:00:00_preferred_username";
+import * as o024_user_address from "./2026-01-28T12:00:00_user_address";
+import * as o025_authparams_max_age from "./2026-01-28T13:00:00_authparams_max_age";
 
 // These need to be in alphabetic order
 export default {
@@ -239,4 +243,8 @@ export default {
   o019_roles_resource_servers_metadata,
   o020_session_add_timestamp_columns,
   o021_session_cleanup_and_ulid,
+  o022_oidc_profile_claims,
+  o023_preferred_username,
+  o024_user_address,
+  o025_authparams_max_age,
 };

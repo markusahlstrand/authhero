@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -48,6 +49,7 @@ describe("sms", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
       },
     });
 

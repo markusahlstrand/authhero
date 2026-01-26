@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("universal", () => {
   it("should create a login session and return a redirect", async () => {
@@ -14,6 +15,7 @@ describe("universal", () => {
           redirect_uri: "https://example.com/callback",
           state: "state",
           ui_locales: "en",
+          response_type: AuthorizationResponseType.CODE,
         },
       },
       {
@@ -78,6 +80,7 @@ describe("universal", () => {
           state: "state",
           ui_locales: "en",
           login_hint: "foo@example.com",
+          response_type: AuthorizationResponseType.CODE,
         },
       },
       {

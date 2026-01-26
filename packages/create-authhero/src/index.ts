@@ -23,13 +23,15 @@ interface CliOptions {
   yes?: boolean;
   githubCi?: boolean;
   multiTenant?: boolean;
+  conformance?: boolean;
+  conformanceAlias?: string;
 }
 
 interface SetupConfig {
   name: string;
   description: string;
   templateDir: string;
-  packageJson: (projectName: string, multiTenant: boolean) => object;
+  packageJson: (projectName: string, multiTenant: boolean, conformance?: boolean) => object;
   seedFile?: string;
 }
 
@@ -44,7 +46,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -65,6 +67,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         hono: "^4.6.0",
         kysely: "latest",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@types/better-sqlite3": "^7.6.0",
@@ -79,7 +82,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "Cloudflare Workers (D1)",
     description: "Cloudflare Workers setup with D1 database",
     templateDir: "cloudflare",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -111,6 +114,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         kysely: "latest",
         "kysely-d1": "latest",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@cloudflare/workers-types": "^4.0.0",
@@ -126,7 +130,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "AWS SST (Lambda + DynamoDB)",
     description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
     templateDir: "aws-sst",
-    packageJson: (projectName, multiTenant) => ({
+    packageJson: (projectName, multiTenant, conformance) => ({
       name: projectName,
       version: "1.0.0",
       type: "module",
@@ -147,6 +151,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         authhero: "latest",
         hono: "^4.6.0",
         ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
+        ...(conformance && { bcryptjs: "latest" }),
       },
       devDependencies: {
         "@types/aws-lambda": "^8.10.0",
@@ -174,9 +179,147 @@ function copyFiles(source: string, target: string): void {
   });
 }
 
-function generateLocalSeedFileContent(multiTenant: boolean): string {
+function generateLocalSeedFileContent(
+  multiTenant: boolean,
+  conformance: boolean = false,
+  conformanceAlias: string = "authhero-local",
+): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
+
+  // Build callbacks array
+  const defaultCallbacks = [
+    "https://manage.authhero.net/auth-callback",
+    "https://local.authhero.net/auth-callback",
+    "http://localhost:5173/auth-callback",
+    "https://localhost:3000/auth-callback",
+  ];
+  const conformanceCallbacks = conformance
+    ? [
+        `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
+        `https://localhost:8443/test/a/${conformanceAlias}/callback`,
+      ]
+    : [];
+  const callbacks = [...defaultCallbacks, ...conformanceCallbacks];
+
+  const defaultLogoutUrls = [
+    "https://manage.authhero.net",
+    "https://local.authhero.net",
+    "http://localhost:5173",
+    "https://localhost:3000",
+  ];
+  const conformanceLogoutUrls = conformance
+    ? ["https://localhost:8443/", "https://localhost.emobix.co.uk:8443/"]
+    : [];
+  const allowedLogoutUrls = [...defaultLogoutUrls, ...conformanceLogoutUrls];
+
+  // Generate conformance client creation code
+  const conformanceClientCode = conformance
+    ? `
+  // Create OpenID Conformance Suite test clients and user
+  console.log("Creating conformance test clients and user...");
+  
+  const conformanceCallbacks = [
+    "https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback",
+    "https://localhost:8443/test/a/${conformanceAlias}/callback",
+  ];
+  const conformanceLogoutUrls = [
+    "https://localhost:8443/",
+    "https://localhost.emobix.co.uk:8443/",
+  ];
+  const conformanceWebOrigins = [
+    "https://localhost:8443",
+    "https://localhost.emobix.co.uk:8443",
+  ];
+
+  try {
+    await adapters.clients.create("${tenantId}", {
+      client_id: "conformance-test",
+      client_secret: "conformanceTestSecret123",
+      name: "Conformance Test Client",
+      callbacks: conformanceCallbacks,
+      allowed_logout_urls: conformanceLogoutUrls,
+      web_origins: conformanceWebOrigins,
+    });
+    console.log("✅ Created conformance-test client");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance-test client already exists");
+    } else {
+      throw e;
+    }
+  }
+
+  try {
+    await adapters.clients.create("${tenantId}", {
+      client_id: "conformance-test2",
+      client_secret: "conformanceTestSecret456",
+      name: "Conformance Test Client 2",
+      callbacks: conformanceCallbacks,
+      allowed_logout_urls: conformanceLogoutUrls,
+      web_origins: conformanceWebOrigins,
+    });
+    console.log("✅ Created conformance-test2 client");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance-test2 client already exists");
+    } else {
+      throw e;
+    }
+  }
+
+  // Create a conformance test user with ALL OIDC profile claims populated
+  // This is required for OIDCC-5.4 (VerifyScopesReturnedInUserInfoClaims) test
+  try {
+    await adapters.users.create("${tenantId}", {
+      user_id: "auth2|conformance-user",
+      email: "conformance@example.com",
+      email_verified: true,
+      name: "Conformance Test User",
+      given_name: "Conformance",
+      family_name: "User",
+      middle_name: "Test",
+      nickname: "conformance",
+      username: "conformance_user",
+      picture: "https://example.com/conformance.png",
+      profile: "https://example.com/conformance",
+      website: "https://example.com",
+      gender: "other",
+      birthdate: "2000-01-01",
+      zoneinfo: "Europe/London",
+      locale: "en-US",
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+      is_social: false,
+    });
+    console.log("✅ Created conformance test user (conformance@example.com)");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance test user already exists");
+    } else {
+      throw e;
+    }
+  }
+
+  // Create password for conformance test user
+  // Password: ConformanceTest123!
+  try {
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash("ConformanceTest123!", 10);
+    await adapters.passwords.create("${tenantId}", {
+      user_id: "auth2|conformance-user",
+      password: hashedPassword,
+    });
+    console.log("✅ Created password for conformance test user");
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint")) {
+      console.log("ℹ️  conformance test user password already exists");
+    } else {
+      throw e;
+    }
+  }
+`
+    : "";
 
   // TypeScript seed file for local setup - uses the seed function from authhero
   return `import { SqliteDialect, Kysely } from "kysely";
@@ -207,8 +350,10 @@ async function main() {
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
     isControlPlane: ${multiTenant},
+    callbacks: ${JSON.stringify(callbacks)},
+    allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
-
+${conformanceClientCode}
   await db.destroy();
 }
 
@@ -935,6 +1080,11 @@ program
   .option("--skip-seed", "skip seeding the database")
   .option("--skip-start", "skip starting the development server")
   .option("--github-ci", "include GitHub CI workflows with semantic versioning")
+  .option("--conformance", "add OpenID conformance suite test clients")
+  .option(
+    "--conformance-alias <alias>",
+    "alias for conformance suite (default: authhero-local)",
+  )
   .option("-y, --yes", "skip all prompts and use defaults/provided options")
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
@@ -1028,6 +1178,15 @@ program
       multiTenant = multiTenantAnswer.multiTenant;
     }
 
+    // Handle conformance testing setup
+    const conformance = options.conformance || false;
+    const conformanceAlias = options.conformanceAlias || "authhero-local";
+    if (conformance) {
+      console.log(
+        `OpenID Conformance Suite: enabled (alias: ${conformanceAlias})`,
+      );
+    }
+
     const config = setupConfigs[setupType];
 
     // Create project directory
@@ -1036,7 +1195,7 @@ program
     // Write package.json with multi-tenant option
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
-      JSON.stringify(config.packageJson(projectName, multiTenant), null, 2),
+      JSON.stringify(config.packageJson(projectName, multiTenant, conformance), null, 2),
     );
 
     // Copy template files
@@ -1110,7 +1269,11 @@ program
     // Generate seed.ts and app.ts for local setup
     // cloudflare setup generates app.ts and seed.ts via generateCloudflareFiles
     if (setupType === "local") {
-      const seedContent = generateLocalSeedFileContent(multiTenant);
+      const seedContent = generateLocalSeedFileContent(
+        multiTenant,
+        conformance,
+        conformanceAlias,
+      );
       fs.writeFileSync(path.join(projectPath, "src/seed.ts"), seedContent);
 
       const appContent = generateLocalAppFileContent(multiTenant);
@@ -1120,6 +1283,36 @@ program
     // Generate seed.ts and app.ts for AWS SST setup
     if (setupType === "aws-sst") {
       generateAwsSstFiles(projectPath, multiTenant);
+    }
+
+    // Generate conformance-config.json if conformance mode is enabled
+    if (conformance) {
+      const conformanceConfig = {
+        alias: conformanceAlias,
+        description: "AuthHero Conformance Test",
+        server: {
+          discoveryUrl:
+            "http://host.docker.internal:3000/.well-known/openid-configuration",
+        },
+        client: {
+          client_id: "conformance-test",
+          client_secret: "conformanceTestSecret123",
+        },
+        client2: {
+          client_id: "conformance-test2",
+          client_secret: "conformanceTestSecret456",
+        },
+        resource: {
+          resourceUrl: "http://host.docker.internal:3000/userinfo",
+        },
+      };
+      fs.writeFileSync(
+        path.join(projectPath, "conformance-config.json"),
+        JSON.stringify(conformanceConfig, null, 2),
+      );
+      console.log(
+        "📝 Created conformance-config.json for OpenID Conformance Suite",
+      );
     }
 
     const tenantType = multiTenant ? "multi-tenant" : "single-tenant";
@@ -1382,6 +1575,24 @@ program
 
       console.log("\nServer will be available at: https://localhost:3000");
       console.log("Portal available at: https://local.authhero.net");
+
+      if (conformance) {
+        console.log("\n🧪 OpenID Conformance Suite Testing:");
+        console.log(
+          "  1. Clone and start the conformance suite (if not already running):",
+        );
+        console.log(
+          "     git clone https://gitlab.com/openid/conformance-suite.git",
+        );
+        console.log("     cd conformance-suite && mvn clean package");
+        console.log("     docker-compose up -d");
+        console.log("  2. Open https://localhost.emobix.co.uk:8443");
+        console.log(
+          "  3. Create a test plan and use conformance-config.json for settings",
+        );
+        console.log(`  4. Use alias: ${conformanceAlias}`);
+      }
+
       console.log("\nFor more information, visit: https://authhero.net/docs\n");
     }
   });

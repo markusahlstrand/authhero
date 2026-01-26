@@ -49,6 +49,8 @@ export interface CreateAuthTokensParams {
   permissions?: string[];
   grantType?: GrantType;
   impersonatingUser?: User; // The original user who is impersonating
+  // OIDC Core 2.1: auth_time is required when max_age is used in authorization request
+  auth_time?: number; // Unix timestamp of when the user was authenticated
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -65,6 +67,7 @@ export async function createAuthTokens(
     organization,
     permissions,
     impersonatingUser,
+    auth_time,
   } = params;
 
   const { signingKeys } = await ctx.env.data.keys.list({
@@ -115,8 +118,25 @@ export async function createAuthTokens(
     permissions,
   };
 
+  // Parse scopes to determine which claims to include in id_token
+  // Following OIDC Core spec section 5.4 for standard claims
+  const scopes = authParams.scope?.split(" ") || [];
+  const hasOpenidScope = scopes.includes("openid");
+  const hasProfileScope = scopes.includes("profile");
+  const hasEmailScope = scopes.includes("email");
+
+  // Per OIDC Core section 5.4: Claims requested by profile, email, address, and phone
+  // scopes are returned from the UserInfo Endpoint, EXCEPT for response_type=id_token
+  // where there is no access token issued to access the userinfo endpoint.
+  // For all other response types (code, token, token id_token, etc.), these claims
+  // should be fetched from the userinfo endpoint using the access token.
+  // Note: We cast to string to handle the case where response_type could be "id_token"
+  // which is a valid OIDC value but not in our enum
+  const isIdTokenOnlyFlow =
+    (authParams.response_type as string | undefined) === "id_token";
+
   const idTokenPayload =
-    user && authParams.scope?.split(" ").includes("openid")
+    user && hasOpenidScope
       ? {
           // The audience for an id token is the client id
           aud: authParams.client_id,
@@ -124,14 +144,34 @@ export async function createAuthTokens(
           iss,
           sid: session_id,
           nonce: authParams.nonce,
-          given_name: user.given_name,
-          family_name: user.family_name,
-          nickname: user.nickname,
-          picture: user.picture,
-          locale: user.locale,
-          name: user.name,
-          email: user.email,
-          email_verified: user.email_verified,
+          // OIDC Core 2.1: auth_time is REQUIRED when max_age was used in authorization request
+          // It's the time when the End-User authentication occurred (Unix timestamp)
+          ...(authParams.max_age !== undefined && auth_time !== undefined
+            ? { auth_time }
+            : {}),
+          // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
+          // an acr claim with one of the requested values
+          ...(authParams.acr_values
+            ? { acr: authParams.acr_values.split(" ")[0] }
+            : {}),
+          // Profile scope claims - only include in id_token for response_type=id_token
+          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          ...(hasProfileScope &&
+            isIdTokenOnlyFlow && {
+              given_name: user.given_name,
+              family_name: user.family_name,
+              nickname: user.nickname,
+              picture: user.picture,
+              locale: user.locale,
+              name: user.name,
+            }),
+          // Email scope claims - only include in id_token for response_type=id_token
+          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          ...(hasEmailScope &&
+            isIdTokenOnlyFlow && {
+              email: user.email,
+              email_verified: user.email_verified,
+            }),
           act: impersonatingUser
             ? { sub: impersonatingUser.user_id }
             : undefined,
@@ -241,7 +281,7 @@ export async function createCodeData(
   params: CreateCodeParams,
 ) {
   const code = await ctx.env.data.codes.create(params.client.tenant.id, {
-    code_id: nanoid(),
+    code_id: nanoid(32), // 32 chars = 192 bits of entropy (RFC6749-10.10 requires high entropy)
     user_id: params.user.user_id,
     code_type: "authorization_code",
     login_id: params.login_id,
@@ -847,7 +887,7 @@ export async function createFrontChannelAuthResponse(
     const co_id = nanoid(12);
 
     const code = await ctx.env.data.codes.create(client.tenant.id, {
-      code_id: nanoid(),
+      code_id: nanoid(32), // Use high entropy for security
       code_type: "ticket",
       login_id: params.loginSession.id,
       expires_at: new Date(Date.now() + TICKET_EXPIRATION_TIME).toISOString(),

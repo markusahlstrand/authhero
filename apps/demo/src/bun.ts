@@ -54,6 +54,43 @@ if (signingKeys.length === 0) {
     web_origins: ["https://localhost:5173"],
   });
 
+  // OpenID Conformance Suite test clients
+  await dataAdapter.clients.create("main", {
+    client_id: "conformance-test",
+    client_secret: "conformanceTestSecret123",
+    name: "Conformance Test Client",
+    callbacks: [
+      "https://localhost.emobix.co.uk:8443/test/a/authhero-local/callback",
+      "https://localhost:8443/test/a/authhero-local/callback",
+    ],
+    allowed_logout_urls: [
+      "https://localhost:8443/",
+      "https://localhost.emobix.co.uk:8443/",
+    ],
+    web_origins: [
+      "https://localhost:8443",
+      "https://localhost.emobix.co.uk:8443",
+    ],
+  });
+
+  await dataAdapter.clients.create("main", {
+    client_id: "conformance-test2",
+    client_secret: "conformanceTestSecret456",
+    name: "Conformance Test Client 2",
+    callbacks: [
+      "https://localhost.emobix.co.uk:8443/test/a/authhero-local/callback",
+      "https://localhost:8443/test/a/authhero-local/callback",
+    ],
+    allowed_logout_urls: [
+      "https://localhost:8443/",
+      "https://localhost.emobix.co.uk:8443/",
+    ],
+    web_origins: [
+      "https://localhost:8443",
+      "https://localhost.emobix.co.uk:8443",
+    ],
+  });
+
   await dataAdapter.emailProviders.create("main", {
     name: "mock-email",
     enabled: true,
