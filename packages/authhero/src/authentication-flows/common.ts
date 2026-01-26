@@ -130,10 +130,8 @@ export async function createAuthTokens(
   // where there is no access token issued to access the userinfo endpoint.
   // For all other response types (code, token, token id_token, etc.), these claims
   // should be fetched from the userinfo endpoint using the access token.
-  // Note: We cast to string to handle the case where response_type could be "id_token"
-  // which is a valid OIDC value but not in our enum
   const isIdTokenOnlyFlow =
-    (authParams.response_type as string | undefined) === "id_token";
+    authParams.response_type === AuthorizationResponseType.ID_TOKEN;
 
   const idTokenPayload =
     user && hasOpenidScope
@@ -380,7 +378,7 @@ async function createNewSession(
       initial_ip: ctx.var.ip || "",
       last_user_agent: ctx.var.useragent || "",
       initial_user_agent: ctx.var.useragent || "",
-      // TODO: add Authentication Strength Name
+      // TODO: add Autonomous System Number
       initial_asn: "",
       last_asn: "",
     },

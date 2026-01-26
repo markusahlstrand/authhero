@@ -646,7 +646,7 @@ describe("token", () => {
 
         const cookie = response.headers.get("set-cookie");
         expect(cookie).toBe(
-          `tenantId-auth-token=${accessToken?.payload.sid}; HttpOnly; Max-Age=2592000; Path=/; SameSite=None; Secure`,
+          `tenantId-auth-token=${accessToken?.payload.sid}; Max-Age=2592000; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
         );
       });
 
