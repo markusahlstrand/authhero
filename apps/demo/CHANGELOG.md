@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.28.0
+
+### Minor Changes
+
+- 8b9cb85: First passing openid test
+
+### Patch Changes
+
+- Updated dependencies [8b9cb85]
+- Updated dependencies [16d21c8]
+  - authhero@4.13.0
+
 ## 0.27.2
 
 ### Patch Changes
