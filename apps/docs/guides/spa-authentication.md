@@ -270,8 +270,11 @@ async function authenticate() {
     if (error.error === "login_required") {
       // Silent auth failed, probably ITP
       // Force a redirect to reset the timer
+      // This will navigate away - errors handled in callback
       await auth0.loginWithRedirect({
-        prompt: "none", // Try to skip login screen if possible
+        authorizationParams: {
+          prompt: "none", // Try to skip login screen if possible
+        }
       });
     }
   }
@@ -338,13 +341,14 @@ CHIPS cookies are **partitioned per top-level site**, which means:
 **Recommended Approach:** Use CHIPS as the primary method with a `prompt=none` redirect fallback:
 
 ```javascript
+// Step 1: Try silent auth first (works with CHIPS on Chrome/Android)
 async function ensureAuthenticated() {
   try {
-    // Try silent auth with CHIPS (works on Chrome/Android)
     return await auth0.getTokenSilently();
   } catch (error) {
     if (error.error === 'login_required') {
-      // Fallback: redirect with prompt=none (works on Safari/iOS)
+      // Silent auth failed - initiate prompt=none redirect
+      // Note: This navigates away, so code after this won't execute
       await auth0.loginWithRedirect({
         authorizationParams: {
           prompt: 'none'
@@ -354,7 +358,29 @@ async function ensureAuthenticated() {
     throw error;
   }
 }
+
+// Step 2: Handle the redirect callback (on your callback page or app init)
+async function handleAuthCallback() {
+  // Check if this is a redirect callback
+  if (window.location.search.includes('code=') || 
+      window.location.search.includes('error=')) {
+    try {
+      await auth0.handleRedirectCallback();
+      // Success! User is now authenticated
+    } catch (error) {
+      // prompt=none failures arrive here as errors
+      // Common errors: 'login_required', 'consent_required', 'interaction_required'
+      if (error.error === 'login_required' || 
+          error.error === 'interaction_required') {
+        // No existing session on auth server - need interactive login
+        await auth0.loginWithRedirect();
+      }
+    }
+  }
+}
 ```
+
+> **Important:** `loginWithRedirect` causes a full page navigation. Errors from `prompt=none` (like `login_required`) are returned as URL parameters after the redirect and must be handled in `handleRedirectCallback()`, not in a try-catch around the redirect call.
 
 This combination provides reliable cross-subdomain authentication across all platforms.
 
@@ -494,18 +520,30 @@ const token = await auth0.getTokenSilently();
 - Consider federated identity (social logins) to reduce friction
 
 ```javascript
-// On each domain, try to login silently first
-try {
-  await auth0.loginWithRedirect({
-    authorizationParams: {
-      prompt: "none", // Skip login UI if session exists on auth server
-    },
-  });
-} catch (error) {
-  // User needs to authenticate
-  await auth0.loginWithRedirect();
+// On each domain, try silent login first via redirect
+// Step 1: Initiate the prompt=none redirect
+await auth0.loginWithRedirect({
+  authorizationParams: {
+    prompt: "none", // Skip login UI if session exists on auth server
+  },
+});
+
+// Step 2: Handle the callback (this runs after redirect returns)
+async function handleCallback() {
+  try {
+    await auth0.handleRedirectCallback();
+    // Success - user had an existing session
+  } catch (error) {
+    // prompt=none failed - no existing session, need interactive login
+    if (error.error === 'login_required' || 
+        error.error === 'interaction_required') {
+      await auth0.loginWithRedirect();
+    }
+  }
 }
 ```
+
+> **Note:** Errors from `prompt=none` are returned via URL parameters after the redirect completes. Handle them in your callback handler, not with try-catch around `loginWithRedirect`.
 
 ### High-Security Applications
 
