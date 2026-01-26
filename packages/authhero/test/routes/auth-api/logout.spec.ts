@@ -22,7 +22,7 @@ describe("logout", () => {
 
     const cookie = response.headers.get("set-cookie");
     expect(cookie).toBe(
-      "tenantId-auth-token=; HttpOnly; Max-Age=0; Path=/; SameSite=None; Secure; Partitioned",
+      "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; Partitioned; SameSite=None",
     );
   });
 
