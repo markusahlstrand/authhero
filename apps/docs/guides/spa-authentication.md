@@ -107,14 +107,15 @@ The SPA opens a hidden iframe pointing to the auth server. Since the user has a 
 
 This is the **only way to achieve true "logged in one, logged in all" SSO**. Because the session lives on the Auth Domain (not your app's domain), every app that points an iframe to that domain can "see" the session.
 
-#### The 2026 Reality: Browser Privacy Kills Silent Auth
+#### The 2026 Reality: Browser Privacy Impacts Silent Auth
 
-This method is the primary victim of modern browser privacy initiatives:
+This method is affected by browser privacy initiatives, though the landscape has evolved:
 
-- **Chrome 144+**: Blocks third-party cookies in iframes unless you use CHIPS (Partitioned Cookies)
-- **Safari ITP**: Kills iframe-based auth after 30 days of inactivity on the auth domain
+- **Chrome**: Still supports third-party cookies (Google abandoned full deprecation in July 2024, shifting to a user-choice model reaffirmed in October 2025). CHIPS (Partitioned Cookies) provides a reliable solution for iframe-based auth.
+- **Safari ITP**: Kills iframe-based auth after 30 days of inactivity on the auth domain. Safari 18.4 briefly added CHIPS support, but WebKit subsequently disabled it due to incomplete handling.
 - **Firefox Enhanced Tracking Protection**: Blocks known authentication domains
 - **Brave**: Aggressive blocking by default
+- **Android (Chrome/WebView)**: Third-party cookies still work, but standard cookies are frequently wiped during browser or system updates—causing unexpected logouts. CHIPS cookies survive these updates, making them essential for reliable session persistence on Android.
 
 #### Pros
 
@@ -124,11 +125,12 @@ This method is the primary victim of modern browser privacy initiatives:
 
 #### Cons
 
-- **Increasingly broken in 2026**
-- Requires third-party cookies (being deprecated)
-- CHIPS implementation is complex and not universally supported
+- Browser support varies significantly
+- CHIPS works well on Chrome/Android but Safari actively disabled it after initial 18.4 support
 - Safari's 30-day timer requires regular user interaction with the auth domain
 - May silently fail, requiring fallback mechanisms
+
+> **Practical Solution:** Use CHIPS for Chrome/Android devices combined with `prompt=none` redirect fallback for Safari/iOS. This combination provides reliable cross-subdomain authentication across all platforms.
 
 #### When to Use (if at all)
 
@@ -299,9 +301,21 @@ function checkITPDeadline() {
 }
 ```
 
-### 3. CHIPS (Partitioned Cookies) on Chrome
+### 3. CHIPS (Partitioned Cookies) for Cross-Subdomain Auth
 
-**Problem:** Chrome 144+ blocks third-party cookies unless they use CHIPS (Cookies Having Independent Partitioned State).
+**Background:** While Google abandoned full third-party cookie deprecation in 2024 (shifting to user choice), CHIPS provides a reliable solution for cross-subdomain authentication, particularly on Android devices where cookie persistence has historically been problematic.
+
+#### The Android Cookie Persistence Problem
+
+On Android, third-party cookies technically work—silent auth via iframes functions correctly. However, Android's cookie storage behaves differently from desktop browsers:
+
+- **Browser/WebView updates** trigger cookie jar cleanups that wipe standard third-party cookies
+- **System updates** can also clear non-essential cookie storage
+- **App updates** (for apps using WebView) often reset the cookie state
+
+The result: users are unexpectedly logged out after updates, even though they were "remembered" before. This is particularly frustrating on Android where Chrome and WebView updates happen frequently in the background.
+
+**CHIPS cookies are treated differently.** Because they're explicitly partitioned and marked for cross-site use, they survive these cleanup operations. This makes CHIPS essential for reliable Android authentication—not because standard cookies are blocked, but because they don't persist.
 
 **Solution:** This requires **server-side changes** to your auth server:
 
@@ -309,14 +323,40 @@ function checkITPDeadline() {
 Set-Cookie: session=abc123; SameSite=None; Secure; Partitioned
 ```
 
-However, CHIPS cookies are **partitioned per top-level site**, which means:
+CHIPS cookies are **partitioned per top-level site**, which means:
 
 - A CHIPS cookie set from `login.auth.com` while on `app-a.com` is separate from
 - A CHIPS cookie set from `login.auth.com` while on `app-b.com`
 
-**This kills true cross-domain SSO.** Each top-level site gets its own partition.
+**This kills true cross-domain SSO** (different domains). However, **cross-subdomain SSO works** (e.g., `app.company.com` and `admin.company.com` sharing `auth.company.com`).
 
-**Mitigation:** Accept that cross-domain SSO is dead in modern browsers and migrate to Refresh Tokens.
+**Browser Support:**
+- ✅ **Chrome/Android**: Full support, solves cookie persistence issues on Android
+- ❌ **Safari/iOS**: Safari 18.4 briefly added support, but WebKit subsequently disabled it
+- ✅ **Firefox**: Supported
+
+**Recommended Approach:** Use CHIPS as the primary method with a `prompt=none` redirect fallback:
+
+```javascript
+async function ensureAuthenticated() {
+  try {
+    // Try silent auth with CHIPS (works on Chrome/Android)
+    return await auth0.getTokenSilently();
+  } catch (error) {
+    if (error.error === 'login_required') {
+      // Fallback: redirect with prompt=none (works on Safari/iOS)
+      await auth0.loginWithRedirect({
+        authorizationParams: {
+          prompt: 'none'
+        }
+      });
+    }
+    throw error;
+  }
+}
+```
+
+This combination provides reliable cross-subdomain authentication across all platforms.
 
 ### 4. iOS Safari Back Button Freeze
 
