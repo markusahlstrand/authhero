@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
-import { AuthorizationResponseType, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  AuthorizationResponseType,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 
 describe("silent", () => {
   it("should return a auth response for a valid silent auth session", async () => {
@@ -46,7 +50,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
-          response_mode: "web_message",
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
         },
       },
       {
@@ -72,7 +76,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.CODE,
-          response_mode: "web_message",
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
           code_challenge: "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
         },
       },
@@ -103,7 +107,10 @@ describe("silent", () => {
     );
 
     // Verify the new login session was created and linked to the current session
-    const newLoginSession = await env.data.loginSessions.get("tenantId", code?.login_id || "");
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      code?.login_id || "",
+    );
     expect(newLoginSession).toBeDefined();
     expect(newLoginSession?.session_id).toEqual(session.id);
     expect(newLoginSession?.authParams.client_id).toEqual("clientId");
@@ -159,7 +166,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
-          response_mode: "web_message",
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
         },
       },
       {
@@ -215,7 +222,7 @@ describe("silent", () => {
           state: "state",
           prompt: "none",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
-          response_mode: "web_message",
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
         },
       },
       {
@@ -276,12 +283,14 @@ describe("silent", () => {
     // Check the Location header contains the error
     const locationHeader = response.headers.get("location");
     expect(locationHeader).toBeTruthy();
-    
+
     const redirectUrl = new URL(locationHeader!);
     expect(redirectUrl.origin).toEqual("https://example.com");
     expect(redirectUrl.pathname).toEqual("/callback");
     expect(redirectUrl.searchParams.get("error")).toEqual("login_required");
-    expect(redirectUrl.searchParams.get("error_description")).toEqual("Login required");
+    expect(redirectUrl.searchParams.get("error_description")).toEqual(
+      "Login required",
+    );
     expect(redirectUrl.searchParams.get("state")).toEqual("test-state");
   });
 
@@ -342,11 +351,11 @@ describe("silent", () => {
     // Check the Location header contains the tokens in the fragment
     const locationHeader = response.headers.get("location");
     expect(locationHeader).toBeTruthy();
-    
+
     const redirectUrl = new URL(locationHeader!);
     expect(redirectUrl.origin).toEqual("https://example.com");
     expect(redirectUrl.pathname).toEqual("/callback");
-    
+
     // Parse the fragment
     const fragmentParams = new URLSearchParams(redirectUrl.hash.slice(1));
     expect(fragmentParams.get("access_token")).toBeTruthy();

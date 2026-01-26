@@ -41,7 +41,9 @@ describe("authorization_code grant - failed exchange logging", () => {
     });
 
     const failedExchangeLog = logs.find(
-      (log) => log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
     );
 
     expect(failedExchangeLog).toBeDefined();
@@ -94,7 +96,9 @@ describe("authorization_code grant - failed exchange logging", () => {
     });
 
     const failedExchangeLog = logs.find(
-      (log) => log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
     );
 
     expect(failedExchangeLog).toBeDefined();
@@ -155,7 +159,7 @@ describe("authorization_code grant - failed exchange logging", () => {
         },
       },
     );
-    expect(secondResponse.status).toBe(403);
+    expect(secondResponse.status).toBe(400);
     const secondBody = (await secondResponse.json()) as ErrorResponse;
     expect(secondBody).toEqual({
       error: "invalid_grant",
@@ -171,7 +175,8 @@ describe("authorization_code grant - failed exchange logging", () => {
 
     const failedExchangeLog = logs.find(
       (log) =>
-        log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN &&
+        log.type ===
+          LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN &&
         log.description === "Invalid authorization code",
     );
 
@@ -224,7 +229,9 @@ describe("authorization_code grant - failed exchange logging", () => {
     });
 
     const failedExchangeLog = logs.find(
-      (log) => log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
     );
 
     expect(failedExchangeLog).toBeDefined();
@@ -278,7 +285,9 @@ describe("authorization_code grant - failed exchange logging", () => {
     });
 
     const failedExchangeLog = logs.find(
-      (log) => log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
     );
 
     expect(failedExchangeLog).toBeDefined();
@@ -330,7 +339,9 @@ describe("authorization_code grant - failed exchange logging", () => {
     });
 
     const failedExchangeLog = logs.find(
-      (log) => log.type === LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
     );
 
     expect(failedExchangeLog).toBeDefined();

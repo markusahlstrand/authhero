@@ -357,10 +357,18 @@ describe("token", () => {
         });
 
         // Verify email/profile claims are NOT in id_token per OIDC 5.4
-        expect((idToken?.payload as Record<string, unknown>).nickname).toBeUndefined();
-        expect((idToken?.payload as Record<string, unknown>).name).toBeUndefined();
-        expect((idToken?.payload as Record<string, unknown>).email).toBeUndefined();
-        expect((idToken?.payload as Record<string, unknown>).email_verified).toBeUndefined();
+        expect(
+          (idToken?.payload as Record<string, unknown>).nickname,
+        ).toBeUndefined();
+        expect(
+          (idToken?.payload as Record<string, unknown>).name,
+        ).toBeUndefined();
+        expect(
+          (idToken?.payload as Record<string, unknown>).email,
+        ).toBeUndefined();
+        expect(
+          (idToken?.payload as Record<string, unknown>).email_verified,
+        ).toBeUndefined();
       });
 
       it("should return a 403 if the code is wrong", async () => {
@@ -591,7 +599,7 @@ describe("token", () => {
           },
         );
 
-        expect(secondResponse.status).toBe(403);
+        expect(secondResponse.status).toBe(400);
       });
 
       it("should set a silent authentication token", async () => {
@@ -697,7 +705,7 @@ describe("token", () => {
             },
           },
         );
-        expect(secondResponse.status).toBe(403);
+        expect(secondResponse.status).toBe(400);
         const secondBody = (await secondResponse.json()) as ErrorResponse;
         expect(secondBody).toEqual({
           error: "invalid_grant",

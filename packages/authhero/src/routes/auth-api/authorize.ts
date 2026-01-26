@@ -1,4 +1,5 @@
 import { verifyRequestOrigin } from "oslo/request";
+import { base64url } from "oslo/encoding";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
@@ -21,6 +22,59 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 
 const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
 
+// Schema for the authorize query parameters (shared between query and request JWT)
+const authorizeParamsSchema = z.object({
+  client_id: z.string().optional(),
+  vendor_id: z.string().optional(),
+  redirect_uri: z.string().optional(),
+  scope: z.string().optional(),
+  state: z.string().optional(),
+  prompt: z.string().optional(),
+  response_mode: z.nativeEnum(AuthorizationResponseMode).optional(),
+  response_type: z.nativeEnum(AuthorizationResponseType).optional(),
+  audience: z.string().optional(),
+  connection: z.string().optional(),
+  nonce: z.string().optional(),
+  max_age: z.string().optional(),
+  acr_values: z.string().optional(),
+  login_ticket: z.string().optional(),
+  code_challenge_method: z.nativeEnum(CodeChallengeMethod).optional(),
+  code_challenge: z.string().optional(),
+  realm: z.string().optional(),
+  auth0Client: z.string().optional(),
+  organization: z.string().optional(),
+  login_hint: z.string().optional(),
+  screen_hint: z.string().optional(),
+  ui_locales: z.string().optional(),
+});
+
+/**
+ * Decodes the payload of a JWT request parameter (OpenID Connect Core Section 6.1)
+ * Supports unsigned JWTs (alg: none) as well as signed JWTs
+ * Returns the decoded payload or null if invalid
+ */
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const parts = jwt.split(".");
+    if (parts.length < 2 || !parts[1]) {
+      return null;
+    }
+
+    const decoded = new TextDecoder().decode(
+      base64url.decode(parts[1], { strict: false }),
+    );
+    const parsed = JSON.parse(decoded);
+
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export const authorizeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -34,37 +88,26 @@ export const authorizeRoutes = new OpenAPIHono<{
       method: "get",
       path: "/",
       request: {
-        query: z.object({
-          client_id: z.string(),
-          vendor_id: z.string().optional(),
-          redirect_uri: z.string(),
-          scope: z.string().optional(),
-          state: z.string(),
-          prompt: z.string().optional(),
-          response_mode: z.nativeEnum(AuthorizationResponseMode).optional(),
-          response_type: z.nativeEnum(AuthorizationResponseType).optional(),
-          audience: z.string().optional(),
-          connection: z.string().optional(),
-          nonce: z.string().optional(),
-          max_age: z.string().optional(),
-          acr_values: z.string().optional(),
-          login_ticket: z.string().optional(),
-          code_challenge_method: z.nativeEnum(CodeChallengeMethod).optional(),
-          code_challenge: z.string().optional(),
-          realm: z.string().optional(),
-          auth0Client: z.string().optional(),
-          organization: z.string().optional(),
-          login_hint: z.string().optional(),
-          screen_hint: z
-            .string()
-            .openapi({
-              example: "signup",
-              description:
-                'Optional hint for the screen to show, like "signup" or "login".',
-            })
-            .optional(),
-          ui_locales: z.string().optional(),
-        }),
+        query: authorizeParamsSchema
+          .extend({
+            client_id: z.string(), // Required in query
+            screen_hint: z
+              .string()
+              .openapi({
+                example: "signup",
+                description:
+                  'Optional hint for the screen to show, like "signup" or "login".',
+              })
+              .optional(),
+            request: z
+              .string()
+              .openapi({
+                description:
+                  "JWT containing authorization request parameters (OpenID Connect Core Section 6.1)",
+              })
+              .optional(),
+          })
+          .passthrough(),
       },
       responses: {
         200: {
@@ -112,6 +155,23 @@ export const authorizeRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { env } = ctx;
+      const queryParams = ctx.req.valid("query");
+
+      // Parse request JWT if present (OpenID Connect Core Section 6.1)
+      // Then merge with query params (query params take precedence)
+      let requestParams: z.infer<typeof authorizeParamsSchema> = {};
+      if (queryParams.request) {
+        const payload = decodeJwtPayload(queryParams.request);
+        if (payload) {
+          // Parse with Zod to get proper types, ignore validation errors
+          const parsed = authorizeParamsSchema.safeParse(payload);
+          if (parsed.success) {
+            requestParams = parsed.data;
+          }
+        }
+      }
+
+      // Merge: spread request params first, then query params override
       const {
         client_id,
         vendor_id,
@@ -134,7 +194,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         login_hint,
         ui_locales,
         organization,
-      } = ctx.req.valid("query");
+      } = { ...requestParams, ...queryParams };
 
       ctx.set("log", "authorize");
 
@@ -158,7 +218,9 @@ export const authorizeRoutes = new OpenAPIHono<{
             "error_uri",
             "state",
           ];
-          oauthParams.forEach((param) => redirectUrl.searchParams.delete(param));
+          oauthParams.forEach((param) =>
+            redirectUrl.searchParams.delete(param),
+          );
           sanitizedRedirectUri = redirectUrl.toString();
         } catch {
           // If URL parsing fails, use the original (fragment-stripped) value
@@ -247,10 +309,16 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       // Silent authentication with iframe
       if (prompt == "none") {
+        if (!sanitizedRedirectUri || !state || !response_type) {
+          throw new HTTPException(400, {
+            message:
+              "Missing required parameters for silent auth: redirect_uri, state, and response_type",
+          });
+        }
         return silentAuth({
           ctx,
           session: validSession || undefined,
-          redirect_uri,
+          redirect_uri: sanitizedRedirectUri,
           state,
           response_type,
           response_mode,

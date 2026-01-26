@@ -87,7 +87,9 @@ function buildUserInfoResponse(user: User, scopes: string[]) {
     if (user.zoneinfo) userInfo.zoneinfo = user.zoneinfo;
     if (user.locale) userInfo.locale = user.locale;
     if (user.updated_at) {
-      userInfo.updated_at = Math.floor(new Date(user.updated_at).getTime() / 1000);
+      userInfo.updated_at = Math.floor(
+        new Date(user.updated_at).getTime() / 1000,
+      );
     }
   }
 
@@ -190,7 +192,10 @@ export const userinfoRoutes = new OpenAPIHono<{
         );
 
         // Merge custom claims into userinfo (custom claims override base)
-        return ctx.json({ ...baseUserInfo, ...customClaims } as UserInfoResponse);
+        return ctx.json({
+          ...baseUserInfo,
+          ...customClaims,
+        } as UserInfoResponse);
       }
 
       return ctx.json(baseUserInfo as UserInfoResponse);
@@ -330,7 +335,10 @@ export const userinfoRoutes = new OpenAPIHono<{
         );
 
         // Merge custom claims into userinfo (custom claims override base)
-        return ctx.json({ ...baseUserInfo, ...customClaims } as UserInfoResponse);
+        return ctx.json({
+          ...baseUserInfo,
+          ...customClaims,
+        } as UserInfoResponse);
       }
 
       return ctx.json(baseUserInfo as UserInfoResponse);

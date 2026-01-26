@@ -375,7 +375,10 @@ describe("authorize", () => {
       });
 
       // Verify the new login session was created and linked to the current session
-      const newLoginSession = await env.data.loginSessions.get("tenantId", code?.login_id || "");
+      const newLoginSession = await env.data.loginSessions.get(
+        "tenantId",
+        code?.login_id || "",
+      );
       expect(newLoginSession).toBeDefined();
       expect(newLoginSession?.session_id).toEqual(session?.id);
       expect(newLoginSession?.authParams.client_id).toEqual("clientId");
@@ -510,13 +513,16 @@ describe("authorize", () => {
     const oauthClient = testClient(oauthApp, env);
 
     // Create an initial login session and session (properly linked)
-    const initialLoginSession = await env.data.loginSessions.create("tenantId", {
-      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-      csrf_token: "initialCsrfToken",
-      authParams: {
-        client_id: "clientId",
+    const initialLoginSession = await env.data.loginSessions.create(
+      "tenantId",
+      {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "initialCsrfToken",
+        authParams: {
+          client_id: "clientId",
+        },
       },
-    });
+    );
 
     const existingSession = await env.data.sessions.create("tenantId", {
       id: "existingSessionId",
@@ -566,14 +572,18 @@ describe("authorize", () => {
 
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toBe("/callback");
-    
+
     const code = redirectUri.searchParams.get("code");
     if (!code) {
       throw new Error("No code found in redirect uri");
     }
 
     // Verify the code was created
-    const dbCode = await env.data.codes.get("tenantId", code, "authorization_code");
+    const dbCode = await env.data.codes.get(
+      "tenantId",
+      code,
+      "authorization_code",
+    );
     expect(dbCode).not.toBeNull();
 
     // Get the NEW login session that was created for this authorization flow
@@ -581,15 +591,225 @@ describe("authorize", () => {
     expect(newLoginSessionId).toBeDefined();
     expect(newLoginSessionId).not.toBe(initialLoginSession.id); // Should be different from the initial one
 
-    const newLoginSession = await env.data.loginSessions.get("tenantId", newLoginSessionId!);
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      newLoginSessionId!,
+    );
     expect(newLoginSession).not.toBeNull();
 
     // Verify that the existing session is linked to the NEW login session
     expect(newLoginSession?.session_id).toBe("existingSessionId");
 
     // Verify that the existing session still exists and hasn't been duplicated
-    const sessionAfter = await env.data.sessions.get("tenantId", "existingSessionId");
+    const sessionAfter = await env.data.sessions.get(
+      "tenantId",
+      "existingSessionId",
+    );
     expect(sessionAfter).not.toBeNull();
     expect(sessionAfter?.id).toBe("existingSessionId");
+  });
+
+  describe("request parameter (OpenID Connect)", () => {
+    it("should parse authorization parameters from unsigned JWT request parameter", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create an unsigned JWT with authorization parameters
+      // Header: {"alg":"none"}
+      // Payload: {"scope":"openid","response_type":"code","redirect_uri":"https://example.com/callback","state":"jwt-state","nonce":"jwt-nonce","client_id":"clientId"}
+      const header = btoa(JSON.stringify({ alg: "none" }));
+      const payload = btoa(
+        JSON.stringify({
+          scope: "openid",
+          response_type: "code",
+          redirect_uri: "https://example.com/callback",
+          state: "jwt-state",
+          nonce: "jwt-nonce",
+          client_id: "clientId",
+        }),
+      );
+      const requestJwt = `${header}.${payload}.`;
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            request: requestJwt,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUri = new URL("https://example.com" + location);
+      expect(redirectUri.pathname).toEqual("/u/login/identifier");
+
+      // Fetch the login session
+      const login = await env.data.loginSessions.get(
+        "clientId",
+        redirectUri.searchParams.get("state")!,
+      );
+
+      expect(login).toBeTruthy();
+      expect(login?.authParams.state).toBe("jwt-state");
+      expect(login?.authParams.nonce).toBe("jwt-nonce");
+      expect(login?.authParams.scope).toBe("openid");
+      expect(login?.authParams.redirect_uri).toBe(
+        "https://example.com/callback",
+      );
+    });
+
+    it("should allow query parameters to override request JWT parameters", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // JWT contains state="jwt-state" but query param has state="query-state"
+      const header = btoa(JSON.stringify({ alg: "none" }));
+      const payload = btoa(
+        JSON.stringify({
+          scope: "openid",
+          response_type: "code",
+          redirect_uri: "https://example.com/callback",
+          state: "jwt-state",
+          nonce: "jwt-nonce",
+          client_id: "clientId",
+        }),
+      );
+      const requestJwt = `${header}.${payload}.`;
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            state: "query-state",
+            redirect_uri: "https://example.com/callback",
+            response_type: AuthorizationResponseType.CODE,
+            request: requestJwt,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUri = new URL("https://example.com" + location);
+
+      // Fetch the login session
+      const login = await env.data.loginSessions.get(
+        "clientId",
+        redirectUri.searchParams.get("state")!,
+      );
+
+      expect(login).toBeTruthy();
+      // Query param should override JWT param
+      expect(login?.authParams.state).toBe("query-state");
+      // JWT param should be used when not overridden
+      expect(login?.authParams.nonce).toBe("jwt-nonce");
+    });
+
+    it("should handle base64url encoded JWT payloads", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Use base64url encoding (- and _ instead of + and /)
+      // This is the format commonly used in JWTs
+      const header = "eyJhbGciOiJub25lIn0"; // {"alg":"none"} in base64url
+      const payloadObj = {
+        scope: "openid",
+        response_type: "code",
+        redirect_uri: "https://example.com/callback",
+        state: "base64url-state",
+        nonce: "base64url-nonce",
+        client_id: "clientId",
+      };
+      // Convert to base64url
+      const payload = btoa(JSON.stringify(payloadObj))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+      const requestJwt = `${header}.${payload}.`;
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            request: requestJwt,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUri = new URL("https://example.com" + location);
+
+      // Fetch the login session
+      const login = await env.data.loginSessions.get(
+        "clientId",
+        redirectUri.searchParams.get("state")!,
+      );
+
+      expect(login).toBeTruthy();
+      expect(login?.authParams.state).toBe("base64url-state");
+      expect(login?.authParams.nonce).toBe("base64url-nonce");
+    });
+
+    it("should ignore invalid request JWT and use query parameters", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "query-state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.CODE,
+            request: "invalid-jwt-format",
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toBeTruthy();
+
+      const redirectUri = new URL("https://example.com" + location);
+
+      // Fetch the login session
+      const login = await env.data.loginSessions.get(
+        "clientId",
+        redirectUri.searchParams.get("state")!,
+      );
+
+      expect(login).toBeTruthy();
+      expect(login?.authParams.state).toBe("query-state");
+    });
   });
 });

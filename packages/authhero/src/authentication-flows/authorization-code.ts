@@ -77,7 +77,7 @@ export async function authorizationCodeGrantUser(
       description: "Invalid authorization code",
       userId: code.user_id,
     });
-    throw new JSONHTTPException(403, {
+    throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Invalid authorization code",
     });
