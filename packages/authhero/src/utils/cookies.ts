@@ -1,4 +1,4 @@
-import { parseCookies, serializeCookie } from "oslo/cookie";
+import { parse, serialize } from "cookie";
 import {
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   SILENT_COOKIE_NAME,
@@ -44,23 +44,20 @@ export function getAuthCookie(
   if (!cookieHeaders) {
     return undefined;
   }
-  const cookies = parseCookies(cookieHeaders);
-  return cookies.get(getCookieName(tenant_id));
+  const cookies = parse(cookieHeaders);
+  return cookies[getCookieName(tenant_id)];
 }
 
 export function clearAuthCookie(tenant_id: string, hostname?: string) {
-  const cookieString = serializeCookie(getCookieName(tenant_id), "", {
+  return serialize(getCookieName(tenant_id), "", {
     path: "/",
     httpOnly: true,
     secure: true,
     maxAge: 0,
     sameSite: "none",
     domain: hostname ? getWildcardDomain(hostname) : undefined,
+    partitioned: true,
   });
-  
-  // Add Partitioned attribute for proper cookie clearing
-  // This ensures consistency with serializeAuthCookie
-  return cookieString + "; Partitioned";
 }
 
 export function serializeAuthCookie(
@@ -68,16 +65,13 @@ export function serializeAuthCookie(
   value: string,
   hostname?: string,
 ) {
-  const cookieString = serializeCookie(getCookieName(tenant_id), value, {
+  return serialize(getCookieName(tenant_id), value, {
     path: "/",
     httpOnly: true,
     secure: true,
     maxAge: SILENT_AUTH_MAX_AGE_IN_SECONDS,
     sameSite: "none",
     domain: hostname ? getWildcardDomain(hostname) : undefined,
+    partitioned: true,
   });
-  
-  // Add Partitioned attribute for enhanced security
-  // This prevents the cookie from being sent in cross-site contexts
-  return cookieString + "; Partitioned";
 }
