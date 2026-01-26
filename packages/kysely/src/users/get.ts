@@ -2,7 +2,7 @@ import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
-import { User, parseUserId } from "@authhero/adapter-interfaces";
+import { User } from "@authhero/adapter-interfaces";
 
 export function get(db: Kysely<Database>) {
   return async (tenantId: string, user_id: string): Promise<User | null> => {
@@ -40,13 +40,8 @@ export function get(db: Kysely<Database>) {
       user_metadata: JSON.parse(sqlUser.user_metadata),
       address: sqlUser.address ? JSON.parse(sqlUser.address) : undefined,
       identities: [
-        {
-          connection: sqlUser.connection,
-          provider: sqlUser.provider,
-          user_id: parseUserId(sqlUser.user_id).id,
-          isSocial: Boolean(sqlUser.is_social),
-        },
-        ...linkedUsers.map(userToIdentity),
+        userToIdentity(sqlUser, true),
+        ...linkedUsers.map((u) => userToIdentity(u)),
       ],
     };
 

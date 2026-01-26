@@ -6,7 +6,6 @@ import { Database } from "../db";
 import {
   ListParams,
   ListUsersResponse,
-  parseUserId,
 } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
@@ -59,13 +58,8 @@ export function list(db: Kysely<Database>) {
         user_metadata: JSON.parse(user.user_metadata),
         address: user.address ? JSON.parse(user.address) : undefined,
         identities: [
-          {
-            connection: user.connection,
-            provider: user.provider,
-            user_id: parseUserId(user.user_id).id,
-            isSocial: Boolean(user.is_social),
-          },
-          ...linkedUsersForUser.map(userToIdentity),
+          userToIdentity(user, true),
+          ...linkedUsersForUser.map((u) => userToIdentity(u)),
         ],
       });
     });

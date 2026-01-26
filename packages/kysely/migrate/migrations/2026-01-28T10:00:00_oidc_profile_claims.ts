@@ -10,22 +10,26 @@ import { Kysely } from "kysely";
  * - gender
  * - birthdate (ISO 8601:2004 YYYY-MM-DD format)
  * - zoneinfo (e.g., "Europe/Paris")
+ *
+ * Also converts user_metadata from varchar(4096) to text to free up row space.
  */
 export async function up(db: Kysely<Database>): Promise<void> {
+  // Convert user_metadata to text first to free up row space
+  await db.schema.alterTable("users").dropColumn("user_metadata").execute();
   await db.schema
     .alterTable("users")
-    .addColumn("middle_name", "varchar(255)")
+    .addColumn("user_metadata", "text")
     .execute();
 
   await db.schema
     .alterTable("users")
-    .addColumn("profile", "varchar(2083)")
+    .addColumn("middle_name", "varchar(100)")
     .execute();
 
-  await db.schema
-    .alterTable("users")
-    .addColumn("website", "varchar(2083)")
-    .execute();
+  // Using text for URL fields to avoid row size limits
+  await db.schema.alterTable("users").addColumn("profile", "text").execute();
+
+  await db.schema.alterTable("users").addColumn("website", "text").execute();
 
   await db.schema
     .alterTable("users")
@@ -50,4 +54,11 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema.alterTable("users").dropColumn("gender").execute();
   await db.schema.alterTable("users").dropColumn("birthdate").execute();
   await db.schema.alterTable("users").dropColumn("zoneinfo").execute();
+
+  // Revert user_metadata back to varchar
+  await db.schema.alterTable("users").dropColumn("user_metadata").execute();
+  await db.schema
+    .alterTable("users")
+    .addColumn("user_metadata", "varchar(4096)")
+    .execute();
 }
