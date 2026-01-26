@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.26.0
+
+### Minor Changes
+
+- 8b9cb85: First passing openid test
+
 ## 0.25.0
 
 ### Minor Changes

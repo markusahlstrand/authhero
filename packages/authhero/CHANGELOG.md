@@ -1,5 +1,12 @@
 # authhero
 
+## 4.13.0
+
+### Minor Changes
+
+- 8b9cb85: First passing openid test
+- 16d21c8: Add paritioned cookies
+
 ## 4.12.0
 
 ### Minor Changes
