@@ -1229,6 +1229,7 @@ describe("impersonation routes", () => {
         user_id: "auth2|admin-pwd",
         password: await bcryptjs.hash("adminpassword123", 10),
         algorithm: "bcrypt",
+        is_current: true,
       });
 
       // Assign impersonation permission to admin

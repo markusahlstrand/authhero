@@ -79,7 +79,6 @@ describe("login identifier page", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -141,7 +140,6 @@ describe("login identifier page", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -192,7 +190,6 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
         response_type: AuthorizationResponseType.CODE,
       },
     });
@@ -259,7 +256,6 @@ describe("login identifier page", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -320,7 +316,6 @@ describe("login identifier page", () => {
         nonce: "nonce",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
 
@@ -376,7 +371,6 @@ describe("login identifier page", () => {
         state: "state",
         nonce: "nonce",
         scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
         response_type: AuthorizationResponseType.CODE,
       },
     });

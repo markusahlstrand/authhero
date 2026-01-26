@@ -144,7 +144,6 @@ describe("forms - router node with user context", () => {
         nonce: "nonce1",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse1.status).toBe(302);
@@ -310,7 +309,6 @@ describe("forms - router node with user context", () => {
         nonce: "nonce_fallback",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
     expect(authorizeResponse.status).toBe(302);
@@ -471,7 +469,6 @@ describe("forms - router node with user context", () => {
         nonce: "nonce_admin",
         scope: "openid email profile",
         response_type: AuthorizationResponseType.CODE,
-        response_type: AuthorizationResponseType.CODE,
       },
     });
     const location = authorizeResponse.headers.get("location");
@@ -629,7 +626,6 @@ describe("forms - router node with user context", () => {
         state: "state_contains",
         nonce: "nonce_contains",
         scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
         response_type: AuthorizationResponseType.CODE,
       },
     });

@@ -226,14 +226,14 @@ describe("userinfo", () => {
       const invalidToken = "invalid-token";
 
       const response = await client.userinfo.$post(
-        { form: {} },
         {
-          body: new URLSearchParams({
+          form: {
             access_token: invalidToken,
-          }).toString(),
+          },
+        },
+        {
           headers: {
             authorization: `Bearer ${accessToken}`,
-            "content-type": "application/x-www-form-urlencoded",
           },
         },
       );
@@ -248,15 +248,7 @@ describe("userinfo", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
-      const response = await client.userinfo.$post(
-        { form: {} },
-        {
-          body: new URLSearchParams({}).toString(),
-          headers: {
-            "content-type": "application/x-www-form-urlencoded",
-          },
-        },
-      );
+      const response = await client.userinfo.$post({ form: {} });
 
       expect(response.status).toBe(401);
     });
