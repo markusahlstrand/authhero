@@ -128,10 +128,17 @@ export async function createAuthTokens(
   // Per OIDC Core section 5.4: Claims requested by profile, email, address, and phone
   // scopes are returned from the UserInfo Endpoint, EXCEPT for response_type=id_token
   // where there is no access token issued to access the userinfo endpoint.
-  // For all other response types (code, token, token id_token, etc.), these claims
-  // should be fetched from the userinfo endpoint using the access token.
+  //
+  // However, Auth0's behavior differs: it always includes profile/email claims in the
+  // ID token when those scopes are requested, regardless of response_type.
+  //
+  // We use the client's auth0_conformant flag to determine which behavior to use:
+  // - auth0_conformant=true (default): Auth0-compatible behavior (always include claims in ID token)
+  // - auth0_conformant=false: Strict OIDC 5.4 compliance (claims only in ID token for response_type=id_token)
   const isIdTokenOnlyFlow =
     authParams.response_type === AuthorizationResponseType.ID_TOKEN;
+  const shouldIncludeProfileClaimsInIdToken =
+    client.auth0_conformant !== false || isIdTokenOnlyFlow;
 
   const idTokenPayload =
     user && hasOpenidScope
@@ -152,10 +159,11 @@ export async function createAuthTokens(
           ...(authParams.acr_values
             ? { acr: authParams.acr_values.split(" ")[0] }
             : {}),
-          // Profile scope claims - only include in id_token for response_type=id_token
-          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          // Profile scope claims - include based on auth0_conformant setting
+          // For auth0_conformant clients (default): always include when profile scope is requested
+          // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
           ...(hasProfileScope &&
-            isIdTokenOnlyFlow && {
+            shouldIncludeProfileClaimsInIdToken && {
               given_name: user.given_name,
               family_name: user.family_name,
               nickname: user.nickname,
@@ -163,10 +171,11 @@ export async function createAuthTokens(
               locale: user.locale,
               name: user.name,
             }),
-          // Email scope claims - only include in id_token for response_type=id_token
-          // Per OIDC Core 5.4, otherwise they come from userinfo endpoint
+          // Email scope claims - include based on auth0_conformant setting
+          // For auth0_conformant clients (default): always include when email scope is requested
+          // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
           ...(hasEmailScope &&
-            isIdTokenOnlyFlow && {
+            shouldIncludeProfileClaimsInIdToken && {
               email: user.email,
               email_verified: user.email_verified,
             }),

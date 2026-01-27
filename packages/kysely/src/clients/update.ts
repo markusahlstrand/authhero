@@ -21,6 +21,7 @@ export function update(db: Kysely<Database>) {
         "global",
         "is_first_party",
         "oidc_conformant",
+        "auth0_conformant",
         "sso",
         "sso_disabled",
         "cross_origin_authentication",

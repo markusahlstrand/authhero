@@ -203,6 +203,7 @@ const createMockClient = (connections: string[]): LegacyClient => ({
   global: false,
   is_first_party: false,
   oidc_conformant: true,
+  auth0_conformant: true,
   sso: false,
   sso_disabled: false,
   cross_origin_authentication: false,

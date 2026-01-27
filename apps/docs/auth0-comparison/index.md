@@ -219,6 +219,24 @@ Migrate from Auth0 with minimal code changes:
 }
 ```
 
+### Auth0 Conformance Mode
+
+AuthHero provides a per-client `auth0_conformant` flag (default: `true`) to ensure compatibility with Auth0 SDKs and applications. When enabled, AuthHero follows Auth0's behavior patterns which deviate slightly from strict OIDC specifications. Set to `false` for strict OIDC compliance.
+
+**Client Configuration**:
+
+```json
+{
+  "client_id": "abc123",
+  "name": "My Application",
+  "auth0_conformant": true  // Default: Auth0-compatible behavior
+}
+```
+
+**Behaviors Controlled by This Flag** (when `auth0_conformant: true`):
+
+- **Profile/Email Claims in ID Token** ([OIDC Core 5.4](https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse)): Always includes `profile` and `email` scope claims in the ID token, even when an access token is also issued (strict OIDC requires fetching these from `/userinfo` endpoint).
+
 ### Token Issuance Without Audience
 
 **Auth0 Behavior**: When no `audience` parameter is provided in the token request and no default audience is configured, Auth0 returns an **opaque (non-JWT) access token**.

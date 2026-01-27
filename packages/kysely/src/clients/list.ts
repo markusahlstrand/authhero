@@ -27,6 +27,7 @@ export function list(db: Kysely<Database>) {
       global: !!result.global,
       is_first_party: !!result.is_first_party,
       oidc_conformant: !!result.oidc_conformant,
+      auth0_conformant: !!result.auth0_conformant,
       sso: !!result.sso,
       sso_disabled: !!result.sso_disabled,
       cross_origin_authentication: !!result.cross_origin_authentication,

@@ -12,6 +12,7 @@ export const clients = sqliteTable("clients", {
   logo_uri: text("logo_uri", { length: 2083 }),
   is_first_party: integer("is_first_party").notNull().default(0),
   oidc_conformant: integer("oidc_conformant").notNull().default(1),
+  auth0_conformant: integer("auth0_conformant").notNull().default(1),
   callbacks: text("callbacks").notNull(),
   allowed_origins: text("allowed_origins").notNull(),
   web_origins: text("web_origins").notNull(),
