@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.123.0
+
+### Minor Changes
+
+- 2d0a7f4: Add a auth0-conformance flag
+
 ## 0.122.0
 
 ### Minor Changes

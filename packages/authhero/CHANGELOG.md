@@ -1,5 +1,16 @@
 # authhero
 
+## 4.15.0
+
+### Minor Changes
+
+- 2d0a7f4: Add a auth0-conformance flag
+
+### Patch Changes
+
+- Updated dependencies [2d0a7f4]
+  - @authhero/adapter-interfaces@0.123.0
+
 ## 4.14.0
 
 ### Minor Changes

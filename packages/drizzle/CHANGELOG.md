@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.18.0
+
+### Minor Changes
+
+- 2d0a7f4: Add a auth0-conformance flag
+
+### Patch Changes
+
+- Updated dependencies [2d0a7f4]
+  - @authhero/adapter-interfaces@0.123.0
+
 ## 0.17.0
 
 ### Minor Changes

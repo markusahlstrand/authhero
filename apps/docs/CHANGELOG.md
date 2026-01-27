@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.36.0
+
+### Minor Changes
+
+- 2d0a7f4: Add a auth0-conformance flag
+
 ## 1.35.0
 
 ### Minor Changes
