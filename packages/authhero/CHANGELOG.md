@@ -1,5 +1,11 @@
 # authhero
 
+## 4.14.0
+
+### Minor Changes
+
+- 6f09503: Add favicon support to ui
+
 ## 4.13.0
 
 ### Minor Changes
