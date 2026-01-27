@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.85.0
+
+### Minor Changes
+
+- 2d0a7f4: Add a auth0-conformance flag
+
+### Patch Changes
+
+- Updated dependencies [2d0a7f4]
+  - @authhero/adapter-interfaces@0.123.0
+
 ## 10.84.0
 
 ### Minor Changes
