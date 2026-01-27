@@ -64,7 +64,15 @@ function renderWidgetPage(options: {
     height?: number;
   };
 }): string {
-  const { screen, branding, clientName, baseUrl, state, authParams, poweredByLogo } = options;
+  const {
+    screen,
+    branding,
+    clientName,
+    baseUrl,
+    state,
+    authParams,
+    poweredByLogo,
+  } = options;
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -77,11 +85,17 @@ function renderWidgetPage(options: {
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const safeClientName = escapeHtml(clientName);
-  
+
   // Sanitize powered-by logo URLs
-  const safePoweredByUrl = poweredByLogo?.url ? sanitizeUrl(poweredByLogo.url) : null;
-  const safePoweredByHref = poweredByLogo?.href ? sanitizeUrl(poweredByLogo.href) : null;
-  const safePoweredByAlt = poweredByLogo?.alt ? escapeHtml(poweredByLogo.alt) : "";
+  const safePoweredByUrl = poweredByLogo?.url
+    ? sanitizeUrl(poweredByLogo.url)
+    : null;
+  const safePoweredByHref = poweredByLogo?.href
+    ? sanitizeUrl(poweredByLogo.href)
+    : null;
+  const safePoweredByAlt = poweredByLogo?.alt
+    ? escapeHtml(poweredByLogo.alt)
+    : "";
 
   // Serialize screen and branding for JavaScript (will be hydrated on client)
   // Use safeJsonStringify to prevent script injection
@@ -250,13 +264,17 @@ function renderWidgetPage(options: {
       }
     });
   </script>
-  ${safePoweredByUrl ? `
+  ${
+    safePoweredByUrl
+      ? `
   <div class="powered-by">
     ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
       <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
     ${safePoweredByHref ? `</a>` : ""}
   </div>
-  ` : ""}
+  `
+      : ""
+  }
 </body>
 </html>`;
 }
