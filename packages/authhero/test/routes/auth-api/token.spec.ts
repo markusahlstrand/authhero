@@ -347,28 +347,19 @@ describe("token", () => {
 
         const idToken = parseJWT(body.id_token);
 
-        // Per OIDC Core 5.4: email and profile claims should come from userinfo endpoint
-        // when response_type=code (authorization code flow), not from the id_token.
-        // The id_token should only contain the basic identity claims.
+        // Auth0 compatible behavior: email and profile claims should be included
+        // in the id_token when the corresponding scopes are requested.
+        // The claims are also available from the userinfo endpoint.
         expect(idToken?.payload).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "clientId",
+          // Auth0 includes profile/email claims in id_token when scopes are requested
+          nickname: "Test User",
+          name: "Test User",
+          email: "foo@example.com",
+          email_verified: true,
         });
-
-        // Verify email/profile claims are NOT in id_token per OIDC 5.4
-        expect(
-          (idToken?.payload as Record<string, unknown>).nickname,
-        ).toBeUndefined();
-        expect(
-          (idToken?.payload as Record<string, unknown>).name,
-        ).toBeUndefined();
-        expect(
-          (idToken?.payload as Record<string, unknown>).email,
-        ).toBeUndefined();
-        expect(
-          (idToken?.payload as Record<string, unknown>).email_verified,
-        ).toBeUndefined();
       });
 
       it("should return a 403 if the code is wrong", async () => {

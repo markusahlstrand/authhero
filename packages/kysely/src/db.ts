@@ -315,6 +315,7 @@ const sqlClientSchema = z.object({
   global: z.number(),
   is_first_party: z.number(),
   oidc_conformant: z.number(),
+  auth0_conformant: z.number(),
   sso: z.number(),
   sso_disabled: z.number(),
   cross_origin_authentication: z.number(),

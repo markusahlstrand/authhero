@@ -79,6 +79,7 @@ export function createLegacyClientsAdapter(db: Kysely<Database>) {
         global: !!client.global,
         is_first_party: !!client.is_first_party,
         oidc_conformant: !!client.oidc_conformant,
+        auth0_conformant: !!client.auth0_conformant,
         sso: !!client.sso,
         sso_disabled: !!client.sso_disabled,
         cross_origin_authentication: !!client.cross_origin_authentication,

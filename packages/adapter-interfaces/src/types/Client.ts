@@ -69,6 +69,10 @@ export const clientInsertSchema = z.object({
     description:
       "Whether this client conforms to strict OIDC specifications (true) or uses legacy features (false).",
   }),
+  auth0_conformant: z.boolean().default(true).openapi({
+    description:
+      "Whether this client follows Auth0-compatible behavior (true) or strict OIDC behavior (false). When true, profile/email claims are included in the ID token when scopes are requested. When false, these claims are only available from the userinfo endpoint (strict OIDC 5.4 compliance).",
+  }),
   callbacks: z.array(z.string()).default([]).optional().openapi({
     description:
       "Comma-separated list of URLs whitelisted for Auth0 to use as a callback to the client after authentication.",

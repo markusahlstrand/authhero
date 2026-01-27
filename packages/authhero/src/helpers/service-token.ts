@@ -30,6 +30,7 @@ export async function createServiceToken(
     global: false,
     is_first_party: true, // Mark as first party
     oidc_conformant: false,
+    auth0_conformant: true,
     sso: false,
     sso_disabled: false,
     cross_origin_authentication: false,

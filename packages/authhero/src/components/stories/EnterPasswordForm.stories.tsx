@@ -199,6 +199,7 @@ const mockClient: LegacyClient = {
   global: false,
   is_first_party: true,
   oidc_conformant: true,
+  auth0_conformant: true,
   sso: false,
   sso_disabled: false,
   cross_origin_authentication: false,

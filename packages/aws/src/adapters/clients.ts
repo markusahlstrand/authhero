@@ -40,6 +40,7 @@ interface ClientItem extends DynamoDBBaseItem {
   global: boolean;
   is_first_party: boolean;
   oidc_conformant: boolean;
+  auth0_conformant: boolean;
   sso?: boolean;
   sso_disabled?: boolean;
   cross_origin_authentication?: boolean;
@@ -136,6 +137,7 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
         global: params.global ?? false,
         is_first_party: params.is_first_party ?? false,
         oidc_conformant: params.oidc_conformant ?? true,
+        auth0_conformant: params.auth0_conformant ?? true,
         sso: params.sso,
         sso_disabled: params.sso_disabled,
         cross_origin_authentication: params.cross_origin_authentication,

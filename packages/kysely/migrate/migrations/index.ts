@@ -121,6 +121,7 @@ import * as o022_oidc_profile_claims from "./2026-01-28T10:00:00_oidc_profile_cl
 import * as o023_preferred_username from "./2026-01-28T11:00:00_preferred_username";
 import * as o024_user_address from "./2026-01-28T12:00:00_user_address";
 import * as o025_authparams_max_age from "./2026-01-28T13:00:00_authparams_max_age";
+import * as o026_auth0_conformant from "./2026-01-28T14:00:00_auth0_conformant";
 
 // These need to be in alphabetic order
 export default {
@@ -247,4 +248,5 @@ export default {
   o023_preferred_username,
   o024_user_address,
   o025_authparams_max_age,
+  o026_auth0_conformant,
 };

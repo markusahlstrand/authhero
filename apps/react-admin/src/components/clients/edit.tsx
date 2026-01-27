@@ -1226,6 +1226,12 @@ export function ClientEdit() {
             format={(value) => value === "true" || value === true}
             parse={(value) => (value ? "true" : "false")}
           />
+          <BooleanInput
+            source="auth0_conformant"
+            label="Auth0 Conformant Mode"
+            helperText="Enable Auth0-compatible behavior. Disable for strict OIDC compliance."
+            defaultValue={true}
+          />
           <ClientMetadataInput source="client_metadata" />
           <GrantTypesInput source="grant_types" />
           <ArrayInput source="callbacks">

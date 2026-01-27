@@ -38,6 +38,7 @@ describe("clients", () => {
       createdClient;
 
     expect(rest).toEqual({
+      auth0_conformant: true,
       cross_origin_authentication: false,
       custom_login_page_on: false,
       global: false,
