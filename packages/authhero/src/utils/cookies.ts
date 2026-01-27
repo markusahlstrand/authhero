@@ -48,30 +48,59 @@ export function getAuthCookie(
   return cookies[getCookieName(tenant_id)];
 }
 
+/**
+ * TEMPORARY: Double-Clear mechanism for cookie migration
+ * This can be removed after February 28th, 2026
+ *
+ * Clears both non-partitioned and partitioned cookies to ensure clean migration.
+ * Returns an array of Set-Cookie headers.
+ */
 export function clearAuthCookie(tenant_id: string, hostname?: string) {
-  return serialize(getCookieName(tenant_id), "", {
+  const cookieName = getCookieName(tenant_id);
+  const baseOptions = {
     path: "/",
     httpOnly: true,
     secure: true,
     maxAge: 0,
-    sameSite: "none",
+    sameSite: "none" as const,
     domain: hostname ? getWildcardDomain(hostname) : undefined,
-    partitioned: true,
-  });
+  };
+
+  // Double-Clear: First clear non-partitioned cookie, then partitioned
+  return [
+    serialize(cookieName, "", baseOptions),
+    serialize(cookieName, "", { ...baseOptions, partitioned: true }),
+  ];
 }
 
+/**
+ * TEMPORARY: Double-Clear mechanism for cookie migration
+ * This can be removed after February 28th, 2026
+ *
+ * First clears any non-partitioned cookie, then sets the new partitioned cookie.
+ * Returns an array of Set-Cookie headers.
+ */
 export function serializeAuthCookie(
   tenant_id: string,
   value: string,
   hostname?: string,
 ) {
-  return serialize(getCookieName(tenant_id), value, {
+  const cookieName = getCookieName(tenant_id);
+  const baseOptions = {
     path: "/",
     httpOnly: true,
     secure: true,
-    maxAge: SILENT_AUTH_MAX_AGE_IN_SECONDS,
-    sameSite: "none",
+    sameSite: "none" as const,
     domain: hostname ? getWildcardDomain(hostname) : undefined,
-    partitioned: true,
-  });
+  };
+
+  // Double-Clear: First clear non-partitioned cookie, then set partitioned
+  return [
+    serialize(cookieName, "", { ...baseOptions, maxAge: 0 }),
+    serialize(cookieName, value, {
+      ...baseOptions,
+      maxAge: SILENT_AUTH_MAX_AGE_IN_SECONDS,
+      partitioned: true,
+    }),
+  ];
 }

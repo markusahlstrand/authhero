@@ -98,9 +98,22 @@ export async function loginWithCode(
     throw new Error("No location header found");
   }
 
-  const [cookieName, cookieValue] = enterCodePostResponse.headers
-    .get("set-cookie")
-    ?.split(";")[0]
+  // Get all Set-Cookie headers (Double-Clear returns multiple cookies)
+  const setCookieHeader = enterCodePostResponse.headers.get("set-cookie");
+  if (!setCookieHeader) {
+    throw new Error("No set-cookie header found");
+  }
+
+  // Split by comma to get individual cookies, then find the one with a value (not the clear cookie)
+  const cookies = setCookieHeader.split(", ");
+  const actualCookie = cookies.find((c) => !c.includes("Max-Age=0"));
+  
+  if (!actualCookie) {
+    throw new Error("No actual session cookie found (only clear cookies)");
+  }
+
+  const [cookieName, cookieValue] = actualCookie
+    .split(";")[0]
     ?.split("=") as string[];
 
   if (typeof cookieName !== "string" || typeof cookieValue !== "string") {
