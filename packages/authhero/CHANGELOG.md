@@ -1,5 +1,11 @@
 # authhero
 
+## 4.16.0
+
+### Minor Changes
+
+- f44bcd8: Temporary fix for move to partitioned cookies
+
 ## 4.15.0
 
 ### Minor Changes
