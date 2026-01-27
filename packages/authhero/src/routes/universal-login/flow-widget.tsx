@@ -149,7 +149,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       branding?.colors?.page_background,
     );
 
-    // Sanitize URLs
+    // Sanitize URLs - favicon_url is already filtered by initJSXRoute for non-custom domains
     const faviconUrl = sanitizeUrl(branding?.favicon_url);
     const fontUrl = sanitizeUrl(branding?.font?.url);
 

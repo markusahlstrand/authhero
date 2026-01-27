@@ -81,6 +81,9 @@ const Layout = ({
         />
         <style>{globalDocStyle(theme, branding)}</style>
         <meta name="theme-color" content="#000000" />
+        {branding?.favicon_url && (
+          <link rel="icon" type="image/x-icon" href={branding.favicon_url} />
+        )}
       </head>
 
       <body>

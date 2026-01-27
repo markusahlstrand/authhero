@@ -63,6 +63,14 @@ export async function initJSXRoute(
   const theme = await env.data.themes.get(tenant.id, "default");
   const branding = await env.data.branding.get(tenant.id);
 
+  // Only include favicon_url when on a custom domain
+  const brandingWithFavicon = branding
+    ? {
+        ...branding,
+        favicon_url: ctx.var.custom_domain ? branding.favicon_url : undefined,
+      }
+    : null;
+
   const loginSessionLanguage = loginSession.authParams?.ui_locales
     ?.split(" ")
     ?.map((locale) => locale.split("-")[0])
@@ -76,7 +84,7 @@ export async function initJSXRoute(
 
   return {
     theme,
-    branding,
+    branding: brandingWithFavicon,
     client,
     tenant,
     loginSession,
