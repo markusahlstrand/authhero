@@ -119,15 +119,19 @@ export const logoutRoutes = new OpenAPIHono<{
         description: "User successfully logged out",
       });
 
+      const headers = new Headers();
+      const clearCookies = clearAuthCookie(
+        client.tenant.id,
+        ctx.req.header("host"),
+      );
+      clearCookies.forEach((cookie) => {
+        headers.append("set-cookie", cookie);
+      });
+      headers.set("location", redirectUri);
+
       return new Response("Redirecting", {
         status: 302,
-        headers: {
-          "set-cookie": clearAuthCookie(
-            client.tenant.id,
-            ctx.req.header("host"),
-          ),
-          location: redirectUri,
-        },
+        headers,
       });
     },
   );

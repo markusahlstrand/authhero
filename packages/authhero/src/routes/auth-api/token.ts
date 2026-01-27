@@ -213,13 +213,15 @@ export const tokenRoutes = new OpenAPIHono<{
       const passwordlessHeaders = new Headers();
 
       if (grantResult.session_id) {
-        const passwordlessAuthCookie = serializeAuthCookie(
+        const passwordlessAuthCookies = serializeAuthCookie(
           grantResult.client.tenant.id,
           grantResult.session_id,
           ctx.var.host || "",
         );
 
-        passwordlessHeaders.set("Set-Cookie", passwordlessAuthCookie);
+        passwordlessAuthCookies.forEach((cookie) => {
+          passwordlessHeaders.append("Set-Cookie", cookie);
+        });
       }
 
       // Calculate scopes and permissions before creating tokens

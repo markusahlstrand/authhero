@@ -68,11 +68,13 @@ export async function silentAuth({
         description,
       });
 
-      const clearCookie = clearAuthCookie(
+      const clearCookies = clearAuthCookie(
         client.tenant.id,
         ctx.req.header("host"),
       );
-      headers.set("set-cookie", clearCookie);
+      clearCookies.forEach((cookie) => {
+        headers.append("set-cookie", cookie);
+      });
     }
 
     // For web_message response_mode (iframe), use postMessage
@@ -233,12 +235,14 @@ export async function silentAuth({
 
   // Set response headers
   const headers = new Headers();
-  const cookie = serializeAuthCookie(
+  const cookies = serializeAuthCookie(
     client.tenant.id,
     session.id,
     ctx.req.header("host"),
   );
-  headers.set("set-cookie", cookie);
+  cookies.forEach((cookie) => {
+    headers.append("set-cookie", cookie);
+  });
 
   // For web_message response_mode (iframe), use postMessage
   if (useIframeResponse) {

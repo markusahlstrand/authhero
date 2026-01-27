@@ -635,8 +635,12 @@ describe("token", () => {
           throw new Error("sid is missing");
         }
 
-        const cookie = response.headers.get("set-cookie");
-        expect(cookie).toBe(
+        const cookies = response.headers.get("set-cookie");
+        // Double-Clear: Should have non-partitioned clear and partitioned cookie with session
+        expect(cookies).toContain(
+          "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None",
+        );
+        expect(cookies).toContain(
           `tenantId-auth-token=${accessToken?.payload.sid}; Max-Age=2592000; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
         );
       });

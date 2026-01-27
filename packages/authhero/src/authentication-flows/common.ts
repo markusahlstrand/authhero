@@ -1053,14 +1053,14 @@ export async function createFrontChannelAuthResponse(
 
     const headers = new Headers();
     if (session_id) {
-      const authCookie = serializeAuthCookie(
+      const authCookies = serializeAuthCookie(
         client.tenant.id,
         session_id,
         ctx.var.host || "",
       );
-      if (authCookie) {
-        headers.set("set-cookie", authCookie);
-      }
+      authCookies.forEach((cookie) => {
+        headers.append("set-cookie", cookie);
+      });
     } else {
       console.warn(
         "Session ID not available for WEB_MESSAGE, cookie will not be set.",
@@ -1086,14 +1086,14 @@ export async function createFrontChannelAuthResponse(
 
   const headers = new Headers();
   if (session_id) {
-    const authCookie = serializeAuthCookie(
+    const authCookies = serializeAuthCookie(
       client.tenant.id,
       session_id,
       ctx.var.custom_domain || ctx.req.header("host") || "",
     );
-    if (authCookie) {
-      headers.set("set-cookie", authCookie);
-    }
+    authCookies.forEach((cookie) => {
+      headers.append("set-cookie", cookie);
+    });
   }
 
   // Fallback for other redirect-based responses
