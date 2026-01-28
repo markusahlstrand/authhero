@@ -545,6 +545,72 @@ describe("authorize", () => {
       const body = await response.text();
       expect(body).toContain("login_required");
     });
+
+    it("should find valid session when multiple cookies with same name exist (migration scenario)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create a valid login session and session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "validSessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Simulate cookie header with invalid session FIRST, valid session SECOND
+      // This simulates the migration scenario where users have duplicate cookies
+      // "invalidSessionId" doesn't exist, "validSessionId" does
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            code_challenge: "codeChallenge",
+            code_challenge_method: CodeChallengeMethod.S256,
+            scope: "openid email profile",
+            prompt: "none",
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            // First cookie is invalid (doesn't exist), second is valid
+            cookie:
+              "tenantId-auth-token=invalidSessionId; tenantId-auth-token=validSessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const body = await response.text();
+      // Should succeed with a code, not return login_required
+      expect(body).toContain('"code":"');
+      expect(body).not.toContain("login_required");
+    });
   });
 
   it("should link existing session to new login session when login_hint matches", async () => {

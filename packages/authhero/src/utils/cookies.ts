@@ -37,6 +37,39 @@ function getWildcardDomain(host: string) {
   return `.${hostname}`; // Just return the domain itself (e.g., '.sesamy.com')
 }
 
+/**
+ * Get all values for a specific cookie name.
+ * The `cookie` package's parse() only returns the first value for duplicate cookies.
+ * This function returns all values, which is useful during cookie migration when
+ * users may have multiple cookies with the same name (e.g., partitioned and non-partitioned).
+ *
+ * TEMPORARY: This can be simplified after February 28th, 2026 when migration is complete.
+ */
+export function getAllAuthCookies(
+  tenant_id: string,
+  cookieHeaders?: string,
+): string[] {
+  if (!cookieHeaders) {
+    return [];
+  }
+
+  const cookieName = getCookieName(tenant_id);
+  const values: string[] = [];
+
+  // Parse cookie header manually to get all values for duplicate cookie names
+  // Cookie header format: "name1=value1; name2=value2; name1=value3"
+  const pairs = cookieHeaders.split(";");
+  for (const pair of pairs) {
+    const [name, ...valueParts] = pair.trim().split("=");
+    if (name === cookieName && valueParts.length > 0) {
+      // Rejoin with '=' in case the value contained '='
+      values.push(valueParts.join("="));
+    }
+  }
+
+  return values;
+}
+
 export function getAuthCookie(
   tenant_id: string,
   cookieHeaders?: string,
