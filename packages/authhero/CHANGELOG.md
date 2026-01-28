@@ -1,5 +1,12 @@
 # authhero
 
+## 4.17.0
+
+### Minor Changes
+
+- 9e7e36d: Handle multiple cookies
+- c0792f6: Fix trailings slashes in redirect url
+
 ## 4.16.0
 
 ### Minor Changes
