@@ -11,7 +11,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
-import { getAuthCookie } from "../../utils/cookies";
+import { getAllAuthCookies } from "../../utils/cookies";
 import { universalAuth } from "../../authentication-flows/universal";
 import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
@@ -280,16 +280,26 @@ export const authorizeRoutes = new OpenAPIHono<{
         }
       }
 
-      // Fetch the cookie
-      const authCookie = getAuthCookie(
+      // Fetch the session from cookies
+      // Users may have multiple cookies with the same name due to domain/path conflicts,
+      // partitioned vs non-partitioned cookies, or browser quirks. Try all cookie values
+      // to find a valid session for robustness.
+      let validSession;
+      const authCookies = getAllAuthCookies(
         client.tenant.id,
         ctx.req.header("cookie"),
       );
 
-      const session = authCookie
-        ? await env.data.sessions.get(client.tenant.id, authCookie)
-        : undefined;
-      const validSession = session && !session.revoked_at ? session : undefined;
+      for (const cookieValue of authCookies) {
+        const session = await env.data.sessions.get(
+          client.tenant.id,
+          cookieValue,
+        );
+        if (session && !session.revoked_at) {
+          validSession = session;
+          break;
+        }
+      }
 
       // Silent authentication with iframe
       if (prompt == "none") {
