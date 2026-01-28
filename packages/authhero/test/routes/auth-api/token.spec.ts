@@ -440,6 +440,56 @@ describe("token", () => {
         expect(body).toEqual({ message: "Invalid redirect uri" });
       });
 
+      it("should return a 403 if redirect_uri differs only by trailing slash (strict comparison per RFC 6749)", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Create the login session with redirect_uri WITHOUT trailing slash
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@exampl.com",
+            scope: "openid",
+            audience: "http://example.com",
+            redirect_uri: "http://localhost:3000/callback",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSesssion.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          redirect_uri: "http://localhost:3000/callback",
+        });
+
+        // Try to exchange with redirect_uri WITH trailing slash - should fail per RFC 6749
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback/", // Note: trailing slash
+              client_id: "clientId",
+              client_secret: "clientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body).toEqual({ message: "Invalid redirect uri" });
+      });
+
       it("should return a 403 if the client id does not match the client id passed in the authorize call", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);

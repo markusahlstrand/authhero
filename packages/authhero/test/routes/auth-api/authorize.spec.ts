@@ -211,17 +211,20 @@ describe("authorize", () => {
     );
   });
 
-  it("should strip OAuth error and code params from redirect_uri to prevent stale params", async () => {
+  it("should preserve redirect_uri exactly as received including query params", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
-    // Simulate a user starting a new login from a page that has error params from a previous failed attempt
+    // Per RFC 6749, redirect_uri must be stored exactly for strict string comparison
+    // at the token endpoint. Even if the URL has existing query params, we preserve them.
+    const redirectUriWithParams =
+      "https://example.com/callback?existing=param&another=value";
+
     const response = await oauthClient.authorize.$get(
       {
         query: {
           client_id: "clientId",
-          redirect_uri:
-            "https://example.com/callback?error=access_denied&error_description=Login+session+closed&code=old_code&state=old_state",
+          redirect_uri: redirectUriWithParams,
           state: "new_state",
           scope: "openid",
           response_type: AuthorizationResponseType.CODE,
@@ -248,13 +251,49 @@ describe("authorize", () => {
       throw new Error("Login session not found");
     }
 
-    // Verify that OAuth params are stripped from redirect_uri
-    expect(login.authParams.redirect_uri).toEqual(
-      "https://example.com/callback",
+    // Verify redirect_uri is preserved exactly (for strict string comparison at token endpoint)
+    expect(login.authParams.redirect_uri).toEqual(redirectUriWithParams);
+  });
+
+  it("should preserve redirect_uri format without adding trailing slashes", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Test with path but no trailing slash - should NOT add trailing slash
+    // Using http://localhost:3000 which matches the wildcard callback http://localhost:3000/*
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "http://localhost:3000/auth",
+          state: "state",
+          scope: "openid",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      },
+      {
+        headers: {
+          origin: "http://localhost:3000",
+        },
+      },
     );
-    expect(login.authParams.redirect_uri).not.toContain("error");
-    expect(login.authParams.redirect_uri).not.toContain("code");
-    expect(login.authParams.redirect_uri).not.toContain("old_state");
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    const redirectUri = new URL("http://localhost:3000" + location);
+
+    // Fetch the login session
+    const login = await env.data.loginSessions.get(
+      "clientId",
+      redirectUri.searchParams.get("state")!,
+    );
+
+    if (!login) {
+      throw new Error("Login session not found");
+    }
+
+    // Verify the redirect_uri is preserved exactly as provided (no trailing slash added)
+    expect(login.authParams.redirect_uri).toEqual("http://localhost:3000/auth");
   });
 
   describe("silent authentication", () => {

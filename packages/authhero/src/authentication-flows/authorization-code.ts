@@ -146,7 +146,7 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  // Validate the redirect_uri
+  // Validate the redirect_uri (RFC 6749 requires exact string comparison)
   if (code.redirect_uri && code.redirect_uri !== params.redirect_uri) {
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
