@@ -281,9 +281,9 @@ export const authorizeRoutes = new OpenAPIHono<{
       }
 
       // Fetch the session from cookies
-      // TEMPORARY: During cookie migration, users may have multiple cookies with the same name
-      // (e.g., partitioned and non-partitioned). Try all cookie values to find a valid session.
-      // This can be simplified after February 28th, 2026.
+      // Users may have multiple cookies with the same name due to domain/path conflicts,
+      // partitioned vs non-partitioned cookies, or browser quirks. Try all cookie values
+      // to find a valid session for robustness.
       let validSession;
       const authCookies = getAllAuthCookies(
         client.tenant.id,

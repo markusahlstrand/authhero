@@ -40,10 +40,12 @@ function getWildcardDomain(host: string) {
 /**
  * Get all values for a specific cookie name.
  * The `cookie` package's parse() only returns the first value for duplicate cookies.
- * This function returns all values, which is useful during cookie migration when
- * users may have multiple cookies with the same name (e.g., partitioned and non-partitioned).
- *
- * TEMPORARY: This can be simplified after February 28th, 2026 when migration is complete.
+ * This function returns all values to handle scenarios where users may have multiple
+ * cookies with the same name due to:
+ * - Domain conflicts (e.g., `.example.com` vs `auth.example.com`)
+ * - Path conflicts
+ * - Partitioned vs non-partitioned cookies (CHIPS)
+ * - Browser quirks in cookie ordering
  */
 export function getAllAuthCookies(
   tenant_id: string,

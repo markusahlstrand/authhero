@@ -546,7 +546,7 @@ describe("authorize", () => {
       expect(body).toContain("login_required");
     });
 
-    it("should find valid session when multiple cookies with same name exist (migration scenario)", async () => {
+    it("should find valid session when multiple cookies with same name exist", async () => {
       const { oauthApp, env } = await getTestServer();
       const oauthClient = testClient(oauthApp, env);
 
