@@ -27,7 +27,6 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
-  safeJsonStringify,
 } from "./sanitization-utils";
 
 /**
@@ -63,154 +62,6 @@ type WidgetPageProps = {
     height?: number;
   };
 };
-
-/**
- * Client-side script for the widget page
- */
-function getWidgetScript(
-  screenId: string,
-  state: string,
-  authParams: WidgetPageProps["authParams"],
-): string {
-  return `
-    const widget = document.getElementById('widget');
-    const screenId = ${JSON.stringify(screenId)};
-    const state = ${JSON.stringify(state)};
-    const authParams = ${safeJsonStringify(authParams)};
-
-    // Current screen ID for navigation
-    let currentScreenId = screenId;
-
-    // Fetch screen configuration from the API using a relative path
-    async function fetchScreen(id, nodeId) {
-      try {
-        let url = '/u2/screen/' + encodeURIComponent(id) + '?state=' + encodeURIComponent(state);
-        if (nodeId) {
-          url += '&nodeId=' + encodeURIComponent(nodeId);
-        }
-        const response = await fetch(url, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-        if (!response.ok) {
-          const error = await response.json().catch(() => ({ message: 'Failed to load screen' }));
-          throw new Error(error.message || 'Failed to load screen');
-        }
-        
-        const data = await response.json();
-        
-        if (data.screen) {
-          widget.screen = data.screen;
-          currentScreenId = id;
-          
-          if (data.branding) {
-            widget.branding = data.branding;
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching screen:', error);
-        widget.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>';
-      }
-    }
-    
-    // Escape HTML for safe display
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-    
-    // Handle form submissions
-    widget.addEventListener('formSubmit', async (event) => {
-      const { screen, data } = event.detail;
-      
-      widget.loading = true;
-      
-      try {
-        const response = await fetch(screen.action, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ data }),
-        });
-        
-        const result = await response.json();
-        
-        if (result.redirect) {
-          window.location.href = result.redirect;
-          return;
-        }
-        
-        if (result.screen) {
-          widget.screen = result.screen;
-          if (result.branding) {
-            widget.branding = result.branding;
-          }
-        }
-        
-        if (result.complete) {
-          widget.innerHTML = '<div class="loading">Authentication complete. Redirecting...</div>';
-        }
-      } catch (error) {
-        console.error('Form submission error:', error);
-        widget.innerHTML = '<div class="error">Something went wrong. Please try again.</div>';
-      } finally {
-        widget.loading = false;
-      }
-    });
-    
-    // Handle button clicks (social login, etc.)
-    widget.addEventListener('buttonClick', (event) => {
-      const { id, type, value } = event.detail;
-      
-      if (type === 'SOCIAL' && value) {
-        // Redirect to social provider with all required auth params using relative path
-        const params = {
-          connection: value,
-          state: state,
-          client_id: authParams.client_id,
-        };
-        // Add optional params if present
-        if (authParams.redirect_uri) params.redirect_uri = authParams.redirect_uri;
-        if (authParams.scope) params.scope = authParams.scope;
-        if (authParams.audience) params.audience = authParams.audience;
-        if (authParams.nonce) params.nonce = authParams.nonce;
-        if (authParams.response_type) params.response_type = authParams.response_type;
-        
-        const socialUrl = '/authorize?' + new URLSearchParams(params).toString();
-        window.location.href = socialUrl;
-      }
-      
-      if (type === 'RESEND_BUTTON') {
-        // Trigger resend action via the screen action URL
-        const screen = widget.screen;
-        if (screen?.action) {
-          fetch(screen.action + '&action=resend', {
-            method: 'POST',
-            credentials: 'include',
-          });
-        }
-      }
-    });
-    
-    // Handle link clicks
-    widget.addEventListener('linkClick', (event) => {
-      const { href } = event.detail;
-      if (href) {
-        window.location.href = href;
-      }
-    });
-    
-    // Initial load
-    fetchScreen(screenId);
-  `;
-}
 
 /**
  * Widget page component - renders the HTML page for the universal login widget
@@ -254,9 +105,13 @@ function WidgetPage({
     padding: "20px",
   };
 
-  const widgetStyle = cssVariables.length > 0 
-    ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
-    : "max-width: 400px; width: 100%;";
+  const widgetStyle =
+    cssVariables.length > 0
+      ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
+      : "max-width: 400px; width: 100%;";
+
+  // Serialize authParams for the widget attribute
+  const authParamsJson = JSON.stringify(authParams);
 
   return (
     <html lang="en">
@@ -281,15 +136,18 @@ function WidgetPage({
         <script type="module" src="/u/widget/authhero-widget.esm.js" />
       </head>
       <body style={bodyStyle}>
-        <authhero-widget id="widget" style={widgetStyle}>
+        <authhero-widget
+          id="widget"
+          style={widgetStyle}
+          api-url={`/u2/screen/${screenId}`}
+          screen-id={screenId}
+          state={state}
+          auth-params={authParamsJson}
+          auto-submit={true}
+          auto-navigate={true}
+        >
           <div class="loading">Loading...</div>
         </authhero-widget>
-        <script
-          type="module"
-          dangerouslySetInnerHTML={{
-            __html: getWidgetScript(screenId, state, authParams),
-          }}
-        />
         {safePoweredByUrl && (
           <div class="powered-by">
             {safePoweredByHref ? (
