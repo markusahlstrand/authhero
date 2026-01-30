@@ -17,6 +17,9 @@
  * 1. Loads the authhero-widget web component
  * 2. Fetches screen configuration from /u2/screen/:screenId
  * 3. Handles form submissions via the widget
+ *
+ * Supports custom Liquid templates via the branding API.
+ * Templates must include {%- auth0:head -%} and {%- auth0:widget -%} tags.
  */
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
@@ -32,12 +35,22 @@ import {
   safeJsonStringify,
 } from "./sanitization-utils";
 
+// Default Universal Login Template (matches Auth0's format)
+const DEFAULT_UNIVERSAL_LOGIN_TEMPLATE = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {%- auth0:head -%}
+  </head>
+  <body>
+    {%- auth0:widget -%}
+  </body>
+</html>`;
+
 /**
- * Render the widget page HTML
+ * Generate the <head> content for the universal login page
  */
-function renderWidgetPage(options: {
-  screenId: string;
-  state: string;
+function generateHeadContent(options: {
+  clientName: string;
   branding?: {
     colors?: {
       primary?: string;
@@ -49,62 +62,22 @@ function renderWidgetPage(options: {
     favicon_url?: string;
     font?: { url?: string };
   };
-  clientName: string;
-  baseUrl: string;
-  authParams: {
-    client_id: string;
-    redirect_uri?: string;
-    scope?: string;
-    audience?: string;
-    nonce?: string;
-    response_type?: string;
-  };
-  poweredByLogo?: {
-    url: string;
-    alt: string;
-    href?: string;
-    height?: number;
-  };
 }): string {
-  const {
-    screenId,
-    state,
-    branding,
-    clientName,
-    baseUrl,
-    authParams,
-    poweredByLogo,
-  } = options;
+  const { clientName, branding } = options;
+
+  const faviconUrl = sanitizeUrl(branding?.favicon_url);
+  const fontUrl = sanitizeUrl(branding?.font?.url);
+  const safeClientName = escapeHtml(clientName);
+  const primaryColor = sanitizeCssColor(branding?.colors?.primary);
+  const pageBackground = buildPageBackground(branding?.colors?.page_background);
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
-  const primaryColor = sanitizeCssColor(branding?.colors?.primary);
   if (primaryColor) {
     cssVariables.push(`--ah-color-primary: ${primaryColor}`);
   }
 
-  const pageBackground = buildPageBackground(branding?.colors?.page_background);
-  const faviconUrl = sanitizeUrl(branding?.favicon_url);
-  const fontUrl = sanitizeUrl(branding?.font?.url);
-  const safeClientName = escapeHtml(clientName);
-  const safeScreenId = escapeJs(screenId);
-  const safeState = escapeJs(state);
-  const safeBaseUrl = escapeJs(baseUrl);
-
-  // Sanitize powered-by logo URLs
-  const safePoweredByUrl = poweredByLogo?.url
-    ? sanitizeUrl(poweredByLogo.url)
-    : null;
-  const safePoweredByHref = poweredByLogo?.href
-    ? sanitizeUrl(poweredByLogo.href)
-    : null;
-  const safePoweredByAlt = poweredByLogo?.alt
-    ? escapeHtml(poweredByLogo.alt)
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
+  return `
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign in - ${safeClientName}</title>
@@ -164,9 +137,49 @@ function renderWidgetPage(options: {
       display: block;
     }
   </style>
-  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
-</head>
-<body>
+  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>`;
+}
+
+/**
+ * Generate the widget content (component + initialization script)
+ */
+function generateWidgetContent(options: {
+  screenId: string;
+  state: string;
+  baseUrl: string;
+  authParams: {
+    client_id: string;
+    redirect_uri?: string;
+    scope?: string;
+    audience?: string;
+    nonce?: string;
+    response_type?: string;
+  };
+  poweredByLogo?: {
+    url: string;
+    alt: string;
+    href?: string;
+    height?: number;
+  };
+}): string {
+  const { screenId, state, baseUrl, authParams, poweredByLogo } = options;
+
+  const safeScreenId = escapeJs(screenId);
+  const safeState = escapeJs(state);
+  const safeBaseUrl = escapeJs(baseUrl);
+
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url
+    ? sanitizeUrl(poweredByLogo.url)
+    : null;
+  const safePoweredByHref = poweredByLogo?.href
+    ? sanitizeUrl(poweredByLogo.href)
+    : null;
+  const safePoweredByAlt = poweredByLogo?.alt
+    ? escapeHtml(poweredByLogo.alt)
+    : "";
+
+  return `
   <authhero-widget id="widget">
     <div class="loading">Loading...</div>
   </authhero-widget>
@@ -322,9 +335,91 @@ function renderWidgetPage(options: {
   </div>
   `
       : ""
-  }
-</body>
-</html>`;
+  }`;
+}
+
+/**
+ * Apply a Liquid template by replacing auth0:head and auth0:widget tags
+ */
+function applyLiquidTemplate(
+  template: string,
+  headContent: string,
+  widgetContent: string,
+): string {
+  // Replace auth0:head tag (both trimmed and non-trimmed variants)
+  let result = template
+    .replace("{%- auth0:head -%}", headContent)
+    .replace("{% auth0:head %}", headContent);
+
+  // Replace auth0:widget tag (both trimmed and non-trimmed variants)
+  result = result
+    .replace("{%- auth0:widget -%}", widgetContent)
+    .replace("{% auth0:widget %}", widgetContent);
+
+  return result;
+}
+
+/**
+ * Render the widget page HTML using a Liquid template
+ */
+function renderWidgetPage(options: {
+  screenId: string;
+  state: string;
+  branding?: {
+    colors?: {
+      primary?: string;
+      page_background?:
+        | string
+        | { type?: string; start?: string; end?: string; angle_deg?: number };
+    };
+    logo_url?: string;
+    favicon_url?: string;
+    font?: { url?: string };
+  };
+  clientName: string;
+  baseUrl: string;
+  authParams: {
+    client_id: string;
+    redirect_uri?: string;
+    scope?: string;
+    audience?: string;
+    nonce?: string;
+    response_type?: string;
+  };
+  poweredByLogo?: {
+    url: string;
+    alt: string;
+    href?: string;
+    height?: number;
+  };
+  template?: string;
+}): string {
+  const {
+    screenId,
+    state,
+    branding,
+    clientName,
+    baseUrl,
+    authParams,
+    poweredByLogo,
+    template,
+  } = options;
+
+  // Generate the head and widget content
+  const headContent = generateHeadContent({ clientName, branding });
+  const widgetContent = generateWidgetContent({
+    screenId,
+    state,
+    baseUrl,
+    authParams,
+    poweredByLogo,
+  });
+
+  // Use custom template or default
+  const liquidTemplate = template || DEFAULT_UNIVERSAL_LOGIN_TEMPLATE;
+
+  // Apply the template
+  return applyLiquidTemplate(liquidTemplate, headContent, widgetContent);
 }
 
 /**
@@ -339,6 +434,10 @@ function createScreenRouteHandler(screenId: string) {
       true,
     );
     const baseUrl = new URL(ctx.req.url).origin;
+
+    // Fetch custom template (returns null if not set)
+    const customTemplate =
+      await ctx.env.data.branding.getUniversalLoginTemplate(ctx.var.tenant_id);
 
     const html = renderWidgetPage({
       screenId,
@@ -372,6 +471,7 @@ function createScreenRouteHandler(screenId: string) {
         }),
       },
       poweredByLogo: ctx.env.poweredByLogo,
+      template: customTemplate || undefined,
     });
 
     return ctx.html(html);

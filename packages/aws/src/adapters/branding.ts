@@ -4,10 +4,11 @@ import {
   brandingSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
-import { brandingKeys } from "../keys";
+import { brandingKeys, universalLoginTemplateKeys } from "../keys";
 import {
   getItem,
   putItem,
+  deleteItem,
   stripDynamoDBFields,
   removeNullProperties,
 } from "../utils";
@@ -19,6 +20,11 @@ interface BrandingItem extends DynamoDBBaseItem {
   logo_url?: string;
   powered_by_logo_url?: string;
   font?: string; // JSON string
+}
+
+interface UniversalLoginTemplateItem extends DynamoDBBaseItem {
+  tenant_id: string;
+  template: string;
 }
 
 function toBranding(item: BrandingItem): Branding {
@@ -72,6 +78,52 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
       if (!item) return null;
 
       return toBranding(item);
+    },
+
+    async setUniversalLoginTemplate(
+      tenantId: string,
+      template: string,
+    ): Promise<void> {
+      const now = new Date().toISOString();
+
+      // Fetch existing item to preserve created_at
+      const existing = await getItem<UniversalLoginTemplateItem>(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
+
+      const item: UniversalLoginTemplateItem = {
+        PK: universalLoginTemplateKeys.pk(tenantId),
+        SK: universalLoginTemplateKeys.sk(),
+        entityType: "UNIVERSAL_LOGIN_TEMPLATE",
+        tenant_id: tenantId,
+        template,
+        created_at: existing?.created_at || now,
+        updated_at: now,
+      };
+
+      await putItem(ctx, item);
+    },
+
+    async getUniversalLoginTemplate(tenantId: string): Promise<string | null> {
+      const item = await getItem<UniversalLoginTemplateItem>(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
+
+      if (!item) return null;
+
+      return item.template;
+    },
+
+    async deleteUniversalLoginTemplate(tenantId: string): Promise<void> {
+      await deleteItem(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
     },
   };
 }

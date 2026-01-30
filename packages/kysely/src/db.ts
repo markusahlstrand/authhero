@@ -308,6 +308,13 @@ export const sqlInviteSchema = z.object({
   send_invitation_email: z.number().optional().default(1), // boolean as int
 });
 
+const sqlUniversalLoginTemplateSchema = z.object({
+  tenant_id: z.string(),
+  template: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 const sqlClientSchema = z.object({
   ...clientSchema.shape,
   tenant_id: z.string(),
@@ -376,4 +383,5 @@ export interface Database {
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
   invites: z.infer<typeof sqlInviteSchema>;
+  universal_login_templates: z.infer<typeof sqlUniversalLoginTemplateSchema>;
 }
