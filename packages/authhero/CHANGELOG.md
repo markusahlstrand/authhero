@@ -1,5 +1,11 @@
 # authhero
 
+## 4.19.0
+
+### Minor Changes
+
+- d979690: Update the widget embed functionality
+
 ## 4.18.0
 
 ### Minor Changes

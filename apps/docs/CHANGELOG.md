@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.37.0
+
+### Minor Changes
+
+- d979690: Update the widget embed functionality
+
 ## 1.36.0
 
 ### Minor Changes
