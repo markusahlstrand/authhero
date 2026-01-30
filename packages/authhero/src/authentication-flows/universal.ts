@@ -78,6 +78,11 @@ export async function universalAuth({
     },
   );
 
+  // Determine route prefix based on client metadata
+  // Set client_metadata.universal_login_version to "2" to use /u2 routes
+  const routePrefix =
+    client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
+
   // Check if the user in the login_hint matches the user in the session
   if (session && login_hint) {
     const user = await ctx.env.data.users.get(
@@ -116,13 +121,13 @@ export async function universalAuth({
       authParams,
     });
 
-    return ctx.redirect(`/u/enter-code?state=${loginSession.id}`);
+    return ctx.redirect(`${routePrefix}/enter-code?state=${loginSession.id}`);
   }
 
   // If there is a session we redirect to the check-account page
   if (session) {
-    return ctx.redirect(`/u/check-account?state=${loginSession.id}`);
+    return ctx.redirect(`${routePrefix}/check-account?state=${loginSession.id}`);
   }
 
-  return ctx.redirect(`/u/login/identifier?state=${loginSession.id}`);
+  return ctx.redirect(`${routePrefix}/login/identifier?state=${loginSession.id}`);
 }

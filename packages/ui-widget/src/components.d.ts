@@ -6,11 +6,11 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
+import { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 import { WidgetBranding, WidgetTheme } from "./utils/branding";
-import { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
+export { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
-export { ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export namespace Components {
     interface AuthheroNode {
         /**
@@ -29,14 +29,27 @@ export namespace Components {
     }
     interface AuthheroWidget {
         /**
-          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load.
+          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
          */
         "apiUrl"?: string;
+        /**
+          * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
+         */
+        "authParams"?: AuthParams | string;
+        /**
+          * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
+          * @default false (same as autoSubmit when not specified)
+         */
+        "autoNavigate"?: boolean;
         /**
           * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
           * @default false
          */
         "autoSubmit": boolean;
+        /**
+          * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
+         */
+        "baseUrl"?: string;
         /**
           * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
          */
@@ -50,6 +63,24 @@ export namespace Components {
           * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
          */
         "screen"?: UiScreen | string;
+        /**
+          * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
+         */
+        "screenId"?: string;
+        /**
+          * Login session state token. Required for social login and maintaining session.
+         */
+        "state"?: string;
+        /**
+          * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
+          * @default 'memory'
+         */
+        "statePersistence": StatePersistence;
+        /**
+          * Storage key prefix for session/local storage persistence.
+          * @default 'authhero_widget'
+         */
+        "storageKey": string;
         /**
           * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
          */
@@ -145,14 +176,27 @@ declare namespace LocalJSX {
     }
     interface AuthheroWidget {
         /**
-          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load.
+          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
          */
         "apiUrl"?: string;
+        /**
+          * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
+         */
+        "authParams"?: AuthParams | string;
+        /**
+          * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
+          * @default false (same as autoSubmit when not specified)
+         */
+        "autoNavigate"?: boolean;
         /**
           * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
           * @default false
          */
         "autoSubmit"?: boolean;
+        /**
+          * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
+         */
+        "baseUrl"?: string;
         /**
           * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
          */
@@ -194,6 +238,24 @@ declare namespace LocalJSX {
           * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
          */
         "screen"?: UiScreen | string;
+        /**
+          * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
+         */
+        "screenId"?: string;
+        /**
+          * Login session state token. Required for social login and maintaining session.
+         */
+        "state"?: string;
+        /**
+          * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
+          * @default 'memory'
+         */
+        "statePersistence"?: StatePersistence;
+        /**
+          * Storage key prefix for session/local storage persistence.
+          * @default 'authhero_widget'
+         */
+        "storageKey"?: string;
         /**
           * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
          */
