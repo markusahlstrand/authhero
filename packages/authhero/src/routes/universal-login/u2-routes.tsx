@@ -24,8 +24,6 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { listScreenIds } from "./screens/registry";
 import {
-  escapeHtml,
-  escapeJs,
   sanitizeUrl,
   sanitizeCssColor,
   buildPageBackground,
@@ -33,9 +31,9 @@ import {
 } from "./sanitization-utils";
 
 /**
- * Render the widget page HTML
+ * Props for the WidgetPage component
  */
-function renderWidgetPage(options: {
+type WidgetPageProps = {
   screenId: string;
   state: string;
   branding?: {
@@ -50,7 +48,6 @@ function renderWidgetPage(options: {
     font?: { url?: string };
   };
   clientName: string;
-  baseUrl: string;
   authParams: {
     client_id: string;
     redirect_uri?: string;
@@ -65,130 +62,32 @@ function renderWidgetPage(options: {
     href?: string;
     height?: number;
   };
-}): string {
-  const {
-    screenId,
-    state,
-    branding,
-    clientName,
-    baseUrl,
-    authParams,
-    poweredByLogo,
-  } = options;
+};
 
-  // Build CSS variables from branding
-  const cssVariables: string[] = [];
-  const primaryColor = sanitizeCssColor(branding?.colors?.primary);
-  if (primaryColor) {
-    cssVariables.push(`--ah-color-primary: ${primaryColor}`);
-  }
-
-  const pageBackground = buildPageBackground(branding?.colors?.page_background);
-  const faviconUrl = sanitizeUrl(branding?.favicon_url);
-  const fontUrl = sanitizeUrl(branding?.font?.url);
-  const safeClientName = escapeHtml(clientName);
-  const safeScreenId = escapeJs(screenId);
-  const safeState = escapeJs(state);
-  const safeBaseUrl = escapeJs(baseUrl);
-
-  // Sanitize powered-by logo URLs
-  const safePoweredByUrl = poweredByLogo?.url
-    ? sanitizeUrl(poweredByLogo.url)
-    : null;
-  const safePoweredByHref = poweredByLogo?.href
-    ? sanitizeUrl(poweredByLogo.href)
-    : null;
-  const safePoweredByAlt = poweredByLogo?.alt
-    ? escapeHtml(poweredByLogo.alt)
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in - ${safeClientName}</title>
-  ${faviconUrl ? `<link rel="icon" href="${faviconUrl}">` : ""}
-  ${fontUrl ? `<link rel="stylesheet" href="${fontUrl}">` : ""}
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: ${pageBackground};
-      font-family: ${fontUrl ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
-      padding: 20px;
-    }
-    
-    authhero-widget {
-      ${cssVariables.join(";\n      ")};
-      max-width: 400px;
-      width: 100%;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-    
-    .error {
-      background: #fee2e2;
-      border: 1px solid #ef4444;
-      color: #dc2626;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .powered-by {
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-    
-    .powered-by:hover {
-      opacity: 1;
-    }
-    
-    .powered-by img {
-      display: block;
-    }
-  </style>
-  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
-</head>
-<body>
-  <authhero-widget id="widget">
-    <div class="loading">Loading...</div>
-  </authhero-widget>
-
-  <script type="module">
+/**
+ * Client-side script for the widget page
+ */
+function getWidgetScript(
+  screenId: string,
+  state: string,
+  authParams: WidgetPageProps["authParams"],
+): string {
+  return `
     const widget = document.getElementById('widget');
-    const baseUrl = '${safeBaseUrl}';
-    const screenId = '${safeScreenId}';
-    const state = '${safeState}';
+    const screenId = ${JSON.stringify(screenId)};
+    const state = ${JSON.stringify(state)};
     const authParams = ${safeJsonStringify(authParams)};
-    
+
     // Current screen ID for navigation
     let currentScreenId = screenId;
-    
-    // Fetch screen configuration from the API
+
+    // Fetch screen configuration from the API using a relative path
     async function fetchScreen(id, nodeId) {
       try {
-        let url = baseUrl + '/u2/screen/' + encodeURIComponent(id) + '?state=' + encodeURIComponent(state);
+        let url = '/u2/screen/' + encodeURIComponent(id) + '?state=' + encodeURIComponent(state);
         if (nodeId) {
           url += '&nodeId=' + encodeURIComponent(nodeId);
         }
-        
         const response = await fetch(url, {
           method: 'GET',
           credentials: 'include',
@@ -196,7 +95,6 @@ function renderWidgetPage(options: {
             'Accept': 'application/json',
           },
         });
-        
         if (!response.ok) {
           const error = await response.json().catch(() => ({ message: 'Failed to load screen' }));
           throw new Error(error.message || 'Failed to load screen');
@@ -272,7 +170,7 @@ function renderWidgetPage(options: {
       const { id, type, value } = event.detail;
       
       if (type === 'SOCIAL' && value) {
-        // Redirect to social provider with all required auth params
+        // Redirect to social provider with all required auth params using relative path
         const params = {
           connection: value,
           state: state,
@@ -285,7 +183,7 @@ function renderWidgetPage(options: {
         if (authParams.nonce) params.nonce = authParams.nonce;
         if (authParams.response_type) params.response_type = authParams.response_type;
         
-        const socialUrl = baseUrl + '/authorize?' + new URLSearchParams(params).toString();
+        const socialUrl = '/authorize?' + new URLSearchParams(params).toString();
         window.location.href = socialUrl;
       }
       
@@ -311,20 +209,113 @@ function renderWidgetPage(options: {
     
     // Initial load
     fetchScreen(screenId);
-  </script>
-  ${
-    safePoweredByUrl
-      ? `
-  <div class="powered-by">
-    ${safePoweredByHref ? `<a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">` : ""}
-      <img src="${safePoweredByUrl}" alt="${safePoweredByAlt}" height="${poweredByLogo?.height || 20}">
-    ${safePoweredByHref ? `</a>` : ""}
-  </div>
-  `
-      : ""
+  `;
+}
+
+/**
+ * Widget page component - renders the HTML page for the universal login widget
+ */
+function WidgetPage({
+  screenId,
+  state,
+  branding,
+  clientName,
+  authParams,
+  poweredByLogo,
+}: WidgetPageProps) {
+  // Build CSS variables from branding
+  const cssVariables: string[] = [];
+  const primaryColor = sanitizeCssColor(branding?.colors?.primary);
+  if (primaryColor) {
+    cssVariables.push(`--ah-color-primary: ${primaryColor}`);
   }
-</body>
-</html>`;
+
+  const pageBackground = buildPageBackground(branding?.colors?.page_background);
+  const faviconUrl = sanitizeUrl(branding?.favicon_url);
+  const fontUrl = sanitizeUrl(branding?.font?.url);
+
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url
+    ? sanitizeUrl(poweredByLogo.url)
+    : null;
+  const safePoweredByHref = poweredByLogo?.href
+    ? sanitizeUrl(poweredByLogo.href)
+    : null;
+
+  const bodyStyle = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: pageBackground,
+    fontFamily: fontUrl
+      ? "'Inter', system-ui, sans-serif"
+      : "system-ui, -apple-system, sans-serif",
+    padding: "20px",
+  };
+
+  const widgetStyle = cssVariables.length > 0 
+    ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
+    : "max-width: 400px; width: 100%;";
+
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sign in - {clientName}</title>
+        {faviconUrl && <link rel="icon" href={faviconUrl} />}
+        {fontUrl && <link rel="stylesheet" href={fontUrl} />}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              .loading { text-align: center; padding: 40px; color: #666; }
+              .error { background: #fee2e2; border: 1px solid #ef4444; color: #dc2626; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+              .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
+              .powered-by:hover { opacity: 1; }
+              .powered-by img { display: block; }
+            `,
+          }}
+        />
+        <script type="module" src="/u/widget/authhero-widget.esm.js" />
+      </head>
+      <body style={bodyStyle}>
+        <authhero-widget id="widget" style={widgetStyle}>
+          <div class="loading">Loading...</div>
+        </authhero-widget>
+        <script
+          type="module"
+          dangerouslySetInnerHTML={{
+            __html: getWidgetScript(screenId, state, authParams),
+          }}
+        />
+        {safePoweredByUrl && (
+          <div class="powered-by">
+            {safePoweredByHref ? (
+              <a
+                href={safePoweredByHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={safePoweredByUrl}
+                  alt={poweredByLogo?.alt || ""}
+                  height={poweredByLogo?.height || 20}
+                />
+              </a>
+            ) : (
+              <img
+                src={safePoweredByUrl}
+                alt={poweredByLogo?.alt || ""}
+                height={poweredByLogo?.height || 20}
+              />
+            )}
+          </div>
+        )}
+      </body>
+    </html>
+  );
 }
 
 /**
@@ -338,43 +329,43 @@ function createScreenRouteHandler(screenId: string) {
       state,
       true,
     );
-    const baseUrl = new URL(ctx.req.url).origin;
 
-    const html = renderWidgetPage({
-      screenId,
-      state,
-      branding: branding
-        ? {
-            colors: branding.colors,
-            logo_url: branding.logo_url,
-            favicon_url: branding.favicon_url,
-            font: branding.font,
-          }
-        : undefined,
-      clientName: client.name || "AuthHero",
-      baseUrl,
-      authParams: {
-        client_id: loginSession.authParams.client_id,
-        ...(loginSession.authParams.redirect_uri && {
-          redirect_uri: loginSession.authParams.redirect_uri,
-        }),
-        ...(loginSession.authParams.scope && {
-          scope: loginSession.authParams.scope,
-        }),
-        ...(loginSession.authParams.audience && {
-          audience: loginSession.authParams.audience,
-        }),
-        ...(loginSession.authParams.nonce && {
-          nonce: loginSession.authParams.nonce,
-        }),
-        ...(loginSession.authParams.response_type && {
-          response_type: loginSession.authParams.response_type,
-        }),
-      },
-      poweredByLogo: ctx.env.poweredByLogo,
-    });
-
-    return ctx.html(html);
+    return ctx.html(
+      <WidgetPage
+        screenId={screenId}
+        state={state}
+        branding={
+          branding
+            ? {
+                colors: branding.colors,
+                logo_url: branding.logo_url,
+                favicon_url: branding.favicon_url,
+                font: branding.font,
+              }
+            : undefined
+        }
+        clientName={client.name || "AuthHero"}
+        authParams={{
+          client_id: loginSession.authParams.client_id,
+          ...(loginSession.authParams.redirect_uri && {
+            redirect_uri: loginSession.authParams.redirect_uri,
+          }),
+          ...(loginSession.authParams.scope && {
+            scope: loginSession.authParams.scope,
+          }),
+          ...(loginSession.authParams.audience && {
+            audience: loginSession.authParams.audience,
+          }),
+          ...(loginSession.authParams.nonce && {
+            nonce: loginSession.authParams.nonce,
+          }),
+          ...(loginSession.authParams.response_type && {
+            response_type: loginSession.authParams.response_type,
+          }),
+        }}
+        poweredByLogo={ctx.env.poweredByLogo}
+      />,
+    );
   };
 }
 
