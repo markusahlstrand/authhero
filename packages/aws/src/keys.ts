@@ -89,6 +89,12 @@ export const brandingKeys = {
   sk: () => "BRANDING",
 };
 
+// Universal login template keys (one per tenant)
+export const universalLoginTemplateKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: () => "UNIVERSAL_LOGIN_TEMPLATE",
+};
+
 // Theme keys
 export const themeKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
