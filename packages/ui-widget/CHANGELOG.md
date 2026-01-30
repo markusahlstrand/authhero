@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.8.0
+
+### Minor Changes
+
+- d979690: Update the widget embed functionality
+
 ## 0.7.2
 
 ### Patch Changes

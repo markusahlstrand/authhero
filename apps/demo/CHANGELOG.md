@@ -1,5 +1,17 @@
 # @authhero/demo
 
+## 0.29.0
+
+### Minor Changes
+
+- d979690: Update the widget embed functionality
+
+### Patch Changes
+
+- Updated dependencies [d979690]
+  - @authhero/widget@0.8.0
+  - authhero@4.19.0
+
 ## 0.28.0
 
 ### Minor Changes

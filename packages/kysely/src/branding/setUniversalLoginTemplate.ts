@@ -1,30 +1,28 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { UniversalLoginTemplate } from "@authhero/adapter-interfaces";
 
 export function setUniversalLoginTemplate(db: Kysely<Database>) {
-  return async (tenant_id: string, template: string): Promise<void> => {
-    const now = new Date().toISOString();
+  return async (
+    tenant_id: string,
+    template: UniversalLoginTemplate,
+  ): Promise<void> => {
+    const now = Date.now();
 
-    // Try to update first, if no rows affected, insert
-    const result = await db
-      .updateTable("universal_login_templates")
-      .set({
-        template,
-        updated_at: now,
+    await db
+      .insertInto("universal_login_templates")
+      .values({
+        tenant_id,
+        body: template.body,
+        created_at_ts: now,
+        updated_at_ts: now,
       })
-      .where("tenant_id", "=", tenant_id)
-      .executeTakeFirst();
-
-    if (!result.numUpdatedRows || result.numUpdatedRows === BigInt(0)) {
-      await db
-        .insertInto("universal_login_templates")
-        .values({
-          tenant_id,
-          template,
-          created_at: now,
-          updated_at: now,
-        })
-        .execute();
-    }
+      .onConflict((oc) =>
+        oc.column("tenant_id").doUpdateSet({
+          body: template.body,
+          updated_at_ts: now,
+        }),
+      )
+      .execute();
   };
 }

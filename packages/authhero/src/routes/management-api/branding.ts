@@ -3,21 +3,11 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { brandingSchema } from "@authhero/adapter-interfaces";
 import { themesRoutes } from "./themes";
 import { DEFAULT_BRANDING } from "../../constants/defaultBranding";
+import { HTTPException } from "hono/http-exception";
 
-// Default Universal Login Template
-const DEFAULT_UNIVERSAL_LOGIN_TEMPLATE = `<!DOCTYPE html>
-<html>
-  <head>
-    {%- auth0:head -%}
-    <style>
-      body { background-color: #f0f2f5; }
-      .ulp-button { border-radius: 8px !important; }
-    </style>
-  </head>
-  <body>
-    {%- auth0:widget -%}
-  </body>
-</html>`;
+const universalLoginTemplateSchema = z.object({
+  body: z.string(),
+});
 
 export const brandingRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -131,15 +121,13 @@ export const brandingRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: z.object({
-                template: z.string(),
-              }),
+              schema: universalLoginTemplateSchema,
             },
           },
           description: "Universal login template",
         },
         404: {
-          description: "Template does not exist",
+          description: "Template not found",
         },
       },
     }),
@@ -149,10 +137,10 @@ export const brandingRoutes = new OpenAPIHono<{
       );
 
       if (!template) {
-        return ctx.json({ template: DEFAULT_UNIVERSAL_LOGIN_TEMPLATE });
+        throw new HTTPException(404, { message: "Template not found" });
       }
 
-      return ctx.json({ template });
+      return ctx.json(template);
     },
   )
   // --------------------------------
@@ -170,9 +158,7 @@ export const brandingRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z.object({
-                template: z.string().max(102400),
-              }),
+              schema: universalLoginTemplateSchema,
             },
           },
         },
@@ -183,66 +169,35 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        201: {
-          description: "Template successfully created",
-        },
         204: {
-          description: "Template successfully updated",
+          description: "Template updated successfully",
         },
         400: {
-          description:
-            "Payload content missing required Liquid tags (auth0:head and auth0:widget)",
+          description: "Invalid template",
         },
       },
     }),
     async (ctx) => {
-      const { template } = ctx.req.valid("json");
+      const template = ctx.req.valid("json");
 
-      // Validate required Liquid tags
-      if (
-        !template.includes("{%- auth0:head -%}") &&
-        !template.includes("{% auth0:head %}")
-      ) {
-        return ctx.json(
-          {
-            statusCode: 400,
-            error: "Bad Request",
-            message:
-              "Payload content missing required Liquid tag: auth0:head",
-          },
-          400,
-        );
+      // Validate template contains required Liquid tags
+      if (!template.body.includes("{%- auth0:head -%}")) {
+        throw new HTTPException(400, {
+          message: "Template must contain {%- auth0:head -%} tag",
+        });
       }
-
-      if (
-        !template.includes("{%- auth0:widget -%}") &&
-        !template.includes("{% auth0:widget %}")
-      ) {
-        return ctx.json(
-          {
-            statusCode: 400,
-            error: "Bad Request",
-            message:
-              "Payload content missing required Liquid tag: auth0:widget",
-          },
-          400,
-        );
+      if (!template.body.includes("{%- auth0:widget -%}")) {
+        throw new HTTPException(400, {
+          message: "Template must contain {%- auth0:widget -%} tag",
+        });
       }
-
-      // Check if template already exists
-      const existingTemplate =
-        await ctx.env.data.branding.getUniversalLoginTemplate(ctx.var.tenant_id);
 
       await ctx.env.data.branding.setUniversalLoginTemplate(
         ctx.var.tenant_id,
         template,
       );
 
-      if (existingTemplate) {
-        return new Response(null, { status: 204 });
-      }
-
-      return new Response(null, { status: 201 });
+      return ctx.body(null, 204);
     },
   )
   // --------------------------------
@@ -265,14 +220,16 @@ export const brandingRoutes = new OpenAPIHono<{
       ],
       responses: {
         204: {
-          description: "Template successfully deleted",
+          description: "Template deleted successfully",
         },
       },
     }),
     async (ctx) => {
-      await ctx.env.data.branding.deleteUniversalLoginTemplate(ctx.var.tenant_id);
+      await ctx.env.data.branding.deleteUniversalLoginTemplate(
+        ctx.var.tenant_id,
+      );
 
-      return new Response(null, { status: 204 });
+      return ctx.body(null, 204);
     },
   )
   // --------------------------------

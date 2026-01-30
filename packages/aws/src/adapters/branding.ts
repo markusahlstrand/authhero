@@ -2,6 +2,7 @@ import {
   BrandingAdapter,
   Branding,
   brandingSchema,
+  UniversalLoginTemplate,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { brandingKeys, universalLoginTemplateKeys } from "../keys";
@@ -22,11 +23,6 @@ interface BrandingItem extends DynamoDBBaseItem {
   font?: string; // JSON string
 }
 
-interface UniversalLoginTemplateItem extends DynamoDBBaseItem {
-  tenant_id: string;
-  template: string;
-}
-
 function toBranding(item: BrandingItem): Branding {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
 
@@ -37,6 +33,11 @@ function toBranding(item: BrandingItem): Branding {
   });
 
   return brandingSchema.parse(data);
+}
+
+interface UniversalLoginTemplateItem extends DynamoDBBaseItem {
+  tenant_id: string;
+  body: string;
 }
 
 export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
@@ -82,11 +83,10 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
 
     async setUniversalLoginTemplate(
       tenantId: string,
-      template: string,
+      template: UniversalLoginTemplate,
     ): Promise<void> {
       const now = new Date().toISOString();
 
-      // Fetch existing item to preserve created_at
       const existing = await getItem<UniversalLoginTemplateItem>(
         ctx,
         universalLoginTemplateKeys.pk(tenantId),
@@ -98,7 +98,7 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
         SK: universalLoginTemplateKeys.sk(),
         entityType: "UNIVERSAL_LOGIN_TEMPLATE",
         tenant_id: tenantId,
-        template,
+        body: template.body,
         created_at: existing?.created_at || now,
         updated_at: now,
       };
@@ -106,7 +106,9 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
       await putItem(ctx, item);
     },
 
-    async getUniversalLoginTemplate(tenantId: string): Promise<string | null> {
+    async getUniversalLoginTemplate(
+      tenantId: string,
+    ): Promise<UniversalLoginTemplate | null> {
       const item = await getItem<UniversalLoginTemplateItem>(
         ctx,
         universalLoginTemplateKeys.pk(tenantId),
@@ -115,7 +117,7 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
 
       if (!item) return null;
 
-      return item.template;
+      return { body: item.body };
     },
 
     async deleteUniversalLoginTemplate(tenantId: string): Promise<void> {

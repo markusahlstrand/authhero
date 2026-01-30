@@ -23,35 +23,34 @@ pnpm add @authhero/widget
 ### Browser (CDN)
 
 ```html
-<script type="module" src="https://unpkg.com/@authhero/widget/dist/authhero-widget/authhero-widget.esm.js"></script>
+<script
+  type="module"
+  src="https://unpkg.com/@authhero/widget/dist/authhero-widget/authhero-widget.esm.js"
+></script>
 
-<authhero-widget 
-  api-url="/u/flow/screen"
-  auto-submit="false">
+<authhero-widget api-url="/u/flow/screen" auto-submit="false">
 </authhero-widget>
 ```
 
 ### With a JavaScript Framework
 
 ```javascript
-import '@authhero/widget';
+import "@authhero/widget";
 
 // Or with the loader for lazy-loading
-import { defineCustomElements } from '@authhero/widget/loader';
+import { defineCustomElements } from "@authhero/widget/loader";
 defineCustomElements();
 ```
 
 ```html
-<authhero-widget 
-  api-url="/u/flow/screen"
-  auto-submit="false">
+<authhero-widget api-url="/u/flow/screen" auto-submit="false">
 </authhero-widget>
 ```
 
 ### Server-Side Rendering (Hono)
 
 ```typescript
-import { renderToString } from '@authhero/widget/hydrate';
+import { renderToString } from "@authhero/widget/hydrate";
 
 const html = await renderToString(`
   <authhero-widget screen='${JSON.stringify(screenConfig)}'></authhero-widget>
@@ -66,42 +65,42 @@ The widget renders UI based on Auth0's Forms API schema for universal login flow
 
 The widget supports [27+ Auth0 component types](https://auth0.com/docs/authenticate/login/auth0-universal-login/new-experience/universal-login-page-templates):
 
-| Component | Description |
-|-----------|-------------|
-| `heading` | Page headings and titles |
-| `description` | Descriptive text |
-| `text-input` | Text, email, phone inputs |
-| `password-input` | Password field with show/hide toggle |
-| `checkbox-input` | Checkboxes |
-| `select-input` | Dropdown selects |
-| `submit-button` | Primary action buttons |
-| `button` | Secondary action buttons |
-| `social-button-group` | Social login buttons |
-| `anchor` | Links and navigation |
-| `separator` | Visual dividers |
-| `image` | Logos and images |
-| And more... | Phone input, captcha, MFA, etc. |
+| Component             | Description                          |
+| --------------------- | ------------------------------------ |
+| `heading`             | Page headings and titles             |
+| `description`         | Descriptive text                     |
+| `text-input`          | Text, email, phone inputs            |
+| `password-input`      | Password field with show/hide toggle |
+| `checkbox-input`      | Checkboxes                           |
+| `select-input`        | Dropdown selects                     |
+| `submit-button`       | Primary action buttons               |
+| `button`              | Secondary action buttons             |
+| `social-button-group` | Social login buttons                 |
+| `anchor`              | Links and navigation                 |
+| `separator`           | Visual dividers                      |
+| `image`               | Logos and images                     |
+| And more...           | Phone input, captcha, MFA, etc.      |
 
 ### Screen Configuration
 
 ```typescript
 interface UIScreen {
-  title?: string;                // Screen title
-  description?: string;          // Screen description
-  components: UIComponent[];     // UI components to render
+  title?: string; // Screen title
+  description?: string; // Screen description
+  components: UIComponent[]; // UI components to render
   branding?: {
     logoUrl?: string;
     primaryColor?: string;
     backgroundColor?: string;
   };
-  theme?: string;                // Theme configuration JSON
+  theme?: string; // Theme configuration JSON
 }
 
 interface UIComponent {
-  component: string;             // Component type (e.g., 'text-input', 'submit-button')
-  id: string;                    // Component identifier
-  label?: string;                // Display label
-  [key: string]: any;            // Component-specific props
+  component: string; // Component type (e.g., 'text-input', 'submit-button')
+  id: string; // Component identifier
+  label?: string; // Display label
+  [key: string]: any; // Component-specific props
 }
 ```
 
@@ -172,54 +171,106 @@ Social buttons are configured using the `social-button-group` component:
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `screen` | `string \| UIScreen` | - | Screen configuration (JSON string or object) |
-| `api-url` | `string` | - | API endpoint for screen fetching |
-| `branding` | `string \| Branding` | - | Branding configuration |
-| `theme` | `string` | - | Theme configuration JSON |
-| `loading` | `boolean` | `false` | Loading state |
-| `auto-submit` | `boolean` | `false` | Auto-submit forms (not recommended, use events instead) |
+| Prop                | Type                             | Default             | Description                                                        |
+| ------------------- | -------------------------------- | ------------------- | ------------------------------------------------------------------ |
+| `screen`            | `string \| UIScreen`             | -                   | Screen configuration (JSON string or object)                       |
+| `api-url`           | `string`                         | -                   | API endpoint for screen fetching                                   |
+| `branding`          | `string \| Branding`             | -                   | Branding configuration                                             |
+| `theme`             | `string`                         | -                   | Theme configuration JSON                                           |
+| `loading`           | `boolean`                        | `false`             | Loading state                                                      |
+| `auto-submit`       | `boolean`                        | `false`             | Auto-submit forms to the action URL                                |
+| `auto-navigate`     | `boolean`                        | `false`             | Auto-navigate on social login, links, and redirects                |
+| `state`             | `string`                         | -                   | Login session state token                                          |
+| `screen-id`         | `string`                         | -                   | Current screen ID for API fetching                                 |
+| `auth-params`       | `string`                         | -                   | OAuth params JSON for social login (client_id, redirect_uri, etc.) |
+| `base-url`          | `string`                         | -                   | Base URL for API calls (for cross-domain embedding)                |
+| `state-persistence` | `'url' \| 'session' \| 'memory'` | `'memory'`          | Where to persist state and screen ID                               |
+| `storage-key`       | `string`                         | `'authhero_widget'` | Storage key prefix for session persistence                         |
+
+## Usage Modes
+
+### 1. Event-Based (Default)
+
+The widget emits events for your application to handle:
+
+```html
+<authhero-widget api-url="/u2/screen/identifier" state="your-state-token">
+</authhero-widget>
+```
+
+### 2. Self-Contained (Universal Login Pages)
+
+The widget handles everything internally - ideal for hosted login pages:
+
+```html
+<authhero-widget
+  api-url="/u2/screen/{screenId}"
+  screen-id="identifier"
+  state="your-state-token"
+  auth-params='{"client_id":"abc123","redirect_uri":"https://app.example.com/callback"}'
+  auto-submit="true"
+  auto-navigate="true"
+>
+</authhero-widget>
+```
+
+### 3. Embedded on External Pages
+
+Use `base-url` when embedding the widget on a different domain:
+
+```html
+<authhero-widget
+  base-url="https://auth.example.com"
+  api-url="/u2/screen/{screenId}"
+  screen-id="identifier"
+  state="your-state-token"
+  auth-params='{"client_id":"abc123"}'
+  auto-submit="true"
+  auto-navigate="true"
+  state-persistence="session"
+>
+</authhero-widget>
+```
 
 ## Events
 
 The widget is a **pure UI component** that emits events for your auth library to handle. It does not manage tokens, sessions, or HTTP requests.
 
-| Event | Detail | Description |
-|-------|--------|-------------|
-| `formSubmit` | `{ data: FormData, screen: UIScreen }` | Form submitted by user |
-| `buttonClick` | `{ id: string, action: string }` | Button clicked |
-| `linkClick` | `{ href: string }` | Link clicked |
-| `navigate` | `{ to: string }` | Navigation requested |
-| `flowComplete` | `{ result: any }` | Auth flow completed successfully |
-| `flowError` | `{ error: Error }` | Auth flow error occurred |
-| `screenChange` | `UIScreen` | Screen changed |
+| Event          | Detail                                 | Description                      |
+| -------------- | -------------------------------------- | -------------------------------- |
+| `formSubmit`   | `{ data: FormData, screen: UIScreen }` | Form submitted by user           |
+| `buttonClick`  | `{ id: string, action: string }`       | Button clicked                   |
+| `linkClick`    | `{ href: string }`                     | Link clicked                     |
+| `navigate`     | `{ to: string }`                       | Navigation requested             |
+| `flowComplete` | `{ result: any }`                      | Auth flow completed successfully |
+| `flowError`    | `{ error: Error }`                     | Auth flow error occurred         |
+| `screenChange` | `UIScreen`                             | Screen changed                   |
 
 ### Event-Based Integration (Recommended)
 
 The recommended approach is to handle events and let your auth library manage the flow:
 
 ```javascript
-const widget = document.querySelector('authhero-widget');
+const widget = document.querySelector("authhero-widget");
 
-widget.addEventListener('formSubmit', async (e) => {
+widget.addEventListener("formSubmit", async (e) => {
   const { data, screen } = e.detail;
-  
+
   try {
     // Your auth library handles the HTTP request
-    const response = await fetch('/u/flow/screen', {
-      method: 'POST',
+    const response = await fetch("/u/flow/screen", {
+      method: "POST",
       body: data,
     });
-    
+
     const nextScreen = await response.json();
     widget.screen = JSON.stringify(nextScreen);
   } catch (error) {
-    widget.dispatchEvent(new CustomEvent('flowError', { detail: { error } }));
+    widget.dispatchEvent(new CustomEvent("flowError", { detail: { error } }));
   }
 });
 
-widget.addEventListener('linkClick', (e) => {
+widget.addEventListener("linkClick", (e) => {
   // Handle navigation
   window.location.href = e.detail.href;
 });
@@ -230,14 +281,12 @@ widget.addEventListener('linkClick', (e) => {
 For simple use cases, the widget can handle HTTP requests automatically:
 
 ```html
-<authhero-widget 
-  api-url="/u/flow/screen"
-  auto-submit="true">
-</authhero-widget>
+<authhero-widget api-url="/u/flow/screen" auto-submit="true"> </authhero-widget>
 ```
 
 ⚠️ **Note**: Auto-submit mode is provided for convenience but is not recommended for production. Use the event-based approach for proper error handling, token management, and integration with auth libraries like Auth0 SPA SDK.
-```
+
+````
 
 ## Customization
 
@@ -250,7 +299,7 @@ authhero-widget {
   --text-color: #333333;
   --border-radius: 8px;
 }
-```
+````
 
 ### Server-Side Branding
 
@@ -276,7 +325,8 @@ See [`packages/authhero/FLOWS.md`](../authhero/FLOWS.md) for detailed integratio
 3. **Auth0 SPA SDK Integration** - Using `loginWithRedirect()` and callback handling
 4. **Custom Token Management** - Custom refresh token and session handling
 5. **Generic Forms** - Non-auth form use cases
-```
+
+````
 
 ## Development
 
@@ -295,7 +345,7 @@ pnpm build
 
 # Run tests
 pnpm test
-```
+````
 
 ### Demo Server
 
@@ -306,10 +356,12 @@ The widget includes a demo server at `demo-server/server.ts` that provides:
 - **Server-Driven UI**: Demonstrates how the widget integrates with a backend
 
 When you run `pnpm dev`, the demo is available at:
+
 - Path-based: http://localhost:3456/u2/login/identifier
 - Query-based: http://localhost:3456/u2/login?screen=identifier
 
 The demo server provides:
+
 - `GET /u2/screen/:screenId` - Returns screen configuration
 - `POST /u2/screen/:screenId` - Processes form submissions and returns next screen
 - Settings panel to customize theme, branding, and widget options

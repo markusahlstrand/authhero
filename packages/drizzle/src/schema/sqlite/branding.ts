@@ -30,9 +30,9 @@ export const universalLoginTemplates = sqliteTable("universal_login_templates", 
   tenant_id: text("tenant_id", { length: 191 })
     .primaryKey()
     .references(() => tenants.id, { onDelete: "cascade" }),
-  template: text("template").notNull(),
-  created_at: text("created_at", { length: 35 }).notNull(),
-  updated_at: text("updated_at", { length: 35 }).notNull(),
+  body: text("body").notNull(),
+  created_at_ts: integer("created_at_ts").notNull(),
+  updated_at_ts: integer("updated_at_ts").notNull(),
 });
 
 export const themes = sqliteTable(

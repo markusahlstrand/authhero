@@ -171,11 +171,97 @@ The widget will hydrate on the client side, becoming interactive without a flash
 | Prop          | Type                 | Default | Description                                             |
 | ------------- | -------------------- | ------- | ------------------------------------------------------- |
 | `screen`      | `string \| UIScreen` | -       | Screen configuration to render (JSON string or object)  |
-| `api-url`     | `string`             | -       | API endpoint to fetch initial screen from               |
+| `api-url`     | `string`             | -       | API endpoint to fetch initial screen from. Supports `{screenId}` placeholder |
+| `base-url`    | `string`             | -       | Base URL for all API calls (for cross-domain embedding) |
 | `branding`    | `string \| Branding` | -       | Branding configuration (logo, colors, fonts)            |
 | `theme`       | `string`             | -       | Theme configuration JSON                                |
 | `loading`     | `boolean`            | `false` | Show loading state                                      |
-| `auto-submit` | `boolean`            | `false` | Auto-handle form submissions (not recommended for SPAs) |
+| `auto-submit` | `boolean`            | `false` | Auto-handle form submissions to the action URL          |
+| `auto-navigate` | `boolean`          | `false` | Auto-handle social login redirects, links, and navigation |
+| `state`       | `string`             | -       | Login session state token (required for auth flows)     |
+| `screen-id`   | `string`             | -       | Current screen ID for API fetching                      |
+| `auth-params` | `string`             | -       | OAuth params JSON for social login (client_id, redirect_uri, etc.) |
+| `state-persistence` | `'url' \| 'session' \| 'memory'` | `'memory'` | Where to persist state and screen ID |
+| `storage-key` | `string`             | `'authhero_widget'` | Storage key prefix for session persistence |
+
+## Usage Modes
+
+The widget supports three primary modes of operation:
+
+### 1. Event-Based (Default)
+
+The widget emits events and your application handles all HTTP requests and navigation:
+
+```html
+<authhero-widget 
+  api-url="/u2/screen/identifier"
+  state="your-state-token">
+</authhero-widget>
+
+<script>
+  const widget = document.querySelector('authhero-widget');
+  
+  widget.addEventListener('formSubmit', async (e) => {
+    // Your app handles the submission
+    const response = await fetch(e.detail.screen.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: e.detail.data }),
+    });
+    const result = await response.json();
+    widget.screen = result.screen;
+  });
+  
+  widget.addEventListener('buttonClick', (e) => {
+    if (e.detail.type === 'SOCIAL') {
+      // Handle social login redirect
+    }
+  });
+</script>
+```
+
+### 2. Self-Contained (Universal Login Pages)
+
+The widget handles everything internally - ideal for hosted login pages:
+
+```html
+<authhero-widget 
+  api-url="/u2/screen/{screenId}"
+  screen-id="identifier"
+  state="your-state-token"
+  auth-params='{"client_id":"abc123","redirect_uri":"https://app.example.com/callback"}'
+  auto-submit="true"
+  auto-navigate="true">
+</authhero-widget>
+
+<script>
+  const widget = document.querySelector('authhero-widget');
+  
+  // Only need to handle flow completion
+  widget.addEventListener('flowComplete', (e) => {
+    if (e.detail.redirectUrl) {
+      window.location.href = e.detail.redirectUrl;
+    }
+  });
+</script>
+```
+
+### 3. Cross-Domain Embedded
+
+Use `base-url` when embedding the widget on a different domain:
+
+```html
+<authhero-widget 
+  base-url="https://auth.example.com"
+  api-url="/u2/screen/{screenId}"
+  screen-id="identifier"
+  state="your-state-token"
+  auth-params='{"client_id":"abc123"}'
+  auto-submit="true"
+  auto-navigate="true"
+  state-persistence="session">
+</authhero-widget>
+```
 
 ## Widget Events
 
@@ -257,7 +343,7 @@ widget.addEventListener("linkClick", (e) => {
 
 ### 2. Auto-Submit Mode
 
-The widget automatically handles form submissions and screen transitions.
+The widget automatically handles form submissions and screen transitions. With `auto-navigate`, it also handles social login redirects.
 
 **Best for:**
 
@@ -268,7 +354,13 @@ The widget automatically handles form submissions and screen transitions.
 **Example:**
 
 ```html
-<authhero-widget api-url="/u/flow/login/screen" auto-submit="true">
+<authhero-widget 
+  api-url="/u2/screen/{screenId}" 
+  screen-id="identifier"
+  state="your-state-token"
+  auth-params='{"client_id":"test-client","redirect_uri":"https://app.example.com/callback"}'
+  auto-submit="true"
+  auto-navigate="true">
 </authhero-widget>
 
 <script>
@@ -280,12 +372,8 @@ The widget automatically handles form submissions and screen transitions.
     }
   });
 
-  // Still need to handle social buttons manually
-  widget.addEventListener("buttonClick", (e) => {
-    if (e.detail.action === "social-login") {
-      const state = new URLSearchParams(location.search).get("state");
-      window.location.href = `/authorize?connection=${e.detail.value}&state=${state}`;
-    }
+  widget.addEventListener("flowError", (e) => {
+    console.error('Auth error:', e.detail.message);
   });
 </script>
 ```

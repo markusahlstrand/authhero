@@ -122,7 +122,7 @@ import * as o023_preferred_username from "./2026-01-28T11:00:00_preferred_userna
 import * as o024_user_address from "./2026-01-28T12:00:00_user_address";
 import * as o025_authparams_max_age from "./2026-01-28T13:00:00_authparams_max_age";
 import * as o026_auth0_conformant from "./2026-01-28T14:00:00_auth0_conformant";
-import * as o027_universal_login_templates from "./2026-01-29T10:00:00_universal_login_templates";
+import * as o027_universal_login_templates from "./2026-01-30T10:00:00_universal_login_templates";
 
 // These need to be in alphabetic order
 export default {

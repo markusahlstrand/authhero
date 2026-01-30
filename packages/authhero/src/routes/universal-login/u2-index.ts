@@ -25,7 +25,7 @@ import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { screenApiRoutes } from "./screen-api";
-import { u2Routes } from "./u2-routes";
+import { u2Routes } from "./u2-routes.tsx";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
 
@@ -113,4 +113,4 @@ export default function createU2App(config: AuthHeroConfig) {
 
 // Re-export the individual route modules for flexibility
 export { screenApiRoutes } from "./screen-api";
-export { u2Routes } from "./u2-routes";
+export { u2Routes } from "./u2-routes.tsx";

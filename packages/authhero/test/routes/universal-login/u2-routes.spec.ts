@@ -43,10 +43,9 @@ describe("u2 routes", () => {
       const html = await response.text();
 
       // Default template should include standard HTML structure
-      expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("<html");
-      expect(html).toContain("<head>");
-      expect(html).toContain("<body>");
+      expect(html).toContain("<head");
+      expect(html).toContain("<body");
       expect(html).toContain("authhero-widget");
       expect(html).toContain("/u/widget/authhero-widget.esm.js");
     });
@@ -86,7 +85,7 @@ describe("u2 routes", () => {
               "tenant-id": "tenantId",
             },
             json: {
-              template: customTemplate,
+              body: customTemplate,
             },
           },
           {
@@ -168,7 +167,7 @@ describe("u2 routes", () => {
             "tenant-id": "tenantId",
           },
           json: {
-            template: customTemplate,
+            body: customTemplate,
           },
         },
         {

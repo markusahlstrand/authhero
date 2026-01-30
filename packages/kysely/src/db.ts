@@ -58,6 +58,13 @@ const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
   tenant_id: z.string(),
 });
 
+const sqlUniversalLoginTemplateSchema = z.object({
+  tenant_id: z.string(),
+  body: z.string(),
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
+});
+
 const sqlPromptSettingSchema = z.object({
   ...promptSettingSchema.shape,
   identifier_first: z.number(),
@@ -306,13 +313,6 @@ export const sqlInviteSchema = z.object({
   ticket_id: z.string().optional().nullable(),
   ttl_sec: z.number().optional(),
   send_invitation_email: z.number().optional().default(1), // boolean as int
-});
-
-const sqlUniversalLoginTemplateSchema = z.object({
-  tenant_id: z.string(),
-  template: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
 });
 
 const sqlClientSchema = z.object({

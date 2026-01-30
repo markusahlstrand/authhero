@@ -118,10 +118,11 @@ const navigation = (active: string) => html`
   <nav class="nav">
     <a href="/demo" class="${active === 'index' ? 'active' : ''}">Index</a>
     <a href="/demo/pattern1" class="${active === 'pattern1' ? 'active' : ''}">1. Event-Based</a>
-    <a href="/demo/pattern2" class="${active === 'pattern2' ? 'active' : ''}">2. Auto-Submit</a>
+    <a href="/demo/pattern2" class="${active === 'pattern2' ? 'active' : ''}">2. Self-Contained</a>
     <a href="/demo/pattern3" class="${active === 'pattern3' ? 'active' : ''}">3. Auth0-SPA-JS</a>
     <a href="/demo/pattern4" class="${active === 'pattern4' ? 'active' : ''}">4. Custom Tokens</a>
     <a href="/demo/pattern5" class="${active === 'pattern5' ? 'active' : ''}">5. Generic Forms</a>
+    <a href="/demo/pattern6" class="${active === 'pattern6' ? 'active' : ''}">6. Cross-Domain</a>
   </nav>
 `;
 
@@ -134,19 +135,19 @@ demoPages.get("/", (c) => {
         ${navigation("index")}
         <h1>AuthHero Widget Integration Demos</h1>
         <p class="description">
-          These demos showcase the 5 different patterns for integrating the AuthHero widget
+          These demos showcase different patterns for integrating the AuthHero widget
           into your application. Each pattern demonstrates a different approach to handling
-          authentication, from fully event-driven to auto-submit mode.
+          authentication, from fully event-driven to self-contained mode.
         </p>
         
         <div class="widget-wrapper">
           <h2>Available Patterns</h2>
           
-          <h3>1. Event-Based (Recommended)</h3>
+          <h3>1. Event-Based (Recommended for SPAs)</h3>
           <p>Widget emits events, your application handles everything. Most flexible approach.</p>
           
-          <h3>2. Auto-Submit Mode</h3>
-          <p>Widget handles HTTP requests automatically. Simpler but less control.</p>
+          <h3>2. Self-Contained (Recommended for Hosted Pages)</h3>
+          <p>Widget handles everything: API calls, social login, navigation. No JS required.</p>
           
           <h3>3. With auth0-spa-js</h3>
           <p>Integrate with Auth0's SPA SDK for token management and silent auth.</p>
@@ -156,6 +157,9 @@ demoPages.get("/", (c) => {
           
           <h3>5. Generic Forms (Non-Auth)</h3>
           <p>Use the widget for any multi-step form, not just authentication.</p>
+          
+          <h3>6. Cross-Domain Embedded</h3>
+          <p>Embed the widget on a different domain with session-based state persistence.</p>
         </div>
 
         <div class="widget-wrapper">
@@ -300,28 +304,51 @@ demoPages.get("/pattern1", (c) => {
   `);
 });
 
-// Pattern 2: Auto-Submit
+// Pattern 2: Self-Contained Mode
 demoPages.get("/pattern2", (c) => {
   return c.html(html`
-    ${htmlHead("Pattern 2: Auto-Submit")}
+    ${htmlHead("Pattern 2: Self-Contained")}
     <body>
       <div class="demo-container">
         ${navigation("pattern2")}
-        <h1>Pattern 2: Auto-Submit Mode</h1>
+        <h1>Pattern 2: Self-Contained Mode</h1>
         <p class="description">
-          Enable <code>auto-submit</code> to let the widget handle HTTP requests automatically.
-          You only need to handle the completion event.
+          The widget handles everything: API calls, social login, link navigation, and resend.
+          Just provide the <code>state</code> and <code>api-url</code> props. No JavaScript required!
         </p>
         
         <div id="status" class="status info">Checking for login ticket...</div>
         
         <div class="widget-wrapper">
-          <authhero-widget id="widget" auto-submit="true"></authhero-widget>
+          <authhero-widget 
+            id="widget" 
+            auto-submit="true"
+            auto-navigate="true"
+          ></authhero-widget>
         </div>
         
         <div class="debug-panel">
           <h3>Event Log</h3>
           <div id="log"></div>
+        </div>
+        
+        <div class="widget-wrapper">
+          <h3>How It Works</h3>
+          <p>With <code>auto-submit</code> and <code>auto-navigate</code> enabled, the widget:</p>
+          <ul>
+            <li>Automatically POSTs form data to the API</li>
+            <li>Handles social login redirects</li>
+            <li>Handles link navigation (forgot password, sign up, etc.)</li>
+            <li>Handles code resend requests</li>
+            <li>Updates screen state automatically</li>
+          </ul>
+          <pre><code>&lt;authhero-widget 
+  api-url="/u/flow/screen"
+  state="your-login-ticket"
+  screen-id="login-id"
+  auto-submit="true"
+  auto-navigate="true"
+&gt;&lt;/authhero-widget&gt;</code></pre>
         </div>
       </div>
 
@@ -350,17 +377,24 @@ demoPages.get("/pattern2", (c) => {
           statusEl.textContent = 'Login ticket: ' + loginTicket.substring(0, 20) + '...';
           statusEl.className = 'status success';
           
-          // Fetch initial screen
+          // Set up the widget - just provide state and API URL!
+          widget.setAttribute('api-url', '/u/flow/screen?form=login');
+          widget.setAttribute('state', loginTicket);
+          
+          // Fetch initial screen to get screen ID
           fetch('/u/flow/screen?form=login&state=' + loginTicket)
             .then(r => r.json())
             .then(data => {
               log('response', 'Initial screen loaded', data.screen?.title);
               widget.screen = data.screen;
               widget.branding = data.branding;
+              if (data.screenId) {
+                widget.setAttribute('screen-id', data.screenId);
+              }
             });
         }
         
-        // With auto-submit, we mainly listen for completion
+        // In self-contained mode, just listen for completion
         widget.addEventListener('flowComplete', (e) => {
           log('event', 'flowComplete', e.detail);
           statusEl.textContent = 'Auth complete! Redirect URL: ' + (e.detail.redirectUrl || 'none');
@@ -373,16 +407,21 @@ demoPages.get("/pattern2", (c) => {
           statusEl.className = 'status error';
         });
         
-        // Still handle social buttons manually
-        widget.addEventListener('buttonClick', (e) => {
-          log('event', 'buttonClick', e.detail);
-          if (e.detail.type === 'SOCIAL') {
-            log('event', 'Would redirect to social provider', e.detail.value);
-          }
-        });
-        
         widget.addEventListener('screenChange', (e) => {
           log('event', 'screenChange', e.detail?.title);
+        });
+        
+        // These events fire but widget handles them automatically
+        widget.addEventListener('buttonClick', (e) => {
+          log('event', 'buttonClick (auto-handled)', e.detail);
+        });
+        
+        widget.addEventListener('linkClick', (e) => {
+          log('event', 'linkClick (auto-handled)', e.detail);
+        });
+        
+        widget.addEventListener('resend', (e) => {
+          log('event', 'resend (auto-handled)', e.detail);
         });
       </script>
     </body>
@@ -904,6 +943,171 @@ demoPages.get("/pattern5", (c) => {
             widget.screen = screens.step2;
             statusEl.textContent = 'Step 2 of 3: Team Size';
           }
+        });
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+// Pattern 6: Cross-Domain Embedded
+demoPages.get("/pattern6", (c) => {
+  return c.html(html`
+    ${htmlHead("Pattern 6: Cross-Domain")}
+    <body>
+      <div class="demo-container">
+        ${navigation("pattern6")}
+        <h1>Pattern 6: Cross-Domain Embedded</h1>
+        <p class="description">
+          Embed the widget on a different domain with session-based state persistence.
+          The widget stores state in <code>sessionStorage</code> so it survives page reloads.
+        </p>
+        
+        <div id="status" class="status info">Widget configured for cross-domain use</div>
+        
+        <div class="widget-wrapper">
+          <authhero-widget 
+            id="widget"
+            auto-submit="true"
+            auto-navigate="true"
+            state-persistence="session"
+            storage-key="authhero-demo-state"
+          ></authhero-widget>
+        </div>
+        
+        <div class="debug-panel">
+          <h3>Event Log</h3>
+          <div id="log"></div>
+        </div>
+        
+        <div class="widget-wrapper">
+          <h3>How It Works</h3>
+          <p>For cross-domain scenarios, you configure:</p>
+          <ul>
+            <li><code>base-url</code> - Full URL to the AuthHero server</li>
+            <li><code>api-url</code> - Full URL to the screen API endpoint</li>
+            <li><code>state-persistence="session"</code> - Store state in sessionStorage</li>
+            <li><code>storage-key</code> - Custom key for storage (optional)</li>
+          </ul>
+          <pre><code>&lt;authhero-widget 
+  base-url="https://auth.example.com"
+  api-url="https://auth.example.com/u/flow/screen"
+  state="initial-state-token"
+  auth-params='{"client_id":"abc","redirect_uri":"https://app.example.com/callback"}'
+  auto-submit="true"
+  auto-navigate="true"
+  state-persistence="session"
+  storage-key="my-app-auth-state"
+&gt;&lt;/authhero-widget&gt;</code></pre>
+          
+          <h3>State Persistence Options</h3>
+          <ul>
+            <li><code>url</code> - Store in URL path (default for universal login)</li>
+            <li><code>session</code> - Store in sessionStorage (survives reloads)</li>
+            <li><code>memory</code> - Store in memory only (lost on reload)</li>
+          </ul>
+          
+          <h3>Test State Persistence</h3>
+          <p>
+            <button onclick="location.reload()">Reload Page</button>
+            <button onclick="sessionStorage.removeItem('authhero-demo-state'); location.reload();">Clear State & Reload</button>
+          </p>
+        </div>
+      </div>
+
+      <script type="module">
+        const widget = document.getElementById('widget');
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+        
+        function log(type, message, data) {
+          const entry = document.createElement('div');
+          entry.className = 'debug-entry ' + type;
+          entry.textContent = new Date().toLocaleTimeString() + ' [' + type.toUpperCase() + '] ' + message;
+          if (data) {
+            entry.textContent += ': ' + JSON.stringify(data).substring(0, 100);
+          }
+          logEl.insertBefore(entry, logEl.firstChild);
+        }
+        
+        // Check for persisted state
+        const persistedState = sessionStorage.getItem('authhero-demo-state');
+        if (persistedState) {
+          log('info', 'Restored state from sessionStorage', persistedState);
+          statusEl.textContent = 'State restored from sessionStorage';
+          statusEl.className = 'status success';
+        }
+        
+        // Check for login ticket in URL
+        const params = new URLSearchParams(window.location.search);
+        const loginTicket = params.get('state');
+        
+        if (loginTicket) {
+          // Configure widget with the provided state
+          widget.setAttribute('api-url', '/u/flow/screen?form=login');
+          widget.setAttribute('state', loginTicket);
+          
+          // Store auth params for cross-domain use
+          widget.setAttribute('auth-params', JSON.stringify({
+            client_id: params.get('client_id') || 'demo-client',
+            redirect_uri: params.get('redirect_uri') || window.location.origin + '/demo/callback',
+            scope: params.get('scope') || 'openid profile email',
+          }));
+          
+          // Fetch initial screen
+          fetch('/u/flow/screen?form=login&state=' + loginTicket)
+            .then(r => r.json())
+            .then(data => {
+              log('response', 'Initial screen loaded', data.screen?.title);
+              widget.screen = data.screen;
+              widget.branding = data.branding;
+              if (data.screenId) {
+                widget.setAttribute('screen-id', data.screenId);
+              }
+              statusEl.textContent = 'Ready - state will persist in sessionStorage';
+              statusEl.className = 'status success';
+            });
+        } else if (!persistedState) {
+          statusEl.textContent = 'No login ticket. Start auth flow from index page, or widget will use persisted state.';
+          statusEl.className = 'status error';
+          
+          // Demo: Create a sample screen to show the widget works
+          widget.screen = {
+            action: '/api/demo',
+            method: 'POST',
+            title: 'Cross-Domain Demo',
+            description: 'This demonstrates the widget in cross-domain mode. Start a real auth flow to test persistence.',
+            components: [
+              {
+                id: 'email',
+                type: 'TEXT',
+                category: 'FIELD',
+                label: 'Email',
+                config: { placeholder: 'you@example.com' },
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                config: { text: 'Demo Submit' },
+              },
+            ],
+          };
+        }
+        
+        // Listen for events
+        widget.addEventListener('flowComplete', (e) => {
+          log('event', 'flowComplete', e.detail);
+          statusEl.textContent = 'Auth complete!';
+          statusEl.className = 'status success';
+        });
+        
+        widget.addEventListener('screenChange', (e) => {
+          log('event', 'screenChange', e.detail?.title);
+        });
+        
+        widget.addEventListener('formSubmit', (e) => {
+          log('event', 'formSubmit (handled by widget)', e.detail);
         });
       </script>
     </body>
