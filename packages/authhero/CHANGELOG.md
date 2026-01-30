@@ -1,5 +1,11 @@
 # authhero
 
+## 4.18.0
+
+### Minor Changes
+
+- 147462f: Fix logouts for custom domains
+
 ## 4.17.0
 
 ### Minor Changes
