@@ -77,4 +77,195 @@ describe("branding", () => {
 
     expect(brandingResponseBody).toEqual(brandingData);
   });
+
+  describe("universal login templates", () => {
+    it("should return 404 when no template exists", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].$get(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should set and get universal login template", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const template = {
+        body: "<!DOCTYPE html><html><head>{%- auth0:head -%}</head><body>{%- auth0:widget -%}</body></html>",
+      };
+
+      // Set the template
+      const setResponse = await managementClient.branding.templates[
+        "universal-login"
+      ].$put(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: template,
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(setResponse.status).toBe(204);
+
+      // Get the template
+      const getResponse = await managementClient.branding.templates[
+        "universal-login"
+      ].$get(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getResponse.status).toBe(200);
+      const responseBody = await getResponse.json();
+      expect(responseBody.body).toBe(template.body);
+    });
+
+    it("should return 400 when template is missing auth0:head tag", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const template = {
+        body: "<!DOCTYPE html><html><head></head><body>{%- auth0:widget -%}</body></html>",
+      };
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].$put(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: template,
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should return 400 when template is missing auth0:widget tag", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const template = {
+        body: "<!DOCTYPE html><html><head>{%- auth0:head -%}</head><body></body></html>",
+      };
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].$put(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: template,
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should delete universal login template", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const template = {
+        body: "<!DOCTYPE html><html><head>{%- auth0:head -%}</head><body>{%- auth0:widget -%}</body></html>",
+      };
+
+      // First set a template
+      await managementClient.branding.templates["universal-login"].$put(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+          json: template,
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // Delete the template
+      const deleteResponse = await managementClient.branding.templates[
+        "universal-login"
+      ].$delete(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(deleteResponse.status).toBe(204);
+
+      // Verify it's deleted
+      const getResponse = await managementClient.branding.templates[
+        "universal-login"
+      ].$get(
+        {
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getResponse.status).toBe(404);
+    });
+  });
 });

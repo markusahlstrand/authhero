@@ -2,12 +2,14 @@ import {
   BrandingAdapter,
   Branding,
   brandingSchema,
+  UniversalLoginTemplate,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
-import { brandingKeys } from "../keys";
+import { brandingKeys, universalLoginTemplateKeys } from "../keys";
 import {
   getItem,
   putItem,
+  deleteItem,
   stripDynamoDBFields,
   removeNullProperties,
 } from "../utils";
@@ -31,6 +33,11 @@ function toBranding(item: BrandingItem): Branding {
   });
 
   return brandingSchema.parse(data);
+}
+
+interface UniversalLoginTemplateItem extends DynamoDBBaseItem {
+  tenant_id: string;
+  body: string;
 }
 
 export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
@@ -72,6 +79,53 @@ export function createBrandingAdapter(ctx: DynamoDBContext): BrandingAdapter {
       if (!item) return null;
 
       return toBranding(item);
+    },
+
+    async setUniversalLoginTemplate(
+      tenantId: string,
+      template: UniversalLoginTemplate,
+    ): Promise<void> {
+      const now = new Date().toISOString();
+
+      const existing = await getItem<UniversalLoginTemplateItem>(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
+
+      const item: UniversalLoginTemplateItem = {
+        PK: universalLoginTemplateKeys.pk(tenantId),
+        SK: universalLoginTemplateKeys.sk(),
+        entityType: "UNIVERSAL_LOGIN_TEMPLATE",
+        tenant_id: tenantId,
+        body: template.body,
+        created_at: existing?.created_at || now,
+        updated_at: now,
+      };
+
+      await putItem(ctx, item);
+    },
+
+    async getUniversalLoginTemplate(
+      tenantId: string,
+    ): Promise<UniversalLoginTemplate | null> {
+      const item = await getItem<UniversalLoginTemplateItem>(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
+
+      if (!item) return null;
+
+      return { body: item.body };
+    },
+
+    async deleteUniversalLoginTemplate(tenantId: string): Promise<void> {
+      await deleteItem(
+        ctx,
+        universalLoginTemplateKeys.pk(tenantId),
+        universalLoginTemplateKeys.sk(),
+      );
     },
   };
 }

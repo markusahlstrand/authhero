@@ -58,6 +58,13 @@ const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
   tenant_id: z.string(),
 });
 
+const sqlUniversalLoginTemplateSchema = z.object({
+  tenant_id: z.string(),
+  body: z.string(),
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
+});
+
 const sqlPromptSettingSchema = z.object({
   ...promptSettingSchema.shape,
   identifier_first: z.number(),
@@ -376,4 +383,5 @@ export interface Database {
   organizations: z.infer<typeof sqlOrganizationSchema>;
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
   invites: z.infer<typeof sqlInviteSchema>;
+  universal_login_templates: z.infer<typeof sqlUniversalLoginTemplateSchema>;
 }
