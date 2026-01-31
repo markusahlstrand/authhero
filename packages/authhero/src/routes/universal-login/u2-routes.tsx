@@ -28,7 +28,6 @@ import {
   sanitizeCssColor,
   buildPageBackground,
   escapeHtml,
-  escapeJs,
 } from "./sanitization-utils";
 
 /**
@@ -295,9 +294,9 @@ function generateWidgetContent(options: {
 }): string {
   const { screenId, state, authParams, poweredByLogo } = options;
 
-  const safeScreenId = escapeJs(screenId);
-  const safeState = escapeJs(state);
-  const safeAuthParams = escapeJs(JSON.stringify(authParams));
+  const safeScreenId = escapeHtml(screenId);
+  const safeState = escapeHtml(state);
+  const safeAuthParams = escapeHtml(JSON.stringify(authParams));
 
   // Build powered-by logo HTML if provided
   let poweredByHtml = "";
