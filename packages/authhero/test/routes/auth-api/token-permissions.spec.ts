@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 interface TokenResponse {
@@ -100,8 +100,8 @@ describe("token endpoint - permissions in JWT", () => {
       expect(body).toHaveProperty("token_type", "Bearer");
 
       // Parse the access token to check permissions
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe(user.user_id);
@@ -198,8 +198,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
 
@@ -256,8 +256,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");
@@ -319,8 +319,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");
@@ -381,8 +381,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");
@@ -446,8 +446,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");
@@ -562,8 +562,8 @@ describe("token endpoint - permissions in JWT", () => {
       const body = (await response.json()) as TokenResponse;
 
       // Parse the access token
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.sub).toBe("clientId");

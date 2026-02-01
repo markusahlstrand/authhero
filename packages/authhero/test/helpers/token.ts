@@ -1,22 +1,8 @@
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { SignJWT, importPKCS8 } from "jose";
 import { createX509Certificate } from "../../src/utils/encryption";
 import { SigningKey } from "@authhero/adapter-interfaces";
 
 let signingKey: SigningKey | null = null;
-
-export function pemToBuffer(pem: string): ArrayBuffer {
-  const base64String = pem
-    .replace(/^-----BEGIN RSA PRIVATE KEY-----/, "")
-    .replace(/-----END RSA PRIVATE KEY-----/, "")
-    .replace(/^-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/^-----BEGIN PUBLIC KEY-----/, "")
-    .replace(/-----END PUBLIC KEY-----/, "")
-    .replace(/\s/g, "");
-
-  return Uint8Array.from(atob(base64String), (c) => c.charCodeAt(0)).buffer;
-}
 
 export async function getCertificate() {
   if (!signingKey) {
@@ -37,26 +23,20 @@ export interface CreateTokenParams {
 
 export async function createToken(params?: CreateTokenParams) {
   const certificate = await getCertificate();
+  const privateKey = await importPKCS8(certificate.pkcs7!, "RS256");
 
-  return createJWT(
-    "RS256",
-    pemToBuffer(certificate.pkcs7!),
-    {
-      aud: "example.com",
-      scope: params?.scope ?? "openid email profile",
-      permissions: params?.permissions || [],
-      sub: params?.userId || "userId",
-      iss: "test.example.com",
-      tenant_id: params?.tenantId,
-    },
-    {
-      includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "h"),
-      headers: {
-        kid: certificate.kid,
-      },
-    },
-  );
+  return new SignJWT({
+    aud: "example.com",
+    scope: params?.scope ?? "openid email profile",
+    permissions: params?.permissions || [],
+    sub: params?.userId || "userId",
+    iss: "test.example.com",
+    tenant_id: params?.tenantId,
+  })
+    .setProtectedHeader({ alg: "RS256", kid: certificate.kid })
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(privateKey);
 }
 
 export async function getAdminToken() {

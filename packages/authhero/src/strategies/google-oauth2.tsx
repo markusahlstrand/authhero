@@ -3,7 +3,7 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
 import type { FC } from "hono/jsx";
@@ -93,13 +93,9 @@ export async function validateAuthorizationCodeAndGetUser(
 
   const tokens = await google.validateAuthorizationCode(code, code_verifier);
 
-  const idToken = parseJWT(tokens.idToken());
+  const idTokenPayload = decodeJwt(tokens.idToken());
 
-  if (!idToken) {
-    throw new Error("Invalid ID token");
-  }
-
-  const payload = idTokenSchema.parse(idToken.payload);
+  const payload = idTokenSchema.parse(idTokenPayload);
 
   return {
     sub: payload.sub,

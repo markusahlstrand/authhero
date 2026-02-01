@@ -10,11 +10,9 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { TimeSpan } from "oslo";
-import { createJWT } from "oslo/jwt";
+import { SignJWT, importPKCS8 } from "jose";
 import { nanoid } from "nanoid";
-import { generateCodeVerifier } from "oslo/oauth2";
-import { pemToBuffer } from "../utils/crypto";
+import { generateCodeVerifier } from "../utils/encoding";
 import { Bindings, Variables } from "../types";
 import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
@@ -82,7 +80,6 @@ export async function createAuthTokens(
     throw new JSONHTTPException(500, { message: "No signing key available" });
   }
 
-  const keyBuffer = pemToBuffer(signingKey.pkcs7);
   const iss = ctx.var.custom_domain
     ? `https://${ctx.var.custom_domain}/`
     : ctx.env.ISSUER;
@@ -248,23 +245,21 @@ export async function createAuthTokens(
     );
   }
 
-  const header = {
-    includeIssuedTimestamp: true,
-    expiresIn: impersonatingUser ? new TimeSpan(1, "h") : new TimeSpan(1, "d"),
-    headers: {
-      kid: signingKey.kid,
-    },
-  };
+  const expiresIn = impersonatingUser ? "1h" : "1d";
+  const privateKey = await importPKCS8(signingKey.pkcs7!, "RS256");
 
-  const access_token = await createJWT(
-    "RS256",
-    keyBuffer,
-    accessTokenPayload,
-    header,
-  );
+  const access_token = await new SignJWT(accessTokenPayload)
+    .setProtectedHeader({ alg: "RS256", kid: signingKey.kid })
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(privateKey);
 
   const id_token = idTokenPayload
-    ? await createJWT("RS256", keyBuffer, idTokenPayload, header)
+    ? await new SignJWT(idTokenPayload)
+        .setProtectedHeader({ alg: "RS256", kid: signingKey.kid })
+        .setIssuedAt()
+        .setExpirationTime(expiresIn)
+        .sign(privateKey)
     : undefined;
 
   return {

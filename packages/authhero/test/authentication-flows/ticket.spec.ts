@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import { nanoid } from "nanoid";
-import { generateCodeVerifier } from "oslo/oauth2";
+import { generateCodeVerifier } from "../../src/utils/encoding";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 describe("ticket", () => {

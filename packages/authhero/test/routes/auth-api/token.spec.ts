@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
 import {
   CodeChallengeMethod,
@@ -49,8 +49,8 @@ describe("token", () => {
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
 
-      const accessToken = parseJWT(body.access_token);
-      expect(accessToken?.payload).toMatchObject({
+      const accessToken = decodeJwt(body.access_token);
+      expect(accessToken).toMatchObject({
         sub: "clientId",
         iss: "http://localhost:3000/",
         aud: "https://example.com",
@@ -80,8 +80,8 @@ describe("token", () => {
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
 
-      const accessToken = parseJWT(body.access_token);
-      expect(accessToken?.payload).toMatchObject({
+      const accessToken = decodeJwt(body.access_token);
+      expect(accessToken).toMatchObject({
         sub: "clientId",
         iss: "http://localhost:3000/",
         aud: "https://example.com",
@@ -159,15 +159,15 @@ describe("token", () => {
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
 
-      const accessToken = parseJWT(body.access_token);
-      expect(accessToken?.payload).toMatchObject({
+      const accessToken = decodeJwt(body.access_token);
+      expect(accessToken).toMatchObject({
         sub: "clientId",
         iss: "http://localhost:3000/",
         aud: "https://test-api.example.com",
       });
 
       // The token should include both granted scopes since no specific scopes were requested
-      const payload = accessToken?.payload as any;
+      const payload = accessToken as any;
       expect(payload.scope).toContain("read:users");
       expect(payload.scope).toContain("write:users");
       expect(payload.scope).not.toContain("read:posts"); // This wasn't granted
@@ -217,15 +217,15 @@ describe("token", () => {
       expect(response.status).toBe(200);
       const body = (await response.json()) as TokenResponse;
 
-      const accessToken = parseJWT(body.access_token);
-      expect(accessToken?.payload).toMatchObject({
+      const accessToken = decodeJwt(body.access_token);
+      expect(accessToken).toMatchObject({
         sub: "clientId",
         iss: "http://localhost:3000/",
         aud: "https://test-api.example.com",
       });
 
       // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
-      const payload2 = accessToken?.payload as any;
+      const payload2 = accessToken as any;
       expect(payload2.scope).toContain("read:users");
       expect(payload2.scope).not.toContain("write:users"); // Only requested scope is returned
     });
@@ -279,8 +279,8 @@ describe("token", () => {
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "http://example.com",
@@ -334,8 +334,8 @@ describe("token", () => {
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "http://example.com",
@@ -345,12 +345,12 @@ describe("token", () => {
           throw new Error("id_token is missing");
         }
 
-        const idToken = parseJWT(body.id_token);
+        const idToken = decodeJwt(body.id_token);
 
         // Auth0 compatible behavior: email and profile claims should be included
         // in the id_token when the corresponding scopes are requested.
         // The claims are also available from the userinfo endpoint.
-        expect(idToken?.payload).toMatchObject({
+        expect(idToken).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "clientId",
@@ -679,9 +679,12 @@ describe("token", () => {
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
 
-        const accessToken = parseJWT(body.access_token);
+        const accessToken = decodeJwt(body.access_token) as Record<
+          string,
+          unknown
+        >;
 
-        if (!accessToken || !("sid" in accessToken.payload)) {
+        if (!accessToken || !("sid" in accessToken)) {
           throw new Error("sid is missing");
         }
 
@@ -691,7 +694,7 @@ describe("token", () => {
           "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None",
         );
         expect(cookies).toContain(
-          `tenantId-auth-token=${accessToken?.payload.sid}; Max-Age=2592000; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
+          `tenantId-auth-token=${accessToken.sid}; Max-Age=2592000; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
         );
       });
 
@@ -810,8 +813,8 @@ describe("token", () => {
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "http://example.com",
@@ -870,8 +873,8 @@ describe("token", () => {
         expect(response.status).toBe(200);
         const body = (await response.json()) as TokenResponse;
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "email|userId",
           iss: "http://localhost:3000/",
           aud: "http://example.com",
@@ -1050,10 +1053,10 @@ describe("token", () => {
       expect(body.access_token).toBeDefined();
 
       // Parse the access token and verify the scope claim
-      const accessToken = parseJWT(body.access_token);
+      const accessToken = decodeJwt(body.access_token);
       expect(accessToken).not.toBeNull();
 
-      const payload = accessToken?.payload as { scope?: string };
+      const payload = accessToken as { scope?: string };
       expect(payload.scope).toBe(originalScopes);
     });
 
@@ -1501,8 +1504,8 @@ describe("token", () => {
       expect(body).toHaveProperty("token_type", "Bearer");
 
       // Parse the access token to check org_id and scopes
-      const accessToken = parseJWT(body.access_token);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(body.access_token);
+      const payload = accessToken as any;
 
       expect(accessToken).not.toBeNull();
       expect(payload.org_id).toBe(organization.id);
@@ -1903,8 +1906,8 @@ describe("token", () => {
         expect(body).toHaveProperty("token_type", "Bearer");
 
         // Parse the access token to check permissions
-        const accessToken = parseJWT(body.access_token);
-        const payload = accessToken?.payload as any;
+        const accessToken = decodeJwt(body.access_token);
+        const payload = accessToken as any;
 
         expect(accessToken).not.toBeNull();
         expect(payload.sub).toBe(user.user_id);
@@ -2006,8 +2009,8 @@ describe("token", () => {
         const body = (await response.json()) as TokenResponse;
 
         // Parse the access token
-        const accessToken = parseJWT(body.access_token);
-        const payload = accessToken?.payload as any;
+        const accessToken = decodeJwt(body.access_token);
+        const payload = accessToken as any;
 
         expect(accessToken).not.toBeNull();
 
@@ -2069,8 +2072,8 @@ describe("token", () => {
         const body = (await response.json()) as TokenResponse;
 
         // Parse the access token
-        const accessToken = parseJWT(body.access_token);
-        const payload = accessToken?.payload as any;
+        const accessToken = decodeJwt(body.access_token);
+        const payload = accessToken as any;
 
         expect(accessToken).not.toBeNull();
         expect(payload.sub).toBe("clientId");
@@ -2121,8 +2124,8 @@ describe("token", () => {
         expect(body.access_token).toBeDefined();
         expect(body.token_type).toBe("Bearer");
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "clientId",
           iss: "http://localhost:3000/",
           aud: "https://example.com",
@@ -2156,8 +2159,8 @@ describe("token", () => {
         expect(body.access_token).toBeDefined();
         expect(body.token_type).toBe("Bearer");
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "clientId",
           iss: "http://localhost:3000/",
           aud: "https://example.com",
@@ -2307,8 +2310,8 @@ describe("token", () => {
         expect(body.access_token).toBeDefined();
         expect(body.token_type).toBe("Bearer");
 
-        const accessToken = parseJWT(body.access_token);
-        expect(accessToken?.payload).toMatchObject({
+        const accessToken = decodeJwt(body.access_token);
+        expect(accessToken).toMatchObject({
           sub: "clientId",
           iss: "http://localhost:3000/",
           aud: "https://example.com",

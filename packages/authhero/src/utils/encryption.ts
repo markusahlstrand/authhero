@@ -1,7 +1,6 @@
 import { nanoid } from "nanoid";
 import * as x509 from "@peculiar/x509";
-import { encodeHex, base64 } from "oslo/encoding";
-import { sha256 } from "oslo/crypto";
+import { encodeHex, encodeBase64, sha256 } from "./encoding";
 import { SigningKey } from "@authhero/adapter-interfaces";
 
 export interface CreateX509CertificateParams {
@@ -44,7 +43,7 @@ export async function createX509Certificate(
 
   const pemCert = cert.toString("pem");
   const fingerprint = await getJWKFingerprint(cert);
-  const thumbprint = encodeHex(await cert.getThumbprint());
+  const thumbprint = encodeHex(new Uint8Array(await cert.getThumbprint()));
   const pkcs7 = convertPKCS7ToPem("PRIVATE", privateKey);
 
   return {
@@ -61,7 +60,7 @@ export function convertPKCS7ToPem(
   keyType: "PRIVATE" | "PUBLIC",
   binaryData: ArrayBuffer,
 ) {
-  const base64Cert = base64.encode(new Uint8Array(binaryData));
+  const base64Cert = encodeBase64(new Uint8Array(binaryData));
   let pemCert = `-----BEGIN ${keyType} KEY-----\r\n`;
   let nextIndex = 0;
 
