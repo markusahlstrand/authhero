@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.124.0
+
+### Minor Changes
+
+- 2af900c: Create a per user session cleanup
+- 2be02f8: Add dynamic liquid templates
+
 ## 0.123.0
 
 ### Minor Changes
