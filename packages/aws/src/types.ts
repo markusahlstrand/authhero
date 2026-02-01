@@ -42,7 +42,8 @@ export type EntityType =
   | "USER_ORGANIZATION"
   | "INVITE"
   | "LEGACY_CLIENT"
-  | "CLIENT_CONNECTION";
+  | "CLIENT_CONNECTION"
+  | "UNIVERSAL_LOGIN_TEMPLATE";
 
 /**
  * Base DynamoDB item structure for single-table design
