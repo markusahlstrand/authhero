@@ -32,6 +32,16 @@ import { InvitesAdapter } from "./Invites";
 import { GeoAdapter } from "./Geo";
 import { StatsAdapter } from "./Stats";
 
+/**
+ * Parameters for cleaning up expired sessions
+ */
+export interface SessionCleanupParams {
+  /** Optional tenant ID to scope cleanup to a specific tenant */
+  tenant_id?: string;
+  /** Optional user ID to scope cleanup to a specific user */
+  user_id?: string;
+}
+
 export interface DataAdapters {
   branding: BrandingAdapter;
   cache?: CacheAdapter;
@@ -66,6 +76,12 @@ export interface DataAdapters {
   userRoles: UserRolesAdapter;
   organizations: OrganizationsAdapter;
   userOrganizations: UserOrganizationsAdapter;
+  /**
+   * Optional session cleanup function.
+   * Cleans up expired login_sessions, sessions, and refresh_tokens.
+   * Can be scoped to a specific tenant and/or user.
+   */
+  sessionCleanup?: (params?: SessionCleanupParams) => Promise<void>;
   /**
    * Multi-tenancy configuration set by withRuntimeFallback.
    * Used by the tenants route for access control.

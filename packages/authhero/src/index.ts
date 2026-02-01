@@ -18,6 +18,8 @@ export * from "./components";
 export * from "./styles";
 export * from "./adapters";
 export { waitUntil } from "./helpers/wait-until";
+export { cleanupUserSessions } from "./helpers/user-session-cleanup";
+export type { UserSessionCleanupParams } from "./helpers/user-session-cleanup";
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
