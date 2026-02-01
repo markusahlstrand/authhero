@@ -1,5 +1,17 @@
 # @authhero/drizzle
 
+## 0.19.0
+
+### Minor Changes
+
+- 2be02f8: Add dynamic liquid templates
+
+### Patch Changes
+
+- Updated dependencies [2af900c]
+- Updated dependencies [2be02f8]
+  - @authhero/adapter-interfaces@0.124.0
+
 ## 0.18.0
 
 ### Minor Changes
