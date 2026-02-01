@@ -22,7 +22,7 @@ import { createLoginAdapter } from "./loginSessions";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
-import { createCleanup } from "./cleanup";
+import { createCleanup, createSessionCleanup } from "./cleanup";
 import { createFormsAdapter } from "./forms";
 import { createResourceServersAdapter } from "./resourceServers";
 import { createRolesAdapter } from "./roles";
@@ -66,6 +66,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     userRoles: createUserRolesAdapter(db),
     roles: createRolesAdapter(db),
     sessions: createSessionsAdapter(db),
+    sessionCleanup: createSessionCleanup(db),
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
     users: createUsersAdapter(db),

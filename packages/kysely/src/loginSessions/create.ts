@@ -4,8 +4,8 @@ import {
   LoginSessionState,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
-import { nanoid } from "nanoid";
-import { Database } from "../db";
+import { ulid } from "ulid";
+import { Database } from "../db"
 import { flattenObject } from "../utils/flatten";
 import { nowIso } from "../utils/dateConversion";
 
@@ -14,7 +14,7 @@ export function create(db: Kysely<Database>) {
     const now = nowIso();
 
     const createdLogin: LoginSession = {
-      id: nanoid(),
+      id: ulid(),
       ...login,
       authorization_url: login.authorization_url?.slice(0, 1024),
       created_at: now,

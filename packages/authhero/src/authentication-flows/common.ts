@@ -13,6 +13,7 @@ import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
 import { nanoid } from "nanoid";
+import { ulid } from "ulid";
 import { generateCodeVerifier } from "oslo/oauth2";
 import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";
@@ -331,7 +332,7 @@ export async function createRefreshToken(
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
-      id: nanoid(),
+      id: ulid(),
       session_id,
       client_id: client.client_id,
       idle_expires_at: new Date(
@@ -376,7 +377,7 @@ async function createNewSession(
 ) {
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
-    id: nanoid(),
+    id: ulid(),
     user_id: user.user_id,
     login_session_id: loginSession.id,
     idle_expires_at: new Date(
