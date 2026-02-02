@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.126.0
+
+### Minor Changes
+
+- 154993d: Improve react-admin experience by clearing caches and setting cores
+
 ## 0.125.0
 
 ### Minor Changes
