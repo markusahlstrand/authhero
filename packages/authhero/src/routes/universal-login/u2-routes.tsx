@@ -363,9 +363,14 @@ function createScreenRouteHandler(screenId: string) {
       true,
     );
 
-    // Get custom template if available
-    const customTemplate =
-      await ctx.env.data.branding.getUniversalLoginTemplate(ctx.var.tenant_id);
+    // Get custom template if available (gracefully handle missing method/table)
+    let customTemplate: { body: string } | null = null;
+    try {
+      customTemplate =
+        await ctx.env.data.branding.getUniversalLoginTemplate(ctx.var.tenant_id);
+    } catch {
+      // Method or table may not exist in older adapters - continue without custom template
+    }
 
     const authParams = {
       client_id: loginSession.authParams.client_id,
