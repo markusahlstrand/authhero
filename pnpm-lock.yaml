@@ -313,6 +313,9 @@ importers:
       ua-parser-js:
         specifier: ^2.0.0
         version: 2.0.7
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
       xstate:
         specifier: ^5.25.0
         version: 5.25.0
@@ -610,6 +613,9 @@ importers:
       nanoid:
         specifier: ^5.0.8
         version: 5.1.6
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
     devDependencies:
       '@hono/zod-openapi':
         specifier: ^0.19.2
@@ -8524,6 +8530,10 @@ packages:
 
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
+
+  ulid@2.4.0:
+    resolution: {integrity: sha512-fIRiVTJNcSRmXKPZtGzFQv9WRrZ3M9eoptl/teFJvjOzmpU+/K/JH6HZ8deBfb5vMEpicJcLn7JmvdknlMq7Zg==}
+    hasBin: true
 
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
@@ -18066,6 +18076,8 @@ snapshots:
   uc.micro@2.1.0: {}
 
   ufo@1.6.1: {}
+
+  ulid@2.4.0: {}
 
   unbox-primitive@1.1.0:
     dependencies:

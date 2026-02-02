@@ -12,6 +12,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { SignJWT, importPKCS8 } from "jose";
 import { nanoid } from "nanoid";
+import { ulid } from "ulid";
 import { generateCodeVerifier } from "../utils/encoding";
 import { Bindings, Variables } from "../types";
 import {
@@ -326,7 +327,7 @@ export async function createRefreshToken(
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
-      id: nanoid(),
+      id: ulid(),
       session_id,
       client_id: client.client_id,
       idle_expires_at: new Date(
@@ -371,7 +372,7 @@ async function createNewSession(
 ) {
   // Create a new session
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
-    id: nanoid(),
+    id: ulid(),
     user_id: user.user_id,
     login_session_id: loginSession.id,
     idle_expires_at: new Date(

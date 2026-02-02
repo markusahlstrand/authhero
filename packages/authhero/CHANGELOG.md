@@ -1,5 +1,19 @@
 # authhero
 
+## 4.20.0
+
+### Minor Changes
+
+- 2af900c: Create a per user session cleanup
+- 2be02f8: Add dynamic liquid templates
+- 2af900c: Update guids to ulids
+
+### Patch Changes
+
+- Updated dependencies [2af900c]
+- Updated dependencies [2be02f8]
+  - @authhero/adapter-interfaces@0.124.0
+
 ## 4.19.0
 
 ### Minor Changes
