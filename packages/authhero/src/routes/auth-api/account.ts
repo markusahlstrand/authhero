@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
-import { verifyRequestOrigin } from "oslo/request";
+import { verifyRequestOrigin } from "../../utils/encoding";
 import { HTTPException } from "hono/http-exception";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { setTenantId } from "../../helpers/set-tenant-id";

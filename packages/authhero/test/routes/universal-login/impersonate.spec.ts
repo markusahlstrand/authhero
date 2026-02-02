@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import {
   LogTypes,
   AuthorizationResponseType,
@@ -896,9 +896,9 @@ describe("impersonation routes", () => {
       expect(accessTokenValue).toBeTruthy();
 
       // Parse the access token and verify act claim
-      const accessToken = parseJWT(accessTokenValue!);
+      const accessToken = decodeJwt(accessTokenValue!);
       expect(accessToken).toBeTruthy();
-      const payload = accessToken?.payload as any;
+      const payload = accessToken as any;
 
       // Verify the token is for the target user
       expect(payload.sub).toBe("auth2|target123");
@@ -1196,8 +1196,8 @@ describe("impersonation routes", () => {
       const accessTokenValue = fragmentParams.get("access_token");
       expect(accessTokenValue).toBeTruthy();
 
-      const accessToken = parseJWT(accessTokenValue!);
-      const payload = accessToken?.payload as any;
+      const accessToken = decodeJwt(accessTokenValue!);
+      const payload = accessToken as any;
 
       // Verify the token is for the target user with act claim
       expect(payload.sub).toBe("auth2|target-implicit-flow");

@@ -1,5 +1,7 @@
-import { verifyRequestOrigin } from "oslo/request";
-import { base64url } from "oslo/encoding";
+import {
+  verifyRequestOrigin,
+  decodeBase64url,
+} from "../../utils/encoding";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
@@ -60,9 +62,7 @@ function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
       return null;
     }
 
-    const decoded = new TextDecoder().decode(
-      base64url.decode(parts[1], { strict: false }),
-    );
+    const decoded = new TextDecoder().decode(decodeBase64url(parts[1]));
     const parsed = JSON.parse(decoded);
 
     if (typeof parsed !== "object" || parsed === null) {

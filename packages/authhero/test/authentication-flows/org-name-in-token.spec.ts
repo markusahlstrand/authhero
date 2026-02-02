@@ -5,7 +5,7 @@ import { getTestServer } from "../helpers/test-server";
 import { Bindings, Variables } from "../../src/types";
 import { getPrimaryUserByEmail } from "../../src/helpers/users";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 
 describe("org_name in tokens", () => {
   describe("when allow_organization_name_in_authentication_api is enabled", () => {
@@ -62,8 +62,8 @@ describe("org_name in tokens", () => {
       expect(tokens.access_token).toBeDefined();
 
       // Parse the access token to verify org_name is included
-      const parsed = parseJWT(tokens.access_token!);
-      expect(parsed?.payload).toMatchObject({
+      const parsed = decodeJwt(tokens.access_token!);
+      expect(parsed).toMatchObject({
         org_id: "org_123",
         org_name: "test-tenant",
       });
@@ -123,8 +123,8 @@ describe("org_name in tokens", () => {
       expect(tokens.id_token).toBeDefined();
 
       // Parse the id token to verify org_name is included
-      const parsed = parseJWT(tokens.id_token!);
-      expect(parsed?.payload).toMatchObject({
+      const parsed = decodeJwt(tokens.id_token!);
+      expect(parsed).toMatchObject({
         org_id: "org_456",
         org_name: "another-tenant",
       });
@@ -185,11 +185,11 @@ describe("org_name in tokens", () => {
       expect(tokens.access_token).toBeDefined();
 
       // Parse the access token to verify org_name is NOT included
-      const parsed = parseJWT(tokens.access_token!);
-      expect(parsed?.payload).toMatchObject({
+      const parsed = decodeJwt(tokens.access_token!);
+      expect(parsed).toMatchObject({
         org_id: "org_789",
       });
-      expect((parsed?.payload as any).org_name).toBeUndefined();
+      expect((parsed as any).org_name).toBeUndefined();
     });
 
     it("should still include org_name in id token (always included per Auth0 spec)", async () => {
@@ -239,8 +239,8 @@ describe("org_name in tokens", () => {
       expect(tokens.id_token).toBeDefined();
 
       // Parse the id token - org_name should always be included in id tokens
-      const parsed = parseJWT(tokens.id_token!);
-      expect(parsed?.payload).toMatchObject({
+      const parsed = decodeJwt(tokens.id_token!);
+      expect(parsed).toMatchObject({
         org_id: "org_789",
         org_name: "disabled-tenant",
       });
@@ -286,9 +286,9 @@ describe("org_name in tokens", () => {
       expect(tokens.access_token).toBeDefined();
 
       // Parse the access token to verify neither org_id nor org_name is included
-      const parsed = parseJWT(tokens.access_token!);
-      expect((parsed?.payload as any).org_id).toBeUndefined();
-      expect((parsed?.payload as any).org_name).toBeUndefined();
+      const parsed = decodeJwt(tokens.access_token!);
+      expect((parsed as any).org_id).toBeUndefined();
+      expect((parsed as any).org_name).toBeUndefined();
     });
   });
 
@@ -348,15 +348,15 @@ describe("org_name in tokens", () => {
       expect(tokens.id_token).toBeDefined();
 
       // Parse the access token - org_name should be lowercase
-      const accessParsed = parseJWT(tokens.access_token!);
-      expect(accessParsed?.payload).toMatchObject({
+      const accessParsed = decodeJwt(tokens.access_token!);
+      expect(accessParsed).toMatchObject({
         org_id: "org_mixed",
         org_name: "default_settings", // Should be lowercased
       });
 
       // Parse the id token - org_name should also be lowercase
-      const idParsed = parseJWT(tokens.id_token!);
-      expect(idParsed?.payload).toMatchObject({
+      const idParsed = decodeJwt(tokens.id_token!);
+      expect(idParsed).toMatchObject({
         org_id: "org_mixed",
         org_name: "default_settings", // Should be lowercased
       });

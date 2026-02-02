@@ -12,7 +12,7 @@ import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
 } from "@authhero/adapter-interfaces";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 
 describe("common", () => {
   describe("createAuthTokens", () => {
@@ -134,8 +134,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Should have basic claims
       expect(payload.sub).toBeDefined();
@@ -191,8 +191,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Should have email claims when email scope is requested
       expect(payload.email).toBe("foo@example.com");
@@ -240,8 +240,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Auth0 behavior: email claims should be in id_token when email scope is requested
       expect(payload.email).toBe("foo@example.com");
@@ -288,8 +288,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Should have profile claims when profile scope is requested
       expect(payload.nickname).toBeDefined();
@@ -337,8 +337,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Auth0 behavior: profile claims should be in id_token when profile scope is requested
       expect(payload.nickname).toBeDefined();
@@ -385,8 +385,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Should have both email and profile claims when both scopes are requested
       expect(payload.email).toBe("foo@example.com");
@@ -432,8 +432,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Auth0 behavior: claims should be in id_token when scopes are requested
       expect(payload.email).toBe("foo@example.com");
@@ -485,8 +485,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Strict OIDC 5.4: claims should NOT be in id_token when access token is issued
       expect(payload.email).toBeUndefined();
@@ -543,8 +543,8 @@ describe("common", () => {
       });
 
       expect(tokens.id_token).toBeDefined();
-      const parsed = parseJWT(tokens.id_token!);
-      const payload = parsed?.payload as Record<string, unknown>;
+      const parsed = decodeJwt(tokens.id_token!);
+      const payload = parsed as Record<string, unknown>;
 
       // Even with strict OIDC, response_type=id_token should include claims
       expect(payload.email).toBe("foo@example.com");
@@ -661,19 +661,17 @@ describe("common", () => {
       });
 
       // Decode the access token to check for act claim
-      const accessToken = parseJWT(tokens.access_token);
-      const accessTokenPayload = accessToken?.payload as any;
+      const accessToken = decodeJwt(tokens.access_token) as any;
 
-      expect(accessTokenPayload.act).toEqual({
+      expect(accessToken.act).toEqual({
         sub: impersonatingUser.user_id,
       });
 
       // Decode the id token to check for act claim
       if (tokens.id_token) {
-        const idToken = parseJWT(tokens.id_token);
-        const idTokenPayload = idToken?.payload as any;
+        const idToken = decodeJwt(tokens.id_token) as any;
 
-        expect(idTokenPayload.act).toEqual({
+        expect(idToken.act).toEqual({
           sub: impersonatingUser.user_id,
         });
       }

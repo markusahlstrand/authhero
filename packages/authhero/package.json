@@ -82,9 +82,9 @@
     "classnames": "^2.5.1",
     "cookie": "^1.1.1",
     "i18next": "^25.6.0",
+    "jose": "^6.0.0",
     "libphonenumber-js": "^1.12.25",
     "nanoid": "^5.1.6",
-    "oslo": "^1.2.1",
     "ulid": "^2.3.0",
     "sanitize-html": "^2.17.0",
     "xstate": "^5.25.0"

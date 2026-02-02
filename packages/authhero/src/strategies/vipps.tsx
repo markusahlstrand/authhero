@@ -4,7 +4,7 @@ import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
 import type { FC } from "hono/jsx";
@@ -97,13 +97,9 @@ export async function validateAuthorizationCodeAndGetUser(
     null,
   );
 
-  const idToken = parseJWT(tokens.idToken());
+  const idTokenPayload = decodeJwt(tokens.idToken());
 
-  if (!idToken) {
-    throw new Error("Invalid ID token");
-  }
-
-  const payload = idTokenSchema.parse(idToken.payload);
+  const payload = idTokenSchema.parse(idTokenPayload);
 
   if (typeof payload.msn !== "string") {
     throw new Error("msn not available in id token");

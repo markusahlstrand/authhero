@@ -7,8 +7,8 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().references("tenants.id").onDelete("cascade"),
     )
     .addColumn("body", "text", (col) => col.notNull())
-    .addColumn("updated_at_ts", "integer", (col) => col.notNull())
-    .addColumn("created_at_ts", "integer", (col) => col.notNull())
+    .addColumn("created_at_ts", "bigint", (col) => col.notNull())
+    .addColumn("updated_at_ts", "bigint", (col) => col.notNull())
     .execute();
 }
 

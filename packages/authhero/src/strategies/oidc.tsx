@@ -7,7 +7,7 @@ import {
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
 import type { FC } from "hono/jsx";
@@ -110,17 +110,15 @@ export async function validateAuthorizationCodeAndGetUser(
   // Check if id_token exists before calling idToken() which throws if missing
   const tokenData = tokens.data as { id_token?: string };
   if (tokenData.id_token) {
-    const idToken = parseJWT(tokens.idToken());
-    if (idToken?.payload) {
-      const payload = idTokenSchema.passthrough().parse(idToken.payload);
-      return {
-        sub: payload.sub,
-        email: payload.email,
-        given_name: payload.given_name,
-        family_name: payload.family_name,
-        name: payload.name,
-      };
-    }
+    const idTokenPayload = decodeJwt(tokens.idToken());
+    const payload = idTokenSchema.passthrough().parse(idTokenPayload);
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      given_name: payload.given_name,
+      family_name: payload.family_name,
+      name: payload.name,
+    };
   }
 
   // Fall back to userinfo endpoint if available

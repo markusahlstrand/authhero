@@ -93,7 +93,7 @@ export async function getTestServer(
     name: "Test Client",
     callbacks: ["https://example.com/callback", "http://localhost:3000/*"],
     allowed_logout_urls: ["https://example.com/callback"],
-    web_origins: ["https://example.com"],
+    web_origins: ["https://example.com", "http://localhost:3000"],
     client_metadata: {
       disable_sign_ups: "false",
       email_validation: "disabled",

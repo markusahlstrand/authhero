@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { decodeJwt } from "jose";
 import {
   HookEvent,
   OnExecuteCredentialsExchangeAPI,
@@ -42,8 +42,8 @@ describe("client-credentials-hooks", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { access_token: string };
 
-    const accessToken = parseJWT(body.access_token);
-    expect(accessToken?.payload).toMatchObject({
+    const accessToken = decodeJwt(body.access_token);
+    expect(accessToken).toMatchObject({
       sub: "clientId",
       iss: "http://localhost:3000/",
       aud: "https://example.com",
