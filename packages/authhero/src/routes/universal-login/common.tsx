@@ -164,7 +164,8 @@ export async function initJSXRouteWithSession(
   }
 
   // Normal authenticated session flow
-  if (!authSession || !loginSession.session_id) {
+  // Check that the session exists, is not revoked, and loginSession has session_id
+  if (!authSession || authSession.revoked_at || !loginSession.session_id) {
     throw new RedirectException(
       `/u/login/identifier?state=${encodeURIComponent(state)}`,
     );

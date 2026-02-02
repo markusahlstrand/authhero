@@ -44,6 +44,103 @@ describe("check account", () => {
     expect(loginLocation).toContain(`/u/login/identifier?state=${state}`);
   });
 
+  it("should redirect to login if session is revoked", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create the login session and a revoked session
+    const { id } = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+      },
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "revokedSessionId",
+      login_session_id: id,
+      user_id: "email|userId",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      used_at: new Date().toISOString(),
+      revoked_at: new Date().toISOString(), // Session is revoked
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+
+    await env.data.loginSessions.update("tenantId", id, {
+      session_id: session.id,
+    });
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // --------------------------------
+    // GET check account with revoked session should redirect to login
+    // --------------------------------
+    const checkAccountGetResponse = await universalClient["check-account"].$get(
+      {
+        query: { state },
+      },
+      {
+        headers: {
+          cookie: "tenantId-auth-token=revokedSessionId",
+        },
+      },
+    );
+
+    expect(checkAccountGetResponse.status).toBe(302);
+    const getLocation = checkAccountGetResponse.headers.get("location");
+    expect(getLocation).toContain(`/u/login/identifier?state=${state}`);
+
+    // --------------------------------
+    // POST check account with revoked session should redirect to login
+    // --------------------------------
+    const checkAccountPostResponse = await universalClient[
+      "check-account"
+    ].$post(
+      {
+        query: { state },
+      },
+      {
+        headers: {
+          cookie: "tenantId-auth-token=revokedSessionId",
+        },
+      },
+    );
+
+    expect(checkAccountPostResponse.status).toBe(302);
+    const postLocation = checkAccountPostResponse.headers.get("location");
+    expect(postLocation).toContain(`/u/login/identifier?state=${state}`);
+  });
+
   it("should return a code if there is a session", async () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
