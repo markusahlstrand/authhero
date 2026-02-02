@@ -86,35 +86,33 @@ export const themesRoutes = new OpenAPIHono<{
     async (ctx) => {
       const themeData = ctx.req.valid("json");
 
-      // Get existing theme or use default
+      // Get existing theme from database
       const existingTheme = await ctx.env.data.themes.get(
         ctx.var.tenant_id,
         "default",
       );
 
-      if (existingTheme) {
-        // Deep merge the partial update with existing theme
-        const updatedTheme = deepMergePatch(existingTheme, themeData);
+      // Always merge with DEFAULT_THEME to ensure all required fields exist
+      const baseTheme = existingTheme || DEFAULT_THEME;
+      const mergedTheme = deepMergePatch(baseTheme, themeData);
 
+      if (existingTheme) {
+        // Update existing theme
         await ctx.env.data.themes.update(
           ctx.var.tenant_id,
           "default",
-          updatedTheme,
+          mergedTheme,
         );
-        const result = await ctx.env.data.themes.get(
+      } else {
+        // Create new theme
+        await ctx.env.data.themes.create(
           ctx.var.tenant_id,
+          mergedTheme,
           "default",
         );
-        return ctx.json(result!);
-      } else {
-        // Create new theme with default values merged with provided data
-        const newTheme = deepMergePatch(DEFAULT_THEME, themeData);
-
-        const createdTheme = await ctx.env.data.themes.create(
-          ctx.var.tenant_id,
-          newTheme,
-        );
-        return ctx.json(createdTheme);
       }
+
+      // Return the merged theme (what we just saved)
+      return ctx.json({ ...mergedTheme, themeId: "default" });
     },
   );
