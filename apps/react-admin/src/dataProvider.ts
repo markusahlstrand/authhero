@@ -30,6 +30,8 @@ export function getDataprovider(auth0Domain?: string) {
   // Create the complete base URL using the selected domain
   let baseUrl = import.meta.env.VITE_SIMPLE_REST_URL;
 
+  console.log("[getDataprovider] auth0Domain:", auth0Domain, "VITE_SIMPLE_REST_URL:", import.meta.env.VITE_SIMPLE_REST_URL);
+
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
@@ -37,6 +39,8 @@ export function getDataprovider(auth0Domain?: string) {
     const domainConfig = domains.find(
       (d) => formatDomain(d.url) === formattedAuth0Domain,
     );
+
+    console.log("[getDataprovider] domains:", domains, "domainConfig:", domainConfig);
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured (ensure HTTPS)
@@ -49,6 +53,8 @@ export function getDataprovider(auth0Domain?: string) {
     // Ensure env variable URL also uses HTTPS
     baseUrl = buildUrlWithProtocol(baseUrl);
   }
+
+  console.log("[getDataprovider] final baseUrl:", baseUrl);
 
   // TODO - duplicate auth0DataProvider to tenantsDataProvider
   // we are introducing non-auth0 endpoints AND we don't require the tenants-id header
@@ -74,6 +80,8 @@ export function getDataproviderForTenant(
   // Start with a default API URL
   let apiUrl;
 
+  console.log("[getDataproviderForTenant] tenantId:", tenantId, "auth0Domain:", auth0Domain);
+
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
     const domains = getDomainFromStorage();
@@ -81,6 +89,8 @@ export function getDataproviderForTenant(
     const domainConfig = domains.find(
       (d) => formatDomain(d.url) === formattedAuth0Domain,
     );
+
+    console.log("[getDataproviderForTenant] domains:", domains, "domainConfig:", domainConfig);
 
     if (domainConfig?.restApiUrl) {
       // Use the custom REST API URL if configured (ensure HTTPS)
@@ -96,6 +106,8 @@ export function getDataproviderForTenant(
 
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
+
+  console.log("[getDataproviderForTenant] final apiUrl:", apiUrl);
 
   // Create a dynamic httpClient that checks single-tenant mode at REQUEST TIME
   // This is important because the mode may not be known when the dataProvider is created

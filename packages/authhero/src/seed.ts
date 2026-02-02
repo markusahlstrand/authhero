@@ -639,13 +639,13 @@ export async function seed(
     callbacks = [
       "https://manage.authhero.net/auth-callback",
       "https://local.authhero.net/auth-callback",
-      "http://localhost:5173/auth-callback",
+      "https://localhost:5173/auth-callback",
       "https://localhost:3000/auth-callback",
     ],
     allowedLogoutUrls = [
       "https://manage.authhero.net",
       "https://local.authhero.net",
-      "http://localhost:5173",
+      "https://localhost:5173",
       "https://localhost:3000",
     ],
     debug = true,

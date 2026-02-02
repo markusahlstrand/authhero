@@ -111,16 +111,52 @@ export function addCaching(
 
         // Wrap the method with caching logic
         wrappedAdapter[methodName] = async (...args: any[]) => {
-          // For write operations, we need to invalidate related cache entries
+          // For write operations, invalidate related cache entries
           if (isWriteOperation) {
-            // Simple approach: clear all cache entries for this adapter
-            // Note: Since our CacheAdapter doesn't have getKeysByPrefix, we can't do selective invalidation
-            // In a production system, you might want to extend the CacheAdapter interface or
-            // maintain a separate index of keys by adapter
+            // Execute the write operation first
+            const result = await (method as any).apply(adapter, args);
 
-            // For now, we'll just execute the write operation without cache invalidation
-            // This means the cache might have stale data until TTL expires
-            return await (method as any).apply(adapter, args);
+            // Invalidate cache entries (best-effort - don't fail the write if cache invalidation fails)
+            try {
+              // Invalidate specific cache entries for the modified entity
+              // For update/remove operations, args typically are [tenant_id, entity_id, ...data]
+              // For create operations, args typically are [tenant_id, data]
+              if (
+                args.length >= 2 &&
+                ["update", "remove", "delete"].includes(methodName)
+              ) {
+                // Invalidate the "get" cache for this specific entity
+                const getCacheKey = createCacheKey(
+                  adapterName,
+                  "get",
+                  [args[0], args[1]], // tenant_id, entity_id
+                  keyPrefix,
+                );
+                await cache.delete(getCacheKey);
+
+                // Also invalidate the "list" cache for this tenant (without pagination params)
+                // This helps invalidate lists that might include this entity
+                const listCacheKey = createCacheKey(
+                  adapterName,
+                  "list",
+                  [args[0], {}], // tenant_id with empty options
+                  keyPrefix,
+                );
+                await cache.delete(listCacheKey);
+              }
+
+              // Try to invalidate all caches for this adapter by prefix (best effort)
+              // This works for in-memory cache but may not work for distributed caches
+              const cachePrefix = keyPrefix
+                ? `${keyPrefix}:${adapterName}:`
+                : `${adapterName}:`;
+              await cache.deleteByPrefix(cachePrefix);
+            } catch {
+              // Swallow cache invalidation errors - the write succeeded and that's what matters
+              // Stale cache entries will eventually expire based on TTL
+            }
+
+            return result;
           }
 
           // For read operations, try to get from cache first

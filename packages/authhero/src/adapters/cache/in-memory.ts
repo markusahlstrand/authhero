@@ -87,6 +87,18 @@ export class InMemoryCache implements CacheAdapter {
     return existed;
   }
 
+  async deleteByPrefix(prefix: string): Promise<number> {
+    let deleted = 0;
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+        this.accessOrder.delete(key);
+        deleted++;
+      }
+    }
+    return deleted;
+  }
+
   async clear(): Promise<void> {
     this.cache.clear();
     this.accessOrder.clear();

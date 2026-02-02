@@ -27,6 +27,13 @@ export interface CacheAdapter {
   delete(key: string): Promise<boolean>;
 
   /**
+   * Delete all values from the cache that match a key prefix
+   * @param prefix The key prefix to match
+   * @returns The number of keys deleted
+   */
+  deleteByPrefix(prefix: string): Promise<number>;
+
+  /**
    * Clear all items from the cache
    */
   clear(): Promise<void>;

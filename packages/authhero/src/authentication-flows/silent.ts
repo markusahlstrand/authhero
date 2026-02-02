@@ -14,6 +14,7 @@ import renderAuthIframe from "../utils/authIframe";
 import { createAuthTokens, createCodeData } from "./common";
 import { SILENT_AUTH_MAX_AGE_IN_SECONDS } from "../constants";
 import { nanoid } from "nanoid";
+import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -154,6 +155,64 @@ export async function silentAuth({
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);
 
+  // Fetch organization if specified
+  let organizationEntity;
+  if (organization) {
+    organizationEntity = await env.data.organizations.get(
+      client.tenant.id,
+      organization,
+    );
+
+    if (!organizationEntity) {
+      return handleLoginRequired("Organization not found");
+    }
+  }
+
+  // Calculate scopes and permissions - also validates org membership
+  const effectiveAudience = audience || client.tenant.audience;
+  let calculatedScopes = scope || "";
+  let calculatedPermissions: string[] = [];
+
+  if (effectiveAudience) {
+    try {
+      const scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+        tenantId: client.tenant.id,
+        clientId: client.client_id,
+        audience: effectiveAudience,
+        requestedScopes: scope?.split(" ") || [],
+        // Use resolved org ID to ensure membership check works with org names
+        organizationId: organizationEntity?.id,
+        userId: user.user_id,
+      });
+      calculatedScopes = scopesAndPermissions.scopes.join(" ");
+      calculatedPermissions = scopesAndPermissions.permissions;
+    } catch (error: any) {
+      // Check for 403 errors from org membership validation or scope validation
+      if (error?.statusCode === 403 || error?.status === 403) {
+        const errorDescription =
+          error?.body?.error_description || error?.message || "Access denied";
+        return handleLoginRequired(errorDescription);
+      }
+      throw error;
+    }
+  } else if (organizationEntity) {
+    // No audience but organization specified - still need to validate membership
+    const userOrgs = await env.data.userOrganizations.list(client.tenant.id, {
+      q: `user_id:${user.user_id}`,
+      per_page: 1000,
+    });
+
+    const isMember = userOrgs.userOrganizations.some(
+      (uo) => uo.organization_id === organizationEntity.id,
+    );
+
+    if (!isMember) {
+      return handleLoginRequired(
+        "User is not a member of the specified organization",
+      );
+    }
+  }
+
   // Create a new login session for this silent auth flow
   const loginSession = await env.data.loginSessions.create(client.tenant.id, {
     csrf_token: nanoid(),
@@ -187,7 +246,7 @@ export async function silentAuth({
       audience,
       code_challenge_method,
       code_challenge,
-      scope,
+      scope: calculatedScopes,
       state,
       nonce,
       response_type,
@@ -197,6 +256,8 @@ export async function silentAuth({
     user,
     session_id: session.id,
     auth_time,
+    permissions: calculatedPermissions,
+    organization: organizationEntity,
   };
 
   // Create authentication tokens or code

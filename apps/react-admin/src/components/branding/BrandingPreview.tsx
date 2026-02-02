@@ -10,9 +10,11 @@ import {
 import { useState } from "react";
 import { defineCustomElements } from "@authhero/widget/loader";
 
-// Initialize the widget custom elements
+// Initialize the widget custom elements with CDN path for assets
 if (typeof window !== "undefined") {
-  defineCustomElements(window);
+  defineCustomElements(window, {
+    resourcesUrl: "https://unpkg.com/@authhero/widget@latest/dist/authhero-widget/",
+  });
 }
 
 // Types for the widget screen configuration

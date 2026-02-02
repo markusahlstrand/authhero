@@ -129,8 +129,8 @@ importers:
         specifier: ^0.116.0
         version: 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@authhero/widget':
-        specifier: ^0.4.1
-        version: 0.4.1(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+        specifier: ^0.8.1
+        version: 0.8.2(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
       '@mui/icons-material':
         specifier: ^7.1.0
         version: 7.3.6(@mui/material@7.3.6(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react@19.2.7)(react@19.2.3)
@@ -213,6 +213,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.32.0
         version: 8.50.1(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)
+      '@vitejs/plugin-basic-ssl':
+        specifier: ^2.1.4
+        version: 2.1.4(vite@6.4.1(@types/node@22.19.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
       '@vitejs/plugin-react':
         specifier: ^4.4.1
         version: 4.7.0(vite@6.4.1(@types/node@22.19.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
@@ -882,8 +885,13 @@ packages:
     peerDependencies:
       '@hono/zod-openapi': ^0.19.2
 
-  '@authhero/widget@0.4.1':
-    resolution: {integrity: sha512-foqBFAI8grkq7VP6jaM5Zz+fQDKVl0adIEFieoCPqQlRLMDfeWGt+Dr0BUj4hsN5RzrabuySJp46crsXftjmYg==}
+  '@authhero/adapter-interfaces@0.125.0':
+    resolution: {integrity: sha512-I5CvzHnyHTsfkOdCXA9CMFKGcHrz4nqWWceXXqkDPYMMKlkIG5+maDb4am78r5w9ARkvj7xUMWxIrkyWPBa2TA==}
+    peerDependencies:
+      '@hono/zod-openapi': ^0.19.2
+
+  '@authhero/widget@0.8.2':
+    resolution: {integrity: sha512-0Ki8mSTNPZ3tRRDEjva7F47lJ38D/npho58Ct3sFZpQK6UNhphFWkkJ4PtdwLQOAXSGbhPshfDoKargUyoVn+w==}
 
   '@aws-crypto/sha256-browser@5.2.0':
     resolution: {integrity: sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==}
@@ -4128,6 +4136,12 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+
+  '@vitejs/plugin-basic-ssl@2.1.4':
+    resolution: {integrity: sha512-HXciTXN/sDBYWgeAD4V4s0DN0g72x5mlxQhHxtYu3Tt8BLa6MzcJZUyDVFCdtjNs3bfENVHVzOsmooTVuNgAAw==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      vite: ^6.0.0 || ^7.0.0
 
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
@@ -9286,9 +9300,14 @@ snapshots:
       '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
       nanoid: 5.1.6
 
-  '@authhero/widget@0.4.1(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
+  '@authhero/adapter-interfaces@0.125.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
     dependencies:
-      '@authhero/adapter-interfaces': 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+      '@hono/zod-openapi': 0.19.10(hono@4.11.1)(zod@3.25.76)
+      nanoid: 5.1.6
+
+  '@authhero/widget@0.8.2(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))':
+    dependencies:
+      '@authhero/adapter-interfaces': 0.125.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
     transitivePeerDependencies:
       - '@hono/zod-openapi'
 
@@ -12917,6 +12936,10 @@ snapshots:
       eslint-visitor-keys: 4.2.1
 
   '@ungap/structured-clone@1.3.0': {}
+
+  '@vitejs/plugin-basic-ssl@2.1.4(vite@6.4.1(@types/node@22.19.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      vite: 6.4.1(@types/node@22.19.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitejs/plugin-react@4.7.0(vite@6.4.1(@types/node@22.19.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
