@@ -114,8 +114,6 @@ export default function create(config: AuthHeroConfig) {
           "resourceServers",
           "roles",
           "organizations",
-          "userRoles",
-          "userPermissions",
           "branding",
           "themes",
           "promptSettings",
