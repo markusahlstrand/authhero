@@ -46,9 +46,13 @@ function toTheme(item: ThemeItem): Theme {
 
 export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {
   return {
-    async create(tenantId: string, theme: ThemeInsert): Promise<Theme> {
+    async create(
+      tenantId: string,
+      theme: ThemeInsert,
+      providedThemeId?: string,
+    ): Promise<Theme> {
       const now = new Date().toISOString();
-      const themeId = nanoid();
+      const themeId = providedThemeId || nanoid();
 
       const item: ThemeItem = {
         PK: themeKeys.pk(tenantId),

@@ -5,9 +5,13 @@ import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, theme: ThemeInsert): Promise<Theme> => {
+  return async (
+    tenant_id: string,
+    theme: ThemeInsert,
+    themeId?: string,
+  ): Promise<Theme> => {
     const createdTheme = {
-      themeId: nanoid(),
+      themeId: themeId || nanoid(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...theme,
