@@ -1,5 +1,4 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { cors } from "hono/cors";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
 import { brandingRoutes } from "./branding";
 import { userRoutes } from "./users";
@@ -38,37 +37,114 @@ export default function create(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
-  app.use(
-    cors({
-      origin: (origin) => {
-        if (!origin) {
-          return "";
-        }
-        if (config.allowedOrigins?.includes(origin)) {
-          return origin;
-        }
-        return "";
-      },
-      allowHeaders: [
-        "Tenant-Id",
-        "Content-Type",
-        "Content-Range",
-        "Auth0-Client",
-        "Authorization",
-        "Range",
-        "Upgrade-Insecure-Requests",
-      ],
-      allowMethods: ["POST", "PUT", "GET", "DELETE", "PATCH", "OPTIONS"],
-      exposeHeaders: ["Content-Length", "Content-Range"],
-      maxAge: 600,
-      credentials: true,
-    }),
-  );
-
-  registerComponent(app);
-
   // Use managementDataAdapter if provided, otherwise fall back to dataAdapter
   const managementAdapter = config.managementDataAdapter ?? config.dataAdapter;
+
+  // Dynamic CORS middleware that fetches allowed origins from clients
+  app.use(async (ctx, next) => {
+    const origin = ctx.req.header("origin");
+
+    // Helper to set CORS headers
+    const setCorsHeaders = (allowedOrigin: string) => {
+      ctx.res.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+      ctx.res.headers.set(
+        "Access-Control-Allow-Headers",
+        "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
+      );
+      ctx.res.headers.set(
+        "Access-Control-Allow-Methods",
+        "POST, PUT, GET, DELETE, PATCH, OPTIONS",
+      );
+      ctx.res.headers.set(
+        "Access-Control-Expose-Headers",
+        "Content-Length, Content-Range",
+      );
+      ctx.res.headers.set("Access-Control-Max-Age", "600");
+      ctx.res.headers.set("Access-Control-Allow-Credentials", "true");
+    };
+
+    // Handle preflight requests
+    if (ctx.req.method === "OPTIONS") {
+      const response = new Response(null, { status: 204 });
+
+      if (origin) {
+        // For preflight, check static allowedOrigins first
+        if (config.allowedOrigins?.includes(origin)) {
+          response.headers.set("Access-Control-Allow-Origin", origin);
+          response.headers.set(
+            "Access-Control-Allow-Headers",
+            "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
+          );
+          response.headers.set(
+            "Access-Control-Allow-Methods",
+            "POST, PUT, GET, DELETE, PATCH, OPTIONS",
+          );
+          response.headers.set(
+            "Access-Control-Expose-Headers",
+            "Content-Length, Content-Range",
+          );
+          response.headers.set("Access-Control-Max-Age", "600");
+          response.headers.set("Access-Control-Allow-Credentials", "true");
+          return response;
+        }
+
+        // Try to get tenant ID from header to check client web_origins
+        const tenantId = ctx.req.header("tenant-id");
+        if (tenantId) {
+          const clients = await managementAdapter.clients.list(tenantId, {});
+          const allWebOrigins = clients.clients.flatMap(
+            (client) => client.web_origins || [],
+          );
+          if (allWebOrigins.includes(origin)) {
+            response.headers.set("Access-Control-Allow-Origin", origin);
+            response.headers.set(
+              "Access-Control-Allow-Headers",
+              "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
+            );
+            response.headers.set(
+              "Access-Control-Allow-Methods",
+              "POST, PUT, GET, DELETE, PATCH, OPTIONS",
+            );
+            response.headers.set(
+              "Access-Control-Expose-Headers",
+              "Content-Length, Content-Range",
+            );
+            response.headers.set("Access-Control-Max-Age", "600");
+            response.headers.set("Access-Control-Allow-Credentials", "true");
+            return response;
+          }
+        }
+      }
+      // Return 204 without CORS headers if origin not allowed
+      return response;
+    }
+
+    // For actual requests, process the request first then set headers
+    await next();
+
+    if (origin) {
+      // Check static allowedOrigins first
+      if (config.allowedOrigins?.includes(origin)) {
+        setCorsHeaders(origin);
+        return;
+      }
+
+      // Try to get tenant ID from context (set by tenant middleware)
+      const tenantId =
+        ctx.var.tenant_id || ctx.req.header("tenant-id");
+      if (tenantId) {
+        const clients = await managementAdapter.clients.list(tenantId, {});
+        const allWebOrigins = clients.clients.flatMap(
+          (client) => client.web_origins || [],
+        );
+        if (allWebOrigins.includes(origin)) {
+          setCorsHeaders(origin);
+        }
+      }
+    }
+  });
+
+  registerComponent(app);
 
   app.use(async (ctx, next) => {
     // First add data hooks (for user operations)

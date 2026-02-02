@@ -147,6 +147,17 @@ export class CloudflareCache implements CacheAdapter {
     }
   }
 
+  async deleteByPrefix(_prefix: string): Promise<number> {
+    // Note: Cloudflare Cache API doesn't support listing or prefix-based deletion
+    // This is a limitation of the distributed cache
+    // For production use cases requiring cache invalidation, consider using
+    // Cloudflare's Purge API or a different caching strategy
+    console.warn(
+      "CloudflareCache.deleteByPrefix() is not implemented - Cloudflare Cache API does not support prefix-based deletion",
+    );
+    return 0;
+  }
+
   async clear(): Promise<void> {
     // Note: Cloudflare Cache API doesn't have a clear all method
     // This is a limitation of the distributed cache

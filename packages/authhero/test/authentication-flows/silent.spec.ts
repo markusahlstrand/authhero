@@ -361,4 +361,124 @@ describe("silent", () => {
     expect(fragmentParams.get("access_token")).toBeTruthy();
     expect(fragmentParams.get("state")).toEqual("test-state");
   });
+
+  it("should return access token with org_id for organization-scoped silent auth", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create an organization
+    const organization = await env.data.organizations.create("tenantId", {
+      id: "org_test123",
+      name: "Test Organization",
+    });
+
+    // Add user to organization
+    await env.data.userOrganizations.create("tenantId", {
+      user_id: "email|userId",
+      organization_id: organization.id,
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "test-state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          organization: organization.id,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    expect(response.status).toEqual(200);
+    const htmlBody = await response.text();
+    expect(htmlBody).toContain("access_token");
+
+    // Extract the access token from the response
+    const accessTokenMatch = htmlBody.match(/"access_token":"([^"]+)"/);
+    expect(accessTokenMatch).toBeTruthy();
+
+    // Decode the access token (JWT) to verify it contains org_id
+    const accessToken = accessTokenMatch![1];
+    const [, payloadBase64] = accessToken.split(".");
+    const payload = JSON.parse(atob(payloadBase64));
+
+    expect(payload.org_id).toEqual(organization.id);
+  });
+
+  it("should return login_required error when user is not a member of organization", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create an organization but DO NOT add user to it
+    const organization = await env.data.organizations.create("tenantId", {
+      id: "org_notmember",
+      name: "Other Organization",
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "test-state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          organization: organization.id,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    expect(response.status).toEqual(200);
+    const htmlBody = await response.text();
+    expect(htmlBody).toContain("login_required");
+    expect(htmlBody).toContain("User is not a member of the specified organization");
+  });
 });

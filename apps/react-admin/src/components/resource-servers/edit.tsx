@@ -9,9 +9,10 @@ import {
   FormDataConsumer,
   useRecordContext,
 } from "react-admin";
-import { Stack, Alert, Pagination, Box, Typography, Button, IconButton, TextField as MuiTextField } from "@mui/material";
+import { Stack, Alert, Box, Typography, Button, IconButton, TextField as MuiTextField, InputAdornment, TableContainer, Table, TableHead, TableBody, TableRow, TableCell, TableSortLabel, Paper, TablePagination } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import { useState, useMemo, useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -28,127 +29,216 @@ function SystemEntityAlert() {
   );
 }
 
-const SCOPES_PER_PAGE = 10;
-
 interface Scope {
   value: string;
   description?: string;
 }
 
-function PaginatedScopesInput({ disabled }: { disabled?: boolean }) {
+type SortField = "value" | "description";
+type SortOrder = "asc" | "desc";
+
+function ScopesListInput({ disabled }: { disabled?: boolean }) {
   const { setValue, getValues } = useFormContext();
   const scopes: Scope[] = useWatch({ name: "scopes" }) || [];
-  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>("value");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
-  const totalPages = Math.max(1, Math.ceil(scopes.length / SCOPES_PER_PAGE));
-  
+  const filteredAndSortedScopes = useMemo(() => {
+    let result = scopes.map((scope, index) => ({ ...scope, originalIndex: index }));
+    
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (scope) =>
+          scope.value?.toLowerCase().includes(query) ||
+          scope.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Sort
+    result.sort((a, b) => {
+      const aValue = (a[sortField] || "").toLowerCase();
+      const bValue = (b[sortField] || "").toLowerCase();
+      const comparison = aValue.localeCompare(bValue);
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+    
+    return result;
+  }, [scopes, searchQuery, sortField, sortOrder]);
+
   const paginatedScopes = useMemo(() => {
-    const start = (page - 1) * SCOPES_PER_PAGE;
-    const end = start + SCOPES_PER_PAGE;
-    return scopes.slice(start, end).map((scope, index) => ({
-      ...scope,
-      actualIndex: start + index,
-    }));
-  }, [scopes, page]);
+    const start = page * rowsPerPage;
+    return filteredAndSortedScopes.slice(start, start + rowsPerPage);
+  }, [filteredAndSortedScopes, page, rowsPerPage]);
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
   };
 
   const handleAdd = useCallback(() => {
     const currentScopes = getValues("scopes") || [];
     setValue("scopes", [...currentScopes, { value: "", description: "" }], { shouldDirty: true });
-    // Navigate to the last page where the new item will be
-    const newTotalPages = Math.ceil((currentScopes.length + 1) / SCOPES_PER_PAGE);
-    setPage(newTotalPages);
+    // Clear search and go to last page to show the new item
+    setSearchQuery("");
+    const newTotal = currentScopes.length + 1;
+    setPage(Math.floor(newTotal / rowsPerPage));
+  }, [getValues, setValue, rowsPerPage]);
+
+  const handleRemove = useCallback((originalIndex: number) => {
+    const currentScopes = getValues("scopes") || [];
+    const newScopes = currentScopes.filter((_: Scope, i: number) => i !== originalIndex);
+    setValue("scopes", newScopes, { shouldDirty: true });
   }, [getValues, setValue]);
 
-  const handleRemove = useCallback((actualIndex: number) => {
-    const currentScopes = getValues("scopes") || [];
-    const newScopes = currentScopes.filter((_: Scope, i: number) => i !== actualIndex);
-    setValue("scopes", newScopes, { shouldDirty: true });
-    // Adjust page if we removed the last item on current page
-    const newTotalPages = Math.ceil(newScopes.length / SCOPES_PER_PAGE);
-    if (page > newTotalPages && newTotalPages > 0) {
-      setPage(newTotalPages);
-    }
-  }, [getValues, setValue, page]);
-
-  const handleScopeChange = useCallback((actualIndex: number, field: "value" | "description", newValue: string) => {
+  const handleScopeChange = useCallback((originalIndex: number, field: "value" | "description", newValue: string) => {
     const currentScopes = getValues("scopes") || [];
     const newScopes = [...currentScopes];
-    newScopes[actualIndex] = { ...newScopes[actualIndex], [field]: newValue };
+    newScopes[originalIndex] = { ...newScopes[originalIndex], [field]: newValue };
     setValue("scopes", newScopes, { shouldDirty: true });
   }, [getValues, setValue]);
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          {scopes.length} scope{scopes.length !== 1 ? "s" : ""} total
-        </Typography>
-        {!disabled && (
-          <Button
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            size="small"
-            variant="outlined"
-          >
-            Add Scope
-          </Button>
-        )}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
+        <MuiTextField
+          placeholder="Search scopes..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(0);
+          }}
+          size="small"
+          sx={{ width: 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {filteredAndSortedScopes.length} of {scopes.length} scope{scopes.length !== 1 ? "s" : ""}
+          </Typography>
+          {!disabled && (
+            <Button
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+              size="small"
+              variant="contained"
+            >
+              Add Scope
+            </Button>
+          )}
+        </Box>
       </Box>
 
-      {paginatedScopes.map((scope) => (
-        <Stack
-          key={scope.actualIndex}
-          spacing={2}
-          direction="row"
-          sx={{ width: "100%", alignItems: "flex-start", mb: 2 }}
-        >
-          <MuiTextField
-            value={scope.value || ""}
-            onChange={(e) => handleScopeChange(scope.actualIndex, "value", e.target.value)}
-            label="Scope Name"
-            helperText="e.g., read:users, write:posts"
-            sx={{ flex: 1 }}
-            disabled={disabled}
-            size="small"
-            required
-          />
-          <MuiTextField
-            value={scope.description || ""}
-            onChange={(e) => handleScopeChange(scope.actualIndex, "description", e.target.value)}
-            label="Description"
-            helperText="What this scope allows"
-            sx={{ flex: 2 }}
-            disabled={disabled}
-            size="small"
-          />
-          {!disabled && (
-            <IconButton
-              onClick={() => handleRemove(scope.actualIndex)}
-              color="error"
-              sx={{ mt: 1 }}
-            >
-              <DeleteIcon />
-            </IconButton>
-          )}
-        </Stack>
-      ))}
-
-      {totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      )}
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: "30%" }}>
+                <TableSortLabel
+                  active={sortField === "value"}
+                  direction={sortField === "value" ? sortOrder : "asc"}
+                  onClick={() => handleSort("value")}
+                >
+                  Scope Name
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === "description"}
+                  direction={sortField === "description" ? sortOrder : "asc"}
+                  onClick={() => handleSort("description")}
+                >
+                  Description
+                </TableSortLabel>
+              </TableCell>
+              {!disabled && <TableCell sx={{ width: 50 }} />}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {paginatedScopes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={disabled ? 2 : 3} align="center" sx={{ py: 4 }}>
+                  <Typography color="text.secondary">
+                    {searchQuery ? "No scopes match your search" : "No scopes defined"}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedScopes.map((scope) => (
+                <TableRow key={scope.originalIndex} hover>
+                  <TableCell>
+                    <MuiTextField
+                      value={scope.value || ""}
+                      onChange={(e) => handleScopeChange(scope.originalIndex, "value", e.target.value)}
+                      size="small"
+                      fullWidth
+                      disabled={disabled}
+                      variant="standard"
+                      placeholder="e.g., read:users"
+                      InputProps={{ disableUnderline: disabled }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <MuiTextField
+                      value={scope.description || ""}
+                      onChange={(e) => handleScopeChange(scope.originalIndex, "description", e.target.value)}
+                      size="small"
+                      fullWidth
+                      disabled={disabled}
+                      variant="standard"
+                      placeholder="What this scope allows"
+                      InputProps={{ disableUnderline: disabled }}
+                    />
+                  </TableCell>
+                  {!disabled && (
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleRemove(scope.originalIndex)}
+                        color="error"
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          component="div"
+          count={filteredAndSortedScopes.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+        />
+      </TableContainer>
     </Box>
   );
 }
@@ -242,7 +332,7 @@ function ResourceServerForm() {
       </TabbedForm.Tab>
 
       <TabbedForm.Tab label="Scopes">
-        <PaginatedScopesInput disabled={isSystem} />
+        <ScopesListInput disabled={isSystem} />
       </TabbedForm.Tab>
     </TabbedForm>
   );

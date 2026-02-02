@@ -2,7 +2,7 @@ import { AppBar, TitlePortal } from "react-admin";
 import { useEffect, useState, useMemo } from "react";
 import { Link, Box } from "@mui/material";
 import { getDataprovider } from "../dataProvider";
-import { getDomainFromStorage } from "../utils/domainUtils";
+import { getSelectedDomainFromStorage } from "../utils/domainUtils";
 
 type TenantResponse = {
   audience: string;
@@ -31,9 +31,8 @@ export function TenantAppBar(props: TenantAppBarProps) {
 
   // Get the selected domain from storage or environment
   const selectedDomain = useMemo(() => {
-    const domains = getDomainFromStorage();
-    const selected = domains.find((d) => d.isSelected);
-    return selected?.url || import.meta.env.VITE_AUTH0_DOMAIN || "";
+    const selected = getSelectedDomainFromStorage();
+    return selected || import.meta.env.VITE_AUTH0_DOMAIN || "";
   }, []);
 
   // Use the non-org data provider for fetching tenants list
