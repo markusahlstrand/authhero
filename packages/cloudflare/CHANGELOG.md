@@ -1,5 +1,17 @@
 # @authhero/cloudflare-adapter
 
+## 2.18.0
+
+### Minor Changes
+
+- 154993d: Improve react-admin experience by clearing caches and setting cores
+
+### Patch Changes
+
+- Updated dependencies [154993d]
+  - @authhero/adapter-interfaces@0.126.0
+  - @authhero/kysely-adapter@10.87.1
+
 ## 2.17.24
 
 ### Patch Changes

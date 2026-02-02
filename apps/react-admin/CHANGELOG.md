@@ -1,5 +1,18 @@
 # @authhero/react-admin
 
+## 0.29.0
+
+### Minor Changes
+
+- de7cb56: Use https for local dev
+- 154993d: Improve react-admin experience by clearing caches and setting cores
+
+### Patch Changes
+
+- Updated dependencies [154993d]
+  - @authhero/adapter-interfaces@0.126.0
+  - @authhero/widget@0.8.3
+
 ## 0.28.0
 
 ### Minor Changes

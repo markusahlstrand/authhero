@@ -1,5 +1,17 @@
 # authhero
 
+## 4.22.0
+
+### Minor Changes
+
+- de7cb56: Filter out revoked sessions
+- 154993d: Improve react-admin experience by clearing caches and setting cores
+
+### Patch Changes
+
+- Updated dependencies [154993d]
+  - @authhero/adapter-interfaces@0.126.0
+
 ## 4.21.0
 
 ### Minor Changes
