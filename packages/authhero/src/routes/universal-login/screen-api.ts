@@ -153,7 +153,7 @@ async function buildScreenContext(
 
   const baseUrl = new URL(ctx.req.url).origin;
 
-  // Use client.connections directly - LegacyClient already has full Connection objects
+  // Use client.connections directly - EnrichedClient already has full Connection objects
   // populated by getClientWithDefaults, so no need to re-fetch from the database
   const connections = client.connections || [];
 

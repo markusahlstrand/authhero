@@ -1,6 +1,5 @@
 import {
   DataAdapters,
-  LegacyClient,
   Connection,
   connectionSchema,
   connectionOptionsSchema,
@@ -117,95 +116,6 @@ export function createRuntimeFallbackAdapter(
     multiTenancyConfig: {
       controlPlaneTenantId,
       controlPlaneClientId,
-    },
-
-    legacyClients: {
-      ...baseAdapters.legacyClients,
-
-      get: async (clientId: string): Promise<LegacyClient | null> => {
-        const client = await baseAdapters.legacyClients.get(clientId);
-        if (!client) {
-          return null;
-        }
-
-        // Get the control plane client for fallback values
-        const controlPlaneClient = controlPlaneClientId
-          ? await baseAdapters.legacyClients.get(controlPlaneClientId)
-          : undefined;
-
-        // Get connections for this tenant
-        const clientConnections = await baseAdapters.connections.list(
-          client.tenant.id,
-        );
-
-        // Get control plane connections for fallback
-        const controlPlaneConnections = controlPlaneTenantId
-          ? await baseAdapters.connections.list(controlPlaneTenantId)
-          : { connections: [] };
-
-        // Merge connections with fallbacks (matched by strategy)
-        const connections = clientConnections.connections
-          .map((connection) => {
-            // Match by strategy instead of name - this allows tenants to define
-            // a "google" strategy connection and inherit OAuth credentials from control plane
-            const controlPlaneConnection =
-              controlPlaneConnections.connections?.find(
-                (c) => c.strategy === connection.strategy,
-              );
-
-            if (!controlPlaneConnection?.options) {
-              return connection;
-            }
-
-            const mergedConnection = connectionSchema.parse({
-              ...(controlPlaneConnection || {}),
-              ...connection,
-            });
-
-            // Merge connection options with fallback
-            // If excludeSensitiveFields is true, strip sensitive fields from control plane options
-            const controlPlaneOptions = excludeSensitiveFields
-              ? stripSensitiveFields(controlPlaneConnection.options)
-              : controlPlaneConnection.options;
-            mergedConnection.options = connectionOptionsSchema.parse({
-              ...(controlPlaneOptions || {}),
-              ...connection.options,
-            });
-
-            return mergedConnection;
-          })
-          .filter((c) => c);
-
-        // Merge tenant properties with control plane fallbacks
-        const mergedTenant = {
-          ...(controlPlaneClient?.tenant || {}),
-          ...client.tenant,
-        };
-
-        // Use control plane's audience as fallback if not set on client tenant
-        if (!client.tenant.audience && controlPlaneClient?.tenant?.audience) {
-          mergedTenant.audience = controlPlaneClient.tenant.audience;
-        }
-
-        // Return client with merged properties
-        return {
-          ...client,
-          web_origins: [
-            ...(controlPlaneClient?.web_origins || []),
-            ...(client.web_origins || []),
-          ],
-          allowed_logout_urls: [
-            ...(controlPlaneClient?.allowed_logout_urls || []),
-            ...(client.allowed_logout_urls || []),
-          ],
-          callbacks: [
-            ...(controlPlaneClient?.callbacks || []),
-            ...(client.callbacks || []),
-          ],
-          connections,
-          tenant: mergedTenant,
-        };
-      },
     },
 
     connections: {

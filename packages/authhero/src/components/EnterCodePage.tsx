@@ -7,7 +7,8 @@ import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
-import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import Trans from "./Trans";
 
 type Props = {
@@ -16,7 +17,7 @@ type Props = {
   branding: Branding | null;
   email: string;
   state: string;
-  client: LegacyClient;
+  client: EnrichedClient;
   hasPasswordLogin: boolean;
 };
 

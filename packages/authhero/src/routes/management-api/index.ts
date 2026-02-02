@@ -164,7 +164,6 @@ export default function create(config: AuthHeroConfig) {
         "tenants",
         "connections",
         "clients",
-        "legacyClients",
         "branding",
         "themes",
         "promptSettings",

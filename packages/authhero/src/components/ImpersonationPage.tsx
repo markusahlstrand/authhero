@@ -5,11 +5,11 @@ import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import { GoBack } from "./GoBack";
 import {
-  LegacyClient,
   Theme,
   Branding,
   User,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 
 type Props = {
   error?: string;
@@ -17,7 +17,7 @@ type Props = {
   branding: Branding | null;
   user: User;
   state: string;
-  client: LegacyClient;
+  client: EnrichedClient;
 };
 
 const ImpersonationPage: FC<Props> = (params) => {

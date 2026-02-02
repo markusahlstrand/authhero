@@ -1,10 +1,10 @@
 import type { FC, JSXNode } from "hono/jsx";
 import {
-  LegacyClient,
   Theme,
   Branding,
   User,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import cn from "classnames";
 import Card, {
@@ -22,7 +22,7 @@ export interface ContinueFormProps {
   branding?: Branding | null;
   state: string;
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   className?: string;
 }
 

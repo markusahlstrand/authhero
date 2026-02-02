@@ -1,8 +1,7 @@
 import { Context } from "hono";
 import { JSONHTTPException } from "../../errors/json-http-exception";
-import { getClientWithDefaults } from "../../helpers/client";
+import { getClientWithDefaults, EnrichedClient } from "../../helpers/client";
 import i18next from "i18next";
-import { LegacyClient } from "@authhero/adapter-interfaces";
 import {
   getPrimaryUserByEmail,
   getPrimaryUserByProvider,
@@ -210,7 +209,7 @@ const STRATEGY_MAP: Record<string, LoginStrategy> = {
 
 export async function getLoginStrategy(
   ctx: Context,
-  client: LegacyClient,
+  client: EnrichedClient,
   username: string,
   connectionType: "email" | "sms" | "username",
   login_selection?: "password" | "code",

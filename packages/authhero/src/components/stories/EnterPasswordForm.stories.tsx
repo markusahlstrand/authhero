@@ -8,8 +8,8 @@ import type {
   Theme,
   Branding,
   LoginSession,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import type { EnrichedClient } from "../../helpers/client";
 import {
   AuthorizationResponseType,
   LoginSessionState,
@@ -43,7 +43,7 @@ type EnterPasswordFormProps = {
   branding: Branding | null;
   loginSession: LoginSession;
   email: string;
-  client: LegacyClient;
+  client: EnrichedClient;
   error?: string;
 };
 
@@ -191,7 +191,7 @@ const mockBranding: Branding = {
   },
 };
 
-const mockClient: LegacyClient = {
+const mockClient: EnrichedClient = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   name: "Test Application",

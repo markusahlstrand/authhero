@@ -4,6 +4,7 @@ import { completeLogin } from "../../src/authentication-flows/common";
 import { Context } from "hono";
 import { Bindings, Variables } from "../../src/types";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { getEnrichedClient } from "../../src/helpers/client";
 
 describe("organization membership bypass vulnerability", () => {
   it("should enforce organization membership even without audience", async () => {
@@ -27,7 +28,7 @@ describe("organization membership bypass vulnerability", () => {
     }>;
 
     // Get the test server's default client and user
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await env.data.users.get("tenantId", "email|userId");
 
     if (!client || !user) {

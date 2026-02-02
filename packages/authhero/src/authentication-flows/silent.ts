@@ -2,11 +2,11 @@ import { Context } from "hono";
 import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
-  LegacyClient,
   CodeChallengeMethod,
   LogTypes,
   Session,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
 import { Bindings, Variables } from "../types";
 import { serializeAuthCookie, clearAuthCookie } from "../utils/cookies";
@@ -18,7 +18,7 @@ import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 
 interface SilentAuthParams {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
-  client: LegacyClient;
+  client: EnrichedClient;
   session?: Session;
   redirect_uri: string;
   state: string;

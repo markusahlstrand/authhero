@@ -1,9 +1,9 @@
 import { Context } from "hono";
 import {
   AuthParams,
-  LegacyClient,
   LogTypes,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { logMessage } from "../helpers/logging";
 import { stringifyAuth0Client } from "../utils/client-info";
@@ -21,7 +21,7 @@ import { nanoid } from "nanoid";
 
 export async function connectionAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   connectionName: string,
   authParams: AuthParams,
 ) {

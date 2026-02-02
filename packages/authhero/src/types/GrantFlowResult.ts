@@ -1,13 +1,13 @@
 import type {
   User,
-  LegacyClient,
   AuthParams,
   LoginSession,
 } from "@authhero/adapter-interfaces";
+import type { EnrichedClient } from "../helpers/client";
 
 export interface GrantFlowResult {
   user?: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   refresh_token?: string;
   loginSession?: LoginSession;
   session_id?: string;

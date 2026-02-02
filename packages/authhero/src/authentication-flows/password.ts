@@ -4,10 +4,10 @@ import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import {
   AuthParams,
-  LegacyClient,
   LoginSession,
   LogTypes,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { Bindings, GrantFlowUserResult, Variables } from "../types";
 import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
@@ -58,7 +58,7 @@ function getRecentFailedLogins(user: any): number[] {
 
 export async function passwordGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
 ): Promise<GrantFlowUserResult> {
@@ -205,7 +205,7 @@ export async function passwordGrant(
 
 export async function loginWithPassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
   ticketAuth?: boolean,
@@ -227,7 +227,7 @@ export async function loginWithPassword(
 
 export async function changePassword(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   userId: string,
   newPassword: string,
   connectionName: string,
@@ -281,7 +281,7 @@ export async function requestPasswordReset(
     Bindings: Bindings;
     Variables: Variables;
   }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   email: string,
   state: string,
 ) {

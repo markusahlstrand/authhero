@@ -32,7 +32,6 @@ import { createUserRolesAdapter } from "./adapters/userRoles";
 import { createOrganizationsAdapter } from "./adapters/organizations";
 import { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 import { createInvitesAdapter } from "./adapters/invites";
-import { createLegacyClientsAdapter } from "./adapters/legacyClients";
 
 export type { DynamoDBConfig, DynamoDBContext } from "./types";
 
@@ -80,7 +79,6 @@ export default function createAdapters(
     hooks: createHooksAdapter(ctx),
     invites: createInvitesAdapter(ctx),
     keys: createKeysAdapter(ctx),
-    legacyClients: createLegacyClientsAdapter(ctx),
     loginSessions: createLoginSessionsAdapter(ctx),
     logs: createLogsAdapter(ctx),
     organizations: createOrganizationsAdapter(ctx),
@@ -129,7 +127,6 @@ export { createUserRolesAdapter } from "./adapters/userRoles";
 export { createOrganizationsAdapter } from "./adapters/organizations";
 export { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 export { createInvitesAdapter } from "./adapters/invites";
-export { createLegacyClientsAdapter } from "./adapters/legacyClients";
 export { createFlowsAdapter } from "./adapters/flows";
 
 // Re-export utilities for custom implementations

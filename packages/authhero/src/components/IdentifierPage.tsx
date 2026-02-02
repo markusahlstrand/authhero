@@ -1,10 +1,10 @@
 import type { FC } from "hono/jsx";
 import {
-  LegacyClient,
   LoginSession,
   Theme,
   Branding,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import Layout from "./Layout";
 import i18next from "i18next";
 import cn from "classnames";
@@ -21,7 +21,7 @@ type Props = {
   branding: Branding | null;
   loginSession: LoginSession;
   email?: string;
-  client: LegacyClient;
+  client: EnrichedClient;
   isEmbedded?: boolean;
   browserName?: string;
 };

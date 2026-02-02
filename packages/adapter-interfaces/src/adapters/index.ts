@@ -14,7 +14,6 @@ import { CustomDomainsAdapter } from "./CustomDomains";
 import { KeysAdapter } from "./Keys";
 import { BrandingAdapter } from "./Branding";
 import { HooksAdapter } from "./Hooks";
-import { LegacyClientsAdapter } from "./LegacyClients";
 import { ThemesAdapter } from "./Themes";
 import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
@@ -48,7 +47,6 @@ export interface DataAdapters {
   clients: ClientsAdapter;
   clientConnections: ClientConnectionsAdapter;
   clientGrants: ClientGrantsAdapter;
-  legacyClients: LegacyClientsAdapter;
   codes: CodesAdapter;
   connections: ConnectionsAdapter;
   customDomains: CustomDomainsAdapter;

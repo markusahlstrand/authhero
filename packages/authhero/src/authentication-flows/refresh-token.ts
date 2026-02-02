@@ -5,6 +5,7 @@ import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
+import { getEnrichedClient } from "../helpers/client";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -18,10 +19,11 @@ export async function refreshTokenGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof refreshTokenParamsSchema>,
 ): Promise<GrantFlowUserResult> {
-  const client = await ctx.env.data.legacyClients.get(params.client_id);
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Client not found" });
-  }
+  const client = await getEnrichedClient(
+    ctx.env,
+    params.client_id,
+    ctx.var.tenant_id,
+  );
 
   // Validate client_secret if provided
   if (params.client_secret) {

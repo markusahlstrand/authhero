@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { AuthParams, LegacyClient, User } from "@authhero/adapter-interfaces";
+import { AuthParams, User } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { JSONHTTPException } from "../errors/json-http-exception";
 // Use core import to avoid xml-crypto dependency
 import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
@@ -43,7 +44,7 @@ export function samlResponseForm(
 
 export async function samlCallback(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   authParams: AuthParams,
   user: User,
   sid: string,

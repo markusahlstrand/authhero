@@ -18,6 +18,7 @@ import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { getEnrichedClient } from "../../helpers/client";
 
 export const dbConnectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -65,12 +66,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { email, password, client_id } = ctx.req.valid("json");
 
-      const client = await ctx.env.data.legacyClients.get(client_id);
-      if (!client) {
-        throw new HTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(ctx.env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 
@@ -181,12 +177,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { email, client_id } = ctx.req.valid("json");
 
-      const client = await ctx.env.data.legacyClients.get(client_id);
-      if (!client) {
-        throw new HTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(ctx.env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 

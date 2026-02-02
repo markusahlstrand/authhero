@@ -1,4 +1,5 @@
-import { Branding, Theme, LegacyClient } from "@authhero/adapter-interfaces";
+import { Branding, Theme } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { PropsWithChildren } from "hono/jsx";
 import cn from "classnames";
 import i18next from "i18next";
@@ -7,7 +8,7 @@ type AuthLayoutProps = {
   title: string;
   theme?: Theme | null;
   branding?: Branding | null;
-  client?: LegacyClient | null;
+  client?: EnrichedClient | null;
 };
 
 const DEFAULT_BG = "https://assets.sesamy.com/images/login-bg.jpg";

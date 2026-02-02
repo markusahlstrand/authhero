@@ -3,8 +3,8 @@ import {
   Theme,
   Branding,
   User,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import cn from "classnames";
 import Card, {
@@ -24,7 +24,7 @@ export interface AccountFormProps {
   branding?: Branding | null;
   state?: string;
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   className?: string;
   showLinkedAccounts?: boolean;
   csrfToken?: string;

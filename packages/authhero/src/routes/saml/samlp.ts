@@ -8,6 +8,7 @@ import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 import { createSamlMetadata, parseSamlRequestQuery } from "../../helpers/saml";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { getEnrichedClient } from "../../helpers/client";
 
 export const samlpRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -43,13 +44,7 @@ export const samlpRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id } = ctx.req.valid("param");
 
-      const client = await ctx.env.data.legacyClients.get(client_id);
-
-      if (!client) {
-        throw new HTTPException(404, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(ctx.env, client_id);
 
       const { signingKeys } = await ctx.env.data.keys.list({
         q: "type:saml_encryption",
@@ -118,12 +113,7 @@ export const samlpRoutes = new OpenAPIHono<{
       const { client_id } = ctx.req.valid("param");
       const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
-      const client = await ctx.env.data.legacyClients.get(client_id);
-      if (!client) {
-        throw new HTTPException(404, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(ctx.env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 

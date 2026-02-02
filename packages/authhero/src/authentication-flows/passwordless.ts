@@ -10,6 +10,7 @@ import { isIpMatch } from "../utils/ip";
 import { t } from "i18next";
 import { createFrontChannelAuthResponse } from "./common";
 import { RedirectException } from "../errors/redirect-exception";
+import { getEnrichedClient } from "../helpers/client";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -43,10 +44,7 @@ export async function passwordlessGrantUser(
     });
   }
 
-  const client = await ctx.env.data.legacyClients.get(client_id);
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Client not found" });
-  }
+  const client = await getEnrichedClient(ctx.env, client_id, ctx.var.tenant_id);
 
   const { env } = ctx;
   const code = await env.data.codes.get(client.tenant.id, otp, "otp");

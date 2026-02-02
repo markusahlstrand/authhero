@@ -1,5 +1,4 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
 import {
   AuthParams,
   AuthorizationResponseType,
@@ -9,7 +8,10 @@ import { Bindings, Variables } from "../../types";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
-import { getClientWithDefaults } from "../../helpers/client";
+import {
+  getClientWithDefaults,
+  getEnrichedClient,
+} from "../../helpers/client";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
@@ -62,12 +64,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const { env } = ctx;
       const { client_id, send, authParams, connection } = body;
-      const client = await ctx.env.data.legacyClients.get(client_id);
-      if (!client) {
-        throw new HTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(ctx.env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 
