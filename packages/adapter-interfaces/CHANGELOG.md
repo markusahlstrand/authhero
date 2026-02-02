@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.125.0
+
+### Minor Changes
+
+- 491842a: Bump packages to make sure the universal_login_templates is available
+
 ## 0.124.0
 
 ### Minor Changes

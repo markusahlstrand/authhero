@@ -1,5 +1,16 @@
 # authhero
 
+## 4.21.0
+
+### Minor Changes
+
+- 491842a: Bump packages to make sure the universal_login_templates is available
+
+### Patch Changes
+
+- Updated dependencies [491842a]
+  - @authhero/adapter-interfaces@0.125.0
+
 ## 4.20.0
 
 ### Minor Changes
