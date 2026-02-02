@@ -109,7 +109,6 @@ export default function create(config: AuthHeroConfig) {
           "tenants",
           "connections",
           "clients",
-          "legacyClients",
           "customDomains",
           "resourceServers",
           "roles",

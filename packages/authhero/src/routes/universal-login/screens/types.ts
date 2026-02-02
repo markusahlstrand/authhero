@@ -8,8 +8,8 @@ import {
   Tenant,
   Theme,
   Connection,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../../../helpers/client";
 import { Bindings, Variables } from "../../../types";
 
 /**
@@ -43,8 +43,8 @@ export interface ScreenContext {
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
   /** The current tenant */
   tenant: Tenant;
-  /** The current client application - uses LegacyClient which has full connection objects */
-  client: LegacyClient;
+  /** The current client application - uses EnrichedClient which has full connection objects */
+  client: EnrichedClient;
   /** Theme configuration */
   theme?: Theme;
   /** Branding configuration */

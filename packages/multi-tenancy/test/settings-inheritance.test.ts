@@ -5,106 +5,11 @@ import {
 } from "../src/middleware/settings-inheritance";
 import {
   DataAdapters,
-  LegacyClient,
   Connection,
 } from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
 const createMockAdapters = (): DataAdapters => ({
-  legacyClients: {
-    get: async (id: string): Promise<LegacyClient | null> => {
-      const clients: Record<string, LegacyClient> = {
-        "control-plane-client": {
-          client_id: "control-plane-client",
-          name: "Control Plane Client",
-          client_secret: "secret",
-          web_origins: ["https://control-plane.example.com"],
-          allowed_logout_urls: ["https://control-plane.example.com/logout"],
-          callbacks: ["https://control-plane.example.com/callback"],
-          connections: [],
-          tenant: {
-            id: "control-plane",
-            friendly_name: "Control Plane",
-            audience: "https://control-plane.example.com",
-            sender_email: "control@example.com",
-            sender_name: "Control Plane Sender",
-            created_at: "2023-01-01T00:00:00Z",
-            updated_at: "2023-01-01T00:00:00Z",
-          },
-          created_at: "2023-01-01T00:00:00Z",
-          updated_at: "2023-01-01T00:00:00Z",
-          global: false,
-          is_first_party: false,
-          oidc_conformant: true,
-          sso: false,
-          sso_disabled: true,
-          cross_origin_authentication: false,
-          custom_login_page_on: false,
-          require_pushed_authorization_requests: false,
-          require_proof_of_possession: false,
-        },
-        "tenant-client": {
-          client_id: "tenant-client",
-          name: "Tenant Client",
-          client_secret: "tenant-secret",
-          web_origins: ["https://tenant.example.com"],
-          allowed_logout_urls: ["https://tenant.example.com/logout"],
-          callbacks: ["https://tenant.example.com/callback"],
-          connections: [],
-          tenant: {
-            id: "tenant-1",
-            friendly_name: "Tenant 1",
-            audience: "https://tenant.example.com",
-            sender_email: "tenant@example.com",
-            sender_name: "Tenant Sender",
-            created_at: "2023-01-01T00:00:00Z",
-            updated_at: "2023-01-01T00:00:00Z",
-          },
-          created_at: "2023-01-01T00:00:00Z",
-          updated_at: "2023-01-01T00:00:00Z",
-          global: false,
-          is_first_party: false,
-          oidc_conformant: true,
-          sso: false,
-          sso_disabled: true,
-          cross_origin_authentication: false,
-          custom_login_page_on: false,
-          require_pushed_authorization_requests: false,
-          require_proof_of_possession: false,
-        },
-        "tenant-without-audience": {
-          client_id: "tenant-without-audience",
-          name: "Tenant Without Audience",
-          client_secret: "tenant-secret",
-          web_origins: ["https://tenant-no-aud.example.com"],
-          allowed_logout_urls: ["https://tenant-no-aud.example.com/logout"],
-          callbacks: ["https://tenant-no-aud.example.com/callback"],
-          connections: [],
-          tenant: {
-            id: "tenant-2",
-            friendly_name: "Tenant 2",
-            audience: "", // Empty audience, should fallback to control plane
-            sender_email: "tenant2@example.com",
-            sender_name: "Tenant 2 Sender",
-            created_at: "2023-01-01T00:00:00Z",
-            updated_at: "2023-01-01T00:00:00Z",
-          },
-          created_at: "2023-01-01T00:00:00Z",
-          updated_at: "2023-01-01T00:00:00Z",
-          global: false,
-          is_first_party: false,
-          oidc_conformant: true,
-          sso: false,
-          sso_disabled: true,
-          cross_origin_authentication: false,
-          custom_login_page_on: false,
-          require_pushed_authorization_requests: false,
-          require_proof_of_possession: false,
-        },
-      };
-      return clients[id] || null;
-    },
-  },
   connections: {
     get: async (
       tenantId: string,
@@ -224,47 +129,6 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     fallbackAdapter = createRuntimeFallbackAdapter(mockAdapters, {
       controlPlaneTenantId: "control-plane",
       controlPlaneClientId: "control-plane-client",
-    });
-  });
-
-  describe("legacy clients", () => {
-    it("should merge client properties with control plane fallbacks", async () => {
-      const client = await fallbackAdapter.legacyClients.get("tenant-client");
-
-      expect(client).toBeDefined();
-      expect(client!.web_origins).toEqual([
-        "https://control-plane.example.com", // from control plane
-        "https://tenant.example.com", // from tenant client
-      ]);
-      expect(client!.allowed_logout_urls).toEqual([
-        "https://control-plane.example.com/logout", // from control plane
-        "https://tenant.example.com/logout", // from tenant client
-      ]);
-      expect(client!.callbacks).toEqual([
-        "https://control-plane.example.com/callback", // from control plane
-        "https://tenant.example.com/callback", // from tenant client
-      ]);
-    });
-
-    it("should return null for non-existent client", async () => {
-      const client = await fallbackAdapter.legacyClients.get("non-existent");
-      expect(client).toBeNull();
-    });
-
-    it("should fallback to control plane audience when tenant has empty audience", async () => {
-      const client = await fallbackAdapter.legacyClients.get(
-        "tenant-without-audience",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.tenant.audience).toBe("https://control-plane.example.com");
-    });
-
-    it("should use tenant audience when it is set", async () => {
-      const client = await fallbackAdapter.legacyClients.get("tenant-client");
-
-      expect(client).toBeDefined();
-      expect(client!.tenant.audience).toBe("https://tenant.example.com");
     });
   });
 
@@ -456,9 +320,13 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         controlPlaneClientId: "control-plane-client",
       });
 
-      const client = await helperAdapter.legacyClients.get("tenant-client");
-      expect(client).toBeDefined();
-      expect(client!.web_origins).toContain("https://control-plane.example.com");
+      // Test connections fallback works the same way
+      const connection = await helperAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+      expect(connection).toBeDefined();
+      expect(connection!.options?.client_secret).toBe("control-plane-api-key");
     });
   });
 });

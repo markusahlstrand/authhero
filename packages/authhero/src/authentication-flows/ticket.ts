@@ -4,6 +4,7 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
+import { getEnrichedClient } from "../helpers/client";
 
 function getProviderFromRealm(realm: string) {
   if (realm === "Username-Password-Authentication") {
@@ -41,12 +42,11 @@ export async function ticketAuth(
     throw new JSONHTTPException(403, { message: "Session not found" });
   }
 
-  const client = await env.data.legacyClients.get(
+  const client = await getEnrichedClient(
+    env,
     loginSession.authParams.client_id,
+    tenant_id,
   );
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Client not found" });
-  }
   ctx.set("client_id", loginSession.authParams.client_id);
 
   await env.data.codes.used(tenant_id, ticketId);

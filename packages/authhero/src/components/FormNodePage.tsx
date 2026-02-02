@@ -1,7 +1,8 @@
 import type { FC } from "hono/jsx";
 import sanitizeHtmlLib from "sanitize-html";
 import Layout from "./Layout";
-import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import type { FormNodeComponent } from "@authhero/adapter-interfaces";
 import Button from "./Button";
 import Icon from "./Icon";
@@ -63,7 +64,7 @@ function sanitizeHtml(html: string): string {
 export type FormNodePageProps = {
   theme: Theme | null;
   branding: Branding | null;
-  client: LegacyClient;
+  client: EnrichedClient;
   state: string;
   formName: string;
   nodeAlias?: string;

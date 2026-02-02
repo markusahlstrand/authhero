@@ -674,7 +674,7 @@ Validates if an email can be used for signup.
 ```typescript
 {
   ctx: Context,              // Request context
-  client: LegacyClient,      // Client configuration
+  client: EnrichedClient,    // Client configuration with tenant and connections
   request: HookRequest,      // HTTP request details
   tenant: { id: string },
   user: {
@@ -725,7 +725,7 @@ Runs before user creation, can modify user metadata.
 {
   ctx: Context,
   user: User,                // User being created (minimal data)
-  client: LegacyClient,
+  client: EnrichedClient,    // Client configuration with tenant and connections
   request: HookRequest,
   tenant: { id: string }
 }
@@ -758,7 +758,7 @@ Runs after user creation for post-registration tasks.
 {
   ctx: Context,
   user: User,                // Newly created user (full data)
-  client: LegacyClient,
+  client: EnrichedClient,    // Client configuration with tenant and connections
   request: HookRequest,
   tenant: { id: string }
 }

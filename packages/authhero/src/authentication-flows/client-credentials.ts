@@ -5,6 +5,7 @@ import { z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { GrantFlowResult } from "../types/GrantFlowResult";
+import { getEnrichedClient } from "../helpers/client";
 
 export const clientCredentialGrantParamsSchema = z.object({
   grant_type: z.literal("client_credentials"),
@@ -19,11 +20,11 @@ export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof clientCredentialGrantParamsSchema>,
 ): Promise<GrantFlowResult> {
-  const client = await ctx.env.data.legacyClients.get(params.client_id);
-
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Invalid client credentials" });
-  }
+  const client = await getEnrichedClient(
+    ctx.env,
+    params.client_id,
+    ctx.var.tenant_id,
+  );
 
   if (
     client.client_secret &&

@@ -1,8 +1,8 @@
 import { Context } from "hono";
 import {
   AuthorizationResponseType,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "./client";
 import { Bindings, Variables } from "../types";
 import { createAuthTokens } from "../authentication-flows/common";
 
@@ -19,9 +19,9 @@ export async function createServiceToken(
     throw new Error(`Tenant not found: ${tenant_id}`);
   }
 
-  // Create a mock LegacyClient for service tokens
+  // Create a mock EnrichedClient for service tokens
   // Using hardcoded AUTH_SERVICE_CLIENT_ID to prevent spoofing
-  const mockClient: LegacyClient = {
+  const mockClient: EnrichedClient = {
     client_id: AUTH_SERVICE_CLIENT_ID,
     tenant,
     created_at: new Date().toISOString(),
@@ -45,7 +45,7 @@ export async function createServiceToken(
     disable_sign_ups: false,
     email_validation: "disabled",
     connections: [],
-  } as LegacyClient;
+  } as EnrichedClient;
 
   const tokenResponse = await createAuthTokens(ctx, {
     client: mockClient,

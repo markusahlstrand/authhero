@@ -13,6 +13,7 @@ import {
   AuthorizationResponseMode,
 } from "@authhero/adapter-interfaces";
 import { parseJWT } from "oslo/jwt";
+import { getEnrichedClient } from "../../src/helpers/client";
 
 describe("common", () => {
   describe("createAuthTokens", () => {
@@ -28,7 +29,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -69,7 +70,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -111,7 +112,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -167,7 +168,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -215,7 +216,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -264,7 +265,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -312,7 +313,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -361,7 +362,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -407,7 +408,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -460,7 +461,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -518,7 +519,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -570,7 +571,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -625,7 +626,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -709,7 +710,7 @@ describe("common", () => {
       },
     });
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -801,7 +802,7 @@ describe("common", () => {
       },
     });
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -901,7 +902,7 @@ describe("common", () => {
       revoked_at: new Date().toISOString(), // Session is revoked
     });
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await env.data.users.get("tenantId", "email|userId");
 
     if (!client || !user) {
@@ -1005,7 +1006,7 @@ describe("common", () => {
       session_id: session.id,
     });
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -1053,7 +1054,7 @@ describe("common", () => {
       Variables: Variables;
     }>;
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -1158,7 +1159,7 @@ describe("common", () => {
       },
     });
 
-    const client = await env.data.legacyClients.get("clientId");
+    const client = await getEnrichedClient(env, "clientId");
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       tenant_id: "tenantId",
@@ -1255,7 +1256,7 @@ describe("common", () => {
         "Username-Password-Authentication",
       );
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       if (!client) {
         throw new Error("Client not found");
       }
@@ -1330,7 +1331,7 @@ describe("common", () => {
         email: "foo@example.com",
       });
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       if (!client || !user) {
         throw new Error("Client or user not found");
       }
@@ -1403,7 +1404,7 @@ describe("common", () => {
         email: "foo@example.com",
       });
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       if (!client || !user) {
         throw new Error("Client or user not found");
       }
@@ -1492,7 +1493,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -1548,7 +1549,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -1649,7 +1650,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -1707,7 +1708,7 @@ describe("common", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",

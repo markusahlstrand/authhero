@@ -13,6 +13,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage } from "../helpers/logging";
+import { getEnrichedClient } from "../helpers/client";
 
 export const authorizationCodeGrantParamsSchema = z
   .object({
@@ -47,10 +48,11 @@ export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
 ): Promise<GrantFlowUserResult> {
-  const client = await ctx.env.data.legacyClients.get(params.client_id);
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Client not found" });
-  }
+  const client = await getEnrichedClient(
+    ctx.env,
+    params.client_id,
+    ctx.var.tenant_id,
+  );
 
   const code = await ctx.env.data.codes.get(
     client.tenant.id,
@@ -107,8 +109,12 @@ export async function authorizationCodeGrantUser(
   // Validate the secret or PKCE
   if ("client_secret" in params) {
     // A temporary solution to handle cross tenant clients
-    const defaultClient =
-      await ctx.env.data.legacyClients.get("DEFAULT_CLIENT");
+    let defaultClient;
+    try {
+      defaultClient = await getEnrichedClient(ctx.env, "DEFAULT_CLIENT");
+    } catch {
+      // DEFAULT_CLIENT may not exist
+    }
 
     // Code flow
     if (

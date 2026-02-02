@@ -2,12 +2,12 @@ import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
   AuthParams,
-  LegacyClient,
   LoginSession,
   LoginSessionState,
   User,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
@@ -38,7 +38,7 @@ import { redactUrlForLogging } from "../utils/url";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
-  client: LegacyClient;
+  client: EnrichedClient;
   loginSession?: LoginSession;
   user?: User;
   session_id?: string;
@@ -279,7 +279,7 @@ export async function createAuthTokens(
 
 export interface CreateCodeParams {
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   authParams: AuthParams;
   login_id: string;
 }
@@ -311,7 +311,7 @@ export async function createCodeData(
 
 export interface CreateRefreshTokenParams {
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   session_id: string;
   scope: string;
   audience?: string;
@@ -363,7 +363,7 @@ export async function createRefreshToken(
 
 export interface CreateSessionParams {
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   loginSession: LoginSession;
 }
 
@@ -400,7 +400,7 @@ async function createNewSession(
 
 export interface AuthenticateLoginSessionParams {
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   loginSession: LoginSession;
   /** Optional existing session to reuse instead of creating a new one */
   existingSessionId?: string;
@@ -823,7 +823,7 @@ export function hasValidContinuationScope(
 
 export interface CreateAuthResponseParams {
   authParams: AuthParams;
-  client: LegacyClient;
+  client: EnrichedClient;
   user: User;
   loginSession?: LoginSession;
   /**

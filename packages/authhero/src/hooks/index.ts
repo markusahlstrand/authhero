@@ -1,11 +1,11 @@
 import {
-  LegacyClient,
   DataAdapters,
   UserDataAdapter,
   LogTypes,
   User,
   LoginSession,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { linkUsersHook } from "./link-users";
 import {
   postUserRegistrationWebhook,
@@ -18,6 +18,7 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { logMessage } from "../helpers/logging";
+import { getEnrichedClient } from "../helpers/client";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
@@ -60,13 +61,11 @@ function createUserHooks(
     // Get the client_id from context if available (auth flows)
     // Management API calls won't have client_id, so skip validation in that case
     if (ctx.var.client_id) {
-      const client = await data.legacyClients.get(ctx.var.client_id);
-
-      if (!client) {
-        throw new JSONHTTPException(400, {
-          message: "Client not found",
-        });
-      }
+      const client = await getEnrichedClient(
+        ctx.env,
+        ctx.var.client_id,
+        ctx.var.tenant_id,
+      );
 
       // Call preUserSignupHook BEFORE any user creation logic
       // This ensures ALL signup methods (email, code, social) are checked
@@ -256,7 +255,7 @@ function createUserUpdateHooks(
  */
 export async function validateSignupEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   data: DataAdapters,
   email: string,
   connection: string = "email",
@@ -393,7 +392,7 @@ export async function validateSignupEmail(
  */
 export async function preUserSignupHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  client: LegacyClient,
+  client: EnrichedClient,
   data: DataAdapters,
   email: string,
 ) {
@@ -577,7 +576,7 @@ async function buildEnhancedEventObject(
   tenant_id: string,
   user: User,
   loginSession: LoginSession,
-  params: { client: LegacyClient; authParams?: any },
+  params: { client: EnrichedClient; authParams?: any },
 ) {
   // Get user roles (both global and organization-specific)
   let userRoles: string[] = [];
@@ -747,7 +746,7 @@ export async function postUserLoginHook(
   user: User,
   loginSession?: LoginSession,
   params?: {
-    client?: LegacyClient;
+    client?: EnrichedClient;
     authParams?: any;
     authStrategy?: { strategy: string; strategy_type: string };
   },

@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
-import { LegacyClient, Theme, Branding } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import cn from "classnames";
 import Card, {
@@ -21,7 +22,7 @@ export interface LoginFormProps {
   branding?: Branding | null;
   state: string;
   email: string;
-  client: LegacyClient;
+  client: EnrichedClient;
   className?: string;
   showCodeOption?: boolean;
 }

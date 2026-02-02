@@ -6,6 +6,7 @@ import { Bindings, Variables } from "../../src/types";
 import { getPrimaryUserByEmail } from "../../src/helpers/users";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { parseJWT } from "oslo/jwt";
+import { getEnrichedClient } from "../../src/helpers/client";
 
 describe("org_name in tokens", () => {
   describe("when allow_organization_name_in_authentication_api is enabled", () => {
@@ -34,7 +35,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -94,7 +95,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -157,7 +158,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -210,7 +211,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -261,7 +262,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",
@@ -318,7 +319,7 @@ describe("org_name in tokens", () => {
         Variables: Variables;
       }>;
 
-      const client = await env.data.legacyClients.get("clientId");
+      const client = await getEnrichedClient(env, "clientId");
       const user = await getPrimaryUserByEmail({
         userAdapter: env.data.users,
         tenant_id: "tenantId",

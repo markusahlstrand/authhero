@@ -6,6 +6,7 @@ import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { getEnrichedClient } from "../../helpers/client";
 
 export const logoutRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -37,14 +38,20 @@ export const logoutRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { client_id, returnTo } = ctx.req.valid("query");
 
-      const client = await ctx.env.data.legacyClients.get(client_id);
-      if (!client) {
+      let client;
+      try {
+        client = await getEnrichedClient(ctx.env, client_id);
+      } catch {
         return ctx.text("OK");
       }
 
       // A temporary solution to handle cross tenant clients
-      const defaultClient =
-        await ctx.env.data.legacyClients.get("DEFAULT_CLIENT");
+      let defaultClient;
+      try {
+        defaultClient = await getEnrichedClient(ctx.env, "DEFAULT_CLIENT");
+      } catch {
+        // DEFAULT_CLIENT may not exist
+      }
 
       ctx.set("client_id", client_id);
       setTenantId(ctx, client.tenant.id);

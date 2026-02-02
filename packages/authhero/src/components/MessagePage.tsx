@@ -1,13 +1,14 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import { Theme, Branding, LegacyClient } from "@authhero/adapter-interfaces";
+import { Theme, Branding } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import { GoBack } from "./GoBack";
 
 type Props = {
   message: string;
   theme: Theme | null;
   branding: Branding | null;
-  client: LegacyClient;
+  client: EnrichedClient;
   pageTitle?: string;
   state?: string;
 };

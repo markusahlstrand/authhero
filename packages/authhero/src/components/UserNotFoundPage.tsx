@@ -6,14 +6,14 @@ import {
   AuthParams,
   Theme,
   Branding,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 
 type Props = {
   error?: string;
   theme: Theme | null;
   branding: Branding | null;
-  client: LegacyClient;
+  client: EnrichedClient;
   authParams: AuthParams;
 };
 

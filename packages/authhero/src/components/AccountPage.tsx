@@ -4,8 +4,8 @@ import {
   Theme,
   Branding,
   User,
-  LegacyClient,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";
 import PenIcon from "./IconPen";
@@ -14,7 +14,7 @@ type Props = {
   theme: Theme | null;
   branding: Branding | null;
   user: User;
-  client: LegacyClient;
+  client: EnrichedClient;
   error?: string;
   success?: string;
   state?: string;

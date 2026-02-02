@@ -1,10 +1,10 @@
 import type { FC } from "hono/jsx";
 import {
-  LegacyClient,
   LoginSession,
   Theme,
   Branding,
 } from "@authhero/adapter-interfaces";
+import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import cn from "classnames";
 import Card, {
@@ -25,7 +25,7 @@ type Props = {
   branding?: Branding | null;
   loginSession: LoginSession;
   email: string;
-  client: LegacyClient;
+  client: EnrichedClient;
   className?: string;
 };
 
