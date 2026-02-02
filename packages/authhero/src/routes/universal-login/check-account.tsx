@@ -83,7 +83,8 @@ export const checkAccountRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
-      if (!authSession) {
+      // Check if session exists and is not revoked
+      if (!authSession || authSession.revoked_at) {
         return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 
@@ -174,7 +175,8 @@ export const checkAccountRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
-      if (!authSession) {
+      // Check if session exists and is not revoked
+      if (!authSession || authSession.revoked_at) {
         return ctx.redirect(`/u/login/identifier?state=${state}`);
       }
 

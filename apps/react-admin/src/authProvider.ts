@@ -225,8 +225,10 @@ export const createManagementClient = async (
         domainForAuth,
         normalizedTenantId,
       );
+
       const audience =
         import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+
       try {
         token = await orgAuth0Client.getTokenSilently({
           authorizationParams: {

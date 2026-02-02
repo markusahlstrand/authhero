@@ -852,6 +852,99 @@ describe("common", () => {
     expect(updatedLoginSession?.session_id).toEqual("existingSessionId");
   });
 
+  it("should create a new session when existingSessionIdToLink points to a revoked session", async () => {
+    const { env } = await getTestServer();
+
+    const ctx = {
+      env,
+      var: {
+        tenant_id: "tenantId",
+      },
+      req: {
+        header: () => {},
+        query: () => {},
+        queries: () => {},
+      },
+      header: () => null,
+      html: (content: string) => {
+        return new Response(content, {
+          headers: { "Content-Type": "text/html" },
+        });
+      },
+    } as unknown as Context<{
+      Bindings: Bindings;
+      Variables: Variables;
+    }>;
+
+    // Create a revoked session first
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+      },
+    });
+
+    const revokedSession = await env.data.sessions.create("tenantId", {
+      id: "revokedSessionId",
+      user_id: "email|userId",
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      clients: ["clientId"],
+      revoked_at: new Date().toISOString(), // Session is revoked
+    });
+
+    const client = await env.data.legacyClients.get("clientId");
+    const user = await env.data.users.get("tenantId", "email|userId");
+
+    if (!client || !user) {
+      throw new Error("Client or user not found");
+    }
+
+    // Call createAuthResponse with the revoked session
+    // It should create a new session instead of reusing the revoked one
+    const authResponse = (await createFrontChannelAuthResponse(ctx, {
+      authParams: {
+        client_id: "clientId",
+        response_type: AuthorizationResponseType.CODE,
+        scope: "openid",
+        redirect_uri: "http://example.com/callback",
+      },
+      client,
+      user,
+      loginSession,
+      existingSessionIdToLink: revokedSession.id,
+    })) as Response;
+
+    expect(authResponse.status).toEqual(302);
+
+    // Get the updated login session to confirm a NEW session_id was created
+    const updatedLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      loginSession.id,
+    );
+
+    // Should NOT be the revoked session
+    expect(updatedLoginSession?.session_id).not.toEqual("revokedSessionId");
+    // Should have created a new session
+    expect(updatedLoginSession?.session_id).toBeTruthy();
+
+    // Verify the new session exists and is not revoked
+    const newSession = await env.data.sessions.get(
+      "tenantId",
+      updatedLoginSession!.session_id!,
+    );
+    expect(newSession).toBeTruthy();
+    expect(newSession?.revoked_at).toBeUndefined();
+  });
+
   it("should create a refresh token even if there is an existing session and offline_access scope is requested", async () => {
     const { env } = await getTestServer();
 
