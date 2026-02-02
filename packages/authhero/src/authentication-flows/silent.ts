@@ -154,38 +154,6 @@ export async function silentAuth({
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);
 
-  // Fetch organization data if organization ID is provided
-  let organizationData: { id: string; name: string } | undefined;
-  if (organization) {
-    const orgData = await env.data.organizations.get(
-      client.tenant.id,
-      organization,
-    );
-    if (orgData) {
-      organizationData = {
-        id: orgData.id,
-        name: orgData.name,
-      };
-    } else {
-      // Organization doesn't exist - return error
-      return handleLoginRequired("Organization not found");
-    }
-
-    // Verify user is a member of the organization
-    const userOrgs = await env.data.userOrganizations.list(client.tenant.id, {
-      q: `user_id:${user.user_id}`,
-      per_page: 1000,
-    });
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organization,
-    );
-    if (!isMember) {
-      return handleLoginRequired(
-        "User is not a member of the specified organization",
-      );
-    }
-  }
-
   // Create a new login session for this silent auth flow
   const loginSession = await env.data.loginSessions.create(client.tenant.id, {
     csrf_token: nanoid(),
@@ -229,7 +197,6 @@ export async function silentAuth({
     user,
     session_id: session.id,
     auth_time,
-    organization: organizationData,
   };
 
   // Create authentication tokens or code

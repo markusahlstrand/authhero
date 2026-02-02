@@ -1324,6 +1324,21 @@ export function ClientEdit() {
         <TabbedForm.Tab label="Connections">
           <ConnectionsTab />
         </TabbedForm.Tab>
+        <TabbedForm.Tab label="Advanced">
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            These settings control OAuth/OIDC protocol conformance behavior.
+          </Typography>
+          <BooleanInput
+            source="oidc_conformant"
+            label="OIDC Conformant"
+            helperText="When enabled, the client will strictly follow the OIDC specification. This affects token claims, scopes, and other protocol behaviors."
+          />
+          <BooleanInput
+            source="is_first_party"
+            label="First Party Application"
+            helperText="First party applications are trusted applications that don't require user consent for standard scopes."
+          />
+        </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField
             source="date"
