@@ -1,5 +1,18 @@
 # @authhero/multi-tenancy
 
+## 14.7.0
+
+### Minor Changes
+
+- 8150432: Replaced legacy client
+
+### Patch Changes
+
+- Updated dependencies [fd374a9]
+- Updated dependencies [8150432]
+  - @authhero/adapter-interfaces@0.127.0
+  - authhero@4.23.0
+
 ## 14.6.0
 
 ### Minor Changes
