@@ -116,36 +116,45 @@ export function addCaching(
             // Execute the write operation first
             const result = await (method as any).apply(adapter, args);
 
-            // Invalidate specific cache entries for the modified entity
-            // For update/remove operations, args typically are [tenant_id, entity_id, ...data]
-            // For create operations, args typically are [tenant_id, data]
-            if (args.length >= 2 && ["update", "remove", "delete"].includes(methodName)) {
-              // Invalidate the "get" cache for this specific entity
-              const getCacheKey = createCacheKey(
-                adapterName,
-                "get",
-                [args[0], args[1]], // tenant_id, entity_id
-                keyPrefix,
-              );
-              await cache.delete(getCacheKey);
+            // Invalidate cache entries (best-effort - don't fail the write if cache invalidation fails)
+            try {
+              // Invalidate specific cache entries for the modified entity
+              // For update/remove operations, args typically are [tenant_id, entity_id, ...data]
+              // For create operations, args typically are [tenant_id, data]
+              if (
+                args.length >= 2 &&
+                ["update", "remove", "delete"].includes(methodName)
+              ) {
+                // Invalidate the "get" cache for this specific entity
+                const getCacheKey = createCacheKey(
+                  adapterName,
+                  "get",
+                  [args[0], args[1]], // tenant_id, entity_id
+                  keyPrefix,
+                );
+                await cache.delete(getCacheKey);
 
-              // Also invalidate the "list" cache for this tenant (without pagination params)
-              // This helps invalidate lists that might include this entity
-              const listCacheKey = createCacheKey(
-                adapterName,
-                "list",
-                [args[0], {}], // tenant_id with empty options
-                keyPrefix,
-              );
-              await cache.delete(listCacheKey);
+                // Also invalidate the "list" cache for this tenant (without pagination params)
+                // This helps invalidate lists that might include this entity
+                const listCacheKey = createCacheKey(
+                  adapterName,
+                  "list",
+                  [args[0], {}], // tenant_id with empty options
+                  keyPrefix,
+                );
+                await cache.delete(listCacheKey);
+              }
+
+              // Try to invalidate all caches for this adapter by prefix (best effort)
+              // This works for in-memory cache but may not work for distributed caches
+              const cachePrefix = keyPrefix
+                ? `${keyPrefix}:${adapterName}:`
+                : `${adapterName}:`;
+              await cache.deleteByPrefix(cachePrefix);
+            } catch {
+              // Swallow cache invalidation errors - the write succeeded and that's what matters
+              // Stale cache entries will eventually expire based on TTL
             }
-
-            // Try to invalidate all caches for this adapter by prefix (best effort)
-            // This works for in-memory cache but may not work for distributed caches
-            const cachePrefix = keyPrefix
-              ? `${keyPrefix}:${adapterName}:`
-              : `${adapterName}:`;
-            await cache.deleteByPrefix(cachePrefix);
 
             return result;
           }
