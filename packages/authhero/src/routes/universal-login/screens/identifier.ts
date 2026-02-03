@@ -108,14 +108,24 @@ export async function identifierScreen(context: ScreenContext): Promise<ScreenRe
 
   // Add signup link if signup is allowed
   const links: UiScreen["links"] = [];
-  // Note: allow_signup check needs to be handled differently as it's not on Client type
-  // For now, always show signup link
-  links.push({
-    id: "signup",
-    text: "Don't have an account?",
-    linkText: "Sign up",
-    href: `${baseUrl}/u/signup?state=${encodeURIComponent(state)}`,
-  });
+  
+  // Check if password signup is available
+  const hasPasswordConnection = context.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  
+  // Check if signups are disabled via client metadata
+  const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
+  
+  // Only show signup link if signups are enabled AND password connection exists
+  if (hasPasswordConnection && !signupsDisabled) {
+    links.push({
+      id: "signup",
+      text: "Don't have an account?",
+      linkText: "Sign up",
+      href: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
+    });
+  }
 
   const screen: UiScreen = {
     action: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,

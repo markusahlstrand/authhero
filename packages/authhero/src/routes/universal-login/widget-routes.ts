@@ -512,6 +512,10 @@ export const widgetRoutes = new OpenAPIHono<{
             errors = { email: "Email is required" };
           } else if (!data.password) {
             errors = { password: "Password is required" };
+          } else if (!data.re_password) {
+            errors = { re_password: "Please confirm your password" };
+          } else if (data.password !== data.re_password) {
+            errors = { re_password: "Passwords do not match" };
           }
           break;
 

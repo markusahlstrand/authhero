@@ -76,7 +76,7 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
         id: "back",
         text: "Not your account?",
         linkText: "Go back",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

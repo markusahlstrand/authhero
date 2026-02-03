@@ -47,6 +47,8 @@ type WidgetPageProps = {
     favicon_url?: string;
     font?: { url?: string };
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  theme?: any;
   themePageBackground?: {
     background_color?: string;
     background_image_url?: string;
@@ -76,6 +78,7 @@ function WidgetPage({
   screenId,
   state,
   branding,
+  theme,
   themePageBackground,
   clientName,
   authParams,
@@ -94,6 +97,9 @@ function WidgetPage({
   );
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
+
+  // Get widget background color for mobile view
+  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Sanitize powered-by logo URLs
   const safePoweredByUrl = poweredByLogo?.url
@@ -119,25 +125,10 @@ function WidgetPage({
         ? "20px 80px 20px 20px"
         : "20px";
 
-  const bodyStyle = {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent,
-    background: pageBackground,
-    fontFamily: fontUrl
-      ? "'Inter', system-ui, sans-serif"
-      : "system-ui, -apple-system, sans-serif",
-    padding,
-  };
-
-  const widgetStyle =
-    cssVariables.length > 0
-      ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
-      : "max-width: 400px; width: 100%;";
-
-  // Serialize authParams for the widget attribute
+  // Serialize attributes for the widget
   const authParamsJson = JSON.stringify(authParams);
+  const brandingJson = branding ? JSON.stringify(branding) : undefined;
+  const themeJson = theme ? JSON.stringify(theme) : undefined;
 
   return (
     <html lang="en">
@@ -151,52 +142,73 @@ function WidgetPage({
           dangerouslySetInnerHTML={{
             __html: `
               * { box-sizing: border-box; margin: 0; padding: 0; }
+              body {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: ${justifyContent};
+                background: ${pageBackground};
+                font-family: ${fontUrl ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
+                padding: ${padding};
+              }
+              .widget-container { display: flex; flex-direction: column; max-width: 400px; width: 100%; }
+              authhero-widget { width: 100%; }
               .loading { text-align: center; padding: 40px; color: #666; }
               .error { background: #fee2e2; border: 1px solid #ef4444; color: #dc2626; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
-              .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
+              .powered-by { margin-top: 16px; opacity: 0.7; transition: opacity 0.2s; }
               .powered-by:hover { opacity: 1; }
               .powered-by img { display: block; }
+              @media (max-width: 560px) {
+                body { justify-content: center !important; padding: 20px !important; }
+              }
+              @media (max-width: 480px) {
+                body { background: ${widgetBackground} !important; padding: 0 !important; }
+                .widget-container { max-width: none; }
+              }
             `,
           }}
         />
         <script type="module" src="/u/widget/authhero-widget.esm.js" />
       </head>
-      <body style={bodyStyle}>
-        <authhero-widget
-          id="widget"
-          style={widgetStyle}
-          api-url={`/u2/screen/${screenId}`}
-          screen-id={screenId}
-          state={state}
-          auth-params={authParamsJson}
-          auto-submit={true}
-          auto-navigate={true}
-        >
-          <div class="loading">Loading...</div>
-        </authhero-widget>
-        {safePoweredByUrl && (
-          <div class="powered-by">
-            {safePoweredByHref ? (
-              <a
-                href={safePoweredByHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+      <body>
+        <div class="widget-container">
+          <authhero-widget
+            id="widget"
+            api-url={`/u2/screen/${screenId}`}
+            screen-id={screenId}
+            state={state}
+            auth-params={authParamsJson}
+            branding={brandingJson}
+            theme={themeJson}
+            auto-submit={true}
+            auto-navigate={true}
+          >
+            <div class="loading">Loading...</div>
+          </authhero-widget>
+          {safePoweredByUrl && (
+            <div class="powered-by">
+              {safePoweredByHref ? (
+                <a
+                  href={safePoweredByHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={safePoweredByUrl}
+                    alt={poweredByLogo?.alt || ""}
+                    height={poweredByLogo?.height || 20}
+                  />
+                </a>
+              ) : (
                 <img
                   src={safePoweredByUrl}
                   alt={poweredByLogo?.alt || ""}
                   height={poweredByLogo?.height || 20}
                 />
-              </a>
-            ) : (
-              <img
-                src={safePoweredByUrl}
-                alt={poweredByLogo?.alt || ""}
-                height={poweredByLogo?.height || 20}
-              />
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </body>
     </html>
   );
@@ -223,8 +235,10 @@ function generateHeadContent(options: {
     background_image_url?: string;
     page_layout?: string;
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  theme?: any;
 }): string {
-  const { clientName, branding, themePageBackground } = options;
+  const { clientName, branding, themePageBackground, theme } = options;
 
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
@@ -234,6 +248,9 @@ function generateHeadContent(options: {
     themePageBackground,
     branding?.colors?.page_background,
   );
+
+  // Get widget background color for mobile view
+  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -280,9 +297,15 @@ function generateHeadContent(options: {
       padding: ${padding};
     }
     
+    .widget-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 400px;
+      width: 100%;
+    }
+    
     authhero-widget {
       ${cssVariables.join(";\n      ")};
-      max-width: 400px;
       width: 100%;
     }
     
@@ -302,9 +325,7 @@ function generateHeadContent(options: {
     }
     
     .powered-by {
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
+      margin-top: 16px;
       opacity: 0.7;
       transition: opacity 0.2s;
     }
@@ -315,6 +336,24 @@ function generateHeadContent(options: {
     
     .powered-by img {
       display: block;
+    }
+    
+    @media (max-width: 560px) {
+      body {
+        justify-content: center !important;
+        padding: 20px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        background: ${widgetBackground} !important;
+        padding: 0 !important;
+      }
+      
+      .widget-container {
+        max-width: none;
+      }
     }
   </style>
   <script type="module" src="/u/widget/authhero-widget.esm.js"></script>`;
@@ -334,6 +373,10 @@ function generateWidgetContent(options: {
     nonce?: string;
     response_type?: string;
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  branding?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  theme?: any;
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -341,7 +384,8 @@ function generateWidgetContent(options: {
     height?: number;
   };
 }): string {
-  const { screenId, state, authParams, poweredByLogo } = options;
+  const { screenId, state, authParams, branding, theme, poweredByLogo } =
+    options;
 
   const safeScreenId = escapeHtml(screenId);
   const safeState = escapeHtml(state);
@@ -374,17 +418,32 @@ function generateWidgetContent(options: {
     }
   }
 
-  return `<authhero-widget
+  const safeBranding = branding ? escapeHtml(JSON.stringify(branding)) : "";
+  const safeTheme = theme ? escapeHtml(JSON.stringify(theme)) : "";
+
+  return `<div class="widget-container">
+    <authhero-widget
       id="widget"
       api-url="/u2/screen/${safeScreenId}"
       screen-id="${safeScreenId}"
       state="${safeState}"
-      auth-params="${safeAuthParams}"
+      auth-params="${safeAuthParams}"${
+        safeBranding
+          ? `
+      branding="${safeBranding}"`
+          : ""
+      }${
+        safeTheme
+          ? `
+      theme="${safeTheme}"`
+          : ""
+      }
       auto-submit="true"
       auto-navigate="true"
     >
       <div class="loading">Loading...</div>
-    </authhero-widget>${poweredByHtml}`;
+    </authhero-widget>${poweredByHtml}
+  </div>`;
 }
 
 /**
@@ -456,12 +515,15 @@ function createScreenRouteHandler(screenId: string) {
         clientName: client.name || "AuthHero",
         branding: brandingProps,
         themePageBackground: theme?.page_background,
+        theme,
       });
 
       const widgetContent = generateWidgetContent({
         screenId,
         state,
         authParams,
+        branding: brandingProps,
+        theme,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -489,6 +551,7 @@ function createScreenRouteHandler(screenId: string) {
               }
             : undefined
         }
+        theme={theme}
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
         authParams={authParams}
