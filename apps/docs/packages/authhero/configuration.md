@@ -184,8 +184,6 @@ When deploying AuthHero, additional configuration is provided through environmen
 - `JWKS_URL`: Custom JWKS endpoint URL
 - `UNIVERSAL_LOGIN_URL`: Custom universal login page URL
 - `OAUTH_API_URL`: Custom OAuth API URL
-- `DEFAULT_TENANT_ID`: Default tenant to use
-- `DEFAULT_CLIENT_ID`: Default client to use
 - `ENVIRONMENT`: Environment name (e.g., "production", "development")
 
 ::: tip SAML Configuration Priority

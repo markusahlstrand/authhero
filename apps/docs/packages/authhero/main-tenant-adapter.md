@@ -46,13 +46,6 @@ One of the most powerful features of the Main Tenant Adapter is the ability to p
 - **Automatic Availability**: Social connections become available to all tenants automatically
 - **Tenant Customization**: Individual tenants can still override settings like scopes or branding
 
-### Backward Compatibility
-
-- Maintains existing fallback behavior when `DEFAULT_TENANT_ID` and `DEFAULT_CLIENT_ID` are set
-- Seamlessly integrates with existing codebases
-
-## Migration to @authhero/multi-tenancy
-
 ### Old Code (Deprecated)
 
 ```typescript
@@ -93,29 +86,6 @@ import { init } from "authhero";
 const app = init({
   dataAdapter: adapters
 });
-```
-
-## Legacy Usage (For Reference Only)
-
-### Environment-Based Configuration
-
-You can configure the main tenant adapter using environment variables:
-
-```typescript
-import { withMainTenantFallback } from "@authhero/authhero";
-
-const adapters = withMainTenantFallback(baseAdapters, {
-  mainTenantId: process.env.DEFAULT_TENANT_ID,
-  mainClientId: process.env.DEFAULT_CLIENT_ID,
-});
-
-// Set up your environment
-const env = {
-  // Other environment variables...
-  DEFAULT_TENANT_ID: "main",
-  DEFAULT_CLIENT_ID: "main-client",
-  data: adapters,
-};
 ```
 
 ### Demo Application Example
@@ -426,25 +396,6 @@ All tenants will automatically inherit these social authentication options, maki
   }
 }
 ```
-
-## Migration Guide
-
-### From Manual Fallbacks
-
-If you were previously using manual fallback logic in your application:
-
-1. **Set up the main tenant and client** in your database
-2. **Wrap your adapters** with `withMainTenantFallback`
-3. **Remove manual fallback code** - the adapter handles it automatically
-4. **Update environment configuration** if using environment variables
-
-### Backward Compatibility
-
-The main tenant adapter is fully backward compatible:
-
-- Existing `getClientWithDefaults` logic still works when `DEFAULT_TENANT_ID` and `DEFAULT_CLIENT_ID` are set
-- No changes required to existing code
-- Can be enabled incrementally
 
 ## Performance Considerations
 

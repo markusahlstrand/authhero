@@ -32,10 +32,6 @@ export type Bindings = {
   emailProviders?: { [key: string]: EmailService };
   smsProviders?: { [key: string]: smsService };
 
-  // Tenant for default configuration
-  DEFAULT_TENANT_ID?: string;
-  DEFAULT_CLIENT_ID?: string;
-
   // Add additional strategies
   STRATEGIES?: { [strategy: string]: Strategy };
 

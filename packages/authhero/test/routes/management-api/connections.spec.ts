@@ -148,8 +148,8 @@ describe("connections", () => {
 
     expect(listConnectionsResponse.status).toBe(200);
     const connections = await listConnectionsResponse.json();
-    // There is a default email connection and Username-Password-Authentication connection created by the test server
-    expect(connections.length).toEqual(2);
+    // There is a default email connection, Username-Password-Authentication connection, and mock-strategy connection created by the test server
+    expect(connections.length).toEqual(3);
   });
 
   it("should get and update connection clients", async () => {
