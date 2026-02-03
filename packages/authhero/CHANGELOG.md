@@ -1,5 +1,11 @@
 # authhero
 
+## 4.25.0
+
+### Minor Changes
+
+- e7f5ce5: Fix the universal-login-template in kysley
+
 ## 4.24.0
 
 ### Minor Changes
