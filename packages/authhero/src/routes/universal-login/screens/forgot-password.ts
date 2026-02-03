@@ -74,7 +74,7 @@ export async function forgotPasswordScreen(
         id: "back",
         text: "Remember your password?",
         linkText: "Log in",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

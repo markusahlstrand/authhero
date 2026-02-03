@@ -84,7 +84,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
         id: "back",
         text: "Back to",
         linkText: "login",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };
