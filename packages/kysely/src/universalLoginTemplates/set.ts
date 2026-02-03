@@ -9,20 +9,25 @@ export function set(db: Kysely<Database>) {
   ): Promise<void> => {
     const now = Date.now();
 
-    await db
-      .insertInto("universal_login_templates")
-      .values({
-        tenant_id,
-        body: template.body,
-        created_at_ts: now,
-        updated_at_ts: now,
-      })
-      .onConflict((oc) =>
-        oc.column("tenant_id").doUpdateSet({
+    try {
+      await db
+        .insertInto("universal_login_templates")
+        .values({
+          tenant_id,
+          body: template.body,
+          created_at_ts: now,
+          updated_at_ts: now,
+        })
+        .execute();
+    } catch (error) {
+      await db
+        .updateTable("universal_login_templates")
+        .set({
           body: template.body,
           updated_at_ts: now,
-        }),
-      )
-      .execute();
+        })
+        .where("tenant_id", "=", tenant_id)
+        .execute();
+    }
   };
 }

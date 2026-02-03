@@ -103,16 +103,32 @@ function WidgetPage({
     ? sanitizeUrl(poweredByLogo.href)
     : null;
 
+  // Determine justify-content based on page_layout
+  const pageLayout = themePageBackground?.page_layout || "center";
+  const justifyContent =
+    pageLayout === "left"
+      ? "flex-start"
+      : pageLayout === "right"
+        ? "flex-end"
+        : "center";
+  // Adjust padding based on page_layout
+  const padding =
+    pageLayout === "left"
+      ? "20px 20px 20px 80px"
+      : pageLayout === "right"
+        ? "20px 80px 20px 20px"
+        : "20px";
+
   const bodyStyle = {
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent,
     background: pageBackground,
     fontFamily: fontUrl
       ? "'Inter', system-ui, sans-serif"
       : "system-ui, -apple-system, sans-serif",
-    padding: "20px",
+    padding,
   };
 
   const widgetStyle =
@@ -225,6 +241,22 @@ function generateHeadContent(options: {
     cssVariables.push(`--ah-color-primary: ${primaryColor}`);
   }
 
+  // Determine justify-content based on page_layout
+  const pageLayout = themePageBackground?.page_layout || "center";
+  const justifyContent =
+    pageLayout === "left"
+      ? "flex-start"
+      : pageLayout === "right"
+        ? "flex-end"
+        : "center";
+  // Adjust padding based on page_layout
+  const padding =
+    pageLayout === "left"
+      ? "20px 20px 20px 80px"
+      : pageLayout === "right"
+        ? "20px 80px 20px 20px"
+        : "20px";
+
   return `
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -242,10 +274,10 @@ function generateHeadContent(options: {
       min-height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: ${justifyContent};
       background: ${pageBackground};
       font-family: ${fontUrl ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
-      padding: 20px;
+      padding: ${padding};
     }
     
     authhero-widget {
