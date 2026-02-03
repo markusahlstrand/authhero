@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.30.0
+
+### Minor Changes
+
+- 6585906: Move universal login templates to separate adapter
+
+### Patch Changes
+
+- Updated dependencies [6585906]
+  - @authhero/adapter-interfaces@0.128.0
+  - @authhero/widget@0.8.5
+
 ## 0.29.0
 
 ### Minor Changes

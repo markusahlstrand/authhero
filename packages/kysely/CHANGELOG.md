@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.89.0
+
+### Minor Changes
+
+- 6585906: Move universal login templates to separate adapter
+
+### Patch Changes
+
+- Updated dependencies [6585906]
+  - @authhero/adapter-interfaces@0.128.0
+
 ## 10.88.0
 
 ### Minor Changes

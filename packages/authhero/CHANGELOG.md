@@ -1,5 +1,16 @@
 # authhero
 
+## 4.24.0
+
+### Minor Changes
+
+- 6585906: Move universal login templates to separate adapter
+
+### Patch Changes
+
+- Updated dependencies [6585906]
+  - @authhero/adapter-interfaces@0.128.0
+
 ## 4.23.0
 
 ### Minor Changes
