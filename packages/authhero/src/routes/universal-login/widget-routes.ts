@@ -111,6 +111,22 @@ function renderWidgetPage(options: {
   const screenJson = safeJsonStringify(screen);
   const brandingJson = branding ? safeJsonStringify(branding) : "null";
 
+  // Determine justify-content based on page_layout
+  const pageLayout = themePageBackground?.page_layout || "center";
+  const justifyContent =
+    pageLayout === "left"
+      ? "flex-start"
+      : pageLayout === "right"
+        ? "flex-end"
+        : "center";
+  // Adjust padding based on page_layout
+  const padding =
+    pageLayout === "left"
+      ? "20px 20px 20px 80px"
+      : pageLayout === "right"
+        ? "20px 80px 20px 20px"
+        : "20px";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -130,10 +146,10 @@ function renderWidgetPage(options: {
       min-height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: ${justifyContent};
       background: ${pageBackground};
       font-family: ${fontUrl ? "'Inter', system-ui, sans-serif" : "system-ui, -apple-system, sans-serif"};
-      padding: 20px;
+      padding: ${padding};
     }
     
     authhero-widget {
