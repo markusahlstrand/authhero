@@ -1,104 +1,13 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-
-/**
- * Escape HTML special characters to prevent XSS
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
-
-/**
- * Escape a string for use in JavaScript string literals
- */
-function escapeJs(str: string): string {
-  return str
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/</g, "\\x3c")
-    .replace(/>/g, "\\x3e");
-}
-
-/**
- * Validate and sanitize a URL for use in href/src attributes
- * Returns empty string if URL is invalid or uses dangerous protocol
- */
-function sanitizeUrl(url: string | undefined): string {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url);
-    // Only allow http, https, and data (for favicons) protocols
-    if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
-      return "";
-    }
-    return escapeHtml(url);
-  } catch {
-    // If it's a relative URL, allow it after escaping
-    if (url.startsWith("/")) {
-      return escapeHtml(url);
-    }
-    return "";
-  }
-}
-
-/**
- * Sanitize CSS color value - only allow safe color formats
- */
-function sanitizeCssColor(color: string | undefined): string {
-  if (!color) return "";
-  // Allow: hex colors, rgb/rgba, hsl/hsla, named colors
-  const safeColorPattern =
-    /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
-  if (safeColorPattern.test(color.trim())) {
-    return color.trim();
-  }
-  return "";
-}
-
-/**
- * Build a CSS background value from page_background object
- */
-function buildPageBackground(
-  pageBackground:
-    | {
-        type?: string;
-        start?: string;
-        end?: string;
-        angle_deg?: number;
-      }
-    | undefined,
-): string {
-  if (!pageBackground) return "#f5f5f5";
-
-  const { type, start, end, angle_deg } = pageBackground;
-
-  // Handle gradient backgrounds
-  if (type === "linear-gradient" && start && end) {
-    const sanitizedStart = sanitizeCssColor(start);
-    const sanitizedEnd = sanitizeCssColor(end);
-    if (sanitizedStart && sanitizedEnd) {
-      const angle = typeof angle_deg === "number" ? angle_deg : 180;
-      return `linear-gradient(${angle}deg, ${sanitizedStart}, ${sanitizedEnd})`;
-    }
-  }
-
-  // Handle solid color (use start as the color)
-  if (start) {
-    const sanitizedColor = sanitizeCssColor(start);
-    if (sanitizedColor) return sanitizedColor;
-  }
-
-  return "#f5f5f5";
-}
+import {
+  escapeHtml,
+  escapeJs,
+  sanitizeUrl,
+  sanitizeCssColor,
+  buildThemePageBackground,
+} from "./sanitization-utils";
 
 export const flowWidgetRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -131,7 +40,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
     const { formId } = ctx.req.valid("param");
     const { state } = ctx.req.valid("query");
 
-    const { branding, client } = await initJSXRoute(ctx, state, true);
+    const { theme, branding, client } = await initJSXRoute(ctx, state, true);
 
     // Build the flow API URL
     const baseUrl = new URL(ctx.req.url).origin;
@@ -144,8 +53,9 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       cssVariables.push(`--ah-color-primary: ${primaryColor}`);
     }
 
-    // Build page background (handles gradient objects)
-    const pageBackground = buildPageBackground(
+    // Build page background (supports theme's background_image_url)
+    const pageBackground = buildThemePageBackground(
+      theme?.page_background,
       branding?.colors?.page_background,
     );
 

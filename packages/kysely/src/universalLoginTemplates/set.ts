@@ -2,7 +2,7 @@ import { Kysely } from "kysely";
 import { Database } from "../db";
 import { UniversalLoginTemplate } from "@authhero/adapter-interfaces";
 
-export function setUniversalLoginTemplate(db: Kysely<Database>) {
+export function set(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     template: UniversalLoginTemplate,

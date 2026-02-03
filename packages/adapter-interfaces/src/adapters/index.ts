@@ -30,6 +30,7 @@ import { UserOrganizationsAdapter } from "./UserOrganizations";
 import { InvitesAdapter } from "./Invites";
 import { GeoAdapter } from "./Geo";
 import { StatsAdapter } from "./Stats";
+import { UniversalLoginTemplatesAdapter } from "./UniversalLoginTemplates";
 
 /**
  * Parameters for cleaning up expired sessions
@@ -70,6 +71,7 @@ export interface DataAdapters {
   stats?: StatsAdapter;
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
+  universalLoginTemplates: UniversalLoginTemplatesAdapter;
   users: UserDataAdapter;
   userRoles: UserRolesAdapter;
   organizations: OrganizationsAdapter;
@@ -104,3 +106,4 @@ export * from "./UserOrganizations";
 export * from "./Invites";
 export * from "./Geo";
 export * from "./Stats";
+export * from "./UniversalLoginTemplates";

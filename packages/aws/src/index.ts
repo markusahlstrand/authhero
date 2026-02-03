@@ -15,6 +15,7 @@ import { createClientConnectionsAdapter } from "./adapters/clientConnections";
 import { createConnectionsAdapter } from "./adapters/connections";
 import { createLoginSessionsAdapter } from "./adapters/loginSessions";
 import { createBrandingAdapter } from "./adapters/branding";
+import { createUniversalLoginTemplatesAdapter } from "./adapters/universalLoginTemplates";
 import { createHooksAdapter } from "./adapters/hooks";
 import { createKeysAdapter } from "./adapters/keys";
 import { createCustomDomainsAdapter } from "./adapters/customDomains";
@@ -91,6 +92,7 @@ export default function createAdapters(
     sessions: createSessionsAdapter(ctx),
     tenants: createTenantsAdapter(ctx),
     themes: createThemesAdapter(ctx),
+    universalLoginTemplates: createUniversalLoginTemplatesAdapter(ctx),
     userOrganizations: createUserOrganizationsAdapter(ctx),
     userPermissions: createUserPermissionsAdapter(ctx),
     userRoles: createUserRolesAdapter(ctx),

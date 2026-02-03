@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Box } from "@mui/material";
 import { ThemesTab } from "./ThemesTab";
 import { BrandingPreview } from "./BrandingPreview";
+import { UniversalLoginTab } from "./UniversalLoginTab";
 
 // Helper to recursively remove null values and empty objects from data
 // This is needed because react-admin sends null for empty form fields,
@@ -206,6 +207,9 @@ function BrandingFormContent() {
             >
               <BrandingPreview />
             </Box>
+          </TabbedForm.Tab>
+          <TabbedForm.Tab label="Universal Login">
+            <UniversalLoginTab />
           </TabbedForm.Tab>
         </TabbedForm>
       </Box>

@@ -26,7 +26,7 @@ import { listScreenIds } from "./screens/registry";
 import {
   sanitizeUrl,
   sanitizeCssColor,
-  buildPageBackground,
+  buildThemePageBackground,
   escapeHtml,
 } from "./sanitization-utils";
 
@@ -46,6 +46,11 @@ type WidgetPageProps = {
     logo_url?: string;
     favicon_url?: string;
     font?: { url?: string };
+  };
+  themePageBackground?: {
+    background_color?: string;
+    background_image_url?: string;
+    page_layout?: string;
   };
   clientName: string;
   authParams: {
@@ -71,6 +76,7 @@ function WidgetPage({
   screenId,
   state,
   branding,
+  themePageBackground,
   clientName,
   authParams,
   poweredByLogo,
@@ -82,7 +88,10 @@ function WidgetPage({
     cssVariables.push(`--ah-color-primary: ${primaryColor}`);
   }
 
-  const pageBackground = buildPageBackground(branding?.colors?.page_background);
+  const pageBackground = buildThemePageBackground(
+    themePageBackground,
+    branding?.colors?.page_background,
+  );
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
 
@@ -193,14 +202,22 @@ function generateHeadContent(options: {
     favicon_url?: string;
     font?: { url?: string };
   };
+  themePageBackground?: {
+    background_color?: string;
+    background_image_url?: string;
+    page_layout?: string;
+  };
 }): string {
-  const { clientName, branding } = options;
+  const { clientName, branding, themePageBackground } = options;
 
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const safeClientName = escapeHtml(clientName);
   const primaryColor = sanitizeCssColor(branding?.colors?.primary);
-  const pageBackground = buildPageBackground(branding?.colors?.page_background);
+  const pageBackground = buildThemePageBackground(
+    themePageBackground,
+    branding?.colors?.page_background,
+  );
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -357,7 +374,7 @@ function applyLiquidTemplate(
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
     const { state } = ctx.req.valid("query");
-    const { branding, client, loginSession } = await initJSXRoute(
+    const { theme, branding, client, loginSession } = await initJSXRoute(
       ctx,
       state,
       true,
@@ -366,8 +383,9 @@ function createScreenRouteHandler(screenId: string) {
     // Get custom template if available (gracefully handle missing method/table)
     let customTemplate: { body: string } | null = null;
     try {
-      customTemplate =
-        await ctx.env.data.branding.getUniversalLoginTemplate(ctx.var.tenant_id);
+      customTemplate = await ctx.env.data.universalLoginTemplates.get(
+        ctx.var.tenant_id,
+      );
     } catch {
       // Method or table may not exist in older adapters - continue without custom template
     }
@@ -405,6 +423,7 @@ function createScreenRouteHandler(screenId: string) {
       const headContent = generateHeadContent({
         clientName: client.name || "AuthHero",
         branding: brandingProps,
+        themePageBackground: theme?.page_background,
       });
 
       const widgetContent = generateWidgetContent({
@@ -438,6 +457,7 @@ function createScreenRouteHandler(screenId: string) {
               }
             : undefined
         }
+        themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
         authParams={authParams}
         poweredByLogo={ctx.env.poweredByLogo}

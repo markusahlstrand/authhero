@@ -14,6 +14,7 @@ import { createClientGrantsAdapter } from "./clientGrants";
 import { createKeysAdapter } from "./keys";
 import { createCustomDomainsAdapter } from "./customDomains";
 import { createBrandingAdapter } from "./branding";
+import { createUniversalLoginTemplatesAdapter } from "./universalLoginTemplates";
 import { createHooksAdapter } from "./hooks";
 import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
@@ -67,6 +68,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     sessionCleanup: createSessionCleanup(db),
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
+    universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     users: createUsersAdapter(db),
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
