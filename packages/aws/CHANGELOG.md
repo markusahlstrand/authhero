@@ -1,5 +1,18 @@
 # @authhero/aws-adapter
 
+## 0.13.0
+
+### Minor Changes
+
+- fd374a9: Set theme id
+- 8150432: Replaced legacy client
+
+### Patch Changes
+
+- Updated dependencies [fd374a9]
+- Updated dependencies [8150432]
+  - @authhero/adapter-interfaces@0.127.0
+
 ## 0.12.1
 
 ### Patch Changes

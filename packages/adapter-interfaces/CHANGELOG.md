@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.127.0
+
+### Minor Changes
+
+- fd374a9: Set theme id
+- 8150432: Replaced legacy client
+
 ## 0.126.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.38.0
+
+### Minor Changes
+
+- 8150432: Replaced legacy client
+
 ## 1.37.0
 
 ### Minor Changes
