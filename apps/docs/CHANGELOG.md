@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.39.0
+
+### Minor Changes
+
+- a8e70e6: Fix fallbacks for sms service options
+- a8e70e6: Update schemas to remove old fallbacks
+
 ## 1.38.0
 
 ### Minor Changes

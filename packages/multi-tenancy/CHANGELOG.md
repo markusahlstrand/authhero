@@ -1,5 +1,19 @@
 # @authhero/multi-tenancy
 
+## 14.8.0
+
+### Minor Changes
+
+- a8e70e6: Fix fallbacks for sms service options
+- a8e70e6: Update schemas to remove old fallbacks
+
+### Patch Changes
+
+- Updated dependencies [a8e70e6]
+- Updated dependencies [a8e70e6]
+  - authhero@4.27.0
+  - @authhero/adapter-interfaces@0.129.0
+
 ## 14.7.0
 
 ### Minor Changes
