@@ -83,9 +83,12 @@ export const checkAccountRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
+      // Detect route prefix from request URL (u or u2)
+      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/") ? "/u2" : "/u";
+
       // Check if session exists and is not revoked
       if (!authSession || authSession.revoked_at) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(`${routePrefix}/login/identifier?state=${state}`);
       }
 
       const user = await env.data.users.get(
@@ -94,7 +97,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(`${routePrefix}/login/identifier?state=${state}`);
       }
 
       return ctx.html(
@@ -175,9 +178,12 @@ export const checkAccountRoutes = new OpenAPIHono<{
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : null;
 
+      // Detect route prefix from request URL (u or u2)
+      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/") ? "/u2" : "/u";
+
       // Check if session exists and is not revoked
       if (!authSession || authSession.revoked_at) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(`${routePrefix}/login/identifier?state=${state}`);
       }
 
       const user = await env.data.users.get(
@@ -186,7 +192,7 @@ export const checkAccountRoutes = new OpenAPIHono<{
       );
 
       if (!user) {
-        return ctx.redirect(`/u/login/identifier?state=${state}`);
+        return ctx.redirect(`${routePrefix}/login/identifier?state=${state}`);
       }
 
       // Let createFrontChannelAuthResponse handle session linking and state transitions

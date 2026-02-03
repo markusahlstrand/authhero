@@ -14,6 +14,7 @@
 name = "authhero-server"
 main = "src/index.ts"
 compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]
 
 # ════════════════════════════════════════════════════════════════════════════
 # Static Assets (CSS, JS, Widget)

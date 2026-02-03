@@ -73,7 +73,8 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
   ];
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/enter-code?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/enter-code?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Check your email",
     description: "Enter the verification code",
@@ -84,7 +85,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
         id: "back",
         text: "Back to",
         linkText: "login",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

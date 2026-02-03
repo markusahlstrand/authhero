@@ -16,6 +16,8 @@ import { getLoginStrategy } from "../common";
 import generateOTP from "../../../utils/otp";
 import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
+import { enterCodeScreen } from "./enter-code";
+import { enterPasswordScreen } from "./enter-password";
 
 /**
  * Build social login buttons from available connections
@@ -108,17 +110,29 @@ export async function identifierScreen(context: ScreenContext): Promise<ScreenRe
 
   // Add signup link if signup is allowed
   const links: UiScreen["links"] = [];
-  // Note: allow_signup check needs to be handled differently as it's not on Client type
-  // For now, always show signup link
-  links.push({
-    id: "signup",
-    text: "Don't have an account?",
-    linkText: "Sign up",
-    href: `${baseUrl}/u/signup?state=${encodeURIComponent(state)}`,
-  });
+  
+  // Check if password signup is available
+  const hasPasswordConnection = context.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  
+  // Check if signups are disabled via client metadata
+  const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
+  
+  // Only show signup link if signups are enabled AND password connection exists
+  if (hasPasswordConnection && !signupsDisabled) {
+    links.push({
+      id: "signup",
+      text: "Don't have an account?",
+      linkText: "Sign up",
+      href: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
+    });
+  }
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    // Widget overrides this to POST JSON to screen API when hydrated
+    action: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Welcome",
     description: client.name
@@ -155,7 +169,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
   handler: {
     get: identifierScreen,
     post: async (context, data) => {
-      const { ctx, client, state, baseUrl } = context;
+      const { ctx, client, state } = context;
       const username = (data.username as string)?.toLowerCase()?.trim();
 
       // Validate username is provided
@@ -270,9 +284,17 @@ export const identifierScreenDefinition: ScreenDefinition = {
         data.login_selection as "code" | "password" | undefined,
       );
 
-      // Redirect to appropriate next screen
+      // Build context for next screen
+      const nextContext: ScreenContext = {
+        ...context,
+        prefill: { username: normalized, email: normalized },
+        data: { email: normalized },
+        errors: undefined,
+      };
+
+      // Return appropriate next screen directly (no redirect for internal navigation)
       if (loginStrategy === "password") {
-        return { redirect: `${baseUrl}/u2/enter-password?state=${state}` };
+        return { screen: await enterPasswordScreen(nextContext) };
       }
 
       // For code-based login, generate and send OTP
@@ -327,7 +349,8 @@ export const identifierScreenDefinition: ScreenDefinition = {
         });
       }
 
-      return { redirect: `${baseUrl}/u2/enter-code?state=${state}` };
+      // Return enter-code screen directly (no redirect for internal navigation)
+      return { screen: await enterCodeScreen(nextContext) };
     },
   },
 };

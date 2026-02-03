@@ -109,6 +109,22 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
         order: order++,
         hint: errors?.password,
       },
+      // Confirm password input
+      {
+        id: "re_password",
+        type: "PASSWORD",
+        category: "FIELD",
+        visible: true,
+        label: "Confirm password",
+        config: {
+          placeholder: "Confirm your password",
+          show_toggle: true,
+        },
+        required: true,
+        sensitive: true,
+        order: order++,
+        hint: errors?.re_password,
+      },
       // Submit button
       {
         id: "submit",
@@ -132,7 +148,8 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
   }
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/signup?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Create your account",
     description: client.name
@@ -144,7 +161,7 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
         id: "login",
         text: "Already have an account?",
         linkText: "Log in",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

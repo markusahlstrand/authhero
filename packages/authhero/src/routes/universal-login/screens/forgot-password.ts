@@ -64,7 +64,8 @@ export async function forgotPasswordScreen(
   }
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/forgot-password?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/forgot-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Reset your password",
     components,
@@ -74,7 +75,7 @@ export async function forgotPasswordScreen(
         id: "back",
         text: "Remember your password?",
         linkText: "Log in",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

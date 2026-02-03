@@ -23,10 +23,9 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import { getScreen, listScreenIds } from "./screens/registry";
+import { getScreen, getScreenDefinition, listScreenIds } from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
-import { renderToString } from "@authhero/widget/hydrate";
 import {
   sanitizeUrl,
   sanitizeCssColor,
@@ -50,6 +49,8 @@ type WidgetPageProps = {
     favicon_url?: string;
     font?: { url?: string };
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  theme?: any;
   themePageBackground?: {
     background_color?: string;
     background_image_url?: string;
@@ -70,6 +71,7 @@ type WidgetPageProps = {
 function WidgetPage({
   widgetHtml,
   branding,
+  theme,
   themePageBackground,
   clientName,
   poweredByLogo,
@@ -87,6 +89,9 @@ function WidgetPage({
   );
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
+
+  // Get widget background color for mobile view
+  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Sanitize powered-by logo URLs
   const safePoweredByUrl = poweredByLogo?.url
@@ -112,7 +117,7 @@ function WidgetPage({
         ? "20px 80px 20px 20px"
         : "20px";
 
-  const bodyStyle = {
+const bodyStyle = {
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
@@ -144,6 +149,13 @@ function WidgetPage({
               .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
               .powered-by:hover { opacity: 1; }
               .powered-by img { display: block; }
+              @media (max-width: 560px) {
+                body { justify-content: center !important; padding: 20px !important; }
+              }
+              @media (max-width: 480px) {
+                body { background: ${widgetBackground} !important; padding: 0 !important; }
+                .widget-container { max-width: none; }
+              }
             `,
           }}
         />
@@ -204,8 +216,10 @@ function generateHeadContent(options: {
     background_image_url?: string;
     page_layout?: string;
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  theme?: any;
 }): string {
-  const { clientName, branding, themePageBackground } = options;
+  const { clientName, branding, themePageBackground, theme } = options;
 
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
@@ -215,6 +229,9 @@ function generateHeadContent(options: {
     themePageBackground,
     branding?.colors?.page_background,
   );
+
+  // Get widget background color for mobile view
+  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -261,9 +278,15 @@ function generateHeadContent(options: {
       padding: ${padding};
     }
     
+    .widget-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 400px;
+      width: 100%;
+    }
+    
     authhero-widget {
       ${cssVariables.join(";\n      ")};
-      max-width: 400px;
       width: 100%;
     }
     
@@ -283,9 +306,7 @@ function generateHeadContent(options: {
     }
     
     .powered-by {
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
+      margin-top: 16px;
       opacity: 0.7;
       transition: opacity 0.2s;
     }
@@ -296,6 +317,24 @@ function generateHeadContent(options: {
     
     .powered-by img {
       display: block;
+    }
+    
+    @media (max-width: 560px) {
+      body {
+        justify-content: center !important;
+        padding: 20px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        background: ${widgetBackground} !important;
+        padding: 0 !important;
+      }
+      
+      .widget-container {
+        max-width: none;
+      }
     }
   </style>
   <script type="module" src="/u/widget/authhero-widget.esm.js"></script>`;
@@ -317,6 +356,8 @@ function generateWidgetContent(options: {
   };
   screenJson: string;
   brandingJson?: string;
+  themeJson?: string;
+  widgetHtml?: string;
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -324,12 +365,13 @@ function generateWidgetContent(options: {
     height?: number;
   };
 }): string {
-  const { state, authParams, screenJson, brandingJson, poweredByLogo } = options;
+  const { state, authParams, screenJson, brandingJson, themeJson, widgetHtml, poweredByLogo } = options;
 
   const safeState = escapeHtml(state);
   const safeAuthParams = escapeHtml(JSON.stringify(authParams));
   const safeScreenJson = escapeHtml(screenJson);
   const safeBrandingJson = brandingJson ? escapeHtml(brandingJson) : undefined;
+  const safeThemeJson = themeJson ? escapeHtml(themeJson) : undefined;
 
   // Build powered-by logo HTML if provided
   let poweredByHtml = "";
@@ -358,15 +400,24 @@ function generateWidgetContent(options: {
     }
   }
 
-  return `<authhero-widget
+  // If widgetHtml is provided (SSR output), it already contains the full <authhero-widget> element
+  // with all attributes and rendered content, so use it directly. Otherwise, create an empty shell.
+  const widgetElement = widgetHtml
+    ? widgetHtml
+    : `<authhero-widget
       id="widget"
       screen="${safeScreenJson}"
       ${safeBrandingJson ? `branding="${safeBrandingJson}"` : ""}
+      ${safeThemeJson ? `theme="${safeThemeJson}"` : ""}
       state="${safeState}"
       auth-params="${safeAuthParams}"
       auto-submit="true"
       auto-navigate="true"
-    ></authhero-widget>${poweredByHtml}`;
+    ></authhero-widget>`;
+
+  return `<div class="widget-container">
+    ${widgetElement}${poweredByHtml}
+  </div>`;
 }
 
 /**
@@ -441,6 +492,22 @@ function createScreenRouteHandler(screenId: string) {
     // Handle both sync and async screen factories
     const result = await screenResult;
 
+    // Override action URL to use the screen-api endpoint
+    // The screen handlers return /u/widget/:screenId but we want /u2/screen/:screenId
+    const screen = {
+      ...result.screen,
+      action: `${baseUrl}/u2/screen/${screenId}?state=${encodeURIComponent(state)}`,
+      // Update links to use u2 routes
+      links: result.screen.links?.map((link) => ({
+        ...link,
+        href: link.href
+          .replace("/u/widget/", "/u2/")
+          .replace("/u2/signup", "/u2/signup")
+          .replace("/u/signup", "/u2/signup")
+          .replace("/u/enter-", "/u2/enter-"),
+      })),
+    };
+
     const authParams = {
       client_id: loginSession.authParams.client_id,
       ...(loginSession.authParams.redirect_uri && {
@@ -460,14 +527,48 @@ function createScreenRouteHandler(screenId: string) {
       }),
     };
 
-    // Serialize data for widget attributes
-    const screenJson = JSON.stringify(result.screen);
+    // Serialize data for widget attributes (using the modified screen with correct action URL)
+    const screenJson = JSON.stringify(screen);
     const brandingJson = result.branding
       ? JSON.stringify(result.branding)
       : undefined;
     const authParamsJson = JSON.stringify(authParams);
+    const themeJson = theme ? JSON.stringify(theme) : undefined;
 
-    // If there's a custom template, use liquid template rendering (no SSR for custom templates)
+    // Attempt SSR for the widget (may not work on all platforms like Cloudflare Workers)
+    let widgetHtml = "";
+    try {
+      // Essential for some internal Stencil checks in edge runtimes
+      if (typeof (globalThis as any).window === "undefined") {
+        (globalThis as any).window = globalThis;
+      }
+
+      // Dynamic import to handle environments where hydrate module may not work
+      const { renderToString } = await import("@authhero/widget/hydrate");
+      const widgetHtmlResult = await renderToString(
+        `<authhero-widget
+          id="widget"
+          screen='${screenJson.replace(/'/g, "&#39;")}'
+          ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
+          ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
+          state="${state}"
+          auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
+          auto-submit="true"
+          auto-navigate="true"
+        ></authhero-widget>`,
+        {
+          fullDocument: false,
+          serializeShadowRoot: "declarative-shadow-dom",
+        },
+      );
+      widgetHtml = widgetHtmlResult.html || "";
+    } catch (error) {
+      // SSR not available - log the error for debugging
+      console.error("SSR failed:", error);
+      // Fall back to client-side rendering
+    }
+
+    // If there's a custom template, use liquid template rendering with SSR content
     if (customTemplate) {
       const brandingProps = branding
         ? {
@@ -482,6 +583,7 @@ function createScreenRouteHandler(screenId: string) {
         clientName: client.name || "AuthHero",
         branding: brandingProps,
         themePageBackground: theme?.page_background,
+        theme,
       });
 
       const widgetContent = generateWidgetContent({
@@ -489,6 +591,8 @@ function createScreenRouteHandler(screenId: string) {
         authParams,
         screenJson,
         brandingJson,
+        themeJson,
+        widgetHtml,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -501,26 +605,10 @@ function createScreenRouteHandler(screenId: string) {
       return ctx.html(renderedHtml);
     }
 
-    // Default: use SSR with renderToString
-    const widgetHtmlResult = await renderToString(
-      `<authhero-widget
-        id="widget"
-        screen='${screenJson.replace(/'/g, "&#39;")}'
-        ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
-        state="${state}"
-        auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
-        auto-submit="true"
-        auto-navigate="true"
-      ></authhero-widget>`,
-      {
-        fullDocument: false,
-        serializeShadowRoot: "declarative-shadow-dom",
-      },
-    );
-
+    // Default: return SSR widget page directly
     return ctx.html(
       <WidgetPage
-        widgetHtml={widgetHtmlResult.html || ""}
+        widgetHtml={widgetHtml}
         branding={
           branding
             ? {
@@ -531,6 +619,7 @@ function createScreenRouteHandler(screenId: string) {
               }
             : undefined
         }
+        theme={theme}
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
         poweredByLogo={ctx.env.poweredByLogo}
@@ -549,7 +638,7 @@ const screenQuerySchema = z.object({
 });
 
 /**
- * Create route definition
+ * Create GET route definition
  */
 function createScreenRoute(
   _screenId: string,
@@ -574,6 +663,233 @@ function createScreenRoute(
       },
     },
   });
+}
+
+/**
+ * Create POST route definition for no-JS form submissions
+ */
+function createScreenPostRoute(
+  _screenId: string,
+  path: string,
+  description: string,
+) {
+  return createRoute({
+    tags: ["u2"],
+    method: "post" as const,
+    path,
+    request: {
+      query: screenQuerySchema,
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.record(z.string(), z.string()),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description,
+        content: {
+          "text/html": {
+            schema: z.string(),
+          },
+        },
+      },
+      302: {
+        description: "Redirect to next screen or external URL",
+      },
+    },
+  });
+}
+
+/**
+ * Create a POST handler for no-JS form submissions
+ * Processes form data, calls the screen's POST handler, and returns full HTML page
+ */
+function createScreenPostHandler(screenId: string) {
+  return async (ctx: any) => {
+    const { state } = ctx.req.valid("query");
+    
+    // Parse form data
+    const formData = await ctx.req.parseBody();
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(formData)) {
+      data[key] = value;
+    }
+    
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+      true,
+    );
+
+    // Get connections for this client
+    const connectionsResult = await ctx.env.data.connections.list(
+      client.tenant.id,
+    );
+
+    const baseUrl = new URL(ctx.req.url).origin;
+
+    // Build screen context
+    const screenContext: ScreenContext = {
+      ctx,
+      tenant: client.tenant,
+      client,
+      branding: branding ?? undefined,
+      connections: connectionsResult.connections,
+      state,
+      baseUrl,
+      prefill: {
+        username: loginSession.authParams.username,
+        email: loginSession.authParams.username,
+      },
+      data: {
+        email: loginSession.authParams.username,
+      },
+    };
+
+    // Get screen definition and call POST handler
+    const definition = getScreenDefinition(screenId);
+    if (!definition?.handler.post) {
+      throw new HTTPException(400, {
+        message: `Screen ${screenId} does not support POST submissions`,
+      });
+    }
+
+    const result = await definition.handler.post(screenContext, data);
+
+    // If redirect to external URL, do actual redirect
+    if ("redirect" in result) {
+      return ctx.redirect(result.redirect, 302);
+    }
+
+    // Otherwise, render the next/current screen as full HTML page
+    const screenResult = result.screen;
+    
+    // Get custom template if available
+    let customTemplate: { body: string } | null = null;
+    try {
+      customTemplate = await ctx.env.data.universalLoginTemplates.get(
+        ctx.var.tenant_id,
+      );
+    } catch {
+      // Method or table may not exist
+    }
+
+    const authParams = {
+      client_id: loginSession.authParams.client_id,
+      ...(loginSession.authParams.redirect_uri && {
+        redirect_uri: loginSession.authParams.redirect_uri,
+      }),
+      ...(loginSession.authParams.scope && {
+        scope: loginSession.authParams.scope,
+      }),
+      ...(loginSession.authParams.audience && {
+        audience: loginSession.authParams.audience,
+      }),
+      ...(loginSession.authParams.nonce && {
+        nonce: loginSession.authParams.nonce,
+      }),
+      ...(loginSession.authParams.response_type && {
+        response_type: loginSession.authParams.response_type,
+      }),
+    };
+
+    // Serialize screen data
+    const screenJson = JSON.stringify(screenResult.screen);
+    const brandingJson = screenResult.branding
+      ? JSON.stringify(screenResult.branding)
+      : undefined;
+    const authParamsJson = JSON.stringify(authParams);
+    const themeJson = theme ? JSON.stringify(theme) : undefined;
+
+    // Attempt SSR
+    let widgetHtml = "";
+    try {
+      if (typeof (globalThis as any).window === "undefined") {
+        (globalThis as any).window = globalThis;
+      }
+      const { renderToString } = await import("@authhero/widget/hydrate");
+      const widgetHtmlResult = await renderToString(
+        `<authhero-widget
+          id="widget"
+          screen='${screenJson.replace(/'/g, "&#39;")}'
+          ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
+          ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
+          state="${state}"
+          auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
+          auto-submit="true"
+          auto-navigate="true"
+        ></authhero-widget>`,
+        {
+          fullDocument: false,
+          serializeShadowRoot: "declarative-shadow-dom",
+        },
+      );
+      widgetHtml = widgetHtmlResult.html || "";
+    } catch (error) {
+      console.error("SSR failed:", error);
+    }
+
+    // If there's a custom template, use it
+    if (customTemplate) {
+      const brandingProps = branding
+        ? {
+            colors: branding.colors,
+            logo_url: branding.logo_url,
+            favicon_url: branding.favicon_url,
+            font: branding.font,
+          }
+        : undefined;
+
+      const headContent = generateHeadContent({
+        clientName: client.name || "AuthHero",
+        branding: brandingProps,
+        themePageBackground: theme?.page_background,
+        theme,
+      });
+
+      const widgetContent = generateWidgetContent({
+        state,
+        authParams,
+        screenJson,
+        brandingJson,
+        themeJson,
+        widgetHtml,
+        poweredByLogo: ctx.env.poweredByLogo,
+      });
+
+      const renderedHtml = applyLiquidTemplate(
+        customTemplate.body,
+        headContent,
+        widgetContent,
+      );
+
+      return ctx.html(renderedHtml);
+    }
+
+    // Default: return SSR widget page
+    return ctx.html(
+      <WidgetPage
+        widgetHtml={widgetHtml}
+        branding={
+          branding
+            ? {
+                colors: branding.colors,
+                logo_url: branding.logo_url,
+                favicon_url: branding.favicon_url,
+                font: branding.font,
+              }
+            : undefined
+        }
+        theme={theme}
+        themePageBackground={theme?.page_background}
+        clientName={client.name || "AuthHero"}
+        poweredByLogo={ctx.env.poweredByLogo}
+      />,
+    );
+  };
 }
 
 export const u2Routes = new OpenAPIHono<{
@@ -656,6 +972,65 @@ export const u2Routes = new OpenAPIHono<{
       "Impersonate screen - allows users with permission to impersonate other users",
     ),
     createScreenRouteHandler("impersonate"),
+  )
+  // --------------------------------
+  // POST handlers for no-JS form submissions
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "identifier",
+      "/login/identifier",
+      "Process identifier form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("identifier"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "enter-code",
+      "/enter-code",
+      "Process enter-code form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("enter-code"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "enter-password",
+      "/enter-password",
+      "Process enter-password form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("enter-password"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "signup",
+      "/signup",
+      "Process signup form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("signup"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "forgot-password",
+      "/forgot-password",
+      "Process forgot-password form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("forgot-password"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "reset-password",
+      "/reset-password",
+      "Process reset-password form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("reset-password"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "impersonate",
+      "/impersonate",
+      "Process impersonate form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("impersonate"),
   );
 
 // OpenAPI documentation

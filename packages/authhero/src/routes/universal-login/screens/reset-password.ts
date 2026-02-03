@@ -61,7 +61,8 @@ export async function resetPasswordScreen(
   ];
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/reset-password?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Set your new password",
     description: "Choose a strong password for your account",

@@ -61,7 +61,8 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
   ];
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u/widget/enter-password?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Enter your password",
     components,
@@ -76,7 +77,7 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
         id: "back",
         text: "Not your account?",
         linkText: "Go back",
-        href: `${baseUrl}/u/widget/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

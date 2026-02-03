@@ -62,7 +62,8 @@ export async function impersonateScreen(
   if (!hasImpersonationPermission) {
     // Return an error screen
     const errorScreen: UiScreen = {
-      action: `${baseUrl}/u2/screen/impersonate?state=${encodeURIComponent(state)}`,
+      // Action points to HTML endpoint for no-JS fallback
+      action: `${baseUrl}/u2/impersonate?state=${encodeURIComponent(state)}`,
       method: "POST",
       title: "Access Denied",
       description: "You do not have permission to impersonate other users.",
@@ -142,7 +143,8 @@ export async function impersonateScreen(
   ];
 
   const screen: UiScreen = {
-    action: `${baseUrl}/u2/screen/impersonate?state=${encodeURIComponent(state)}`,
+    // Action points to HTML endpoint for no-JS fallback
+    action: `${baseUrl}/u2/impersonate?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Impersonation",
     description: client.name
