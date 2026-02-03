@@ -1,5 +1,11 @@
 # authhero
 
+## 4.26.0
+
+### Minor Changes
+
+- f0fc1a0: Render themes and branding for widget
+
 ## 4.25.0
 
 ### Minor Changes
