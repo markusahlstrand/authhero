@@ -57,7 +57,11 @@ export default defineConfig(({ mode }) => {
         fileName: (format) => fileName[format],
       },
       rollupOptions: {
-        external: ["@hono/zod-openapi", "hono"],
+        external: [
+          "@hono/zod-openapi",
+          "hono",
+          "@authhero/widget/hydrate",
+        ],
         output: {
           assetFileNames: (assetInfo) => {
             if (assetInfo.name === "style.css") return "tailwind.css";

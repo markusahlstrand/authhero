@@ -14,6 +14,7 @@ import { serve } from "@hono/node-server";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import type { UiScreen, FormComponent } from "../src/types/components";
+import { renderToString } from "../hydrate";
 
 // ============================================
 // Types
@@ -677,16 +678,73 @@ function handleForgotPasswordPost(
 // Widget Page HTML
 // ============================================
 
-function renderWidgetPage(options: {
+async function renderWidgetPage(options: {
   screenId: string;
   state: string;
   baseUrl: string;
   urlMode: "path" | "query";
   providers?: string;
-}): string {
-  const { screenId, state, baseUrl, urlMode, providers } = options;
+  renderMode?: "client" | "ssr";
+}): Promise<string> {
+  const { screenId, state, baseUrl, urlMode, providers, renderMode = "client" } = options;
 
-  return `<!DOCTYPE html>
+  // Pre-render widget HTML if SSR mode
+  let prerenderedWidgetHtml = "";
+  if (renderMode === "ssr") {
+    // Get the initial screen data to pre-render
+    const settings = parseSettings({ 
+      providers: providers || "google-oauth2",
+      strategy: "code",
+      showSocial: "true",
+      allowSignup: "true"
+    });
+    
+    // Get the screen config based on screenId
+    let screen: UiScreen;
+    switch (screenId) {
+      case "identifier":
+      case "identifier-social":
+        screen = createIdentifierScreen(state, baseUrl, settings);
+        break;
+      case "enter-password":
+        screen = createEnterPasswordScreen(state, baseUrl);
+        break;
+      case "enter-code":
+        screen = createEnterCodeScreen(state, baseUrl);
+        break;
+      case "signup":
+        screen = createSignupScreen(state, baseUrl, settings);
+        break;
+      case "forgot-password":
+        screen = createForgotPasswordScreen(state, baseUrl);
+        break;
+      default:
+        screen = createIdentifierScreen(state, baseUrl, settings);
+    }
+    
+    const screenJson = JSON.stringify(screen).replace(/'/g, "&#39;");
+    
+    try {
+      const result = await renderToString(
+        `<authhero-widget 
+          id="widget" 
+          screen='${screenJson}'
+          auto-submit="true"
+          auto-navigate="true"
+        ></authhero-widget>`,
+        {
+          fullDocument: false,
+          serializeShadowRoot: "declarative-shadow-dom",
+        }
+      );
+      prerenderedWidgetHtml = result.html || "";
+    } catch (err) {
+      console.error("SSR render error:", err);
+      // Fall back to client-side rendering
+    }
+  }
+
+  return `<!DOCTYPE html>>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1077,6 +1135,13 @@ function renderWidgetPage(options: {
             <option value="path">Path-based (/u2/enter-code)</option>
             <option value="query">Query-based (?screen=enter-code)</option>
             <option value="ssr">Server-Side Rendered (Full Page)</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="render-mode">Render Mode</label>
+          <select id="render-mode">
+            <option value="client"${renderMode === "client" ? " selected" : ""}>Client-side (Widget renders on load)</option>
+            <option value="ssr"${renderMode === "ssr" ? " selected" : ""}>SSR + Hydration (Pre-rendered HTML)</option>
           </select>
         </div>
         <div class="setting-row">
@@ -1519,11 +1584,12 @@ function renderWidgetPage(options: {
     <div class="status-bar">
       <div class="status-badge">Screen: <strong id="screen-id">${screenId}</strong></div>
       <div class="status-badge">Mode: <strong id="mode-display">${urlMode}</strong></div>
+      <div class="status-badge">Render: <strong id="render-mode-display">${renderMode}</strong></div>
     </div>
     
     <div class="device-frame" id="device-frame">
       <div class="device-screen">
-        <authhero-widget id="widget"></authhero-widget>
+        ${prerenderedWidgetHtml ? prerenderedWidgetHtml : '<authhero-widget id="widget"></authhero-widget>'}
       </div>
     </div>
     
@@ -2112,6 +2178,19 @@ function renderWidgetPage(options: {
       window.history.replaceState({ screen: currentScreen, state: currentState }, '', newUrl);
     });
     
+    // Render mode selector - requires page reload to take effect
+    document.getElementById('render-mode').addEventListener('change', (e) => {
+      const renderMode = e.target.value;
+      document.getElementById('render-mode-display').textContent = renderMode;
+      log('Render mode → ' + renderMode + ' (reloading page...)');
+      saveSettings();
+      
+      // Reload with new render mode
+      const url = new URL(window.location.href);
+      url.searchParams.set('renderMode', renderMode);
+      window.location.href = url.toString();
+    });
+    
     // Login strategy
     document.getElementById('login-strategy').addEventListener('change', (e) => {
       loginStrategy = e.target.value;
@@ -2380,63 +2459,72 @@ app.post("/u2/screen/:screenId", async (c) => {
 // ----------------------------------------
 // Widget Pages (path-based routing)
 // ----------------------------------------
-app.get("/u2/login/identifier", (c) => {
+app.get("/u2/login/identifier", async (c) => {
   const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "identifier", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "identifier", state, baseUrl, urlMode: "path", renderMode }));
 });
 
 // Identifier with 3 social providers (Google, Facebook, Apple)
-app.get("/u2/login/identifier-social", (c) => {
+app.get("/u2/login/identifier-social", async (c) => {
   const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ 
+  return c.html(await renderWidgetPage({ 
     screenId: "identifier", 
     state, 
     baseUrl, 
     urlMode: "path",
-    providers: "google-oauth2,facebook,apple"
+    providers: "google-oauth2,facebook,apple",
+    renderMode
   }));
 });
 
-app.get("/u2/enter-password", (c) => {
+app.get("/u2/enter-password", async (c) => {
   const state = c.req.query("state") || "demo";
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "enter-password", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "enter-password", state, baseUrl, urlMode: "path", renderMode }));
 });
 
-app.get("/u2/enter-code", (c) => {
+app.get("/u2/enter-code", async (c) => {
   const state = c.req.query("state") || "demo";
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "enter-code", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "enter-code", state, baseUrl, urlMode: "path", renderMode }));
 });
 
-app.get("/u2/signup", (c) => {
+app.get("/u2/signup", async (c) => {
   const state = c.req.query("state") || "demo";
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "signup", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "signup", state, baseUrl, urlMode: "path", renderMode }));
 });
 
-app.get("/u2/forgot-password", (c) => {
+app.get("/u2/forgot-password", async (c) => {
   const state = c.req.query("state") || "demo";
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "forgot-password", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "forgot-password", state, baseUrl, urlMode: "path", renderMode }));
 });
 
-app.get("/u2/success", (c) => {
+app.get("/u2/success", async (c) => {
   const state = c.req.query("state") || "demo";
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: "success", state, baseUrl, urlMode: "path" }));
+  return c.html(await renderWidgetPage({ screenId: "success", state, baseUrl, urlMode: "path", renderMode }));
 });
 
 // ----------------------------------------
 // Widget Page (query-based routing)
 // ----------------------------------------
-app.get("/u2/login", (c) => {
+app.get("/u2/login", async (c) => {
   const screen = c.req.query("screen") || "identifier";
   const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(renderWidgetPage({ screenId: screen, state, baseUrl, urlMode: "query" }));
+  return c.html(await renderWidgetPage({ screenId: screen, state, baseUrl, urlMode: "query", renderMode }));
 });
 
 // ----------------------------------------

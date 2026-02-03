@@ -1,8 +1,8 @@
 /**
- * U2 Routes - Client-side widget universal login
+ * U2 Routes - Universal login with SSR + hydration + client-side navigation
  *
- * These routes serve HTML pages that load the authhero-widget and fetch
- * screen configurations from the /u2/screen API.
+ * These routes serve HTML pages with server-side rendered authhero-widget
+ * that hydrates on the client for interactivity and client-side navigation.
  *
  * Routes:
  * - GET /u2/login/identifier - Identifier screen (first screen of login flow)
@@ -13,16 +13,20 @@
  * - GET /u2/reset-password - Set new password
  * - GET /u2/impersonate - User impersonation
  *
- * Each route serves an HTML page that:
- * 1. Loads the authhero-widget web component
- * 2. Fetches screen configuration from /u2/screen/:screenId
- * 3. Handles form submissions via the widget
+ * Each route:
+ * 1. Fetches screen data server-side
+ * 2. Server-side renders the widget with declarative shadow DOM
+ * 3. Hydrates on client for interactivity
+ * 4. Supports client-side navigation between screens
  */
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import { listScreenIds } from "./screens/registry";
+import { getScreen, listScreenIds } from "./screens/registry";
+import type { ScreenContext } from "./screens/types";
+import { HTTPException } from "hono/http-exception";
+import { renderToString } from "@authhero/widget/hydrate";
 import {
   sanitizeUrl,
   sanitizeCssColor,
@@ -34,8 +38,7 @@ import {
  * Props for the WidgetPage component
  */
 type WidgetPageProps = {
-  screenId: string;
-  state: string;
+  widgetHtml: string;
   branding?: {
     colors?: {
       primary?: string;
@@ -53,14 +56,6 @@ type WidgetPageProps = {
     page_layout?: string;
   };
   clientName: string;
-  authParams: {
-    client_id: string;
-    redirect_uri?: string;
-    scope?: string;
-    audience?: string;
-    nonce?: string;
-    response_type?: string;
-  };
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -70,15 +65,13 @@ type WidgetPageProps = {
 };
 
 /**
- * Widget page component - renders the HTML page for the universal login widget
+ * Widget page component - renders the HTML page with SSR widget
  */
 function WidgetPage({
-  screenId,
-  state,
+  widgetHtml,
   branding,
   themePageBackground,
   clientName,
-  authParams,
   poweredByLogo,
 }: WidgetPageProps) {
   // Build CSS variables from branding
@@ -131,13 +124,10 @@ function WidgetPage({
     padding,
   };
 
-  const widgetStyle =
+  const widgetContainerStyle =
     cssVariables.length > 0
       ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
       : "max-width: 400px; width: 100%;";
-
-  // Serialize authParams for the widget attribute
-  const authParamsJson = JSON.stringify(authParams);
 
   return (
     <html lang="en">
@@ -151,8 +141,6 @@ function WidgetPage({
           dangerouslySetInnerHTML={{
             __html: `
               * { box-sizing: border-box; margin: 0; padding: 0; }
-              .loading { text-align: center; padding: 40px; color: #666; }
-              .error { background: #fee2e2; border: 1px solid #ef4444; color: #dc2626; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
               .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
               .powered-by:hover { opacity: 1; }
               .powered-by img { display: block; }
@@ -162,18 +150,11 @@ function WidgetPage({
         <script type="module" src="/u/widget/authhero-widget.esm.js" />
       </head>
       <body style={bodyStyle}>
-        <authhero-widget
-          id="widget"
-          style={widgetStyle}
-          api-url={`/u2/screen/${screenId}`}
-          screen-id={screenId}
-          state={state}
-          auth-params={authParamsJson}
-          auto-submit={true}
-          auto-navigate={true}
-        >
-          <div class="loading">Loading...</div>
-        </authhero-widget>
+        {/* SSR widget - rendered server-side, hydrated on client */}
+        <div
+          style={widgetContainerStyle}
+          dangerouslySetInnerHTML={{ __html: widgetHtml }}
+        />
         {safePoweredByUrl && (
           <div class="powered-by">
             {safePoweredByHref ? (
@@ -322,9 +303,9 @@ function generateHeadContent(options: {
 
 /**
  * Generate the widget content string for liquid template substitution
+ * Includes screen data for SSR
  */
 function generateWidgetContent(options: {
-  screenId: string;
   state: string;
   authParams: {
     client_id: string;
@@ -334,6 +315,8 @@ function generateWidgetContent(options: {
     nonce?: string;
     response_type?: string;
   };
+  screenJson: string;
+  brandingJson?: string;
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -341,11 +324,12 @@ function generateWidgetContent(options: {
     height?: number;
   };
 }): string {
-  const { screenId, state, authParams, poweredByLogo } = options;
+  const { state, authParams, screenJson, brandingJson, poweredByLogo } = options;
 
-  const safeScreenId = escapeHtml(screenId);
   const safeState = escapeHtml(state);
   const safeAuthParams = escapeHtml(JSON.stringify(authParams));
+  const safeScreenJson = escapeHtml(screenJson);
+  const safeBrandingJson = brandingJson ? escapeHtml(brandingJson) : undefined;
 
   // Build powered-by logo HTML if provided
   let poweredByHtml = "";
@@ -376,15 +360,13 @@ function generateWidgetContent(options: {
 
   return `<authhero-widget
       id="widget"
-      api-url="/u2/screen/${safeScreenId}"
-      screen-id="${safeScreenId}"
+      screen="${safeScreenJson}"
+      ${safeBrandingJson ? `branding="${safeBrandingJson}"` : ""}
       state="${safeState}"
       auth-params="${safeAuthParams}"
       auto-submit="true"
       auto-navigate="true"
-    >
-      <div class="loading">Loading...</div>
-    </authhero-widget>${poweredByHtml}`;
+    ></authhero-widget>${poweredByHtml}`;
 }
 
 /**
@@ -401,7 +383,7 @@ function applyLiquidTemplate(
 }
 
 /**
- * Create a route handler for a specific screen
+ * Create a route handler for a specific screen with SSR + hydration
  */
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
@@ -422,6 +404,43 @@ function createScreenRouteHandler(screenId: string) {
       // Method or table may not exist in older adapters - continue without custom template
     }
 
+    // Get connections for this client
+    const connectionsResult = await ctx.env.data.connections.list(
+      client.tenant.id,
+    );
+
+    const baseUrl = new URL(ctx.req.url).origin;
+
+    // Build screen context for SSR
+    const screenContext: ScreenContext = {
+      ctx,
+      tenant: client.tenant,
+      client,
+      branding: branding ?? undefined,
+      connections: connectionsResult.connections,
+      state,
+      baseUrl,
+      prefill: {
+        username: loginSession.authParams.username,
+        email: loginSession.authParams.username,
+      },
+      data: {
+        email: loginSession.authParams.username,
+      },
+    };
+
+    // Fetch screen data for SSR
+    const screenResult = getScreen(screenId, screenContext);
+
+    if (!screenResult) {
+      throw new HTTPException(404, {
+        message: `Screen not found: ${screenId}`,
+      });
+    }
+
+    // Handle both sync and async screen factories
+    const result = await screenResult;
+
     const authParams = {
       client_id: loginSession.authParams.client_id,
       ...(loginSession.authParams.redirect_uri && {
@@ -441,7 +460,14 @@ function createScreenRouteHandler(screenId: string) {
       }),
     };
 
-    // If there's a custom template, use liquid template rendering
+    // Serialize data for widget attributes
+    const screenJson = JSON.stringify(result.screen);
+    const brandingJson = result.branding
+      ? JSON.stringify(result.branding)
+      : undefined;
+    const authParamsJson = JSON.stringify(authParams);
+
+    // If there's a custom template, use liquid template rendering (no SSR for custom templates)
     if (customTemplate) {
       const brandingProps = branding
         ? {
@@ -459,9 +485,10 @@ function createScreenRouteHandler(screenId: string) {
       });
 
       const widgetContent = generateWidgetContent({
-        screenId,
         state,
         authParams,
+        screenJson,
+        brandingJson,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -474,11 +501,26 @@ function createScreenRouteHandler(screenId: string) {
       return ctx.html(renderedHtml);
     }
 
-    // Default: use JSX rendering
+    // Default: use SSR with renderToString
+    const widgetHtmlResult = await renderToString(
+      `<authhero-widget
+        id="widget"
+        screen='${screenJson.replace(/'/g, "&#39;")}'
+        ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
+        state="${state}"
+        auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
+        auto-submit="true"
+        auto-navigate="true"
+      ></authhero-widget>`,
+      {
+        fullDocument: false,
+        serializeShadowRoot: "declarative-shadow-dom",
+      },
+    );
+
     return ctx.html(
       <WidgetPage
-        screenId={screenId}
-        state={state}
+        widgetHtml={widgetHtmlResult.html || ""}
         branding={
           branding
             ? {
@@ -491,7 +533,6 @@ function createScreenRouteHandler(screenId: string) {
         }
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
-        authParams={authParams}
         poweredByLogo={ctx.env.poweredByLogo}
       />,
     );
