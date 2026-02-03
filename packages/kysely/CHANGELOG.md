@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.90.0
+
+### Minor Changes
+
+- e7f5ce5: Fix the universal-login-template in kysley
+
 ## 10.89.0
 
 ### Minor Changes
