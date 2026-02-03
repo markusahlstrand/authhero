@@ -132,7 +132,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const template = await ctx.env.data.branding.getUniversalLoginTemplate(
+      const template = await ctx.env.data.universalLoginTemplates.get(
         ctx.var.tenant_id,
       );
 
@@ -192,7 +192,7 @@ export const brandingRoutes = new OpenAPIHono<{
         });
       }
 
-      await ctx.env.data.branding.setUniversalLoginTemplate(
+      await ctx.env.data.universalLoginTemplates.set(
         ctx.var.tenant_id,
         template,
       );
@@ -225,7 +225,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      await ctx.env.data.branding.deleteUniversalLoginTemplate(
+      await ctx.env.data.universalLoginTemplates.delete(
         ctx.var.tenant_id,
       );
 

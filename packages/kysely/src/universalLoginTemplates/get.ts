@@ -2,7 +2,7 @@ import { Kysely } from "kysely";
 import { Database } from "../db";
 import { UniversalLoginTemplate } from "@authhero/adapter-interfaces";
 
-export function getUniversalLoginTemplate(db: Kysely<Database>) {
+export function get(db: Kysely<Database>) {
   return async (tenant_id: string): Promise<UniversalLoginTemplate | null> => {
     const result = await db
       .selectFrom("universal_login_templates")

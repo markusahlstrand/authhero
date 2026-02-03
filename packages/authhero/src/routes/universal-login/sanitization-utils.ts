@@ -64,7 +64,7 @@ export function sanitizeCssColor(color: string | undefined): string {
 }
 
 /**
- * Build CSS background from page_background
+ * Build CSS background from page_background (branding format)
  */
 export function buildPageBackground(
   pageBackground:
@@ -95,6 +95,41 @@ export function buildPageBackground(
   }
 
   return "#f5f5f5";
+}
+
+/**
+ * Build CSS background from theme's page_background (supports background_image_url)
+ */
+export function buildThemePageBackground(
+  themePageBackground:
+    | {
+        background_color?: string;
+        background_image_url?: string;
+        page_layout?: string;
+      }
+    | undefined,
+  fallbackBrandingBackground:
+    | string
+    | { type?: string; start?: string; end?: string; angle_deg?: number }
+    | undefined,
+): string {
+  // If theme has a background_image_url, use it
+  if (themePageBackground?.background_image_url) {
+    const imageUrl = sanitizeUrl(themePageBackground.background_image_url);
+    if (imageUrl) {
+      const bgColor = sanitizeCssColor(themePageBackground.background_color) || "#f5f5f5";
+      return `${bgColor} url(${imageUrl}) center / cover no-repeat`;
+    }
+  }
+
+  // If theme has a background_color, use it
+  if (themePageBackground?.background_color) {
+    const bgColor = sanitizeCssColor(themePageBackground.background_color);
+    if (bgColor) return bgColor;
+  }
+
+  // Fall back to branding page_background
+  return buildPageBackground(fallbackBrandingBackground);
 }
 
 /**

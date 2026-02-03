@@ -26,7 +26,7 @@ import {
   escapeJs,
   sanitizeUrl,
   sanitizeCssColor,
-  buildPageBackground,
+  buildThemePageBackground,
   safeJsonStringify,
 } from "./sanitization-utils";
 
@@ -45,6 +45,11 @@ function renderWidgetPage(options: {
     logo_url?: string;
     favicon_url?: string;
     font?: { url?: string };
+  };
+  themePageBackground?: {
+    background_color?: string;
+    background_image_url?: string;
+    page_layout?: string;
   };
   clientName: string;
   baseUrl: string;
@@ -67,6 +72,7 @@ function renderWidgetPage(options: {
   const {
     screen,
     branding,
+    themePageBackground,
     clientName,
     baseUrl,
     state,
@@ -81,7 +87,10 @@ function renderWidgetPage(options: {
     cssVariables.push(`--ah-color-primary: ${primaryColor}`);
   }
 
-  const pageBackground = buildPageBackground(branding?.colors?.page_background);
+  const pageBackground = buildThemePageBackground(
+    themePageBackground,
+    branding?.colors?.page_background,
+  );
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const safeClientName = escapeHtml(clientName);
@@ -327,7 +336,7 @@ export const widgetRoutes = new OpenAPIHono<{
         });
       }
 
-      const { branding, client, loginSession } = await initJSXRoute(
+      const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
         true,
@@ -372,6 +381,7 @@ export const widgetRoutes = new OpenAPIHono<{
       const html = renderWidgetPage({
         screen: result.screen as unknown as Record<string, unknown>,
         branding: result.branding,
+        themePageBackground: theme?.page_background,
         clientName: client.name || "AuthHero",
         baseUrl,
         state,
