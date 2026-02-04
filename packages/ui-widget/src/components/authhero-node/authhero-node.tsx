@@ -681,9 +681,72 @@ export class AuthheroNode {
 
   private renderSocialField(component: FieldComponent & { type: "SOCIAL" }) {
     const providers = component.config?.providers ?? [];
+    const providerDetails = (
+      component.config as {
+        providers?: string[];
+        provider_details?: {
+          name: string;
+          strategy?: string;
+          display_name?: string;
+          icon_url?: string;
+        }[];
+      }
+    )?.provider_details;
+
+    // Create a map of provider details for quick lookup
+    const detailsMap = new Map(
+      providerDetails?.map((d) => [d.name, d]) ?? [],
+    );
+
+    // Known provider identifiers for icon matching
+    const knownProviders = [
+      "google-oauth2",
+      "google",
+      "facebook",
+      "apple",
+      "github",
+      "microsoft",
+      "windowslive",
+      "linkedin",
+      "vipps",
+    ];
+
+    // Find matching known provider from name or strategy
+    const findKnownProvider = (
+      name: string,
+      strategy?: string,
+    ): string | null => {
+      const nameLower = name.toLowerCase();
+      const strategyLower = strategy?.toLowerCase();
+
+      // First check exact match on strategy
+      if (strategyLower && knownProviders.includes(strategyLower)) {
+        return strategyLower;
+      }
+
+      // Then check exact match on name
+      if (knownProviders.includes(nameLower)) {
+        return nameLower;
+      }
+
+      // Check if name contains a known provider (e.g., "Vipps Login" contains "vipps")
+      for (const known of knownProviders) {
+        if (nameLower.includes(known)) {
+          return known;
+        }
+      }
+
+      return null;
+    };
 
     // Map provider IDs to display names
     const getProviderDisplayName = (provider: string): string => {
+      // First check provider_details
+      const details = detailsMap.get(provider);
+      if (details?.display_name) {
+        return details.display_name;
+      }
+
       const displayNames: Record<string, string> = {
         "google-oauth2": "Google",
         facebook: "Facebook",
@@ -709,6 +772,7 @@ export class AuthheroNode {
         "salesforce-sandbox": "Salesforce",
         yahoo: "Yahoo",
         auth0: "Auth0",
+        vipps: "Vipps",
       };
       return (
         displayNames[provider.toLowerCase()] ||
@@ -719,9 +783,24 @@ export class AuthheroNode {
       );
     };
 
-    // Get provider icon SVG
+    // Get provider icon - either from provider_details or built-in SVG
     const getProviderIcon = (provider: string) => {
-      const p = provider.toLowerCase();
+      // First check if we have a custom icon URL from provider_details
+      const details = detailsMap.get(provider);
+      if (details?.icon_url) {
+        return (
+          <img
+            class="social-icon"
+            src={details.icon_url}
+            alt={details.display_name || provider}
+          />
+        );
+      }
+
+      // Try to find a known provider from name or strategy
+      const knownProvider = findKnownProvider(provider, details?.strategy);
+      const p = knownProvider || provider.toLowerCase();
+
       if (p === "google-oauth2" || p === "google") {
         return (
           <svg
@@ -818,8 +897,51 @@ export class AuthheroNode {
           </svg>
         );
       }
-      // Default: no icon
-      return null;
+      if (p === "vipps") {
+        return (
+          <svg
+            class="social-icon"
+            viewBox="0 0 48 48"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill="#FF5B24"
+              d="M3.5,8h41c1.9,0,3.5,1.6,3.5,3.5v25c0,1.9-1.6,3.5-3.5,3.5h-41C1.6,40,0,38.4,0,36.5v-25C0,9.6,1.6,8,3.5,8z"
+            />
+            <path
+              fill="#FFFFFF"
+              d="M27.9,20.3c1.4,0,2.6-1,2.6-2.5c0-1.5-1.2-2.5-2.6-2.5c-1.4,0-2.6,1-2.6,2.5C25.3,19.2,26.5,20.3,27.9,20.3z"
+            />
+            <path
+              fill="#FFFFFF"
+              d="M31.2,24.4c-1.7,2.2-3.5,3.8-6.7,3.8c-3.2,0-5.8-2-7.7-4.8c-0.8-1.2-2-1.4-2.9-0.8c-0.8,0.6-1,1.8-0.3,2.9c2.7,4.1,6.5,6.6,10.9,6.6c4,0,7.2-2,9.6-5.2c0.9-1.2,0.9-2.5,0-3.1C33.3,22.9,32.1,23.2,31.2,24.4z"
+            />
+          </svg>
+        );
+      }
+      // Default: generic globe icon for unknown providers
+      return (
+        <svg
+          class="social-icon"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            fill="none"
+            stroke="#666"
+            stroke-width="2"
+          />
+          <path
+            d="M2 12h20M12 2c-2.5 2.5-4 5.5-4 10s1.5 7.5 4 10c2.5-2.5 4-5.5 4-10s-1.5-7.5-4-10z"
+            fill="none"
+            stroke="#666"
+            stroke-width="2"
+          />
+        </svg>
+      );
     };
 
     return (

@@ -123,6 +123,7 @@ import * as o024_user_address from "./2026-01-28T12:00:00_user_address";
 import * as o025_authparams_max_age from "./2026-01-28T13:00:00_authparams_max_age";
 import * as o026_auth0_conformant from "./2026-01-28T14:00:00_auth0_conformant";
 import * as o027_universal_login_templates from "./2026-01-30T10:00:00_universal_login_templates";
+import * as o028_custom_text from "./2026-02-04T10:00:00_custom_text";
 
 // These need to be in alphabetic order
 export default {
@@ -251,4 +252,5 @@ export default {
   o025_authparams_max_age,
   o026_auth0_conformant,
   o027_universal_login_templates,
+  o028_custom_text,
 };

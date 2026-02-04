@@ -346,6 +346,61 @@ export default (
         );
       }
 
+      // Handle prompts singleton resource
+      if (resource === "prompts") {
+        const headers = createHeaders(tenantId);
+        try {
+          const res = await httpClient(`${apiUrl}/api/v2/prompts`, { headers });
+          // Also fetch custom text entries list
+          let customTextEntries: Array<{ prompt: string; language: string }> =
+            [];
+          try {
+            const customTextRes = await httpClient(
+              `${apiUrl}/api/v2/prompts/custom-text`,
+              { headers },
+            );
+            customTextEntries = customTextRes.json || [];
+          } catch {
+            // Custom text list might not exist yet
+          }
+          return {
+            data: [{ ...res.json, customTextEntries, id: resource }],
+            total: 1,
+          };
+        } catch (error) {
+          console.error("Error fetching prompts:", error);
+          return {
+            data: [{ id: resource, customTextEntries: [] }],
+            total: 1,
+          };
+        }
+      }
+
+      // Handle custom-text resource (for individual custom text entries)
+      if (resource === "custom-text") {
+        const headers = createHeaders(tenantId);
+        try {
+          const res = await httpClient(
+            `${apiUrl}/api/v2/prompts/custom-text`,
+            { headers },
+          );
+          const entries = res.json || [];
+          return {
+            data: entries.map(
+              (e: { prompt: string; language: string }, idx: number) => ({
+                id: `${e.prompt}:${e.language}`,
+                prompt: e.prompt,
+                language: e.language,
+              }),
+            ),
+            total: entries.length,
+          };
+        } catch (error) {
+          console.error("Error fetching custom-text list:", error);
+          return { data: [], total: 0 };
+        }
+      }
+
       // Handle organizations with client-side paging and search (fetch 500, filter locally)
       if (resource === "organizations" && !resourcePath.includes("/")) {
         const result = await managementClient.organizations.list({
@@ -585,6 +640,62 @@ export default (
             id: resource,
           },
         };
+      }
+
+      // Handle prompts singleton resource
+      if (resource === "prompts") {
+        const headers = createHeaders(tenantId);
+        try {
+          const res = await httpClient(`${apiUrl}/api/v2/prompts`, { headers });
+          // Also fetch custom text entries list
+          let customTextEntries: Array<{ prompt: string; language: string }> =
+            [];
+          try {
+            const customTextRes = await httpClient(
+              `${apiUrl}/api/v2/prompts/custom-text`,
+              { headers },
+            );
+            customTextEntries = customTextRes.json || [];
+          } catch {
+            // Custom text list might not exist yet
+          }
+          return {
+            data: { ...res.json, customTextEntries, id: resource },
+          };
+        } catch (error) {
+          console.error("Error fetching prompts:", error);
+          return {
+            data: { id: resource, customTextEntries: [] },
+          };
+        }
+      }
+
+      // Handle custom-text resource (individual entries)
+      if (resource === "custom-text") {
+        // ID format is "prompt:language"
+        const [prompt, language] = params.id.split(":");
+        if (!prompt || !language) {
+          throw new Error("Invalid custom-text ID format");
+        }
+        try {
+          const result = await managementClient.prompts.customText.get(
+            prompt as any,
+            language as any,
+          );
+          return {
+            data: {
+              id: params.id,
+              prompt,
+              language,
+              texts: result || {},
+            },
+          };
+        } catch (error) {
+          console.error("Error fetching custom-text:", error);
+          return {
+            data: { id: params.id, prompt, language, texts: {} },
+          };
+        }
       }
 
       // Handle stats/active-users endpoint
@@ -948,6 +1059,44 @@ export default (
         };
       }
 
+      // Handle prompts singleton resource
+      if (resource === "prompts") {
+        const headers = createHeaders(tenantId);
+        headers.set("Content-Type", "application/json");
+        // Don't send customTextEntries to the settings endpoint
+        const { customTextEntries, ...promptsData } = cleanParams.data;
+        const res = await httpClient(`${apiUrl}/api/v2/prompts`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(promptsData),
+        });
+        return {
+          data: { ...res.json, customTextEntries, id: resource },
+        };
+      }
+
+      // Handle custom-text resource
+      if (resource === "custom-text") {
+        // ID format is "prompt:language"
+        const [prompt, language] = params.id.split(":");
+        if (!prompt || !language) {
+          throw new Error("Invalid custom-text ID format");
+        }
+        await managementClient.prompts.customText.set(
+          prompt as any,
+          language as any,
+          cleanParams.data.texts || {},
+        );
+        return {
+          data: {
+            id: params.id,
+            prompt,
+            language,
+            texts: cleanParams.data.texts || {},
+          },
+        };
+      }
+
       // Special handling for branding to update theme data separately
       if (resource === "branding") {
         // Extract themes from the payload - it's updated via a separate endpoint
@@ -1123,6 +1272,27 @@ export default (
       if (tenantId) headers.set("tenant-id", tenantId);
       const managementClient = await getManagementClient();
 
+      // Handle custom-text resource
+      if (resource === "custom-text") {
+        const { prompt, language, texts } = params.data;
+        if (!prompt || !language) {
+          throw new Error("prompt and language are required");
+        }
+        await managementClient.prompts.customText.set(
+          prompt as any,
+          language as any,
+          texts || {},
+        );
+        return {
+          data: {
+            id: `${prompt}:${language}`,
+            prompt,
+            language,
+            texts: texts || {},
+          },
+        };
+      }
+
       // Helper for POST requests
       const post = async (endpoint: string, body: any) =>
         httpClient(`${apiUrl}/api/v2/${endpoint}`, {
@@ -1275,6 +1445,23 @@ export default (
       const managementClient = await getManagementClient();
       const headers = new Headers({ "content-type": "application/json" });
       if (tenantId) headers.set("tenant-id", tenantId);
+
+      // Handle custom-text resource
+      if (resource === "custom-text") {
+        // ID format is "prompt:language"
+        const [prompt, language] = String(params.id).split(":");
+        if (!prompt || !language) {
+          throw new Error("Invalid custom-text ID format");
+        }
+        // Auth0 SDK doesn't have delete, so we set to empty object
+        // Our backend also supports DELETE, but using set({}) is compatible with Auth0
+        await managementClient.prompts.customText.set(
+          prompt as any,
+          language as any,
+          {},
+        );
+        return { data: { id: params.id } };
+      }
 
       // Helper for DELETE requests
       const del = async (endpoint: string, body?: any) =>

@@ -262,3 +262,10 @@ export const clientConnectionKeys = {
     `TENANT#${tenantId}#CONNECTION#${connectionId}`,
   gsi1sk: (clientId: string) => `CLIENT_CONNECTION#${clientId}`,
 };
+
+// Custom text keys
+export const customTextKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: (prompt: string, language: string) => `CUSTOM_TEXT#${prompt}#${language}`,
+  skPrefix: () => "CUSTOM_TEXT#",
+};

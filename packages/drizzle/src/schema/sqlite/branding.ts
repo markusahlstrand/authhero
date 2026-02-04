@@ -271,3 +271,18 @@ export const keys = sqliteTable("keys", {
     { onDelete: "cascade" },
   ),
 });
+
+export const customText = sqliteTable(
+  "custom_text",
+  {
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    prompt: text("prompt", { length: 64 }).notNull(),
+    language: text("language", { length: 16 }).notNull(),
+    custom_text: text("custom_text").notNull(),
+    created_at_ts: integer("created_at_ts").notNull(),
+    updated_at_ts: integer("updated_at_ts").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.tenant_id, table.prompt, table.language] })],
+);

@@ -289,6 +289,17 @@ const socialField = fieldComponentBase.extend({
   config: z
     .object({
       providers: z.array(z.string()).optional(),
+      // Extended provider info with icons and display names
+      provider_details: z
+        .array(
+          z.object({
+            name: z.string(),
+            strategy: z.string().optional(),
+            display_name: z.string().optional(),
+            icon_url: z.string().optional(),
+          }),
+        )
+        .optional(),
     })
     .optional(),
 });

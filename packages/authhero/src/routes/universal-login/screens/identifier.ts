@@ -34,8 +34,16 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
     return [];
   }
 
+  // Create provider details with icon URLs and display names
+  const providerDetails = socialConnections.map((conn) => ({
+    name: conn.name,
+    strategy: conn.strategy,
+    display_name: conn.display_name || conn.name,
+    icon_url: conn.options?.icon_url,
+  }));
+
   // Create a single SOCIAL component with all providers
-  const providers = socialConnections.map((conn) => conn.strategy);
+  const providers = socialConnections.map((conn) => conn.name);
 
   const socialButton: FormNodeComponent = {
     id: "social-buttons",
@@ -44,18 +52,20 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
     visible: true,
     config: {
       providers,
+      provider_details: providerDetails,
     },
     order: 0,
   };
 
-  // Add divider if we have social buttons and password/email login
-  const hasPasswordOrEmail = context.connections.some(
+  // Add divider if we have social buttons and password/email/sms login
+  const hasPasswordOrEmailOrSms = context.connections.some(
     (c) =>
       c.strategy === "email" ||
+      c.strategy === "sms" ||
       c.strategy === "Username-Password-Authentication",
   );
 
-  if (hasPasswordOrEmail) {
+  if (hasPasswordOrEmailOrSms) {
     const divider: FormNodeComponent = {
       id: "divider",
       type: "DIVIDER",
@@ -72,53 +82,69 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 /**
  * Create the identifier screen
  */
-export async function identifierScreen(context: ScreenContext): Promise<ScreenResult> {
+export async function identifierScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
   const { client, branding, state, baseUrl, prefill, errors } = context;
 
   const socialButtons = buildSocialButtons(context);
   const socialButtonCount = socialButtons.length;
 
+  // Check if we have email/sms/password connections that need the identifier input
+  const hasEmailOrPasswordConnection = context.connections.some(
+    (c) =>
+      c.strategy === "email" ||
+      c.strategy === "sms" ||
+      c.strategy === "Username-Password-Authentication",
+  );
+
   const components: FormNodeComponent[] = [
     // Social login buttons (if any)
     ...socialButtons,
-    // Email/username input
-    {
-      id: "username",
-      type: "EMAIL",
-      category: "FIELD",
-      visible: true,
-      label: "Email address",
-      config: {
-        placeholder: "name@example.com",
-      },
-      required: true,
-      order: socialButtonCount + 1,
-      hint: errors?.username,
-    },
-    // Continue button
-    {
-      id: "submit",
-      type: "NEXT_BUTTON",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        text: "Continue",
-      },
-      order: socialButtonCount + 2,
-    },
   ];
+
+  // Only add email input and continue button if we have email/sms/password connections
+  if (hasEmailOrPasswordConnection) {
+    components.push(
+      // Email/username input
+      {
+        id: "username",
+        type: "EMAIL",
+        category: "FIELD",
+        visible: true,
+        label: "Email address",
+        config: {
+          placeholder: "name@example.com",
+        },
+        required: true,
+        order: socialButtonCount + 1,
+        hint: errors?.username,
+      },
+      // Continue button
+      {
+        id: "submit",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: "Continue",
+        },
+        order: socialButtonCount + 2,
+      },
+    );
+  }
 
   // Add signup link if signup is allowed
   const links: UiScreen["links"] = [];
-  
+
   // Check if password signup is available
   const hasPasswordConnection = context.connections.some(
     (c) => c.strategy === "Username-Password-Authentication",
   );
-  
+
   // Check if signups are disabled via client metadata
   const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
-  
+
   // Only show signup link if signups are enabled AND password connection exists
   if (hasPasswordConnection && !signupsDisabled) {
     links.push({

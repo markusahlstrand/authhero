@@ -8,6 +8,13 @@
       "when": 1768383700549,
       "tag": "0000_unique_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1770204010059,
+      "tag": "0001_same_kang",
+      "breakpoints": true
     }
   ]
 }

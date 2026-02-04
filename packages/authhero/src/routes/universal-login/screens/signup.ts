@@ -22,8 +22,16 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
     return [];
   }
 
+  // Create provider details with icon URLs and display names
+  const providerDetails = socialConnections.map((conn) => ({
+    name: conn.name,
+    strategy: conn.strategy,
+    display_name: conn.display_name || conn.name,
+    icon_url: conn.options?.icon_url,
+  }));
+
   // Create a single SOCIAL component with all providers
-  const providers = socialConnections.map((conn) => conn.strategy);
+  const providers = socialConnections.map((conn) => conn.name);
 
   const socialButton: FormNodeComponent = {
     id: "social-buttons",
@@ -32,6 +40,7 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
     visible: true,
     config: {
       providers,
+      provider_details: providerDetails,
     },
     order: 0,
   };

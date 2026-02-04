@@ -31,6 +31,7 @@ import { InvitesAdapter } from "./Invites";
 import { GeoAdapter } from "./Geo";
 import { StatsAdapter } from "./Stats";
 import { UniversalLoginTemplatesAdapter } from "./UniversalLoginTemplates";
+import { CustomTextAdapter } from "./CustomText";
 
 /**
  * Parameters for cleaning up expired sessions
@@ -72,6 +73,7 @@ export interface DataAdapters {
   tenants: TenantsDataAdapter;
   themes: ThemesAdapter;
   universalLoginTemplates: UniversalLoginTemplatesAdapter;
+  customText: CustomTextAdapter;
   users: UserDataAdapter;
   userRoles: UserRolesAdapter;
   organizations: OrganizationsAdapter;
@@ -107,3 +109,4 @@ export * from "./Invites";
 export * from "./Geo";
 export * from "./Stats";
 export * from "./UniversalLoginTemplates";
+export * from "./CustomText";

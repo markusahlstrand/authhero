@@ -232,20 +232,16 @@ export const widgetRoutes = new OpenAPIHono<{
         true,
       );
 
-      // Get connections for this client
-      const connectionsResult = await ctx.env.data.connections.list(
-        client.tenant.id,
-      );
-
       const baseUrl = new URL(ctx.req.url).origin;
 
       // Build screen context
+      // Use client.connections which is already ordered per the client's configuration
       const screenContext: ScreenContext = {
         ctx,
         tenant: client.tenant,
         client,
         branding: branding ?? undefined,
-        connections: connectionsResult.connections,
+        connections: client.connections,
         state,
         baseUrl,
         prefill: {
@@ -370,9 +366,6 @@ export const widgetRoutes = new OpenAPIHono<{
         true,
       );
 
-      const connectionsResult = await ctx.env.data.connections.list(
-        client.tenant.id,
-      );
       const baseUrl = new URL(ctx.req.url).origin;
 
       // Placeholder: determine next screen based on current screen and data
@@ -424,12 +417,13 @@ export const widgetRoutes = new OpenAPIHono<{
       }
 
       // Build context for next screen
+      // Use client.connections which is already ordered per the client's configuration
       const screenContext: ScreenContext = {
         ctx,
         tenant: client.tenant,
         client,
         branding: branding ?? undefined,
-        connections: connectionsResult.connections,
+        connections: client.connections,
         state,
         baseUrl,
         prefill: {

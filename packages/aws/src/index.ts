@@ -33,6 +33,7 @@ import { createUserRolesAdapter } from "./adapters/userRoles";
 import { createOrganizationsAdapter } from "./adapters/organizations";
 import { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 import { createInvitesAdapter } from "./adapters/invites";
+import { createCustomTextAdapter } from "./adapters/customText";
 
 export type { DynamoDBConfig, DynamoDBContext } from "./types";
 
@@ -93,6 +94,7 @@ export default function createAdapters(
     tenants: createTenantsAdapter(ctx),
     themes: createThemesAdapter(ctx),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(ctx),
+    customText: createCustomTextAdapter(ctx),
     userOrganizations: createUserOrganizationsAdapter(ctx),
     userPermissions: createUserPermissionsAdapter(ctx),
     userRoles: createUserRolesAdapter(ctx),

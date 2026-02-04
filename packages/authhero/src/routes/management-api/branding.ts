@@ -94,7 +94,9 @@ export const brandingRoutes = new OpenAPIHono<{
       await ctx.env.data.branding.set(ctx.var.tenant_id, branding);
 
       // Return the updated branding (like Auth0 does)
-      const updatedBranding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+      const updatedBranding = await ctx.env.data.branding.get(
+        ctx.var.tenant_id,
+      );
 
       return ctx.json(updatedBranding || DEFAULT_BRANDING);
     },
@@ -225,9 +227,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      await ctx.env.data.universalLoginTemplates.delete(
-        ctx.var.tenant_id,
-      );
+      await ctx.env.data.universalLoginTemplates.delete(ctx.var.tenant_id);
 
       return ctx.body(null, 204);
     },

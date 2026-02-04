@@ -57,6 +57,136 @@ const html = await renderToString(`
 `);
 ```
 
+## SSR and Hydration
+
+The widget is built with StencilJS and includes full server-side rendering (SSR) support with client-side hydration. This enables fast initial page loads while maintaining full interactivity.
+
+### How It Works
+
+1. **Server-Side Rendering**: The server renders the widget to HTML using `renderToString()` from `@authhero/widget/hydrate`. This produces static HTML with Declarative Shadow DOM that displays instantly without JavaScript.
+
+2. **Client-Side Hydration**: When the browser loads the page, the widget's ESM bundle "hydrates" the server-rendered HTML, attaching event listeners and enabling interactivity without re-rendering the content.
+
+3. **Progressive Enhancement**: Users see content immediately (even with JavaScript disabled), and interactivity is added once the JavaScript loads.
+
+### Rendering Options
+
+```typescript
+import { renderToString } from "@authhero/widget/hydrate";
+
+const result = await renderToString(
+  `<authhero-widget screen='${JSON.stringify(screen)}'></authhero-widget>`,
+  {
+    // Return only the widget HTML, not a full document
+    fullDocument: false,
+    
+    // Use Declarative Shadow DOM for SSR (recommended)
+    serializeShadowRoot: "declarative-shadow-dom",
+    
+    // Optional: Remove unused styles for smaller payload
+    removeUnusedStyles: true,
+    
+    // Optional: Format HTML for debugging
+    prettyHtml: false,
+  }
+);
+
+// result.html contains the rendered HTML string
+// result.diagnostics contains any warnings or errors
+const widgetHtml = result.html;
+```
+
+### Shadow DOM Serialization Modes
+
+The `serializeShadowRoot` option controls how shadow DOM is rendered:
+
+- **`"declarative-shadow-dom"`** (default): Uses the browser's native Declarative Shadow DOM feature. This is the most efficient option as the shadow DOM is part of the initial HTML.
+
+- **`"scoped"`**: Renders content as scoped CSS without shadow DOM. The shadow DOM is then created during client-side hydration.
+
+- **Mixed mode**: You can mix both approaches for different components:
+  ```typescript
+  serializeShadowRoot: {
+    'declarative-shadow-dom': ['authhero-widget'],
+    scoped: ['some-other-component'],
+    default: 'declarative-shadow-dom'
+  }
+  ```
+
+### Complete SSR Example (Hono)
+
+```typescript
+import { Hono } from "hono";
+import { renderToString } from "@authhero/widget/hydrate";
+
+const app = new Hono();
+
+app.get("/login", async (c) => {
+  // Fetch screen configuration from your backend
+  const screen = await getLoginScreen();
+  const branding = await getBranding();
+
+  // Server-side render the widget
+  const widgetResult = await renderToString(
+    `<authhero-widget
+      screen='${JSON.stringify(screen).replace(/'/g, "&#39;")}'
+      branding='${JSON.stringify(branding).replace(/'/g, "&#39;")}'
+      auto-submit="true"
+      auto-navigate="true"
+    ></authhero-widget>`,
+    {
+      fullDocument: false,
+      serializeShadowRoot: "declarative-shadow-dom",
+    }
+  );
+
+  // Return complete HTML page
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Login</title>
+      <script type="module" src="/widget/authhero-widget.esm.js"></script>
+    </head>
+    <body>
+      ${widgetResult.html}
+    </body>
+    </html>
+  `);
+});
+```
+
+### Edge Runtime Compatibility
+
+The hydrate module works on edge runtimes like Cloudflare Workers. For compatibility, ensure the global `window` object exists:
+
+```typescript
+// Essential for some internal Stencil checks in edge runtimes
+if (typeof globalThis.window === "undefined") {
+  globalThis.window = globalThis;
+}
+
+const { renderToString } = await import("@authhero/widget/hydrate");
+```
+
+### Avoiding Hydration Mismatches
+
+To prevent hydration errors (where server and client HTML differ):
+
+1. **Use the same data**: Ensure the `screen` and `branding` props match between server and client
+2. **Avoid client-only conditionals**: Don't conditionally render based on `window` or browser APIs
+3. **Serialize consistently**: Use the same JSON serialization on server and client
+4. **Handle edge cases**: Escape special characters in JSON attributes (`'` → `&#39;`)
+
+### Performance Benefits
+
+- **Instant Display**: Users see the login form immediately without waiting for JavaScript
+- **Reduced Layout Shift**: Content dimensions are known from the server response
+- **Better SEO**: Search engines can index the rendered content
+- **Improved Core Web Vitals**: Lower LCP (Largest Contentful Paint) and CLS (Cumulative Layout Shift)
+
 ## UI Schema (Auth0 Forms API)
 
 The widget renders UI based on Auth0's Forms API schema for universal login flows.

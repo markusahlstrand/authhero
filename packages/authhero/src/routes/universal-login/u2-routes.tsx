@@ -23,7 +23,11 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import { getScreen, getScreenDefinition, listScreenIds } from "./screens/registry";
+import {
+  getScreen,
+  getScreenDefinition,
+  listScreenIds,
+} from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
 import {
@@ -91,7 +95,8 @@ function WidgetPage({
   const fontUrl = sanitizeUrl(branding?.font?.url);
 
   // Get widget background color for mobile view
-  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
+  const widgetBackground =
+    sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Sanitize powered-by logo URLs
   const safePoweredByUrl = poweredByLogo?.url
@@ -117,7 +122,7 @@ function WidgetPage({
         ? "20px 80px 20px 20px"
         : "20px";
 
-const bodyStyle = {
+  const bodyStyle = {
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
@@ -231,7 +236,8 @@ function generateHeadContent(options: {
   );
 
   // Get widget background color for mobile view
-  const widgetBackground = sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
+  const widgetBackground =
+    sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
 
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -365,7 +371,15 @@ function generateWidgetContent(options: {
     height?: number;
   };
 }): string {
-  const { state, authParams, screenJson, brandingJson, themeJson, widgetHtml, poweredByLogo } = options;
+  const {
+    state,
+    authParams,
+    screenJson,
+    brandingJson,
+    themeJson,
+    widgetHtml,
+    poweredByLogo,
+  } = options;
 
   const safeState = escapeHtml(state);
   const safeAuthParams = escapeHtml(JSON.stringify(authParams));
@@ -455,20 +469,16 @@ function createScreenRouteHandler(screenId: string) {
       // Method or table may not exist in older adapters - continue without custom template
     }
 
-    // Get connections for this client
-    const connectionsResult = await ctx.env.data.connections.list(
-      client.tenant.id,
-    );
-
     const baseUrl = new URL(ctx.req.url).origin;
 
     // Build screen context for SSR
+    // Use client.connections which is already ordered per the client's configuration
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
       client,
       branding: branding ?? undefined,
-      connections: connectionsResult.connections,
+      connections: client.connections,
       state,
       baseUrl,
       prefill: {
@@ -710,34 +720,30 @@ function createScreenPostRoute(
 function createScreenPostHandler(screenId: string) {
   return async (ctx: any) => {
     const { state } = ctx.req.valid("query");
-    
+
     // Parse form data
     const formData = await ctx.req.parseBody();
     const data: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(formData)) {
       data[key] = value;
     }
-    
+
     const { theme, branding, client, loginSession } = await initJSXRoute(
       ctx,
       state,
       true,
     );
 
-    // Get connections for this client
-    const connectionsResult = await ctx.env.data.connections.list(
-      client.tenant.id,
-    );
-
     const baseUrl = new URL(ctx.req.url).origin;
 
     // Build screen context
+    // Use client.connections which is already ordered per the client's configuration
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
       client,
       branding: branding ?? undefined,
-      connections: connectionsResult.connections,
+      connections: client.connections,
       state,
       baseUrl,
       prefill: {
@@ -766,7 +772,7 @@ function createScreenPostHandler(screenId: string) {
 
     // Otherwise, render the next/current screen as full HTML page
     const screenResult = result.screen;
-    
+
     // Get custom template if available
     let customTemplate: { body: string } | null = null;
     try {
