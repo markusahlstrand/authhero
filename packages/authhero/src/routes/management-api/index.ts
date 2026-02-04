@@ -167,6 +167,7 @@ export default function create(config: AuthHeroConfig) {
         "branding",
         "themes",
         "promptSettings",
+        "customText",
         "forms",
       ],
       cache: cacheAdapter,

@@ -20,7 +20,11 @@
   "collection": "./dist/collection/collection-manifest.json",
   "exports": {
     ".": "./dist/index.js",
-    "./hydrate": "./hydrate/index.js",
+    "./hydrate": {
+      "types": "./hydrate/index.d.ts",
+      "import": "./hydrate/index.mjs",
+      "require": "./hydrate/index.js"
+    },
     "./loader": "./loader/index.js",
     "./dist/esm/loader.js": "./dist/esm/loader.js",
     "./server": {

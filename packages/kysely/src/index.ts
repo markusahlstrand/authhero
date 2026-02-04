@@ -33,6 +33,7 @@ import { createOrganizationsAdapter } from "./organizations";
 import { createUserOrganizationsAdapter } from "./user-organizations";
 import { createInvitesAdapter } from "./invites";
 import { createStatsAdapter } from "./stats";
+import { createCustomTextAdapter } from "./customText";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -69,6 +70,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     tenants: createTenantsAdapter(db),
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
+    customText: createCustomTextAdapter(db),
     users: createUsersAdapter(db),
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),

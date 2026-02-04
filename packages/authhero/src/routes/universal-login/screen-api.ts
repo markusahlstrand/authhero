@@ -411,22 +411,32 @@ export const screenApiRoutes = new OpenAPIHono<{
         const screenContext = await buildScreenContext(ctx, state);
         const result = await definition.handler.post(screenContext, data);
 
+        // Handler returns { redirect } for external URLs (OAuth, final redirect)
         if ("redirect" in result) {
           return ctx.json({ redirect: result.redirect });
         }
-        if ("error" in result) {
-          return ctx.json(
-            {
-              screen: result.screen.screen,
-              branding: result.screen.branding,
-            },
-            400,
-          );
-        }
+
+        // Handler returns { screen } for internal navigation
+        // Override action URL to use the screen-api endpoint for JSON submissions
+        const baseUrl = new URL(ctx.req.url).origin;
+        const screenData = result.screen;
+        const nextScreenId = screenData.screen.action?.match(/\/u2\/(?:screen\/)?([^/?]+)/)?.[1] || screenId;
+        
         return ctx.json({
-          screen: result.screen.screen,
-          branding: result.screen.branding,
-        });
+          screen: {
+            ...screenData.screen,
+            // Widget will POST JSON here when JS is enabled
+            action: `${baseUrl}/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
+            links: screenData.screen.links?.map((link) => ({
+              ...link,
+              href: link.href
+                .replace("/u/widget/", "/u2/")
+                .replace("/u/signup", "/u2/signup")
+                .replace("/u/enter-", "/u2/enter-"),
+            })),
+          },
+          branding: screenData.branding,
+        }, "error" in result ? 400 : 200);
       }
 
       // 2. For built-in screens without POST handler, return error

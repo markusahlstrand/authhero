@@ -1,3 +1,4 @@
 name = "authhero-demo"
 main = "src/server.ts"
 compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]

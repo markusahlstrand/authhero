@@ -23,7 +23,7 @@ export const themesRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:themes", "auth:read"],
+          Bearer: ["read:branding", "auth:read"],
         },
       ],
       responses: {
@@ -69,7 +69,7 @@ export const themesRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:themes", "auth:write"],
+          Bearer: ["update:branding", "auth:write"],
         },
       ],
       responses: {

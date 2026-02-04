@@ -65,6 +65,15 @@ const sqlUniversalLoginTemplateSchema = z.object({
   updated_at_ts: z.number(),
 });
 
+const sqlCustomTextSchema = z.object({
+  tenant_id: z.string(),
+  prompt: z.string(),
+  language: z.string(),
+  custom_text: z.string(), // JSON string
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
+});
+
 const sqlPromptSettingSchema = z.object({
   ...promptSettingSchema.shape,
   identifier_first: z.number(),
@@ -384,4 +393,5 @@ export interface Database {
   user_organizations: z.infer<typeof sqlUserOrganizationSchema>;
   invites: z.infer<typeof sqlInviteSchema>;
   universal_login_templates: z.infer<typeof sqlUniversalLoginTemplateSchema>;
+  custom_text: z.infer<typeof sqlCustomTextSchema>;
 }

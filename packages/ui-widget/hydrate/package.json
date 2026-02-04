@@ -1,0 +1,12 @@
+{
+  "name": "@authhero/widget/hydrate",
+  "description": "AuthheroWidget component hydration app.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./index.js",
+      "import": "./index.mjs"
+    }
+  }
+}

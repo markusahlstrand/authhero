@@ -90,11 +90,15 @@
     "xstate": "^5.25.0"
   },
   "peerDependencies": {
+    "@authhero/widget": "^0.1.0",
     "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.8.7",
     "ua-parser-js": "^2.0.0"
   },
   "peerDependenciesMeta": {
+    "@authhero/widget": {
+      "optional": true
+    },
     "ua-parser-js": {
       "optional": true
     }

@@ -25,6 +25,7 @@ import {
   DomainList,
 } from "./components/custom-domains";
 import { BrandingList, BrandingEdit } from "./components/branding";
+import { PromptsList, PromptsEdit } from "./components/prompts";
 import { LogsList, LogShow } from "./components/logs";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionEdit } from "./components/sessions";
@@ -41,6 +42,7 @@ import {
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
 import StorageIcon from "@mui/icons-material/Storage";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { useMemo, useState, useEffect } from "react";
@@ -249,6 +251,14 @@ export function App(props: AppProps) {
           options={{ hasSingle: true }}
           list={BrandingList}
           edit={BrandingEdit}
+          show={ShowGuesser}
+        />
+        <Resource
+          icon={TextFieldsIcon}
+          name="prompts"
+          options={{ hasSingle: true }}
+          list={PromptsList}
+          edit={PromptsEdit}
           show={ShowGuesser}
         />
         <Resource
