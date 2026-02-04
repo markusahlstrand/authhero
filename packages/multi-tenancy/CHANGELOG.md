@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 14.9.0
+
+### Minor Changes
+
+- d1df006: Add fallback to control plane client
+
 ## 14.8.0
 
 ### Minor Changes
