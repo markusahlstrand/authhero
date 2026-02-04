@@ -178,7 +178,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
 
   // Wrap adapters with runtime fallback from control plane (only if controlPlane is configured)
   // - dataAdapter: Full fallback with secrets (for auth flows)
-  // - managementDataAdapter: Fallback with sensitive fields excluded (for management API)
+  // - managementDataAdapter: Raw adapter with multiTenancyConfig for access control (no fallback merging)
   let dataAdapter = rawDataAdapter;
   let managementDataAdapter = rawDataAdapter;
 
@@ -188,11 +188,15 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       controlPlaneClientId,
     });
 
-    managementDataAdapter = withRuntimeFallback(rawDataAdapter, {
-      controlPlaneTenantId,
-      controlPlaneClientId,
-      excludeSensitiveFields: true,
-    });
+    // Management adapter needs multiTenancyConfig for tenant access control,
+    // but shouldn't merge control plane data into responses
+    managementDataAdapter = {
+      ...rawDataAdapter,
+      multiTenancyConfig: {
+        controlPlaneTenantId,
+        controlPlaneClientId,
+      },
+    };
   }
 
   // Determine sync settings

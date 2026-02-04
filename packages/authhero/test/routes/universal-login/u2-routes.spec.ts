@@ -135,7 +135,7 @@ describe("u2 routes", () => {
 
       // auth0:head content should be injected (widget script, styles, etc.)
       expect(html).toContain("/u/widget/authhero-widget.esm.js");
-      expect(html).toContain("<meta charset=");
+      expect(html).toContain("<meta charSet=");
 
       // auth0:widget content should be injected
       expect(html).toContain("authhero-widget");

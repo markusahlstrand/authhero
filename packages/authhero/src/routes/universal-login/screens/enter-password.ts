@@ -7,14 +7,51 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
+import { getCustomText, getErrorText } from "./custom-text-utils";
 
 /**
  * Create the enter-password screen
  */
-export async function enterPasswordScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { branding, state, baseUrl, errors, data } = context;
+export async function enterPasswordScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
+  const { branding, state, baseUrl, errors, data, customText, client } =
+    context;
 
   const email = data?.email as string | undefined;
+
+  // Variables for text substitution
+  const textVariables = {
+    clientName: client?.name || "the application",
+    email: email,
+  };
+
+  // Get error hint with custom text support
+  // Only map known error patterns to custom text keys, otherwise use the raw error
+  let passwordError: string | undefined;
+  if (errors?.password) {
+    if (errors.password.includes("wrong")) {
+      passwordError = getErrorText(
+        customText,
+        "wrong-credentials",
+        errors.password,
+        textVariables,
+      );
+    } else if (
+      errors.password.includes("no-password") ||
+      errors.password.includes("required")
+    ) {
+      passwordError = getErrorText(
+        customText,
+        "no-password",
+        errors.password,
+        textVariables,
+      );
+    } else {
+      // Unknown error - return as-is without custom text mapping
+      passwordError = errors.password;
+    }
+  }
 
   const components: FormNodeComponent[] = [
     // Show email being logged in
@@ -38,14 +75,24 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: "Password",
+      label: getCustomText(
+        customText,
+        "passwordPlaceholder",
+        "Password",
+        textVariables,
+      ),
       config: {
-        placeholder: "Enter your password",
+        placeholder: getCustomText(
+          customText,
+          "passwordPlaceholder",
+          "Enter your password",
+          textVariables,
+        ),
       },
       required: true,
       sensitive: true,
       order: 1,
-      hint: errors?.password,
+      hint: passwordError,
     },
     // Submit button
     {
@@ -54,7 +101,7 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Continue",
+        text: getCustomText(customText, "buttonText", "Continue", textVariables),
       },
       order: 2,
     },
@@ -64,19 +111,34 @@ export async function enterPasswordScreen(context: ScreenContext): Promise<Scree
     // Action points to HTML endpoint for no-JS fallback
     action: `${baseUrl}/u2/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Enter your password",
+    title: getCustomText(
+      customText,
+      "title",
+      "Enter your password",
+      textVariables,
+    ),
     components,
     links: [
       {
         id: "forgot-password",
-        text: "Forgot your password?",
+        text: getCustomText(
+          customText,
+          "forgotPasswordText",
+          "Forgot your password?",
+          textVariables,
+        ),
         linkText: "Reset it",
         href: `${baseUrl}/u/widget/forgot-password?state=${encodeURIComponent(state)}`,
       },
       {
         id: "back",
         text: "Not your account?",
-        linkText: "Go back",
+        linkText: getCustomText(
+          customText,
+          "editEmailText",
+          "Go back",
+          textVariables,
+        ),
         href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],

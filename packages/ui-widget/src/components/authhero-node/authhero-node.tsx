@@ -61,6 +61,18 @@ export class AuthheroNode {
     });
   };
 
+  /**
+   * Sanitize a string for use in CSS class names and part tokens.
+   * Replaces spaces and special characters with hyphens, converts to lowercase.
+   */
+  private sanitizeForCssToken(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-") // Replace non-alphanumeric chars with hyphen
+      .replace(/-+/g, "-") // Collapse multiple hyphens
+      .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+  }
+
   private handleButtonClick = (e: Event, type: string, value?: string) => {
     if (type !== "submit") {
       e.preventDefault();
@@ -946,20 +958,23 @@ export class AuthheroNode {
 
     return (
       <div class="social-buttons" part="social-buttons">
-        {providers.map((provider) => (
-          <button
-            type="button"
-            class="btn btn-secondary btn-social"
-            part="button button-secondary button-social"
-            data-provider={provider}
-            disabled={this.disabled}
-            onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
-            key={provider}
-          >
-            {getProviderIcon(provider)}
-            <span>Continue with {getProviderDisplayName(provider)}</span>
-          </button>
-        ))}
+        {providers.map((provider) => {
+          const safeProvider = this.sanitizeForCssToken(provider);
+          return (
+            <button
+              type="button"
+              class={`btn btn-secondary btn-social btn-social-${safeProvider}`}
+              part={`button button-secondary button-social button-social-${safeProvider}`}
+              data-provider={provider}
+              disabled={this.disabled}
+              onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
+              key={provider}
+            >
+              {getProviderIcon(provider)}
+              <span part="button-social-text">{`Continue with ${getProviderDisplayName(provider)}`}</span>
+            </button>
+          );
+        })}
       </div>
     );
   }

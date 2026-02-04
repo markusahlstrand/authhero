@@ -15,6 +15,7 @@ import type {
 } from "../../types/components";
 import type { WidgetBranding, WidgetTheme } from "../../utils/branding";
 import { mergeThemeVars, applyCssVars } from "../../utils/branding";
+import { sanitizeHtml } from "../../utils/sanitize-html";
 
 /**
  * Submit event detail - emitted when a form is submitted
@@ -778,15 +779,19 @@ export class AuthheroWidget {
           )}
 
           {this._screen.title && (
-            <h1 class="title" part="title">
-              {this._screen.title}
-            </h1>
+            <h1
+              class="title"
+              part="title"
+              innerHTML={sanitizeHtml(this._screen.title)}
+            />
           )}
 
           {this._screen.description && (
-            <p class="description" part="description">
-              {this._screen.description}
-            </p>
+            <p
+              class="description"
+              part="description"
+              innerHTML={sanitizeHtml(this._screen.description)}
+            />
           )}
         </header>
 

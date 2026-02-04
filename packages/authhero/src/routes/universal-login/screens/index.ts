@@ -29,3 +29,6 @@ export type { ScreenContext, ScreenFactory, ScreenResult } from "./types";
 
 // Export the screen registry
 export { getScreen, screenRegistry } from "./registry";
+
+// Export custom text utilities
+export { getCustomText, getErrorText } from "./custom-text-utils";
