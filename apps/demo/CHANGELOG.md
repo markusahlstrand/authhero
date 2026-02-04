@@ -1,5 +1,13 @@
 # @authhero/demo
 
+## 0.30.1
+
+### Patch Changes
+
+- Updated dependencies [44b76d9]
+  - @authhero/widget@0.10.0
+  - authhero@4.29.0
+
 ## 0.30.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.32.0
+
+### Minor Changes
+
+- 44b76d9: Update the custom text behaviour
+
+### Patch Changes
+
+- Updated dependencies [44b76d9]
+  - @authhero/widget@0.10.0
+
 ## 0.31.0
 
 ### Minor Changes

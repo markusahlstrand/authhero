@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 14.10.0
+
+### Minor Changes
+
+- 44b76d9: Do not inherit data for the management api
+
+### Patch Changes
+
+- Updated dependencies [44b76d9]
+  - authhero@4.29.0
+
 ## 14.9.0
 
 ### Minor Changes
