@@ -27,14 +27,31 @@ export async function enterPasswordScreen(
   };
 
   // Get error hint with custom text support
-  const passwordError = errors?.password
-    ? getErrorText(
+  // Only map known error patterns to custom text keys, otherwise use the raw error
+  let passwordError: string | undefined;
+  if (errors?.password) {
+    if (errors.password.includes("wrong")) {
+      passwordError = getErrorText(
         customText,
-        errors.password.includes("wrong") ? "wrong-credentials" : "no-password",
+        "wrong-credentials",
         errors.password,
         textVariables,
-      )
-    : undefined;
+      );
+    } else if (
+      errors.password.includes("no-password") ||
+      errors.password.includes("required")
+    ) {
+      passwordError = getErrorText(
+        customText,
+        "no-password",
+        errors.password,
+        textVariables,
+      );
+    } else {
+      // Unknown error - return as-is without custom text mapping
+      passwordError = errors.password;
+    }
+  }
 
   const components: FormNodeComponent[] = [
     // Show email being logged in

@@ -571,8 +571,23 @@ function CustomTextTab() {
     if (viewMode === "json") {
       try {
         textsToSave = JSON.parse(jsonValue);
-        if (typeof textsToSave !== "object" || Array.isArray(textsToSave)) {
-          notify("JSON must be an object", { type: "error" });
+        if (
+          textsToSave === null ||
+          typeof textsToSave !== "object" ||
+          Array.isArray(textsToSave)
+        ) {
+          notify("JSON must be an object with string values", { type: "error" });
+          return;
+        }
+        // Validate all values are strings
+        const invalidKeys = Object.entries(textsToSave)
+          .filter(([, value]) => value !== null && typeof value !== "string")
+          .map(([key]) => key);
+        if (invalidKeys.length > 0) {
+          notify(
+            `Invalid values for keys: ${invalidKeys.join(", ")}. All values must be strings.`,
+            { type: "error" },
+          );
           return;
         }
       } catch (e) {
@@ -581,7 +596,7 @@ function CustomTextTab() {
       }
     }
 
-    // Filter out empty values before saving
+    // Filter out empty/null values before saving
     const filteredTexts: Record<string, string> = {};
     for (const [key, value] of Object.entries(textsToSave)) {
       if (value && typeof value === "string" && value.trim() !== "") {
@@ -644,12 +659,31 @@ function CustomTextTab() {
     setJsonValue(value);
     try {
       const parsed = JSON.parse(value);
-      if (typeof parsed === "object" && !Array.isArray(parsed)) {
-        setEditingTexts(parsed);
-        setJsonError(null);
-      } else {
-        setJsonError("JSON must be an object");
+      if (
+        parsed === null ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+      ) {
+        setJsonError("JSON must be an object with string values");
+        return;
       }
+      // Validate all values are strings or null
+      const hasInvalidValues = Object.values(parsed).some(
+        (v) => v !== null && typeof v !== "string",
+      );
+      if (hasInvalidValues) {
+        setJsonError("All values must be strings");
+        return;
+      }
+      // Filter to only string values for the form state
+      const stringOnly: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === "string") {
+          stringOnly[k] = v;
+        }
+      }
+      setEditingTexts(stringOnly);
+      setJsonError(null);
     } catch (e) {
       setJsonError("Invalid JSON");
     }
@@ -665,7 +699,21 @@ function CustomTextTab() {
         } else if (newMode === "form" && !jsonError) {
           try {
             const parsed = JSON.parse(jsonValue);
-            setEditingTexts(parsed);
+            // Validate before updating form state
+            if (
+              parsed !== null &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
+              // Filter to only string values
+              const stringOnly: Record<string, string> = {};
+              for (const [k, v] of Object.entries(parsed)) {
+                if (typeof v === "string") {
+                  stringOnly[k] = v;
+                }
+              }
+              setEditingTexts(stringOnly);
+            }
           } catch (e) {
             // Keep existing form data if JSON is invalid
           }

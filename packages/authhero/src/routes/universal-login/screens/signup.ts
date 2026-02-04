@@ -122,22 +122,58 @@ export async function signupScreen(
     let order = socialButtonCount + 1;
 
     // Get error hints with custom text support
-    const emailError = errors?.email
-      ? getErrorText(
+    // Only map known error patterns to custom text keys, otherwise use the raw error
+    let emailError: string | undefined;
+    if (errors?.email) {
+      if (errors.email.includes("@") || errors.email.includes("format")) {
+        emailError = getErrorText(
           customText,
-          errors.email.includes("@")
-            ? "invalid-email-format"
-            : errors.email.includes("already")
-              ? "email-already-exists"
-              : "no-email",
+          "invalid-email-format",
           errors.email,
           textVariables,
-        )
-      : undefined;
+        );
+      } else if (errors.email.includes("already") || errors.email.includes("exists")) {
+        emailError = getErrorText(
+          customText,
+          "email-already-exists",
+          errors.email,
+          textVariables,
+        );
+      } else if (
+        errors.email.includes("required") ||
+        errors.email.includes("no-email") ||
+        errors.email.includes("enter")
+      ) {
+        emailError = getErrorText(
+          customText,
+          "no-email",
+          errors.email,
+          textVariables,
+        );
+      } else {
+        // Unknown error - return as-is without custom text mapping
+        emailError = errors.email;
+      }
+    }
 
-    const passwordError = errors?.password
-      ? getErrorText(customText, "no-password", errors.password, textVariables)
-      : undefined;
+    let passwordError: string | undefined;
+    if (errors?.password) {
+      if (
+        errors.password.includes("required") ||
+        errors.password.includes("no-password") ||
+        errors.password.includes("enter")
+      ) {
+        passwordError = getErrorText(
+          customText,
+          "no-password",
+          errors.password,
+          textVariables,
+        );
+      } else {
+        // Unknown error (e.g., "Password too weak") - return as-is
+        passwordError = errors.password;
+      }
+    }
 
     components.push(
       // Email input

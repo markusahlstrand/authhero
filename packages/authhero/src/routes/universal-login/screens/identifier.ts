@@ -138,16 +138,32 @@ export async function identifierScreen(
   // Only add email input and continue button if we have email/sms/password connections
   if (hasEmailOrPasswordConnection) {
     // Get error text with custom text support
-    const errorHint = errors?.username
-      ? getErrorText(
+    // Only map known error patterns to custom text keys, otherwise use the raw error
+    let errorHint: string | undefined;
+    if (errors?.username) {
+      if (errors.username.includes("@") || errors.username.includes("format")) {
+        errorHint = getErrorText(
           customText,
-          errors.username.includes("@")
-            ? "invalid-email-format"
-            : "no-email",
+          "invalid-email-format",
           errors.username,
           textVariables,
-        )
-      : undefined;
+        );
+      } else if (
+        errors.username.includes("required") ||
+        errors.username.includes("no-email") ||
+        errors.username.includes("enter")
+      ) {
+        errorHint = getErrorText(
+          customText,
+          "no-email",
+          errors.username,
+          textVariables,
+        );
+      } else {
+        // Unknown error - return as-is without custom text mapping
+        errorHint = errors.username;
+      }
+    }
 
     components.push(
       // Email/username input

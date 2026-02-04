@@ -5,6 +5,13 @@
 import type { CustomText } from "@authhero/adapter-interfaces";
 
 /**
+ * Escape special regex characters in a string
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Get a custom text value with variable substitution
  * Variables are in the format ${variableName}
  *
@@ -20,16 +27,17 @@ export function getCustomText(
   defaultValue: string,
   variables?: Record<string, string | undefined>,
 ): string {
-  let text = customText?.[key] || defaultValue;
+  let text = customText?.[key] ?? defaultValue;
 
   // Substitute variables
   if (variables) {
     for (const [varName, varValue] of Object.entries(variables)) {
       if (varValue !== undefined) {
+        const escapedVarName = escapeRegExp(varName);
         // Support both ${var} and #{var} syntax (Auth0 uses both)
         text = text
-          .replace(new RegExp(`\\$\\{${varName}\\}`, "g"), varValue)
-          .replace(new RegExp(`#\\{${varName}\\}`, "g"), varValue);
+          .replace(new RegExp(`\\$\\{${escapedVarName}\\}`, "g"), varValue)
+          .replace(new RegExp(`#\\{${escapedVarName}\\}`, "g"), varValue);
       }
     }
   }
