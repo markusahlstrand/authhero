@@ -273,11 +273,7 @@ export const promptsRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
 
-      await ctx.env.data.customText.delete(
-        ctx.var.tenant_id,
-        prompt,
-        language,
-      );
+      await ctx.env.data.customText.delete(ctx.var.tenant_id, prompt, language);
 
       return ctx.body(null, 204);
     },
