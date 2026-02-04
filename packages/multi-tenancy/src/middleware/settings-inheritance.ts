@@ -1,6 +1,7 @@
 import {
   DataAdapters,
   Connection,
+  Client,
   connectionSchema,
   connectionOptionsSchema,
 } from "authhero";
@@ -69,6 +70,50 @@ function mergeConnectionWithFallback(
   });
 
   return mergedConnection;
+}
+
+/**
+ * Merges URL arrays from control plane client, deduplicating values.
+ */
+function mergeUrlArrays(
+  tenantUrls: string[] | undefined,
+  controlPlaneUrls: string[] | undefined,
+): string[] {
+  const combined = [
+    ...(controlPlaneUrls || []),
+    ...(tenantUrls || []),
+  ];
+  // Deduplicate while preserving order (tenant URLs take precedence)
+  return [...new Set(combined)];
+}
+
+/**
+ * Merges a client with control plane fallback URLs.
+ */
+function mergeClientWithFallback(
+  client: Client,
+  controlPlaneClient: Client | null,
+): Client {
+  if (!controlPlaneClient) {
+    return client;
+  }
+
+  return {
+    ...client,
+    callbacks: mergeUrlArrays(client.callbacks, controlPlaneClient.callbacks),
+    web_origins: mergeUrlArrays(
+      client.web_origins,
+      controlPlaneClient.web_origins,
+    ),
+    allowed_logout_urls: mergeUrlArrays(
+      client.allowed_logout_urls,
+      controlPlaneClient.allowed_logout_urls,
+    ),
+    allowed_origins: mergeUrlArrays(
+      client.allowed_origins,
+      controlPlaneClient.allowed_origins,
+    ),
+  };
 }
 
 /**
@@ -246,6 +291,69 @@ export function createRuntimeFallbackAdapter(
             excludeSensitiveFields,
           ),
         );
+      },
+    },
+
+    clients: {
+      ...baseAdapters.clients,
+
+      get: async (tenantId: string, clientId: string): Promise<Client | null> => {
+        const client = await baseAdapters.clients.get(tenantId, clientId);
+        if (!client) {
+          return null;
+        }
+
+        // Skip fallback if no control plane configured
+        if (!controlPlaneTenantId || !controlPlaneClientId) {
+          return client;
+        }
+
+        // Skip fallback for the control plane client itself (avoid circular lookup)
+        if (
+          tenantId === controlPlaneTenantId &&
+          clientId === controlPlaneClientId
+        ) {
+          return client;
+        }
+
+        // Get control plane client for URL merging
+        const controlPlaneClient = await baseAdapters.clients.get(
+          controlPlaneTenantId,
+          controlPlaneClientId,
+        );
+
+        return mergeClientWithFallback(client, controlPlaneClient);
+      },
+
+      getByClientId: async (clientId: string): Promise<(Client & { tenant_id: string }) | null> => {
+        const client = await baseAdapters.clients.getByClientId(clientId);
+        if (!client) {
+          return null;
+        }
+
+        // Skip fallback if no control plane configured
+        if (!controlPlaneTenantId || !controlPlaneClientId) {
+          return client;
+        }
+
+        // Skip fallback for the control plane client itself (avoid circular lookup)
+        if (
+          client.tenant_id === controlPlaneTenantId &&
+          client.client_id === controlPlaneClientId
+        ) {
+          return client;
+        }
+
+        // Get control plane client for URL merging
+        const controlPlaneClient = await baseAdapters.clients.get(
+          controlPlaneTenantId,
+          controlPlaneClientId,
+        );
+
+        return {
+          ...mergeClientWithFallback(client, controlPlaneClient),
+          tenant_id: client.tenant_id,
+        };
       },
     },
 
