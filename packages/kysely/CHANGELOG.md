@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.93.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
+### Patch Changes
+
+- Updated dependencies [ac8af37]
+  - @authhero/adapter-interfaces@0.130.0
+
 ## 10.92.0
 
 ### Minor Changes

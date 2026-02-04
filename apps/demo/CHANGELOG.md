@@ -1,5 +1,19 @@
 # @authhero/demo
 
+## 0.30.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
+### Patch Changes
+
+- Updated dependencies [88a03cd]
+- Updated dependencies [ac8af37]
+  - @authhero/widget@0.9.0
+  - authhero@4.28.0
+  - @authhero/kysely-adapter@10.93.0
+
 ## 0.29.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.21.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
+### Patch Changes
+
+- Updated dependencies [ac8af37]
+  - @authhero/adapter-interfaces@0.130.0
+
 ## 0.20.4
 
 ### Patch Changes
