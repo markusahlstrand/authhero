@@ -1,6 +1,5 @@
 node_modules/
 dist/
-hydrate/
 loader/
 www/
 .stencil/
