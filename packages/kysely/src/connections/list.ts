@@ -1,13 +1,9 @@
 import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
-import { removeNullProperties } from "../helpers/remove-nulls";
-import {
-  Connection,
-  ListConnectionsResponse,
-  ListParams,
-} from "@authhero/adapter-interfaces";
+import { ListConnectionsResponse, ListParams } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { transformConnections } from "./transform";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -27,14 +23,7 @@ export function list(db: Kysely<Database>) {
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const dbConnections = await filteredQuery.selectAll().execute();
-    const connections: Connection[] = dbConnections.map((connection) => {
-      const { is_system, ...rest } = connection;
-      return removeNullProperties({
-        ...rest,
-        is_system: is_system ? true : undefined,
-        options: JSON.parse(connection.options),
-      });
-    });
+    const connections = transformConnections(dbConnections);
 
     if (!include_totals) {
       return {
