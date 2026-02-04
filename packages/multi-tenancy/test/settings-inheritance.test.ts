@@ -282,134 +282,15 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         client_secret: "control-plane-api-key",
       });
     });
-  });
 
-  describe("excludeSensitiveFields option", () => {
-    let safeAdapter: DataAdapters;
-
-    beforeEach(() => {
-      safeAdapter = createRuntimeFallbackAdapter(mockAdapters, {
-        controlPlaneTenantId: "control-plane",
-        controlPlaneClientId: "control-plane-client",
-        excludeSensitiveFields: true,
-      });
-    });
-
-    it("should exclude client_secret from control plane fallback in connections.get", async () => {
-      const connection = await safeAdapter.connections.get(
-        "tenant-1",
-        "email-connection",
-      );
-
-      expect(connection).toBeDefined();
-      // Tenant's own 'from' value should be present
-      expect(connection!.options?.from).toBe("tenant@example.com");
-      // client_secret should NOT be inherited from control plane
-      expect(connection!.options?.client_secret).toBeUndefined();
-    });
-
-    it("should exclude client_secret from control plane fallback in connections.list", async () => {
-      const result = await safeAdapter.connections.list("tenant-1");
-
-      expect(result.connections).toHaveLength(1);
-      const connection = result.connections[0];
-      // Tenant's own 'from' value should be present
-      expect(connection?.options?.from).toBe("tenant@example.com");
-      // client_secret should NOT be inherited from control plane
-      expect(connection?.options?.client_secret).toBeUndefined();
-    });
-
-    it("should still include sensitive fields when tenant has them", async () => {
-      // Create a mock adapter where tenant has its own client_secret
-      const tenantWithSecretAdapters = {
-        ...mockAdapters,
-        connections: {
-          ...mockAdapters.connections,
-          get: async (
-            tenantId: string,
-            connectionId: string,
-          ): Promise<Connection | null> => {
-            if (tenantId === "tenant-1" && connectionId === "email-connection") {
-              return {
-                id: "email-connection",
-                name: "email",
-                strategy: "email",
-                options: {
-                  from: "tenant@example.com",
-                  client_secret: "tenant-own-secret", // Tenant has its own secret
-                },
-                created_at: "2023-01-01T00:00:00Z",
-                updated_at: "2023-01-01T00:00:00Z",
-              };
-            }
-            return mockAdapters.connections.get(tenantId, connectionId);
-          },
-          list: async (tenantId: string) => {
-            if (tenantId === "tenant-1") {
-              return {
-                connections: [
-                  {
-                    id: "email-connection",
-                    name: "email",
-                    strategy: "email",
-                    options: {
-                      from: "tenant@example.com",
-                      client_secret: "tenant-own-secret",
-                    },
-                    created_at: "2023-01-01T00:00:00Z",
-                    updated_at: "2023-01-01T00:00:00Z",
-                  },
-                ],
-                start: 0,
-                limit: 10,
-                length: 1,
-              };
-            }
-            return mockAdapters.connections.list(tenantId);
-          },
-        },
-      };
-
-      const adapterWithTenantSecret = createRuntimeFallbackAdapter(
-        tenantWithSecretAdapters as DataAdapters,
-        {
-          controlPlaneTenantId: "control-plane",
-          controlPlaneClientId: "control-plane-client",
-          excludeSensitiveFields: true,
-        },
-      );
-
-      const connection = await adapterWithTenantSecret.connections.get(
-        "tenant-1",
-        "email-connection",
-      );
-
-      expect(connection).toBeDefined();
-      // Tenant's own client_secret should be preserved
-      expect(connection!.options?.client_secret).toBe("tenant-own-secret");
-    });
-
-    it("should not affect control plane tenant itself", async () => {
-      const connection = await safeAdapter.connections.get(
+    it("should store multiTenancyConfig on the adapter", async () => {
+      expect(fallbackAdapter.multiTenancyConfig).toBeDefined();
+      expect(fallbackAdapter.multiTenancyConfig?.controlPlaneTenantId).toBe(
         "control-plane",
-        "email-connection",
       );
-
-      expect(connection).toBeDefined();
-      // Control plane should see its own secret
-      expect(connection!.options?.client_secret).toBe("control-plane-api-key");
-    });
-
-    it("should include sensitive fields when excludeSensitiveFields is false", async () => {
-      // Verify the default behavior still works
-      const connection = await fallbackAdapter.connections.get(
-        "tenant-1",
-        "email-connection",
+      expect(fallbackAdapter.multiTenancyConfig?.controlPlaneClientId).toBe(
+        "control-plane-client",
       );
-
-      expect(connection).toBeDefined();
-      // client_secret SHOULD be inherited when excludeSensitiveFields is false
-      expect(connection!.options?.client_secret).toBe("control-plane-api-key");
     });
   });
 
@@ -610,6 +491,123 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         "http://localhost:3000/callback",
         "https://dev.example.com/callback",
       ]);
+    });
+  });
+
+  describe("management adapter pattern (raw adapter with multiTenancyConfig)", () => {
+    // This tests the pattern used by the management API where we want:
+    // 1. Raw data without control plane merging
+    // 2. multiTenancyConfig available for tenant access control
+    let managementAdapter: DataAdapters;
+
+    beforeEach(() => {
+      // Simulate what init.ts does for managementDataAdapter
+      managementAdapter = {
+        ...mockAdapters,
+        multiTenancyConfig: {
+          controlPlaneTenantId: "control-plane",
+          controlPlaneClientId: "control-plane-client",
+        },
+      };
+    });
+
+    it("should have multiTenancyConfig available for access control", () => {
+      expect(managementAdapter.multiTenancyConfig).toBeDefined();
+      expect(managementAdapter.multiTenancyConfig?.controlPlaneTenantId).toBe(
+        "control-plane",
+      );
+      expect(managementAdapter.multiTenancyConfig?.controlPlaneClientId).toBe(
+        "control-plane-client",
+      );
+    });
+
+    it("should return raw connection data without control plane merging", async () => {
+      const connection = await managementAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      // Should have tenant's own 'from' value
+      expect(connection!.options?.from).toBe("tenant@example.com");
+      // Should NOT have client_secret from control plane
+      expect(connection!.options?.client_secret).toBeUndefined();
+    });
+
+    it("should list raw connections without control plane merging", async () => {
+      const result = await managementAdapter.connections.list("tenant-1");
+
+      expect(result.connections).toHaveLength(1);
+      const connection = result.connections[0];
+      expect(connection?.options?.from).toBe("tenant@example.com");
+      // Should NOT have client_secret from control plane
+      expect(connection?.options?.client_secret).toBeUndefined();
+    });
+
+    it("should return raw client data without URL merging", async () => {
+      const client = await managementAdapter.clients.get(
+        "tenant-1",
+        "tenant-client",
+      );
+
+      expect(client).toBeDefined();
+      // Should only have tenant's own callbacks
+      expect(client!.callbacks).toEqual([
+        "https://tenant.example.com/callback",
+      ]);
+      // Should only have tenant's own web_origins
+      expect(client!.web_origins).toEqual(["https://tenant.example.com"]);
+    });
+
+    it("should return raw client data via getByClientId without URL merging", async () => {
+      const client = await managementAdapter.clients.getByClientId(
+        "tenant-client",
+      );
+
+      expect(client).toBeDefined();
+      expect(client!.tenant_id).toBe("tenant-1");
+      // Should only have tenant's own callbacks
+      expect(client!.callbacks).toEqual([
+        "https://tenant.example.com/callback",
+      ]);
+    });
+
+    it("should contrast with auth adapter which does merge data", async () => {
+      // Auth adapter uses withRuntimeFallback
+      const authAdapter = withRuntimeFallback(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        controlPlaneClientId: "control-plane-client",
+      });
+
+      // Management adapter: raw data
+      const mgmtConnection = await managementAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+      expect(mgmtConnection!.options?.client_secret).toBeUndefined();
+
+      // Auth adapter: merged data
+      const authConnection = await authAdapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+      expect(authConnection!.options?.client_secret).toBe(
+        "control-plane-api-key",
+      );
+
+      // Management adapter: raw client URLs
+      const mgmtClient = await managementAdapter.clients.get(
+        "tenant-1",
+        "tenant-client",
+      );
+      expect(mgmtClient!.callbacks).toHaveLength(1);
+
+      // Auth adapter: merged client URLs
+      const authClient = await authAdapter.clients.get(
+        "tenant-1",
+        "tenant-client",
+      );
+      expect(authClient!.callbacks).toHaveLength(3);
     });
   });
 });

@@ -5,35 +5,6 @@ import {
   connectionSchema,
   connectionOptionsSchema,
 } from "authhero";
-import { z } from "@hono/zod-openapi";
-
-type ConnectionOptions = z.infer<typeof connectionOptionsSchema>;
-
-/**
- * Sensitive fields in connection options that should not be exposed
- * through the management API when using control plane fallback.
- */
-const SENSITIVE_CONNECTION_FIELDS: (keyof ConnectionOptions)[] = [
-  "client_secret",
-  "app_secret",
-  "twilio_token",
-];
-
-/**
- * Strips sensitive fields from connection options.
- * Used to prevent control plane secrets from being exposed through the management API.
- */
-function stripSensitiveFields(
-  options: ConnectionOptions | undefined,
-): ConnectionOptions | undefined {
-  if (!options) return options;
-
-  const result = { ...options };
-  for (const field of SENSITIVE_CONNECTION_FIELDS) {
-    delete result[field];
-  }
-  return result;
-}
 
 /**
  * Merges a connection with control plane fallback options.
@@ -41,7 +12,6 @@ function stripSensitiveFields(
 function mergeConnectionWithFallback(
   connection: Connection,
   controlPlaneConnections: Connection[],
-  excludeSensitiveFields: boolean,
 ): Connection {
   // Match by strategy - allows tenants to use "google" strategy
   // and inherit OAuth credentials from control plane
@@ -58,14 +28,10 @@ function mergeConnectionWithFallback(
     ...connection,
   });
 
-  // Merge options with fallback
-  // If excludeSensitiveFields is true, strip sensitive fields from control plane options
-  const controlPlaneOptions = excludeSensitiveFields
-    ? stripSensitiveFields(controlPlaneConnection.options)
-    : controlPlaneConnection.options;
-  // Use passthrough() to preserve unknown fields like settings/credentials for SMS
+  // Merge options with fallback - control plane options provide defaults,
+  // tenant's own options override them
   mergedConnection.options = connectionOptionsSchema.passthrough().parse({
-    ...(controlPlaneOptions || {}),
+    ...(controlPlaneConnection.options || {}),
     ...connection.options,
   });
 
@@ -120,6 +86,8 @@ function mergeClientWithFallback(
  * Configuration for runtime settings fallback from a control plane tenant.
  *
  * Runtime fallback provides default values at query time without copying sensitive data.
+ * This should only be used for auth flows, not for management API which should return
+ * raw tenant data without any merging.
  */
 export interface RuntimeFallbackConfig {
   /**
@@ -135,15 +103,6 @@ export interface RuntimeFallbackConfig {
    * be merged with child tenant clients at runtime.
    */
   controlPlaneClientId?: string;
-
-  /**
-   * When true, excludes sensitive fields (client_secret, app_secret, twilio_token)
-   * from the control plane fallback. Use this for management API adapters to prevent
-   * tenants from accessing control plane secrets.
-   *
-   * @default false
-   */
-  excludeSensitiveFields?: boolean;
 }
 
 /**
@@ -185,11 +144,7 @@ export function createRuntimeFallbackAdapter(
   baseAdapters: DataAdapters,
   config: RuntimeFallbackConfig,
 ): DataAdapters {
-  const {
-    controlPlaneTenantId,
-    controlPlaneClientId,
-    excludeSensitiveFields = false,
-  } = config;
+  const { controlPlaneTenantId, controlPlaneClientId } = config;
 
   return {
     ...baseAdapters,
@@ -227,7 +182,6 @@ export function createRuntimeFallbackAdapter(
         return mergeConnectionWithFallback(
           connection,
           controlPlaneResult.connections || [],
-          excludeSensitiveFields,
         );
       },
 
@@ -247,7 +201,6 @@ export function createRuntimeFallbackAdapter(
           mergeConnectionWithFallback(
             connection,
             controlPlaneResult.connections || [],
-            excludeSensitiveFields,
           ),
         );
 
@@ -288,7 +241,6 @@ export function createRuntimeFallbackAdapter(
           mergeConnectionWithFallback(
             connection,
             controlPlaneResult.connections || [],
-            excludeSensitiveFields,
           ),
         );
       },

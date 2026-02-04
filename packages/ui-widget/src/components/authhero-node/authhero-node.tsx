@@ -949,15 +949,15 @@ export class AuthheroNode {
         {providers.map((provider) => (
           <button
             type="button"
-            class="btn btn-secondary btn-social"
-            part="button button-secondary button-social"
+            class={`btn btn-secondary btn-social btn-social-${provider}`}
+            part={`button button-secondary button-social button-social-${provider}`}
             data-provider={provider}
             disabled={this.disabled}
             onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
             key={provider}
           >
             {getProviderIcon(provider)}
-            <span>Continue with {getProviderDisplayName(provider)}</span>
+            <span part="button-social-text">{`Continue with ${getProviderDisplayName(provider)}`}</span>
           </button>
         ))}
       </div>

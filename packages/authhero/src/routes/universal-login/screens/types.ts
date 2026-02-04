@@ -8,6 +8,7 @@ import {
   Tenant,
   Theme,
   Connection,
+  CustomText,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../../../helpers/client";
 import { Bindings, Variables } from "../../../types";
@@ -63,6 +64,10 @@ export interface ScreenContext {
   messages?: Array<{ text: string; type: "success" | "info" | "warning" }>;
   /** Additional screen-specific data */
   data?: Record<string, unknown>;
+  /** Custom texts for the current language */
+  customText?: CustomText;
+  /** Current language code (e.g., 'en', 'es') */
+  language?: string;
 }
 
 /**

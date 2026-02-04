@@ -6,12 +6,15 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getCustomText, getErrorText } from "./custom-text-utils";
 
 /**
  * Build social signup buttons from available connections
  */
 function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
-  const socialConnections = context.connections.filter(
+  const { customText, connections } = context;
+
+  const socialConnections = connections.filter(
     (c) =>
       c.strategy !== "email" &&
       c.strategy !== "sms" &&
@@ -23,12 +26,25 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   }
 
   // Create provider details with icon URLs and display names
-  const providerDetails = socialConnections.map((conn) => ({
-    name: conn.name,
-    strategy: conn.strategy,
-    display_name: conn.display_name || conn.name,
-    icon_url: conn.options?.icon_url,
-  }));
+  // Apply custom text for federated button text if available
+  const providerDetails = socialConnections.map((conn) => {
+    const displayName = conn.display_name || conn.name;
+    const customButtonText = customText?.federatedConnectionButtonText
+      ? getCustomText(
+          customText,
+          "federatedConnectionButtonText",
+          `Continue with ${displayName}`,
+          { connectionName: displayName },
+        )
+      : undefined;
+
+    return {
+      name: conn.name,
+      strategy: conn.strategy,
+      display_name: customButtonText || displayName,
+      icon_url: conn.options?.icon_url,
+    };
+  });
 
   // Create a single SOCIAL component with all providers
   const providers = socialConnections.map((conn) => conn.name);
@@ -46,17 +62,26 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   };
 
   // Add divider if we have social buttons and password signup
-  const hasPasswordSignup = context.connections.some(
+  const hasPasswordSignup = connections.some(
     (c) => c.strategy === "Username-Password-Authentication",
   );
 
   if (hasPasswordSignup) {
+    const dividerText = getCustomText(
+      customText,
+      "separatorText",
+      "or",
+      undefined,
+    );
     const divider: FormNodeComponent = {
       id: "divider",
       type: "DIVIDER",
       category: "BLOCK",
       visible: true,
       order: 1,
+      config: {
+        text: dividerText,
+      },
     };
     return [socialButton, divider];
   }
@@ -67,8 +92,17 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 /**
  * Create the signup screen
  */
-export async function signupScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { client, branding, state, baseUrl, prefill, errors } = context;
+export async function signupScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
+  const { client, branding, state, baseUrl, prefill, errors, customText } =
+    context;
+
+  // Variables for text substitution
+  const textVariables = {
+    clientName: client.name || "the application",
+    companyName: branding?.logo_url ? client.name : undefined,
+  };
 
   const socialButtons = buildSocialButtons(context);
   const socialButtonCount = socialButtons.length;
@@ -87,6 +121,24 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
   if (hasPasswordSignup) {
     let order = socialButtonCount + 1;
 
+    // Get error hints with custom text support
+    const emailError = errors?.email
+      ? getErrorText(
+          customText,
+          errors.email.includes("@")
+            ? "invalid-email-format"
+            : errors.email.includes("already")
+              ? "email-already-exists"
+              : "no-email",
+          errors.email,
+          textVariables,
+        )
+      : undefined;
+
+    const passwordError = errors?.password
+      ? getErrorText(customText, "no-password", errors.password, textVariables)
+      : undefined;
+
     components.push(
       // Email input
       {
@@ -94,13 +146,23 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
         type: "EMAIL",
         category: "FIELD",
         visible: true,
-        label: "Email address",
+        label: getCustomText(
+          customText,
+          "emailPlaceholder",
+          "Email address",
+          textVariables,
+        ),
         config: {
-          placeholder: "name@example.com",
+          placeholder: getCustomText(
+            customText,
+            "emailPlaceholder",
+            "name@example.com",
+            textVariables,
+          ),
         },
         required: true,
         order: order++,
-        hint: errors?.email,
+        hint: emailError,
       },
       // Password input
       {
@@ -108,15 +170,25 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
         type: "PASSWORD",
         category: "FIELD",
         visible: true,
-        label: "Password",
+        label: getCustomText(
+          customText,
+          "passwordPlaceholder",
+          "Password",
+          textVariables,
+        ),
         config: {
-          placeholder: "Create a password",
+          placeholder: getCustomText(
+            customText,
+            "passwordPlaceholder",
+            "Create a password",
+            textVariables,
+          ),
           show_toggle: true,
         },
         required: true,
         sensitive: true,
         order: order++,
-        hint: errors?.password,
+        hint: passwordError,
       },
       // Confirm password input
       {
@@ -141,7 +213,12 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
         category: "BLOCK",
         visible: true,
         config: {
-          text: "Sign up",
+          text: getCustomText(
+            customText,
+            "buttonText",
+            "Sign up",
+            textVariables,
+          ),
         },
         order: order++,
       },
@@ -160,16 +237,34 @@ export async function signupScreen(context: ScreenContext): Promise<ScreenResult
     // Action points to HTML endpoint for no-JS fallback
     action: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Create your account",
-    description: client.name
-      ? `Sign up for ${client.name}`
-      : "Sign up to continue",
+    title: getCustomText(
+      customText,
+      "title",
+      "Create your account",
+      textVariables,
+    ),
+    description: getCustomText(
+      customText,
+      "description",
+      client.name ? `Sign up for ${client.name}` : "Sign up to continue",
+      textVariables,
+    ),
     components,
     links: [
       {
         id: "login",
-        text: "Already have an account?",
-        linkText: "Log in",
+        text: getCustomText(
+          customText,
+          "loginActionText",
+          "Already have an account?",
+          textVariables,
+        ),
+        linkText: getCustomText(
+          customText,
+          "loginActionLinkText",
+          "Log in",
+          textVariables,
+        ),
         href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],

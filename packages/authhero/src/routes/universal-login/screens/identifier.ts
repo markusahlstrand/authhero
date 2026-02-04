@@ -18,12 +18,15 @@ import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { enterCodeScreen } from "./enter-code";
 import { enterPasswordScreen } from "./enter-password";
+import { getCustomText, getErrorText } from "./custom-text-utils";
 
 /**
  * Build social login buttons from available connections
  */
 function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
-  const socialConnections = context.connections.filter(
+  const { customText, connections } = context;
+
+  const socialConnections = connections.filter(
     (c) =>
       c.strategy !== "email" &&
       c.strategy !== "sms" &&
@@ -35,12 +38,25 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   }
 
   // Create provider details with icon URLs and display names
-  const providerDetails = socialConnections.map((conn) => ({
-    name: conn.name,
-    strategy: conn.strategy,
-    display_name: conn.display_name || conn.name,
-    icon_url: conn.options?.icon_url,
-  }));
+  // Apply custom text for federated button text if available
+  const providerDetails = socialConnections.map((conn) => {
+    const displayName = conn.display_name || conn.name;
+    const customButtonText = customText?.federatedConnectionButtonText
+      ? getCustomText(
+          customText,
+          "federatedConnectionButtonText",
+          `Continue with ${displayName}`,
+          { connectionName: displayName },
+        )
+      : undefined;
+
+    return {
+      name: conn.name,
+      strategy: conn.strategy,
+      display_name: customButtonText || displayName,
+      icon_url: conn.options?.icon_url,
+    };
+  });
 
   // Create a single SOCIAL component with all providers
   const providers = socialConnections.map((conn) => conn.name);
@@ -58,7 +74,7 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   };
 
   // Add divider if we have social buttons and password/email/sms login
-  const hasPasswordOrEmailOrSms = context.connections.some(
+  const hasPasswordOrEmailOrSms = connections.some(
     (c) =>
       c.strategy === "email" ||
       c.strategy === "sms" ||
@@ -66,12 +82,21 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   );
 
   if (hasPasswordOrEmailOrSms) {
+    const dividerText = getCustomText(
+      customText,
+      "separatorText",
+      "or",
+      undefined,
+    );
     const divider: FormNodeComponent = {
       id: "divider",
       type: "DIVIDER",
       category: "BLOCK",
       visible: true,
       order: 1,
+      config: {
+        text: dividerText,
+      },
     };
     return [socialButton, divider];
   }
@@ -85,7 +110,14 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 export async function identifierScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { client, branding, state, baseUrl, prefill, errors } = context;
+  const { client, branding, state, baseUrl, prefill, errors, customText } =
+    context;
+
+  // Variables for text substitution
+  const textVariables = {
+    clientName: client.name || "the application",
+    companyName: branding?.logo_url ? client.name : undefined,
+  };
 
   const socialButtons = buildSocialButtons(context);
   const socialButtonCount = socialButtons.length;
@@ -105,6 +137,18 @@ export async function identifierScreen(
 
   // Only add email input and continue button if we have email/sms/password connections
   if (hasEmailOrPasswordConnection) {
+    // Get error text with custom text support
+    const errorHint = errors?.username
+      ? getErrorText(
+          customText,
+          errors.username.includes("@")
+            ? "invalid-email-format"
+            : "no-email",
+          errors.username,
+          textVariables,
+        )
+      : undefined;
+
     components.push(
       // Email/username input
       {
@@ -112,13 +156,23 @@ export async function identifierScreen(
         type: "EMAIL",
         category: "FIELD",
         visible: true,
-        label: "Email address",
+        label: getCustomText(
+          customText,
+          "emailPlaceholder",
+          "Email address",
+          textVariables,
+        ),
         config: {
-          placeholder: "name@example.com",
+          placeholder: getCustomText(
+            customText,
+            "emailPlaceholder",
+            "name@example.com",
+            textVariables,
+          ),
         },
         required: true,
         order: socialButtonCount + 1,
-        hint: errors?.username,
+        hint: errorHint,
       },
       // Continue button
       {
@@ -127,7 +181,12 @@ export async function identifierScreen(
         category: "BLOCK",
         visible: true,
         config: {
-          text: "Continue",
+          text: getCustomText(
+            customText,
+            "buttonText",
+            "Continue",
+            textVariables,
+          ),
         },
         order: socialButtonCount + 2,
       },
@@ -149,8 +208,18 @@ export async function identifierScreen(
   if (hasPasswordConnection && !signupsDisabled) {
     links.push({
       id: "signup",
-      text: "Don't have an account?",
-      linkText: "Sign up",
+      text: getCustomText(
+        customText,
+        "footerText",
+        "Don't have an account?",
+        textVariables,
+      ),
+      linkText: getCustomText(
+        customText,
+        "footerLinkText",
+        "Sign up",
+        textVariables,
+      ),
       href: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
     });
   }
@@ -160,10 +229,13 @@ export async function identifierScreen(
     // Widget overrides this to POST JSON to screen API when hydrated
     action: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Welcome",
-    description: client.name
-      ? `Sign in to ${client.name}`
-      : "Sign in to continue",
+    title: getCustomText(customText, "title", "Welcome", textVariables),
+    description: getCustomText(
+      customText,
+      "description",
+      client.name ? `Sign in to ${client.name}` : "Sign in to continue",
+      textVariables,
+    ),
     components,
     links,
   };

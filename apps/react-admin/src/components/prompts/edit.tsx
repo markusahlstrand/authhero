@@ -27,7 +27,15 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  ToggleButton,
+  ToggleButtonGroup,
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -81,69 +89,345 @@ const LANGUAGES = [
   { id: "cs", name: "Czech" },
 ];
 
-// Default text keys for each screen type
-const DEFAULT_TEXT_KEYS: Record<string, string[]> = {
-  login: [
-    "pageTitle",
-    "title",
-    "description",
-    "buttonText",
-    "signupActionLinkText",
-    "signupActionText",
-    "forgotPasswordText",
-    "usernameLabel",
-    "usernameOrEmailLabel",
-    "emailLabel",
-    "phoneLabel",
-    "passwordLabel",
-    "separatorText",
-    "continueWithText",
-    "invitationTitle",
-    "invitationDescription",
-    "alertListTitle",
-    "wrongEmailOrPasswordErrorText",
-    "invalidEmailErrorText",
-    "passwordRequiredErrorText",
-    "captchaErrorText",
-  ],
-  signup: [
-    "pageTitle",
-    "title",
-    "description",
-    "buttonText",
-    "loginActionLinkText",
-    "loginActionText",
-    "usernameLabel",
-    "emailLabel",
-    "phoneLabel",
-    "passwordLabel",
-    "confirmPasswordLabel",
-    "termsText",
-    "privacyPolicyText",
-    "separatorText",
-    "continueWithText",
-  ],
-  "reset-password": [
-    "pageTitle",
-    "title",
-    "description",
-    "buttonText",
-    "backToLoginText",
-    "emailLabel",
-    "successTitle",
-    "successDescription",
-  ],
-  common: [
-    "alertListTitle",
-    "showPasswordText",
-    "hidePasswordText",
-    "continueText",
-    "orText",
-    "termsOfServiceText",
-    "privacyPolicyText",
-    "contactSupportText",
-    "copyrightText",
-  ],
+// Default text keys for each screen type with their default values
+const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
+  login: {
+    pageTitle: "Log in | ${clientName}",
+    title: "Welcome",
+    description: "Log in to continue",
+    separatorText: "Or",
+    buttonText: "Continue",
+    federatedConnectionButtonText: "Continue with ${connectionName}",
+    footerLinkText: "Sign up",
+    signupActionLinkText: "${footerLinkText}",
+    footerText: "Don't have an account?",
+    signupActionText: "${footerText}",
+    forgotPasswordText: "Forgot password?",
+    passwordPlaceholder: "Password",
+    usernamePlaceholder: "Username or email address",
+    emailPlaceholder: "Email address",
+    phonePlaceholder: "Phone number",
+    editEmailText: "Edit",
+    alertListTitle: "Alerts",
+    invitationTitle: "You've Been Invited!",
+    invitationDescription:
+      "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+    logoAltText: "${companyName}",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+  },
+  "login-id": {
+    pageTitle: "Log in | ${clientName}",
+    title: "Welcome",
+    description: "Login to continue",
+    separatorText: "Or",
+    buttonText: "Continue",
+    federatedConnectionButtonText: "Continue with ${connectionName}",
+    footerLinkText: "Sign up",
+    signupActionLinkText: "${footerLinkText}",
+    footerText: "Don't have an account?",
+    signupActionText: "${footerText}",
+    forgotPasswordText: "Forgot password?",
+    passwordPlaceholder: "Password",
+    usernamePlaceholder: "Username or email address",
+    emailPlaceholder: "Email address",
+    phonePlaceholder: "Phone number",
+    usernameOnlyPlaceholder: "Username",
+    phoneOrUsernameOrEmailPlaceholder: "Phone or Username or Email",
+    phoneOrEmailPlaceholder: "Phone number or Email address",
+    phoneOrUsernamePlaceholder: "Phone Number or Username",
+    usernameOrEmailPlaceholder: "Username or Email address",
+    editEmailText: "Edit",
+    alertListTitle: "Alerts",
+    invitationTitle: "You've Been Invited!",
+    invitationDescription:
+      "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+    captchaCodePlaceholder: "Enter the code shown above",
+    logoAltText: "${companyName}",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+    selectCountryCode:
+      "Select country code, currently set to ${countryName}, ${countryCode}, +${countryPrefix}",
+    "wrong-credentials": "Wrong username or password",
+    "wrong-email-credentials": "Wrong email or password",
+    "wrong-username-credentials": "Incorrect username or password",
+    "wrong-phone-credentials": "Incorrect phone number or password",
+    "wrong-email-username-credentials":
+      "Incorrect email address, username, or password",
+    "wrong-email-phone-username-credentials":
+      "Incorrect email address, phone number, username, or password. Phone numbers must include the country code.",
+    "wrong-email-phone-credentials":
+      "Incorrect email address, phone number, or password. Phone numbers must include the country code.",
+    "wrong-phone-username-credentials":
+      "Incorrect phone number, username or password. Phone numbers must include the country code.",
+    "invalid-code": "The code you entered is invalid",
+    "invalid-expired-code": "Invalid or expired user code",
+    "custom-script-error-code": "Something went wrong, please try again later.",
+    "auth0-users-validation": "Something went wrong, please try again later",
+    "authentication-failure":
+      "We are sorry, something went wrong when attempting to log in",
+    "invalid-connection": "Invalid connection",
+    "ip-blocked":
+      "We have detected suspicious login behavior and further attempts will be blocked. Please contact the administrator.",
+    "no-db-connection": "Invalid connection",
+    "password-breached":
+      "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+    "user-blocked":
+      "Your account has been blocked after multiple consecutive login attempts.",
+    "same-user-login":
+      "Too many login attempts for this user. Please wait, and try again later.",
+    "invalid-email-format": "Email is not valid.",
+    "invalid-username":
+      "Username can only contain alphanumeric characters or: '${characters}'. Username should have between ${min} and ${max} characters.",
+    "invalid-login-id": "Invalid Login ID entered",
+    "invalid-email-phone":
+      "Enter a valid email address or phone number. Phone numbers must include the country code.",
+    "invalid-email-username": "Enter a valid email address or username",
+    "invalid-phone-username":
+      "Enter a valid phone number or username. Phone numbers must include the country code.",
+    "invalid-email-phone-username":
+      "Enter a valid email address, phone number or username. Phone numbers must include the country code.",
+    "no-email": "Please enter an email address",
+    "no-password": "Password is required",
+    "no-username": "Username is required",
+    "no-phone": "Please enter a phone number",
+    "no-email-username": "Email address or username is required",
+    "no-email-phone": "Email address or phone number is required",
+    "no-phone-username": "Phone number or username is required",
+    "no-email-phone-username":
+      "Phone number, username, or email address is required",
+    "captcha-validation-failure":
+      "We are sorry, something went wrong while validating the captcha response. Please try again.",
+    "invalid-recaptcha": "Select the checkbox to verify you are not a robot.",
+    "invalid-captcha":
+      "Solve the challenge question to verify you are not a robot.",
+    "captcha-client-failure":
+      "We couldn't load the security challenge. Please try again. (Error code: #{errorCode})",
+  },
+  "login-password": {
+    pageTitle: "Log in | ${clientName}",
+    title: "Enter your password",
+    description: "Log in to ${clientName}",
+    buttonText: "Continue",
+    forgotPasswordText: "Forgot password?",
+    passwordPlaceholder: "Password",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+    "wrong-credentials": "Wrong password",
+    "no-password": "Password is required",
+    "user-blocked":
+      "Your account has been blocked after multiple consecutive login attempts.",
+    "password-breached":
+      "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+  },
+  signup: {
+    pageTitle: "Sign up | ${clientName}",
+    title: "Create your account",
+    description: "Sign up to continue",
+    buttonText: "Continue",
+    loginActionLinkText: "Log in",
+    loginActionText: "Already have an account?",
+    separatorText: "Or",
+    federatedConnectionButtonText: "Continue with ${connectionName}",
+    emailPlaceholder: "Email address",
+    passwordPlaceholder: "Password",
+    usernamePlaceholder: "Username",
+    phonePlaceholder: "Phone number",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+    termsText: "By signing up, you agree to our",
+    termsOfServiceLinkText: "Terms of Service",
+    privacyPolicyLinkText: "Privacy Policy",
+    "invalid-email-format": "Email is not valid.",
+    "no-email": "Please enter an email address",
+    "no-password": "Password is required",
+    "no-username": "Username is required",
+    "email-already-exists": "This email is already registered",
+    "username-already-exists": "This username is already taken",
+  },
+  "signup-id": {
+    pageTitle: "Sign up | ${clientName}",
+    title: "Create your account",
+    description: "Sign up to continue",
+    buttonText: "Continue",
+    loginActionLinkText: "Log in",
+    loginActionText: "Already have an account?",
+    separatorText: "Or",
+    federatedConnectionButtonText: "Continue with ${connectionName}",
+    emailPlaceholder: "Email address",
+    usernamePlaceholder: "Username",
+    phonePlaceholder: "Phone number",
+    "invalid-email-format": "Email is not valid.",
+    "no-email": "Please enter an email address",
+    "email-already-exists": "This email is already registered",
+  },
+  "signup-password": {
+    pageTitle: "Sign up | ${clientName}",
+    title: "Create your password",
+    description: "Sign up to continue",
+    buttonText: "Continue",
+    passwordPlaceholder: "Password",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+    "no-password": "Password is required",
+    "password-too-weak": "Password is too weak",
+    "password-policy-not-met": "Password does not meet the requirements",
+  },
+  "reset-password": {
+    pageTitle: "Reset Password | ${clientName}",
+    title: "Forgot your password?",
+    description: "Enter your email to reset your password",
+    buttonText: "Continue",
+    backToLoginText: "Back to login",
+    emailPlaceholder: "Email address",
+    successTitle: "Check your email",
+    successDescription:
+      "We have sent a password reset link to your email address.",
+    "invalid-email-format": "Email is not valid.",
+    "no-email": "Please enter an email address",
+    "user-not-found": "User not found",
+  },
+  consent: {
+    pageTitle: "Authorize | ${clientName}",
+    title: "Authorize ${clientName}",
+    description: "${clientName} is requesting access to your account",
+    buttonText: "Accept",
+    cancelButtonText: "Deny",
+    scopesTitle: "This will allow ${clientName} to:",
+  },
+  mfa: {
+    pageTitle: "Multi-Factor Authentication | ${clientName}",
+    title: "Verify your identity",
+    description: "Choose a verification method",
+    backupCodeText: "Use backup code",
+  },
+  "mfa-otp": {
+    pageTitle: "Enter Code | ${clientName}",
+    title: "Enter your code",
+    description: "Enter the 6-digit code from your authenticator app",
+    buttonText: "Continue",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+  },
+  "mfa-sms": {
+    pageTitle: "SMS Verification | ${clientName}",
+    title: "Check your phone",
+    description: "We sent a code to ${phoneNumber}",
+    buttonText: "Continue",
+    resendText: "Resend code",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+  },
+  "mfa-email": {
+    pageTitle: "Email Verification | ${clientName}",
+    title: "Check your email",
+    description: "We sent a code to ${email}",
+    buttonText: "Continue",
+    resendText: "Resend code",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+  },
+  "mfa-push": {
+    pageTitle: "Push Notification | ${clientName}",
+    title: "Approve the request",
+    description: "We sent a notification to your device",
+    resendText: "Resend notification",
+    useCodeText: "Enter code manually",
+  },
+  "mfa-webauthn": {
+    pageTitle: "Security Key | ${clientName}",
+    title: "Use your security key",
+    description: "Insert your security key and follow the instructions",
+    buttonText: "Try again",
+  },
+  "mfa-voice": {
+    pageTitle: "Voice Call | ${clientName}",
+    title: "Receive a phone call",
+    description: "We will call ${phoneNumber} with your code",
+    buttonText: "Call me",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+  },
+  "mfa-phone": {
+    pageTitle: "Phone Verification | ${clientName}",
+    title: "Verify your phone",
+    description: "Enter your phone number to receive a verification code",
+    buttonText: "Continue",
+    phonePlaceholder: "Phone number",
+    smsOptionText: "Text me",
+    voiceOptionText: "Call me",
+  },
+  "mfa-recovery-code": {
+    pageTitle: "Recovery Code | ${clientName}",
+    title: "Enter recovery code",
+    description: "Enter one of your recovery codes",
+    buttonText: "Continue",
+    codePlaceholder: "Recovery code",
+    "invalid-code": "The recovery code you entered is invalid",
+  },
+  status: {
+    pageTitle: "Status | ${clientName}",
+    title: "Status",
+    successTitle: "Success",
+    errorTitle: "Error",
+    continueButtonText: "Continue",
+  },
+  "device-flow": {
+    pageTitle: "Device Activation | ${clientName}",
+    title: "Activate your device",
+    description: "Enter the code shown on your device",
+    buttonText: "Continue",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+    "expired-code": "The code has expired",
+  },
+  "email-verification": {
+    pageTitle: "Verify Email | ${clientName}",
+    title: "Verify your email",
+    description: "We sent an email to ${email}",
+    resendText: "Resend email",
+    successTitle: "Email verified",
+    successDescription: "Your email has been verified successfully.",
+  },
+  "email-otp-challenge": {
+    pageTitle: "Enter Code | ${clientName}",
+    title: "Check your email",
+    description: "We sent a code to ${email}",
+    buttonText: "Continue",
+    resendText: "Resend code",
+    codePlaceholder: "Enter code",
+    "invalid-code": "The code you entered is invalid",
+  },
+  organizations: {
+    pageTitle: "Select Organization | ${clientName}",
+    title: "Select your organization",
+    description: "Choose which organization to log in to",
+    searchPlaceholder: "Search organizations",
+  },
+  invitation: {
+    pageTitle: "Invitation | ${clientName}",
+    title: "You've been invited",
+    description:
+      "${inviterName} has invited you to join ${organizationName} on ${clientName}",
+    acceptButtonText: "Accept invitation",
+  },
+  common: {
+    alertListTitle: "Alerts",
+    showPasswordText: "Show password",
+    hidePasswordText: "Hide password",
+    continueText: "Continue",
+    orText: "or",
+    termsOfServiceText: "Terms of Service",
+    privacyPolicyText: "Privacy Policy",
+    contactSupportText: "Contact Support",
+    copyrightText: "© ${currentYear} ${companyName}",
+    backText: "Back",
+    cancelText: "Cancel",
+    closeText: "Close",
+    loadingText: "Loading...",
+    errorText: "An error occurred",
+    tryAgainText: "Try again",
+  },
 };
 
 // Remove null/undefined values from an object
@@ -186,8 +470,34 @@ function CustomTextTab() {
   const [newPrompt, setNewPrompt] = useState("");
   const [newLanguage, setNewLanguage] = useState("en");
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<"form" | "json">("form");
+  const [jsonValue, setJsonValue] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   const customTextEntries: CustomTextEntry[] = record?.customTextEntries || [];
+
+  // Get default texts for a screen, merged with existing values
+  const getTextsWithDefaults = useCallback(
+    (prompt: string, existingTexts: Record<string, string>) => {
+      const defaults = DEFAULT_TEXT_KEYS[prompt] || {};
+      const result: Record<string, string> = {};
+
+      // Add all default keys first (preserving order)
+      for (const key of Object.keys(defaults)) {
+        result[key] = existingTexts[key] ?? "";
+      }
+
+      // Add any custom keys that aren't in defaults
+      for (const key of Object.keys(existingTexts)) {
+        if (!(key in result) && existingTexts[key] !== undefined) {
+          result[key] = existingTexts[key]!;
+        }
+      }
+
+      return result;
+    },
+    [],
+  );
 
   const handleAdd = useCallback(() => {
     setNewPrompt("");
@@ -203,10 +513,10 @@ function CustomTextTab() {
 
     setLoading(true);
     try {
-      // Get default text keys for this screen
-      const defaultKeys = DEFAULT_TEXT_KEYS[newPrompt] || [];
+      // Get default text keys for this screen (empty values)
+      const defaults = DEFAULT_TEXT_KEYS[newPrompt] || {};
       const initialTexts: Record<string, string> = {};
-      defaultKeys.forEach((key) => {
+      Object.keys(defaults).forEach((key) => {
         initialTexts[key] = "";
       });
 
@@ -235,7 +545,14 @@ function CustomTextTab() {
           id: `${entry.prompt}:${entry.language}`,
         });
         setSelectedEntry(entry);
-        setEditingTexts(result.data.texts || {});
+        const textsWithDefaults = getTextsWithDefaults(
+          entry.prompt,
+          result.data.texts || {},
+        );
+        setEditingTexts(textsWithDefaults);
+        setJsonValue(JSON.stringify(textsWithDefaults, null, 2));
+        setJsonError(null);
+        setViewMode("form");
         setEditDialogOpen(true);
       } catch (error) {
         notify("Error loading custom text", { type: "error" });
@@ -243,17 +560,40 @@ function CustomTextTab() {
         setLoading(false);
       }
     },
-    [dataProvider, notify],
+    [dataProvider, notify, getTextsWithDefaults],
   );
 
   const handleSave = useCallback(async () => {
     if (!selectedEntry) return;
 
+    // If in JSON mode, parse and validate JSON first
+    let textsToSave = editingTexts;
+    if (viewMode === "json") {
+      try {
+        textsToSave = JSON.parse(jsonValue);
+        if (typeof textsToSave !== "object" || Array.isArray(textsToSave)) {
+          notify("JSON must be an object", { type: "error" });
+          return;
+        }
+      } catch (e) {
+        notify("Invalid JSON format", { type: "error" });
+        return;
+      }
+    }
+
+    // Filter out empty values before saving
+    const filteredTexts: Record<string, string> = {};
+    for (const [key, value] of Object.entries(textsToSave)) {
+      if (value && typeof value === "string" && value.trim() !== "") {
+        filteredTexts[key] = value;
+      }
+    }
+
     setLoading(true);
     try {
       await dataProvider.update("custom-text", {
         id: `${selectedEntry.prompt}:${selectedEntry.language}`,
-        data: { texts: editingTexts },
+        data: { texts: filteredTexts },
         previousData: {},
       });
       notify("Custom text updated successfully", { type: "success" });
@@ -264,7 +604,7 @@ function CustomTextTab() {
     } finally {
       setLoading(false);
     }
-  }, [dataProvider, selectedEntry, editingTexts, notify, refresh]);
+  }, [dataProvider, selectedEntry, editingTexts, jsonValue, viewMode, notify, refresh]);
 
   const handleDelete = useCallback(
     async (entry: CustomTextEntry) => {
@@ -293,8 +633,48 @@ function CustomTextTab() {
   );
 
   const handleTextChange = useCallback((key: string, value: string) => {
-    setEditingTexts((prev) => ({ ...prev, [key]: value }));
+    setEditingTexts((prev) => {
+      const newTexts = { ...prev, [key]: value };
+      setJsonValue(JSON.stringify(newTexts, null, 2));
+      return newTexts;
+    });
   }, []);
+
+  const handleJsonChange = useCallback((value: string) => {
+    setJsonValue(value);
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === "object" && !Array.isArray(parsed)) {
+        setEditingTexts(parsed);
+        setJsonError(null);
+      } else {
+        setJsonError("JSON must be an object");
+      }
+    } catch (e) {
+      setJsonError("Invalid JSON");
+    }
+  }, []);
+
+  const handleViewModeChange = useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newMode: "form" | "json" | null) => {
+      if (newMode !== null) {
+        // Sync data between views
+        if (newMode === "json") {
+          setJsonValue(JSON.stringify(editingTexts, null, 2));
+          setJsonError(null);
+        } else if (newMode === "form" && !jsonError) {
+          try {
+            const parsed = JSON.parse(jsonValue);
+            setEditingTexts(parsed);
+          } catch (e) {
+            // Keep existing form data if JSON is invalid
+          }
+        }
+        setViewMode(newMode);
+      }
+    },
+    [editingTexts, jsonValue, jsonError],
+  );
 
   const handleAddTextKey = useCallback(() => {
     const key = window.prompt("Enter new text key:");
@@ -437,58 +817,231 @@ function CustomTextTab() {
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
+        PaperProps={{ sx: { minHeight: "80vh" } }}
       >
         <DialogTitle>
-          Edit Custom Text -{" "}
-          {selectedEntry && getScreenName(selectedEntry.prompt)} (
-          {selectedEntry && getLanguageName(selectedEntry.language)})
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <span>
+              Edit Custom Text -{" "}
+              {selectedEntry && getScreenName(selectedEntry.prompt)} (
+              {selectedEntry && getLanguageName(selectedEntry.language)})
+            </span>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+            >
+              <ToggleButton value="form">Form</ToggleButton>
+              <ToggleButton value="json">JSON</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 1 }}>
-            <Box display="flex" justifyContent="flex-end" mb={2}>
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddTextKey}
-              >
-                Add Text Key
-              </Button>
-            </Box>
-            <Stack spacing={2}>
-              {Object.entries(editingTexts).map(([key, value]) => (
-                <Box key={key} display="flex" alignItems="flex-start" gap={1}>
-                  <TextField
-                    label={key}
-                    value={value}
-                    onChange={(e) => handleTextChange(key, e.target.value)}
-                    fullWidth
-                    multiline
-                    minRows={1}
-                    maxRows={4}
-                  />
-                  <IconButton
-                    onClick={() => handleRemoveTextKey(key)}
+            {viewMode === "form" ? (
+              <>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={2}
+                >
+                  <Typography variant="body2" color="textSecondary">
+                    Fill in the values you want to customize. Empty fields will
+                    use the default values. Variables like ${"{"}clientName{"}"}{" "}
+                    will be replaced at runtime.
+                  </Typography>
+                  <Button
                     size="small"
-                    color="error"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddTextKey}
                   >
-                    <DeleteIcon />
-                  </IconButton>
+                    Add Custom Key
+                  </Button>
                 </Box>
-              ))}
-              {Object.keys(editingTexts).length === 0 && (
-                <Typography color="textSecondary">
-                  No text keys configured. Click "Add Text Key" to add
-                  customizations.
+
+                {/* Group fields by category */}
+                {(() => {
+                  const entries = Object.entries(editingTexts);
+                  const defaults = selectedEntry
+                    ? DEFAULT_TEXT_KEYS[selectedEntry.prompt] || {}
+                    : {};
+
+                  // Categorize fields
+                  const categories = {
+                    "Page & Titles": [] as [string, string][],
+                    "Buttons & Actions": [] as [string, string][],
+                    "Input Fields": [] as [string, string][],
+                    "Messages & Labels": [] as [string, string][],
+                    "Error Messages": [] as [string, string][],
+                    "Custom Fields": [] as [string, string][],
+                  };
+
+                  entries.forEach(([key, value]) => {
+                    if (
+                      key.includes("error") ||
+                      key.includes("Error") ||
+                      key.startsWith("wrong-") ||
+                      key.startsWith("invalid-") ||
+                      key.startsWith("no-") ||
+                      key.includes("blocked") ||
+                      key.includes("breached") ||
+                      key.includes("failure") ||
+                      key.includes("captcha")
+                    ) {
+                      categories["Error Messages"].push([key, value]);
+                    } else if (
+                      key.includes("Title") ||
+                      key.includes("title") ||
+                      key.includes("pageTitle") ||
+                      key.includes("description") ||
+                      key.includes("Description")
+                    ) {
+                      categories["Page & Titles"].push([key, value]);
+                    } else if (
+                      key.includes("button") ||
+                      key.includes("Button") ||
+                      key.includes("Action") ||
+                      key.includes("Link") ||
+                      (key.includes("Text") &&
+                        (key.includes("footer") ||
+                          key.includes("signup") ||
+                          key.includes("login") ||
+                          key.includes("forgot") ||
+                          key.includes("back")))
+                    ) {
+                      categories["Buttons & Actions"].push([key, value]);
+                    } else if (
+                      key.includes("Placeholder") ||
+                      key.includes("placeholder") ||
+                      key.includes("Label") ||
+                      key.includes("select")
+                    ) {
+                      categories["Input Fields"].push([key, value]);
+                    } else if (!(key in defaults)) {
+                      categories["Custom Fields"].push([key, value]);
+                    } else {
+                      categories["Messages & Labels"].push([key, value]);
+                    }
+                  });
+
+                  return Object.entries(categories)
+                    .filter(([_, items]) => items.length > 0)
+                    .map(([category, items]) => (
+                      <Accordion key={category} defaultExpanded>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="subtitle1">
+                            {category}
+                            <Chip
+                              size="small"
+                              label={items.length}
+                              sx={{ ml: 1 }}
+                            />
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <Stack spacing={2}>
+                            {items.map(([key, value]) => {
+                              const defaultValue = defaults[key] || "";
+                              const isCustom = !(key in defaults);
+                              return (
+                                <Box
+                                  key={key}
+                                  display="flex"
+                                  alignItems="flex-start"
+                                  gap={1}
+                                >
+                                  <TextField
+                                    label={key}
+                                    value={value}
+                                    onChange={(e) =>
+                                      handleTextChange(key, e.target.value)
+                                    }
+                                    fullWidth
+                                    multiline
+                                    minRows={1}
+                                    maxRows={4}
+                                    placeholder={defaultValue}
+                                    helperText={
+                                      defaultValue && !isCustom
+                                        ? `Default: ${defaultValue.length > 80 ? defaultValue.substring(0, 80) + "..." : defaultValue}`
+                                        : isCustom
+                                          ? "Custom field"
+                                          : undefined
+                                    }
+                                    InputLabelProps={{
+                                      shrink: true,
+                                    }}
+                                  />
+                                  <IconButton
+                                    onClick={() => handleRemoveTextKey(key)}
+                                    size="small"
+                                    color="error"
+                                    title="Remove field"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
+                              );
+                            })}
+                          </Stack>
+                        </AccordionDetails>
+                      </Accordion>
+                    ));
+                })()}
+
+                {Object.keys(editingTexts).length === 0 && (
+                  <Typography color="textSecondary">
+                    No text keys configured. Click "Add Custom Key" to add
+                    customizations.
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Edit all text values as JSON. You can copy and paste the entire
+                  JSON object to quickly update all values.
                 </Typography>
-              )}
-            </Stack>
+                {jsonError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {jsonError}
+                  </Alert>
+                )}
+                <TextField
+                  multiline
+                  fullWidth
+                  minRows={20}
+                  maxRows={30}
+                  value={jsonValue}
+                  onChange={(e) => handleJsonChange(e.target.value)}
+                  error={!!jsonError}
+                  sx={{
+                    fontFamily: "monospace",
+                    "& .MuiInputBase-input": {
+                      fontFamily: "monospace",
+                      fontSize: "0.875rem",
+                    },
+                  }}
+                />
+              </>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading}>
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={loading || (viewMode === "json" && !!jsonError)}
+          >
             Save
           </Button>
         </DialogActions>

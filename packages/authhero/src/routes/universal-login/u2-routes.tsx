@@ -36,6 +36,132 @@ import {
   buildThemePageBackground,
   escapeHtml,
 } from "./sanitization-utils";
+import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
+
+/**
+ * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
+ * This allows URLs like /u2/login/identifier to fetch custom text for "login-id"
+ */
+const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
+  identifier: "login-id",
+  "enter-password": "login-password",
+  "enter-code": "login", // OTP code entry is part of login flow
+  signup: "signup",
+  "forgot-password": "reset-password",
+  "reset-password": "reset-password",
+  impersonate: "login",
+  "pre-signup": "signup-id",
+  "pre-signup-sent": "signup",
+  consent: "consent",
+  mfa: "mfa",
+  "mfa-otp": "mfa-otp",
+  "mfa-sms": "mfa-sms",
+  "mfa-email": "mfa-email",
+  "mfa-push": "mfa-push",
+  "mfa-webauthn": "mfa-webauthn",
+  "mfa-voice": "mfa-voice",
+  "mfa-phone": "mfa-phone",
+  "mfa-recovery-code": "mfa-recovery-code",
+  status: "status",
+  "device-flow": "device-flow",
+  "email-verification": "email-verification",
+  "email-otp-challenge": "email-otp-challenge",
+  organizations: "organizations",
+  invitation: "invitation",
+};
+
+/**
+ * Get the prompt screen ID for a given screen ID
+ */
+function getPromptScreenForScreen(screenId: string): PromptScreen | undefined {
+  return SCREEN_TO_PROMPT_MAP[screenId];
+}
+
+/**
+ * Detect language from ui_locales parameter or Accept-Language header
+ * Priority: ui_locales (from OAuth request) > Accept-Language header > "en"
+ */
+function detectLanguage(
+  uiLocales: string | undefined,
+  acceptLanguage: string | undefined,
+): string {
+  // First, try ui_locales from the OAuth authorization request
+  if (uiLocales) {
+    // ui_locales can contain multiple locales separated by spaces (e.g., "nb en")
+    // Use the first one as the preferred language
+    const firstLocale = uiLocales.split(" ")[0];
+    if (firstLocale) {
+      // Extract just the language code (e.g., "nb" from "nb-NO")
+      const langCode = firstLocale.split("-")[0]?.toLowerCase();
+      if (langCode) return langCode;
+    }
+  }
+
+  // Fall back to Accept-Language header
+  if (!acceptLanguage) return "en";
+
+  // Parse Accept-Language header (e.g., "en-US,en;q=0.9,es;q=0.8")
+  const languages = acceptLanguage.split(",").map((lang) => {
+    const [code, qValue] = lang.trim().split(";");
+    const q = qValue ? parseFloat(qValue.split("=")[1] || "1") : 1;
+    // Extract just the language code (e.g., "en" from "en-US")
+    const langCode = code?.split("-")[0]?.toLowerCase() || "en";
+    return { code: langCode, q };
+  });
+
+  // Sort by quality value and return the highest priority language
+  languages.sort((a, b) => b.q - a.q);
+  return languages[0]?.code || "en";
+}
+
+/**
+ * Fetch custom text for a screen and language, with fallbacks
+ */
+async function fetchCustomText(
+  ctx: any,
+  tenantId: string,
+  screenId: string,
+  language: string,
+): Promise<CustomText | undefined> {
+  const promptScreen = getPromptScreenForScreen(screenId);
+  if (!promptScreen) return undefined;
+
+  try {
+    // Try to get custom text for the specific prompt and language
+    let customText = await ctx.env.data.customText.get(
+      tenantId,
+      promptScreen,
+      language,
+    );
+
+    // If not found and language has a region (e.g., "en-US"), try base language
+    if (!customText && language.includes("-")) {
+      const baseLanguage = language.split("-")[0];
+      customText = await ctx.env.data.customText.get(
+        tenantId,
+        promptScreen,
+        baseLanguage!,
+      );
+    }
+
+    // If still not found, try "common" prompts for shared texts
+    if (!customText) {
+      const commonText = await ctx.env.data.customText.get(
+        tenantId,
+        "common",
+        language,
+      );
+      if (commonText) {
+        customText = commonText;
+      }
+    }
+
+    return customText || undefined;
+  } catch (error) {
+    // Custom text adapter may not exist - continue without custom text
+    return undefined;
+  }
+}
 
 /**
  * Props for the WidgetPage component
@@ -201,9 +327,9 @@ function WidgetPage({
 }
 
 /**
- * Generate the <head> content string for liquid template substitution
+ * Props for generating head content
  */
-function generateHeadContent(options: {
+type HeadContentProps = {
   clientName: string;
   branding?: {
     colors?: {
@@ -223,12 +349,19 @@ function generateHeadContent(options: {
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   theme?: any;
-}): string {
-  const { clientName, branding, themePageBackground, theme } = options;
+};
 
+/**
+ * Head content component for liquid template substitution
+ */
+function HeadContent({
+  clientName,
+  branding,
+  themePageBackground,
+  theme,
+}: HeadContentProps) {
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
-  const safeClientName = escapeHtml(clientName);
   const primaryColor = sanitizeCssColor(branding?.colors?.primary);
   const pageBackground = buildThemePageBackground(
     themePageBackground,
@@ -261,13 +394,7 @@ function generateHeadContent(options: {
         ? "20px 80px 20px 20px"
         : "20px";
 
-  return `
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in - ${safeClientName}</title>
-  ${faviconUrl ? `<link rel="icon" href="${faviconUrl}">` : ""}
-  ${fontUrl ? `<link rel="stylesheet" href="${fontUrl}">` : ""}
-  <style>
+  const styleContent = `
     * {
       box-sizing: border-box;
       margin: 0;
@@ -342,15 +469,32 @@ function generateHeadContent(options: {
         max-width: none;
       }
     }
-  </style>
-  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>`;
+  `;
+
+  return (
+    <>
+      <meta charSet="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Sign in - {clientName}</title>
+      {faviconUrl && <link rel="icon" href={faviconUrl} />}
+      {fontUrl && <link rel="stylesheet" href={fontUrl} />}
+      <style dangerouslySetInnerHTML={{ __html: styleContent }} />
+      <script type="module" src="/u/widget/authhero-widget.esm.js" />
+    </>
+  );
 }
 
 /**
- * Generate the widget content string for liquid template substitution
- * Includes screen data for SSR
+ * Generate the <head> content string for liquid template substitution
  */
-function generateWidgetContent(options: {
+function generateHeadContent(options: HeadContentProps): string {
+  return (<HeadContent {...options} />).toString();
+}
+
+/**
+ * Props for widget content
+ */
+type WidgetContentProps = {
   state: string;
   authParams: {
     client_id: string;
@@ -370,68 +514,85 @@ function generateWidgetContent(options: {
     href?: string;
     height?: number;
   };
-}): string {
-  const {
-    state,
-    authParams,
-    screenJson,
-    brandingJson,
-    themeJson,
-    widgetHtml,
-    poweredByLogo,
-  } = options;
+};
 
-  const safeState = escapeHtml(state);
-  const safeAuthParams = escapeHtml(JSON.stringify(authParams));
+/**
+ * Widget content component for liquid template substitution
+ */
+function WidgetContent({
+  state,
+  authParams,
+  screenJson,
+  brandingJson,
+  themeJson,
+  widgetHtml,
+  poweredByLogo,
+}: WidgetContentProps) {
   const safeScreenJson = escapeHtml(screenJson);
   const safeBrandingJson = brandingJson ? escapeHtml(brandingJson) : undefined;
   const safeThemeJson = themeJson ? escapeHtml(themeJson) : undefined;
+  const safeState = escapeHtml(state);
+  const safeAuthParams = escapeHtml(JSON.stringify(authParams));
 
-  // Build powered-by logo HTML if provided
-  let poweredByHtml = "";
-  if (poweredByLogo?.url) {
-    const safePoweredByUrl = sanitizeUrl(poweredByLogo.url);
-    const safePoweredByHref = poweredByLogo.href
-      ? sanitizeUrl(poweredByLogo.href)
-      : null;
-    const safeAlt = escapeHtml(poweredByLogo.alt || "");
-    const height = poweredByLogo.height || 20;
+  // Sanitize powered-by logo URLs
+  const safePoweredByUrl = poweredByLogo?.url
+    ? sanitizeUrl(poweredByLogo.url)
+    : null;
+  const safePoweredByHref = poweredByLogo?.href
+    ? sanitizeUrl(poweredByLogo.href)
+    : null;
 
-    if (safePoweredByUrl) {
-      if (safePoweredByHref) {
-        poweredByHtml = `
-    <div class="powered-by">
-      <a href="${safePoweredByHref}" target="_blank" rel="noopener noreferrer">
-        <img src="${safePoweredByUrl}" alt="${safeAlt}" height="${height}">
-      </a>
-    </div>`;
-      } else {
-        poweredByHtml = `
-    <div class="powered-by">
-      <img src="${safePoweredByUrl}" alt="${safeAlt}" height="${height}">
-    </div>`;
-      }
-    }
-  }
-
-  // If widgetHtml is provided (SSR output), it already contains the full <authhero-widget> element
-  // with all attributes and rendered content, so use it directly. Otherwise, create an empty shell.
-  const widgetElement = widgetHtml
-    ? widgetHtml
-    : `<authhero-widget
+  // Build widget element - either SSR output or empty shell for client-side hydration
+  const widgetElement = widgetHtml ? (
+    <div dangerouslySetInnerHTML={{ __html: widgetHtml }} />
+  ) : (
+    <authhero-widget
       id="widget"
-      screen="${safeScreenJson}"
-      ${safeBrandingJson ? `branding="${safeBrandingJson}"` : ""}
-      ${safeThemeJson ? `theme="${safeThemeJson}"` : ""}
-      state="${safeState}"
-      auth-params="${safeAuthParams}"
+      screen={safeScreenJson}
+      branding={safeBrandingJson}
+      theme={safeThemeJson}
+      state={safeState}
+      auth-params={safeAuthParams}
       auto-submit="true"
       auto-navigate="true"
-    ></authhero-widget>`;
+    />
+  );
 
-  return `<div class="widget-container">
-    ${widgetElement}${poweredByHtml}
-  </div>`;
+  return (
+    <div class="widget-container">
+      {widgetElement}
+      {safePoweredByUrl && (
+        <div class="powered-by">
+          {safePoweredByHref ? (
+            <a
+              href={safePoweredByHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src={safePoweredByUrl}
+                alt={poweredByLogo?.alt || ""}
+                height={poweredByLogo?.height || 20}
+              />
+            </a>
+          ) : (
+            <img
+              src={safePoweredByUrl}
+              alt={poweredByLogo?.alt || ""}
+              height={poweredByLogo?.height || 20}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Generate the widget content string for liquid template substitution
+ */
+function generateWidgetContent(options: WidgetContentProps): string {
+  return (<WidgetContent {...options} />).toString();
 }
 
 /**
@@ -471,6 +632,21 @@ function createScreenRouteHandler(screenId: string) {
 
     const baseUrl = new URL(ctx.req.url).origin;
 
+    // Detect language from ui_locales (OAuth request) or Accept-Language header
+    const acceptLanguage = ctx.req.header("Accept-Language");
+    const language = detectLanguage(
+      loginSession.authParams?.ui_locales,
+      acceptLanguage,
+    );
+
+    // Fetch custom text for this screen and language
+    const customText = await fetchCustomText(
+      ctx,
+      ctx.var.tenant_id,
+      screenId,
+      language,
+    );
+
     // Build screen context for SSR
     // Use client.connections which is already ordered per the client's configuration
     const screenContext: ScreenContext = {
@@ -488,6 +664,8 @@ function createScreenRouteHandler(screenId: string) {
       data: {
         email: loginSession.authParams.username,
       },
+      customText,
+      language,
     };
 
     // Fetch screen data for SSR
@@ -736,6 +914,21 @@ function createScreenPostHandler(screenId: string) {
 
     const baseUrl = new URL(ctx.req.url).origin;
 
+    // Detect language from ui_locales (OAuth request) or Accept-Language header
+    const acceptLanguage = ctx.req.header("Accept-Language");
+    const language = detectLanguage(
+      loginSession.authParams?.ui_locales,
+      acceptLanguage,
+    );
+
+    // Fetch custom text for this screen and language
+    const customText = await fetchCustomText(
+      ctx,
+      ctx.var.tenant_id,
+      screenId,
+      language,
+    );
+
     // Build screen context
     // Use client.connections which is already ordered per the client's configuration
     const screenContext: ScreenContext = {
@@ -753,6 +946,8 @@ function createScreenPostHandler(screenId: string) {
       data: {
         email: loginSession.authParams.username,
       },
+      customText,
+      language,
     };
 
     // Get screen definition and call POST handler
