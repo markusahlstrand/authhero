@@ -76,19 +76,26 @@ function getSession(state: string): SessionState {
 }
 
 // Parse settings from query params
-function parseSettings(query: Record<string, string | undefined>): DynamicSettings {
+function parseSettings(
+  query: Record<string, string | undefined>,
+): DynamicSettings {
   // Parse providers from query param (comma-separated) or use default
   const defaultProviders = ["google-oauth2"];
-  const providers = query.providers 
-    ? query.providers.split(",").map(p => p.trim())
+  const providers = query.providers
+    ? query.providers.split(",").map((p) => p.trim())
     : defaultProviders;
 
   return {
-    strategy: (query.strategy === "password" ? "password" : "code"),
+    strategy: query.strategy === "password" ? "password" : "code",
     showSocial: query.showSocial !== "false",
     allowSignup: query.allowSignup !== "false",
     socialProviders: providers,
   };
+}
+
+// Validate renderMode to prevent XSS - only allow "client" or "ssr"
+function parseRenderMode(value: string | undefined): "client" | "ssr" {
+  return value === "ssr" ? "ssr" : "client";
 }
 
 // ============================================
@@ -119,7 +126,11 @@ function buildSocialButtons(settings: DynamicSettings): FormComponent[] {
   ];
 }
 
-function createIdentifierScreen(state: string, baseUrl: string, settings: DynamicSettings): UiScreen {
+function createIdentifierScreen(
+  state: string,
+  baseUrl: string,
+  settings: DynamicSettings,
+): UiScreen {
   const socialButtons = buildSocialButtons(settings);
   const socialCount = socialButtons.length;
 
@@ -169,7 +180,7 @@ function createIdentifierScreen(state: string, baseUrl: string, settings: Dynami
 function createEnterPasswordScreen(
   state: string,
   baseUrl: string,
-  email?: string
+  email?: string,
 ): UiScreen {
   return {
     action: `${baseUrl}/u2/screen/enter-password?state=${state}`,
@@ -234,7 +245,7 @@ function createEnterPasswordScreen(
 function createEnterCodeScreen(
   state: string,
   baseUrl: string,
-  email?: string
+  email?: string,
 ): UiScreen {
   const maskedEmail = email
     ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
@@ -301,7 +312,11 @@ function createEnterCodeScreen(
   };
 }
 
-function createSignupScreen(state: string, baseUrl: string, settings: DynamicSettings): UiScreen {
+function createSignupScreen(
+  state: string,
+  baseUrl: string,
+  settings: DynamicSettings,
+): UiScreen {
   const socialButtons = buildSocialButtons(settings);
 
   return {
@@ -402,7 +417,7 @@ function createForgotPasswordScreen(state: string, baseUrl: string): UiScreen {
 function createSuccessScreen(
   state: string,
   baseUrl: string,
-  email?: string
+  email?: string,
 ): UiScreen {
   return {
     action: `${baseUrl}/callback?code=demo_auth_code&state=${state}`,
@@ -439,7 +454,7 @@ function screenWithError(
   screen: UiScreen,
   fieldId: string,
   errorMessage: string,
-  screenMessage?: string
+  screenMessage?: string,
 ): UiScreen {
   const updatedComponents = screen.components.map((c) => {
     if (c.id === fieldId) {
@@ -468,7 +483,7 @@ function getScreen(
   screenId: string,
   state: string,
   baseUrl: string,
-  settings: DynamicSettings
+  settings: DynamicSettings,
 ): ScreenResponse | null {
   const session = getSession(state);
   const branding: ScreenBranding = {
@@ -477,11 +492,20 @@ function getScreen(
 
   switch (screenId) {
     case "identifier":
-      return { screen: createIdentifierScreen(state, baseUrl, settings), branding };
+      return {
+        screen: createIdentifierScreen(state, baseUrl, settings),
+        branding,
+      };
     case "identifier-social": {
       // Override settings to use 3 social providers
-      const socialSettings = { ...settings, socialProviders: ["google-oauth2", "facebook", "apple"] };
-      return { screen: createIdentifierScreen(state, baseUrl, socialSettings), branding };
+      const socialSettings = {
+        ...settings,
+        socialProviders: ["google-oauth2", "facebook", "apple"],
+      };
+      return {
+        screen: createIdentifierScreen(state, baseUrl, socialSettings),
+        branding,
+      };
     }
     case "enter-password":
       return {
@@ -515,7 +539,7 @@ function handleIdentifierPost(
   data: Record<string, unknown>,
   state: string,
   baseUrl: string,
-  settings: DynamicSettings
+  settings: DynamicSettings,
 ): PostResponse {
   const username = (data.username as string)?.toLowerCase()?.trim();
   const session = getSession(state);
@@ -534,7 +558,7 @@ function handleIdentifierPost(
       screen: screenWithError(
         screen,
         "username",
-        "Please enter a valid email address"
+        "Please enter a valid email address",
       ),
     };
   }
@@ -558,7 +582,7 @@ function handleIdentifierPost(
 function handleEnterPasswordPost(
   data: Record<string, unknown>,
   state: string,
-  baseUrl: string
+  baseUrl: string,
 ): PostResponse {
   const password = data.password as string;
   const session = getSession(state);
@@ -577,7 +601,7 @@ function handleEnterPasswordPost(
         screen,
         "password",
         "Invalid password",
-        "The email or password is incorrect."
+        "The email or password is incorrect.",
       ),
     };
   }
@@ -590,7 +614,7 @@ function handleEnterPasswordPost(
 function handleEnterCodePost(
   data: Record<string, unknown>,
   state: string,
-  baseUrl: string
+  baseUrl: string,
 ): PostResponse {
   const code = (data.code as string)?.trim();
   const session = getSession(state);
@@ -618,7 +642,7 @@ function handleSignupPost(
   data: Record<string, unknown>,
   state: string,
   baseUrl: string,
-  settings: DynamicSettings
+  settings: DynamicSettings,
 ): PostResponse {
   const email = (data.email as string)?.toLowerCase()?.trim();
   const password = data.password as string;
@@ -637,7 +661,7 @@ function handleSignupPost(
       screen: screenWithError(
         screen,
         "password",
-        "Password must be at least 8 characters"
+        "Password must be at least 8 characters",
       ),
     };
   }
@@ -651,7 +675,7 @@ function handleSignupPost(
 function handleForgotPasswordPost(
   data: Record<string, unknown>,
   state: string,
-  baseUrl: string
+  baseUrl: string,
 ): PostResponse {
   const email = (data.email as string)?.toLowerCase()?.trim();
 
@@ -669,7 +693,12 @@ function handleForgotPasswordPost(
   return {
     screen: {
       ...screen,
-      messages: [{ text: `If an account exists for ${email}, you will receive a reset link.`, type: "success" }],
+      messages: [
+        {
+          text: `If an account exists for ${email}, you will receive a reset link.`,
+          type: "success",
+        },
+      ],
     },
   };
 }
@@ -686,19 +715,26 @@ async function renderWidgetPage(options: {
   providers?: string;
   renderMode?: "client" | "ssr";
 }): Promise<string> {
-  const { screenId, state, baseUrl, urlMode, providers, renderMode = "client" } = options;
+  const {
+    screenId,
+    state,
+    baseUrl,
+    urlMode,
+    providers,
+    renderMode = "client",
+  } = options;
 
   // Pre-render widget HTML if SSR mode
   let prerenderedWidgetHtml = "";
   if (renderMode === "ssr") {
     // Get the initial screen data to pre-render
-    const settings = parseSettings({ 
+    const settings = parseSettings({
       providers: providers || "google-oauth2",
       strategy: "code",
       showSocial: "true",
-      allowSignup: "true"
+      allowSignup: "true",
     });
-    
+
     // Get the screen config based on screenId
     let screen: UiScreen;
     switch (screenId) {
@@ -721,9 +757,9 @@ async function renderWidgetPage(options: {
       default:
         screen = createIdentifierScreen(state, baseUrl, settings);
     }
-    
+
     const screenJson = JSON.stringify(screen).replace(/'/g, "&#39;");
-    
+
     try {
       const result = await renderToString(
         `<authhero-widget 
@@ -735,7 +771,7 @@ async function renderWidgetPage(options: {
         {
           fullDocument: false,
           serializeShadowRoot: "declarative-shadow-dom",
-        }
+        },
       );
       prerenderedWidgetHtml = result.html || "";
     } catch (err) {
@@ -744,7 +780,7 @@ async function renderWidgetPage(options: {
     }
   }
 
-  return `<!DOCTYPE html>>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1634,6 +1670,7 @@ async function renderWidgetPage(options: {
       try {
         const settings = {
           urlMode,
+          renderMode,
           loginStrategy,
           showSocial,
           allowSignup,
@@ -1662,6 +1699,7 @@ async function renderWidgetPage(options: {
     
     // Settings state
     let urlMode = savedSettings?.urlMode || '${urlMode}';
+    let renderMode = new URLSearchParams(window.location.search).get('renderMode') || savedSettings?.renderMode || '${renderMode}';
     let loginStrategy = savedSettings?.loginStrategy || 'code';
     let showSocial = savedSettings?.showSocial ?? true;
     let allowSignup = savedSettings?.allowSignup ?? true;
@@ -1794,7 +1832,11 @@ async function renderWidgetPage(options: {
           'forgot-password': '/u2/forgot-password',
           'success': '/u2/success',
         };
-        return (pathMap[screenId] || pathMap['identifier']) + '?state=' + currentState;
+        let url = (pathMap[screenId] || pathMap['identifier']) + '?state=' + currentState;
+        if (renderMode === 'ssr') {
+          url += '&renderMode=ssr';
+        }
+        return url;
       } else {
         return '/u2/login?screen=' + screenId + '&state=' + currentState;
       }
@@ -2355,12 +2397,14 @@ const app = new Hono();
 app.use("*", logger());
 app.use("*", cors());
 
-// Serve widget files from dist  
+// Serve widget files from dist
 app.get("/widget/*", async (c) => {
   const path = c.req.path.replace("/widget", "dist");
   try {
-    const file = await import("fs/promises").then(fs => fs.readFile(path, "utf-8"));
-    
+    const file = await import("fs/promises").then((fs) =>
+      fs.readFile(path, "utf-8"),
+    );
+
     // Determine content type based on file extension
     let contentType = "text/plain";
     if (path.endsWith(".js")) contentType = "application/javascript";
@@ -2369,10 +2413,11 @@ app.get("/widget/*", async (c) => {
     else if (path.endsWith(".svg")) contentType = "image/svg+xml";
     else if (path.endsWith(".html")) contentType = "text/html";
     else if (path.endsWith(".png")) contentType = "image/png";
-    else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+    else if (path.endsWith(".jpg") || path.endsWith(".jpeg"))
+      contentType = "image/jpeg";
     else if (path.endsWith(".woff")) contentType = "font/woff";
     else if (path.endsWith(".woff2")) contentType = "font/woff2";
-    
+
     return c.body(file, 200, { "Content-Type": contentType });
   } catch {
     return c.text("Not found", 404);
@@ -2387,9 +2432,10 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 // ----------------------------------------
 app.get("/u2/screen/:screenId", (c) => {
   const screenId = c.req.param("screenId");
-  const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
   const baseUrl = new URL(c.req.url).origin;
-  
+
   // Parse dynamic settings from query params
   const settings = parseSettings({
     strategy: c.req.query("strategy"),
@@ -2413,7 +2459,7 @@ app.post("/u2/screen/:screenId", async (c) => {
   const screenId = c.req.param("screenId");
   const state = c.req.query("state") || "demo";
   const baseUrl = new URL(c.req.url).origin;
-  
+
   // Parse dynamic settings from query params
   const settings = parseSettings({
     strategy: c.req.query("strategy"),
@@ -2452,7 +2498,11 @@ app.post("/u2/screen/:screenId", async (c) => {
       return c.json({ error: "Unknown screen" }, 404);
   }
 
-  const status = result.redirect ? 200 : result.screen?.messages?.some((m) => m.type === "error") ? 400 : 200;
+  const status = result.redirect
+    ? 200
+    : result.screen?.messages?.some((m) => m.type === "error")
+      ? 400
+      : 200;
   return c.json(result, status);
 });
 
@@ -2460,60 +2510,112 @@ app.post("/u2/screen/:screenId", async (c) => {
 // Widget Pages (path-based routing)
 // ----------------------------------------
 app.get("/u2/login/identifier", async (c) => {
-  const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "identifier", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "identifier",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 // Identifier with 3 social providers (Google, Facebook, Apple)
 app.get("/u2/login/identifier-social", async (c) => {
-  const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ 
-    screenId: "identifier", 
-    state, 
-    baseUrl, 
-    urlMode: "path",
-    providers: "google-oauth2,facebook,apple",
-    renderMode
-  }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "identifier",
+      state,
+      baseUrl,
+      urlMode: "path",
+      providers: "google-oauth2,facebook,apple",
+      renderMode,
+    }),
+  );
 });
 
 app.get("/u2/enter-password", async (c) => {
   const state = c.req.query("state") || "demo";
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "enter-password", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "enter-password",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 app.get("/u2/enter-code", async (c) => {
   const state = c.req.query("state") || "demo";
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "enter-code", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "enter-code",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 app.get("/u2/signup", async (c) => {
   const state = c.req.query("state") || "demo";
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "signup", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "signup",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 app.get("/u2/forgot-password", async (c) => {
   const state = c.req.query("state") || "demo";
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "forgot-password", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "forgot-password",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 app.get("/u2/success", async (c) => {
   const state = c.req.query("state") || "demo";
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: "success", state, baseUrl, urlMode: "path", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: "success",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
 });
 
 // ----------------------------------------
@@ -2521,10 +2623,19 @@ app.get("/u2/success", async (c) => {
 // ----------------------------------------
 app.get("/u2/login", async (c) => {
   const screen = c.req.query("screen") || "identifier";
-  const state = c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
-  const renderMode = (c.req.query("renderMode") as "client" | "ssr") || "client";
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
-  return c.html(await renderWidgetPage({ screenId: screen, state, baseUrl, urlMode: "query", renderMode }));
+  return c.html(
+    await renderWidgetPage({
+      screenId: screen,
+      state,
+      baseUrl,
+      urlMode: "query",
+      renderMode,
+    }),
+  );
 });
 
 // ----------------------------------------

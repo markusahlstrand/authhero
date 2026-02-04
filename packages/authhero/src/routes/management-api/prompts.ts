@@ -229,7 +229,7 @@ export const promptsRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
-      const customText = await ctx.req.json();
+      const customText = customTextSchema.parse(await ctx.req.json());
 
       await ctx.env.data.customText.set(
         ctx.var.tenant_id,
