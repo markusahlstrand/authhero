@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.92.0
+
+### Minor Changes
+
+- 3b4445f: Handle conversion of is_system
+
 ## 10.91.0
 
 ### Minor Changes
