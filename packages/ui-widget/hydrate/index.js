@@ -4991,6 +4991,17 @@ class AuthheroNode {
             value: target.checked ? "true" : "false",
         });
     };
+    /**
+     * Sanitize a string for use in CSS class names and part tokens.
+     * Replaces spaces and special characters with hyphens, converts to lowercase.
+     */
+    sanitizeForCssToken(value) {
+        return value
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, "-") // Replace non-alphanumeric chars with hyphen
+            .replace(/-+/g, "-") // Collapse multiple hyphens
+            .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+    }
     handleButtonClick = (e, type, value) => {
         if (type !== "submit") {
             e.preventDefault();
@@ -5259,7 +5270,10 @@ class AuthheroNode {
             // Default: generic globe icon for unknown providers
             return (hAsync("svg", { class: "social-icon", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" }, hAsync("circle", { cx: "12", cy: "12", r: "10", fill: "none", stroke: "#666", "stroke-width": "2" }), hAsync("path", { d: "M2 12h20M12 2c-2.5 2.5-4 5.5-4 10s1.5 7.5 4 10c2.5-2.5 4-5.5 4-10s-1.5-7.5-4-10z", fill: "none", stroke: "#666", "stroke-width": "2" })));
         };
-        return (hAsync("div", { class: "social-buttons", part: "social-buttons" }, providers.map((provider) => (hAsync("button", { type: "button", class: "btn btn-secondary btn-social", part: "button button-secondary button-social", "data-provider": provider, disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "SOCIAL", provider), key: provider }, getProviderIcon(provider), hAsync("span", null, "Continue with ", getProviderDisplayName(provider)))))));
+        return (hAsync("div", { class: "social-buttons", part: "social-buttons" }, providers.map((provider) => {
+            const safeProvider = this.sanitizeForCssToken(provider);
+            return (hAsync("button", { type: "button", class: `btn btn-secondary btn-social btn-social-${safeProvider}`, part: `button button-secondary button-social button-social-${safeProvider}`, "data-provider": provider, disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "SOCIAL", provider), key: provider }, getProviderIcon(provider), hAsync("span", { part: "button-social-text" }, `Continue with ${getProviderDisplayName(provider)}`)));
+        })));
     }
     // ===========================================================================
     // Main Render
@@ -5635,6 +5649,139 @@ function applyCssVars(element, vars) {
     Object.entries(vars).forEach(([key, value]) => {
         element.style.setProperty(key, value);
     });
+}
+
+/**
+ * Sanitize HTML to only allow safe formatting tags
+ *
+ * Allowed tags:
+ * - <br>, <br/> - Line breaks
+ * - <em>, <i> - Italic
+ * - <strong>, <b> - Bold
+ * - <u> - Underline
+ * - <span> - Generic inline container (for styling)
+ * - <a> - Links (href attribute only, with target="_blank" and rel="noopener")
+ *
+ * All other tags and attributes are stripped.
+ */
+// Allowed tags and their allowed attributes
+const ALLOWED_TAGS = {
+    br: [],
+    em: [],
+    i: [],
+    strong: [],
+    b: [],
+    u: [],
+    span: ["class"],
+    a: ["href", "class"],
+};
+/**
+ * Sanitize HTML string to only allow safe formatting tags
+ *
+ * @param html - The HTML string to sanitize
+ * @returns Sanitized HTML string safe for innerHTML
+ */
+function sanitizeHtml(html) {
+    if (!html)
+        return "";
+    // If no < character present, return as-is (optimization)
+    // Must check for any < to prevent bypassing sanitization with malformed tags
+    // like "<img src=x onerror=..." which forgiving HTML parsers may still execute
+    if (!html.includes("<")) {
+        return html;
+    }
+    // Use a simple regex-based approach that's safe for our limited use case
+    // This avoids needing DOMParser which may not be available in all environments
+    let result = html;
+    // First, escape all HTML
+    result = result
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    // Then selectively re-enable allowed tags
+    for (const [tag, allowedAttrs] of Object.entries(ALLOWED_TAGS)) {
+        // Self-closing tags (like <br> and <br/>)
+        if (tag === "br") {
+            result = result.replace(/&lt;br\s*\/?&gt;/gi, "<br>");
+            continue;
+        }
+        // Opening tags with optional attributes
+        const openingPattern = new RegExp(`&lt;${tag}((?:\\s+[a-z-]+(?:=&quot;[^&]*&quot;|=&#39;[^&]*&#39;)?)*)\\s*&gt;`, "gi");
+        result = result.replace(openingPattern, (_match, attrsStr) => {
+            // Parse and filter attributes
+            const filteredAttrs = [];
+            if (attrsStr) {
+                // Unescape the attributes string for parsing
+                const unescapedAttrs = attrsStr
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'")
+                    .replace(/&amp;/g, "&")
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">");
+                // Extract attributes
+                const attrPattern = /([a-z-]+)=["']([^"']*)["']/gi;
+                let attrMatch;
+                while ((attrMatch = attrPattern.exec(unescapedAttrs)) !== null) {
+                    const [, attrName, attrValue] = attrMatch;
+                    if (attrName && allowedAttrs.includes(attrName.toLowerCase())) {
+                        // For href, validate it's a safe URL
+                        if (attrName.toLowerCase() === "href") {
+                            if (isSafeUrl(attrValue || "")) {
+                                filteredAttrs.push(`${attrName}="${escapeAttr(attrValue || "")}"`);
+                            }
+                        }
+                        else {
+                            filteredAttrs.push(`${attrName}="${escapeAttr(attrValue || "")}"`);
+                        }
+                    }
+                }
+            }
+            // For <a> tags, always add security attributes
+            if (tag === "a") {
+                filteredAttrs.push('target="_blank"');
+                filteredAttrs.push('rel="noopener noreferrer"');
+            }
+            const attrsOutput = filteredAttrs.length
+                ? " " + filteredAttrs.join(" ")
+                : "";
+            return `<${tag}${attrsOutput}>`;
+        });
+        // Closing tags
+        const closingPattern = new RegExp(`&lt;/${tag}&gt;`, "gi");
+        result = result.replace(closingPattern, `</${tag}>`);
+    }
+    return result;
+}
+/**
+ * Check if a URL is safe (http, https, or relative)
+ */
+function isSafeUrl(url) {
+    if (!url)
+        return false;
+    // Allow relative URLs
+    if (url.startsWith("/") || url.startsWith("#") || url.startsWith("?")) {
+        return true;
+    }
+    // Allow http and https
+    try {
+        const parsed = new URL(url, "https://example.com");
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    }
+    catch {
+        return false;
+    }
+}
+/**
+ * Escape attribute value
+ */
+function escapeAttr(value) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
 
 const authheroWidgetCss = () => `:host{display:block;font-family:var(--ah-font-family, 'ulp-font', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, sans-serif);font-size:var(--ah-font-size-base, 14px);line-height:var(--ah-line-height-base, 1.5);color:var(--ah-color-text, #1e212a);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.widget-container{max-width:var(--ah-widget-max-width, 400px);width:100%;margin:0 auto;background-color:var(--ah-color-bg, #ffffff);border-radius:var(--ah-widget-radius, 5px);box-shadow:var(--ah-widget-shadow, 0 4px 22px 0 rgba(0, 0, 0, 0.11));box-sizing:border-box}.widget-header{padding:var(--ah-header-padding, 40px 48px 24px)}.widget-body{padding:var(--ah-body-padding, 0 48px 40px)}.logo-wrapper{display:var(--ah-logo-display, flex);justify-content:var(--ah-logo-align, center);margin-bottom:8px}.logo{display:block;height:var(--ah-logo-height, 52px);max-width:100%;width:auto;object-fit:contain}.title{font-size:var(--ah-font-size-title, 24px);font-weight:var(--ah-font-weight-title, 700);text-align:var(--ah-title-align, center);margin:var(--ah-title-margin, 24px 0 8px);color:var(--ah-color-header, #1e212a);line-height:1.2}.description{font-size:var(--ah-font-size-description, 14px);text-align:var(--ah-title-align, center);margin:var(--ah-description-margin, 0 0 8px);color:var(--ah-color-text, #1e212a);line-height:1.5}.message{padding:12px 16px;border-radius:4px;margin-bottom:16px;font-size:14px;line-height:1.5}.message-error{background-color:var(--ah-color-error-bg, #ffeaea);color:var(--ah-color-error, #d03c38);border-left:3px solid var(--ah-color-error, #d03c38)}.message-success{background-color:var(--ah-color-success-bg, #e6f9f1);color:var(--ah-color-success, #13a769);border-left:3px solid var(--ah-color-success, #13a769)}form{display:flex;flex-direction:column}.form-content{display:flex;flex-direction:column}.social-section{display:flex;flex-direction:column;gap:8px;order:var(--ah-social-order, 2)}.fields-section{display:flex;flex-direction:column;order:var(--ah-fields-order, 0)}.divider{display:flex;align-items:center;text-align:center;margin:16px 0;order:var(--ah-divider-order, 1)}.divider::before,.divider::after{content:'';flex:1;border-bottom:1px solid var(--ah-color-border-muted, #c9cace)}.divider-text{padding:0 10px;font-size:12px;font-weight:400;color:var(--ah-color-text-muted, #65676e);text-transform:uppercase;letter-spacing:0}.links{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:16px}.link-wrapper{font-size:14px;color:var(--ah-color-text, #1e212a)}.link{color:var(--ah-color-link, #635dff);text-decoration:var(--ah-link-decoration, none);font-size:14px;font-weight:var(--ah-font-weight-link, 400);transition:color 150ms ease}.link:hover{text-decoration:underline}.link:focus-visible{outline:2px solid var(--ah-color-link, #635dff);outline-offset:2px;border-radius:2px}.loading-spinner{width:32px;height:32px;margin:24px auto;border:3px solid var(--ah-color-border-muted, #e0e1e3);border-top-color:var(--ah-color-primary, #635dff);border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}.error-message{text-align:center;color:var(--ah-color-error, #d03c38);padding:16px;font-size:14px}@media (max-width: 480px){:host{display:block;width:100%;min-height:100vh;background-color:var(--ah-color-bg, #ffffff)}.widget-container{box-shadow:none;border-radius:0;max-width:none;width:100%;margin:0}.widget-header{padding:24px 16px 16px}.widget-body{padding:0 16px 24px}}`;
@@ -6235,7 +6382,7 @@ class AuthheroWidget {
         const hasDivider = components.some((c) => this.isDividerComponent(c));
         // Get logo URL from theme.widget (takes precedence) or branding
         const logoUrl = this._theme?.widget?.logo_url || this._branding?.logo_url;
-        return (hAsync("div", { class: "widget-container", part: "container" }, hAsync("header", { class: "widget-header", part: "header" }, logoUrl && (hAsync("div", { class: "logo-wrapper", part: "logo-wrapper" }, hAsync("img", { class: "logo", part: "logo", src: logoUrl, alt: "Logo" }))), this._screen.title && (hAsync("h1", { class: "title", part: "title" }, this._screen.title)), this._screen.description && (hAsync("p", { class: "description", part: "description" }, this._screen.description))), hAsync("div", { class: "widget-body", part: "body" }, screenErrors.map((err) => (hAsync("div", { class: "message message-error", part: "message message-error", key: err.id ?? err.text }, err.text))), screenSuccesses.map((msg) => (hAsync("div", { class: "message message-success", part: "message message-success", key: msg.id ?? msg.text }, msg.text))), hAsync("form", { onSubmit: this.handleSubmit, part: "form" }, hAsync("div", { class: "form-content" }, socialComponents.length > 0 && (hAsync("div", { class: "social-section", part: "social-section" }, socialComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading }))))), socialComponents.length > 0 &&
+        return (hAsync("div", { class: "widget-container", part: "container" }, hAsync("header", { class: "widget-header", part: "header" }, logoUrl && (hAsync("div", { class: "logo-wrapper", part: "logo-wrapper" }, hAsync("img", { class: "logo", part: "logo", src: logoUrl, alt: "Logo" }))), this._screen.title && (hAsync("h1", { class: "title", part: "title", innerHTML: sanitizeHtml(this._screen.title) })), this._screen.description && (hAsync("p", { class: "description", part: "description", innerHTML: sanitizeHtml(this._screen.description) }))), hAsync("div", { class: "widget-body", part: "body" }, screenErrors.map((err) => (hAsync("div", { class: "message message-error", part: "message message-error", key: err.id ?? err.text }, err.text))), screenSuccesses.map((msg) => (hAsync("div", { class: "message message-success", part: "message message-success", key: msg.id ?? msg.text }, msg.text))), hAsync("form", { onSubmit: this.handleSubmit, part: "form" }, hAsync("div", { class: "form-content" }, socialComponents.length > 0 && (hAsync("div", { class: "social-section", part: "social-section" }, socialComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading }))))), socialComponents.length > 0 &&
             fieldComponents.length > 0 &&
             hasDivider && (hAsync("div", { class: "divider", part: "divider" }, hAsync("span", { class: "divider-text" }, "Or"))), hAsync("div", { class: "fields-section", part: "fields-section" }, fieldComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading })))))), this._screen.links && this._screen.links.length > 0 && (hAsync("div", { class: "links", part: "links" }, this._screen.links.map((link) => (hAsync("span", { class: "link-wrapper", part: "link-wrapper", key: link.id ?? link.href }, link.linkText ? (hAsync("span", null, link.text, " ", hAsync("a", { href: link.href, class: "link", part: "link", onClick: (e) => this.handleLinkClick(e, {
                 id: link.id,

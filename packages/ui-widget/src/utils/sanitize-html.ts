@@ -33,8 +33,10 @@ const ALLOWED_TAGS: Record<string, string[]> = {
 export function sanitizeHtml(html: string | undefined | null): string {
   if (!html) return "";
 
-  // If no HTML tags present, return as-is (optimization)
-  if (!/<[^>]+>/.test(html)) {
+  // If no < character present, return as-is (optimization)
+  // Must check for any < to prevent bypassing sanitization with malformed tags
+  // like "<img src=x onerror=..." which forgiving HTML parsers may still execute
+  if (!html.includes("<")) {
     return html;
   }
 
