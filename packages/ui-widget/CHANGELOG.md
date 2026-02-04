@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.10.0
+
+### Minor Changes
+
+- 44b76d9: Update the custom text behaviour
+
 ## 0.9.0
 
 ### Minor Changes
