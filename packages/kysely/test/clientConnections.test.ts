@@ -215,6 +215,61 @@ describe("ClientConnectionsAdapter", () => {
       expect(connections).toHaveLength(1);
       expect(connections[0].options).toEqual({ client_id: "google-client-id" });
     });
+
+    it("should convert is_system from number to boolean", async () => {
+      // Create a connection with is_system set to 1 (true in SQLite)
+      await db
+        .insertInto("connections")
+        .values({
+          id: "conn-system",
+          tenant_id: tenantId,
+          name: "System Connection",
+          strategy: "auth0",
+          options: "{}",
+          is_system: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      // Set up client with the system connection
+      await db
+        .updateTable("clients")
+        .set({ connections: JSON.stringify(["conn-system"]) })
+        .where("client_id", "=", "client-1")
+        .execute();
+
+      const connections = await adapter.clientConnections.listByClient(
+        tenantId,
+        "client-1",
+      );
+
+      expect(connections).toHaveLength(1);
+      expect(connections[0].id).toBe("conn-system");
+      // is_system should be converted from number (1) to boolean (true)
+      expect(connections[0].is_system).toBe(true);
+      // Verify it's actually a boolean, not a number
+      expect(typeof connections[0].is_system).toBe("boolean");
+    });
+
+    it("should exclude is_system when it is 0 or falsy", async () => {
+      // Connection with is_system = 0 should not include is_system in the result
+      await db
+        .updateTable("clients")
+        .set({ connections: JSON.stringify(["conn-1"]) })
+        .where("client_id", "=", "client-1")
+        .execute();
+
+      const connections = await adapter.clientConnections.listByClient(
+        tenantId,
+        "client-1",
+      );
+
+      expect(connections).toHaveLength(1);
+      expect(connections[0].id).toBe("conn-1");
+      // is_system should be undefined when the value is 0/falsy
+      expect(connections[0].is_system).toBeUndefined();
+    });
   });
 
   describe("updateByClient", () => {

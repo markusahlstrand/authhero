@@ -4,6 +4,7 @@ import { update } from "./update";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { create } from "./create";
+import { remove } from "./remove";
 
 export function createEmailProvidersAdapter(
   db: Kysely<Database>,
@@ -12,5 +13,6 @@ export function createEmailProvidersAdapter(
     get: get(db),
     create: create(db),
     update: update(db),
+    remove: remove(db),
   };
 }

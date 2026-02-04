@@ -10,6 +10,9 @@ describe("emailProviders", () => {
 
     const token = await getAdminToken();
 
+    // Delete the default email provider created by test setup
+    await env.data.emailProviders.remove("tenantId");
+
     // Check that we get a 404 when no email provider is set
     const emptyEmailProviderResponse =
       await managementClient.email.providers.$get(

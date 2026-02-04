@@ -33,23 +33,6 @@ const app = init({
 });
 ```
 
-### Environment Configuration
-
-You can still use environment variables for default tenant/client configuration:
-
-```typescript
-// In your Bindings environment
-const env = {
-  // Other environment variables...
-  DEFAULT_TENANT_ID: "main",
-  DEFAULT_CLIENT_ID: "main-client",
-  data: withMainTenantFallback(baseAdapters, {
-    mainTenantId: process.env.DEFAULT_TENANT_ID,
-    mainClientId: process.env.DEFAULT_CLIENT_ID,
-  }),
-};
-```
-
 ## How It Works
 
 ### Client Fallbacks

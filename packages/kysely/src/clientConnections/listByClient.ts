@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
-import { removeNullProperties } from "../helpers/remove-nulls";
+import { transformConnection } from "../connections/transform";
 
 export function listByClient(db: Kysely<Database>) {
   return async (tenant_id: string, client_id: string): Promise<Connection[]> => {
@@ -24,22 +24,16 @@ export function listByClient(db: Kysely<Database>) {
     }
 
     // Get all connections that are in the client's connections array
-    const connections = await db
+    const dbConnections = await db
       .selectFrom("connections")
       .where("connections.tenant_id", "=", tenant_id)
       .where("connections.id", "in", connectionIds)
       .selectAll()
       .execute();
 
-    // Transform each connection
+    // Transform and create a map for ordering
     const connectionMap = new Map(
-      connections.map((c) => [
-        c.id,
-        removeNullProperties({
-          ...c,
-          options: JSON.parse(c.options),
-        }) as Connection,
-      ]),
+      dbConnections.map((c) => [c.id, transformConnection(c)]),
     );
 
     // Return connections in the order specified in the client's connections array

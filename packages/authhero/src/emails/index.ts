@@ -21,12 +21,7 @@ export async function sendEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: SendEmailParams,
 ) {
-  const emailProvider =
-    (await ctx.env.data.emailProviders.get(ctx.var.tenant_id)) ||
-    // Fallback to default tenant
-    (ctx.env.DEFAULT_TENANT_ID
-      ? await ctx.env.data.emailProviders.get(ctx.env.DEFAULT_TENANT_ID)
-      : null);
+  const emailProvider = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
 
   if (!emailProvider) {
     throw new HTTPException(500, { message: "Email provider not found" });

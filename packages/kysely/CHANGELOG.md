@@ -1,5 +1,22 @@
 # @authhero/kysely-adapter
 
+## 10.92.0
+
+### Minor Changes
+
+- 3b4445f: Handle conversion of is_system
+
+## 10.91.0
+
+### Minor Changes
+
+- a8e70e6: Update schemas to remove old fallbacks
+
+### Patch Changes
+
+- Updated dependencies [a8e70e6]
+  - @authhero/adapter-interfaces@0.129.0
+
 ## 10.90.0
 
 ### Minor Changes

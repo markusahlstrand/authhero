@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.129.0
+
+### Minor Changes
+
+- a8e70e6: Update schemas to remove old fallbacks
+
 ## 0.128.0
 
 ### Minor Changes

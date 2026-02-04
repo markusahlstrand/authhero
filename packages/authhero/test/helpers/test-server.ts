@@ -76,15 +76,14 @@ export async function getTestServer(
     sender_name: "SenderName",
   });
 
-  if (args.mockEmail) {
-    await data.emailProviders.create("tenantId", {
-      name: "mock-email",
-      enabled: true,
-      credentials: {
-        api_key: "apiKey",
-      },
-    });
-  }
+  // Always create email provider for tests (required after removing DEFAULT_TENANT_ID fallback)
+  await data.emailProviders.create("tenantId", {
+    name: "mock-email",
+    enabled: true,
+    credentials: {
+      api_key: "apiKey",
+    },
+  });
 
   // Add a client
   await data.clients.create("tenantId", {
@@ -116,6 +115,17 @@ export async function getTestServer(
     name: "Username-Password-Authentication",
     strategy: "auth2",
     options: {},
+  });
+
+  // Add the mock-strategy social connection (required after removing DEFAULT_TENANT_ID fallback)
+  await data.connections.create("tenantId", {
+    id: "mock-strategy",
+    name: "mock-strategy",
+    strategy: "mock-strategy",
+    options: {
+      client_id: "mockClientId",
+      client_secret: "mockClientSecret",
+    },
   });
 
   // Add a test user with OIDC profile claims for testing
@@ -177,9 +187,6 @@ export async function getTestServer(
       "mock-strategy": mockStrategy,
     },
     SAML_SIGN_URL: "http://localhost:3000/saml/sign",
-    // Add these for backward compatibility fallback logic
-    DEFAULT_TENANT_ID: "tenantId",
-    DEFAULT_CLIENT_ID: "clientId",
   };
 
   const apps = init({

@@ -9,6 +9,7 @@ import {
   getItem,
   putItem,
   updateItem,
+  deleteItem,
   stripDynamoDBFields,
   removeNullProperties,
 } from "../utils";
@@ -95,6 +96,14 @@ export function createEmailProvidersAdapter(
         emailProviderKeys.pk(tenantId),
         emailProviderKeys.sk(),
         updates,
+      );
+    },
+
+    async remove(tenantId: string): Promise<void> {
+      await deleteItem(
+        ctx,
+        emailProviderKeys.pk(tenantId),
+        emailProviderKeys.sk(),
       );
     },
   };
