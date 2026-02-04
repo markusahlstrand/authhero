@@ -1,5 +1,19 @@
 # authhero
 
+## 4.28.0
+
+### Minor Changes
+
+- 88a03cd: Add ssr for widget
+- ac8af37: Add custom text support
+
+### Patch Changes
+
+- Updated dependencies [88a03cd]
+- Updated dependencies [ac8af37]
+  - @authhero/widget@0.9.0
+  - @authhero/adapter-interfaces@0.130.0
+
 ## 4.27.0
 
 ### Minor Changes

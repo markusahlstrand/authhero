@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.40.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
 ## 1.39.0
 
 ### Minor Changes

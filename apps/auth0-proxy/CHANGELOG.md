@@ -1,5 +1,11 @@
 # @authhero/auth0-proxy
 
+## 0.2.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
 ## 0.1.1
 
 ### Patch Changes

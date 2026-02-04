@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.130.0
+
+### Minor Changes
+
+- ac8af37: Add custom text support
+
 ## 0.129.0
 
 ### Minor Changes
