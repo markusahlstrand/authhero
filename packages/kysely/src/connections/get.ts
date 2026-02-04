@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
-import { removeNullProperties } from "../helpers/remove-nulls";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { transformConnection } from "./transform";
 
 export function get(db: Kysely<Database>) {
   return async (
@@ -19,12 +19,6 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    const { is_system, ...rest } = connection;
-
-    return removeNullProperties({
-      ...rest,
-      is_system: is_system ? true : undefined,
-      options: JSON.parse(connection.options),
-    });
+    return transformConnection(connection);
   };
 }
