@@ -314,6 +314,27 @@
   gap: 12px;
 }
 
+.btn-social-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Subtitle styling - uses CSS custom property for content
+   Set --ah-btn-social-subtitle-content via ::part() to show subtitle text.
+   Example: authhero-widget::part(button-social-subtitle-vipps)::before { content: "Log in with Vipps"; } */
+.btn-social-subtitle {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.btn-social-subtitle:empty {
+  display: none;
+}
+
 /* Social button icon */
 .social-icon {
   width: 20px;

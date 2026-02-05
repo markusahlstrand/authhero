@@ -4947,7 +4947,7 @@ var setScopedSSR = (opts) => {
 var needsScopedSSR = () => scopedSSR;
 var scopedSSR = false;
 
-const authheroNodeCss = () => `:host{display:block}.input-wrapper{display:flex;flex-direction:column;position:relative;margin-bottom:16px}.input-container{position:relative;width:100%}.input-label{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:var(--ah-font-weight-label, 400);color:var(--ah-color-text-muted, #65676e);pointer-events:none;transition:all 0.15s ease-out;background-color:transparent;padding:0;z-index:1}.input-label.floating,.input-field:focus+.input-label,.input-field:not(:placeholder-shown)+.input-label{top:-8px;transform:translateY(0);font-size:12px;background-color:var(--ah-color-bg, #ffffff);padding:0 4px;left:12px;color:var(--ah-color-text-muted, #65676e)}.input-field:focus+.input-label{color:var(--ah-color-primary, #635dff)}.required{color:var(--ah-color-error, #d03c38);margin-left:2px}.input-field{width:100%;padding:16px;font-size:16px;font-family:inherit;color:var(--ah-color-text, #1e212a);background-color:var(--ah-color-input-bg, #ffffff);border:1px solid var(--ah-color-border, #c9cace);border-radius:var(--ah-input-radius, 3px);outline:none;transition:border-color 0.15s ease-out,\\n    box-shadow 0.15s ease-out;box-sizing:border-box}.input-field::placeholder{color:transparent}.input-field:hover{border-color:var(--ah-color-border-hover, #65676e)}.input-field:focus{border-color:var(--ah-color-primary, #635dff);box-shadow:inset 0 0 0 1px var(--ah-color-primary, #635dff)}.input-field.has-error{border-color:var(--ah-color-error, #d03c38)}.input-field.has-error:focus{box-shadow:inset 0 0 0 1px var(--ah-color-error, #d03c38)}.input-field:disabled{background-color:var(--ah-color-bg-disabled, #f5f5f5);border-color:var(--ah-color-border-disabled, #e0e1e3);cursor:not-allowed;opacity:0.7}.password-container{position:relative;display:flex;align-items:center}.password-container .input-field{padding-right:48px}.password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;color:var(--ah-color-text-muted, #65676e);transition:color 0.15s ease}.password-toggle:hover{color:var(--ah-color-text, #1e212a)}.password-toggle svg{width:20px;height:20px}.error-text{font-size:12px;color:var(--ah-color-error, #d03c38);margin-top:4px;line-height:1.4}.helper-text{font-size:12px;color:var(--ah-color-text-muted, #65676e);margin-top:4px;line-height:1.4}.field-link{display:block;text-align:left;margin-top:8px;margin-bottom:16px}.field-link a{color:var(--ah-color-link, #635dff);text-decoration:var(--ah-link-decoration, none);font-size:14px;font-weight:var(--ah-font-weight-link, 400)}.field-link a:hover{text-decoration:underline}.checkbox-wrapper{display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:16px}.checkbox-wrapper input[type="checkbox"]{width:18px;height:18px;margin:0;accent-color:var(--ah-color-primary, #635dff);cursor:pointer;flex-shrink:0}.checkbox-label{font-size:14px;color:var(--ah-color-text, #1e212a);line-height:1.5}.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 20px;font-size:16px;font-weight:var(--ah-font-weight-btn, 400);font-family:inherit;line-height:1.25;text-align:center;text-decoration:none;border:none;border-radius:var(--ah-btn-radius, 3px);cursor:pointer;transition:background-color 0.15s ease,\\n    border-color 0.15s ease,\\n    transform 0.1s ease;box-sizing:border-box}.btn:disabled{opacity:0.6;cursor:not-allowed}.btn:not(:disabled):active{transform:scale(0.98)}.btn:focus-visible{outline:2px solid var(--ah-color-primary, #635dff);outline-offset:2px}.btn-primary{background-color:var(--ah-color-primary, #635dff);color:var(--ah-color-text-on-primary, #ffffff);margin-top:12px}.btn-primary:not(:disabled):hover{filter:brightness(0.85)}.btn-secondary{background-color:var(--ah-color-bg, #ffffff);color:var(--ah-color-text, #1e212a);border:1px solid var(--ah-color-border, #c9cace)}.btn-secondary:not(:disabled):hover{background-color:var(--ah-color-bg-hover, #f5f5f5);border-color:var(--ah-color-border-hover, #65676e)}.btn-link{background:none;border:none;color:var(--ah-color-link, #635dff);padding:8px 0;font-weight:var(--ah-font-weight-link, 400);text-decoration:none}.btn-link:hover{text-decoration:underline}.social-buttons{display:flex;flex-direction:column;gap:12px}.btn-social{display:flex;align-items:center;justify-content:center;gap:12px}.social-icon{width:20px;height:20px;flex-shrink:0}@media (max-width: 480px){.social-buttons:has(.btn-social:nth-child(3)){flex-direction:row;flex-wrap:nowrap;justify-content:stretch;gap:8px}.social-buttons:has(.btn-social:nth-child(3)) .btn-social{width:auto;min-width:0;padding:12px;flex:1 1 0}.social-buttons:has(.btn-social:nth-child(3)) .btn-social span{display:none}.social-buttons:has(.btn-social:nth-child(3)) .social-icon{width:24px;height:24px}}.btn-icon{width:20px;height:20px;flex-shrink:0}.btn-icon img{width:100%;height:100%;object-fit:contain}.text-title{font-size:20px;font-weight:400;color:var(--ah-color-text, #1e212a);margin:8px 0;line-height:1.3}.text-title.text-success{color:var(--ah-color-success, #13a769)}.text-description{font-size:14px;color:var(--ah-color-text-muted, #65676e);margin:4px 0;line-height:1.5}.image{display:block;max-width:100%;height:auto;border-radius:4px}.image-centered{margin:0 auto 16px;width:52px;height:52px;object-fit:contain}.link{color:var(--ah-color-link, #635dff);text-decoration:var(--ah-link-decoration, none);font-size:14px;transition:color 0.15s ease}.link:hover{text-decoration:underline}.link:focus-visible{outline:2px solid var(--ah-color-link, #635dff);outline-offset:2px;border-radius:2px}.node-error{padding:12px 16px;background-color:var(--ah-color-error-bg, #ffeaea);color:var(--ah-color-error, #d03c38);border-left:3px solid var(--ah-color-error, #d03c38);border-radius:0;font-size:14px;margin-bottom:16px}.node-success{padding:12px 16px;background-color:var(--ah-color-success-bg, #e6f9f1);color:var(--ah-color-success, #13a769);border-left:3px solid var(--ah-color-success, #13a769);border-radius:0;font-size:14px;margin-bottom:16px}.divider{display:flex;align-items:center;text-align:center;margin:16px 0}.divider::before,.divider::after{content:"";flex:1;border-bottom:1px solid var(--ah-color-border-muted, #c9cace)}.divider-text{padding:0 10px;font-size:12px;font-weight:400;color:var(--ah-color-text-muted, #65676e);text-transform:uppercase;letter-spacing:0.5px}`;
+const authheroNodeCss = () => `:host{display:block}.input-wrapper{display:flex;flex-direction:column;position:relative;margin-bottom:16px}.input-container{position:relative;width:100%}.input-label{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:var(--ah-font-weight-label, 400);color:var(--ah-color-text-muted, #65676e);pointer-events:none;transition:all 0.15s ease-out;background-color:transparent;padding:0;z-index:1}.input-label.floating,.input-field:focus+.input-label,.input-field:not(:placeholder-shown)+.input-label{top:-8px;transform:translateY(0);font-size:12px;background-color:var(--ah-color-bg, #ffffff);padding:0 4px;left:12px;color:var(--ah-color-text-muted, #65676e)}.input-field:focus+.input-label{color:var(--ah-color-primary, #635dff)}.required{color:var(--ah-color-error, #d03c38);margin-left:2px}.input-field{width:100%;padding:16px;font-size:16px;font-family:inherit;color:var(--ah-color-text, #1e212a);background-color:var(--ah-color-input-bg, #ffffff);border:1px solid var(--ah-color-border, #c9cace);border-radius:var(--ah-input-radius, 3px);outline:none;transition:border-color 0.15s ease-out,\\n    box-shadow 0.15s ease-out;box-sizing:border-box}.input-field::placeholder{color:transparent}.input-field:hover{border-color:var(--ah-color-border-hover, #65676e)}.input-field:focus{border-color:var(--ah-color-primary, #635dff);box-shadow:inset 0 0 0 1px var(--ah-color-primary, #635dff)}.input-field.has-error{border-color:var(--ah-color-error, #d03c38)}.input-field.has-error:focus{box-shadow:inset 0 0 0 1px var(--ah-color-error, #d03c38)}.input-field:disabled{background-color:var(--ah-color-bg-disabled, #f5f5f5);border-color:var(--ah-color-border-disabled, #e0e1e3);cursor:not-allowed;opacity:0.7}.password-container{position:relative;display:flex;align-items:center}.password-container .input-field{padding-right:48px}.password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;color:var(--ah-color-text-muted, #65676e);transition:color 0.15s ease}.password-toggle:hover{color:var(--ah-color-text, #1e212a)}.password-toggle svg{width:20px;height:20px}.error-text{font-size:12px;color:var(--ah-color-error, #d03c38);margin-top:4px;line-height:1.4}.helper-text{font-size:12px;color:var(--ah-color-text-muted, #65676e);margin-top:4px;line-height:1.4}.field-link{display:block;text-align:left;margin-top:8px;margin-bottom:16px}.field-link a{color:var(--ah-color-link, #635dff);text-decoration:var(--ah-link-decoration, none);font-size:14px;font-weight:var(--ah-font-weight-link, 400)}.field-link a:hover{text-decoration:underline}.checkbox-wrapper{display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:16px}.checkbox-wrapper input[type="checkbox"]{width:18px;height:18px;margin:0;accent-color:var(--ah-color-primary, #635dff);cursor:pointer;flex-shrink:0}.checkbox-label{font-size:14px;color:var(--ah-color-text, #1e212a);line-height:1.5}.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 20px;font-size:16px;font-weight:var(--ah-font-weight-btn, 400);font-family:inherit;line-height:1.25;text-align:center;text-decoration:none;border:none;border-radius:var(--ah-btn-radius, 3px);cursor:pointer;transition:background-color 0.15s ease,\\n    border-color 0.15s ease,\\n    transform 0.1s ease;box-sizing:border-box}.btn:disabled{opacity:0.6;cursor:not-allowed}.btn:not(:disabled):active{transform:scale(0.98)}.btn:focus-visible{outline:2px solid var(--ah-color-primary, #635dff);outline-offset:2px}.btn-primary{background-color:var(--ah-color-primary, #635dff);color:var(--ah-color-text-on-primary, #ffffff);margin-top:12px}.btn-primary:not(:disabled):hover{filter:brightness(0.85)}.btn-secondary{background-color:var(--ah-color-bg, #ffffff);color:var(--ah-color-text, #1e212a);border:1px solid var(--ah-color-border, #c9cace)}.btn-secondary:not(:disabled):hover{background-color:var(--ah-color-bg-hover, #f5f5f5);border-color:var(--ah-color-border-hover, #65676e)}.btn-link{background:none;border:none;color:var(--ah-color-link, #635dff);padding:8px 0;font-weight:var(--ah-font-weight-link, 400);text-decoration:none}.btn-link:hover{text-decoration:underline}.social-buttons{display:flex;flex-direction:column;gap:12px}.btn-social{display:flex;align-items:center;justify-content:center;gap:12px}.btn-social-content{display:flex;flex-direction:column;align-items:center;text-align:center}.btn-social-subtitle{font-size:12px;font-style:italic;opacity:0.8;margin-top:2px}.btn-social-subtitle:empty{display:none}.social-icon{width:20px;height:20px;flex-shrink:0}@media (max-width: 480px){.social-buttons:has(.btn-social:nth-child(3)){flex-direction:row;flex-wrap:nowrap;justify-content:stretch;gap:8px}.social-buttons:has(.btn-social:nth-child(3)) .btn-social{width:auto;min-width:0;padding:12px;flex:1 1 0}.social-buttons:has(.btn-social:nth-child(3)) .btn-social span{display:none}.social-buttons:has(.btn-social:nth-child(3)) .social-icon{width:24px;height:24px}}.btn-icon{width:20px;height:20px;flex-shrink:0}.btn-icon img{width:100%;height:100%;object-fit:contain}.text-title{font-size:20px;font-weight:400;color:var(--ah-color-text, #1e212a);margin:8px 0;line-height:1.3}.text-title.text-success{color:var(--ah-color-success, #13a769)}.text-description{font-size:14px;color:var(--ah-color-text-muted, #65676e);margin:4px 0;line-height:1.5}.image{display:block;max-width:100%;height:auto;border-radius:4px}.image-centered{margin:0 auto 16px;width:52px;height:52px;object-fit:contain}.link{color:var(--ah-color-link, #635dff);text-decoration:var(--ah-link-decoration, none);font-size:14px;transition:color 0.15s ease}.link:hover{text-decoration:underline}.link:focus-visible{outline:2px solid var(--ah-color-link, #635dff);outline-offset:2px;border-radius:2px}.node-error{padding:12px 16px;background-color:var(--ah-color-error-bg, #ffeaea);color:var(--ah-color-error, #d03c38);border-left:3px solid var(--ah-color-error, #d03c38);border-radius:0;font-size:14px;margin-bottom:16px}.node-success{padding:12px 16px;background-color:var(--ah-color-success-bg, #e6f9f1);color:var(--ah-color-success, #13a769);border-left:3px solid var(--ah-color-success, #13a769);border-radius:0;font-size:14px;margin-bottom:16px}.divider{display:flex;align-items:center;text-align:center;margin:16px 0}.divider::before,.divider::after{content:"";flex:1;border-bottom:1px solid var(--ah-color-border-muted, #c9cace)}.divider-text{padding:0 10px;font-size:12px;font-weight:400;color:var(--ah-color-text-muted, #65676e);text-transform:uppercase;letter-spacing:0.5px}`;
 
 class AuthheroNode {
     constructor(hostRef) {
@@ -5079,7 +5079,7 @@ class AuthheroNode {
         return (hAsync("div", { class: "rich-text", part: "rich-text", innerHTML: component.config?.content ?? "" }));
     }
     renderNextButton(component) {
-        return (hAsync("button", { type: "submit", class: "btn btn-primary", part: "button button-primary", disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "submit", "next") }, component.config.text ?? "Continue"));
+        return (hAsync("button", { type: "submit", class: "btn btn-primary", part: "button button-primary", "data-primary-action-button": true, disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "submit", "next") }, component.config.text ?? "Continue"));
     }
     renderPreviousButton(component) {
         return (hAsync("button", { type: "button", class: "btn btn-secondary", part: "button button-secondary", disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "previous", "back") }, component.config.text ?? "Back"));
@@ -5101,20 +5101,20 @@ class AuthheroNode {
         if (multiline) {
             return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, this.renderLabel(component.label, inputId, component.required), hAsync("textarea", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input textarea", name: component.id, placeholder: " ", required: component.required, disabled: this.disabled, maxLength: max_length, onInput: this.handleInput }, this.value ?? ""), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint)));
         }
-        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: component.sensitive ? "password" : "text", name: component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, maxLength: max_length, onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue)), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint)));
+        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: component.sensitive ? "password" : "text", name: component.id, "data-input-name": component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, maxLength: max_length, onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue)), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint)));
     }
     renderEmailField(component) {
         const inputId = `input-${component.id}`;
         const errors = this.getErrors();
         const hasValue = !!(this.value && this.value.length > 0);
-        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: "email", name: component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, autocomplete: "email", onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue)), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint)));
+        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: "email", name: component.id, "data-input-name": component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, autocomplete: "email", onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue)), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint)));
     }
     renderPasswordField(component) {
         const inputId = `input-${component.id}`;
         const errors = this.getErrors();
         const hasValue = !!(this.value && this.value.length > 0);
         const forgotPasswordLink = component.config?.forgot_password_link;
-        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container password-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: this.passwordVisible ? "text" : "password", name: component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, minLength: component.config?.min_length, autocomplete: "current-password", onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue), hAsync("button", { type: "button", class: "password-toggle", part: "password-toggle", onClick: this.togglePasswordVisibility, "aria-label": "Toggle password visibility", "aria-pressed": this.passwordVisible ? "true" : "false" }, this.renderPasswordToggle())), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint), forgotPasswordLink && (hAsync("div", { class: "field-link", part: "field-link" }, hAsync("a", { href: forgotPasswordLink, class: "link", part: "link" }, "Forgot password?")))));
+        return (hAsync("div", { class: "input-wrapper", part: "input-wrapper" }, hAsync("div", { class: "input-container password-container" }, hAsync("input", { id: inputId, class: { "input-field": true, "has-error": errors.length > 0 }, part: "input", type: this.passwordVisible ? "text" : "password", name: component.id, "data-input-name": component.id, value: this.value ?? "", placeholder: " ", required: component.required, disabled: this.disabled, minLength: component.config?.min_length, autocomplete: "current-password", onInput: this.handleInput }), this.renderFloatingLabel(component.label, inputId, component.required, hasValue), hAsync("button", { type: "button", class: "password-toggle", part: "password-toggle", onClick: this.togglePasswordVisibility, "aria-label": "Toggle password visibility", "aria-pressed": this.passwordVisible ? "true" : "false" }, this.renderPasswordToggle())), this.renderErrors(), errors.length === 0 && this.renderHint(component.hint), forgotPasswordLink && (hAsync("div", { class: "field-link", part: "field-link" }, hAsync("a", { href: forgotPasswordLink, class: "link", part: "link" }, "Forgot password?")))));
     }
     renderNumberField(component) {
         const inputId = `input-${component.id}`;
@@ -5179,16 +5179,23 @@ class AuthheroNode {
         // Get provider icon from provider_details icon_url
         const getProviderIcon = (provider) => {
             const details = detailsMap.get(provider);
+            const safeProvider = this.sanitizeForCssToken(provider);
             if (details?.icon_url) {
-                return (hAsync("img", { class: "social-icon", src: details.icon_url, alt: details.display_name || provider }));
+                return (hAsync("img", { class: "social-icon", part: `social-icon social-icon-${safeProvider}`, src: details.icon_url, alt: details.display_name || provider }));
             }
             // No icon provided - return null (button will just show text)
             return null;
         };
+        // Get strategy from provider details
+        const getProviderStrategy = (provider) => {
+            const details = detailsMap.get(provider);
+            return details?.strategy ?? provider;
+        };
         return (hAsync("div", { class: "social-buttons", part: "social-buttons" }, providers.map((provider) => {
             const safeProvider = this.sanitizeForCssToken(provider);
+            const strategy = getProviderStrategy(provider);
             const icon = getProviderIcon(provider);
-            return (hAsync("button", { type: "button", class: `btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`, part: `button button-secondary button-social button-social-${safeProvider}`, "data-provider": provider, disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "SOCIAL", provider), key: provider }, icon, hAsync("span", { part: "button-social-text" }, getButtonText(provider))));
+            return (hAsync("button", { type: "button", class: `btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`, part: `button button-secondary button-social button-social-${safeProvider}`, "data-connection-name": provider, "data-strategy": strategy, disabled: this.disabled, onClick: (e) => this.handleButtonClick(e, "SOCIAL", provider), key: provider }, icon, hAsync("span", { class: "btn-social-content", part: `button-social-content button-social-content-${safeProvider}` }, hAsync("span", { part: `button-social-text button-social-text-${safeProvider}` }, getButtonText(provider)), hAsync("span", { class: "btn-social-subtitle", part: `button-social-subtitle button-social-subtitle-${safeProvider}` }))));
         })));
     }
     // ===========================================================================
@@ -5742,6 +5749,9 @@ class AuthheroWidget {
      * When statePersistence is 'url', this is synced with the URL.
      */
     screenId;
+    watchScreenId() {
+        this.updateDataScreenAttribute();
+    }
     /**
      * OAuth/OIDC parameters for social login redirects.
      * Can be passed as a JSON string or object.
@@ -5858,6 +5868,19 @@ class AuthheroWidget {
         }
         if (this._screen) {
             this.screenChange.emit(this._screen);
+            this.updateDataScreenAttribute();
+        }
+    }
+    /**
+     * Updates the data-screen attribute on the host element.
+     * This allows external CSS to target different screens using attribute selectors.
+     */
+    updateDataScreenAttribute() {
+        if (this.screenId) {
+            this.el.setAttribute("data-screen", this.screenId);
+        }
+        else {
+            this.el.removeAttribute("data-screen");
         }
     }
     watchBranding(newValue) {
@@ -6049,6 +6072,7 @@ class AuthheroWidget {
                         this.screenId = currentScreenId;
                     }
                     this.screenChange.emit(this._screen);
+                    this.updateDataScreenAttribute();
                     this.persistState();
                 }
             }
@@ -6121,16 +6145,16 @@ class AuthheroWidget {
                     this._screen = result.screen;
                     this.formData = {};
                     this.screenChange.emit(result.screen);
+                    this.updateDataScreenAttribute();
                     // Update screenId if returned in response
                     if (result.screenId) {
                         this.screenId = result.screenId;
                     }
+                    // Persist state (especially for session storage mode)
+                    this.persistState();
                     // Update URL path if navigateUrl is provided (client-side navigation)
                     if (result.navigateUrl && this.shouldAutoNavigate) {
                         window.history.pushState({ screen: result.screenId, state: this.state }, "", result.navigateUrl);
-                    }
-                    else {
-                        this.persistState();
                     }
                     // Apply branding if included
                     if (result.branding) {
@@ -6151,6 +6175,7 @@ class AuthheroWidget {
                 if (!response.ok && result.screen) {
                     this._screen = result.screen;
                     this.screenChange.emit(result.screen);
+                    this.updateDataScreenAttribute();
                 }
             }
         }
@@ -6302,9 +6327,35 @@ class AuthheroWidget {
         const socialComponents = components.filter((c) => this.isSocialComponent(c));
         const fieldComponents = components.filter((c) => !this.isSocialComponent(c) && !this.isDividerComponent(c));
         const hasDivider = components.some((c) => this.isDividerComponent(c));
+        // Build dynamic exportparts for social buttons including provider-specific parts
+        const getExportParts = (component) => {
+            const baseParts = [
+                "social-buttons",
+                "button",
+                "button-secondary",
+                "button-social",
+                "button-social-content",
+                "button-social-text",
+                "button-social-subtitle",
+                "social-icon",
+            ];
+            const config = component.config;
+            const providers = config?.providers ?? [];
+            const providerParts = providers.flatMap((p) => {
+                const safe = p.replace(/[^a-zA-Z0-9-]/g, "-");
+                return [
+                    `button-social-${safe}`,
+                    `button-social-content-${safe}`,
+                    `button-social-text-${safe}`,
+                    `button-social-subtitle-${safe}`,
+                    `social-icon-${safe}`,
+                ];
+            });
+            return [...baseParts, ...providerParts].join(", ");
+        };
         // Get logo URL from theme.widget (takes precedence) or branding
         const logoUrl = this._theme?.widget?.logo_url || this._branding?.logo_url;
-        return (hAsync("div", { class: "widget-container", part: "container" }, hAsync("header", { class: "widget-header", part: "header" }, logoUrl && (hAsync("div", { class: "logo-wrapper", part: "logo-wrapper" }, hAsync("img", { class: "logo", part: "logo", src: logoUrl, alt: "Logo" }))), this._screen.title && (hAsync("h1", { class: "title", part: "title", innerHTML: sanitizeHtml(this._screen.title) })), this._screen.description && (hAsync("p", { class: "description", part: "description", innerHTML: sanitizeHtml(this._screen.description) }))), hAsync("div", { class: "widget-body", part: "body" }, screenErrors.map((err) => (hAsync("div", { class: "message message-error", part: "message message-error", key: err.id ?? err.text }, err.text))), screenSuccesses.map((msg) => (hAsync("div", { class: "message message-success", part: "message message-success", key: msg.id ?? msg.text }, msg.text))), hAsync("form", { onSubmit: this.handleSubmit, part: "form" }, hAsync("div", { class: "form-content" }, socialComponents.length > 0 && (hAsync("div", { class: "social-section", part: "social-section" }, socialComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading }))))), socialComponents.length > 0 &&
+        return (hAsync("div", { class: "widget-container", part: "container", "data-authstack-container": true }, hAsync("header", { class: "widget-header", part: "header" }, logoUrl && (hAsync("div", { class: "logo-wrapper", part: "logo-wrapper" }, hAsync("img", { class: "logo", part: "logo", src: logoUrl, alt: "Logo" }))), this._screen.title && (hAsync("h1", { class: "title", part: "title", innerHTML: sanitizeHtml(this._screen.title) })), this._screen.description && (hAsync("p", { class: "description", part: "description", innerHTML: sanitizeHtml(this._screen.description) }))), hAsync("div", { class: "widget-body", part: "body" }, screenErrors.map((err) => (hAsync("div", { class: "message message-error", part: "message message-error", key: err.id ?? err.text }, err.text))), screenSuccesses.map((msg) => (hAsync("div", { class: "message message-success", part: "message message-success", key: msg.id ?? msg.text }, msg.text))), hAsync("form", { onSubmit: this.handleSubmit, part: "form" }, hAsync("div", { class: "form-content" }, socialComponents.length > 0 && (hAsync("div", { class: "social-section", part: "social-section" }, socialComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading, exportparts: getExportParts(component) }))))), socialComponents.length > 0 &&
             fieldComponents.length > 0 &&
             hasDivider && (hAsync("div", { class: "divider", part: "divider" }, hAsync("span", { class: "divider-text" }, "Or"))), hAsync("div", { class: "fields-section", part: "fields-section" }, fieldComponents.map((component) => (hAsync("authhero-node", { key: component.id, component: component, value: this.formData[component.id], onFieldChange: (e) => this.handleInputChange(e.detail.id, e.detail.value), onButtonClick: (e) => this.handleButtonClick(e.detail), disabled: this.loading })))))), this._screen.links && this._screen.links.length > 0 && (hAsync("div", { class: "links", part: "links" }, this._screen.links.map((link) => (hAsync("span", { class: "link-wrapper", part: "link-wrapper", key: link.id ?? link.href }, link.linkText ? (hAsync("span", null, link.text, " ", hAsync("a", { href: link.href, class: "link", part: "link", onClick: (e) => this.handleLinkClick(e, {
                 id: link.id,
@@ -6317,6 +6368,9 @@ class AuthheroWidget {
             }) }, link.text))))))))));
     }
     static get watchers() { return {
+        "screenId": [{
+                "watchScreenId": 0
+            }],
         "screen": [{
                 "watchScreen": 0
             }],

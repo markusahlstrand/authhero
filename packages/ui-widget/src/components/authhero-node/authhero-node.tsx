@@ -249,6 +249,7 @@ export class AuthheroNode {
         type="submit"
         class="btn btn-primary"
         part="button button-primary"
+        data-primary-action-button
         disabled={this.disabled}
         onClick={(e) => this.handleButtonClick(e, "submit", "next")}
       >
@@ -351,6 +352,7 @@ export class AuthheroNode {
             part="input"
             type={component.sensitive ? "password" : "text"}
             name={component.id}
+            data-input-name={component.id}
             value={this.value ?? ""}
             placeholder=" "
             required={component.required}
@@ -385,6 +387,7 @@ export class AuthheroNode {
             part="input"
             type="email"
             name={component.id}
+            data-input-name={component.id}
             value={this.value ?? ""}
             placeholder=" "
             required={component.required}
@@ -422,6 +425,7 @@ export class AuthheroNode {
             part="input"
             type={this.passwordVisible ? "text" : "password"}
             name={component.id}
+            data-input-name={component.id}
             value={this.value ?? ""}
             placeholder=" "
             required={component.required}
@@ -724,10 +728,12 @@ export class AuthheroNode {
     // Get provider icon from provider_details icon_url
     const getProviderIcon = (provider: string) => {
       const details = detailsMap.get(provider);
+      const safeProvider = this.sanitizeForCssToken(provider);
       if (details?.icon_url) {
         return (
           <img
             class="social-icon"
+            part={`social-icon social-icon-${safeProvider}`}
             src={details.icon_url}
             alt={details.display_name || provider}
           />
@@ -737,23 +743,35 @@ export class AuthheroNode {
       return null;
     };
 
+    // Get strategy from provider details
+    const getProviderStrategy = (provider: string): string => {
+      const details = detailsMap.get(provider);
+      return details?.strategy ?? provider;
+    };
+
     return (
       <div class="social-buttons" part="social-buttons">
         {providers.map((provider) => {
           const safeProvider = this.sanitizeForCssToken(provider);
+          const strategy = getProviderStrategy(provider);
           const icon = getProviderIcon(provider);
           return (
             <button
               type="button"
               class={`btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`}
               part={`button button-secondary button-social button-social-${safeProvider}`}
-              data-provider={provider}
+              data-connection-name={provider}
+              data-strategy={strategy}
               disabled={this.disabled}
               onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
               key={provider}
             >
               {icon}
-              <span part="button-social-text">{getButtonText(provider)}</span>
+              <span class="btn-social-content" part={`button-social-content button-social-content-${safeProvider}`}>
+                <span part={`button-social-text button-social-text-${safeProvider}`}>{getButtonText(provider)}</span>
+                {/* Empty subtitle span - style via ::part(button-social-subtitle-{provider})::before { content: "..."; } */}
+                <span class="btn-social-subtitle" part={`button-social-subtitle button-social-subtitle-${safeProvider}`}></span>
+              </span>
             </button>
           );
         })}

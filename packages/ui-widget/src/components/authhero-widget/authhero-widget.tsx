@@ -138,6 +138,11 @@ export class AuthheroWidget {
    */
   @Prop({ mutable: true }) screenId?: string;
 
+  @Watch("screenId")
+  watchScreenId() {
+    this.updateDataScreenAttribute();
+  }
+
   /**
    * OAuth/OIDC parameters for social login redirects.
    * Can be passed as a JSON string or object.
@@ -273,6 +278,19 @@ export class AuthheroWidget {
     }
     if (this._screen) {
       this.screenChange.emit(this._screen);
+      this.updateDataScreenAttribute();
+    }
+  }
+
+  /**
+   * Updates the data-screen attribute on the host element.
+   * This allows external CSS to target different screens using attribute selectors.
+   */
+  private updateDataScreenAttribute() {
+    if (this.screenId) {
+      this.el.setAttribute("data-screen", this.screenId);
+    } else {
+      this.el.removeAttribute("data-screen");
     }
   }
 
@@ -479,6 +497,7 @@ export class AuthheroWidget {
             this.screenId = currentScreenId;
           }
           this.screenChange.emit(this._screen);
+          this.updateDataScreenAttribute();
           this.persistState();
         }
       } else {
@@ -555,6 +574,7 @@ export class AuthheroWidget {
           this._screen = result.screen;
           this.formData = {};
           this.screenChange.emit(result.screen);
+          this.updateDataScreenAttribute();
 
           // Update screenId if returned in response
           if (result.screenId) {
@@ -593,6 +613,7 @@ export class AuthheroWidget {
         if (!response.ok && result.screen) {
           this._screen = result.screen;
           this.screenChange.emit(result.screen);
+          this.updateDataScreenAttribute();
         }
       }
     } catch (err) {
@@ -777,11 +798,38 @@ export class AuthheroWidget {
     );
     const hasDivider = components.some((c) => this.isDividerComponent(c));
 
+    // Build dynamic exportparts for social buttons including provider-specific parts
+    const getExportParts = (component: FormComponent): string => {
+      const baseParts = [
+        "social-buttons",
+        "button",
+        "button-secondary",
+        "button-social",
+        "button-social-content",
+        "button-social-text",
+        "button-social-subtitle",
+        "social-icon",
+      ];
+      const config = component.config as { providers?: string[] } | undefined;
+      const providers = config?.providers ?? [];
+      const providerParts = providers.flatMap((p: string) => {
+        const safe = p.replace(/[^a-zA-Z0-9-]/g, "-");
+        return [
+          `button-social-${safe}`,
+          `button-social-content-${safe}`,
+          `button-social-text-${safe}`,
+          `button-social-subtitle-${safe}`,
+          `social-icon-${safe}`,
+        ];
+      });
+      return [...baseParts, ...providerParts].join(", ");
+    };
+
     // Get logo URL from theme.widget (takes precedence) or branding
     const logoUrl = this._theme?.widget?.logo_url || this._branding?.logo_url;
 
     return (
-      <div class="widget-container" part="container">
+      <div class="widget-container" part="container" data-authstack-container>
         <header class="widget-header" part="header">
           {logoUrl && (
             <div class="logo-wrapper" part="logo-wrapper">
@@ -848,6 +896,7 @@ export class AuthheroWidget {
                         }>,
                       ) => this.handleButtonClick(e.detail)}
                       disabled={this.loading}
+                      exportparts={getExportParts(component)}
                     />
                   ))}
                 </div>
