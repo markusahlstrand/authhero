@@ -8,34 +8,13 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getAuthUrl } from "../variables";
-import type { FC } from "hono/jsx";
+import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "OAuth 2.0";
 
-export const logo: FC<{ className?: string; iconUrl?: string }> = ({
-  className = "",
-  iconUrl,
-}) => {
-  if (iconUrl) {
-    return <img src={iconUrl} alt="OAuth Provider" className={className} />;
-  }
+export const logoSvg = `<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 0C14.492 0 8 6.492 8 14.5V18H5v22h35V18h-3v-3.5C37 6.492 30.508 0 22.5 0zm0 4c5.799 0 10.5 4.701 10.5 10.5V18h-21v-3.5C12 8.701 16.701 4 22.5 4z" fill="#6B7280"/><circle cx="22.5" cy="29" r="3" fill="#6B7280"/></svg>`;
 
-  // Default OAuth 2.0 logo (key icon)
-  return (
-    <svg
-      width="45"
-      height="45"
-      viewBox="0 0 45 45"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M31.5 18h-1.5v-4.5c0-4.136-3.364-7.5-7.5-7.5s-7.5 3.364-7.5 7.5v4.5h-1.5c-1.657 0-3 1.343-3 3v15c0 1.657 1.343 3 3 3h18c1.657 0 3-1.343 3-3v-15c0-1.657-1.343-3-3-3zm-12-4.5c0-2.481 2.019-4.5 4.5-4.5s4.5 2.019 4.5 4.5v4.5h-9v-4.5zm12 22.5h-18v-15h18v15zm-9-6c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-};
+export const logoDataUri = svgToDataUri(logoSvg);
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

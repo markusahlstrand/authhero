@@ -10,38 +10,13 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import type { FC } from "hono/jsx";
+import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "OpenID Connect";
 
-export const logo: FC<{ className?: string; iconUrl?: string }> = ({
-  className = "",
-  iconUrl,
-}) => {
-  if (iconUrl) {
-    return <img src={iconUrl} alt="OIDC Provider" className={className} />;
-  }
+export const logoSvg = `<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 0C10.074 0 0 10.074 0 22.5S10.074 45 22.5 45 45 34.926 45 22.5 34.926 0 22.5 0zm0 40.5c-9.941 0-18-8.059-18-18s8.059-18 18-18 18 8.059 18 18-8.059 18-18 18z" fill="#F7931E"/><path d="M22.5 9c-7.456 0-13.5 6.044-13.5 13.5S15.044 36 22.5 36 36 29.956 36 22.5 29.956 9 22.5 9zm0 22.5c-4.971 0-9-4.029-9-9s4.029-9 9-9 9 4.029 9 9-4.029 9-9 9z" fill="#F7931E"/></svg>`;
 
-  // Default OpenID Connect logo
-  return (
-    <svg
-      width="45"
-      height="45"
-      viewBox="0 0 45 45"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M22.5 0C10.074 0 0 10.074 0 22.5S10.074 45 22.5 45 45 34.926 45 22.5 34.926 0 22.5 0zm0 40.5c-9.941 0-18-8.059-18-18s8.059-18 18-18 18 8.059 18 18-8.059 18-18 18z"
-        fill="currentColor"
-      />
-      <path
-        d="M22.5 9c-7.456 0-13.5 6.044-13.5 13.5S15.044 36 22.5 36 36 29.956 36 22.5 29.956 9 22.5 9zm0 22.5c-4.971 0-9-4.029-9-9s4.029-9 9-9 9 4.029 9 9-4.029 9-9 9z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-};
+export const logoDataUri = svgToDataUri(logoSvg);
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

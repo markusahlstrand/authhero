@@ -19,7 +19,7 @@ import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { enterCodeScreen } from "./enter-code";
 import { enterPasswordScreen } from "./enter-password";
 import { createTranslation, type Messages } from "../../../i18n";
-import { getConnectionIconUrl } from "../../../constants/socialIcons";
+import { getConnectionIconUrl } from "../../../strategies";
 
 /**
  * Build social login buttons from available connections

@@ -7,7 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation, type Messages } from "../../../i18n";
-import { getConnectionIconUrl } from "../../../constants/socialIcons";
+import { getConnectionIconUrl } from "../../../strategies";
 
 /**
  * Build social signup buttons from available connections
