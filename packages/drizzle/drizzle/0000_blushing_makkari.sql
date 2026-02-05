@@ -80,9 +80,17 @@ CREATE TABLE `users` (
 	`email_verified` integer NOT NULL,
 	`is_social` integer NOT NULL,
 	`app_metadata` text(4096) DEFAULT '{}' NOT NULL,
-	`user_metadata` text(4096) DEFAULT '{}' NOT NULL,
+	`user_metadata` text DEFAULT '{}' NOT NULL,
 	`profileData` text(2048),
 	`locale` text(255),
+	`middle_name` text(100),
+	`preferred_username` text(255),
+	`profile` text,
+	`website` text,
+	`gender` text(50),
+	`birthdate` text(10),
+	`zoneinfo` text(100),
+	`address` text,
 	PRIMARY KEY(`user_id`, `tenant_id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -153,9 +161,9 @@ CREATE TABLE `login_sessions` (
 	`authParams_act_as` text(256),
 	`authParams_ui_locales` text(32),
 	`authorization_url` text,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL,
-	`expires_at` integer NOT NULL,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
+	`expires_at_ts` integer NOT NULL,
 	`ip` text(39),
 	`useragent` text,
 	`auth0Client` text(255),
@@ -169,9 +177,9 @@ CREATE TABLE `login_sessions` (
 --> statement-breakpoint
 CREATE INDEX `login_sessions_id_index` ON `login_sessions` (`id`);--> statement-breakpoint
 CREATE INDEX `login_sessions_state_idx` ON `login_sessions` (`state`);--> statement-breakpoint
-CREATE INDEX `login_sessions_state_updated_idx` ON `login_sessions` (`state`,`updated_at`);--> statement-breakpoint
+CREATE INDEX `login_sessions_state_updated_idx` ON `login_sessions` (`state`,`updated_at_ts`);--> statement-breakpoint
 CREATE INDEX `login_sessions_tenant_user_idx` ON `login_sessions` (`tenant_id`,`user_id`);--> statement-breakpoint
-CREATE INDEX `idx_login_sessions_expires_at` ON `login_sessions` (`expires_at`);--> statement-breakpoint
+CREATE INDEX `idx_login_sessions_expires_at_ts` ON `login_sessions` (`expires_at_ts`);--> statement-breakpoint
 CREATE TABLE `otps` (
 	`tenant_id` text(191) NOT NULL,
 	`id` text(255) PRIMARY KEY NOT NULL,
@@ -205,29 +213,29 @@ CREATE TABLE `refresh_tokens` (
 	`resource_servers` text NOT NULL,
 	`device` text NOT NULL,
 	`rotating` integer NOT NULL,
-	`created_at` integer NOT NULL,
-	`expires_at` integer,
-	`idle_expires_at` integer,
-	`last_exchanged_at` integer,
+	`created_at_ts` integer NOT NULL,
+	`expires_at_ts` integer,
+	`idle_expires_at_ts` integer,
+	`last_exchanged_at_ts` integer,
 	PRIMARY KEY(`tenant_id`, `id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `idx_refresh_tokens_user_id` ON `refresh_tokens` (`tenant_id`,`user_id`);--> statement-breakpoint
 CREATE INDEX `idx_refresh_tokens_session_id` ON `refresh_tokens` (`session_id`);--> statement-breakpoint
-CREATE INDEX `idx_refresh_tokens_expires_at` ON `refresh_tokens` (`expires_at`);--> statement-breakpoint
+CREATE INDEX `idx_refresh_tokens_expires_at_ts` ON `refresh_tokens` (`expires_at_ts`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text(21) NOT NULL,
 	`tenant_id` text(191) NOT NULL,
 	`user_id` text(255),
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL,
-	`expires_at` integer,
-	`idle_expires_at` integer,
-	`authenticated_at` integer,
-	`last_interaction_at` integer,
-	`used_at` integer,
-	`revoked_at` integer,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
+	`expires_at_ts` integer,
+	`idle_expires_at_ts` integer,
+	`authenticated_at_ts` integer,
+	`last_interaction_at_ts` integer,
+	`used_at_ts` integer,
+	`revoked_at_ts` integer,
 	`device` text NOT NULL,
 	`clients` text NOT NULL,
 	`login_session_id` text(21),
@@ -237,7 +245,7 @@ CREATE TABLE `sessions` (
 --> statement-breakpoint
 CREATE INDEX `IDX_sessions_login_session_id` ON `sessions` (`login_session_id`);--> statement-breakpoint
 CREATE INDEX `idx_sessions_user_id` ON `sessions` (`tenant_id`,`user_id`);--> statement-breakpoint
-CREATE INDEX `idx_sessions_expires_at` ON `sessions` (`expires_at`);--> statement-breakpoint
+CREATE INDEX `idx_sessions_expires_at_ts` ON `sessions` (`expires_at_ts`);--> statement-breakpoint
 CREATE TABLE `tickets` (
 	`tenant_id` text(191) NOT NULL,
 	`id` text(255) PRIMARY KEY NOT NULL,
@@ -284,6 +292,7 @@ CREATE TABLE `clients` (
 	`logo_uri` text(2083),
 	`is_first_party` integer DEFAULT 0 NOT NULL,
 	`oidc_conformant` integer DEFAULT 1 NOT NULL,
+	`auth0_conformant` integer DEFAULT 1 NOT NULL,
 	`callbacks` text NOT NULL,
 	`allowed_origins` text NOT NULL,
 	`web_origins` text NOT NULL,
@@ -511,6 +520,17 @@ CREATE TABLE `branding` (
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `custom_text` (
+	`tenant_id` text(191) NOT NULL,
+	`prompt` text(64) NOT NULL,
+	`language` text(16) NOT NULL,
+	`custom_text` text NOT NULL,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
+	PRIMARY KEY(`tenant_id`, `prompt`, `language`),
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `email_providers` (
 	`tenant_id` text(191) PRIMARY KEY NOT NULL,
 	`name` text(255) NOT NULL,
@@ -652,6 +672,14 @@ CREATE TABLE `themes` (
 );
 --> statement-breakpoint
 CREATE INDEX `themes_tenant_id_idx` ON `themes` (`tenant_id`);--> statement-breakpoint
+CREATE TABLE `universal_login_templates` (
+	`tenant_id` text(191) PRIMARY KEY NOT NULL,
+	`body` text NOT NULL,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `logs` (
 	`log_id` text(21) PRIMARY KEY NOT NULL,
 	`category` text(255),

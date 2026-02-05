@@ -18,13 +18,13 @@ import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { enterCodeScreen } from "./enter-code";
 import { enterPasswordScreen } from "./enter-password";
-import { getCustomText, getErrorText } from "./custom-text-utils";
+import { initTranslation, m } from "../../../i18n";
 
 /**
  * Build social login buttons from available connections
  */
 function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
-  const { customText, connections } = context;
+  const { connections } = context;
 
   const socialConnections = connections.filter(
     (c) =>
@@ -38,22 +38,14 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   }
 
   // Create provider details with icon URLs and display names
-  // Apply custom text for federated button text if available
   const providerDetails = socialConnections.map((conn) => {
     const displayName = conn.display_name || conn.name;
-    const customButtonText = customText?.federatedConnectionButtonText
-      ? getCustomText(
-          customText,
-          "federatedConnectionButtonText",
-          `Continue with ${displayName}`,
-          { connectionName: displayName },
-        )
-      : undefined;
-
     return {
       name: conn.name,
       strategy: conn.strategy,
-      display_name: customButtonText || displayName,
+      display_name: m.login_id_federated_connection_button_text({
+        connectionName: displayName,
+      }),
       icon_url: conn.options?.icon_url,
     };
   });
@@ -82,12 +74,6 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
   );
 
   if (hasPasswordOrEmailOrSms) {
-    const dividerText = getCustomText(
-      customText,
-      "separatorText",
-      "or",
-      undefined,
-    );
     const divider: FormNodeComponent = {
       id: "divider",
       type: "DIVIDER",
@@ -95,7 +81,7 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
       visible: true,
       order: 1,
       config: {
-        text: dividerText,
+        text: m.or(),
       },
     };
     return [socialButton, divider];
@@ -110,14 +96,20 @@ function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
 export async function identifierScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { client, branding, state, baseUrl, prefill, errors, customText } =
-    context;
+  const {
+    client,
+    branding,
+    state,
+    baseUrl,
+    prefill,
+    errors,
+    customText,
+    promptScreen,
+  } = context;
 
-  // Variables for text substitution
-  const textVariables = {
-    clientName: client.name || "the application",
-    companyName: branding?.logo_url ? client.name : undefined,
-  };
+  // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
+  const locale = context.language || "en";
+  initTranslation(locale, customText, promptScreen || "login-id");
 
   const socialButtons = buildSocialButtons(context);
   const socialButtonCount = socialButtons.length;
@@ -137,33 +129,8 @@ export async function identifierScreen(
 
   // Only add email input and continue button if we have email/sms/password connections
   if (hasEmailOrPasswordConnection) {
-    // Get error text with custom text support
-    // Only map known error patterns to custom text keys, otherwise use the raw error
-    let errorHint: string | undefined;
-    if (errors?.username) {
-      if (errors.username.includes("@") || errors.username.includes("format")) {
-        errorHint = getErrorText(
-          customText,
-          "invalid-email-format",
-          errors.username,
-          textVariables,
-        );
-      } else if (
-        errors.username.includes("required") ||
-        errors.username.includes("no-email") ||
-        errors.username.includes("enter")
-      ) {
-        errorHint = getErrorText(
-          customText,
-          "no-email",
-          errors.username,
-          textVariables,
-        );
-      } else {
-        // Unknown error - return as-is without custom text mapping
-        errorHint = errors.username;
-      }
-    }
+    // Get error hint - use raw error message for now
+    const errorHint = errors?.username;
 
     components.push(
       // Email/username input
@@ -172,19 +139,9 @@ export async function identifierScreen(
         type: "EMAIL",
         category: "FIELD",
         visible: true,
-        label: getCustomText(
-          customText,
-          "emailPlaceholder",
-          "Email address",
-          textVariables,
-        ),
+        label: m.email_placeholder(),
         config: {
-          placeholder: getCustomText(
-            customText,
-            "emailPlaceholder",
-            "name@example.com",
-            textVariables,
-          ),
+          placeholder: m.email_placeholder(),
         },
         required: true,
         order: socialButtonCount + 1,
@@ -197,12 +154,7 @@ export async function identifierScreen(
         category: "BLOCK",
         visible: true,
         config: {
-          text: getCustomText(
-            customText,
-            "buttonText",
-            "Continue",
-            textVariables,
-          ),
+          text: m.login_id_button_text(),
         },
         order: socialButtonCount + 2,
       },
@@ -224,18 +176,8 @@ export async function identifierScreen(
   if (hasPasswordConnection && !signupsDisabled) {
     links.push({
       id: "signup",
-      text: getCustomText(
-        customText,
-        "footerText",
-        "Don't have an account?",
-        textVariables,
-      ),
-      linkText: getCustomText(
-        customText,
-        "footerLinkText",
-        "Sign up",
-        textVariables,
-      ),
+      text: m.signup(),
+      linkText: m.create_new_account_link(),
       href: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
     });
   }
@@ -245,13 +187,12 @@ export async function identifierScreen(
     // Widget overrides this to POST JSON to screen API when hydrated
     action: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: getCustomText(customText, "title", "Welcome", textVariables),
-    description: getCustomText(
-      customText,
-      "description",
-      client.name ? `Sign in to ${client.name}` : "Sign in to continue",
-      textVariables,
-    ),
+    title: m.login_id_title(),
+    description: m.login_id_description({
+      companyName:
+        client.tenant.friendly_name || client.tenant.id || "AuthHero",
+      clientName: client.name || "the application",
+    }),
     components,
     links,
   };
@@ -406,7 +347,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         errors: undefined,
       };
 
-      // Return appropriate next screen directly (no redirect for internal navigation)
+      // Return appropriate next screen directly
       if (loginStrategy === "password") {
         return { screen: await enterPasswordScreen(nextContext) };
       }
@@ -463,7 +404,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         });
       }
 
-      // Return enter-code screen directly (no redirect for internal navigation)
+      // Return enter-code screen directly
       return { screen: await enterCodeScreen(nextContext) };
     },
   },

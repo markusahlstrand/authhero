@@ -68,6 +68,8 @@ export interface ScreenContext {
   customText?: CustomText;
   /** Current language code (e.g., 'en', 'es') */
   language?: string;
+  /** Prompt screen ID for custom text namespacing (e.g., 'login-id', 'signup') */
+  promptScreen?: string;
 }
 
 /**

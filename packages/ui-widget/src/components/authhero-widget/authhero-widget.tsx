@@ -560,7 +560,17 @@ export class AuthheroWidget {
           if (result.screenId) {
             this.screenId = result.screenId;
           }
-          this.persistState();
+
+          // Update URL path if navigateUrl is provided (client-side navigation)
+          if (result.navigateUrl && this.shouldAutoNavigate) {
+            window.history.pushState(
+              { screen: result.screenId, state: this.state },
+              "",
+              result.navigateUrl,
+            );
+          } else {
+            this.persistState();
+          }
 
           // Apply branding if included
           if (result.branding) {

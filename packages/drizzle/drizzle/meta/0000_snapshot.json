@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e23a8232-7310-495e-a88e-c153ca437174",
+  "id": "347080e8-a144-41f4-b15a-2b9b9b6eed73",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -564,7 +564,7 @@
         },
         "user_metadata": {
           "name": "user_metadata",
-          "type": "text(4096)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -580,6 +580,62 @@
         "locale": {
           "name": "locale",
           "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "text(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "preferred_username": {
+          "name": "preferred_username",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profile": {
+          "name": "profile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "birthdate": {
+          "name": "birthdate",
+          "type": "text(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "zoneinfo": {
+          "name": "zoneinfo",
+          "type": "text(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1072,22 +1128,22 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "created_at_ts": {
+          "name": "created_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
+        "updated_at_ts": {
+          "name": "updated_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "expires_at": {
-          "name": "expires_at",
+        "expires_at_ts": {
+          "name": "expires_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -1163,7 +1219,7 @@
           "name": "login_sessions_state_updated_idx",
           "columns": [
             "state",
-            "updated_at"
+            "updated_at_ts"
           ],
           "isUnique": false
         },
@@ -1175,10 +1231,10 @@
           ],
           "isUnique": false
         },
-        "idx_login_sessions_expires_at": {
-          "name": "idx_login_sessions_expires_at",
+        "idx_login_sessions_expires_at_ts": {
+          "name": "idx_login_sessions_expires_at_ts",
           "columns": [
-            "expires_at"
+            "expires_at_ts"
           ],
           "isUnique": false
         }
@@ -1434,29 +1490,29 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "created_at_ts": {
+          "name": "created_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "expires_at": {
-          "name": "expires_at",
+        "expires_at_ts": {
+          "name": "expires_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "idle_expires_at": {
-          "name": "idle_expires_at",
+        "idle_expires_at_ts": {
+          "name": "idle_expires_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "last_exchanged_at": {
-          "name": "last_exchanged_at",
+        "last_exchanged_at_ts": {
+          "name": "last_exchanged_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1479,10 +1535,10 @@
           ],
           "isUnique": false
         },
-        "idx_refresh_tokens_expires_at": {
-          "name": "idx_refresh_tokens_expires_at",
+        "idx_refresh_tokens_expires_at_ts": {
+          "name": "idx_refresh_tokens_expires_at_ts",
           "columns": [
-            "expires_at"
+            "expires_at_ts"
           ],
           "isUnique": false
         }
@@ -1538,57 +1594,57 @@
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "created_at_ts": {
+          "name": "created_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
+        "updated_at_ts": {
+          "name": "updated_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "expires_at": {
-          "name": "expires_at",
+        "expires_at_ts": {
+          "name": "expires_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "idle_expires_at": {
-          "name": "idle_expires_at",
+        "idle_expires_at_ts": {
+          "name": "idle_expires_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "authenticated_at": {
-          "name": "authenticated_at",
+        "authenticated_at_ts": {
+          "name": "authenticated_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "last_interaction_at": {
-          "name": "last_interaction_at",
+        "last_interaction_at_ts": {
+          "name": "last_interaction_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "used_at": {
-          "name": "used_at",
+        "used_at_ts": {
+          "name": "used_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "revoked_at": {
-          "name": "revoked_at",
+        "revoked_at_ts": {
+          "name": "revoked_at_ts",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1632,10 +1688,10 @@
           ],
           "isUnique": false
         },
-        "idx_sessions_expires_at": {
-          "name": "idx_sessions_expires_at",
+        "idx_sessions_expires_at_ts": {
+          "name": "idx_sessions_expires_at_ts",
           "columns": [
-            "expires_at"
+            "expires_at_ts"
           ],
           "isUnique": false
         }
@@ -1981,6 +2037,14 @@
         },
         "oidc_conformant": {
           "name": "oidc_conformant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "auth0_conformant": {
+          "name": "auth0_conformant",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -3520,6 +3584,81 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "custom_text": {
+      "name": "custom_text",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(191)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "custom_text": {
+          "name": "custom_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at_ts": {
+          "name": "created_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at_ts": {
+          "name": "updated_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "custom_text_tenant_id_tenants_id_fk": {
+          "name": "custom_text_tenant_id_tenants_id_fk",
+          "tableFrom": "custom_text",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "custom_text_tenant_id_prompt_language_pk": {
+          "columns": [
+            "tenant_id",
+            "prompt",
+            "language"
+          ],
+          "name": "custom_text_tenant_id_prompt_language_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "email_providers": {
       "name": "email_providers",
       "columns": {
@@ -4480,6 +4619,58 @@
           "name": "themes_pkey"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "universal_login_templates": {
+      "name": "universal_login_templates",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(191)",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at_ts": {
+          "name": "created_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at_ts": {
+          "name": "updated_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "universal_login_templates_tenant_id_tenants_id_fk": {
+          "name": "universal_login_templates_tenant_id_tenants_id_fk",
+          "tableFrom": "universal_login_templates",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
