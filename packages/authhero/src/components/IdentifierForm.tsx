@@ -310,7 +310,7 @@ const IdentifierForm: FC<Props> = ({
                   )}
                   <div className="flex gap-4 sm:flex-col short:flex-row">
                     {socialConnections.map((config) => {
-                      const Logo = config.logo;
+                      const iconUrl = config.iconUrl || config.logoDataUri;
                       return (
                         <a
                           key={config.connectionName}
@@ -322,7 +322,13 @@ const IdentifierForm: FC<Props> = ({
                             color: bodyText,
                           }}
                         >
-                          <Logo className="h-5 w-5" iconUrl={config.iconUrl} />
+                          {iconUrl && (
+                            <img
+                              src={iconUrl}
+                              alt={config.displayName}
+                              className="h-5 w-5"
+                            />
+                          )}
                           <span className="sm:inline short:hidden">
                             {i18next.t(
                               "continue_with",

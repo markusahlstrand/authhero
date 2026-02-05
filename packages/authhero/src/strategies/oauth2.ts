@@ -8,34 +8,11 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getAuthUrl } from "../variables";
-import type { FC } from "hono/jsx";
 
 export const displayName = "OAuth 2.0";
 
-export const logo: FC<{ className?: string; iconUrl?: string }> = ({
-  className = "",
-  iconUrl,
-}) => {
-  if (iconUrl) {
-    return <img src={iconUrl} alt="OAuth Provider" className={className} />;
-  }
-
-  // Default OAuth 2.0 logo (key icon)
-  return (
-    <svg
-      width="45"
-      height="45"
-      viewBox="0 0 45 45"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M31.5 18h-1.5v-4.5c0-4.136-3.364-7.5-7.5-7.5s-7.5 3.364-7.5 7.5v4.5h-1.5c-1.657 0-3 1.343-3 3v15c0 1.657 1.343 3 3 3h18c1.657 0 3-1.343 3-3v-15c0-1.657-1.343-3-3-3zm-12-4.5c0-2.481 2.019-4.5 4.5-4.5s4.5 2.019 4.5 4.5v4.5h-9v-4.5zm12 22.5h-18v-15h18v15zm-9-6c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-};
+export const logoDataUri =
+  "data:image/svg+xml,%3Csvg%20width%3D%2245%22%20height%3D%2245%22%20viewBox%3D%220%200%2045%2045%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M22.5%200C14.492%200%208%206.492%208%2014.5V18H5v22h35V18h-3v-3.5C37%206.492%2030.508%200%2022.5%200zm0%204c5.799%200%2010.5%204.701%2010.5%2010.5V18h-21v-3.5C12%208.701%2016.701%204%2022.5%204z%22%20fill%3D%22%236B7280%22%2F%3E%3Ccircle%20cx%3D%2222.5%22%20cy%3D%2229%22%20r%3D%223%22%20fill%3D%22%236B7280%22%2F%3E%3C%2Fsvg%3E";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

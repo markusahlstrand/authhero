@@ -1,6 +1,5 @@
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
-import type { FC } from "hono/jsx";
 import * as apple from "./apple";
 import * as facebook from "./facebook";
 import * as google from "./google-oauth2";
@@ -21,7 +20,7 @@ export type UserInfo = {
 
 export type Strategy = {
   displayName: string;
-  logo: FC<{ className?: string; iconUrl?: string }>;
+  logoDataUri: string;
   getRedirect: (
     ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
     connection: Connection,
@@ -83,4 +82,20 @@ export function getProviderFromConnection(connection: Connection): string {
     return connection.name;
   }
   return connection.strategy;
+}
+
+/**
+ * Get the icon URL for a connection, falling back to strategy defaults
+ */
+export function getConnectionIconUrl(connection: {
+  strategy: string;
+  options?: { icon_url?: string };
+}): string | undefined {
+  // First, check for custom icon_url in connection options
+  if (connection.options?.icon_url) {
+    return connection.options.icon_url;
+  }
+  // Fall back to strategy's logoDataUri
+  const strategy = BUILTIN_STRATEGIES[connection.strategy];
+  return strategy?.logoDataUri;
 }

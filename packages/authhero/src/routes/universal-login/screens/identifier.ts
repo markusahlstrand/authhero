@@ -19,6 +19,7 @@ import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { enterCodeScreen } from "./enter-code";
 import { enterPasswordScreen } from "./enter-password";
 import { createTranslation, type Messages } from "../../../i18n";
+import { getConnectionIconUrl } from "../../../strategies";
 
 /**
  * Build social login buttons from available connections
@@ -46,7 +47,7 @@ function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeCompon
       display_name: m.login_id_federated_connection_button_text({
         connectionName: displayName,
       }),
-      icon_url: conn.options?.icon_url,
+      icon_url: getConnectionIconUrl(conn),
     };
   });
 

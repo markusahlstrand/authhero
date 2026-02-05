@@ -206,7 +206,37 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "Overview", link: "/packages/overview" },
             { text: "Core Library", link: "/packages/authhero/" },
-            { text: "UI Widget", link: "/packages/ui-widget" },
+            {
+              text: "UI Widget",
+              link: "/packages/ui-widget/",
+              collapsed: false,
+              items: [
+                {
+                  text: "Getting Started",
+                  link: "/packages/ui-widget/getting-started",
+                },
+                {
+                  text: "SSR & Hydration",
+                  link: "/packages/ui-widget/ssr-hydration",
+                },
+                {
+                  text: "Props & Events",
+                  link: "/packages/ui-widget/props-events",
+                },
+                {
+                  text: "Integration Patterns",
+                  link: "/packages/ui-widget/integration-patterns",
+                },
+                {
+                  text: "Customization",
+                  link: "/packages/ui-widget/customization",
+                },
+                {
+                  text: "API Reference",
+                  link: "/packages/ui-widget/api-reference",
+                },
+              ],
+            },
             {
               text: "Multi-Tenancy",
               link: "/packages/multi-tenancy/",

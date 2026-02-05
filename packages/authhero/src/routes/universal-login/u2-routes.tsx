@@ -614,7 +614,7 @@ function applyLiquidTemplate(
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
     const { state } = ctx.req.valid("query");
-    
+
     let theme, branding, client, loginSession;
     try {
       const initResult = await initJSXRoute(ctx, state, true);

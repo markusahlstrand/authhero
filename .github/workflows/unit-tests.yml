@@ -36,11 +36,11 @@ jobs:
       - name: Build kysely
         run: pnpm kysely build
 
-      - name: Build authhero
-        run: pnpm authhero build
-
       - name: Build widget
         run: pnpm widget build
+
+      - name: Build authhero
+        run: pnpm authhero build
 
       - name: Run tests
         run: pnpm -r test

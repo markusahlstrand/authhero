@@ -43,6 +43,7 @@ jobs:
           pnpm kysely build
           pnpm drizzle build
           pnpm cloudflare build
+          pnpm widget build
           pnpm authhero build
           pnpm multi-tenancy build
 

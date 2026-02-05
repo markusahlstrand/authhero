@@ -7,6 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation, type Messages } from "../../../i18n";
+import { getConnectionIconUrl } from "../../../strategies";
 
 /**
  * Build social signup buttons from available connections
@@ -32,7 +33,7 @@ function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeCompon
       name: conn.name,
       strategy: conn.strategy,
       display_name: m.continue_with({ provider: displayName }),
-      icon_url: conn.options?.icon_url,
+      icon_url: getConnectionIconUrl(conn),
     };
   });
 

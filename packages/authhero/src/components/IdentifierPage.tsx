@@ -206,7 +206,7 @@ const IdentifierPage: FC<Props> = ({
         )}
         <div className="flex space-x-4 sm:flex-col sm:space-x-0 sm:space-y-4 short:flex-row short:space-x-4 short:space-y-0">
           {socialConnections.map((config) => {
-            const Logo = config.logo;
+            const iconUrl = config.iconUrl || config.logoDataUri;
             return (
               <SocialButton
                 key={config.connectionName}
@@ -216,10 +216,13 @@ const IdentifierPage: FC<Props> = ({
                 })}
                 canResize={true}
                 icon={
-                  <Logo
-                    className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0"
-                    iconUrl={config.iconUrl}
-                  />
+                  iconUrl ? (
+                    <img
+                      src={iconUrl}
+                      alt={config.displayName}
+                      className="h-5 w-5 sm:absolute sm:left-4 sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2 short:static short:left-auto short:top-auto short:h-5 short:w-5 short:translate-y-0"
+                    />
+                  ) : null
                 }
                 loginSession={loginSession}
               />
