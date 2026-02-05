@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.33.0
+
+### Minor Changes
+
+- bf22ac7: Add support for inlang
+
+### Patch Changes
+
+- Updated dependencies [bf22ac7]
+  - @authhero/widget@0.11.0
+
 ## 0.32.0
 
 ### Minor Changes

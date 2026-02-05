@@ -1,5 +1,16 @@
 # authhero
 
+## 4.30.0
+
+### Minor Changes
+
+- bf22ac7: Add support for inlang
+
+### Patch Changes
+
+- Updated dependencies [bf22ac7]
+  - @authhero/widget@0.11.0
+
 ## 4.29.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.11.0
+
+### Minor Changes
+
+- bf22ac7: Add support for inlang
+
 ## 0.10.0
 
 ### Minor Changes
