@@ -86,12 +86,13 @@ describe("identifier screen - social buttons with provider details", () => {
     // Check for HTML-encoded JSON (quotes become &quot;)
     expect(html).toContain("&quot;strategy&quot;:&quot;oidc&quot;");
     expect(html).toContain("&quot;icon_url&quot;:&quot;https://example.com/vipps-icon.svg&quot;");
-    expect(html).toContain("&quot;display_name&quot;:&quot;Vipps&quot;");
+    // display_name now contains the full button text with i18n
+    expect(html).toContain("&quot;display_name&quot;:&quot;Continue with Vipps&quot;");
     
     // Also verify the widget rendered the icon correctly
     expect(html).toContain('<img class="social-icon');
     expect(html).toContain('src="https://example.com/vipps-icon.svg"');
-    expect(html).toContain('alt="Vipps"');
+    expect(html).toContain('alt="Continue with Vipps"');
   });
 
   it("should render social buttons with custom icons for OIDC connections named after known providers", async () => {
@@ -155,7 +156,8 @@ describe("identifier screen - social buttons with provider details", () => {
     // Verify the provider_details includes the oidc strategy and Vipps display name (HTML-encoded)
     expect(html).toContain("provider_details");
     expect(html).toContain("&quot;strategy&quot;:&quot;oidc&quot;");
-    expect(html).toContain("&quot;display_name&quot;:&quot;Vipps&quot;");
+    // display_name now contains the full button text with i18n
+    expect(html).toContain("&quot;display_name&quot;:&quot;Continue with Vipps&quot;");
     
     // Even without a custom icon_url, the widget should recognize "Vipps" in the name
     // and use the built-in Vipps icon (or fallback gracefully)

@@ -614,11 +614,18 @@ function applyLiquidTemplate(
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
     const { state } = ctx.req.valid("query");
-    const { theme, branding, client, loginSession } = await initJSXRoute(
-      ctx,
-      state,
-      true,
-    );
+    
+    let theme, branding, client, loginSession;
+    try {
+      const initResult = await initJSXRoute(ctx, state, true);
+      theme = initResult.theme;
+      branding = initResult.branding;
+      client = initResult.client;
+      loginSession = initResult.loginSession;
+    } catch (err) {
+      console.error(`[u2/${screenId}] Failed to initialize route:`, err);
+      throw err;
+    }
 
     // Get custom template if available (gracefully handle missing method/table)
     let customTemplate: { body: string } | null = null;
@@ -640,6 +647,7 @@ function createScreenRouteHandler(screenId: string) {
     );
 
     // Fetch custom text for this screen and language
+    const promptScreen = getPromptScreenForScreen(screenId);
     const customText = await fetchCustomText(
       ctx,
       ctx.var.tenant_id,
@@ -666,6 +674,7 @@ function createScreenRouteHandler(screenId: string) {
       },
       customText,
       language,
+      promptScreen,
     };
 
     // Fetch screen data for SSR
@@ -678,7 +687,19 @@ function createScreenRouteHandler(screenId: string) {
     }
 
     // Handle both sync and async screen factories
-    const result = await screenResult;
+    let result;
+    try {
+      result = await screenResult;
+    } catch (err) {
+      console.error(`[u2/${screenId}] Screen handler error:`, err);
+      console.error(`[u2/${screenId}] Context:`, {
+        tenant_id: client.tenant?.id,
+        client_id: client.client_id,
+        client_name: client.name,
+        state,
+      });
+      throw err;
+    }
 
     // Override action URL to use the screen-api endpoint
     // The screen handlers return /u/widget/:screenId but we want /u2/screen/:screenId
@@ -922,6 +943,7 @@ function createScreenPostHandler(screenId: string) {
     );
 
     // Fetch custom text for this screen and language
+    const promptScreen = getPromptScreenForScreen(screenId);
     const customText = await fetchCustomText(
       ctx,
       ctx.var.tenant_id,
@@ -948,6 +970,7 @@ function createScreenPostHandler(screenId: string) {
       },
       customText,
       language,
+      promptScreen,
     };
 
     // Get screen definition and call POST handler

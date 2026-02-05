@@ -38,6 +38,12 @@ function ConnectionTabbedFrom() {
         <TabbedForm.Tab label="details">
           <TextInput source="id" label="Client ID" style={{ width: "800px" }} />
           <TextInput disabled source="strategy" />
+          <TextInput
+            source="display_name"
+            label="Display Name"
+            helperText="Custom display name for the login button (optional)"
+            fullWidth
+          />
           <TextInput source="options.client_id" label="Client Id" />
           <TextInput
             source="options.client_secret"
@@ -87,11 +93,6 @@ function ConnectionTabbedFrom() {
 
           {["oauth2", "oidc"].includes(record?.strategy) && (
             <>
-              <TextInput
-                source="display_name"
-                label="Display Name"
-                fullWidth
-              />
               <SelectInput
                 source="response_type"
                 label="Response Type"

@@ -49,6 +49,8 @@ export const users = sqliteTable(
     gender: text("gender", { length: 50 }),
     birthdate: text("birthdate", { length: 10 }), // ISO 8601:2004 YYYY-MM-DD
     zoneinfo: text("zoneinfo", { length: 100 }), // e.g., "Europe/Paris"
+    // OIDC address claim (OIDC Core 5.1.1) - stored as JSON string
+    address: text("address"),
   },
   (table) => [
     primaryKey({

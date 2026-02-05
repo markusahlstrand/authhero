@@ -23,7 +23,12 @@ import {
   isValidScreenId,
   listScreenIds,
 } from "./screens/registry";
-import type { ScreenContext, ScreenBranding, ScreenResult } from "./screens/types";
+import type {
+  ScreenContext,
+  ScreenBranding,
+  ScreenResult,
+} from "./screens/types";
+import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionHook,
@@ -34,6 +39,92 @@ import {
   getRedirectUrl,
   FlowFetcher,
 } from "../../hooks/formhooks";
+
+/**
+ * Mapping from screen IDs to prompt screen IDs for custom text
+ */
+const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
+  identifier: "login-id",
+  "enter-password": "login-password",
+  "enter-code": "login",
+  signup: "signup",
+  "forgot-password": "reset-password",
+  "reset-password": "reset-password",
+  impersonate: "login",
+  "pre-signup": "signup-id",
+  "pre-signup-sent": "signup",
+  consent: "consent",
+};
+
+/**
+ * Detect language from ui_locales or Accept-Language header
+ */
+function detectLanguage(
+  uiLocales: string | undefined,
+  acceptLanguage: string | undefined,
+): string {
+  if (uiLocales) {
+    const firstLocale = uiLocales.split(" ")[0];
+    if (firstLocale) {
+      const langCode = firstLocale.split("-")[0]?.toLowerCase();
+      if (langCode) return langCode;
+    }
+  }
+  if (!acceptLanguage) return "en";
+  const languages = acceptLanguage.split(",").map((lang) => {
+    const [code, qValue] = lang.trim().split(";");
+    const q = qValue ? parseFloat(qValue.split("=")[1] || "1") : 1;
+    const langCode = code?.split("-")[0]?.toLowerCase() || "en";
+    return { code: langCode, q };
+  });
+  languages.sort((a, b) => b.q - a.q);
+  return languages[0]?.code || "en";
+}
+
+/**
+ * Fetch custom text for a screen and language
+ */
+async function fetchCustomText(
+  ctx: any,
+  tenantId: string,
+  screenId: string,
+  language: string,
+): Promise<CustomText | undefined> {
+  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  if (!promptScreen) return undefined;
+
+  try {
+    let customText = await ctx.env.data.customText.get(
+      tenantId,
+      promptScreen,
+      language,
+    );
+
+    if (!customText && language.includes("-")) {
+      const baseLanguage = language.split("-")[0];
+      customText = await ctx.env.data.customText.get(
+        tenantId,
+        promptScreen,
+        baseLanguage!,
+      );
+    }
+
+    if (!customText) {
+      const commonText = await ctx.env.data.customText.get(
+        tenantId,
+        "common",
+        language,
+      );
+      if (commonText) {
+        customText = commonText;
+      }
+    }
+
+    return customText || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Branding response schema for OpenAPI
@@ -141,6 +232,7 @@ function toScreenBranding(branding: any): ScreenBranding | undefined {
 async function buildScreenContext(
   ctx: any,
   state: string,
+  screenId: string,
   prefill?: Record<string, string>,
   errors?: Record<string, string>,
 ): Promise<ScreenContext> {
@@ -157,6 +249,20 @@ async function buildScreenContext(
   // populated by getClientWithDefaults, so no need to re-fetch from the database
   const connections = client.connections || [];
 
+  // Detect language and fetch custom text
+  const acceptLanguage = ctx.req.header("Accept-Language");
+  const language = detectLanguage(
+    loginSession?.authParams?.ui_locales,
+    acceptLanguage,
+  );
+  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  const customText = await fetchCustomText(
+    ctx,
+    ctx.var.tenant_id,
+    screenId,
+    language,
+  );
+
   return {
     ctx,
     tenant: client.tenant,
@@ -172,6 +278,9 @@ async function buildScreenContext(
       email: loginSession?.authParams?.username,
     },
     errors,
+    customText,
+    language,
+    promptScreen,
   };
 }
 
@@ -309,7 +418,7 @@ export const screenApiRoutes = new OpenAPIHono<{
       const { screenId } = ctx.req.valid("param");
       const { state, nodeId } = ctx.req.valid("query");
 
-      const screenContext = await buildScreenContext(ctx, state);
+      const screenContext = await buildScreenContext(ctx, state, screenId);
 
       // 1. Try built-in screens first
       const builtInResult = await getBuiltInScreen(screenId, screenContext);
@@ -408,7 +517,7 @@ export const screenApiRoutes = new OpenAPIHono<{
       // 1. Try built-in screen POST handler
       const definition = getScreenDefinition(screenId);
       if (definition?.handler.post) {
-        const screenContext = await buildScreenContext(ctx, state);
+        const screenContext = await buildScreenContext(ctx, state, screenId);
         const result = await definition.handler.post(screenContext, data);
 
         // Handler returns { redirect } for external URLs (OAuth, final redirect)
@@ -420,23 +529,36 @@ export const screenApiRoutes = new OpenAPIHono<{
         // Override action URL to use the screen-api endpoint for JSON submissions
         const baseUrl = new URL(ctx.req.url).origin;
         const screenData = result.screen;
-        const nextScreenId = screenData.screen.action?.match(/\/u2\/(?:screen\/)?([^/?]+)/)?.[1] || screenId;
-        
-        return ctx.json({
-          screen: {
-            ...screenData.screen,
-            // Widget will POST JSON here when JS is enabled
-            action: `${baseUrl}/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
-            links: screenData.screen.links?.map((link) => ({
-              ...link,
-              href: link.href
-                .replace("/u/widget/", "/u2/")
-                .replace("/u/signup", "/u2/signup")
-                .replace("/u/enter-", "/u2/enter-"),
-            })),
+        const nextScreenId =
+          screenData.screen.action?.match(/\/u2\/(?:screen\/)?([^/?]+)/)?.[1] ||
+          screenId;
+
+        // Build navigateUrl for client-side routing (updates browser URL without page reload)
+        const navigateUrl =
+          nextScreenId !== screenId
+            ? `${baseUrl}/u2/${nextScreenId}?state=${encodeURIComponent(state)}`
+            : undefined;
+
+        return ctx.json(
+          {
+            screen: {
+              ...screenData.screen,
+              // Widget will POST JSON here when JS is enabled
+              action: `${baseUrl}/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
+              links: screenData.screen.links?.map((link) => ({
+                ...link,
+                href: link.href
+                  .replace("/u/widget/", "/u2/")
+                  .replace("/u/signup", "/u2/signup")
+                  .replace("/u/enter-", "/u2/enter-"),
+              })),
+            },
+            branding: screenData.branding,
+            screenId: nextScreenId,
+            navigateUrl,
           },
-          branding: screenData.branding,
-        }, "error" in result ? 400 : 200);
+          "error" in result ? 400 : 200,
+        );
       }
 
       // 2. For built-in screens without POST handler, return error
@@ -447,7 +569,7 @@ export const screenApiRoutes = new OpenAPIHono<{
       }
 
       // 3. Fallback to database form handling
-      const screenContext = await buildScreenContext(ctx, state);
+      const screenContext = await buildScreenContext(ctx, state, screenId);
       const dbResult = await getDatabaseScreen(
         ctx,
         screenContext.tenant.id,
@@ -570,7 +692,10 @@ export const screenApiRoutes = new OpenAPIHono<{
 
         if (resolveResult) {
           if (resolveResult.type === "redirect") {
-            const target = resolveResult.target as "change-email" | "account" | "custom";
+            const target = resolveResult.target as
+              | "change-email"
+              | "account"
+              | "custom";
             const redirectUrl = getRedirectUrl(
               target,
               resolveResult.customUrl,

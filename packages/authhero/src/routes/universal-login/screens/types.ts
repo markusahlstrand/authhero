@@ -68,6 +68,8 @@ export interface ScreenContext {
   customText?: CustomText;
   /** Current language code (e.g., 'en', 'es') */
   language?: string;
+  /** Prompt screen ID for custom text namespacing (e.g., 'login-id', 'signup') */
+  promptScreen?: string;
 }
 
 /**
@@ -84,9 +86,7 @@ export interface ScreenResult {
  * A screen factory creates a UiScreen from context
  * Always async for consistency (even if the implementation is sync)
  */
-export type ScreenFactory = (
-  context: ScreenContext,
-) => Promise<ScreenResult>;
+export type ScreenFactory = (context: ScreenContext) => Promise<ScreenResult>;
 
 /**
  * Handler for screen form submissions
