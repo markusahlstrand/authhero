@@ -7,7 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
-import { initTranslation, m } from "../../../i18n";
+import { createTranslation } from "../../../i18n";
 import { loginWithPassword } from "../../../authentication-flows/password";
 import { AuthError } from "../../../types/AuthError";
 
@@ -21,7 +21,7 @@ export async function enterPasswordScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  initTranslation(locale, customText);
+  const { m } = createTranslation(locale, customText);
 
   const email = data?.email as string | undefined;
 
@@ -171,18 +171,21 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         };
       } catch (e: unknown) {
         const authError = e as AuthError;
-        let errorMessage = authError.message || "Invalid password";
+        // Initialize i18n for error messages
+        const locale = context.language || "en";
+        const { m } = createTranslation(locale, context.customText);
+        
+        let errorMessage = authError.message || m.invalid_password();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
           authError.code === "USER_NOT_FOUND"
         ) {
-          errorMessage = "Invalid password";
+          errorMessage = m.invalid_password();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = "Email not verified. Please verify your email first.";
+          errorMessage = m.unverified_email();
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
-          errorMessage =
-            "Too many failed login attempts. Please try again later.";
+          errorMessage = m.too_many_failed_logins();
         }
 
         return {

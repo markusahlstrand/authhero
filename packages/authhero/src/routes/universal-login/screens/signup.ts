@@ -6,12 +6,12 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
-import { initTranslation, m } from "../../../i18n";
+import { createTranslation, type Messages } from "../../../i18n";
 
 /**
  * Build social signup buttons from available connections
  */
-function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
+function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeComponent[] {
   const { connections } = context;
 
   const socialConnections = connections.filter(
@@ -84,9 +84,9 @@ export async function signupScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  initTranslation(locale, customText);
+  const { m } = createTranslation(locale, customText);
 
-  const socialButtons = buildSocialButtons(context);
+  const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;
 
   // Check if we have password signup available

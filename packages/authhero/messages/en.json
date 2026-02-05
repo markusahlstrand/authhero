@@ -149,6 +149,7 @@
   "success": "Success",
   "support_info": "If you have questions or need assistance, you can contact our support team",
   "terms": "Terms and Conditions",
+  "too_many_failed_logins": "Too many failed login attempts. Please try again later.",
   "unexpected_error_try_again": "Something went wrong. Please try again.",
   "unlink": "Unlink",
   "unverified_email": "Your email address needs validating. We have sent a new email to your inbox",

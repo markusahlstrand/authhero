@@ -561,6 +561,9 @@ export class AuthheroWidget {
             this.screenId = result.screenId;
           }
 
+          // Persist state (especially for session storage mode)
+          this.persistState();
+
           // Update URL path if navigateUrl is provided (client-side navigation)
           if (result.navigateUrl && this.shouldAutoNavigate) {
             window.history.pushState(
@@ -568,8 +571,6 @@ export class AuthheroWidget {
               "",
               result.navigateUrl,
             );
-          } else {
-            this.persistState();
           }
 
           // Apply branding if included

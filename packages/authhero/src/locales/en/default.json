@@ -19,7 +19,7 @@
   "code_expired": "Code expired",
   "code_invalid": "Invalid code",
   "login_id_title": "Welcome",
-  "login_id_description": "Log in to {companyName} to continue to {clientName}.",
+  "login_id_description": "Log in to {{companyName}} to continue to {{clientName}}.",
   "code_sent_template": "Please check <0>{{username}}</0> and enter the six-digit code that we've sent you.",
   "code_used": "The code is already used",
   "code_valid_30_minutes": "The code is valid for 30 minutes",

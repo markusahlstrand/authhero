@@ -18,12 +18,12 @@ import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { enterCodeScreen } from "./enter-code";
 import { enterPasswordScreen } from "./enter-password";
-import { initTranslation, m } from "../../../i18n";
+import { createTranslation, type Messages } from "../../../i18n";
 
 /**
  * Build social login buttons from available connections
  */
-function buildSocialButtons(context: ScreenContext): FormNodeComponent[] {
+function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeComponent[] {
   const { connections } = context;
 
   const socialConnections = connections.filter(
@@ -109,9 +109,9 @@ export async function identifierScreen(
 
   // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
   const locale = context.language || "en";
-  initTranslation(locale, customText, promptScreen || "login-id");
+  const { m } = createTranslation(locale, customText, promptScreen || "login-id");
 
-  const socialButtons = buildSocialButtons(context);
+  const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;
 
   // Check if we have email/sms/password connections that need the identifier input
