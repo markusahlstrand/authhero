@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.22.0
+
+### Minor Changes
+
+- bf22ac7: Add support for inlang
+
 ## 0.21.0
 
 ### Minor Changes

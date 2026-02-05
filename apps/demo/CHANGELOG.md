@@ -1,5 +1,13 @@
 # @authhero/demo
 
+## 0.30.2
+
+### Patch Changes
+
+- Updated dependencies [bf22ac7]
+  - @authhero/widget@0.11.0
+  - authhero@4.30.0
+
 ## 0.30.1
 
 ### Patch Changes
