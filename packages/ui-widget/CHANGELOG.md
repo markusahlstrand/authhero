@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.12.0
+
+### Minor Changes
+
+- 0a5816a: Update the parts for styling of social buttons
+
 ## 0.11.0
 
 ### Minor Changes

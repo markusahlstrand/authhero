@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.41.0
+
+### Minor Changes
+
+- 0a5816a: Update the parts for styling of social buttons
+
 ## 1.40.0
 
 ### Minor Changes

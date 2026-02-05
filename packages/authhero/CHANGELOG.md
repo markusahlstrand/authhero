@@ -1,5 +1,16 @@
 # authhero
 
+## 4.31.0
+
+### Minor Changes
+
+- 0a5816a: Update the parts for styling of social buttons
+
+### Patch Changes
+
+- Updated dependencies [0a5816a]
+  - @authhero/widget@0.12.0
+
 ## 4.30.0
 
 ### Minor Changes
