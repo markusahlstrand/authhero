@@ -6,13 +6,11 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "Microsoft";
 
-export const logoSvg = `<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><path fill="#F25022" d="M0 0H21.43V21.43H0V0Z"/><path fill="#7FBA00" d="M23.57 0H45V21.43H23.57V0Z"/><path fill="#00A4EF" d="M0 23.57H21.43V45H0V23.57Z"/><path fill="#FFB900" d="M23.57 23.57H45V45H23.57V23.57Z"/></svg>`;
-
-export const logoDataUri = svgToDataUri(logoSvg);
+export const logoDataUri =
+  "data:image/svg+xml,%3Csvg%20width%3D%2245%22%20height%3D%2245%22%20viewBox%3D%220%200%2045%2045%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20fill%3D%22%23F25022%22%20d%3D%22M0%200H21.43V21.43H0V0Z%22%2F%3E%3Cpath%20fill%3D%22%237FBA00%22%20d%3D%22M23.57%200H45V21.43H23.57V0Z%22%2F%3E%3Cpath%20fill%3D%22%2300A4EF%22%20d%3D%22M0%2023.57H21.43V45H0V23.57Z%22%2F%3E%3Cpath%20fill%3D%22%23FFB900%22%20d%3D%22M23.57%2023.57H45V45H23.57V23.57Z%22%2F%3E%3C%2Fsvg%3E";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

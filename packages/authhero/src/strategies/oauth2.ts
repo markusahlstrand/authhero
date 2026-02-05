@@ -8,13 +8,11 @@ import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getAuthUrl } from "../variables";
-import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "OAuth 2.0";
 
-export const logoSvg = `<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 0C14.492 0 8 6.492 8 14.5V18H5v22h35V18h-3v-3.5C37 6.492 30.508 0 22.5 0zm0 4c5.799 0 10.5 4.701 10.5 10.5V18h-21v-3.5C12 8.701 16.701 4 22.5 4z" fill="#6B7280"/><circle cx="22.5" cy="29" r="3" fill="#6B7280"/></svg>`;
-
-export const logoDataUri = svgToDataUri(logoSvg);
+export const logoDataUri =
+  "data:image/svg+xml,%3Csvg%20width%3D%2245%22%20height%3D%2245%22%20viewBox%3D%220%200%2045%2045%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M22.5%200C14.492%200%208%206.492%208%2014.5V18H5v22h35V18h-3v-3.5C37%206.492%2030.508%200%2022.5%200zm0%204c5.799%200%2010.5%204.701%2010.5%2010.5V18h-21v-3.5C12%208.701%2016.701%204%2022.5%204z%22%20fill%3D%22%236B7280%22%2F%3E%3Ccircle%20cx%3D%2222.5%22%20cy%3D%2229%22%20r%3D%223%22%20fill%3D%22%236B7280%22%2F%3E%3C%2Fsvg%3E";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

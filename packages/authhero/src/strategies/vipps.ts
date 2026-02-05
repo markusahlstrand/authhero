@@ -7,13 +7,11 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "Vipps";
 
-export const logoSvg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="45" height="45"><path fill="#FF5B24" d="M3.5,8h41c1.9,0,3.5,1.6,3.5,3.5v25c0,1.9-1.6,3.5-3.5,3.5h-41C1.6,40,0,38.4,0,36.5v-25C0,9.6,1.6,8,3.5,8z"/><path fill-rule="evenodd" clip-rule="evenodd" fill="#FFFFFF" d="M27.9,20.3c1.4,0,2.6-1,2.6-2.5h0c0-1.5-1.2-2.5-2.6-2.5c-1.4,0-2.6,1-2.6,2.5C25.3,19.2,26.5,20.3,27.9,20.3z M31.2,24.4c-1.7,2.2-3.5,3.8-6.7,3.8h0c-3.2,0-5.8-2-7.7-4.8c-0.8-1.2-2-1.4-2.9-0.8c-0.8,0.6-1,1.8-0.3,2.9 c2.7,4.1,6.5,6.6,10.9,6.6c4,0,7.2-2,9.6-5.2c0.9-1.2,0.9-2.5,0-3.1C33.3,22.9,32.1,23.2,31.2,24.4z"/></svg>`;
-
-export const logoDataUri = svgToDataUri(logoSvg);
+export const logoDataUri =
+  "data:image/svg+xml,%3Csvg%20version%3D%221.1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20width%3D%2245%22%20height%3D%2245%22%3E%3Cpath%20fill%3D%22%23FF5B24%22%20d%3D%22M3.5%2C8h41c1.9%2C0%2C3.5%2C1.6%2C3.5%2C3.5v25c0%2C1.9-1.6%2C3.5-3.5%2C3.5h-41C1.6%2C40%2C0%2C38.4%2C0%2C36.5v-25C0%2C9.6%2C1.6%2C8%2C3.5%2C8z%22%2F%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20fill%3D%22%23FFFFFF%22%20d%3D%22M27.9%2C20.3c1.4%2C0%2C2.6-1%2C2.6-2.5h0c0-1.5-1.2-2.5-2.6-2.5c-1.4%2C0-2.6%2C1-2.6%2C2.5C25.3%2C19.2%2C26.5%2C20.3%2C27.9%2C20.3z%20M31.2%2C24.4c-1.7%2C2.2-3.5%2C3.8-6.7%2C3.8h0c-3.2%2C0-5.8-2-7.7-4.8c-0.8-1.2-2-1.4-2.9-0.8c-0.8%2C0.6-1%2C1.8-0.3%2C2.9%20c2.7%2C4.1%2C6.5%2C6.6%2C10.9%2C6.6c4%2C0%2C7.2-2%2C9.6-5.2c0.9-1.2%2C0.9-2.5%2C0-3.1C33.3%2C22.9%2C32.1%2C23.2%2C31.2%2C24.4z%22%2F%3E%3C%2Fsvg%3E";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,

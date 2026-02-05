@@ -10,13 +10,11 @@ import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getAuthUrl } from "../variables";
-import { svgToDataUri } from "../utils/svgToDataUri";
 
 export const displayName = "OpenID Connect";
 
-export const logoSvg = `<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 0C10.074 0 0 10.074 0 22.5S10.074 45 22.5 45 45 34.926 45 22.5 34.926 0 22.5 0zm0 40.5c-9.941 0-18-8.059-18-18s8.059-18 18-18 18 8.059 18 18-8.059 18-18 18z" fill="#F7931E"/><path d="M22.5 9c-7.456 0-13.5 6.044-13.5 13.5S15.044 36 22.5 36 36 29.956 36 22.5 29.956 9 22.5 9zm0 22.5c-4.971 0-9-4.029-9-9s4.029-9 9-9 9 4.029 9 9-4.029 9-9 9z" fill="#F7931E"/></svg>`;
-
-export const logoDataUri = svgToDataUri(logoSvg);
+export const logoDataUri =
+  "data:image/svg+xml,%3Csvg%20width%3D%2245%22%20height%3D%2245%22%20viewBox%3D%220%200%2045%2045%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M22.5%200C10.074%200%200%2010.074%200%2022.5S10.074%2045%2022.5%2045%2045%2034.926%2045%2022.5%2034.926%200%2022.5%200zm0%2040.5c-9.941%200-18-8.059-18-18s8.059-18%2018-18%2018%208.059%2018%2018-8.059%2018-18%2018z%22%20fill%3D%22%23F7931E%22%2F%3E%3Cpath%20d%3D%22M22.5%209c-7.456%200-13.5%206.044-13.5%2013.5S15.044%2036%2022.5%2036%2036%2029.956%2036%2022.5%2029.956%209%2022.5%209zm0%2022.5c-4.971%200-9-4.029-9-9s4.029-9%209-9%209%204.029%209%209-4.029%209-9%209z%22%20fill%3D%22%23F7931E%22%2F%3E%3C%2Fsvg%3E";
 
 export async function getRedirect(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
