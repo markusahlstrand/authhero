@@ -4,6 +4,7 @@
   "account_title": "Konto",
   "account_with_sso_provider": "Det verkar som att du redan har skapat ett konto genom",
   "agree_to": "Genom att logga in godkänner du våra",
+  "already_have_account": "Har du redan ett konto?",
   "and": "och",
   "auth_method_email": "E-postadress",
   "auth_method_email_or_phone": "e-post eller telefonnummer",

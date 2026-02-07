@@ -19,7 +19,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import { getScreen, isValidScreenId, listScreenIds } from "./screens/registry";
+import { getScreen, getScreenDefinition, isValidScreenId, listScreenIds } from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
 import {
@@ -34,6 +34,7 @@ import { renderToString } from "@authhero/widget/hydrate";
  */
 type WidgetPageProps = {
   widgetHtml: string;
+  screenId: string;
   branding?: {
     colors?: {
       primary?: string;
@@ -64,6 +65,7 @@ type WidgetPageProps = {
  */
 function WidgetPage({
   widgetHtml,
+  screenId,
   branding,
   themePageBackground,
   clientName,
@@ -146,7 +148,9 @@ function WidgetPage({
       </head>
       <body style={bodyStyle}>
         {/* SSR widget - rendered server-side, hydrated on client */}
+        {/* data-screen attribute allows CSS targeting for specific screens */}
         <div
+          data-screen={screenId}
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
         />
@@ -236,6 +240,9 @@ export const widgetRoutes = new OpenAPIHono<{
 
       // Build screen context
       // Use client.connections which is already ordered per the client's configuration
+      // Determine route prefix based on client metadata
+      const routePrefix =
+        client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
       const screenContext: ScreenContext = {
         ctx,
         tenant: client.tenant,
@@ -251,6 +258,7 @@ export const widgetRoutes = new OpenAPIHono<{
         data: {
           email: loginSession.authParams.username,
         },
+        routePrefix,
       };
 
       const screenResult = getScreen(screenId, screenContext);
@@ -277,11 +285,14 @@ export const widgetRoutes = new OpenAPIHono<{
         nonce: loginSession.authParams.nonce,
         response_type: loginSession.authParams.response_type,
       });
+      // Get screen name for data-screen attribute
+      const resultScreenId = result.screen.name || screenId;
 
       // Server-side render the widget
       const widgetHtmlResult = await renderToString(
         `<authhero-widget
           id="widget"
+          data-screen="${resultScreenId}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
           state="${state}"
@@ -298,6 +309,7 @@ export const widgetRoutes = new OpenAPIHono<{
       return ctx.html(
         <WidgetPage
           widgetHtml={widgetHtmlResult.html || ""}
+          screenId={resultScreenId}
           branding={result.branding}
           themePageBackground={theme?.page_background}
           clientName={client.name || "AuthHero"}
@@ -356,10 +368,6 @@ export const widgetRoutes = new OpenAPIHono<{
       const { state } = ctx.req.valid("query");
       const { data } = ctx.req.valid("json");
 
-      // For now, return a simple response
-      // TODO: Implement actual screen handlers that process form data
-      // and determine the next screen or redirect
-
       const { branding, client, loginSession } = await initJSXRoute(
         ctx,
         state,
@@ -368,7 +376,53 @@ export const widgetRoutes = new OpenAPIHono<{
 
       const baseUrl = new URL(ctx.req.url).origin;
 
-      // Placeholder: determine next screen based on current screen and data
+      // Determine route prefix based on client metadata
+      const routePrefix =
+        client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
+
+      // Build screen context
+      const screenContext: ScreenContext = {
+        ctx,
+        tenant: client.tenant,
+        client,
+        branding: branding ?? undefined,
+        connections: client.connections,
+        state,
+        baseUrl,
+        prefill: {
+          username:
+            (data.username as string) || loginSession.authParams.username,
+          email: (data.email as string) || (data.username as string),
+        },
+        data: {
+          email: (data.email as string) || (data.username as string),
+        },
+        routePrefix,
+      };
+
+      // Check if the screen definition has a custom post handler
+      const screenDefinition = getScreenDefinition(screenId);
+      if (screenDefinition?.handler.post) {
+        const postResult = await screenDefinition.handler.post(screenContext, data);
+
+        if ("redirect" in postResult) {
+          return ctx.json({ redirect: postResult.redirect });
+        }
+
+        if ("error" in postResult) {
+          return ctx.json({
+            screen: postResult.screen.screen,
+            branding: postResult.screen.branding,
+          });
+        }
+
+        return ctx.json({
+          screen: postResult.screen.screen,
+          branding: postResult.screen.branding,
+        });
+      }
+
+      // Fallback: use switch statement for screens without custom post handlers
       let nextScreenId: string | undefined;
       let errors: Record<string, string> | undefined;
 
@@ -416,26 +470,10 @@ export const widgetRoutes = new OpenAPIHono<{
           break;
       }
 
-      // Build context for next screen
-      // Use client.connections which is already ordered per the client's configuration
-      const screenContext: ScreenContext = {
-        ctx,
-        tenant: client.tenant,
-        client,
-        branding: branding ?? undefined,
-        connections: client.connections,
-        state,
-        baseUrl,
-        prefill: {
-          username:
-            (data.username as string) || loginSession.authParams.username,
-          email: (data.email as string) || (data.username as string),
-        },
-        errors,
-        data: {
-          email: (data.email as string) || (data.username as string),
-        },
-      };
+      // Update context with errors if any
+      if (errors) {
+        screenContext.errors = errors;
+      }
 
       const targetScreenId = errors ? screenId : nextScreenId || screenId;
       const screenResult = getScreen(targetScreenId, screenContext);

@@ -1,5 +1,4 @@
 import { HTTPException } from "hono/http-exception";
-import bcryptjs from "bcryptjs";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
@@ -13,6 +12,7 @@ import { userIdGenerate } from "../../utils/user-id";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
+  hashPassword,
 } from "../../helpers/password-policy";
 import { sendResetPassword, sendValidateEmailAddress } from "../../emails";
 import { nanoid } from "nanoid";
@@ -124,11 +124,11 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       ctx.set("connection", newUser.connection);
 
       // Store the password
-      const hashedPassword = await bcryptjs.hash(password, 10);
+      const { hash, algorithm } = await hashPassword(password);
       await ctx.env.data.passwords.create(client.tenant.id, {
         user_id: newUser.user_id,
-        password: hashedPassword,
-        algorithm: "bcrypt",
+        password: hash,
+        algorithm,
         is_current: true,
       });
 

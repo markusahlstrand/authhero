@@ -522,7 +522,18 @@ export const screenApiRoutes = new OpenAPIHono<{
 
         // Handler returns { redirect } for external URLs (OAuth, final redirect)
         if ("redirect" in result) {
-          return ctx.json({ redirect: result.redirect });
+          // Build response with cookies if present
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          if (result.cookies && result.cookies.length > 0) {
+            for (const cookie of result.cookies) {
+              headers.append("Set-Cookie", cookie);
+            }
+          }
+          return new Response(JSON.stringify({ redirect: result.redirect }), {
+            status: 200,
+            headers,
+          });
         }
 
         // Handler returns { screen } for internal navigation

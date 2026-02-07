@@ -168,6 +168,7 @@ async function fetchCustomText(
  */
 type WidgetPageProps = {
   widgetHtml: string;
+  screenId: string;
   branding?: {
     colors?: {
       primary?: string;
@@ -200,6 +201,7 @@ type WidgetPageProps = {
  */
 function WidgetPage({
   widgetHtml,
+  screenId,
   branding,
   theme,
   themePageBackground,
@@ -294,7 +296,9 @@ function WidgetPage({
       </head>
       <body style={bodyStyle}>
         {/* SSR widget - rendered server-side, hydrated on client */}
+        {/* data-screen attribute allows CSS targeting for specific screens */}
         <div
+          data-screen={screenId}
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
         />
@@ -496,6 +500,7 @@ function generateHeadContent(options: HeadContentProps): string {
  */
 type WidgetContentProps = {
   state: string;
+  screenId: string;
   authParams: {
     client_id: string;
     redirect_uri?: string;
@@ -521,6 +526,7 @@ type WidgetContentProps = {
  */
 function WidgetContent({
   state,
+  screenId,
   authParams,
   screenJson,
   brandingJson,
@@ -533,6 +539,7 @@ function WidgetContent({
   const safeThemeJson = themeJson ? escapeHtml(themeJson) : undefined;
   const safeState = escapeHtml(state);
   const safeAuthParams = escapeHtml(JSON.stringify(authParams));
+  const safeScreenId = escapeHtml(screenId);
 
   // Sanitize powered-by logo URLs
   const safePoweredByUrl = poweredByLogo?.url
@@ -543,19 +550,23 @@ function WidgetContent({
     : null;
 
   // Build widget element - either SSR output or empty shell for client-side hydration
+  // Wrap in a div with data-screen attribute for CSS targeting since Stencil SSR
+  // strips unknown attributes from the widget element
   const widgetElement = widgetHtml ? (
-    <div dangerouslySetInnerHTML={{ __html: widgetHtml }} />
+    <div data-screen={safeScreenId} dangerouslySetInnerHTML={{ __html: widgetHtml }} />
   ) : (
-    <authhero-widget
-      id="widget"
-      screen={safeScreenJson}
-      branding={safeBrandingJson}
-      theme={safeThemeJson}
-      state={safeState}
-      auth-params={safeAuthParams}
-      auto-submit="true"
-      auto-navigate="true"
-    />
+    <div data-screen={safeScreenId}>
+      <authhero-widget
+        id="widget"
+        screen={safeScreenJson}
+        branding={safeBrandingJson}
+        theme={safeThemeJson}
+        state={safeState}
+        auth-params={safeAuthParams}
+        auto-submit="true"
+        auto-navigate="true"
+      />
+    </div>
   );
 
   return (
@@ -657,6 +668,9 @@ function createScreenRouteHandler(screenId: string) {
 
     // Build screen context for SSR
     // Use client.connections which is already ordered per the client's configuration
+    // Determine route prefix based on client metadata
+    const routePrefix =
+      client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
@@ -675,6 +689,7 @@ function createScreenRouteHandler(screenId: string) {
       customText,
       language,
       promptScreen,
+      routePrefix,
     };
 
     // Fetch screen data for SSR
@@ -757,6 +772,7 @@ function createScreenRouteHandler(screenId: string) {
       const widgetHtmlResult = await renderToString(
         `<authhero-widget
           id="widget"
+          data-screen="${screenId}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
           ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
@@ -797,6 +813,7 @@ function createScreenRouteHandler(screenId: string) {
 
       const widgetContent = generateWidgetContent({
         state,
+        screenId,
         authParams,
         screenJson,
         brandingJson,
@@ -818,6 +835,7 @@ function createScreenRouteHandler(screenId: string) {
     return ctx.html(
       <WidgetPage
         widgetHtml={widgetHtml}
+        screenId={screenId}
         branding={
           branding
             ? {
@@ -953,6 +971,9 @@ function createScreenPostHandler(screenId: string) {
 
     // Build screen context
     // Use client.connections which is already ordered per the client's configuration
+    // Determine route prefix based on client metadata
+    const routePrefix =
+      client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
@@ -971,6 +992,7 @@ function createScreenPostHandler(screenId: string) {
       customText,
       language,
       promptScreen,
+      routePrefix,
     };
 
     // Get screen definition and call POST handler
@@ -983,9 +1005,20 @@ function createScreenPostHandler(screenId: string) {
 
     const result = await definition.handler.post(screenContext, data);
 
-    // If redirect to external URL, do actual redirect
+    // If redirect to external URL, do actual redirect with cookies
     if ("redirect" in result) {
-      return ctx.redirect(result.redirect, 302);
+      const headers = new Headers();
+      headers.set("Location", result.redirect);
+      // Add Set-Cookie headers if present
+      if (result.cookies && result.cookies.length > 0) {
+        for (const cookie of result.cookies) {
+          headers.append("Set-Cookie", cookie);
+        }
+      }
+      return new Response(null, {
+        status: 302,
+        headers,
+      });
     }
 
     // Otherwise, render the next/current screen as full HTML page
@@ -1027,6 +1060,8 @@ function createScreenPostHandler(screenId: string) {
       : undefined;
     const authParamsJson = JSON.stringify(authParams);
     const themeJson = theme ? JSON.stringify(theme) : undefined;
+    // Get screen name for data-screen attribute (falls back to original screenId if not set)
+    const resultScreenId = screenResult.screen.name || screenId;
 
     // Attempt SSR
     let widgetHtml = "";
@@ -1038,6 +1073,7 @@ function createScreenPostHandler(screenId: string) {
       const widgetHtmlResult = await renderToString(
         `<authhero-widget
           id="widget"
+          data-screen="${resultScreenId}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
           ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
@@ -1076,6 +1112,7 @@ function createScreenPostHandler(screenId: string) {
 
       const widgetContent = generateWidgetContent({
         state,
+        screenId: resultScreenId,
         authParams,
         screenJson,
         brandingJson,
@@ -1097,6 +1134,7 @@ function createScreenPostHandler(screenId: string) {
     return ctx.html(
       <WidgetPage
         widgetHtml={widgetHtml}
+        screenId={resultScreenId}
         branding={
           branding
             ? {
@@ -1255,6 +1293,28 @@ export const u2Routes = new OpenAPIHono<{
       "Process impersonate form submission (no-JS fallback)",
     ),
     createScreenPostHandler("impersonate"),
+  )
+  // --------------------------------
+  // GET /u2/check-account - Check existing session
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "check-account",
+      "/check-account",
+      "Check account screen - allows users to continue with existing session",
+    ),
+    createScreenRouteHandler("check-account"),
+  )
+  // --------------------------------
+  // POST /u2/check-account
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "check-account",
+      "/check-account",
+      "Process check-account form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("check-account"),
   );
 
 // OpenAPI documentation

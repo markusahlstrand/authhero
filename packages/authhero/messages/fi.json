@@ -4,6 +4,7 @@
   "account_title": "Tili",
   "account_with_sso_provider": "Olemme havainneet, että olet jo luonut tilin kautta",
   "agree_to": "Kirjautumalla sisään hyväksyt",
+  "already_have_account": "Onko sinulla jo tili?",
   "and": "ja",
   "auth_method_email": "sähköpostiosoite",
   "auth_method_email_or_phone": "sähköpostiosoite tai puhelinnumero",

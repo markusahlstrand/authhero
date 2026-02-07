@@ -2,7 +2,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
 import { nanoid } from "nanoid";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "./helpers/password-policy";
 
 /**
  * Management API scopes for the AuthHero Management API
@@ -735,11 +735,11 @@ export async function seed(
     });
 
     // Hash and store password
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const { hash, algorithm } = await hashPassword(adminPassword);
     await adapters.passwords.create(tenantId, {
       user_id: userId,
-      password: hashedPassword,
-      algorithm: "bcrypt",
+      password: hash,
+      algorithm,
       is_current: true,
     });
 

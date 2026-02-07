@@ -4,6 +4,7 @@
   "account_title": "Konto",
   "account_with_sso_provider": "Wykryliśmy, że użytkownik utworzył już konto za pośrednictwem",
   "agree_to": "Logując się, wyrażasz zgodę na nasze",
+  "already_have_account": "Masz już konto?",
   "and": "i",
   "auth_method_email": "adres e-mail",
   "auth_method_email_or_phone": "e-mail lub numer telefonu",

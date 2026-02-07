@@ -1,5 +1,4 @@
 import { HTTPException } from "hono/http-exception";
-import bcryptjs from "bcryptjs";
 import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
 import { getUsersByEmail } from "../../helpers/users";
@@ -7,6 +6,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
+import { hashPassword } from "../../helpers/password-policy";
 import {
   LogTypes,
   PasswordInsert,
@@ -343,10 +343,11 @@ export const userRoutes = new OpenAPIHono<{
         // not on the returned user (result), because result may be the primary user
         // if automatic linking occurred
         if (password) {
+          const { hash, algorithm } = await hashPassword(password);
           const passwordOptions: PasswordInsert = {
             user_id, // Use the original user_id, not result.user_id
-            password: await bcryptjs.hash(password, 10),
-            algorithm: "bcrypt",
+            password: hash,
+            algorithm,
             is_current: true,
           };
           await ctx.env.data.passwords.create(
@@ -559,10 +560,11 @@ export const userRoutes = new OpenAPIHono<{
         }
 
         // Create new password
+        const { hash, algorithm } = await hashPassword(password);
         await data.passwords.create(ctx.var.tenant_id, {
           user_id: userId,
-          password: await bcryptjs.hash(password, 10),
-          algorithm: "bcrypt",
+          password: hash,
+          algorithm,
           is_current: true,
         });
       }
