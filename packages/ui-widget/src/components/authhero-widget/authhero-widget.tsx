@@ -1035,7 +1035,7 @@ export class AuthheroWidget {
             <div
               class="widget-footer"
               part="footer"
-              innerHTML={screen.footer}
+              innerHTML={sanitizeHtml(screen.footer)}
             />
           )}
         </div>

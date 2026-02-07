@@ -8,6 +8,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { HTTPException } from "hono/http-exception";
+import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import { getAuthCookie } from "../../../utils/cookies";
@@ -18,7 +19,15 @@ import { getAuthCookie } from "../../../utils/cookies";
 export async function checkAccountScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, tenant, client, branding, state, baseUrl, routePrefix = "/u2" } = context;
+  const {
+    ctx,
+    tenant,
+    client,
+    branding,
+    state,
+    baseUrl,
+    routePrefix = "/u2",
+  } = context;
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -34,18 +43,18 @@ export async function checkAccountScreen(
 
   // If no valid session, redirect to identifier
   if (!session || session.revoked_at) {
-    throw new HTTPException(302, {
-      message: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
-    });
+    throw new RedirectException(
+      `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+    );
   }
 
   // Get the current user
   const user = await ctx.env.data.users.get(tenant.id, session.user_id);
 
   if (!user) {
-    throw new HTTPException(302, {
-      message: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
-    });
+    throw new RedirectException(
+      `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+    );
   }
 
   const components: FormNodeComponent[] = [
@@ -86,7 +95,7 @@ export async function checkAccountScreen(
       {
         id: "use-another-account",
         text: "No, use another account",
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };
@@ -127,14 +136,18 @@ async function handleCheckAccountSubmit(
 
   // If no valid session, redirect to identifier
   if (!session || session.revoked_at) {
-    return { redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}` };
+    return {
+      redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+    };
   }
 
   // Get the current user
   const user = await ctx.env.data.users.get(tenant.id, session.user_id);
 
   if (!user) {
-    return { redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}` };
+    return {
+      redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+    };
   }
 
   // Continue with the authentication flow using existing session

@@ -352,7 +352,10 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       const user_id = `auth2|${userIdGenerate()}`;
 
-      // Create the new user
+      // Hash password first
+      const { hash, algorithm } = await hashPassword(password);
+
+      // Create the new user with password atomically in a single transaction
       const newUser = await ctx.env.data.users.create(client.tenant.id, {
         user_id,
         email,
@@ -360,15 +363,7 @@ export const signupScreenDefinition: ScreenDefinition = {
         provider: "auth2",
         connection,
         is_social: false,
-      });
-
-      // Create password
-      const { hash, algorithm } = await hashPassword(password);
-      await ctx.env.data.passwords.create(client.tenant.id, {
-        user_id,
-        password: hash,
-        algorithm,
-        is_current: true,
+        password: { hash, algorithm },
       });
 
       // Extract language from ui_locales
@@ -376,8 +371,14 @@ export const signupScreenDefinition: ScreenDefinition = {
         ?.split(" ")
         ?.map((locale: string) => locale.split("-")[0])[0];
 
-      // Send verification email
-      await sendValidateEmailAddress(ctx, newUser, language);
+      // Send verification email - wrapped in try/catch to prevent signup failure
+      // if email sending fails. User can always re-request verification later.
+      try {
+        await sendValidateEmailAddress(ctx, newUser, language);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with signup - email verification can be retried later
+      }
 
       // Try to log in the user
       try {

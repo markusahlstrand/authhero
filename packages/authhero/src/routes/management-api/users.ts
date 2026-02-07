@@ -9,7 +9,6 @@ import { logMessage } from "../../helpers/logging";
 import { hashPassword } from "../../helpers/password-policy";
 import {
   LogTypes,
-  PasswordInsert,
   auth0UserResponseSchema,
   sessionSchema,
   totalsSchema,
@@ -316,6 +315,12 @@ export const userRoutes = new OpenAPIHono<{
       const user_id = `${provider}|${idPart}`;
 
       try {
+        // Hash password if provided for atomic creation
+        let passwordData: { hash: string; algorithm: string } | undefined;
+        if (password) {
+          passwordData = await hashPassword(password);
+        }
+
         // ctx.env.data is already wrapped with hooks by the management API middleware,
         // so we can use it directly to enable automatic account linking
         const userToCreate = {
@@ -330,31 +335,18 @@ export const userRoutes = new OpenAPIHono<{
           last_ip: "",
           is_social: false,
           last_login: new Date().toISOString(),
+          // Include password for atomic user+password creation in a single transaction
+          // The password is stored on the NEWLY CREATED user (user_id), which is correct
+          // even if automatic account linking returns a different primary user
+          ...(passwordData && { password: passwordData }),
         };
 
         // Create the user - this may trigger account linking
+        // Password (if provided) is created atomically in the same transaction
         const result = await ctx.env.data.users.create(
           ctx.var.tenant_id,
           userToCreate,
         );
-
-        // Create password if provided
-        // IMPORTANT: The password should be stored on the NEWLY CREATED user (user_id),
-        // not on the returned user (result), because result may be the primary user
-        // if automatic linking occurred
-        if (password) {
-          const { hash, algorithm } = await hashPassword(password);
-          const passwordOptions: PasswordInsert = {
-            user_id, // Use the original user_id, not result.user_id
-            password: hash,
-            algorithm,
-            is_current: true,
-          };
-          await ctx.env.data.passwords.create(
-            ctx.var.tenant_id,
-            passwordOptions,
-          );
-        }
 
         ctx.set("user_id", result.user_id);
 

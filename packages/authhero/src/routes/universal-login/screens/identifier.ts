@@ -169,7 +169,7 @@ export async function identifierScreen(
     // Use custom template from customText or fall back to default message
     const termsText = customText?.termsAndConditionsTemplate
       ? String(customText.termsAndConditionsTemplate).replace(
-          /\{termsAndConditionsUrl\}/g,
+          /\$\{termsAndConditionsUrl\}/g,
           termsAndConditionsUrl,
         )
       : m.login_id_terms_and_conditions_text({ termsAndConditionsUrl });

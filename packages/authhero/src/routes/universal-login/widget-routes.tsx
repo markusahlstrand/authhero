@@ -406,7 +406,14 @@ export const widgetRoutes = new OpenAPIHono<{
         const postResult = await screenDefinition.handler.post(screenContext, data);
 
         if ("redirect" in postResult) {
-          return ctx.json({ redirect: postResult.redirect });
+          const headers = new Headers();
+          // Forward any cookies from the handler as Set-Cookie headers
+          if (postResult.cookies && postResult.cookies.length > 0) {
+            for (const cookie of postResult.cookies) {
+              headers.append("set-cookie", cookie);
+            }
+          }
+          return ctx.json({ redirect: postResult.redirect }, { headers });
         }
 
         if ("error" in postResult) {

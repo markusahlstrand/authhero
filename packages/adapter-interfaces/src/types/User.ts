@@ -58,12 +58,21 @@ export const userInsertSchema = baseUserSchema.extend({
   provider: z.string().optional(),
   connection: z.string(),
   is_social: z.boolean().optional(),
+  // Optional password for atomic user+password creation
+  // When provided, user and password are created in a single transaction
+  password: z
+    .object({
+      hash: z.string(),
+      algorithm: z.string(),
+    })
+    .optional(),
 });
 
 export type UserInsert = z.infer<typeof userInsertSchema>;
 
+// User schema omits the password field - password is only used during creation
 export const userSchema = z.object({
-  ...userInsertSchema.shape,
+  ...userInsertSchema.omit({ password: true }).shape,
   ...baseEntitySchema.shape,
   user_id: z.string(),
   provider: z.string(),

@@ -110,6 +110,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "Invalid sign up" });
       }
 
+      // Hash password first
+      const { hash, algorithm } = await hashPassword(password);
+
+      // Create the new user with password atomically in a single transaction
       const newUser = await ctx.env.data.users.create(client.tenant.id, {
         user_id: `auth2|${userIdGenerate()}`,
         email,
@@ -117,22 +121,21 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         provider: "auth2",
         connection: "Username-Password-Authentication",
         is_social: false,
+        password: { hash, algorithm },
       });
 
       ctx.set("user_id", newUser.user_id);
       ctx.set("username", newUser.email);
       ctx.set("connection", newUser.connection);
 
-      // Store the password
-      const { hash, algorithm } = await hashPassword(password);
-      await ctx.env.data.passwords.create(client.tenant.id, {
-        user_id: newUser.user_id,
-        password: hash,
-        algorithm,
-        is_current: true,
-      });
-
-      await sendValidateEmailAddress(ctx, newUser);
+      // Send verification email - wrapped in try/catch to prevent signup failure
+      // if email sending fails. User can always re-request verification later.
+      try {
+        await sendValidateEmailAddress(ctx, newUser);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with signup - email verification can be retried later
+      }
 
       logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_SIGNUP,

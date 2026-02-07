@@ -724,7 +724,10 @@ export async function seed(
       console.log(`Creating admin user "${adminEmail}"...`);
     }
 
-    // Create the admin user
+    // Hash password for atomic creation
+    const { hash, algorithm } = await hashPassword(adminPassword);
+
+    // Create the admin user with password atomically
     userId = `auth2|${userIdGenerate()}`;
     await adapters.users.create(tenantId, {
       user_id: userId,
@@ -732,15 +735,7 @@ export async function seed(
       email_verified: true,
       connection: "Username-Password-Authentication",
       provider: "auth2",
-    });
-
-    // Hash and store password
-    const { hash, algorithm } = await hashPassword(adminPassword);
-    await adapters.passwords.create(tenantId, {
-      user_id: userId,
-      password: hash,
-      algorithm,
-      is_current: true,
+      password: { hash, algorithm },
     });
 
     if (debug) {
