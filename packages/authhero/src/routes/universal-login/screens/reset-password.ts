@@ -61,6 +61,7 @@ export async function resetPasswordScreen(
   ];
 
   const screen: UiScreen = {
+    name: "reset-password",
     // Action points to HTML endpoint for no-JS fallback
     action: `${baseUrl}/u2/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",

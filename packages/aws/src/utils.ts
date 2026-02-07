@@ -4,9 +4,51 @@ import {
   DeleteCommand,
   QueryCommand,
   UpdateCommand,
+  TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBContext, DynamoDBBaseItem } from "./types";
 import { ListParams } from "@authhero/adapter-interfaces";
+
+/**
+ * Transactional write operation for DynamoDB
+ * Allows multiple put/update/delete operations to be atomic
+ */
+export async function transactWriteItems(
+  ctx: DynamoDBContext,
+  items: Array<{
+    type: "put" | "delete";
+    item?: DynamoDBBaseItem;
+    pk?: string;
+    sk?: string;
+    conditionExpression?: string;
+  }>,
+): Promise<void> {
+  const transactItems = items.map((op) => {
+    if (op.type === "put" && op.item) {
+      return {
+        Put: {
+          TableName: ctx.tableName,
+          Item: op.item as unknown as Record<string, unknown>,
+          ConditionExpression: op.conditionExpression,
+        },
+      };
+    } else if (op.type === "delete" && op.pk && op.sk) {
+      return {
+        Delete: {
+          TableName: ctx.tableName,
+          Key: { PK: op.pk, SK: op.sk },
+        },
+      };
+    }
+    throw new Error("Invalid transaction operation");
+  });
+
+  await ctx.client.send(
+    new TransactWriteCommand({
+      TransactItems: transactItems,
+    }),
+  );
+}
 
 /**
  * Generic get operation for DynamoDB

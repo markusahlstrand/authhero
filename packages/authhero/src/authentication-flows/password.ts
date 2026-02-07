@@ -23,6 +23,7 @@ import { nanoid } from "nanoid";
 import {
   validatePasswordPolicy,
   getPasswordPolicy,
+  hashPassword,
 } from "../helpers/password-policy";
 
 async function recordFailedLogin(
@@ -268,10 +269,11 @@ export async function changePassword(
   }
 
   // Create new password
+  const { hash, algorithm } = await hashPassword(newPassword);
   await data.passwords.create(client.tenant.id, {
     user_id: userId,
-    password: await bcryptjs.hash(newPassword, 10),
-    algorithm: "bcrypt",
+    password: hash,
+    algorithm,
     is_current: true,
   });
 }

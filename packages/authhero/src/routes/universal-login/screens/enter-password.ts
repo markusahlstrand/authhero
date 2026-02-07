@@ -73,6 +73,7 @@ export async function enterPasswordScreen(
   ];
 
   const screen: UiScreen = {
+    name: "enter-password",
     // Action points to HTML endpoint for no-JS fallback
     action: `${baseUrl}/u2/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
@@ -87,7 +88,7 @@ export async function enterPasswordScreen(
       },
       {
         id: "back",
-        text: m.go_back(),
+        text: "",
         linkText: m.go_back(),
         href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
@@ -154,8 +155,10 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         if (result instanceof Response) {
           // Get the redirect URL from the response
           const location = result.headers.get("location");
+          // Extract Set-Cookie headers to pass to the caller
+          const cookies = result.headers.getSetCookie?.() || [];
           if (location) {
-            return { redirect: location };
+            return { redirect: location, cookies };
           }
         }
 

@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../types";
 import { LoginSession, User } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { startLoginSessionHook } from "../authentication-flows/common";
+import { getEnrichedClient } from "../helpers/client";
 
 // Type guard for page hooks
 export function isPageHook(
@@ -48,8 +49,25 @@ export async function handlePageHook(
   // Mark login session as awaiting hook before redirecting to page
   await startLoginSessionHook(ctx, tenant_id, loginSession, `page:${page_id}`);
 
+  // Determine route prefix based on client metadata
+  let routePrefix = "/u";
+  if (loginSession.authParams.client_id) {
+    try {
+      const client = await getEnrichedClient(
+        ctx.env,
+        loginSession.authParams.client_id,
+        tenant_id,
+      );
+      if (client?.client_metadata?.universal_login_version === "2") {
+        routePrefix = "/u2";
+      }
+    } catch {
+      // If client lookup fails, use default /u prefix
+    }
+  }
+
   // If user has permission or no permission is required, redirect to the page
-  let url = `/u/${page_id}?state=${encodeURIComponent(loginSession.id)}`;
+  let url = `${routePrefix}/${page_id}?state=${encodeURIComponent(loginSession.id)}`;
 
   return new Response(null, {
     status: 302,

@@ -26,7 +26,6 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
-import { checkAccountRoutes } from "./check-account";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
 
@@ -99,7 +98,6 @@ export default function createU2App(config: AuthHeroConfig) {
   // Mount routes
   const u2App = app
     .route("/screen", screenApiRoutes)
-    .route("/check-account", checkAccountRoutes)
     .route("/", u2Routes);
 
   // OpenAPI spec

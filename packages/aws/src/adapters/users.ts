@@ -9,7 +9,7 @@ import {
   userSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
-import { userKeys } from "../keys";
+import { userKeys, passwordKeys } from "../keys";
 import {
   getItem,
   putItem,
@@ -19,6 +19,7 @@ import {
   stripDynamoDBFields,
   removeNullProperties,
   queryItems,
+  transactWriteItems,
 } from "../utils";
 import { HTTPException } from "hono/http-exception";
 
@@ -53,6 +54,15 @@ interface UserItem extends DynamoDBBaseItem {
   gender?: string;
   birthdate?: string;
   zoneinfo?: string;
+}
+
+interface PasswordItem extends DynamoDBBaseItem {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  password: string;
+  algorithm: "bcrypt" | "argon2id";
+  is_current: boolean;
 }
 
 function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
@@ -136,11 +146,44 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
       (item as any).GSI2SK = userKeys.gsi2sk(userId);
 
       try {
-        await putItem(ctx, item, {
-          conditionExpression: "attribute_not_exists(PK)",
-        });
+        // If password is provided, use a transaction for atomic user+password creation
+        if (user.password) {
+          const passwordId = nanoid();
+          const passwordItem: PasswordItem = {
+            PK: passwordKeys.pk(tenantId, userId),
+            SK: passwordKeys.sk(passwordId),
+            entityType: "PASSWORD",
+            id: passwordId,
+            tenant_id: tenantId,
+            user_id: userId,
+            password: user.password.hash,
+            algorithm: user.password.algorithm as "bcrypt" | "argon2id",
+            is_current: true,
+            created_at: now,
+            updated_at: now,
+          };
+
+          await transactWriteItems(ctx, [
+            {
+              type: "put",
+              item,
+              conditionExpression: "attribute_not_exists(PK)",
+            },
+            {
+              type: "put",
+              item: passwordItem,
+            },
+          ]);
+        } else {
+          await putItem(ctx, item, {
+            conditionExpression: "attribute_not_exists(PK)",
+          });
+        }
       } catch (err: any) {
-        if (err.name === "ConditionalCheckFailedException") {
+        if (
+          err.name === "ConditionalCheckFailedException" ||
+          err.name === "TransactionCanceledException"
+        ) {
           throw new HTTPException(409, { message: "User already exists" });
         }
         throw err;

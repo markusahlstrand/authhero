@@ -620,6 +620,8 @@ export type ScreenLink = z.infer<typeof screenLinkSchema>;
  * This is what the API returns to the widget - no flow routing logic
  */
 export const uiScreenSchema = z.object({
+  /** Screen identifier for CSS targeting (e.g., 'identifier', 'enter-password', 'signup') */
+  name: z.string().optional(),
   action: z.string(),
   method: z.enum(["POST", "GET"]),
   title: z.string().optional(),
@@ -627,6 +629,8 @@ export const uiScreenSchema = z.object({
   components: z.array(formNodeComponentDefinition),
   messages: z.array(componentMessageSchema).optional(),
   links: z.array(screenLinkSchema).optional(),
+  /** Footer HTML content displayed at the very bottom of the widget (e.g., terms and conditions) */
+  footer: z.string().optional(),
 });
 
 export type UiScreen = z.infer<typeof uiScreenSchema>;

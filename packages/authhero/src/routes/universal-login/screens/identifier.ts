@@ -162,8 +162,19 @@ export async function identifierScreen(
     );
   }
 
-  // Add signup link if signup is allowed
-  const links: UiScreen["links"] = [];
+  // Build terms and conditions footer if URL is configured
+  const termsAndConditionsUrl = client.client_metadata?.termsAndConditionsUrl;
+  let footer: string | undefined;
+  if (termsAndConditionsUrl) {
+    // Use custom template from customText or fall back to default message
+    const termsText = customText?.termsAndConditionsTemplate
+      ? String(customText.termsAndConditionsTemplate).replace(
+          /\$\{termsAndConditionsUrl\}/g,
+          termsAndConditionsUrl,
+        )
+      : m.login_id_terms_and_conditions_text({ termsAndConditionsUrl });
+    footer = `<div class="terms-text">${termsText}</div>`;
+  }
 
   // Check if password signup is available
   const hasPasswordConnection = context.connections.some(
@@ -173,17 +184,23 @@ export async function identifierScreen(
   // Check if signups are disabled via client metadata
   const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
 
-  // Only show signup link if signups are enabled AND password connection exists
+  // Add signup link as a component inside the form (not as a separate links section)
   if (hasPasswordConnection && !signupsDisabled) {
-    links.push({
-      id: "signup",
-      text: m.signup(),
-      linkText: m.create_new_account_link(),
-      href: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
+    const signupUrl = `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`;
+    components.push({
+      id: "signup-link",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div class="signup-link">${m.signup()} <a href="${signupUrl}">${m.create_new_account_link()}</a></div>`,
+      },
+      order: components.length + 1,
     });
   }
 
   const screen: UiScreen = {
+    name: "identifier",
     // Action points to HTML endpoint for no-JS fallback
     // Widget overrides this to POST JSON to screen API when hydrated
     action: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
@@ -195,7 +212,7 @@ export async function identifierScreen(
       clientName: client.name || "the application",
     }),
     components,
-    links,
+    footer,
   };
 
   // Pre-fill username if provided
