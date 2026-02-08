@@ -520,6 +520,11 @@ export const screenApiRoutes = new OpenAPIHono<{
         const screenContext = await buildScreenContext(ctx, state, screenId);
         const result = await definition.handler.post(screenContext, data);
 
+        // Handler returns { response } for direct Response passthrough (e.g., web_message mode)
+        if ("response" in result) {
+          return result.response;
+        }
+
         // Handler returns { redirect } for external URLs (OAuth, final redirect)
         if ("redirect" in result) {
           // Build response with cookies if present

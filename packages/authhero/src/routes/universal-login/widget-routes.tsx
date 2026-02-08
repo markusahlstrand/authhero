@@ -416,6 +416,23 @@ export const widgetRoutes = new OpenAPIHono<{
           return ctx.json({ redirect: postResult.redirect }, { headers });
         }
 
+        // If handler returned a direct Response (e.g., web_message mode), extract cookies and indicate success
+        // This case typically happens for silent auth/web_message mode where the response is an HTML page
+        if ("response" in postResult) {
+          const headers = new Headers();
+          const cookies = postResult.response.headers.getSetCookie?.() || [];
+          for (const cookie of cookies) {
+            headers.append("set-cookie", cookie);
+          }
+          // Return the redirect_uri from the auth params so the widget can redirect
+          const redirectUri = loginSession.authParams.redirect_uri;
+          if (redirectUri) {
+            return ctx.json({ redirect: redirectUri }, { headers });
+          }
+          // Fallback: return empty screen to indicate success
+          return ctx.json({ screen: null, branding: null }, { headers });
+        }
+
         if ("error" in postResult) {
           return ctx.json({
             screen: postResult.screen.screen,

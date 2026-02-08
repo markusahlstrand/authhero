@@ -829,7 +829,7 @@ export class AuthheroWidget {
     // Use the local screen variable for all rendering
     const screenErrors = screen.messages?.filter((m) => m.type === "error") || [];
     const screenSuccesses = screen.messages?.filter((m) => m.type === "success") || [];
-    const components = [...screen.components]
+    const components = [...(screen.components ?? [])]
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
@@ -919,12 +919,7 @@ export class AuthheroWidget {
             </div>
           ))}
 
-          <form
-            action={screen.action}
-            method={screen.method}
-            onSubmit={this.handleSubmit}
-            part="form"
-          >
+          <form onSubmit={this.handleSubmit} part="form">
             <div class="form-content">
               {/* Social buttons section - order controlled by CSS */}
               {socialComponents.length > 0 && (

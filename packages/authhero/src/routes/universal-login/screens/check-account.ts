@@ -7,6 +7,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { createTranslation } from "../../../i18n";
 import { HTTPException } from "hono/http-exception";
 import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
@@ -27,7 +28,12 @@ export async function checkAccountScreen(
     state,
     baseUrl,
     routePrefix = "/u2",
+    customText,
   } = context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(locale, customText, "check-account");
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -65,7 +71,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>You are currently logged in as <strong>${escapeHtml(user.email || user.user_id)}</strong>.</p><p>Do you want to continue with this account?</p>`,
+        content: `<p>${m.check_account_logged_in_as({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.check_account_continue_question()}</p>`,
       },
       order: 0,
     },
@@ -76,7 +82,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Yes, continue with existing account",
+        text: m.yes_continue_with_existing_account(),
       },
       order: 1,
     },
@@ -86,15 +92,15 @@ export async function checkAccountScreen(
     name: "check-account",
     action: `${baseUrl}${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Welcome Back",
+    title: m.check_account_title(),
     description: client.name
-      ? `Continue to ${escapeHtml(client.name)}`
-      : "Continue with your account",
+      ? m.check_account_description({ clientName: escapeHtml(client.name) })
+      : m.check_account_description_fallback(),
     components,
     links: [
       {
         id: "use-another-account",
-        text: "No, use another account",
+        text: m.no_use_another(),
         href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -116,6 +122,7 @@ async function handleCheckAccountSubmit(
   | { screen: ScreenResult }
   | { redirect: string; cookies?: string[] }
   | { error: string; screen: ScreenResult }
+  | { response: Response }
 > {
   const { ctx, tenant, client, state } = context;
 
@@ -150,23 +157,51 @@ async function handleCheckAccountSubmit(
     };
   }
 
-  // Continue with the authentication flow using existing session
-  const response = await createFrontChannelAuthResponse(ctx, {
-    client,
-    authParams: loginSession.authParams,
-    loginSession,
-    user,
-    existingSessionIdToLink: session.id,
-  });
+  try {
+    // Continue with the authentication flow using existing session
+    const response = await createFrontChannelAuthResponse(ctx, {
+      client,
+      authParams: loginSession.authParams,
+      loginSession,
+      user,
+      existingSessionIdToLink: session.id,
+    });
 
-  // Extract redirect URL and cookies from response
-  const location = response.headers.get("Location");
-  const cookies = response.headers.getSetCookie?.() || [];
-  if (location) {
-    return { redirect: location, cookies };
+    // Extract redirect URL and cookies from response
+    const location = response.headers.get("Location");
+    const cookies = response.headers.getSetCookie?.() || [];
+    if (location) {
+      return { redirect: location, cookies };
+    }
+
+    // For non-redirect responses (e.g., web_message mode), pass through directly
+    return { response };
+  } catch (error: unknown) {
+    // Handle known error cases with user-friendly messages
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred";
+
+    // For session state errors, redirect to identifier to start fresh
+    if (
+      errorMessage.includes("session") ||
+      errorMessage.includes("expired") ||
+      errorMessage.includes("completed") ||
+      errorMessage.includes("failed")
+    ) {
+      return {
+        redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+      };
+    }
+
+    // For other errors, show a user-friendly error on the check-account screen
+    // Note: We create a fresh translation context here since we're in the error handler
+    const locale = context.language || "en";
+    const { m } = createTranslation(locale, context.customText, "check-account");
+    return {
+      error: m.check_account_error(),
+      screen: await checkAccountScreen(context),
+    };
   }
-
-  throw new HTTPException(500, { message: "Failed to generate redirect" });
 }
 
 /**

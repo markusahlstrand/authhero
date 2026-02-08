@@ -400,9 +400,11 @@ export const signupScreenDefinition: ScreenDefinition = {
           if (location) {
             return { redirect: location, cookies };
           }
+          // For non-redirect responses (e.g., web_message mode), pass through directly
+          return { response: result };
         }
 
-        // If we got here, something went wrong but user was created
+        // If we got here (result is not a Response), something went wrong but user was created
         // Just return success message about verification email
         return {
           screen: await signupScreen({

@@ -1021,6 +1021,11 @@ function createScreenPostHandler(screenId: string) {
       });
     }
 
+    // If handler returned a direct Response (e.g., web_message mode), pass it through
+    if ("response" in result) {
+      return result.response;
+    }
+
     // Otherwise, render the next/current screen as full HTML page
     const screenResult = result.screen;
 

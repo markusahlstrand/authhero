@@ -160,9 +160,11 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
           if (location) {
             return { redirect: location, cookies };
           }
+          // For non-redirect responses (e.g., web_message mode), pass through directly
+          return { response: result };
         }
 
-        // If we got here, something went wrong
+        // If we got here (result is not a Response), something went wrong
         return {
           error: "Unexpected error",
           screen: await enterPasswordScreen({

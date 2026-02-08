@@ -104,6 +104,7 @@ export interface ScreenHandler {
     | { screen: ScreenResult }
     | { redirect: string; cookies?: string[] }
     | { error: string; screen: ScreenResult }
+    | { response: Response }
   >;
 }
 
