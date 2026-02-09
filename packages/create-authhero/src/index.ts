@@ -25,13 +25,14 @@ interface CliOptions {
   multiTenant?: boolean;
   conformance?: boolean;
   conformanceAlias?: string;
+  workspace?: boolean;
 }
 
 interface SetupConfig {
   name: string;
   description: string;
   templateDir: string;
-  packageJson: (projectName: string, multiTenant: boolean, conformance?: boolean) => object;
+  packageJson: (projectName: string, multiTenant: boolean, conformance?: boolean, workspace?: boolean) => object;
   seedFile?: string;
 }
 
@@ -46,121 +47,130 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName, multiTenant, conformance) => ({
-      name: projectName,
-      version: "1.0.0",
-      type: "module",
-      scripts: {
-        dev: "npx tsx watch src/index.ts",
-        start: "npx tsx src/index.ts",
-        migrate: "npx tsx src/migrate.ts",
-        seed: "npx tsx src/seed.ts",
-      },
-      dependencies: {
-        "@authhero/kysely-adapter": "latest",
-        "@authhero/widget": "latest",
-        "@hono/swagger-ui": "^0.5.0",
-        "@hono/zod-openapi": "^0.19.0",
-        "@hono/node-server": "latest",
-        authhero: "latest",
-        "better-sqlite3": "latest",
-        hono: "^4.6.0",
-        kysely: "latest",
-        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
-        ...(conformance && { bcryptjs: "latest" }),
-      },
-      devDependencies: {
-        "@types/better-sqlite3": "^7.6.0",
-        "@types/node": "^20.0.0",
-        tsx: "^4.0.0",
-        typescript: "^5.5.0",
-      },
-    }),
+    packageJson: (projectName, multiTenant, conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          dev: "npx tsx watch src/index.ts",
+          start: "npx tsx src/index.ts",
+          migrate: "npx tsx src/migrate.ts",
+          seed: "npx tsx src/seed.ts",
+        },
+        dependencies: {
+          "@authhero/kysely-adapter": v,
+          "@authhero/widget": v,
+          "@hono/swagger-ui": "^0.5.0",
+          "@hono/zod-openapi": "^0.19.0",
+          "@hono/node-server": "latest",
+          authhero: v,
+          "better-sqlite3": "latest",
+          hono: "^4.6.0",
+          kysely: "latest",
+          ...(multiTenant && { "@authhero/multi-tenancy": v }),
+          ...(conformance && { bcryptjs: "latest" }),
+        },
+        devDependencies: {
+          "@types/better-sqlite3": "^7.6.0",
+          "@types/node": "^20.0.0",
+          tsx: "^4.0.0",
+          typescript: "^5.5.0",
+        },
+      };
+    },
     seedFile: "seed.ts",
   },
   cloudflare: {
     name: "Cloudflare Workers (D1)",
     description: "Cloudflare Workers setup with D1 database",
     templateDir: "cloudflare",
-    packageJson: (projectName, multiTenant, conformance) => ({
-      name: projectName,
-      version: "1.0.0",
-      type: "module",
-      scripts: {
-        postinstall: "node copy-assets.js",
-        "copy-assets": "node copy-assets.js",
-        dev: "wrangler dev --port 3000 --local-protocol https",
-        "dev:remote":
-          "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-        deploy: "wrangler deploy --config wrangler.local.toml",
-        "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
-        "db:migrate:remote":
-          "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
-        migrate: "wrangler d1 migrations apply AUTH_DB --local",
-        "seed:local": "node seed-helper.js",
-        "seed:remote": "node seed-helper.js '' '' remote",
-        seed: "node seed-helper.js",
-        setup:
-          "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
-      },
-      dependencies: {
-        "@authhero/drizzle": "latest",
-        "@authhero/kysely-adapter": "latest",
-        "@authhero/widget": "latest",
-        "@hono/swagger-ui": "^0.5.0",
-        "@hono/zod-openapi": "^0.19.0",
-        authhero: "latest",
-        hono: "^4.6.0",
-        kysely: "latest",
-        "kysely-d1": "latest",
-        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
-        ...(conformance && { bcryptjs: "latest" }),
-      },
-      devDependencies: {
-        "@cloudflare/workers-types": "^4.0.0",
-        "drizzle-kit": "^0.31.0",
-        "drizzle-orm": "^0.44.0",
-        typescript: "^5.5.0",
-        wrangler: "^3.0.0",
-      },
-    }),
+    packageJson: (projectName, multiTenant, conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          postinstall: "node copy-assets.js",
+          "copy-assets": "node copy-assets.js",
+          dev: "wrangler dev --port 3000 --local-protocol https",
+          "dev:remote":
+            "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+          deploy: "wrangler deploy --config wrangler.local.toml",
+          "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+          "db:migrate:remote":
+            "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
+          migrate: "wrangler d1 migrations apply AUTH_DB --local",
+          "seed:local": "node seed-helper.js",
+          "seed:remote": "node seed-helper.js '' '' remote",
+          seed: "node seed-helper.js",
+          setup:
+            "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
+        },
+        dependencies: {
+          "@authhero/drizzle": v,
+          "@authhero/kysely-adapter": v,
+          "@authhero/widget": v,
+          "@hono/swagger-ui": "^0.5.0",
+          "@hono/zod-openapi": "^0.19.0",
+          authhero: v,
+          hono: "^4.6.0",
+          kysely: "latest",
+          "kysely-d1": "latest",
+          ...(multiTenant && { "@authhero/multi-tenancy": v }),
+          ...(conformance && { bcryptjs: "latest" }),
+        },
+        devDependencies: {
+          "@cloudflare/workers-types": "^4.0.0",
+          "drizzle-kit": "^0.31.0",
+          "drizzle-orm": "^0.44.0",
+          typescript: "^5.5.0",
+          wrangler: "^3.0.0",
+        },
+      };
+    },
     seedFile: "seed.ts",
   },
   "aws-sst": {
     name: "AWS SST (Lambda + DynamoDB)",
     description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
     templateDir: "aws-sst",
-    packageJson: (projectName, multiTenant, conformance) => ({
-      name: projectName,
-      version: "1.0.0",
-      type: "module",
-      scripts: {
-        dev: "sst dev",
-        deploy: "sst deploy --stage production",
-        remove: "sst remove",
-        seed: "npx tsx src/seed.ts",
-        "copy-assets": "node copy-assets.js",
-      },
-      dependencies: {
-        "@authhero/aws": "latest",
-        "@authhero/widget": "latest",
-        "@aws-sdk/client-dynamodb": "^3.0.0",
-        "@aws-sdk/lib-dynamodb": "^3.0.0",
-        "@hono/swagger-ui": "^0.5.0",
-        "@hono/zod-openapi": "^0.19.0",
-        authhero: "latest",
-        hono: "^4.6.0",
-        ...(multiTenant && { "@authhero/multi-tenancy": "latest" }),
-        ...(conformance && { bcryptjs: "latest" }),
-      },
-      devDependencies: {
-        "@types/aws-lambda": "^8.10.0",
-        "@types/node": "^20.0.0",
-        sst: "^3.0.0",
-        tsx: "^4.0.0",
-        typescript: "^5.5.0",
-      },
-    }),
+    packageJson: (projectName, multiTenant, conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          dev: "sst dev",
+          deploy: "sst deploy --stage production",
+          remove: "sst remove",
+          seed: "npx tsx src/seed.ts",
+          "copy-assets": "node copy-assets.js",
+        },
+        dependencies: {
+          "@authhero/aws": v,
+          "@authhero/widget": v,
+          "@aws-sdk/client-dynamodb": "^3.0.0",
+          "@aws-sdk/lib-dynamodb": "^3.0.0",
+          "@hono/swagger-ui": "^0.5.0",
+          "@hono/zod-openapi": "^0.19.0",
+          authhero: v,
+          hono: "^4.6.0",
+          ...(multiTenant && { "@authhero/multi-tenancy": v }),
+          ...(conformance && { bcryptjs: "latest" }),
+        },
+        devDependencies: {
+          "@types/aws-lambda": "^8.10.0",
+          "@types/node": "^20.0.0",
+          sst: "^3.0.0",
+          tsx: "^4.0.0",
+          typescript: "^5.5.0",
+        },
+      };
+    },
     seedFile: "seed.ts",
   },
 };
@@ -1085,6 +1095,7 @@ program
     "--conformance-alias <alias>",
     "alias for conformance suite (default: authhero-local)",
   )
+  .option("--workspace", "use workspace:* dependencies for local monorepo development")
   .option("-y, --yes", "skip all prompts and use defaults/provided options")
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
@@ -1187,6 +1198,12 @@ program
       );
     }
 
+    // Handle workspace mode
+    const workspace = options.workspace || false;
+    if (workspace) {
+      console.log("Workspace mode: enabled (using workspace:* dependencies)");
+    }
+
     const config = setupConfigs[setupType];
 
     // Create project directory
@@ -1195,7 +1212,7 @@ program
     // Write package.json with multi-tenant option
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
-      JSON.stringify(config.packageJson(projectName, multiTenant, conformance), null, 2),
+      JSON.stringify(config.packageJson(projectName, multiTenant, conformance, workspace), null, 2),
     );
 
     // Copy template files

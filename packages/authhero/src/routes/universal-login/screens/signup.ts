@@ -8,11 +8,23 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation, type Messages } from "../../../i18n";
 import { getConnectionIconUrl } from "../../../strategies";
+import { getUserByProvider } from "../../../helpers/users";
+import {
+  getPasswordPolicy,
+  validatePasswordPolicy,
+  hashPassword,
+} from "../../../helpers/password-policy";
+import { userIdGenerate } from "../../../utils/user-id";
+import { sendValidateEmailAddress } from "../../../emails";
+import { loginWithPassword } from "../../../authentication-flows/password";
 
 /**
  * Build social signup buttons from available connections
  */
-function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeComponent[] {
+function buildSocialButtons(
+  context: ScreenContext,
+  m: Messages,
+): FormNodeComponent[] {
   const { connections } = context;
 
   const socialConnections = connections.filter(
@@ -80,7 +92,7 @@ function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeCompon
 export async function signupScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, baseUrl, prefill, errors, customText } =
+  const { branding, state, baseUrl, prefill, errors, customText, routePrefix } =
     context;
 
   // Initialize i18n with locale and custom text overrides
@@ -174,8 +186,9 @@ export async function signupScreen(
   }
 
   const screen: UiScreen = {
+    name: "signup",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
+    action: `${baseUrl}${routePrefix}/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.create_account_title(),
     description: m.create_account_description(),
@@ -183,9 +196,9 @@ export async function signupScreen(
     links: [
       {
         id: "login",
-        text: m.sign_in(),
-        linkText: m.login(),
-        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
+        text: m.already_have_account(),
+        linkText: m.log_in(),
+        href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };
@@ -205,11 +218,202 @@ export const signupScreenDefinition: ScreenDefinition = {
   description: "New user registration screen",
   handler: {
     get: signupScreen,
-    // POST handler would:
-    // 1. Validate email is not taken
-    // 2. Validate password meets requirements
-    // 3. Create user
-    // 4. Send verification email if required
-    // 5. Complete login or show verification screen
+    post: async (context, data) => {
+      const { ctx, client, state } = context;
+      const email = (data.email as string)?.toLowerCase()?.trim();
+      const password = (data.password as string)?.trim();
+      const rePassword = (data.re_password as string)?.trim();
+
+      // Initialize i18n for error messages
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText);
+
+      // Validate required fields
+      if (!email) {
+        return {
+          error: "Email is required",
+          screen: await signupScreen({
+            ...context,
+            errors: { email: m.invalid_email() },
+          }),
+        };
+      }
+
+      if (!password) {
+        return {
+          error: "Password is required",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { password: m.invalid_password() },
+          }),
+        };
+      }
+
+      if (!rePassword) {
+        return {
+          error: "Please confirm your password",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { re_password: m.confirm_password() },
+          }),
+        };
+      }
+
+      // Check passwords match
+      if (password !== rePassword) {
+        return {
+          error: "Passwords don't match",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { re_password: m.create_account_passwords_didnt_match() },
+          }),
+        };
+      }
+
+      // Find the password connection from the client's connections
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const connection =
+        passwordConnection?.name || "Username-Password-Authentication";
+
+      // Validate password against connection policy
+      const policy = await getPasswordPolicy(
+        ctx.env.data,
+        client.tenant.id,
+        connection,
+      );
+
+      try {
+        await validatePasswordPolicy(policy, {
+          tenantId: client.tenant.id,
+          userId: "", // No user yet for signup
+          newPassword: password,
+          data: ctx.env.data,
+        });
+      } catch (policyError: unknown) {
+        const errorMessage =
+          policyError instanceof Error
+            ? policyError.message
+            : m.create_account_weak_password();
+
+        return {
+          error: errorMessage,
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { password: errorMessage },
+          }),
+        };
+      }
+
+      // Check if user already exists
+      const existingUser = await getUserByProvider({
+        userAdapter: ctx.env.data.users,
+        tenant_id: client.tenant.id,
+        username: email,
+        provider: "auth2",
+      });
+
+      if (existingUser) {
+        return {
+          error: "User already exists",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { email: m.email_already_taken() },
+          }),
+        };
+      }
+
+      // Get the login session
+      const loginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      if (!loginSession) {
+        return {
+          error: "Session expired",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { email: m.session_expired() },
+          }),
+        };
+      }
+
+      // Update the login session with the username
+      loginSession.authParams.username = email;
+      await ctx.env.data.loginSessions.update(
+        client.tenant.id,
+        loginSession.id,
+        loginSession,
+      );
+
+      const user_id = `auth2|${userIdGenerate()}`;
+
+      // Hash password first
+      const { hash, algorithm } = await hashPassword(password);
+
+      // Create the new user with password atomically in a single transaction
+      const newUser = await ctx.env.data.users.create(client.tenant.id, {
+        user_id,
+        email,
+        email_verified: false,
+        provider: "auth2",
+        connection,
+        is_social: false,
+        password: { hash, algorithm },
+      });
+
+      // Extract language from ui_locales
+      const language = loginSession.authParams?.ui_locales
+        ?.split(" ")
+        ?.map((locale: string) => locale.split("-")[0])[0];
+
+      // Send verification email - wrapped in try/catch to prevent signup failure
+      // if email sending fails. User can always re-request verification later.
+      try {
+        await sendValidateEmailAddress(ctx, newUser, language);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with signup - email verification can be retried later
+      }
+
+      // Try to log in the user
+      try {
+        const result = await loginWithPassword(
+          ctx,
+          client,
+          {
+            ...loginSession.authParams,
+            password,
+          },
+          loginSession,
+        );
+
+        // Get the redirect URL from the response
+        const location = result.headers.get("location");
+        // Extract Set-Cookie headers to pass to the caller
+        const cookies = result.headers.getSetCookie?.() || [];
+        if (location) {
+          return { redirect: location, cookies };
+        }
+        // For non-redirect responses (e.g., web_message mode), pass through directly
+        return { response: result };
+      } catch {
+        // Login failed but user was created, show message about verification
+        return {
+          screen: await signupScreen({
+            ...context,
+            messages: [{ text: m.validate_email_body(), type: "success" }],
+          }),
+        };
+      }
+    },
   },
 };

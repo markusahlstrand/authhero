@@ -64,6 +64,8 @@ export interface ScreenContext {
   messages?: Array<{ text: string; type: "success" | "info" | "warning" }>;
   /** Additional screen-specific data */
   data?: Record<string, unknown>;
+  /** Route prefix for universal login routes (e.g., "/u" or "/u2") */
+  routePrefix?: string;
   /** Custom texts for the current language */
   customText?: CustomText;
   /** Current language code (e.g., 'en', 'es') */
@@ -100,8 +102,9 @@ export interface ScreenHandler {
     data: Record<string, unknown>,
   ) => Promise<
     | { screen: ScreenResult }
-    | { redirect: string }
+    | { redirect: string; cookies?: string[] }
     | { error: string; screen: ScreenResult }
+    | { response: Response }
   >;
 }
 

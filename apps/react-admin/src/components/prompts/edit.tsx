@@ -142,6 +142,8 @@ const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
     invitationTitle: "You've Been Invited!",
     invitationDescription:
       "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+    termsAndConditionsTemplate:
+      'By continuing, you agree to our <a href="${termsAndConditionsUrl}" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.',
     captchaCodePlaceholder: "Enter the code shown above",
     logoAltText: "${companyName}",
     showPasswordText: "Show password",

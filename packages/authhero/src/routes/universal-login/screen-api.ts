@@ -520,9 +520,25 @@ export const screenApiRoutes = new OpenAPIHono<{
         const screenContext = await buildScreenContext(ctx, state, screenId);
         const result = await definition.handler.post(screenContext, data);
 
+        // Handler returns { response } for direct Response passthrough (e.g., web_message mode)
+        if ("response" in result) {
+          return result.response;
+        }
+
         // Handler returns { redirect } for external URLs (OAuth, final redirect)
         if ("redirect" in result) {
-          return ctx.json({ redirect: result.redirect });
+          // Build response with cookies if present
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          if (result.cookies && result.cookies.length > 0) {
+            for (const cookie of result.cookies) {
+              headers.append("Set-Cookie", cookie);
+            }
+          }
+          return new Response(JSON.stringify({ redirect: result.redirect }), {
+            status: 200,
+            headers,
+          });
         }
 
         // Handler returns { screen } for internal navigation

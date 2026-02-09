@@ -19,7 +19,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 export async function impersonateScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, tenant, client, branding, state, baseUrl, errors } = context;
+  const { ctx, tenant, client, branding, state, baseUrl, errors, routePrefix = "/u2" } = context;
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -62,8 +62,9 @@ export async function impersonateScreen(
   if (!hasImpersonationPermission) {
     // Return an error screen
     const errorScreen: UiScreen = {
+      name: "impersonate",
       // Action points to HTML endpoint for no-JS fallback
-      action: `${baseUrl}/u2/impersonate?state=${encodeURIComponent(state)}`,
+      action: `${baseUrl}${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
       method: "POST",
       title: "Access Denied",
       description: "You do not have permission to impersonate other users.",
@@ -143,8 +144,9 @@ export async function impersonateScreen(
   ];
 
   const screen: UiScreen = {
+    name: "impersonate",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/impersonate?state=${encodeURIComponent(state)}`,
+    action: `${baseUrl}${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Impersonation",
     description: client.name
@@ -167,7 +169,7 @@ async function handleImpersonateSubmit(
   data: Record<string, unknown>,
 ): Promise<
   | { screen: ScreenResult }
-  | { redirect: string }
+  | { redirect: string; cookies?: string[] }
   | { error: string; screen: ScreenResult }
 > {
   const { ctx, tenant, client, state } = context;
@@ -233,10 +235,11 @@ async function handleImpersonateSubmit(
       skipHooks: true, // Skip post-login hooks during impersonation
     });
 
-    // Extract redirect URL from response
+    // Extract redirect URL and cookies from response
     const location = response.headers.get("Location");
+    const cookies = response.headers.getSetCookie?.() || [];
     if (location) {
-      return { redirect: location };
+      return { redirect: location, cookies };
     }
 
     throw new HTTPException(500, { message: "Failed to generate redirect" });
@@ -276,8 +279,9 @@ async function handleImpersonateSubmit(
     skipHooks: true, // Skip post-login hooks during impersonation
   });
 
-  // Extract redirect URL from response
+  // Extract redirect URL and cookies from response
   const location = response.headers.get("Location");
+  const cookies = response.headers.getSetCookie?.() || [];
   if (!location) {
     throw new HTTPException(500, { message: "Failed to generate redirect" });
   }
@@ -289,7 +293,7 @@ async function handleImpersonateSubmit(
     userId: targetUser.user_id,
   });
 
-  return { redirect: location };
+  return { redirect: location, cookies };
 }
 
 /**

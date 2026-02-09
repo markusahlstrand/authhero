@@ -113,11 +113,6 @@ export const authenticateRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "Code or password required" });
       }
 
-      if (!(response instanceof Response)) {
-        throw new HTTPException(500, {
-          message: "Unexpected response from loginWithPassword",
-        });
-      }
       return response;
     },
   );

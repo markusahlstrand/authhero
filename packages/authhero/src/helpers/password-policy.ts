@@ -167,3 +167,13 @@ export async function getPasswordPolicy(
   const connection = await data.connections.get(tenantId, connectionName);
   return (connection?.options as PasswordPolicy) || {};
 }
+
+/**
+ * Hash a password using bcrypt with a cost factor of 10
+ */
+export async function hashPassword(
+  password: string,
+): Promise<{ hash: string; algorithm: "bcrypt" }> {
+  const hash = await bcryptjs.hash(password, 10);
+  return { hash, algorithm: "bcrypt" };
+}

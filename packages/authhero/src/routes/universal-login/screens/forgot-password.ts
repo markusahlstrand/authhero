@@ -64,6 +64,7 @@ export async function forgotPasswordScreen(
   }
 
   const screen: UiScreen = {
+    name: "forgot-password",
     // Action points to HTML endpoint for no-JS fallback
     action: `${baseUrl}/u2/forgot-password?state=${encodeURIComponent(state)}`,
     method: "POST",

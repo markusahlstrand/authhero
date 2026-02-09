@@ -36,6 +36,32 @@ describe("pagehooks", () => {
             get: vi.fn().mockResolvedValue(mockLoginSession),
             update: vi.fn().mockResolvedValue(true),
           },
+          clients: {
+            get: vi.fn().mockResolvedValue({
+              client_id: "test-client",
+              name: "Test Client",
+            }),
+            getByClientId: vi.fn().mockResolvedValue({
+              client_id: "test-client",
+              tenant_id: "test-tenant",
+              name: "Test Client",
+            }),
+          },
+          tenants: {
+            get: vi.fn().mockResolvedValue({
+              id: "test-tenant",
+              name: "Test Tenant",
+              audience: "https://api.example.com",
+              sender_email: "noreply@example.com",
+              sender_name: "Test",
+            }),
+          },
+          connections: {
+            list: vi.fn().mockResolvedValue({ connections: [] }),
+          },
+          clientConnections: {
+            listByClient: vi.fn().mockResolvedValue([]),
+          },
         },
       },
       var: {
@@ -181,6 +207,30 @@ describe("pagehooks", () => {
           "users:impersonate",
         ),
       ).rejects.toThrow("Missing tenant_id in context");
+    });
+
+    it("should redirect to /u2 when client has universal_login_version: '2'", async () => {
+      mockCtx.env!.data.clients.get = vi.fn().mockResolvedValue({
+        client_id: "test-client",
+        name: "Test Client",
+        client_metadata: {
+          universal_login_version: "2",
+        },
+      });
+
+      const response = await handlePageHook(
+        mockCtx as any,
+        "impersonate",
+        mockLoginSession,
+        mockUser,
+      );
+
+      expect(response).toBeInstanceOf(Response);
+      const actualResponse = response as Response;
+      expect(actualResponse.status).toBe(302);
+      expect(actualResponse.headers.get("location")).toBe(
+        `/u2/impersonate?state=${encodeURIComponent(mockLoginSession.id)}`,
+      );
     });
   });
 });

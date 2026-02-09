@@ -53,6 +53,13 @@ export class AuthheroNode {
     this.fieldChange.emit({ id: this.component.id, value: target.value });
   };
 
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      this.buttonClick.emit({ id: "submit", type: "submit", value: "next" });
+    }
+  };
+
   private handleCheckbox = (e: Event) => {
     const target = e.target as HTMLInputElement;
     this.fieldChange.emit({
@@ -74,9 +81,9 @@ export class AuthheroNode {
   }
 
   private handleButtonClick = (e: Event, type: string, value?: string) => {
-    if (type !== "submit") {
-      e.preventDefault();
-    }
+    // Always prevent default to avoid double submissions
+    // The parent widget handles the actual form submission
+    e.preventDefault();
     this.buttonClick.emit({ id: this.component.id, type, value });
   };
 
@@ -359,6 +366,7 @@ export class AuthheroNode {
             disabled={this.disabled}
             maxLength={max_length}
             onInput={this.handleInput}
+            onKeyDown={this.handleKeyDown}
           />
           {this.renderFloatingLabel(
             component.label,
@@ -394,6 +402,7 @@ export class AuthheroNode {
             disabled={this.disabled}
             autocomplete="email"
             onInput={this.handleInput}
+            onKeyDown={this.handleKeyDown}
           />
           {this.renderFloatingLabel(
             component.label,
@@ -433,6 +442,7 @@ export class AuthheroNode {
             minLength={component.config?.min_length}
             autocomplete="current-password"
             onInput={this.handleInput}
+            onKeyDown={this.handleKeyDown}
           />
           {this.renderFloatingLabel(
             component.label,
@@ -486,6 +496,7 @@ export class AuthheroNode {
           max={max}
           step={step}
           onInput={this.handleInput}
+          onKeyDown={this.handleKeyDown}
         />
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
@@ -512,6 +523,7 @@ export class AuthheroNode {
           disabled={this.disabled}
           autocomplete="tel"
           onInput={this.handleInput}
+          onKeyDown={this.handleKeyDown}
         />
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
@@ -537,6 +549,7 @@ export class AuthheroNode {
           required={component.required}
           disabled={this.disabled}
           onInput={this.handleInput}
+          onKeyDown={this.handleKeyDown}
         />
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
@@ -564,6 +577,7 @@ export class AuthheroNode {
           min={min}
           max={max}
           onInput={this.handleInput}
+          onKeyDown={this.handleKeyDown}
         />
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}

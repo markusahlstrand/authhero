@@ -11,7 +11,6 @@ import {
 import type {
   UiScreen,
   FormComponent,
-  ComponentMessage,
 } from "../../types/components";
 import type { WidgetBranding, WidgetTheme } from "../../utils/branding";
 import { mergeThemeVars, applyCssVars } from "../../utils/branding";
@@ -344,6 +343,33 @@ export class AuthheroWidget {
   }
 
   /**
+   * Focus the first input field in the form.
+   * Called after screen changes to ensure keyboard navigation works properly.
+   */
+  private focusFirstInput() {
+    // Use requestAnimationFrame to ensure DOM has updated
+    requestAnimationFrame(() => {
+      const shadowRoot = this.el.shadowRoot;
+      if (!shadowRoot) return;
+
+      // Find all authhero-node components and look for inputs in their shadow DOMs
+      const nodes = shadowRoot.querySelectorAll("authhero-node");
+      for (const node of Array.from(nodes)) {
+        const nodeShadow = node.shadowRoot;
+        if (nodeShadow) {
+          const input = nodeShadow.querySelector(
+            'input:not([type="hidden"]):not([type="checkbox"]):not([disabled]), textarea:not([disabled])',
+          ) as HTMLElement;
+          if (input) {
+            input.focus();
+            return;
+          }
+        }
+      }
+    });
+  }
+
+  /**
    * Get the effective autoNavigate value (defaults to autoSubmit if not set)
    */
   private get shouldAutoNavigate(): boolean {
@@ -416,11 +442,23 @@ export class AuthheroWidget {
   }
 
   async componentWillLoad() {
-    // Parse initial props
-    this.watchScreen(this.screen);
-    this.watchBranding(this.branding);
-    this.watchTheme(this.theme);
-    this.watchAuthParams(this.authParams);
+    // Parse initial props - this prevents unnecessary state changes during hydration that cause flashes
+    // Also check the element attribute as a fallback for hydration scenarios
+    if (!this._screen) {
+      const screenValue = this.screen || this.el?.getAttribute("screen");
+      if (screenValue) {
+        this.watchScreen(screenValue);
+      }
+    }
+    if (!this._branding) {
+      this.watchBranding(this.branding);
+    }
+    if (!this._theme) {
+      this.watchTheme(this.theme);
+    }
+    if (!this._authParams) {
+      this.watchAuthParams(this.authParams);
+    }
 
     // Load persisted state if available
     this.loadPersistedState();
@@ -499,6 +537,7 @@ export class AuthheroWidget {
           this.screenChange.emit(this._screen);
           this.updateDataScreenAttribute();
           this.persistState();
+          this.focusFirstInput();
         }
       } else {
         const error = await response
@@ -604,6 +643,9 @@ export class AuthheroWidget {
             this.state = result.state;
             this.persistState();
           }
+
+          // Focus first input on new screen
+          this.focusFirstInput();
         } else if (result.complete) {
           // Flow complete without redirect
           this.flowComplete.emit({});
@@ -614,6 +656,7 @@ export class AuthheroWidget {
           this._screen = result.screen;
           this.screenChange.emit(result.screen);
           this.updateDataScreenAttribute();
+          this.focusFirstInput();
         }
       }
     } catch (err) {
@@ -728,31 +771,6 @@ export class AuthheroWidget {
   };
 
   /**
-   * Get error messages from the screen-level messages array.
-   */
-  private getScreenErrors(): ComponentMessage[] {
-    return this._screen?.messages?.filter((m) => m.type === "error") || [];
-  }
-
-  /**
-   * Get success messages from the screen-level messages array.
-   */
-  private getScreenSuccesses(): ComponentMessage[] {
-    return this._screen?.messages?.filter((m) => m.type === "success") || [];
-  }
-
-  /**
-   * Sort components by order.
-   */
-  private getOrderedComponents(): FormComponent[] {
-    if (!this._screen) return [];
-
-    return [...this._screen.components]
-      .filter((c) => c.visible !== false)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }
-
-  /**
    * Check if a component is a social button.
    */
   private isSocialComponent(component: FormComponent): boolean {
@@ -769,7 +787,9 @@ export class AuthheroWidget {
   }
 
   render() {
-    if (this.loading && !this._screen) {
+    const screen = this._screen;
+    
+    if (this.loading && !screen) {
       return (
         <div class="widget-container">
           <div class="loading-spinner" />
@@ -777,7 +797,7 @@ export class AuthheroWidget {
       );
     }
 
-    if (!this._screen) {
+    if (!screen) {
       return (
         <div class="widget-container">
           <div class="error-message">No screen configuration provided</div>
@@ -785,9 +805,12 @@ export class AuthheroWidget {
       );
     }
 
-    const screenErrors = this.getScreenErrors();
-    const screenSuccesses = this.getScreenSuccesses();
-    const components = this.getOrderedComponents();
+    // Use the local screen variable for all rendering
+    const screenErrors = screen.messages?.filter((m) => m.type === "error") || [];
+    const screenSuccesses = screen.messages?.filter((m) => m.type === "success") || [];
+    const components = [...(screen.components ?? [])]
+      .filter((c) => c.visible !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Separate social, divider, and field components for layout ordering
     const socialComponents = components.filter((c) =>
@@ -837,19 +860,19 @@ export class AuthheroWidget {
             </div>
           )}
 
-          {this._screen.title && (
+          {screen.title && (
             <h1
               class="title"
               part="title"
-              innerHTML={sanitizeHtml(this._screen.title)}
+              innerHTML={sanitizeHtml(screen.title)}
             />
           )}
 
-          {this._screen.description && (
+          {screen.description && (
             <p
               class="description"
               part="description"
-              innerHTML={sanitizeHtml(this._screen.description)}
+              innerHTML={sanitizeHtml(screen.description)}
             />
           )}
         </header>
@@ -935,9 +958,9 @@ export class AuthheroWidget {
             </div>
           </form>
 
-          {this._screen.links && this._screen.links.length > 0 && (
+          {screen.links && screen.links.length > 0 && (
             <div class="links" part="links">
-              {this._screen.links.map((link) => (
+              {screen.links.map((link) => (
                 <span
                   class="link-wrapper"
                   part="link-wrapper"
@@ -980,6 +1003,14 @@ export class AuthheroWidget {
                 </span>
               ))}
             </div>
+          )}
+
+          {screen.footer && (
+            <div
+              class="widget-footer"
+              part="footer"
+              innerHTML={sanitizeHtml(screen.footer)}
+            />
           )}
         </div>
       </div>
