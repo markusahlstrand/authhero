@@ -54,14 +54,12 @@ export interface ScreenContext {
   connections: Connection[];
   /** The login state parameter */
   state: string;
-  /** Base URL for the current request */
-  baseUrl: string;
   /** Pre-filled values for form fields */
   prefill?: Record<string, string | undefined>;
   /** Error messages to display */
   errors?: Record<string, string>;
-  /** Success messages to display */
-  messages?: Array<{ text: string; type: "success" | "info" | "warning" }>;
+  /** Screen-level messages to display (errors, success, info, warnings) */
+  messages?: Array<{ text: string; type: "error" | "success" | "info" | "warning" }>;
   /** Additional screen-specific data */
   data?: Record<string, unknown>;
   /** Route prefix for universal login routes (e.g., "/u" or "/u2") */

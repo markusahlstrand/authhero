@@ -14,7 +14,7 @@ import { getPrimaryUserByProvider } from "../../../helpers/users";
  * Create the enter-code screen
  */
 export async function enterCodeScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { branding, state, baseUrl, errors, messages, data } = context;
+  const { branding, state, errors, messages, data } = context;
 
   const email = data?.email as string | undefined;
   const maskedEmail = email
@@ -75,7 +75,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
   const screen: UiScreen = {
     name: "enter-code",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/enter-code?state=${encodeURIComponent(state)}`,
+    action: `/u2/enter-code?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Check your email",
     description: "Enter the verification code",
@@ -86,7 +86,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
         id: "back",
         text: "Back to",
         linkText: "login",
-        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `/u2/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

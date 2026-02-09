@@ -243,8 +243,6 @@ async function buildScreenContext(
     loginSession,
   } = await initJSXRoute(ctx, state, true);
 
-  const baseUrl = new URL(ctx.req.url).origin;
-
   // Use client.connections directly - EnrichedClient already has full Connection objects
   // populated by getClientWithDefaults, so no need to re-fetch from the database
   const connections = client.connections || [];
@@ -271,7 +269,6 @@ async function buildScreenContext(
     branding: toScreenBranding(branding),
     connections,
     state,
-    baseUrl,
     prefill: {
       ...prefill,
       username: loginSession?.authParams?.username,
@@ -424,6 +421,7 @@ export const screenApiRoutes = new OpenAPIHono<{
       const builtInResult = await getBuiltInScreen(screenId, screenContext);
       if (builtInResult) {
         // Override the action URL and links to use the u2 routes
+        // Use relative URLs - browser will resolve against current origin
         const screen = {
           ...builtInResult.screen,
           action: `/u2/screen/${screenId}?state=${encodeURIComponent(state)}`,
@@ -543,7 +541,7 @@ export const screenApiRoutes = new OpenAPIHono<{
 
         // Handler returns { screen } for internal navigation
         // Override action URL to use the screen-api endpoint for JSON submissions
-        const baseUrl = new URL(ctx.req.url).origin;
+        // Use relative URLs - browser will resolve against current origin
         const screenData = result.screen;
         const nextScreenId =
           screenData.screen.action?.match(/\/u2\/(?:screen\/)?([^/?]+)/)?.[1] ||
@@ -552,7 +550,7 @@ export const screenApiRoutes = new OpenAPIHono<{
         // Build navigateUrl for client-side routing (updates browser URL without page reload)
         const navigateUrl =
           nextScreenId !== screenId
-            ? `${baseUrl}/u2/${nextScreenId}?state=${encodeURIComponent(state)}`
+            ? `/u2/${nextScreenId}?state=${encodeURIComponent(state)}`
             : undefined;
 
         return ctx.json(
@@ -560,7 +558,7 @@ export const screenApiRoutes = new OpenAPIHono<{
             screen: {
               ...screenData.screen,
               // Widget will POST JSON here when JS is enabled
-              action: `${baseUrl}/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
+              action: `/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
               links: screenData.screen.links?.map((link) => ({
                 ...link,
                 href: link.href

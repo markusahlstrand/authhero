@@ -101,9 +101,9 @@ export async function identifierScreen(
     client,
     branding,
     state,
-    baseUrl,
     prefill,
     errors,
+    messages,
     customText,
     promptScreen,
   } = context;
@@ -186,14 +186,14 @@ export async function identifierScreen(
 
   // Add signup link as a component inside the form (not as a separate links section)
   if (hasPasswordConnection && !signupsDisabled) {
-    const signupUrl = `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`;
+    const signupUrl = `/u2/signup?state=${encodeURIComponent(state)}`;
     components.push({
       id: "signup-link",
       type: "RICH_TEXT",
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="signup-link">${m.signup()} <a href="${signupUrl}">${m.create_new_account_link()}</a></div>`,
+        content: `<div class="signup-link">${m.dont_have_account()} <a href="${signupUrl}">${m.create_new_account_link()}</a></div>`,
       },
       order: components.length + 1,
     });
@@ -203,7 +203,7 @@ export async function identifierScreen(
     name: "identifier",
     // Action points to HTML endpoint for no-JS fallback
     // Widget overrides this to POST JSON to screen API when hydrated
-    action: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
+    action: `/u2/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.login_id_title(),
     description: m.login_id_description({
@@ -212,6 +212,7 @@ export async function identifierScreen(
       clientName: client.name || "the application",
     }),
     components,
+    messages,
     footer,
   };
 

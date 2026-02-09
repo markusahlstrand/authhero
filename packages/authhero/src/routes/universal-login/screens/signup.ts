@@ -92,7 +92,7 @@ function buildSocialButtons(
 export async function signupScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, baseUrl, prefill, errors, customText, routePrefix } =
+  const { branding, state, prefill, errors, customText, routePrefix } =
     context;
 
   // Initialize i18n with locale and custom text overrides
@@ -188,7 +188,7 @@ export async function signupScreen(
   const screen: UiScreen = {
     name: "signup",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}${routePrefix}/signup?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.create_account_title(),
     description: m.create_account_description(),
@@ -198,7 +198,7 @@ export async function signupScreen(
         id: "login",
         text: m.already_have_account(),
         linkText: m.log_in(),
-        href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

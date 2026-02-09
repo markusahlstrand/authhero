@@ -19,7 +19,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 export async function impersonateScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, tenant, client, branding, state, baseUrl, errors, routePrefix = "/u2" } = context;
+  const { ctx, tenant, client, branding, state, errors, routePrefix = "/u2" } = context;
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -64,7 +64,7 @@ export async function impersonateScreen(
     const errorScreen: UiScreen = {
       name: "impersonate",
       // Action points to HTML endpoint for no-JS fallback
-      action: `${baseUrl}${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
+      action: `${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
       method: "POST",
       title: "Access Denied",
       description: "You do not have permission to impersonate other users.",
@@ -146,7 +146,7 @@ export async function impersonateScreen(
   const screen: UiScreen = {
     name: "impersonate",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/impersonate?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Impersonation",
     description: client.name

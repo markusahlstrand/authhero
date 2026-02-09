@@ -62,7 +62,7 @@ describe("signup validation hooks", () => {
 
       expect(userResponse.status).toBe(400);
       const error = await userResponse.text();
-      expect(error).toContain("Public signup is disabled");
+      expect(error).toContain("User account does not exist");
     });
 
     it("should allow signup when disable_sign_ups is true but user with same email exists (for linking)", async () => {
@@ -147,7 +147,7 @@ describe("signup validation hooks", () => {
       // Should be blocked by the preUserSignupHook
       expect(userResponse.status).toBe(400);
       const error = await userResponse.text();
-      expect(error).toContain("Public signup is disabled");
+      expect(error).toContain("User account does not exist");
     });
 
     it("should allow email/password signup for existing user even when disable_sign_ups is true", async () => {
@@ -238,7 +238,7 @@ describe("signup validation hooks", () => {
 
       const signupLog = logs.find((log) => log.type === "fs");
       expect(signupLog).toBeDefined();
-      expect(signupLog?.description).toContain("Public signup is disabled");
+      expect(signupLog?.description).toContain("User account does not exist");
     });
   });
 });

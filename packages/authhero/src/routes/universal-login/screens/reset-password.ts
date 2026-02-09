@@ -13,7 +13,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 export async function resetPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, baseUrl, errors, messages } = context;
+  const { branding, state, errors, messages } = context;
 
   const components: FormNodeComponent[] = [
     // New password input
@@ -63,7 +63,7 @@ export async function resetPasswordScreen(
   const screen: UiScreen = {
     name: "reset-password",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/reset-password?state=${encodeURIComponent(state)}`,
+    action: `/u2/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Set your new password",
     description: "Choose a strong password for your account",

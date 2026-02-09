@@ -284,7 +284,7 @@ export async function validateSignupEmail(
     if (!existingUser) {
       return {
         allowed: false,
-        reason: "Public signup is disabled for this client",
+        reason: "User account does not exist",
       };
     }
   }
