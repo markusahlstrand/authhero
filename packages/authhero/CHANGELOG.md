@@ -1,5 +1,11 @@
 # authhero
 
+## 4.33.0
+
+### Minor Changes
+
+- ff4fe46: Handle custom domains for widget
+
 ## 4.32.0
 
 ### Minor Changes
