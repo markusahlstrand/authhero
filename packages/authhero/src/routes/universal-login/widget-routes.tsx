@@ -241,8 +241,6 @@ export const widgetRoutes = new OpenAPIHono<{
         true,
       );
 
-      const baseUrl = new URL(ctx.req.url).origin;
-
       // Build screen context
       // Use client.connections which is already ordered per the client's configuration
       // Determine route prefix based on client metadata
@@ -255,7 +253,6 @@ export const widgetRoutes = new OpenAPIHono<{
         branding: branding ?? undefined,
         connections: client.connections,
         state,
-        baseUrl,
         prefill: {
           username: loginSession.authParams.username,
           email: loginSession.authParams.username,
@@ -379,8 +376,6 @@ export const widgetRoutes = new OpenAPIHono<{
         true,
       );
 
-      const baseUrl = new URL(ctx.req.url).origin;
-
       // Determine route prefix based on client metadata
       const routePrefix =
         client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
@@ -393,7 +388,6 @@ export const widgetRoutes = new OpenAPIHono<{
         branding: branding ?? undefined,
         connections: client.connections,
         state,
-        baseUrl,
         prefill: {
           username:
             (data.username as string) || loginSession.authParams.username,
@@ -513,7 +507,7 @@ export const widgetRoutes = new OpenAPIHono<{
       const screenResult = getScreen(targetScreenId, screenContext);
 
       if (!screenResult) {
-        return ctx.json({ redirect: `${baseUrl}/callback?state=${state}` });
+        return ctx.json({ redirect: `/callback?state=${encodeURIComponent(state)}` });
       }
 
       // Handle both sync and async screen factories

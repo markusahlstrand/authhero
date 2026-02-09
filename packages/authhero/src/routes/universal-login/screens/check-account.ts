@@ -26,7 +26,6 @@ export async function checkAccountScreen(
     client,
     branding,
     state,
-    baseUrl,
     routePrefix = "/u2",
     customText,
   } = context;
@@ -90,7 +89,7 @@ export async function checkAccountScreen(
 
   const screen: UiScreen = {
     name: "check-account",
-    action: `${baseUrl}${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.check_account_title(),
     description: client.name
@@ -101,7 +100,7 @@ export async function checkAccountScreen(
       {
         id: "use-another-account",
         text: m.no_use_another(),
-        href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

@@ -37,10 +37,20 @@ export async function tenantMiddleware(
     }
   }
 
-  // Check host header for subdomain matching tenant ID (direct requests)
+  // Check host header for custom domains (when accessed directly, not via proxy)
   const host = ctx.req.header("host");
   if (host) {
     ctx.set("host", host);
+
+    // First, check if the full host is a registered custom domain
+    const customDomain = await ctx.env.data.customDomains.getByDomain(host);
+    if (customDomain) {
+      ctx.set("tenant_id", customDomain.tenant_id);
+      ctx.set("custom_domain", host);
+      return await next();
+    }
+
+    // Otherwise, check if the subdomain matches a tenant ID
     const hostParts = host.split(".");
     if (hostParts.length > 1 && typeof hostParts[0] === "string") {
       const subdomain = hostParts[0];

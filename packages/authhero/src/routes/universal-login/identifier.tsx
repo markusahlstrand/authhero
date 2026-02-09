@@ -53,6 +53,12 @@ export const identifierRoutes = new OpenAPIHono<{
             description: "The state parameter from the authorization request",
           }),
           impersonation: z.string().optional(),
+          error: z.string().optional().openapi({
+            description: "Error code from failed authentication",
+          }),
+          error_description: z.string().optional().openapi({
+            description: "Human-readable error description",
+          }),
         }),
       },
       responses: {
@@ -62,7 +68,7 @@ export const identifierRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { state } = ctx.req.valid("query");
+      const { state, error, error_description } = ctx.req.valid("query");
 
       const { theme, branding, loginSession, client } = await initJSXRoute(
         ctx,
@@ -73,6 +79,9 @@ export const identifierRoutes = new OpenAPIHono<{
       const userAgent = ctx.req.header("user-agent") || "";
       const { isEmbedded, browserName } = detectEmbeddedBrowser(userAgent);
 
+      // Build error message: prefer error_description over error code
+      const errorMessage = error_description || error;
+
       return ctx.html(
         <IdentifierPage
           theme={theme}
@@ -82,6 +91,7 @@ export const identifierRoutes = new OpenAPIHono<{
           email={loginSession.authParams.username}
           isEmbedded={isEmbedded}
           browserName={browserName}
+          error={errorMessage}
         />,
       );
     },
@@ -202,7 +212,7 @@ export const identifierRoutes = new OpenAPIHono<{
         if (!validation.allowed) {
           await logMessage(ctx, client.tenant.id, {
             type: LogTypes.FAILED_SIGNUP,
-            description: validation.reason || "Public signup is disabled",
+            description: validation.reason || "User account does not exist",
           });
 
           return ctx.html(

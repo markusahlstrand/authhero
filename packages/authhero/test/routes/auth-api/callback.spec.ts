@@ -79,6 +79,7 @@ describe("callback", () => {
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toEqual("/u/login/identifier");
     expect(redirectUri.searchParams.get("error")).toEqual("access_denied");
+    expect(redirectUri.searchParams.get("error_description")).toBeTruthy();
     expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });
 
@@ -140,6 +141,7 @@ describe("callback", () => {
     const redirectUri = new URL(location);
     expect(redirectUri.pathname).toEqual("/u/login/identifier");
     expect(redirectUri.searchParams.get("error")).toEqual("access_denied");
+    expect(redirectUri.searchParams.get("error_description")).toBeTruthy();
     expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });
 

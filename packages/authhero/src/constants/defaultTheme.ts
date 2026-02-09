@@ -38,31 +38,31 @@ export const DEFAULT_THEME: Theme = {
   fonts: {
     body_text: {
       bold: false,
-      size: 16,
+      size: 100,
     },
     buttons_text: {
-      bold: false,
-      size: 16,
+      bold: true,
+      size: 100,
     },
     font_url:
       "https://assets.sesamy.com/fonts/khteka/WOFF2/KHTeka-Regular.woff2",
     input_labels: {
       bold: false,
-      size: 14,
+      size: 100,
     },
     links: {
-      bold: false,
-      size: 16,
+      bold: true,
+      size: 100,
     },
     links_style: "normal",
     reference_text_size: 16,
     subtitle: {
       bold: false,
-      size: 18,
+      size: 100,
     },
     title: {
       bold: true,
-      size: 24,
+      size: 150,
     },
   },
   page_background: {

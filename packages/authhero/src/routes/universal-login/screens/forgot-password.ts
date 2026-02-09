@@ -13,7 +13,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 export async function forgotPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, baseUrl, prefill, errors, messages } = context;
+  const { branding, state, prefill, errors, messages, routePrefix = "/u2" } = context;
 
   const components: FormNodeComponent[] = [
     // Info text
@@ -66,7 +66,7 @@ export async function forgotPasswordScreen(
   const screen: UiScreen = {
     name: "forgot-password",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/forgot-password?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: "Reset your password",
     components,
@@ -76,7 +76,7 @@ export async function forgotPasswordScreen(
         id: "back",
         text: "Remember your password?",
         linkText: "Log in",
-        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

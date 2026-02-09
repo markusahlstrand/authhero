@@ -534,12 +534,10 @@ function WidgetContent({
   widgetHtml,
   poweredByLogo,
 }: WidgetContentProps) {
-  const safeScreenJson = escapeHtml(screenJson);
-  const safeBrandingJson = brandingJson ? escapeHtml(brandingJson) : undefined;
-  const safeThemeJson = themeJson ? escapeHtml(themeJson) : undefined;
-  const safeState = escapeHtml(state);
-  const safeAuthParams = escapeHtml(JSON.stringify(authParams));
-  const safeScreenId = escapeHtml(screenId);
+  // Note: We don't need to call escapeHtml() on these values because
+  // Hono's JSX automatically escapes attribute values when calling .toString().
+  // Manual escaping would result in double-escaping (e.g., < becomes &amp;lt;)
+  const authParamsJson = JSON.stringify(authParams);
 
   // Sanitize powered-by logo URLs
   const safePoweredByUrl = poweredByLogo?.url
@@ -553,16 +551,16 @@ function WidgetContent({
   // Wrap in a div with data-screen attribute for CSS targeting since Stencil SSR
   // strips unknown attributes from the widget element
   const widgetElement = widgetHtml ? (
-    <div data-screen={safeScreenId} dangerouslySetInnerHTML={{ __html: widgetHtml }} />
+    <div data-screen={screenId} dangerouslySetInnerHTML={{ __html: widgetHtml }} />
   ) : (
-    <div data-screen={safeScreenId}>
+    <div data-screen={screenId}>
       <authhero-widget
         id="widget"
-        screen={safeScreenJson}
-        branding={safeBrandingJson}
-        theme={safeThemeJson}
-        state={safeState}
-        auth-params={safeAuthParams}
+        screen={screenJson}
+        branding={brandingJson}
+        theme={themeJson}
+        state={state}
+        auth-params={authParamsJson}
         auto-submit="true"
         auto-navigate="true"
       />
@@ -624,7 +622,7 @@ function applyLiquidTemplate(
  */
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
-    const { state } = ctx.req.valid("query");
+    const { state, error, error_description } = ctx.req.valid("query");
 
     let theme, branding, client, loginSession;
     try {
@@ -648,8 +646,6 @@ function createScreenRouteHandler(screenId: string) {
       // Method or table may not exist in older adapters - continue without custom template
     }
 
-    const baseUrl = new URL(ctx.req.url).origin;
-
     // Detect language from ui_locales (OAuth request) or Accept-Language header
     const acceptLanguage = ctx.req.header("Accept-Language");
     const language = detectLanguage(
@@ -666,6 +662,18 @@ function createScreenRouteHandler(screenId: string) {
       language,
     );
 
+    // Build error messages if present from query params
+    const errorMessages: Array<{
+      text: string;
+      type: "error" | "info" | "success" | "warning";
+    }> = [];
+    if (error_description) {
+      errorMessages.push({ text: error_description, type: "error" });
+    } else if (error) {
+      // Fallback to error code if no description provided
+      errorMessages.push({ text: error, type: "error" });
+    }
+
     // Build screen context for SSR
     // Use client.connections which is already ordered per the client's configuration
     // Determine route prefix based on client metadata
@@ -678,7 +686,6 @@ function createScreenRouteHandler(screenId: string) {
       branding: branding ?? undefined,
       connections: client.connections,
       state,
-      baseUrl,
       prefill: {
         username: loginSession.authParams.username,
         email: loginSession.authParams.username,
@@ -690,6 +697,7 @@ function createScreenRouteHandler(screenId: string) {
       language,
       promptScreen,
       routePrefix,
+      messages: errorMessages.length > 0 ? errorMessages : undefined,
     };
 
     // Fetch screen data for SSR
@@ -720,7 +728,7 @@ function createScreenRouteHandler(screenId: string) {
     // The screen handlers return /u/widget/:screenId but we want /u2/screen/:screenId
     const screen = {
       ...result.screen,
-      action: `${baseUrl}/u2/screen/${screenId}?state=${encodeURIComponent(state)}`,
+      action: `/u2/screen/${screenId}?state=${encodeURIComponent(state)}`,
       // Update links to use u2 routes
       links: result.screen.links?.map((link) => ({
         ...link,
@@ -862,6 +870,12 @@ const screenQuerySchema = z.object({
   state: z.string().openapi({
     description: "The login session state",
   }),
+  error: z.string().optional().openapi({
+    description: "Error code from failed authentication",
+  }),
+  error_description: z.string().optional().openapi({
+    description: "Human-readable error description",
+  }),
 });
 
 /**
@@ -951,8 +965,6 @@ function createScreenPostHandler(screenId: string) {
       true,
     );
 
-    const baseUrl = new URL(ctx.req.url).origin;
-
     // Detect language from ui_locales (OAuth request) or Accept-Language header
     const acceptLanguage = ctx.req.header("Accept-Language");
     const language = detectLanguage(
@@ -981,7 +993,6 @@ function createScreenPostHandler(screenId: string) {
       branding: branding ?? undefined,
       connections: client.connections,
       state,
-      baseUrl,
       prefill: {
         username: loginSession.authParams.username,
         email: loginSession.authParams.username,

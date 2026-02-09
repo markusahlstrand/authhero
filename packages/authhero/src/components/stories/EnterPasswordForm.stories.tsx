@@ -149,30 +149,30 @@ const mockTheme: Theme = {
   fonts: {
     body_text: {
       bold: false,
-      size: 14,
+      size: 100,
     },
     buttons_text: {
       bold: true,
-      size: 14,
+      size: 100,
     },
     font_url: "",
     input_labels: {
       bold: false,
-      size: 14,
+      size: 100,
     },
     links: {
       bold: true,
-      size: 14,
+      size: 100,
     },
     links_style: "normal",
-    reference_text_size: 12,
+    reference_text_size: 15,
     subtitle: {
       bold: false,
-      size: 14,
+      size: 100,
     },
     title: {
       bold: true,
-      size: 24,
+      size: 150,
     },
   },
   widget: {

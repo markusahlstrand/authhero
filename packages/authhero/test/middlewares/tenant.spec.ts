@@ -59,6 +59,32 @@ describe("tenantMiddleware", () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
+  it("should set tenant_id from host header when it matches a registered custom domain", async () => {
+    // Arrange
+    const host = "login.fokus.se";
+    const tenant_id = "tenant123";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    // First call (x-forwarded-host) returns null, second call (host) returns the domain
+    mockGetByDomain.mockResolvedValue({ tenant_id });
+
+    // Act
+    await tenantMiddleware(mockCtx, mockNext);
+
+    // Assert
+    expect(mockHeaderFn).toHaveBeenCalledWith("x-forwarded-host");
+    expect(mockHeaderFn).toHaveBeenCalledWith("host");
+    expect(mockGetByDomain).toHaveBeenCalledWith(host);
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", tenant_id);
+    expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
   it("should set tenant_id from host subdomain when it matches a tenant ID", async () => {
     // Arrange
     const host = "tenant123.authhero.com";
