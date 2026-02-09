@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Lähetä minulle uusi maaginen linkki",
   "sent_code_spam": "Muista tarkistaa roskapostikansiosi, jos sähköposti ei ole saapunut.",
   "Server error: Invalid code": "Virheellinen koodi",
+  "session_expired": "Istunto on vanhentunut. Yritä uudelleen.",
   "set_password": "Aseta salasana",
   "show_password": "Näytä salasana",
   "sign_in": "Kirjaudu sisään",

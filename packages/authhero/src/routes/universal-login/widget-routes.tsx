@@ -19,7 +19,12 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
-import { getScreen, getScreenDefinition, isValidScreenId, listScreenIds } from "./screens/registry";
+import {
+  getScreen,
+  getScreenDefinition,
+  isValidScreenId,
+  listScreenIds,
+} from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
 import {
@@ -403,7 +408,10 @@ export const widgetRoutes = new OpenAPIHono<{
       // Check if the screen definition has a custom post handler
       const screenDefinition = getScreenDefinition(screenId);
       if (screenDefinition?.handler.post) {
-        const postResult = await screenDefinition.handler.post(screenContext, data);
+        const postResult = await screenDefinition.handler.post(
+          screenContext,
+          data,
+        );
 
         if ("redirect" in postResult) {
           const headers = new Headers();
@@ -429,8 +437,10 @@ export const widgetRoutes = new OpenAPIHono<{
           if (redirectUri) {
             return ctx.json({ redirect: redirectUri }, { headers });
           }
-          // Fallback: return empty screen to indicate success
-          return ctx.json({ screen: null, branding: null }, { headers });
+          // No redirect_uri is a configuration error - this shouldn't happen in normal flows
+          throw new HTTPException(400, {
+            message: "Missing redirect_uri in authentication parameters",
+          });
         }
 
         if ("error" in postResult) {

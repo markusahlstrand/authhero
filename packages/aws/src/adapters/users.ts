@@ -180,11 +180,21 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
           });
         }
       } catch (err: any) {
-        if (
-          err.name === "ConditionalCheckFailedException" ||
-          err.name === "TransactionCanceledException"
-        ) {
+        if (err.name === "ConditionalCheckFailedException") {
           throw new HTTPException(409, { message: "User already exists" });
+        }
+        if (err.name === "TransactionCanceledException") {
+          // Check if the cancellation was due to a conditional check failure
+          // TransactionCanceledException can also be raised for write conflicts,
+          // internal errors, or throttling - not just when attribute_not_exists fails
+          const reasons = err.CancellationReasons || [];
+          const isConditionalCheckFailed = reasons.some(
+            (reason: { Code?: string }) =>
+              reason?.Code === "ConditionalCheckFailed",
+          );
+          if (isConditionalCheckFailed) {
+            throw new HTTPException(409, { message: "User already exists" });
+          }
         }
         throw err;
       }

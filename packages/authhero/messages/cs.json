@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Pošlete mi nový kouzelný odkaz",
   "sent_code_spam": "Pokud e-mail nedorazil, nezapomeňte zkontrolovat složku nevyžádané pošty.",
   "Server error: Invalid code": "Neplatný kód",
+  "session_expired": "Relace vypršela. Zkuste to prosím znovu.",
   "set_password": "Nastavení hesla",
   "show_password": "Zobrazit heslo",
   "sign_in": "Přihlásit se",

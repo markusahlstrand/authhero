@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Send mig et nyt magisk link",
   "sent_code_spam": "Husk at tjekke din spam-mappe, hvis e-mailen ikke er kommet frem.",
   "Server error: Invalid code": "Ugyldig kode",
+  "session_expired": "Sessionen er udløbet. Prøv venligst igen.",
   "set_password": "Indstil adgangskode",
   "show_password": "Vis adgangskode",
   "sign_in": "Log ind",

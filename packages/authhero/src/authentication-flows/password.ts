@@ -210,7 +210,7 @@ export async function loginWithPassword(
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
   ticketAuth?: boolean,
-) {
+): Promise<Response> {
   const result = await passwordGrant(ctx, client, authParams, loginSession);
 
   // Pass through to createFrontChannelAuthResponse which handles session creation

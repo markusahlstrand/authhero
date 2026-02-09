@@ -152,28 +152,15 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
           loginSession,
         );
 
-        if (result instanceof Response) {
-          // Get the redirect URL from the response
-          const location = result.headers.get("location");
-          // Extract Set-Cookie headers to pass to the caller
-          const cookies = result.headers.getSetCookie?.() || [];
-          if (location) {
-            return { redirect: location, cookies };
-          }
-          // For non-redirect responses (e.g., web_message mode), pass through directly
-          return { response: result };
+        // Get the redirect URL from the response
+        const location = result.headers.get("location");
+        // Extract Set-Cookie headers to pass to the caller
+        const cookies = result.headers.getSetCookie?.() || [];
+        if (location) {
+          return { redirect: location, cookies };
         }
-
-        // If we got here (result is not a Response), something went wrong
-        return {
-          error: "Unexpected error",
-          screen: await enterPasswordScreen({
-            ...context,
-            errors: {
-              password: "An unexpected error occurred. Please try again.",
-            },
-          }),
-        };
+        // For non-redirect responses (e.g., web_message mode), pass through directly
+        return { response: result };
       } catch (e: unknown) {
         const authError = e as AuthError;
         // Initialize i18n for error messages

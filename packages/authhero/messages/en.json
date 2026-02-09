@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Send me a new magic link",
   "sent_code_spam": "Remember to check your spam folder if the email did not arrive.",
   "Server error: Invalid code": "Invalid code",
+  "session_expired": "Session expired. Please try again.",
   "set_password": "Set password",
   "show_password": "Show password",
   "sign_in": "Sign in",

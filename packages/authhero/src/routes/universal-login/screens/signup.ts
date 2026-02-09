@@ -21,7 +21,10 @@ import { loginWithPassword } from "../../../authentication-flows/password";
 /**
  * Build social signup buttons from available connections
  */
-function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeComponent[] {
+function buildSocialButtons(
+  context: ScreenContext,
+  m: Messages,
+): FormNodeComponent[] {
   const { connections } = context;
 
   const socialConnections = connections.filter(
@@ -89,7 +92,7 @@ function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeCompon
 export async function signupScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, baseUrl, prefill, errors, customText } =
+  const { branding, state, baseUrl, prefill, errors, customText, routePrefix } =
     context;
 
   // Initialize i18n with locale and custom text overrides
@@ -185,7 +188,7 @@ export async function signupScreen(
   const screen: UiScreen = {
     name: "signup",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${baseUrl}/u2/signup?state=${encodeURIComponent(state)}`,
+    action: `${baseUrl}${routePrefix}/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.create_account_title(),
     description: m.create_account_description(),
@@ -195,7 +198,7 @@ export async function signupScreen(
         id: "login",
         text: m.already_have_account(),
         linkText: m.log_in(),
-        href: `${baseUrl}/u2/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${baseUrl}${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };
@@ -292,9 +295,10 @@ export const signupScreenDefinition: ScreenDefinition = {
           data: ctx.env.data,
         });
       } catch (policyError: unknown) {
-        const errorMessage = policyError instanceof Error 
-          ? policyError.message 
-          : m.create_account_weak_password();
+        const errorMessage =
+          policyError instanceof Error
+            ? policyError.message
+            : m.create_account_weak_password();
 
         return {
           error: errorMessage,
@@ -337,7 +341,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: "Session expired. Please try again." },
+            errors: { email: m.session_expired() },
           }),
         };
       }
@@ -392,26 +396,15 @@ export const signupScreenDefinition: ScreenDefinition = {
           loginSession,
         );
 
-        if (result instanceof Response) {
-          // Get the redirect URL from the response
-          const location = result.headers.get("location");
-          // Extract Set-Cookie headers to pass to the caller
-          const cookies = result.headers.getSetCookie?.() || [];
-          if (location) {
-            return { redirect: location, cookies };
-          }
-          // For non-redirect responses (e.g., web_message mode), pass through directly
-          return { response: result };
+        // Get the redirect URL from the response
+        const location = result.headers.get("location");
+        // Extract Set-Cookie headers to pass to the caller
+        const cookies = result.headers.getSetCookie?.() || [];
+        if (location) {
+          return { redirect: location, cookies };
         }
-
-        // If we got here (result is not a Response), something went wrong but user was created
-        // Just return success message about verification email
-        return {
-          screen: await signupScreen({
-            ...context,
-            messages: [{ text: m.validate_email_body(), type: "success" }],
-          }),
-        };
+        // For non-redirect responses (e.g., web_message mode), pass through directly
+        return { response: result };
       } catch {
         // Login failed but user was created, show message about verification
         return {

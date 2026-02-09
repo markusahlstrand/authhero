@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Wyślij mi nowy magiczny link",
   "sent_code_spam": "Pamiętaj, aby sprawdzić folder spamu, jeśli wiadomość e-mail nie dotarła.",
   "Server error: Invalid code": "Nieprawidłowy kod",
+  "session_expired": "Sesja wygasła. Proszę spróbować ponownie.",
   "set_password": "Ustaw hasło",
   "show_password": "Pokaż hasło",
   "sign_in": "Zaloguj się",

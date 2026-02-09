@@ -11,7 +11,7 @@ import { ListParams } from "@authhero/adapter-interfaces";
 
 /**
  * Transactional write operation for DynamoDB
- * Allows multiple put/update/delete operations to be atomic
+ * Allows multiple put/delete operations to be atomic
  */
 export async function transactWriteItems(
   ctx: DynamoDBContext,

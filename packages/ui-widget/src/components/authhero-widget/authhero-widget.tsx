@@ -786,6 +786,8 @@ export class AuthheroWidget {
   /**
    * Get the current screen, with fallback parsing for hydration.
    * During hydration, _screen might not be set yet, so we parse directly.
+   * The parsed result is cached back into _screen to ensure consistency
+   * across all methods (handleSubmit, handleResend, etc.).
    */
   private getScreen(): UiScreen | undefined {
     if (this._screen) {
@@ -796,11 +798,16 @@ export class AuthheroWidget {
     if (screenValue) {
       if (typeof screenValue === "string") {
         try {
-          return JSON.parse(screenValue);
+          const parsed = JSON.parse(screenValue);
+          // Cache the parsed result so handleSubmit/handleResend work correctly
+          this._screen = parsed;
+          return parsed;
         } catch {
           return undefined;
         }
       }
+      // Cache the object value as well
+      this._screen = screenValue;
       return screenValue;
     }
     return undefined;

@@ -772,7 +772,7 @@ function createScreenRouteHandler(screenId: string) {
       const widgetHtmlResult = await renderToString(
         `<authhero-widget
           id="widget"
-          data-screen="${screenId}"
+          data-screen="${escapeHtml(screenId)}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
           ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
@@ -1078,7 +1078,7 @@ function createScreenPostHandler(screenId: string) {
       const widgetHtmlResult = await renderToString(
         `<authhero-widget
           id="widget"
-          data-screen="${resultScreenId}"
+          data-screen="${escapeHtml(resultScreenId)}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
           ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}

@@ -142,6 +142,7 @@
   "send_me_a_new_magic_link": "Skicka en ny inloggninglänk",
   "sent_code_spam": "Kom ihåg att kontrollera din skräppost om du inte kan hitta mailet vi har skickat.",
   "Server error: Invalid code": "Koden är inte giltig",
+  "session_expired": "Sessionen har upphört. Försök igen.",
   "set_password": "Välj lösenord",
   "show_password": "Visa lösenord",
   "sign_in": "Logga in",
