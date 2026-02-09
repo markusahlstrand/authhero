@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.132.0
+
+### Minor Changes
+
+- 131ea43: Add more node fields
+
 ## 0.131.0
 
 ### Minor Changes

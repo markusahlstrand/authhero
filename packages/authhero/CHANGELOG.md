@@ -1,5 +1,17 @@
 # authhero
 
+## 4.34.0
+
+### Minor Changes
+
+- 131ea43: Add more node fields
+
+### Patch Changes
+
+- Updated dependencies [131ea43]
+  - @authhero/adapter-interfaces@0.132.0
+  - @authhero/widget@0.13.1
+
 ## 4.33.0
 
 ### Minor Changes
