@@ -507,7 +507,7 @@ export const widgetRoutes = new OpenAPIHono<{
       const screenResult = getScreen(targetScreenId, screenContext);
 
       if (!screenResult) {
-        return ctx.json({ redirect: `/callback?state=${state}` });
+        return ctx.json({ redirect: `/callback?state=${encodeURIComponent(state)}` });
       }
 
       // Handle both sync and async screen factories

@@ -17,7 +17,7 @@ import { AuthError } from "../../../types/AuthError";
 export async function enterPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, errors, data, customText } = context;
+  const { branding, state, errors, data, customText, routePrefix } = context;
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
@@ -75,7 +75,7 @@ export async function enterPasswordScreen(
   const screen: UiScreen = {
     name: "enter-password",
     // Action points to HTML endpoint for no-JS fallback
-    action: `/u2/enter-password?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.enter_password(),
     components,
@@ -84,13 +84,13 @@ export async function enterPasswordScreen(
         id: "forgot-password",
         text: m.forgot_password_link(),
         linkText: m.reset_password_cta(),
-        href: `/u/widget/forgot-password?state=${encodeURIComponent(state)}`,
+        href: `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`,
       },
       {
         id: "back",
         text: "",
         linkText: m.go_back(),
-        href: `/u2/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
   };

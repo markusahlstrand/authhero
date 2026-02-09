@@ -106,6 +106,7 @@ export async function identifierScreen(
     messages,
     customText,
     promptScreen,
+    routePrefix,
   } = context;
 
   // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
@@ -186,7 +187,7 @@ export async function identifierScreen(
 
   // Add signup link as a component inside the form (not as a separate links section)
   if (hasPasswordConnection && !signupsDisabled) {
-    const signupUrl = `/u2/signup?state=${encodeURIComponent(state)}`;
+    const signupUrl = `${routePrefix}/signup?state=${encodeURIComponent(state)}`;
     components.push({
       id: "signup-link",
       type: "RICH_TEXT",
@@ -203,7 +204,7 @@ export async function identifierScreen(
     name: "identifier",
     // Action points to HTML endpoint for no-JS fallback
     // Widget overrides this to POST JSON to screen API when hydrated
-    action: `/u2/login/identifier?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.login_id_title(),
     description: m.login_id_description({
