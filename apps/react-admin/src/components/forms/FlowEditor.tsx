@@ -24,6 +24,11 @@ import { useTheme } from "@mui/material/styles";
 import NodeEditor from "./NodeEditor";
 
 // Type definitions
+export interface DropdownOption {
+  label: string;
+  value: string;
+}
+
 export interface ComponentConfig {
   id: string;
   type:
@@ -33,13 +38,32 @@ export interface ComponentConfig {
     | "TEXT"
     | "EMAIL"
     | "NUMBER"
-    | "PHONE";
+    | "PHONE"
+    | "DROPDOWN"
+    | "DATE"
+    | "CHOICE"
+    | "CUSTOM";
+  category?: "BLOCK" | "FIELD" | "WIDGET";
+  label?: string;
   required?: boolean;
+  sensitive?: boolean;
   config?: {
     content?: string;
     text?: string;
     label?: string;
     placeholder?: string;
+    // DROPDOWN config
+    options?: DropdownOption[];
+    multiple?: boolean;
+    default_value?: string | string[];
+    searchable?: boolean;
+    // DATE config
+    format?: "DATE" | "TIME" | "DATETIME";
+    min?: string;
+    max?: string;
+    // CUSTOM config
+    schema?: Record<string, any>;
+    code?: string;
   };
 }
 
