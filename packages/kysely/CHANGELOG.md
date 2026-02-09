@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.94.0
+
+### Minor Changes
+
+- c5935bd: Update the new widget endpoints
+
+### Patch Changes
+
+- Updated dependencies [c5935bd]
+  - @authhero/adapter-interfaces@0.131.0
+
 ## 10.93.0
 
 ### Minor Changes
