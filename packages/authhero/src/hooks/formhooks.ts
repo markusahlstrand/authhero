@@ -15,22 +15,32 @@ export function isFormHook(
 }
 
 /**
- * Resolves a template string like "{{context.user.email}}" to its actual value
+ * Resolves a template string like "{{context.user.email}}" or "{{context.user.user_metadata.country}}" to its actual value
  */
-function resolveTemplateField(field: string, context: { user: User }): string {
-  const match = field.match(/^\{\{context\.user\.(\w+)\}\}$/);
-  if (match) {
-    const key = match[1] as keyof User;
-    const value = context.user[key];
-    return typeof value === "string" ? value : "";
+function resolveTemplateField(field: string, context: { user: User }): string | undefined {
+  // Match patterns like {{context.user.email}} or {{context.user.user_metadata.country}}
+  const match = field.match(/^\{\{context\.user\.(.+)\}\}$/);
+  if (match && match[1]) {
+    const path = match[1];
+    // Handle nested paths like user_metadata.country
+    const parts = path.split(".");
+    let value: unknown = context.user;
+    for (const part of parts) {
+      if (value && typeof value === "object" && part in value) {
+        value = (value as Record<string, unknown>)[part];
+      } else {
+        return undefined; // Path not found
+      }
+    }
+    return typeof value === "string" ? value : (value === undefined || value === null ? undefined : String(value));
   }
   return field;
 }
 
 /**
- * Evaluates a router condition against the current context
+ * Evaluates a single condition against the current context
  */
-function evaluateCondition(
+function evaluateSingleCondition(
   condition: {
     operator?: string;
     field?: string;
@@ -47,12 +57,18 @@ function evaluateCondition(
   const value = condition.value || "";
 
   switch (operator) {
+    case "exists":
+      return field !== undefined && field !== null && field !== "";
+    case "not_exists":
+      return field === undefined || field === null || field === "";
     case "ends_with":
-      return field.endsWith(value);
+      return typeof field === "string" && field.endsWith(value);
     case "starts_with":
-      return field.startsWith(value);
+      return typeof field === "string" && field.startsWith(value);
     case "contains":
-      return field.includes(value);
+      return typeof field === "string" && field.includes(value);
+    case "not_contains":
+      return typeof field !== "string" || !field.includes(value);
     case "equals":
     case "eq":
       return field === value;
@@ -75,7 +91,7 @@ function evaluateCondition(
                 `{{context.user.${fieldName}}}`,
                 context,
               );
-              if (resolvedField.endsWith(matchValue)) {
+              if (typeof resolvedField === "string" && resolvedField.endsWith(matchValue)) {
                 return true;
               }
             }
@@ -84,6 +100,35 @@ function evaluateCondition(
       }
       return false;
   }
+}
+
+/**
+ * Evaluates a router condition against the current context
+ * Supports both single conditions and compound conditions with AND logic
+ */
+function evaluateCondition(
+  condition: {
+    type?: string; // "and" for compound conditions
+    conditions?: Array<{
+      operator?: string;
+      field?: string;
+      value?: string;
+    }>;
+    operator?: string;
+    field?: string;
+    value?: string;
+    operands?: Array<{ operator: string; operands: string[] }>;
+  },
+  context: { user: User },
+): boolean {
+  // Handle compound conditions with AND logic
+  if (condition.type === "and" && Array.isArray(condition.conditions)) {
+    // All conditions must be true (AND logic)
+    return condition.conditions.every((cond) => evaluateSingleCondition(cond, context));
+  }
+
+  // Handle single condition (backward compatibility)
+  return evaluateSingleCondition(condition, context);
 }
 
 /**

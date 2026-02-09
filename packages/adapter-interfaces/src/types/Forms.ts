@@ -179,6 +179,8 @@ const choiceField = fieldComponentBase.extend({
         )
         .optional(),
       display: z.enum(["radio", "checkbox"]).optional(),
+      multiple: z.boolean().optional(),
+      default_value: z.union([z.string(), z.array(z.string())]).optional(),
     })
     .optional(),
 });
@@ -188,6 +190,8 @@ const customField = fieldComponentBase.extend({
   config: z.object({
     component: z.string().optional(),
     props: z.record(z.any()).optional(),
+    schema: z.record(z.any()).optional(),
+    code: z.string().optional(),
   }),
 });
 
@@ -216,6 +220,8 @@ const dropdownField = fieldComponentBase.extend({
         .optional(),
       placeholder: z.string().optional(),
       searchable: z.boolean().optional(),
+      multiple: z.boolean().optional(),
+      default_value: z.union([z.string(), z.array(z.string())]).optional(),
     })
     .optional(),
 });
@@ -562,6 +568,12 @@ export const formInsertSchema = z
       })
       .optional(),
     style: z.object({ css: z.string().optional() }).optional(),
+    links: z
+      .object({
+        sdkSrc: z.string().optional(),
+        sdk_src: z.string().optional(),
+      })
+      .optional(),
   })
   .openapi({
     description: "Schema for flow-based forms (matches Auth0 Forms structure)",

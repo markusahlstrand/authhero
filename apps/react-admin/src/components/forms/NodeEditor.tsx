@@ -37,6 +37,10 @@ import ShortTextIcon from "@mui/icons-material/ShortText";
 import EmailIcon from "@mui/icons-material/Email";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import PhoneIcon from "@mui/icons-material/Phone";
+import ArrowDropDownCircleIcon from "@mui/icons-material/ArrowDropDownCircle";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
+import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 import { Node } from "@xyflow/react";
 
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -117,6 +121,31 @@ const ROUTER_FIELD_OPTIONS = [
     value: "{{context.user.user_id}}",
     label: "User ID",
     description: "The unique user identifier",
+  },
+  {
+    value: "{{context.user.user_metadata.country}}",
+    label: "Country (user_metadata)",
+    description: "The user's country from user_metadata",
+  },
+  {
+    value: "{{context.user.user_metadata.gender}}",
+    label: "Gender (user_metadata)",
+    description: "The user's gender from user_metadata",
+  },
+  {
+    value: "{{context.user.user_metadata.birthdate}}",
+    label: "Birthdate (user_metadata)",
+    description: "The user's birthdate from user_metadata",
+  },
+  {
+    value: "{{context.user.user_metadata.address}}",
+    label: "Address (user_metadata)",
+    description: "The user's address from user_metadata",
+  },
+  {
+    value: "{{context.user.user_metadata.phone}}",
+    label: "Phone (user_metadata)",
+    description: "The user's phone from user_metadata",
   },
 ];
 
@@ -273,7 +302,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   }, [editingComponent, handleCloseComponentDialog]);
 
   const handleComponentFieldChange = useCallback(
-    (field: string, value: string) => {
+    (field: string, value: any) => {
       setEditingComponent((prev) => {
         if (!prev) return null;
         return {
@@ -289,7 +318,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   );
 
   const handleAddComponent = useCallback((type: ComponentConfig["type"]) => {
-    const getDefaultConfig = () => {
+    const getDefaultConfig = (): ComponentConfig["config"] => {
       switch (type) {
         case "RICH_TEXT":
           return { content: "" };
@@ -305,14 +334,61 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           return { label: "Number", placeholder: "" };
         case "PHONE":
           return { label: "Phone", placeholder: "Enter your phone number" };
+        case "DROPDOWN":
+          return { options: [], multiple: false };
+        case "DATE":
+          return { format: "DATE" as const };
+        case "CHOICE":
+          return { options: [], multiple: false };
+        case "CUSTOM":
+          return { schema: {}, code: "" };
         default:
           return {};
       }
     };
 
+    const getDefaultLabel = () => {
+      switch (type) {
+        case "DROPDOWN":
+          return "Dropdown";
+        case "DATE":
+          return "Date";
+        case "CHOICE":
+          return "Choice";
+        case "CUSTOM":
+          return "Custom";
+        default:
+          return undefined;
+      }
+    };
+
+    const getCategory = (): "BLOCK" | "FIELD" | undefined => {
+      switch (type) {
+        case "RICH_TEXT":
+        case "NEXT_BUTTON":
+          return "BLOCK";
+        case "TEXT":
+        case "EMAIL":
+        case "NUMBER":
+        case "PHONE":
+        case "DROPDOWN":
+        case "DATE":
+        case "CHOICE":
+        case "CUSTOM":
+        case "LEGAL":
+          return "FIELD";
+        default:
+          return undefined;
+      }
+    };
+
     const newComponent: ComponentConfig = {
-      id: `component_${Date.now()}`,
+      id: `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`,
       type,
+      category: getCategory(),
+      label: getDefaultLabel(),
+      required: false,
+      sensitive: false,
       config: getDefaultConfig(),
     };
     setFormData((prev: any) => ({
@@ -536,7 +612,13 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                               component.type === "PHONE") &&
                             component.config?.label
                           ? `Label: ${component.config.label}`
-                          : component.id}
+                          : (component.type === "DROPDOWN" ||
+                                component.type === "DATE" ||
+                                component.type === "CHOICE" ||
+                                component.type === "CUSTOM") &&
+                              component.label
+                            ? `Label: ${component.label}`
+                            : component.id}
                 </Typography>
               </Paper>
             ),
@@ -641,6 +723,50 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           </ListItemIcon>
           <ListItemText>Legal Checkbox</ListItemText>
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleAddComponent("DROPDOWN");
+            setAddComponentAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <ArrowDropDownCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Dropdown</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleAddComponent("DATE");
+            setAddComponentAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <CalendarTodayIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Date / Time</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleAddComponent("CHOICE");
+            setAddComponentAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <RadioButtonCheckedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Choice</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleAddComponent("CUSTOM");
+            setAddComponentAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <IntegrationInstructionsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Custom Field</ListItemText>
+        </MenuItem>
         <Divider />
         <Typography
           variant="caption"
@@ -704,7 +830,10 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     const newRule: RouterRule = {
       id: `rule_${Date.now()}`,
       alias: "",
-      condition: {},
+      condition: {
+        type: "and",
+        conditions: [{ field: "", operator: "", value: "" }],
+      },
       next_node: "",
     };
     setFormData((prev: any) => ({
@@ -739,146 +868,252 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Rules are evaluated in order. The first matching rule determines the
-        next node.
+        next node. Add multiple conditions per rule that must ALL match (AND
+        logic).
       </Typography>
 
       {formData.rules && formData.rules.length > 0 ? (
         <Box sx={{ mt: 2 }}>
-          {formData.rules.map((rule: RouterRule, index: number) => (
-            <Paper key={rule.id} sx={{ p: 2, mb: 2 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 1,
-                }}
-              >
-                <Typography variant="subtitle2">Rule {index + 1}</Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => handleDeleteRule(rule.id)}
-                  aria-label="delete rule"
+          {formData.rules.map((rule: RouterRule, index: number) => {
+            // Support both old single condition format and new array format
+            const conditions = Array.isArray(rule.condition?.conditions)
+              ? rule.condition.conditions
+              : rule.condition?.field
+                ? [rule.condition]
+                : [];
+
+            return (
+              <Paper key={rule.id} sx={{ p: 2, mb: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1,
+                  }}
                 >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
+                  <Typography variant="subtitle2">Rule {index + 1}</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteRule(rule.id)}
+                    aria-label="delete rule"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
 
-              <TextField
-                fullWidth
-                label="Rule Alias"
-                value={rule.alias || ""}
-                onChange={(e) =>
-                  handleRuleChange(rule.id, "alias", e.target.value)
-                }
-                margin="dense"
-                size="small"
-              />
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block", mt: 1, mb: 0.5 }}
-              >
-                Condition
-              </Typography>
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 1,
-                  flexWrap: "wrap",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Autocomplete
-                  freeSolo
-                  size="small"
-                  options={ROUTER_FIELD_OPTIONS}
-                  getOptionLabel={(option) =>
-                    typeof option === "string" ? option : option.value
+                <TextField
+                  fullWidth
+                  label="Rule Alias"
+                  value={rule.alias || ""}
+                  onChange={(e) =>
+                    handleRuleChange(rule.id, "alias", e.target.value)
                   }
-                  value={rule.condition?.field || ""}
-                  onChange={(_, newValue) => {
-                    const fieldValue =
-                      typeof newValue === "string"
-                        ? newValue
-                        : newValue?.value || "";
-                    handleRuleChange(rule.id, "condition", {
-                      ...rule.condition,
-                      field: fieldValue,
-                    });
-                  }}
-                  onInputChange={(_, inputValue) => {
-                    handleRuleChange(rule.id, "condition", {
-                      ...rule.condition,
-                      field: inputValue,
-                    });
-                  }}
-                  renderOption={(props, option) => (
-                    <Box component="li" {...props}>
-                      <Box>
-                        <Typography variant="body2">{option.label}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.value}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Field"
-                      placeholder="Select or type a field"
-                      helperText="e.g., {{context.user.email}}"
-                    />
-                  )}
-                  sx={{ flex: 1, minWidth: "200px" }}
+                  margin="dense"
+                  size="small"
                 />
-                <FormControl size="small" sx={{ minWidth: "120px" }}>
-                  <InputLabel id={`rule-operator-${rule.id}-label`}>
-                    Operator
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mt: 2, mb: 1 }}
+                >
+                  Conditions (all must match)
+                </Typography>
+
+                {conditions.map(
+                  (
+                    cond: { field?: string; operator?: string; value?: string },
+                    condIndex: number,
+                  ) => (
+                    <Box
+                      key={condIndex}
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        flexWrap: "wrap",
+                        alignItems: "flex-start",
+                        mb: 1,
+                        p: 1,
+                        bgcolor: "action.hover",
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Autocomplete
+                        freeSolo
+                        size="small"
+                        options={ROUTER_FIELD_OPTIONS}
+                        getOptionLabel={(option) =>
+                          typeof option === "string" ? option : option.value
+                        }
+                        value={cond?.field || ""}
+                        onChange={(_, newValue) => {
+                          const fieldValue =
+                            typeof newValue === "string"
+                              ? newValue
+                              : newValue?.value || "";
+                          const newConditions = [...conditions];
+                          newConditions[condIndex] = {
+                            ...newConditions[condIndex],
+                            field: fieldValue,
+                          };
+                          handleRuleChange(rule.id, "condition", {
+                            type: "and",
+                            conditions: newConditions,
+                          });
+                        }}
+                        onInputChange={(_, inputValue) => {
+                          const newConditions = [...conditions];
+                          newConditions[condIndex] = {
+                            ...newConditions[condIndex],
+                            field: inputValue,
+                          };
+                          handleRuleChange(rule.id, "condition", {
+                            type: "and",
+                            conditions: newConditions,
+                          });
+                        }}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            <Box>
+                              <Typography variant="body2">
+                                {option.label}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {option.value}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Field"
+                            placeholder="Select or type a field"
+                          />
+                        )}
+                        sx={{ flex: 1, minWidth: "180px" }}
+                      />
+                      <FormControl size="small" sx={{ minWidth: "110px" }}>
+                        <InputLabel
+                          id={`rule-operator-${rule.id}-${condIndex}-label`}
+                        >
+                          Operator
+                        </InputLabel>
+                        <Select
+                          labelId={`rule-operator-${rule.id}-${condIndex}-label`}
+                          value={cond?.operator || ""}
+                          label="Operator"
+                          onChange={(e) => {
+                            const newConditions = [...conditions];
+                            newConditions[condIndex] = {
+                              ...newConditions[condIndex],
+                              operator: e.target.value,
+                            };
+                            handleRuleChange(rule.id, "condition", {
+                              type: "and",
+                              conditions: newConditions,
+                            });
+                          }}
+                        >
+                          <MenuItem value="equals">equals</MenuItem>
+                          <MenuItem value="not_equals">not equals</MenuItem>
+                          <MenuItem value="contains">contains</MenuItem>
+                          <MenuItem value="not_contains">not contains</MenuItem>
+                          <MenuItem value="starts_with">starts with</MenuItem>
+                          <MenuItem value="ends_with">ends with</MenuItem>
+                          <MenuItem value="exists">exists</MenuItem>
+                          <MenuItem value="not_exists">not exists</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Value"
+                        value={cond?.value || ""}
+                        onChange={(e) => {
+                          const newConditions = [...conditions];
+                          newConditions[condIndex] = {
+                            ...newConditions[condIndex],
+                            value: e.target.value,
+                          };
+                          handleRuleChange(rule.id, "condition", {
+                            type: "and",
+                            conditions: newConditions,
+                          });
+                        }}
+                        size="small"
+                        sx={{ flex: 1, minWidth: "80px" }}
+                        placeholder="Value"
+                        disabled={
+                          cond?.operator === "exists" ||
+                          cond?.operator === "not_exists"
+                        }
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          const newConditions = conditions.filter(
+                            (_: any, i: number) => i !== condIndex,
+                          );
+                          handleRuleChange(rule.id, "condition", {
+                            type: "and",
+                            conditions: newConditions,
+                          });
+                        }}
+                        disabled={conditions.length <= 1}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ),
+                )}
+
+                <Button
+                  size="small"
+                  onClick={() => {
+                    const newConditions = [
+                      ...conditions,
+                      { field: "", operator: "", value: "" },
+                    ];
+                    handleRuleChange(rule.id, "condition", {
+                      type: "and",
+                      conditions: newConditions,
+                    });
+                  }}
+                  startIcon={<AddCircleOutlineIcon />}
+                  sx={{ mt: 1 }}
+                >
+                  Add Condition
+                </Button>
+
+                <FormControl fullWidth margin="normal" size="small">
+                  <InputLabel id={`rule-next-node-${rule.id}-label`}>
+                    Next Node
                   </InputLabel>
                   <Select
-                    labelId={`rule-operator-${rule.id}-label`}
-                    value={rule.condition?.operator || ""}
-                    label="Operator"
+                    labelId={`rule-next-node-${rule.id}-label`}
+                    value={rule.next_node || ""}
+                    label="Next Node"
                     onChange={(e) =>
-                      handleRuleChange(rule.id, "condition", {
-                        ...rule.condition,
-                        operator: e.target.value,
-                      })
+                      handleRuleChange(rule.id, "next_node", e.target.value)
                     }
                   >
-                    <MenuItem value="equals">equals</MenuItem>
-                    <MenuItem value="not_equals">not equals</MenuItem>
-                    <MenuItem value="contains">contains</MenuItem>
-                    <MenuItem value="not_contains">not contains</MenuItem>
-                    <MenuItem value="starts_with">starts with</MenuItem>
-                    <MenuItem value="ends_with">ends with</MenuItem>
-                    <MenuItem value="exists">exists</MenuItem>
-                    <MenuItem value="not_exists">not exists</MenuItem>
+                    <MenuItem value="">
+                      <em>None</em>
+                    </MenuItem>
+                    <MenuItem value="$ending">End (Resume Flow)</MenuItem>
+                    {nodes.map((node) => (
+                      <MenuItem key={node.id} value={node.id}>
+                        {node.alias || node.id} ({node.type})
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
-                <TextField
-                  label="Value"
-                  value={rule.condition?.value || ""}
-                  onChange={(e) =>
-                    handleRuleChange(rule.id, "condition", {
-                      ...rule.condition,
-                      value: e.target.value,
-                    })
-                  }
-                  size="small"
-                  sx={{ flex: 1, minWidth: "100px" }}
-                  placeholder="e.g., admin"
-                  disabled={
-                    rule.condition?.operator === "exists" ||
-                    rule.condition?.operator === "not_exists"
-                  }
-                />
-              </Box>
-            </Paper>
-          ))}
+              </Paper>
+            );
+          })}
         </Box>
       ) : (
         <Typography variant="body2" color="text.secondary">
@@ -896,6 +1131,32 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       >
         Add Rule
       </Button>
+
+      <Divider sx={{ my: 3 }} />
+
+      <FormControl fullWidth size="small">
+        <InputLabel id="fallback-node-label">Fallback Node</InputLabel>
+        <Select
+          labelId="fallback-node-label"
+          name="fallback"
+          value={formData.fallback || ""}
+          onChange={handleInputChange}
+          label="Fallback Node"
+        >
+          <MenuItem value="">
+            <em>None</em>
+          </MenuItem>
+          <MenuItem value="$ending">End (Resume Flow)</MenuItem>
+          {nodes.map((node) => (
+            <MenuItem key={node.id} value={node.id}>
+              {node.alias || node.id} ({node.type})
+            </MenuItem>
+          ))}
+        </Select>
+        <FormHelperText>
+          Node to go to if no rules match
+        </FormHelperText>
+      </FormControl>
     </Box>
   );
 
@@ -1097,6 +1358,273 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 }
                 margin="normal"
                 helperText="Placeholder text shown when field is empty"
+              />
+            </Box>
+          )}
+          {editingComponent?.type === "DROPDOWN" && (
+            <Box>
+              <TextField
+                fullWidth
+                label="Label"
+                value={editingComponent?.label || ""}
+                onChange={(e) => {
+                  setEditingComponent((prev: any) => ({
+                    ...prev,
+                    label: e.target.value,
+                  }));
+                }}
+                margin="normal"
+                helperText="Label displayed above the dropdown"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editingComponent?.config?.multiple || false}
+                    onChange={(e) =>
+                      handleComponentFieldChange("multiple", e.target.checked)
+                    }
+                  />
+                }
+                label="Allow multiple selections"
+                sx={{ mt: 1 }}
+              />
+              <TextField
+                fullWidth
+                label="Default Value"
+                value={editingComponent?.config?.default_value || ""}
+                onChange={(e) =>
+                  handleComponentFieldChange("default_value", e.target.value)
+                }
+                margin="normal"
+                helperText="Default selected value"
+              />
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+                Options
+              </Typography>
+              {(editingComponent?.config?.options || []).map(
+                (option: { label: string; value: string }, index: number) => (
+                  <Box
+                    key={index}
+                    sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+                  >
+                    <TextField
+                      size="small"
+                      label="Label"
+                      value={option.label}
+                      onChange={(e) => {
+                        const newOptions = [
+                          ...(editingComponent?.config?.options || []),
+                        ];
+                        newOptions[index] = {
+                          label: e.target.value,
+                          value: newOptions[index]?.value || "",
+                        };
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Value"
+                      value={option.value}
+                      onChange={(e) => {
+                        const newOptions = [
+                          ...(editingComponent?.config?.options || []),
+                        ];
+                        newOptions[index] = {
+                          label: newOptions[index]?.label || "",
+                          value: e.target.value,
+                        };
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const newOptions = (
+                          editingComponent?.config?.options || []
+                        ).filter((_: any, i: number) => i !== index);
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ),
+              )}
+              <Button
+                size="small"
+                onClick={() => {
+                  const newOptions = [
+                    ...(editingComponent?.config?.options || []),
+                    { label: "", value: "" },
+                  ];
+                  handleComponentFieldChange("options", newOptions);
+                }}
+                startIcon={<AddCircleOutlineIcon />}
+              >
+                Add Option
+              </Button>
+            </Box>
+          )}
+          {editingComponent?.type === "DATE" && (
+            <Box>
+              <TextField
+                fullWidth
+                label="Label"
+                value={editingComponent?.label || ""}
+                onChange={(e) => {
+                  setEditingComponent((prev: any) => ({
+                    ...prev,
+                    label: e.target.value,
+                  }));
+                }}
+                margin="normal"
+                helperText="Label displayed above the date field"
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Format</InputLabel>
+                <Select
+                  value={editingComponent?.config?.format || "DATE"}
+                  onChange={(e) =>
+                    handleComponentFieldChange("format", e.target.value)
+                  }
+                  label="Format"
+                >
+                  <MenuItem value="DATE">Date</MenuItem>
+                  <MenuItem value="TIME">Time</MenuItem>
+                  <MenuItem value="DATETIME">Date & Time</MenuItem>
+                </Select>
+                <FormHelperText>Select the date/time format</FormHelperText>
+              </FormControl>
+            </Box>
+          )}
+          {editingComponent?.type === "CHOICE" && (
+            <Box>
+              <TextField
+                fullWidth
+                label="Label"
+                value={editingComponent?.label || ""}
+                onChange={(e) => {
+                  setEditingComponent((prev: any) => ({
+                    ...prev,
+                    label: e.target.value,
+                  }));
+                }}
+                margin="normal"
+                helperText="Label displayed above the choice field"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editingComponent?.config?.multiple || false}
+                    onChange={(e) =>
+                      handleComponentFieldChange("multiple", e.target.checked)
+                    }
+                  />
+                }
+                label="Allow multiple selections"
+                sx={{ mt: 1 }}
+              />
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+                Options
+              </Typography>
+              {(editingComponent?.config?.options || []).map(
+                (option: { label: string; value: string }, index: number) => (
+                  <Box
+                    key={index}
+                    sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+                  >
+                    <TextField
+                      size="small"
+                      label="Label"
+                      value={option.label}
+                      onChange={(e) => {
+                        const newOptions = [
+                          ...(editingComponent?.config?.options || []),
+                        ];
+                        newOptions[index] = {
+                          label: e.target.value,
+                          value: newOptions[index]?.value || "",
+                        };
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Value"
+                      value={option.value}
+                      onChange={(e) => {
+                        const newOptions = [
+                          ...(editingComponent?.config?.options || []),
+                        ];
+                        newOptions[index] = {
+                          label: newOptions[index]?.label || "",
+                          value: e.target.value,
+                        };
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const newOptions = (
+                          editingComponent?.config?.options || []
+                        ).filter((_: any, i: number) => i !== index);
+                        handleComponentFieldChange("options", newOptions);
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ),
+              )}
+              <Button
+                size="small"
+                onClick={() => {
+                  const newOptions = [
+                    ...(editingComponent?.config?.options || []),
+                    { label: "", value: "" },
+                  ];
+                  handleComponentFieldChange("options", newOptions);
+                }}
+                startIcon={<AddCircleOutlineIcon />}
+              >
+                Add Option
+              </Button>
+            </Box>
+          )}
+          {editingComponent?.type === "CUSTOM" && (
+            <Box>
+              <TextField
+                fullWidth
+                label="Label"
+                value={editingComponent?.label || ""}
+                onChange={(e) => {
+                  setEditingComponent((prev: any) => ({
+                    ...prev,
+                    label: e.target.value,
+                  }));
+                }}
+                margin="normal"
+                helperText="Label displayed above the custom field"
+              />
+              <TextField
+                fullWidth
+                label="Custom Code"
+                value={editingComponent?.config?.code || ""}
+                onChange={(e) =>
+                  handleComponentFieldChange("code", e.target.value)
+                }
+                margin="normal"
+                multiline
+                rows={10}
+                helperText="JavaScript code for the custom field component"
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontFamily: "monospace",
+                    fontSize: "12px",
+                  },
+                }}
               />
             </Box>
           )}
