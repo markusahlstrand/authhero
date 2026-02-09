@@ -442,10 +442,13 @@ export class AuthheroWidget {
   }
 
   async componentWillLoad() {
-    // Parse initial props - skip if already parsed in connectedCallback
-    // This prevents unnecessary state changes during hydration that cause flashes
+    // Parse initial props - this prevents unnecessary state changes during hydration that cause flashes
+    // Also check the element attribute as a fallback for hydration scenarios
     if (!this._screen) {
-      this.watchScreen(this.screen);
+      const screenValue = this.screen || this.el?.getAttribute("screen");
+      if (screenValue) {
+        this.watchScreen(screenValue);
+      }
     }
     if (!this._branding) {
       this.watchBranding(this.branding);
@@ -783,39 +786,8 @@ export class AuthheroWidget {
     return (component as { type: string }).type === "DIVIDER";
   }
 
-  /**
-   * Get the current screen, with fallback parsing for hydration.
-   * During hydration, _screen might not be set yet, so we parse directly.
-   * The parsed result is cached back into _screen to ensure consistency
-   * across all methods (handleSubmit, handleResend, etc.).
-   */
-  private getScreen(): UiScreen | undefined {
-    if (this._screen) {
-      return this._screen;
-    }
-    // Fallback: parse from prop or attribute for hydration
-    const screenValue = this.screen || this.el?.getAttribute("screen");
-    if (screenValue) {
-      if (typeof screenValue === "string") {
-        try {
-          const parsed = JSON.parse(screenValue);
-          // Cache the parsed result so handleSubmit/handleResend work correctly
-          this._screen = parsed;
-          return parsed;
-        } catch {
-          return undefined;
-        }
-      }
-      // Cache the object value as well
-      this._screen = screenValue;
-      return screenValue;
-    }
-    return undefined;
-  }
-
   render() {
-    // Get screen with fallback parsing for hydration
-    const screen = this.getScreen();
+    const screen = this._screen;
     
     if (this.loading && !screen) {
       return (
