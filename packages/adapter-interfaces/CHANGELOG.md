@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.131.0
+
+### Minor Changes
+
+- c5935bd: Update the new widget endpoints
+
 ## 0.130.0
 
 ### Minor Changes

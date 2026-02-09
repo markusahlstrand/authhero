@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.28.0
+
+### Minor Changes
+
+- c5935bd: Update the new widget endpoints
+
 ## 0.27.0
 
 ### Minor Changes

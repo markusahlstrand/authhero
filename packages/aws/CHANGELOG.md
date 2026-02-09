@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.16.0
+
+### Minor Changes
+
+- c5935bd: Update the new widget endpoints
+
+### Patch Changes
+
+- Updated dependencies [c5935bd]
+  - @authhero/adapter-interfaces@0.131.0
+
 ## 0.15.1
 
 ### Patch Changes
