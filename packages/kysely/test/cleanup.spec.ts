@@ -98,7 +98,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that all data is gone
     const loginSessions = await db
@@ -189,7 +189,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that the login session still is there even though it's expired
     const loginSessions = await db
@@ -298,7 +298,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that the login session still is there even though it's expired
     const loginSessions = await db

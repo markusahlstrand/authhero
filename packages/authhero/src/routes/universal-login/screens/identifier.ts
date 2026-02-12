@@ -24,7 +24,10 @@ import { getConnectionIconUrl } from "../../../strategies";
 /**
  * Build social login buttons from available connections
  */
-function buildSocialButtons(context: ScreenContext, m: Messages): FormNodeComponent[] {
+function buildSocialButtons(
+  context: ScreenContext,
+  m: Messages,
+): FormNodeComponent[] {
   const { connections } = context;
 
   const socialConnections = connections.filter(
@@ -111,7 +114,11 @@ export async function identifierScreen(
 
   // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, promptScreen || "login-id");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    promptScreen || "login-id",
+  );
 
   const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;

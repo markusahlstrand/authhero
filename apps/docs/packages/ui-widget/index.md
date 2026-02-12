@@ -46,11 +46,47 @@ This dual-mode support allows the widget to work in both:
 ## Documentation
 
 - [Getting Started](./getting-started) - Installation and basic usage
+- [Client-Server Protocol](./client-server-protocol) - How the widget communicates with the server
 - [SSR & Hydration](./ssr-hydration) - Server-side rendering guide
 - [Props & Events](./props-events) - Widget properties and events reference
 - [Integration Patterns](./integration-patterns) - Different ways to integrate the widget
 - [Customization](./customization) - Branding, theming, and CSS styling
 - [API Reference](./api-reference) - Screen configuration and components
+
+## Client-Server Communication
+
+The widget implements a custom **Server-Driven UI (SDUI)** protocol for authentication flows. This is not a StencilJS built-in feature—it's a custom implementation built on top of the web component framework.
+
+When `auto-submit="true"` and `auto-navigate="true"` are set, the widget:
+
+1. POSTs form data as JSON to the screen's action URL
+2. Processes the server response (next screen or redirect)
+3. Updates the browser URL via `history.pushState()` for seamless navigation
+
+See the [Client-Server Protocol](./client-server-protocol) documentation for full details on the request/response format and implementation.
+
+### Quick Example
+
+**Request:**
+
+```http
+POST /u2/screen/identifier?state=abc123
+Content-Type: application/json
+
+{ "data": { "username": "user@example.com" } }
+```
+
+**Response:**
+
+```json
+{
+  "screen": { "name": "enter-password", "action": "/u2/screen/enter-password?state=abc123", ... },
+  "screenId": "enter-password",
+  "navigateUrl": "/u2/enter-password?state=abc123"
+}
+```
+
+The widget renders the new screen and updates the browser URL to `/u2/enter-password?state=abc123` without a page reload.
 
 ## Quick Start
 

@@ -166,7 +166,7 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         // Initialize i18n for error messages
         const locale = context.language || "en";
         const { m } = createTranslation(locale, context.customText);
-        
+
         let errorMessage = authError.message || m.invalid_password();
 
         if (

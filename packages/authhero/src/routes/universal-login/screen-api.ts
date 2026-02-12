@@ -261,6 +261,10 @@ async function buildScreenContext(
     language,
   );
 
+  // Determine route prefix based on client metadata (matches u2-routes behavior)
+  const routePrefix =
+    client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
+
   return {
     ctx,
     tenant: client.tenant,
@@ -278,6 +282,7 @@ async function buildScreenContext(
     customText,
     language,
     promptScreen,
+    routePrefix,
   };
 }
 

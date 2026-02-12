@@ -22,7 +22,7 @@ import { createLoginAdapter } from "./loginSessions";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createEmailProvidersAdapter } from "./emailProvideres";
 import { createRefreshTokensAdapter } from "./refreshTokens";
-import { createCleanup, createSessionCleanup } from "./cleanup";
+import { createSessionCleanup } from "./cleanup";
 import { createFormsAdapter } from "./forms";
 import { createResourceServersAdapter } from "./resourceServers";
 import { createRolesAdapter } from "./roles";
@@ -37,12 +37,12 @@ import { createCustomTextAdapter } from "./customText";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
-export default function createAdapters(db: Kysely<Database>): DataAdapters & {
-  cleanup: () => Promise<void>;
-} {
+export default function createAdapters(
+  db: Kysely<Database>,
+  databaseOptions = { useTransactions: true },
+): DataAdapters {
   return {
     branding: createBrandingAdapter(db),
-    cleanup: createCleanup(db),
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),
     clientGrants: createClientGrantsAdapter(db),
@@ -71,7 +71,7 @@ export default function createAdapters(db: Kysely<Database>): DataAdapters & {
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     customText: createCustomTextAdapter(db),
-    users: createUsersAdapter(db),
+    users: createUsersAdapter(db, databaseOptions),
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
     stats: createStatsAdapter(db),

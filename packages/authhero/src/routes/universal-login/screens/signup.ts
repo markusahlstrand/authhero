@@ -4,10 +4,13 @@
  * Corresponds to: /u/signup
  */
 
-import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import type {
+  UiScreen,
+  FormNodeComponent,
+  User,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
-import { createTranslation, type Messages } from "../../../i18n";
-import { getConnectionIconUrl } from "../../../strategies";
+import { createTranslation } from "../../../i18n";
 import { getUserByProvider } from "../../../helpers/users";
 import {
   getPasswordPolicy,
@@ -19,102 +22,27 @@ import { sendValidateEmailAddress } from "../../../emails";
 import { loginWithPassword } from "../../../authentication-flows/password";
 
 /**
- * Build social signup buttons from available connections
- */
-function buildSocialButtons(
-  context: ScreenContext,
-  m: Messages,
-): FormNodeComponent[] {
-  const { connections } = context;
-
-  const socialConnections = connections.filter(
-    (c) =>
-      c.strategy !== "email" &&
-      c.strategy !== "sms" &&
-      c.strategy !== "Username-Password-Authentication",
-  );
-
-  if (socialConnections.length === 0) {
-    return [];
-  }
-
-  // Create provider details with icon URLs and display names
-  const providerDetails = socialConnections.map((conn) => {
-    const displayName = conn.display_name || conn.name;
-    return {
-      name: conn.name,
-      strategy: conn.strategy,
-      display_name: m.continue_with({ provider: displayName }),
-      icon_url: getConnectionIconUrl(conn),
-    };
-  });
-
-  // Create a single SOCIAL component with all providers
-  const providers = socialConnections.map((conn) => conn.name);
-
-  const socialButton: FormNodeComponent = {
-    id: "social-buttons",
-    type: "SOCIAL",
-    category: "FIELD",
-    visible: true,
-    config: {
-      providers,
-      provider_details: providerDetails,
-    },
-    order: 0,
-  };
-
-  // Add divider if we have social buttons and password signup
-  const hasPasswordSignup = connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
-  );
-
-  if (hasPasswordSignup) {
-    const divider: FormNodeComponent = {
-      id: "divider",
-      type: "DIVIDER",
-      category: "BLOCK",
-      visible: true,
-      order: 1,
-      config: {
-        text: m.or(),
-      },
-    };
-    return [socialButton, divider];
-  }
-
-  return [socialButton];
-}
-
-/**
  * Create the signup screen
  */
 export async function signupScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, prefill, errors, customText, routePrefix } =
-    context;
+  const { branding, state, prefill, errors, customText, routePrefix } = context;
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(locale, customText);
-
-  const socialButtons = buildSocialButtons(context, m);
-  const socialButtonCount = socialButtons.length;
 
   // Check if we have password signup available
   const hasPasswordSignup = context.connections.some(
     (c) => c.strategy === "Username-Password-Authentication",
   );
 
-  const components: FormNodeComponent[] = [
-    // Social signup buttons (if any)
-    ...socialButtons,
-  ];
+  const components: FormNodeComponent[] = [];
 
   // Add form fields for password signup
   if (hasPasswordSignup) {
-    let order = socialButtonCount + 1;
+    let order = 1;
 
     components.push(
       // Email input
@@ -359,16 +287,31 @@ export const signupScreenDefinition: ScreenDefinition = {
       // Hash password first
       const { hash, algorithm } = await hashPassword(password);
 
-      // Create the new user with password atomically in a single transaction
-      const newUser = await ctx.env.data.users.create(client.tenant.id, {
-        user_id,
-        email,
-        email_verified: false,
-        provider: "auth2",
-        connection,
-        is_social: false,
-        password: { hash, algorithm },
-      });
+      let newUser: User;
+
+      try {
+        // Create the new user with password atomically in a single transaction
+        newUser = await ctx.env.data.users.create(client.tenant.id, {
+          user_id,
+          email,
+          email_verified: false,
+          provider: "auth2",
+          connection,
+          is_social: false,
+          password: { hash, algorithm },
+        });
+      } catch (err: any) {
+        console.log("Err: " + err.message);
+
+        return {
+          error: "Failed to create user",
+          screen: await signupScreen({
+            ...context,
+            prefill: { email },
+            errors: { email: "Failed to create user" },
+          }),
+        };
+      }
 
       // Extract language from ui_locales
       const language = loginSession.authParams?.ui_locales

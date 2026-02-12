@@ -29,7 +29,7 @@ export async function setupTestDb() {
   const { data, db } = await getTestServer();
 
   afterEach(async () => {
-    await data.cleanup();
+    await data.sessionCleanup!();
   });
 
   return { db, adapters: data };
