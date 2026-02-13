@@ -121,6 +121,9 @@ describe("cleanup", () => {
     const fourMonthsAgo = new Date(
       Date.now() - 1000 * 60 * 60 * 24 * 30 * 3,
     ).toISOString();
+    const oneHourFromNow = new Date(
+      Date.now() + 1000 * 60 * 60,
+    ).toISOString();
 
     const { data, db } = await getTestServer();
 
@@ -162,7 +165,7 @@ describe("cleanup", () => {
       id: "sessionId",
       user_id: "email|userId",
       clients: ["clientId"],
-      expires_at: new Date().toISOString(),
+      expires_at: oneHourFromNow,
       used_at: new Date().toISOString(),
       device: {
         last_ip: "",
