@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 14.11.0
+
+### Minor Changes
+
+- b1e8715: Inherit scopes instead of syncing
+
 ## 14.10.0
 
 ### Minor Changes
