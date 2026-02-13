@@ -196,6 +196,7 @@ export type OnExecuteCredentialsExchange = (
 export type OnExecutePreUserRegistrationAPI = {
   user: {
     setUserMetadata: (key: string, value: any) => void;
+    setLinkedTo: (primaryUserId: string) => void;
   };
   token: TokenAPI;
 };

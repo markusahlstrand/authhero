@@ -359,6 +359,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
           text: "Auth0 Comparison",
           items: [
             { text: "Overview", link: "/auth0-comparison/" },
+            { text: "Account Linking", link: "/auth0-comparison/account-linking" },
             { text: "Hooks", link: "/auth0-comparison/hooks" },
             { text: "Multi-Tenant", link: "/auth0-comparison/multi-tenant" },
             { text: "Redirect URLs", link: "/auth0-comparison/redirect-urls" },
