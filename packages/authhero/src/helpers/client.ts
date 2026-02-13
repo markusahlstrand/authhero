@@ -59,12 +59,16 @@ export async function getEnrichedClient(
     resolvedTenantId = tenant_id;
   }
 
-  // Fetch remaining data in parallel
-  const [fetchedClient, tenant, clientConnections] = await Promise.all([
-    client ? Promise.resolve(client) : env.data.clients.get(resolvedTenantId, clientId),
-    env.data.tenants.get(resolvedTenantId),
-    env.data.clientConnections.listByClient(resolvedTenantId, clientId),
-  ]);
+  // Fetch all data in parallel, including fallback connections
+  const [fetchedClient, tenant, clientConnections, allConnections] =
+    await Promise.all([
+      client
+        ? Promise.resolve(client)
+        : env.data.clients.get(resolvedTenantId, clientId),
+      env.data.tenants.get(resolvedTenantId),
+      env.data.clientConnections.listByClient(resolvedTenantId, clientId),
+      env.data.connections.list(resolvedTenantId),
+    ]);
 
   const finalClient = client || fetchedClient;
   if (!finalClient) {
@@ -75,43 +79,20 @@ export async function getEnrichedClient(
   }
 
   // If no connections explicitly enabled for this client, fall back to all tenant connections
-  let connections = clientConnections;
-  if (connections.length === 0) {
-    const tenantConnections = await env.data.connections.list(resolvedTenantId);
-    connections = tenantConnections.connections || [];
-  }
+  const connections =
+    clientConnections.length > 0
+      ? clientConnections
+      : allConnections.connections || [];
+
+  const universalLoginUrl = getUniversalLoginUrl(env);
 
   return {
     ...finalClient,
+    // Always include universal login URLs required for auth flows
+    web_origins: [...(finalClient.web_origins || []), `${universalLoginUrl}login`],
+    allowed_logout_urls: [...(finalClient.allowed_logout_urls || []), env.ISSUER],
+    callbacks: [...(finalClient.callbacks || []), `${universalLoginUrl}info`],
     tenant,
     connections,
-  };
-}
-
-/**
- * @deprecated Use getEnrichedClient instead. Connection fallback is now handled
- * by the withRuntimeFallback adapter from @authhero/multi-tenancy.
- */
-export async function getClientWithDefaults(
-  env: Bindings,
-  clientId: string,
-): Promise<EnrichedClient> {
-  const client = await getEnrichedClient(env, clientId);
-
-  // Always add universal login URLs that are required
-  return {
-    ...client,
-    web_origins: [
-      ...(client.web_origins || []),
-      `${getUniversalLoginUrl(env)}login`,
-    ],
-    allowed_logout_urls: [
-      ...(client.allowed_logout_urls || []),
-      env.ISSUER,
-    ],
-    callbacks: [
-      ...(client.callbacks || []),
-      `${getUniversalLoginUrl(env)}info`,
-    ],
   };
 }

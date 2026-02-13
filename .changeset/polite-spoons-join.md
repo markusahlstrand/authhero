@@ -1,0 +1,5 @@
+---
+"authhero": minor
+---
+
+Update caching

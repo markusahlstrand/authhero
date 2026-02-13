@@ -16,7 +16,7 @@ import { universalAuth } from "../../authentication-flows/universal";
 import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
-import { getClientWithDefaults } from "../../helpers/client";
+import { getEnrichedClient } from "../../helpers/client";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { setTenantId } from "../../helpers/set-tenant-id";
 
@@ -198,7 +198,7 @@ export const authorizeRoutes = new OpenAPIHono<{
 
       ctx.set("log", "authorize");
 
-      const client = await getClientWithDefaults(env, client_id);
+      const client = await getEnrichedClient(env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 

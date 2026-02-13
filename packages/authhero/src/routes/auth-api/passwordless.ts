@@ -8,10 +8,7 @@ import { Bindings, Variables } from "../../types";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
-import {
-  getClientWithDefaults,
-  getEnrichedClient,
-} from "../../helpers/client";
+import { getEnrichedClient } from "../../helpers/client";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
@@ -189,7 +186,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         nonce,
       } = ctx.req.valid("query");
 
-      const client = await getClientWithDefaults(env, client_id);
+      const client = await getEnrichedClient(env, client_id);
 
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
