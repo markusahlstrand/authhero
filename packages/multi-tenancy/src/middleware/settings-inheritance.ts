@@ -2,6 +2,8 @@ import {
   DataAdapters,
   Connection,
   Client,
+  ResourceServer,
+  ResourceServerScope,
   connectionSchema,
   connectionOptionsSchema,
 } from "authhero";
@@ -51,6 +53,54 @@ function mergeUrlArrays(
   ];
   // Deduplicate while preserving order (tenant URLs take precedence)
   return [...new Set(combined)];
+}
+
+/**
+ * Merges resource server scopes with control plane fallback.
+ * Tenant-specific scopes override control plane scopes with the same value.
+ */
+function mergeResourceServerScopes(
+  tenantScopes: ResourceServerScope[] | undefined,
+  controlPlaneScopes: ResourceServerScope[] | undefined,
+): ResourceServerScope[] {
+  if (!controlPlaneScopes?.length) {
+    return tenantScopes || [];
+  }
+  if (!tenantScopes?.length) {
+    return controlPlaneScopes;
+  }
+
+  // Create a map with control plane scopes as base
+  const scopeMap = new Map<string, ResourceServerScope>();
+  for (const scope of controlPlaneScopes) {
+    scopeMap.set(scope.value, scope);
+  }
+  // Tenant scopes override control plane scopes with the same value
+  for (const scope of tenantScopes) {
+    scopeMap.set(scope.value, scope);
+  }
+
+  return Array.from(scopeMap.values());
+}
+
+/**
+ * Merges a resource server with control plane fallback scopes.
+ */
+function mergeResourceServerWithFallback(
+  resourceServer: ResourceServer,
+  controlPlaneResourceServer: ResourceServer | null,
+): ResourceServer {
+  if (!controlPlaneResourceServer) {
+    return resourceServer;
+  }
+
+  return {
+    ...resourceServer,
+    scopes: mergeResourceServerScopes(
+      resourceServer.scopes,
+      controlPlaneResourceServer.scopes,
+    ),
+  };
 }
 
 /**
@@ -328,6 +378,73 @@ export function createRuntimeFallbackAdapter(
 
         // Fall back to control plane email provider
         return baseAdapters.emailProviders.get(controlPlaneTenantId);
+      },
+    },
+
+    resourceServers: {
+      ...baseAdapters.resourceServers,
+
+      get: async (
+        tenantId: string,
+        id: string,
+      ): Promise<ResourceServer | null> => {
+        const resourceServer = await baseAdapters.resourceServers.get(
+          tenantId,
+          id,
+        );
+        if (!resourceServer || !controlPlaneTenantId) {
+          return resourceServer;
+        }
+
+        // Skip fallback for control plane tenant itself
+        if (tenantId === controlPlaneTenantId) {
+          return resourceServer;
+        }
+
+        // Find matching control plane resource server by identifier for scope fallback
+        const controlPlaneResult = await baseAdapters.resourceServers.list(
+          controlPlaneTenantId,
+          { q: `identifier:${resourceServer.identifier}`, per_page: 1 },
+        );
+
+        const controlPlaneResourceServer =
+          controlPlaneResult.resource_servers[0] ?? null;
+
+        return mergeResourceServerWithFallback(
+          resourceServer,
+          controlPlaneResourceServer,
+        );
+      },
+
+      list: async (tenantId: string, params?) => {
+        const result = await baseAdapters.resourceServers.list(tenantId, params);
+
+        if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+          return result;
+        }
+
+        // Get all control plane resource servers for scope fallback
+        const controlPlaneResult = await baseAdapters.resourceServers.list(
+          controlPlaneTenantId,
+        );
+
+        // Create a map of control plane resource servers by identifier
+        const controlPlaneByIdentifier = new Map(
+          controlPlaneResult.resource_servers.map((rs) => [rs.identifier, rs]),
+        );
+
+        // Merge each resource server with its control plane counterpart
+        const mergedResourceServers = result.resource_servers.map((rs) =>
+          mergeResourceServerWithFallback(
+            rs,
+            controlPlaneByIdentifier.get(rs.identifier) ?? null,
+          ),
+        );
+
+        return {
+          ...result,
+          resource_servers: mergedResourceServers,
+        };
       },
     },
 

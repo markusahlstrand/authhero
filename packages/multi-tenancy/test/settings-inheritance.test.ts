@@ -7,6 +7,7 @@ import {
   DataAdapters,
   Connection,
   Client,
+  ResourceServer,
 } from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
@@ -209,7 +210,145 @@ const createMockAdapters = (): DataAdapters => ({
   userPermissions: {} as any,
   promptSettings: {} as any,
   refreshTokens: {} as any,
-  resourceServers: {} as any,
+  resourceServers: {
+    get: async (
+      tenantId: string,
+      id: string,
+    ): Promise<ResourceServer | null> => {
+      const servers: Record<string, Record<string, ResourceServer>> = {
+        "control-plane": {
+          "api-rs": {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "admin", description: "Admin access" },
+            ],
+            token_lifetime: 86400,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        },
+        "tenant-1": {
+          "api-rs": {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            // Tenant has no scopes - should inherit from control plane
+            scopes: [],
+            token_lifetime: 3600, // Different from control plane
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+          "tenant-specific-rs": {
+            id: "tenant-specific-rs",
+            name: "Tenant API",
+            identifier: "https://tenant-api.example.com",
+            scopes: [{ value: "tenant:read", description: "Read tenant data" }],
+            token_lifetime: 7200,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        },
+        "tenant-2": {
+          "api-rs": {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            // Tenant has some scopes that override control plane
+            scopes: [
+              { value: "read:users", description: "Tenant-specific read" },
+              { value: "custom:scope", description: "Custom scope" },
+            ],
+            token_lifetime: 3600,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        },
+      };
+      return servers[tenantId]?.[id] || null;
+    },
+    list: async (tenantId: string, params?: { q?: string; per_page?: number }) => {
+      const servers: Record<string, ResourceServer[]> = {
+        "control-plane": [
+          {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+              { value: "admin", description: "Admin access" },
+            ],
+            token_lifetime: 86400,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        ],
+        "tenant-1": [
+          {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            scopes: [],
+            token_lifetime: 3600,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+          {
+            id: "tenant-specific-rs",
+            name: "Tenant API",
+            identifier: "https://tenant-api.example.com",
+            scopes: [{ value: "tenant:read", description: "Read tenant data" }],
+            token_lifetime: 7200,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        ],
+        "tenant-2": [
+          {
+            id: "api-rs",
+            name: "My API",
+            identifier: "https://api.example.com",
+            scopes: [
+              { value: "read:users", description: "Tenant-specific read" },
+              { value: "custom:scope", description: "Custom scope" },
+            ],
+            token_lifetime: 3600,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
+        ],
+      };
+
+      // Handle query filtering by identifier
+      let result = servers[tenantId] || [];
+      if (params?.q) {
+        const match = params.q.match(/^identifier:(.+)$/);
+        if (match) {
+          result = result.filter((rs) => rs.identifier === match[1]);
+        }
+      }
+
+      return {
+        resource_servers: result,
+        start: 0,
+        limit: params?.per_page || 10,
+        length: result.length,
+      };
+    },
+    create: async () => {
+      throw new Error("Not implemented");
+    },
+    update: async () => {
+      throw new Error("Not implemented");
+    },
+    remove: async () => {
+      throw new Error("Not implemented");
+    },
+  },
   roles: {} as any,
   sessions: {} as any,
   tenants: {} as any,
@@ -608,6 +747,112 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         "tenant-client",
       );
       expect(authClient!.callbacks).toHaveLength(3);
+    });
+  });
+
+  describe("resourceServers scope inheritance", () => {
+    it("should inherit scopes from control plane when tenant has no scopes", async () => {
+      const rs = await fallbackAdapter.resourceServers.get("tenant-1", "api-rs");
+
+      expect(rs).toBeDefined();
+      expect(rs!.token_lifetime).toBe(3600); // Tenant value preserved
+      expect(rs!.scopes).toHaveLength(3); // Inherited from control plane
+      expect(rs!.scopes).toEqual([
+        { value: "read:users", description: "Read users" },
+        { value: "write:users", description: "Write users" },
+        { value: "admin", description: "Admin access" },
+      ]);
+    });
+
+    it("should merge scopes with tenant scopes taking precedence", async () => {
+      const tenant2Adapter = createRuntimeFallbackAdapter(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        controlPlaneClientId: "control-plane-client",
+      });
+
+      const rs = await tenant2Adapter.resourceServers.get("tenant-2", "api-rs");
+
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toHaveLength(4); // 3 from control plane + 1 custom (read:users is overridden)
+      
+      // Find scope values
+      const scopeValues = rs!.scopes!.map((s) => s.value);
+      expect(scopeValues).toContain("read:users");
+      expect(scopeValues).toContain("write:users");
+      expect(scopeValues).toContain("admin");
+      expect(scopeValues).toContain("custom:scope");
+
+      // Check that tenant's read:users description takes precedence
+      const readUsersScope = rs!.scopes!.find((s) => s.value === "read:users");
+      expect(readUsersScope?.description).toBe("Tenant-specific read");
+    });
+
+    it("should not merge scopes for control plane tenant itself", async () => {
+      const rs = await fallbackAdapter.resourceServers.get("control-plane", "api-rs");
+
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toHaveLength(3);
+      expect(rs!.scopes).toEqual([
+        { value: "read:users", description: "Read users" },
+        { value: "write:users", description: "Write users" },
+        { value: "admin", description: "Admin access" },
+      ]);
+    });
+
+    it("should not merge scopes for tenant-specific resource server without control plane match", async () => {
+      const rs = await fallbackAdapter.resourceServers.get(
+        "tenant-1",
+        "tenant-specific-rs",
+      );
+
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toHaveLength(1);
+      expect(rs!.scopes).toEqual([
+        { value: "tenant:read", description: "Read tenant data" },
+      ]);
+    });
+
+    it("should list resource servers with merged scopes", async () => {
+      const result = await fallbackAdapter.resourceServers.list("tenant-1");
+
+      expect(result.resource_servers).toHaveLength(2);
+
+      // Find the api-rs
+      const apiRs = result.resource_servers.find(
+        (rs) => rs.identifier === "https://api.example.com",
+      );
+      expect(apiRs).toBeDefined();
+      expect(apiRs!.scopes).toHaveLength(3); // Inherited from control plane
+
+      // Find the tenant-specific RS (no merging)
+      const tenantRs = result.resource_servers.find(
+        (rs) => rs.identifier === "https://tenant-api.example.com",
+      );
+      expect(tenantRs).toBeDefined();
+      expect(tenantRs!.scopes).toHaveLength(1);
+    });
+
+    it("should return original scopes when no control plane configured", async () => {
+      const adapterWithoutControlPlane = createRuntimeFallbackAdapter(
+        mockAdapters,
+        {},
+      );
+      const rs = await adapterWithoutControlPlane.resourceServers.get(
+        "tenant-1",
+        "api-rs",
+      );
+
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toEqual([]); // No inheritance, tenant has empty scopes
+    });
+
+    it("should return null for non-existent resource server", async () => {
+      const rs = await fallbackAdapter.resourceServers.get(
+        "tenant-1",
+        "non-existent",
+      );
+
+      expect(rs).toBeNull();
     });
   });
 });
