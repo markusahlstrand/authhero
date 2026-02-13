@@ -37,6 +37,8 @@ export interface ResourceServerSyncConfig {
   /**
    * Optional: Transform the resource server before syncing to child tenants.
    * Useful for modifying identifiers or removing sensitive data.
+   * Note: Scopes are never synced - they are inherited at runtime via the
+   * settings-inheritance middleware.
    */
   transformForSync?: (
     resourceServer: ResourceServer,
@@ -141,14 +143,13 @@ export function createResourceServerSyncHooks(
         try {
           const adapters = await getAdapters(tenantId);
 
-          // Transform if needed
-          const dataToSync: ResourceServerInsert = transformForSync
+          // Transform if needed, but never include scopes (inherited at runtime)
+          const transformed: ResourceServerInsert = transformForSync
             ? transformForSync(resourceServer, tenantId)
             : {
                 id: resourceServer.id,
                 name: resourceServer.name,
                 identifier: resourceServer.identifier,
-                scopes: resourceServer.scopes,
                 signing_alg: resourceServer.signing_alg,
                 signing_secret: resourceServer.signing_secret,
                 token_lifetime: resourceServer.token_lifetime,
@@ -159,6 +160,9 @@ export function createResourceServerSyncHooks(
                 verificationKey: resourceServer.verificationKey,
                 options: resourceServer.options,
               };
+
+          // Remove scopes if present (they're inherited at runtime)
+          const { scopes: _, ...dataToSync } = transformed;
 
           // Add is_system flag to mark this as synced from control plane
           const dataWithIsSystem = { ...dataToSync, is_system: true };
@@ -323,6 +327,8 @@ export interface TenantResourceServerSyncConfig {
   /**
    * Optional: Transform the resource server before syncing to the new tenant.
    * Useful for modifying identifiers or removing sensitive data.
+   * Note: Scopes are never synced - they are inherited at runtime via the
+   * settings-inheritance middleware.
    */
   transformForSync?: (
     resourceServer: ResourceServer,
@@ -399,13 +405,13 @@ export function createTenantResourceServerSyncHooks(
             .map(async (rs) => {
               const resourceServer = rs as ResourceServer;
               try {
-                const dataToSync: ResourceServerInsert = transformForSync
+                // Transform if needed, but never include scopes (inherited at runtime)
+                const transformed: ResourceServerInsert = transformForSync
                   ? transformForSync(resourceServer, tenant.id)
                   : {
                       id: resourceServer.id,
                       name: resourceServer.name,
                       identifier: resourceServer.identifier,
-                      scopes: resourceServer.scopes,
                       signing_alg: resourceServer.signing_alg,
                       signing_secret: resourceServer.signing_secret,
                       token_lifetime: resourceServer.token_lifetime,
@@ -417,6 +423,9 @@ export function createTenantResourceServerSyncHooks(
                       verificationKey: resourceServer.verificationKey,
                       options: resourceServer.options,
                     };
+
+                // Remove scopes if present (they're inherited at runtime)
+                const { scopes: _, ...dataToSync } = transformed;
 
                 // Add is_system flag to mark this as synced from control plane
                 await targetAdapters.resourceServers.create(tenant.id, {
