@@ -14,6 +14,7 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 | **Hosting**                  | SaaS only         | Self-hosted or Edge                    |
 | **Pricing**                  | Per-MAU pricing   | Free, open-source                      |
 | **Multi-tenancy**            | Enterprise plans  | Built-in, all plans                    |
+| **Account Linking**          | Custom Actions    | ✅ Built-in automatic                  |
 | **Database**                 | Managed           | Your choice (SQL, etc.)                |
 | **Edge Deployment**          | Limited           | Full support (Workers, Edge Functions) |
 | **Source Code**              | Closed            | Open source (MIT License)              |
@@ -44,7 +45,30 @@ Unlike Auth0 where multi-tenancy is an enterprise feature, AuthHero includes it 
 
 [Learn more about Multi-Tenancy →](./multi-tenant)
 
-### 3. Enhanced Hooks System
+### 3. Automatic Account Linking
+
+AuthHero provides built-in account linking that Auth0 requires custom Actions to implement:
+
+- **Automatic Email-Based Linking**: Users with the same verified email are automatically linked
+- **Simple Hook API**: Use `api.user.setLinkedTo()` for custom linking logic
+- **Security Built-in**: Only verified emails trigger linking, preventing account takeover
+- **No Race Conditions**: Linking happens during registration, not after
+
+```typescript
+// Custom linking via hook (optional - automatic linking works by default)
+hooks: {
+  onExecutePreUserRegistration: async (event, api) => {
+    const existingUser = await lookupInExternalSystem(event.user.email);
+    if (existingUser) {
+      api.user.setLinkedTo(existingUser.user_id);
+    }
+  },
+}
+```
+
+[Learn more about Account Linking →](./account-linking)
+
+### 4. Enhanced Hooks System
 
 While Auth0 deprecated their Hooks feature in October 2024, AuthHero continues to expand its hooks capabilities:
 
@@ -166,7 +190,7 @@ Call external services at specific trigger points:
 
 [Learn more about Hooks →](./hooks)
 
-### 4. Edge-First Architecture
+### 5. Edge-First Architecture
 
 Built from the ground up for edge computing:
 
@@ -175,7 +199,7 @@ Built from the ground up for edge computing:
 - **Deno Deploy**: Ready to use
 - **Traditional Node.js**: Also supported
 
-### 5. Database Flexibility
+### 6. Database Flexibility
 
 Choose your preferred database:
 
@@ -185,7 +209,7 @@ Choose your preferred database:
 - **Cloudflare D1** for edge deployment
 - Custom adapters for any database
 
-### 6. Auth0 Compatibility Layer
+### 7. Auth0 Compatibility Layer
 
 Migrate from Auth0 with minimal code changes:
 

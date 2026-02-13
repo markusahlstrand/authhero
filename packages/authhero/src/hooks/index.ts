@@ -95,6 +95,9 @@ function createUserHooks(
               setUserMetadata: async (key, value) => {
                 user[key] = value;
               },
+              setLinkedTo: (primaryUserId: string) => {
+                user.linked_to = primaryUserId;
+              },
             },
             token: createTokenAPI(ctx, tenant_id),
           },
