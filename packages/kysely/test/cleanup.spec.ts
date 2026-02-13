@@ -98,7 +98,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that all data is gone
     const loginSessions = await db
@@ -120,6 +120,9 @@ describe("cleanup", () => {
   it("should not remove a expired login session that has a non-expired session", async () => {
     const fourMonthsAgo = new Date(
       Date.now() - 1000 * 60 * 60 * 24 * 30 * 3,
+    ).toISOString();
+    const oneHourFromNow = new Date(
+      Date.now() + 1000 * 60 * 60,
     ).toISOString();
 
     const { data, db } = await getTestServer();
@@ -162,7 +165,7 @@ describe("cleanup", () => {
       id: "sessionId",
       user_id: "email|userId",
       clients: ["clientId"],
-      expires_at: new Date().toISOString(),
+      expires_at: oneHourFromNow,
       used_at: new Date().toISOString(),
       device: {
         last_ip: "",
@@ -189,7 +192,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that the login session still is there even though it's expired
     const loginSessions = await db
@@ -298,7 +301,7 @@ describe("cleanup", () => {
     });
 
     // Do the cleanup
-    await data.cleanup();
+    await data.sessionCleanup!();
 
     // Check that the login session still is there even though it's expired
     const loginSessions = await db

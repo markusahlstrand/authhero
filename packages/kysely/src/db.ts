@@ -26,6 +26,10 @@ import {
 } from "@authhero/adapter-interfaces";
 import { flattenSchema } from "./utils/flatten";
 
+export type databaseOptions = {
+  useTransactions: boolean;
+};
+
 const sqlThemeSchema = flattenSchema(themeSchema).extend({
   tenant_id: z.string(),
 });

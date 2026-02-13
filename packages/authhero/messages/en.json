@@ -42,7 +42,7 @@
   "create_account_description": "Choose a password with a mix of uppercase and lowercase letters, numbers, and symbols.",
   "create_account_email_invalid": "Please enter a valid email address.",
   "create_account_passwords_didnt_match": "The passwords didn't match. Try again.",
-  "create_account_title": "Choose password",
+  "create_account_title": "Signup",
   "create_account_weak_password": "Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one number and one symbol.",
   "create_new_account_link": "Sign up",
   "create_password_account_title": "Sign up with password",
