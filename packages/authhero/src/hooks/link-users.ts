@@ -20,6 +20,17 @@ export function linkUsersHook(data: DataAdapters) {
       }
     }
 
+    // Validate primary exists before creating secondary to avoid dangling linked_to
+    if (user.linked_to) {
+      const primaryUser = await data.users.get(tenant_id, user.linked_to);
+      if (!primaryUser) {
+        throw new JSONHTTPException(400, {
+          error: "invalid_request",
+          error_description: "Primary user does not exist",
+        });
+      }
+    }
+
     // Create the user (with or without linked_to)
     const createdUser = await data.users.create(tenant_id, user);
 
