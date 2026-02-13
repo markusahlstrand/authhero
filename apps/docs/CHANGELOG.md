@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.42.0
+
+### Minor Changes
+
+- cd5fdc4: Update the routing for widget
+- 9cf179a: Update events for account linking
+
 ## 1.41.0
 
 ### Minor Changes

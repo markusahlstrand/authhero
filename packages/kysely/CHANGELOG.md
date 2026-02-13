@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.95.0
+
+### Minor Changes
+
+- cd5fdc4: Update the routing for widget
+
 ## 10.94.1
 
 ### Patch Changes

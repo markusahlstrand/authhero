@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "2.18.8",
+  "version": "2.18.9",
   "files": [
     "dist"
   ],

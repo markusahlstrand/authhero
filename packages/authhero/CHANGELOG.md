@@ -1,5 +1,13 @@
 # authhero
 
+## 4.35.0
+
+### Minor Changes
+
+- cd5fdc4: Update the routing for widget
+- 0ccab18: Update caching
+- 9cf179a: Update events for account linking
+
 ## 4.34.0
 
 ### Minor Changes
