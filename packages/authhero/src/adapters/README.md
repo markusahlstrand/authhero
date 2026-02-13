@@ -99,13 +99,13 @@ When retrieving connections, the adapter:
 
 ## Migration from Manual Fallbacks
 
-If you were previously using the manual fallback logic in `getClientWithDefaults`, you can now:
+If you were previously using manual fallback logic, you can now:
 
 1. Set up the main tenant adapter with your main tenant/client IDs
 2. Remove the manual fallback logic from your client helpers
 3. The adapter will automatically handle all fallbacks transparently
 
-The `getClientWithDefaults` function has been simplified to only add the required universal login URLs, as all other fallback logic is now handled by the adapter.
+The `getEnrichedClient` function fetches client, tenant, and connections in parallel, and automatically includes the required universal login URLs.
 
 ## Performance Notes
 

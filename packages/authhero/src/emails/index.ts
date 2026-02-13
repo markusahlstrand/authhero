@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../helpers/logging";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
-import { getClientWithDefaults } from "../helpers/client";
+import { getEnrichedClient } from "../helpers/client";
 
 export type SendEmailParams = {
   to: string;
@@ -54,7 +54,7 @@ export async function sendSms(
     throw new HTTPException(500, { message: "Client not found" });
   }
 
-  const client = await getClientWithDefaults(ctx.env, ctx.var.client_id);
+  const client = await getEnrichedClient(ctx.env, ctx.var.client_id);
 
   const smsProvider = client.connections.find((c) => c.strategy === "sms");
   if (!smsProvider) {

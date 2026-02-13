@@ -244,7 +244,7 @@ async function buildScreenContext(
   } = await initJSXRoute(ctx, state, true);
 
   // Use client.connections directly - EnrichedClient already has full Connection objects
-  // populated by getClientWithDefaults, so no need to re-fetch from the database
+  // populated by getEnrichedClient, so no need to re-fetch from the database
   const connections = client.connections || [];
 
   // Detect language and fetch custom text
@@ -670,19 +670,19 @@ export const screenApiRoutes = new OpenAPIHono<{
               action: action.action,
               params:
                 "params" in action &&
-                action.params &&
-                typeof action.params === "object" &&
-                "target" in action.params
+                  action.params &&
+                  typeof action.params === "object" &&
+                  "target" in action.params
                   ? {
-                      target: action.params.target as
-                        | "change-email"
-                        | "account"
-                        | "custom",
-                      custom_url:
-                        "custom_url" in action.params
-                          ? action.params.custom_url
-                          : undefined,
-                    }
+                    target: action.params.target as
+                      | "change-email"
+                      | "account"
+                      | "custom",
+                    custom_url:
+                      "custom_url" in action.params
+                        ? action.params.custom_url
+                        : undefined,
+                  }
                   : undefined,
             })),
           };

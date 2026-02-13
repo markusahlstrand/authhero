@@ -13,7 +13,7 @@ import {
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
 import { getStrategy } from "../strategies";
-import { getClientWithDefaults } from "../helpers/client";
+import { getEnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
 import { setTenantId } from "../helpers/set-tenant-id";
@@ -141,7 +141,7 @@ export async function connectionCallback(
     }
   }
 
-  const client = await getClientWithDefaults(
+  const client = await getEnrichedClient(
     env,
     loginSession.authParams.client_id,
   );
