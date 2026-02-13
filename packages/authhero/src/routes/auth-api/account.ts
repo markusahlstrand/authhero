@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { AuthParams } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
-import { getClientWithDefaults } from "../../helpers/client";
+import { getEnrichedClient } from "../../helpers/client";
 import { nanoid } from "nanoid";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { stringifyAuth0Client } from "../../utils/client-info";
@@ -68,7 +68,7 @@ export const accountRoutes = new OpenAPIHono<{
 
       ctx.set("log", "account");
 
-      const client = await getClientWithDefaults(env, client_id);
+      const client = await getEnrichedClient(env, client_id);
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 

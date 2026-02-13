@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { JSONHTTPException } from "../../errors/json-http-exception";
-import { getClientWithDefaults, EnrichedClient } from "../../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import i18next from "i18next";
 import {
   getPrimaryUserByEmail,
@@ -29,17 +29,17 @@ export async function initJSXRoute(
 
   ctx.set("loginSession", loginSession);
 
-  const client = await getClientWithDefaults(
+  const client = await getEnrichedClient(
     env,
     loginSession.authParams.client_id,
   );
   ctx.set("client_id", client.client_id);
   setTenantId(ctx, client.tenant.id);
 
-  const tenant = await env.data.tenants.get(client.tenant.id);
-  if (!tenant) {
-    throw new JSONHTTPException(400, { message: "Tenant not found" });
-  } else if (loginSession.session_id && !allowSession) {
+  // Use tenant from enriched client (already validated in getEnrichedClient)
+  const tenant = client.tenant;
+
+  if (loginSession.session_id && !allowSession) {
     // Return redirect response with error parameters as per RFC 6749 section 4.1.2.1
     if (!loginSession.authParams.redirect_uri) {
       throw new JSONHTTPException(400, {
@@ -59,15 +59,18 @@ export async function initJSXRoute(
     throw new RedirectException(redirectUrl.toString(), 302);
   }
 
-  const theme = await env.data.themes.get(tenant.id, "default");
-  const branding = await env.data.branding.get(tenant.id);
+  // Fetch theme and branding in parallel
+  const [theme, branding] = await Promise.all([
+    env.data.themes.get(tenant.id, "default"),
+    env.data.branding.get(tenant.id),
+  ]);
 
   // Only include favicon_url when on a custom domain
   const brandingWithFavicon = branding
     ? {
-        ...branding,
-        favicon_url: ctx.var.custom_domain ? branding.favicon_url : undefined,
-      }
+      ...branding,
+      favicon_url: ctx.var.custom_domain ? branding.favicon_url : undefined,
+    }
     : null;
 
   const loginSessionLanguage = loginSession.authParams?.ui_locales
@@ -145,9 +148,9 @@ export async function initJSXRouteWithSession(
     // Get session if it exists (it might not for continuation flows)
     const session = loginSession.session_id
       ? await ctx.env.data.sessions.get(
-          client.tenant.id,
-          loginSession.session_id,
-        )
+        client.tenant.id,
+        loginSession.session_id,
+      )
       : null;
 
     return {
@@ -227,16 +230,16 @@ export async function getLoginStrategy(
   const user =
     connectionType === "email"
       ? await getPrimaryUserByEmail({
-          userAdapter: ctx.env.data.users,
-          tenant_id: client.tenant.id,
-          email: username,
-        })
+        userAdapter: ctx.env.data.users,
+        tenant_id: client.tenant.id,
+        email: username,
+      })
       : await getPrimaryUserByProvider({
-          userAdapter: ctx.env.data.users,
-          tenant_id: client.tenant.id,
-          username,
-          provider: connectionType === "sms" ? "sms" : "auth2",
-        });
+        userAdapter: ctx.env.data.users,
+        tenant_id: client.tenant.id,
+        username,
+        provider: connectionType === "sms" ? "sms" : "auth2",
+      });
 
   // Check user's preferred login method (last used)
   const userStrategy = user?.app_metadata?.strategy;

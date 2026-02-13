@@ -78,6 +78,7 @@ export default function createU2App(config: AuthHeroConfig) {
           "tenants",
           "connections",
           "clients",
+          "clientConnections",
           "customDomains",
           "resourceServers",
           "roles",
