@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.37.0
+
+### Minor Changes
+
+- 2e08bfa: Add support for password first
+
 ## 0.36.0
 
 ### Minor Changes
