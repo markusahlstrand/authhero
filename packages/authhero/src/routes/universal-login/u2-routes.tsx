@@ -44,6 +44,7 @@ import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
  */
 const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   identifier: "login-id",
+  login: "login", // Combined identifier + password screen
   "enter-password": "login-password",
   "enter-code": "login", // OTP code entry is part of login flow
   signup: "signup",
@@ -1175,6 +1176,17 @@ export const u2Routes = new OpenAPIHono<{
   Variables: Variables;
 }>()
   // --------------------------------
+  // GET /u2/login - Combined identifier + password screen (identifier + password flow)
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "login",
+      "/login",
+      "Login screen - combined email, password, and social login",
+    ),
+    createScreenRouteHandler("login"),
+  )
+  // --------------------------------
   // GET /u2/login/identifier - First screen of login flow
   // --------------------------------
   .openapi(
@@ -1254,6 +1266,14 @@ export const u2Routes = new OpenAPIHono<{
   // --------------------------------
   // POST handlers for no-JS form submissions
   // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "login",
+      "/login",
+      "Process login form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("login"),
+  )
   .openapi(
     createScreenPostRoute(
       "identifier",

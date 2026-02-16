@@ -3,6 +3,7 @@ import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
 import {
   AuthParams,
   Session,
+  promptSettingSchema,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { Bindings, Variables } from "../types";
@@ -127,6 +128,27 @@ export async function universalAuth({
   // If there is a session we redirect to the check-account page
   if (session) {
     return ctx.redirect(`${routePrefix}/check-account?state=${loginSession.id}`);
+  }
+
+  // For u2 routes, check if we should use identifier+password flow
+  // Default to identifier-first (true) as per promptSettingSchema
+  if (routePrefix === "/u2") {
+    const promptSettings = await ctx.env.data.promptSettings.get(
+      client.tenant.id,
+    );
+    // Parse with schema to apply defaults (identifier_first defaults to true)
+    const settings = promptSettingSchema.parse(promptSettings || {});
+
+    // Check if password connection is available
+    const hasPasswordConnection = client.connections.some(
+      (c) => c.strategy === "Username-Password-Authentication",
+    );
+
+    // If identifier_first is explicitly false and password auth is available,
+    // use the combined login screen
+    if (settings.identifier_first === false && hasPasswordConnection) {
+      return ctx.redirect(`${routePrefix}/login?state=${loginSession.id}`);
+    }
   }
 
   return ctx.redirect(`${routePrefix}/login/identifier?state=${loginSession.id}`);
