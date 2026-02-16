@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.133.0
+
+### Minor Changes
+
+- 7adc7dc: Add the password fields to the connection entity
+
 ## 0.132.0
 
 ### Minor Changes
