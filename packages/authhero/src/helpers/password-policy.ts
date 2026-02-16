@@ -164,7 +164,12 @@ export async function getPasswordPolicy(
   tenantId: string,
   connectionName: string,
 ): Promise<PasswordPolicy> {
-  const connection = await data.connections.get(tenantId, connectionName);
+  // Look up connection by name since user.connection stores the name, not the ID
+  const { connections } = await data.connections.list(tenantId, {
+    page: 0,
+    per_page: 100,
+  });
+  const connection = connections.find((c) => c.name === connectionName);
   return (connection?.options as PasswordPolicy) || {};
 }
 

@@ -107,9 +107,11 @@ describe("password-policy helper", () => {
 
   describe("getPasswordPolicy", () => {
     it("should return connection options", async () => {
-      mockData.connections.get = vi
-        .fn()
-        .mockResolvedValue({ options: { passwordPolicy: "good" } });
+      mockData.connections.list = vi.fn().mockResolvedValue({
+        connections: [
+          { name: "connection1", options: { passwordPolicy: "good" } },
+        ],
+      });
       const policy = await getPasswordPolicy(
         mockData,
         "tenant1",
@@ -119,7 +121,9 @@ describe("password-policy helper", () => {
     });
 
     it("should return empty object if no connection", async () => {
-      mockData.connections.get = vi.fn().mockResolvedValue(null);
+      mockData.connections.list = vi
+        .fn()
+        .mockResolvedValue({ connections: [] });
       const policy = await getPasswordPolicy(
         mockData,
         "tenant1",
