@@ -1,5 +1,11 @@
 # authhero
 
+## 4.36.0
+
+### Minor Changes
+
+- 5d759c1: Add a u2 form for reset password
+
 ## 4.35.1
 
 ### Patch Changes
