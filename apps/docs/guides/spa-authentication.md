@@ -43,7 +43,167 @@ Cookies are domain-bound. If you have a BFF on `app.com`, it cannot share that s
 
 ---
 
-### 2. Refresh Tokens (The Modern SPA Standard)
+### 2. Token Handler Pattern (BFF Without the BFF)
+
+**The best of both worlds.** A hybrid approach where your API service handles the OAuth flow and stores tokens in HttpOnly cookies—giving you BFF-level security without a separate BFF service.
+
+This pattern (documented by [Curity as the Token Handler Pattern](https://curity.io/resources/learn/the-token-handler-pattern/)) works when your SPA, API, and auth server share the same top-level domain.
+
+#### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     .example.com (top domain)               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   SPA       │    │   API       │    │  Auth       │     │
+│  │ app.example │────│ api.example │────│ auth.example│     │
+│  │   .com      │    │   .com      │    │   .com      │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│        │                  │                                 │
+│        │    ┌─────────────┴─────────────┐                  │
+│        │    │ API acts as OAuth client  │                  │
+│        │    │ Stores tokens in cookies  │                  │
+│        │    └───────────────────────────┘                  │
+│        │                                                    │
+│        └──── SPA never sees tokens ────────────────────────│
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+1. SPA initiates login → API redirects to auth server
+2. Auth server authenticates → redirects back to API with code
+3. API exchanges code for tokens → stores in HttpOnly cookies
+4. API redirects to SPA → cookies are set
+5. SPA makes API calls → cookies sent automatically
+6. API uses refresh token to maintain session
+
+#### Cookie Architecture
+
+The key insight is using **two cookies with different scopes**:
+
+```http
+# Refresh token - scoped to API only (maximum protection)
+Set-Cookie: __Host-rt=<JWE>; Path=/; Secure; HttpOnly; SameSite=Strict
+
+# Access token - scoped to top domain (shared across subdomains)
+Set-Cookie: at=<JWE>; Domain=.example.com; Path=/; Secure; HttpOnly; SameSite=Lax
+```
+
+**Why JWE (encrypted JWT)?**
+- Prevents content inspection by proxies or browser extensions
+- Allows other services on the same domain to decrypt and validate
+- Tokens remain opaque to JavaScript even if somehow exposed
+
+**Why different scopes?**
+- Refresh token isolated to API: Only the API can refresh the session
+- Access token domain-wide: Other services (e.g., `cdn.example.com`, `ws.example.com`) can validate requests
+
+#### Shared Key for Access Token Decryption
+
+For other services to validate the access token cookie:
+
+```javascript
+// All services on .example.com share this key
+const JWE_SHARED_KEY = process.env.ACCESS_TOKEN_JWE_KEY;
+
+// Any service can decrypt and validate
+async function validateRequest(req) {
+  const encryptedToken = req.cookies.at;
+  const accessToken = await decryptJWE(encryptedToken, JWE_SHARED_KEY);
+  return validateJWT(accessToken);
+}
+```
+
+Key distribution options:
+- Environment variables from your secrets manager
+- Derived from a shared secret using HKDF
+- Fetched from a central key service
+
+#### Session Synchronization
+
+The API uses the refresh token to keep the session in sync with the auth server:
+
+```javascript
+// API middleware
+async function ensureValidSession(req, res, next) {
+  const accessToken = decryptJWE(req.cookies.at, JWE_KEY);
+  
+  if (isExpired(accessToken)) {
+    try {
+      // Refresh using the isolated refresh token
+      const refreshToken = decryptJWE(req.cookies['__Host-rt'], JWE_KEY);
+      const { access_token, refresh_token } = await tokenEndpoint.refresh(refreshToken);
+      
+      // Update cookies with new tokens
+      setAccessTokenCookie(res, access_token);
+      setRefreshTokenCookie(res, refresh_token); // Rotation
+      
+      req.accessToken = access_token;
+    } catch (error) {
+      // Refresh failed - session ended at auth server
+      clearAuthCookies(res);
+      return res.status(401).json({ error: 'session_expired' });
+    }
+  } else {
+    req.accessToken = accessToken;
+  }
+  
+  next();
+}
+```
+
+#### Important Considerations
+
+**Cookie Size Limits:** JWE tokens are larger than plain JWTs. With a ~4KB cookie limit:
+- Keep access token claims minimal
+- Fetch full user profile via API call if needed
+- Consider the "Phantom Token" pattern (opaque reference in cookie, real token stays server-side)
+
+**CSRF Protection:** Even with `SameSite` cookies, consider additional CSRF protection for state-changing operations:
+
+```javascript
+// Double-submit cookie pattern
+res.cookie('csrf', csrfToken, { sameSite: 'Strict' });
+res.setHeader('X-CSRF-Token', csrfToken);
+
+// Verify on mutation requests
+if (req.cookies.csrf !== req.headers['x-csrf-token']) {
+  return res.status(403).json({ error: 'csrf_mismatch' });
+}
+```
+
+**Key Rotation:** Plan for JWE key rotation:
+- Support decrypting with both old and new keys during transition
+- Re-encrypt cookies on next request with new key
+
+#### Pros
+
+- **BFF-level security** without a separate BFF service
+- Tokens never exposed to JavaScript
+- Works across subdomains on the same top-level domain
+- API handles token lifecycle—simpler architecture
+- Refresh token rotation maintains security
+
+#### Cons
+
+- Requires same top-level domain for SPA, API, and auth
+- No cross-domain SSO (different top-level domains)
+- Cookie size limits require careful token design
+- Key distribution adds operational complexity
+- Requires CORS configuration between subdomains
+
+#### When to Use
+
+- You want BFF security without BFF infrastructure
+- Your SPA, API, and auth share a top-level domain
+- You have multiple services that need to validate tokens
+- You want cross-subdomain authentication
+
+---
+
+### 3. Refresh Tokens (The Modern SPA Standard)
 
 The SPA receives an **Access Token** and a **Refresh Token**. The access token is short-lived (minutes to hours), while the refresh token can last days or weeks.
 
@@ -99,7 +259,7 @@ Always enable Refresh Token Rotation. This ensures that:
 
 ---
 
-### 3. Silent Auth (The "Classic" Iframe)
+### 4. Silent Auth (The "Classic" Iframe)
 
 The SPA opens a hidden iframe pointing to the auth server. Since the user has a session cookie on the auth domain (e.g., `login.provider.com`), the server recognizes them and passes a new token back to the app.
 
@@ -606,7 +766,18 @@ In 2026, SPA authentication is a game of trade-offs:
 - **Cross-Domain vs. Privacy:** True SSO is dying; Refresh Tokens are the future
 - **UX vs. Reliability:** Redirects are rock-solid; popups are fragile but smoother
 
-**Our recommendation for most modern SPAs:** Use **Refresh Tokens with Redirect Flow** as your primary method. This gives you:
+**Our recommendations for modern SPAs:**
+
+| Scenario | Recommended Approach |
+|----------|---------------------|
+| Same top-level domain (SPA + API + Auth) | **Token Handler Pattern** — BFF security without BFF complexity |
+| Single-domain, client-side simplicity | **Refresh Tokens** — Modern standard with proper rotation |
+| Maximum security, have backend infra | **Full BFF** — Gold standard, tokens never touch the browser |
+| Cross-domain SSO required | **Silent Auth + Fallbacks** — But expect browser friction |
+
+The **Token Handler Pattern** is particularly compelling in 2026: it gives you the security benefits of a BFF (tokens never in JavaScript) while leveraging your existing API infrastructure. If your architecture allows same-domain deployment, it's often the sweet spot.
+
+For simpler setups or when you can't control domain architecture, **Refresh Tokens with Redirect Flow** remains excellent:
 
 - ✅ Security (with proper rotation)
 - ✅ Privacy compliance
@@ -620,6 +791,7 @@ Whatever you choose, remember: **Libraries handle the protocol, but you must han
 ## Additional Resources
 
 - [OAuth 2.0 for Browser-Based Apps (IETF Draft)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps)
+- [The Token Handler Pattern (Curity)](https://curity.io/resources/learn/the-token-handler-pattern/)
 - [CHIPS Specification](https://developers.google.com/privacy-sandbox/3pcd/chips)
 - [Safari ITP Documentation](https://webkit.org/tracking-prevention/)
 - [Auth0 SPA SDK Documentation](https://auth0.com/docs/libraries/auth0-spa-js)
