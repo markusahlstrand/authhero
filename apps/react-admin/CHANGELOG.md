@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.36.0
+
+### Minor Changes
+
+- 73f12a9: Fix refresh of sub path
+
 ## 0.35.0
 
 ### Minor Changes
