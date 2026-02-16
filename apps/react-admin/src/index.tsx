@@ -11,8 +11,9 @@ import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 const envDomain = import.meta.env.VITE_AUTH0_DOMAIN;
 
 function Root() {
+  // Initialize synchronously from storage to prevent flash of DomainSelector on direct navigation
   const [selectedDomain, setSelectedDomain] = useState<string | null>(
-    envDomain || null,
+    envDomain || getSelectedDomainFromStorage() || null,
   );
   const currentPath = location.pathname;
   const isAuthCallback = currentPath === "/auth-callback";
@@ -22,17 +23,6 @@ function Root() {
     currentPath === "/tenants" ||
     currentPath.startsWith("/tenants/create") ||
     currentPath === "/tenants/";
-
-  // Load domain from cookies on component mount (only when no env domain configured)
-  useEffect(() => {
-    if (envDomain) {
-      return;
-    }
-    const savedDomain = getSelectedDomainFromStorage();
-    if (savedDomain) {
-      setSelectedDomain(savedDomain);
-    }
-  }, []);
 
   // Handle auth callback separately without basename
   if (isAuthCallback) {
