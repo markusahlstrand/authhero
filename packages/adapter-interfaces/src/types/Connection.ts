@@ -24,6 +24,32 @@ export const connectionOptionsSchema = z.object({
   twilio_sid: z.string().optional(),
   twilio_token: z.string().optional(),
   icon_url: z.string().optional(),
+  // Password policy options for Username-Password-Authentication connections
+  passwordPolicy: z
+    .enum(["none", "low", "fair", "good", "excellent"])
+    .optional(),
+  password_complexity_options: z
+    .object({
+      min_length: z.number().optional(),
+    })
+    .optional(),
+  password_history: z
+    .object({
+      enable: z.boolean().optional(),
+      size: z.number().optional(),
+    })
+    .optional(),
+  password_no_personal_info: z
+    .object({
+      enable: z.boolean().optional(),
+    })
+    .optional(),
+  password_dictionary: z
+    .object({
+      enable: z.boolean().optional(),
+      dictionary: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export const connectionInsertSchema = z.object({
