@@ -2,11 +2,11 @@ import {
   Edit,
   TabbedForm,
   SelectInput,
-  BooleanInput,
   useRecordContext,
   useDataProvider,
   useNotify,
   useRefresh,
+  useInput,
 } from "react-admin";
 import {
   Stack,
@@ -34,6 +34,11 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
@@ -431,6 +436,131 @@ const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
     tryAgainText: "Try again",
   },
 };
+
+// Login flow options
+const LOGIN_FLOW_OPTIONS = [
+  {
+    value: "identifier-password",
+    label: "Identifier + Password",
+    description:
+      "A single login screen prompts users for their user identifier and their password.",
+  },
+  {
+    value: "identifier-first",
+    label: "Identifier First",
+    description:
+      "An initial login screen prompts users for their user identifier, then a different screen prompts users for their password.",
+    isDefault: true,
+  },
+  {
+    value: "identifier-first-biometrics",
+    label: "Identifier First + Biometrics",
+    description:
+      "When possible, users will be able to choose to sign-in using face or fingerprint recognition instead of a password.",
+    enterprise: true,
+  },
+];
+
+// Custom input for login flow selection
+function LoginFlowInput() {
+  const identifierFirstInput = useInput({ source: "identifier_first" });
+  const webauthnInput = useInput({ source: "webauthn_platform_first_factor" });
+
+  // Determine current value based on the underlying fields
+  // Default to "identifier-first" when no explicit value is set
+  const getCurrentValue = () => {
+    const identifierFirst = identifierFirstInput.field.value;
+    const webauthn = webauthnInput.field.value;
+
+    if (webauthn && identifierFirst) {
+      return "identifier-first-biometrics";
+    }
+    // Default to identifier-first when not explicitly set to false
+    if (identifierFirst !== false) {
+      return "identifier-first";
+    }
+    return "identifier-password";
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+
+    switch (value) {
+      case "identifier-password":
+        identifierFirstInput.field.onChange(false);
+        webauthnInput.field.onChange(false);
+        break;
+      case "identifier-first":
+        identifierFirstInput.field.onChange(true);
+        webauthnInput.field.onChange(false);
+        break;
+      case "identifier-first-biometrics":
+        identifierFirstInput.field.onChange(true);
+        webauthnInput.field.onChange(true);
+        break;
+    }
+  };
+
+  return (
+    <FormControl component="fieldset" sx={{ width: "100%" }}>
+      <FormLabel component="legend" sx={{ mb: 2 }}>
+        Login Flow
+      </FormLabel>
+      <RadioGroup value={getCurrentValue()} onChange={handleChange}>
+        {LOGIN_FLOW_OPTIONS.map((option) => (
+          <Box
+            key={option.value}
+            sx={{
+              mb: 2,
+              p: 2,
+              border: 1,
+              borderColor:
+                getCurrentValue() === option.value
+                  ? "primary.main"
+                  : "divider",
+              borderRadius: 1,
+              backgroundColor:
+                getCurrentValue() === option.value
+                  ? "action.selected"
+                  : "transparent",
+            }}
+          >
+            <FormControlLabel
+              value={option.value}
+              control={<Radio />}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    {option.label}
+                  </Typography>
+                  {option.isDefault && (
+                    <Chip label="default" size="small" variant="outlined" />
+                  )}
+                  {option.enterprise && (
+                    <Chip
+                      label="enterprise"
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
+              }
+              sx={{ mb: 0.5 }}
+            />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ ml: 4, mt: -0.5 }}
+            >
+              {option.description}
+            </Typography>
+          </Box>
+        ))}
+      </RadioGroup>
+    </FormControl>
+  );
+}
 
 // Remove null/undefined values from an object
 function removeNullValues(
@@ -1116,7 +1246,7 @@ export function PromptsEdit() {
             Configure how the login prompts behave for your users.
           </Typography>
 
-          <Stack spacing={2} sx={{ maxWidth: 600 }}>
+          <Stack spacing={3} sx={{ maxWidth: 600 }}>
             <SelectInput
               source="universal_login_experience"
               label="Universal Login Experience"
@@ -1128,23 +1258,7 @@ export function PromptsEdit() {
               fullWidth
             />
 
-            <BooleanInput
-              source="identifier_first"
-              label="Identifier First"
-              helperText="Show identifier (email/username) field first, then password on a separate screen"
-            />
-
-            <BooleanInput
-              source="password_first"
-              label="Password First"
-              helperText="Show password field on the first screen along with the identifier"
-            />
-
-            <BooleanInput
-              source="webauthn_platform_first_factor"
-              label="WebAuthn Platform First Factor"
-              helperText="Enable WebAuthn (passkeys, biometrics) as a first factor authentication option"
-            />
+            <LoginFlowInput />
           </Stack>
         </TabbedForm.Tab>
 

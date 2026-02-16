@@ -4,6 +4,7 @@
 
 import type { ScreenDefinition, ScreenContext, ScreenResult } from "./types";
 import { identifierScreenDefinition } from "./identifier";
+import { loginScreenDefinition } from "./login";
 import { enterCodeScreenDefinition } from "./enter-code";
 import { enterPasswordScreenDefinition } from "./enter-password";
 import { signupScreenDefinition } from "./signup";
@@ -17,6 +18,7 @@ import { checkAccountScreenDefinition } from "./check-account";
  */
 export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["identifier", identifierScreenDefinition],
+  ["login", loginScreenDefinition],
   ["enter-code", enterCodeScreenDefinition],
   ["enter-password", enterPasswordScreenDefinition],
   ["signup", signupScreenDefinition],
