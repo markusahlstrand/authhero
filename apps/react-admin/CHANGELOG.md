@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.38.0
+
+### Minor Changes
+
+- a5c1ba9: Add mfa signup
+
+### Patch Changes
+
+- Updated dependencies [a5c1ba9]
+  - @authhero/adapter-interfaces@0.134.0
+  - @authhero/widget@0.13.3
+
 ## 0.37.0
 
 ### Minor Changes
