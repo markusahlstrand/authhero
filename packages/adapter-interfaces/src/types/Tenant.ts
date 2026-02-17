@@ -171,6 +171,48 @@ export const tenantInsertSchema = z.object({
   // Authorization settings
   pushed_authorization_requests_supported: z.boolean().optional(),
   authorization_response_iss_parameter_supported: z.boolean().optional(),
+
+  // Guardian MFA Factors configuration (internal storage, exposed via /guardian API)
+  mfa: z
+    .object({
+      // Factor states
+      factors: z
+        .object({
+          sms: z.boolean().default(false),
+          otp: z.boolean().default(false),
+          email: z.boolean().default(false),
+          push_notification: z.boolean().default(false),
+          webauthn_roaming: z.boolean().default(false),
+          webauthn_platform: z.boolean().default(false),
+          recovery_code: z.boolean().default(false),
+          duo: z.boolean().default(false),
+        })
+        .optional(),
+      // SMS provider configuration
+      sms_provider: z
+        .object({
+          provider: z
+            .enum(["twilio", "vonage", "aws_sns", "phone_message_hook"])
+            .optional(),
+        })
+        .optional(),
+      // Twilio-specific configuration
+      twilio: z
+        .object({
+          sid: z.string().optional(),
+          auth_token: z.string().optional(),
+          from: z.string().optional(),
+          messaging_service_sid: z.string().optional(),
+        })
+        .optional(),
+      // Phone message configuration (custom)
+      phone_message: z
+        .object({
+          message: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export const tenantSchema = z.object({

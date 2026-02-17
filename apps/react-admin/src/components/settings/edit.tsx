@@ -147,6 +147,63 @@ export function SettingsEdit() {
           </Stack>
         </TabbedForm.Tab>
 
+        <TabbedForm.Tab label="MFA Factors">
+          <Stack spacing={2}>
+            <BooleanInput source="mfa.factors.sms" label="SMS" />
+            <BooleanInput source="mfa.factors.otp" label="One-Time Password (OTP)" />
+            <BooleanInput source="mfa.factors.email" label="Email" />
+            <BooleanInput
+              source="mfa.factors.push_notification"
+              label="Push Notification"
+            />
+            <BooleanInput
+              source="mfa.factors.webauthn_roaming"
+              label="WebAuthn (Roaming)"
+            />
+            <BooleanInput
+              source="mfa.factors.webauthn_platform"
+              label="WebAuthn (Platform)"
+            />
+            <BooleanInput
+              source="mfa.factors.recovery_code"
+              label="Recovery Code"
+            />
+            <BooleanInput source="mfa.factors.duo" label="Duo" />
+          </Stack>
+        </TabbedForm.Tab>
+
+        <TabbedForm.Tab label="SMS Provider">
+          <Stack spacing={2}>
+            <TextInput
+              source="mfa.sms_provider.provider"
+              label="Provider"
+              helperText="twilio, vonage, aws_sns, or phone_message_hook"
+              fullWidth
+            />
+            <TextInput
+              source="mfa.twilio.sid"
+              label="Twilio Account SID"
+              fullWidth
+            />
+            <TextInput
+              source="mfa.twilio.auth_token"
+              label="Twilio Auth Token"
+              fullWidth
+            />
+            <TextInput
+              source="mfa.twilio.from"
+              label="Twilio From Number"
+              helperText="E.164 format, e.g., +15551234567"
+              fullWidth
+            />
+            <TextInput
+              source="mfa.twilio.messaging_service_sid"
+              label="Twilio Messaging Service SID"
+              fullWidth
+            />
+          </Stack>
+        </TabbedForm.Tab>
+
         <TabbedForm.Tab label="Feature Flags">
           <Stack spacing={2}>
             <BooleanInput

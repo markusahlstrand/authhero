@@ -30,6 +30,7 @@ import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
 import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
+import { guardianRoutes } from "./guardian";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -218,7 +219,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/roles", roleRoutes)
     .route("/resource-servers", resourceServerRoutes)
     .route("/organizations", organizationRoutes)
-    .route("/stats", statsRoutes);
+    .route("/stats", statsRoutes)
+    .route("/guardian", guardianRoutes);
 
   // Mount any additional route extensions from config
   // These go through the full middleware chain (caching, tenant, auth, entity hooks)

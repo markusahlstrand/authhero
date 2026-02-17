@@ -79,6 +79,9 @@ export function sqlTenantToTenant(sqlTenant: any): Tenant {
   if (sqlTenant.mtls && typeof sqlTenant.mtls === "string") {
     tenant.mtls = JSON.parse(sqlTenant.mtls);
   }
+  if (sqlTenant.mfa && typeof sqlTenant.mfa === "string") {
+    tenant.mfa = JSON.parse(sqlTenant.mfa);
+  }
 
   // Convert integer to boolean
   if (sqlTenant.allow_organization_name_in_authentication_api !== undefined) {
@@ -122,6 +125,7 @@ export function tenantToSqlTenant(tenant: Partial<Tenant>): any {
       "allowed_logout_urls",
       "acr_values_supported",
       "mtls",
+      "mfa",
     ],
     sqlTenant,
   );
