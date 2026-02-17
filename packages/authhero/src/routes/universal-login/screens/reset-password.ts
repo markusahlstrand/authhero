@@ -163,11 +163,19 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         };
       }
 
+      // Find the password connection by strategy to get the correct connection name
+      // This is needed because user.connection may contain "Username-Password-Authentication"
+      // (a hardcoded fallback) instead of the actual connection name
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const connectionName = passwordConnection?.name || user.connection;
+
       // Validate password against connection policy
       const policy = await getPasswordPolicy(
         env.data,
         client.tenant.id,
-        user.connection,
+        connectionName,
       );
 
       try {

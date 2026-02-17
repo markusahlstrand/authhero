@@ -637,4 +637,153 @@ describe("passwords", () => {
     const weakPasswordText2 = await weakPasswordResponse2.text();
     expect(weakPasswordText2).toContain("uppercase letter");
   });
+
+  it("should use connection password policy by strategy lookup, not by name", async () => {
+    // This test verifies the fix for the bug where reset-password would use default
+    // password policy instead of the actual connection's policy.
+    //
+    // The bug occurred because:
+    // 1. Users are created with connection: "Username-Password-Authentication" (hardcoded)
+    // 2. But the actual connection might have name: "auth2" with strategy: "Username-Password-Authentication"
+    // 3. getPasswordPolicy looked up by connection NAME, not finding the connection
+    // 4. This caused default policy (8 chars, uppercase, etc.) to be applied instead
+    //
+    // The fix: Look up connection by STRATEGY first, then use that connection's policy
+
+    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Delete the default Username-Password-Authentication connection
+    await env.data.connections.remove("tenantId", "Username-Password-Authentication");
+
+    // Create a connection with a DIFFERENT name but same strategy, with lenient password policy
+    await env.data.connections.create("tenantId", {
+      id: "custom-pwd-conn",
+      name: "auth2", // Different name than "Username-Password-Authentication"
+      strategy: "Username-Password-Authentication", // But same strategy
+      options: {
+        passwordPolicy: "none", // No complexity requirements
+        password_complexity_options: {
+          min_length: 6, // Lower than default 8
+        },
+      },
+    });
+
+    // Create a user with connection "Username-Password-Authentication" (mimicking the bug scenario)
+    // In real code, users often get created with this hardcoded value
+    await env.data.users.create("tenantId", {
+      email: "policy-test@example.com",
+      email_verified: true,
+      name: "Policy Test User",
+      nickname: "policytest",
+      connection: "Username-Password-Authentication", // This doesn't match connection name "auth2"
+      provider: "auth2",
+      is_social: false,
+      user_id: "auth2|policyTest123",
+    });
+
+    // Add a password
+    await env.data.passwords.create("tenantId", {
+      user_id: "auth2|policyTest123",
+      password: await bcryptjs.hash("OldP@ss123!", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Start password reset flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "policy-test@example.com" },
+    });
+
+    await universalClient["forgot-password"].$post({
+      query: { state },
+    });
+
+    const sentEmails = getSentEmails();
+    const passwordResetEmail = sentEmails[sentEmails.length - 1];
+
+    if (passwordResetEmail.data.passwordResetUrl === undefined) {
+      throw new Error("No reset URL found in email");
+    }
+
+    const passwordResetUrl = new URL(passwordResetEmail.data.passwordResetUrl);
+    const passwordResetCode = passwordResetUrl.searchParams.get("code");
+    const resetState = passwordResetUrl.searchParams.get("state");
+
+    if (!passwordResetCode || !resetState) {
+      throw new Error("No code or state found in email");
+    }
+
+    // This simple password should PASS because the connection has:
+    // - passwordPolicy: "none" (no complexity requirements)
+    // - min_length: 6
+    //
+    // If the bug is present (looking up by user.connection name instead of by strategy),
+    // this would FAIL because default policy requires 8 chars + uppercase + lowercase + number + special
+    const simplePasswordResponse = await universalClient["reset-password"].$post(
+      {
+        query: { state: resetState, code: passwordResetCode },
+        form: {
+          password: "simple", // 6 chars, no complexity - should pass with policy "none"
+          "re-enter-password": "simple",
+        },
+      },
+    );
+
+    // If this assertion fails with status 400, the bug is back!
+    // The error message would say something like "at least 8 characters" or "uppercase letter"
+    expect(simplePasswordResponse.status).toBe(200);
+    const responseText = await simplePasswordResponse.text();
+    expect(responseText).toContain("password has been reset");
+
+    // Verify the new password works
+    const authorizeResponse2 = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state2",
+        nonce: "nonce2",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    const location2 = authorizeResponse2.headers.get("location");
+    const universalUrl2 = new URL(`https://example.com${location2}`);
+    const state2 = universalUrl2.searchParams.get("state");
+    if (!state2) throw new Error("No state found");
+
+    await universalClient.login.identifier.$post({
+      query: { state: state2 },
+      form: { username: "policy-test@example.com" },
+    });
+
+    const loginWithNewPassword = await universalClient["enter-password"].$post({
+      query: { state: state2 },
+      form: { password: "simple" },
+    });
+
+    expect(loginWithNewPassword.status).toBe(302);
+  });
 });
+
