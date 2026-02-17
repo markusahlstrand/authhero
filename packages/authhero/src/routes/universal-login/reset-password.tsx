@@ -141,12 +141,20 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "User not found" });
       }
 
+      // Find the password connection by strategy to get the correct connection name
+      // This is needed because user.connection may contain "Username-Password-Authentication"
+      // (a hardcoded fallback) instead of the actual connection name
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const connectionName =
+        passwordConnection?.name || user.connection;
+
       // Validate password against connection policy
-      // Use the user's connection to get the correct password policy
       const policy = await getPasswordPolicy(
         env.data,
         client.tenant.id,
-        user.connection,
+        connectionName,
       );
 
       try {
