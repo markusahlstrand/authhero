@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.134.0
+
+### Minor Changes
+
+- a5c1ba9: Add mfa signup
+
 ## 0.133.0
 
 ### Minor Changes

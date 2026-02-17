@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.96.0
+
+### Minor Changes
+
+- a5c1ba9: Add mfa signup
+
+### Patch Changes
+
+- Updated dependencies [a5c1ba9]
+  - @authhero/adapter-interfaces@0.134.0
+
 ## 10.95.1
 
 ### Patch Changes
