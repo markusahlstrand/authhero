@@ -1,5 +1,11 @@
 # authhero
 
+## 4.39.0
+
+### Minor Changes
+
+- 8c38b8f: Update reset password
+
 ## 4.38.0
 
 ### Minor Changes
