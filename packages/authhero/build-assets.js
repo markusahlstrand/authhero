@@ -71,6 +71,11 @@ ensureDir(ASSETS_DIR);
 ensureDir(U_DIR);
 ensureDir(CSS_DIR);
 ensureDir(JS_DIR);
+
+// Clean and recreate widget directory to remove stale chunks from previous builds
+if (fs.existsSync(WIDGET_DIR)) {
+  fs.rmSync(WIDGET_DIR, { recursive: true });
+}
 ensureDir(WIDGET_DIR);
 
 // Copy CSS files

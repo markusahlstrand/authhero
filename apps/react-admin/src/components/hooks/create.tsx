@@ -89,6 +89,9 @@ export function HooksCreate() {
         <NumberInput
           source="priority"
           helperText="A hook with higher priority will be executed first"
+          parse={(value: string | null) =>
+            value === "" || value === null ? undefined : Number(value)
+          }
         />
       </SimpleForm>
     </Create>

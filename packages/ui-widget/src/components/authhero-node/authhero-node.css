@@ -50,7 +50,10 @@
 
 .input-label.floating,
 .input-field:focus + .input-label,
-.input-field:not(:placeholder-shown) + .input-label {
+.input-field:not(:placeholder-shown) + .input-label,
+/* select and date inputs always display content, so always float */
+select.input-field + .input-label,
+input[type="date"].input-field + .input-label {
   top: -8px;
   transform: translateY(0);
   font-size: 12px;

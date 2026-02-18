@@ -8,23 +8,29 @@ import {
   useRecordContext,
   TabbedForm,
   FormTab,
-  useUpdate,
-  useNotify,
-  useRefresh,
   useGetList,
+  useSaveContext,
 } from "react-admin";
 import FlowEditor, { FlowNodeData, StartNode, EndingNode } from "./FlowEditor";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Box, Typography, useTheme } from "@mui/material";
 import * as React from "react";
-import { useSaveContext } from "react-admin";
+import { useFormContext, useWatch } from "react-hook-form";
 
 // A component to render the flow diagram
 const FlowDiagram = () => {
   const record = useRecordContext();
-  const [update] = useUpdate();
-  const notify = useNotify();
-  const refresh = useRefresh();
+  const form = useFormContext();
+
+  // Watch form values to keep FlowEditor in sync
+  const formNodes = useWatch({ name: "nodes" });
+  const formStart = useWatch({ name: "start" });
+  const formEnding = useWatch({ name: "ending" });
+
+  // Use form values if available, otherwise fall back to record
+  const nodes = formNodes ?? record?.nodes ?? [];
+  const start = formStart ?? record?.start;
+  const ending = formEnding ?? record?.ending;
 
   // Fetch flows for dropdown selection
   const { data: flows } = useGetList("flows", {
@@ -33,41 +39,43 @@ const FlowDiagram = () => {
   });
 
   // Allow rendering if there is a start or ending node, even if nodes is missing or empty
-  if (!record || (!record.nodes && !record.start && !record.ending)) {
+  if (!record || (!nodes && !start && !ending)) {
     return <div>No flow data available</div>;
   }
 
-  // Handle node updates from the FlowEditor
+  // Handle node updates from the FlowEditor - uses form context to mark dirty
   const handleNodeUpdate = (
     nodeId: string,
     updates: Partial<FlowNodeData> | Partial<StartNode> | Partial<EndingNode>,
   ) => {
-    let updatedRecord = { ...record };
-
     if (nodeId === "start") {
       // Update the start node
-      updatedRecord.start = { ...record.start, ...updates };
+      const currentStart = form.getValues("start") || {};
+      form.setValue("start", { ...currentStart, ...updates }, { shouldDirty: true });
     } else if (nodeId === "end") {
       // Update the ending node
-      updatedRecord.ending = { ...record.ending, ...updates };
+      const currentEnding = form.getValues("ending") || {};
+      form.setValue("ending", { ...currentEnding, ...updates }, { shouldDirty: true });
     } else {
       // Check if this is a new node (has 'type' property in updates indicating full node data)
       const isNewNode =
         "type" in updates && (updates as FlowNodeData).type !== undefined;
 
+      const currentNodes = form.getValues("nodes") || [];
+
       if (isNewNode) {
         // Adding a new node
         const newNode = { id: nodeId, ...updates } as FlowNodeData;
-        updatedRecord.nodes = [...(record.nodes || []), newNode];
+        form.setValue("nodes", [...currentNodes, newNode], { shouldDirty: true });
       } else {
         // Update an existing node
-        const nodeIndex = (record.nodes || []).findIndex(
+        const nodeIndex = currentNodes.findIndex(
           (n: FlowNodeData) => n.id === nodeId,
         );
         if (nodeIndex >= 0) {
-          const existingNode = record.nodes[nodeIndex];
-          updatedRecord.nodes = [...record.nodes];
-          updatedRecord.nodes[nodeIndex] = {
+          const existingNode = currentNodes[nodeIndex];
+          const updatedNodes = [...currentNodes];
+          updatedNodes[nodeIndex] = {
             ...existingNode,
             ...updates,
             config: {
@@ -75,24 +83,10 @@ const FlowDiagram = () => {
               ...(updates as Partial<FlowNodeData>).config,
             },
           };
+          form.setValue("nodes", updatedNodes, { shouldDirty: true });
         }
       }
     }
-
-    // Save the updated record
-    update(
-      "forms",
-      { id: record.id, data: updatedRecord, previousData: record },
-      {
-        onSuccess: () => {
-          notify("Flow updated successfully", { type: "success" });
-          refresh();
-        },
-        onError: (error: any) => {
-          notify(`Error updating flow: ${error.message}`, { type: "error" });
-        },
-      },
-    );
   };
 
   return (
@@ -107,9 +101,9 @@ const FlowDiagram = () => {
     >
       <ReactFlowProvider>
         <FlowEditor
-          nodes={record.nodes || []}
-          start={record.start}
-          ending={record.ending}
+          nodes={nodes}
+          start={start}
+          ending={ending}
           flows={flows?.map((f) => ({ id: f.id, name: f.name })) || []}
           onNodeUpdate={handleNodeUpdate}
         />

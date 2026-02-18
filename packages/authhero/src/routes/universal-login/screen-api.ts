@@ -784,7 +784,12 @@ export const screenApiRoutes = new OpenAPIHono<{
             if (result.status === 302) {
               const location = result.headers.get("location");
               if (location) {
-                return ctx.json({ redirect: location });
+                const cookies = result.headers.getSetCookie?.() || [];
+                const response = ctx.json({ redirect: location });
+                cookies.forEach((cookie) => {
+                  response.headers.append("set-cookie", cookie);
+                });
+                return response;
               }
             }
           }

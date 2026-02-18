@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
   Typography,
@@ -213,26 +213,43 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   const [addComponentAnchor, setAddComponentAnchor] =
     useState<null | HTMLElement>(null);
 
-  // Initialize form data when selected node changes
+  // Track which node ID we've initialized for to avoid re-initializing on prop changes
+  const initializedForNodeId = useRef<string | null>(null);
+
+  // Track last propagated data to prevent loops
+  const lastPropagatedData = useRef<string | null>(null);
+
+  // Initialize form data when selected node changes (only when node ID changes)
   useEffect(() => {
     if (!selectedNode) {
       setFormData({});
+      initializedForNodeId.current = null;
+      lastPropagatedData.current = null;
       return;
     }
 
+    // Only initialize if we haven't already initialized for this node
+    if (initializedForNodeId.current === selectedNode.id) {
+      return;
+    }
+
+    initializedForNodeId.current = selectedNode.id;
+
+    let newFormData: any = {};
+
     if (selectedNode.id === "start" && start) {
-      setFormData({
+      newFormData = {
         next_node: start.next_node || "",
-      });
+      };
     } else if (selectedNode.id === "end" && ending) {
-      setFormData({
+      newFormData = {
         resume_flow: ending.resume_flow || false,
-      });
+      };
     } else {
       // Find the node data in the nodes array
       const nodeData = nodes.find((node) => node.id === selectedNode.id);
       if (nodeData) {
-        setFormData({
+        newFormData = {
           id: nodeData.id,
           alias: nodeData.alias || "",
           type: nodeData.type,
@@ -241,10 +258,67 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           flow_id: nodeData.config?.flow_id || "",
           rules: nodeData.config?.rules || [],
           fallback: nodeData.config?.fallback || "",
-        });
+        };
       }
     }
-  }, [selectedNode, nodes, start, ending]);
+
+    // Set last propagated data to the initial value to prevent immediate propagation
+    lastPropagatedData.current = JSON.stringify(newFormData);
+    setFormData(newFormData);
+  }, [selectedNode?.id, nodes, start, ending]);
+
+  // Reset initialization tracking when drawer closes
+  useEffect(() => {
+    if (!open) {
+      initializedForNodeId.current = null;
+      lastPropagatedData.current = null;
+    }
+  }, [open]);
+
+  // Propagate changes to parent whenever formData changes (but not on initial load)
+  useEffect(() => {
+    if (!selectedNode || !initializedForNodeId.current) return;
+
+    // Serialize current form data to compare
+    const serialized = JSON.stringify(formData);
+    
+    // Skip if this is the same data we just propagated or just initialized
+    if (lastPropagatedData.current === serialized) {
+      return;
+    }
+
+    // Skip if formData is empty (not yet initialized)
+    if (Object.keys(formData).length === 0) {
+      return;
+    }
+
+    lastPropagatedData.current = serialized;
+
+    if (selectedNode.id === "start") {
+      onNodeUpdate("start", { next_node: formData.next_node || undefined });
+    } else if (selectedNode.id === "end") {
+      onNodeUpdate("end", { resume_flow: formData.resume_flow || false });
+    } else {
+      const updates: Partial<FlowNodeData> = {
+        alias: formData.alias,
+        config: {
+          next_node: formData.next_node || undefined,
+          components: formData.components || [],
+        },
+      };
+
+      if (selectedNode.type === "flow") {
+        updates.config!.flow_id = formData.flow_id;
+      }
+
+      if (selectedNode.type === "router") {
+        updates.config!.rules = formData.rules;
+        updates.config!.fallback = formData.fallback || undefined;
+      }
+
+      onNodeUpdate(selectedNode.id, updates);
+    }
+  }, [formData, selectedNode, onNodeUpdate]);
 
   const handleInputChange = useCallback(
     (
@@ -426,36 +500,6 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       ),
     }));
   }, []);
-
-  const handleSave = useCallback(() => {
-    if (!selectedNode) return;
-
-    if (selectedNode.id === "start") {
-      onNodeUpdate("start", { next_node: formData.next_node || undefined });
-    } else if (selectedNode.id === "end") {
-      onNodeUpdate("end", { resume_flow: formData.resume_flow || false });
-    } else {
-      const updates: Partial<FlowNodeData> = {
-        alias: formData.alias,
-        config: {
-          next_node: formData.next_node || undefined,
-          components: formData.components || [],
-        },
-      };
-
-      if (selectedNode.type === "flow") {
-        updates.config!.flow_id = formData.flow_id;
-      }
-
-      if (selectedNode.type === "router") {
-        updates.config!.rules = formData.rules;
-        updates.config!.fallback = formData.fallback || undefined;
-      }
-
-      onNodeUpdate(selectedNode.id, updates);
-    }
-    onClose();
-  }, [selectedNode, formData, onNodeUpdate, onClose]);
 
   // Render the proper editor based on node type
   const renderEditor = () => {
@@ -1277,10 +1321,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           }}
         >
           <Button variant="outlined" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="contained" color="primary" onClick={handleSave}>
-            Save
+            Close
           </Button>
         </Box>
       </Drawer>

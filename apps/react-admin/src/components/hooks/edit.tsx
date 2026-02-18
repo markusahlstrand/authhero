@@ -101,6 +101,9 @@ export function HookEdit() {
         <NumberInput
           source="priority"
           helperText="A hook with higher priority will be executed first"
+          parse={(value: string | null) =>
+            value === "" || value === null ? undefined : Number(value)
+          }
         />
         <Labeled label={<FieldTitle source="created_at" />}>
           <DateField source="created_at" showTime={true} />

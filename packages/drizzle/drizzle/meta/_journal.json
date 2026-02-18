@@ -8,6 +8,13 @@
       "when": 1770276509080,
       "tag": "0000_blushing_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771349192482,
+      "tag": "0001_numerous_miss_america",
+      "breakpoints": true
     }
   ]
 }

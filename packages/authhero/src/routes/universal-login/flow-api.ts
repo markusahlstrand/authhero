@@ -251,11 +251,11 @@ async function handleGetScreen(
     screen,
     branding: branding
       ? {
-          colors: branding.colors,
-          logo_url: branding.logo_url,
-          favicon_url: branding.favicon_url,
-          font: branding.font,
-        }
+        colors: branding.colors,
+        logo_url: branding.logo_url,
+        favicon_url: branding.favicon_url,
+        font: branding.font,
+      }
       : undefined,
   });
 }
@@ -359,19 +359,19 @@ async function handlePostScreen(
           action: action.action,
           params:
             "params" in action &&
-            action.params &&
-            typeof action.params === "object" &&
-            "target" in action.params
+              action.params &&
+              typeof action.params === "object" &&
+              "target" in action.params
               ? {
-                  target: action.params.target as
-                    | "change-email"
-                    | "account"
-                    | "custom",
-                  custom_url:
-                    "custom_url" in action.params
-                      ? action.params.custom_url
-                      : undefined,
-                }
+                target: action.params.target as
+                  | "change-email"
+                  | "account"
+                  | "custom",
+                custom_url:
+                  "custom_url" in action.params
+                    ? action.params.custom_url
+                    : undefined,
+              }
               : undefined,
         })),
       };
@@ -439,11 +439,11 @@ async function handlePostScreen(
             screen,
             branding: branding
               ? {
-                  colors: branding.colors,
-                  logo_url: branding.logo_url,
-                  favicon_url: branding.favicon_url,
-                  font: branding.font,
-                }
+                colors: branding.colors,
+                logo_url: branding.logo_url,
+                favicon_url: branding.favicon_url,
+                font: branding.font,
+              }
               : undefined,
           });
         }
@@ -478,11 +478,16 @@ async function handlePostScreen(
           skipHooks: true,
         });
 
-        // Extract redirect URL from the response
+        // Extract redirect URL and cookies from the response
         if (result.status === 302) {
           const location = result.headers.get("location");
           if (location) {
-            return ctx.json({ redirect: location });
+            const cookies = result.headers.getSetCookie?.() || [];
+            const response = ctx.json({ redirect: location });
+            cookies.forEach((cookie) => {
+              response.headers.append("set-cookie", cookie);
+            });
+            return response;
           }
         }
       }
