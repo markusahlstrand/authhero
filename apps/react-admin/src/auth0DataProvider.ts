@@ -14,6 +14,17 @@ function stringify(obj: Record<string, any>): string {
     .join("&");
 }
 
+// Remove null and undefined values from an object (used for create operations where empty form fields become null)
+function removeNullValues(data: Record<string, any>): Record<string, any> {
+  const cleaned: Record<string, any> = {};
+  for (const key of Object.keys(data)) {
+    if (data[key] !== null && data[key] !== undefined) {
+      cleaned[key] = data[key];
+    }
+  }
+  return cleaned;
+}
+
 function removeExtraFields(params: UpdateParams) {
   // delete params.data?.id; // this is required for patch... but not for put?
   delete params.data?.tenant_id;
@@ -36,7 +47,7 @@ function removeExtraFields(params: UpdateParams) {
   delete params.data?.last_login;
   delete params.data?.provider;
 
-  // Remove empty properties
+  // Remove undefined properties (null is preserved to signal "unset this field" in PATCH)
   Object.keys(params.data).forEach((key) => {
     if (params.data[key] === undefined) {
       delete params.data[key];
@@ -1425,7 +1436,9 @@ export default (
       }
 
       // Default create (for endpoints not in SDK)
-      const res = await post(resource, params.data);
+      // Clean up null values from form data
+      const cleanedData = removeNullValues(params.data);
+      const res = await post(resource, cleanedData);
       // Try singular form of resource name (e.g., hooks -> hook_id)
       const singularResource = resource.endsWith("s")
         ? resource.slice(0, -1)

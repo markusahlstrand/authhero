@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import {
   ReactFlow,
   Node,
@@ -14,6 +14,7 @@ import {
   Position,
   Connection,
   addEdge,
+  ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Box, Typography, Alert, GlobalStyles } from "@mui/material";
@@ -142,7 +143,7 @@ const DEFAULT_EDGE_OPTIONS = {
 };
 
 const FLOW_CONFIG = {
-  fitViewOptions: { padding: 0.2 },
+  fitViewOptions: { padding: 0.2, includeHiddenNodes: false },
   minZoom: 0.5,
   maxZoom: 1.5,
 } as const;
@@ -648,6 +649,51 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   // State for node selection and editor
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  // Store ReactFlow instance for programmatic control
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+
+  // Track node IDs to detect when we're viewing a different flow
+  const previousNodeIds = useRef<string | null>(null);
+
+  // Track if initial fitView has been done
+  const hasInitialFitView = useRef(false);
+
+  // Container ref for resize observation
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Handle ReactFlow initialization
+  const onInit = useCallback((instance: ReactFlowInstance) => {
+    reactFlowInstance.current = instance;
+  }, []);
+
+  // Use ResizeObserver to detect when container has proper dimensions and fit view
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        // Only fit view once container has meaningful dimensions
+        if (
+          width > 100 &&
+          height > 100 &&
+          reactFlowInstance.current &&
+          !hasInitialFitView.current
+        ) {
+          setTimeout(() => {
+            reactFlowInstance.current?.fitView(FLOW_CONFIG.fitViewOptions);
+            hasInitialFitView.current = true;
+          }, 50);
+        }
+      }
+    });
+
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   // Memoized flow elements creation
   const {
     flowNodes: initialNodes,
@@ -911,6 +957,33 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   // Sync nodes and edges state with initial values when they change
   React.useEffect(() => {
     setNodes(initialNodes);
+
+    // Create a signature of current node IDs to detect flow changes
+    const currentNodeIds = initialNodes
+      .map((n) => n.id)
+      .sort()
+      .join(",");
+
+    // Fit view on initial load or when switching to a different flow
+    if (reactFlowInstance.current && initialNodes.length > 0) {
+      const isInitialLoad = !hasInitialFitView.current;
+      const isFlowChange =
+        previousNodeIds.current !== null &&
+        previousNodeIds.current !== currentNodeIds;
+
+      if (isInitialLoad || isFlowChange) {
+        // Use a longer delay on initial load to ensure DOM is ready
+        setTimeout(
+          () => {
+            reactFlowInstance.current?.fitView(FLOW_CONFIG.fitViewOptions);
+            hasInitialFitView.current = true;
+          },
+          isInitialLoad ? 100 : 50,
+        );
+      }
+    }
+
+    previousNodeIds.current = currentNodeIds;
   }, [initialNodes, setNodes]);
 
   React.useEffect(() => {
@@ -925,6 +998,18 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
       onNodeSelect?.(node.id);
     },
     [onNodeSelect],
+  );
+
+  // Handle node drag stop - save new position
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const newCoordinates = {
+        x: Math.round(node.position.x),
+        y: Math.round(node.position.y),
+      };
+      onNodeUpdate?.(node.id, { coordinates: newCoordinates });
+    },
+    [onNodeUpdate],
   );
 
   // Close the editor
@@ -1156,7 +1241,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
   }, [onNodeUpdate, flowNodes]);
 
   return (
-    <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
+    <Box
+      ref={containerRef}
+      sx={{ width: "100%", height: "100%", position: "relative" }}
+    >
       {/* Global styles for ReactFlow Controls to support dark mode */}
       <GlobalStyles
         styles={(theme) => ({
@@ -1211,6 +1299,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
+        onNodeDragStop={handleNodeDragStop}
+        onInit={onInit}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={FLOW_CONFIG.fitViewOptions}

@@ -34,9 +34,13 @@ import {
   sanitizeUrl,
   sanitizeCssColor,
   buildThemePageBackground,
-  escapeHtml,
 } from "./sanitization-utils";
 import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
+import {
+  WidgetPage,
+  renderWidgetSSR,
+  extractBrandingProps,
+} from "./u2-widget-page";
 
 /**
  * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
@@ -162,173 +166,6 @@ async function fetchCustomText(
     // Custom text adapter may not exist - continue without custom text
     return undefined;
   }
-}
-
-/**
- * Props for the WidgetPage component
- */
-type WidgetPageProps = {
-  widgetHtml: string;
-  screenId: string;
-  branding?: {
-    colors?: {
-      primary?: string;
-      page_background?:
-        | string
-        | { type?: string; start?: string; end?: string; angle_deg?: number };
-    };
-    logo_url?: string;
-    favicon_url?: string;
-    font?: { url?: string };
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  theme?: any;
-  themePageBackground?: {
-    background_color?: string;
-    background_image_url?: string;
-    page_layout?: string;
-  };
-  clientName: string;
-  poweredByLogo?: {
-    url: string;
-    alt: string;
-    href?: string;
-    height?: number;
-  };
-};
-
-/**
- * Widget page component - renders the HTML page with SSR widget
- */
-function WidgetPage({
-  widgetHtml,
-  screenId,
-  branding,
-  theme,
-  themePageBackground,
-  clientName,
-  poweredByLogo,
-}: WidgetPageProps) {
-  // Build CSS variables from branding
-  const cssVariables: string[] = [];
-  const primaryColor = sanitizeCssColor(branding?.colors?.primary);
-  if (primaryColor) {
-    cssVariables.push(`--ah-color-primary: ${primaryColor}`);
-  }
-
-  const pageBackground = buildThemePageBackground(
-    themePageBackground,
-    branding?.colors?.page_background,
-  );
-  const faviconUrl = sanitizeUrl(branding?.favicon_url);
-  const fontUrl = sanitizeUrl(branding?.font?.url);
-
-  // Get widget background color for mobile view
-  const widgetBackground =
-    sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
-
-  // Sanitize powered-by logo URLs
-  const safePoweredByUrl = poweredByLogo?.url
-    ? sanitizeUrl(poweredByLogo.url)
-    : null;
-  const safePoweredByHref = poweredByLogo?.href
-    ? sanitizeUrl(poweredByLogo.href)
-    : null;
-
-  // Determine justify-content based on page_layout
-  const pageLayout = themePageBackground?.page_layout || "center";
-  const justifyContent =
-    pageLayout === "left"
-      ? "flex-start"
-      : pageLayout === "right"
-        ? "flex-end"
-        : "center";
-  // Adjust padding based on page_layout
-  const padding =
-    pageLayout === "left"
-      ? "20px 20px 20px 80px"
-      : pageLayout === "right"
-        ? "20px 80px 20px 20px"
-        : "20px";
-
-  const bodyStyle = {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent,
-    background: pageBackground,
-    fontFamily: fontUrl
-      ? "'Inter', system-ui, sans-serif"
-      : "system-ui, -apple-system, sans-serif",
-    padding,
-  };
-
-  const widgetContainerStyle =
-    cssVariables.length > 0
-      ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
-      : "max-width: 400px; width: 100%;";
-
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Sign in - {clientName}</title>
-        {faviconUrl && <link rel="icon" href={faviconUrl} />}
-        {fontUrl && <link rel="stylesheet" href={fontUrl} />}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              * { box-sizing: border-box; margin: 0; padding: 0; }
-              .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
-              .powered-by:hover { opacity: 1; }
-              .powered-by img { display: block; }
-              @media (max-width: 560px) {
-                body { justify-content: center !important; padding: 20px !important; }
-              }
-              @media (max-width: 480px) {
-                body { background: ${widgetBackground} !important; padding: 0 !important; }
-                .widget-container { max-width: none; }
-              }
-            `,
-          }}
-        />
-        <script type="module" src="/u/widget/authhero-widget.esm.js" />
-      </head>
-      <body style={bodyStyle}>
-        {/* SSR widget - rendered server-side, hydrated on client */}
-        {/* data-screen attribute allows CSS targeting for specific screens */}
-        <div
-          data-screen={screenId}
-          style={widgetContainerStyle}
-          dangerouslySetInnerHTML={{ __html: widgetHtml }}
-        />
-        {safePoweredByUrl && (
-          <div class="powered-by">
-            {safePoweredByHref ? (
-              <a
-                href={safePoweredByHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src={safePoweredByUrl}
-                  alt={poweredByLogo?.alt || ""}
-                  height={poweredByLogo?.height || 20}
-                />
-              </a>
-            ) : (
-              <img
-                src={safePoweredByUrl}
-                alt={poweredByLogo?.alt || ""}
-                height={poweredByLogo?.height || 20}
-              />
-            )}
-          </div>
-        )}
-      </body>
-    </html>
-  );
 }
 
 /**
@@ -768,50 +605,19 @@ function createScreenRouteHandler(screenId: string) {
     const authParamsJson = JSON.stringify(authParams);
     const themeJson = theme ? JSON.stringify(theme) : undefined;
 
-    // Attempt SSR for the widget (may not work on all platforms like Cloudflare Workers)
-    let widgetHtml = "";
-    try {
-      // Essential for some internal Stencil checks in edge runtimes
-      if (typeof (globalThis as any).window === "undefined") {
-        (globalThis as any).window = globalThis;
-      }
-
-      // Dynamic import to handle environments where hydrate module may not work
-      const { renderToString } = await import("@authhero/widget/hydrate");
-      const widgetHtmlResult = await renderToString(
-        `<authhero-widget
-          id="widget"
-          data-screen="${escapeHtml(screenId)}"
-          screen='${screenJson.replace(/'/g, "&#39;")}'
-          ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
-          ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
-          state="${state}"
-          auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
-          auto-submit="true"
-          auto-navigate="true"
-        ></authhero-widget>`,
-        {
-          fullDocument: false,
-          serializeShadowRoot: "declarative-shadow-dom",
-        },
-      );
-      widgetHtml = widgetHtmlResult.html || "";
-    } catch (error) {
-      // SSR not available - log the error for debugging
-      console.error("SSR failed:", error);
-      // Fall back to client-side rendering
-    }
+    // Attempt SSR for the widget
+    const widgetHtml = await renderWidgetSSR({
+      screenId,
+      screenJson,
+      brandingJson,
+      themeJson,
+      state,
+      authParamsJson,
+    });
 
     // If there's a custom template, use liquid template rendering with SSR content
     if (customTemplate) {
-      const brandingProps = branding
-        ? {
-            colors: branding.colors,
-            logo_url: branding.logo_url,
-            favicon_url: branding.favicon_url,
-            font: branding.font,
-          }
-        : undefined;
+      const brandingProps = extractBrandingProps(branding);
 
       const headContent = generateHeadContent({
         clientName: client.name || "AuthHero",
@@ -845,16 +651,7 @@ function createScreenRouteHandler(screenId: string) {
       <WidgetPage
         widgetHtml={widgetHtml}
         screenId={screenId}
-        branding={
-          branding
-            ? {
-                colors: branding.colors,
-                logo_url: branding.logo_url,
-                favicon_url: branding.favicon_url,
-                font: branding.font,
-              }
-            : undefined
-        }
+        branding={extractBrandingProps(branding)}
         theme={theme}
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
@@ -1081,44 +878,18 @@ function createScreenPostHandler(screenId: string) {
     const resultScreenId = screenResult.screen.name || screenId;
 
     // Attempt SSR
-    let widgetHtml = "";
-    try {
-      if (typeof (globalThis as any).window === "undefined") {
-        (globalThis as any).window = globalThis;
-      }
-      const { renderToString } = await import("@authhero/widget/hydrate");
-      const widgetHtmlResult = await renderToString(
-        `<authhero-widget
-          id="widget"
-          data-screen="${escapeHtml(resultScreenId)}"
-          screen='${screenJson.replace(/'/g, "&#39;")}'
-          ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
-          ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
-          state="${state}"
-          auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
-          auto-submit="true"
-          auto-navigate="true"
-        ></authhero-widget>`,
-        {
-          fullDocument: false,
-          serializeShadowRoot: "declarative-shadow-dom",
-        },
-      );
-      widgetHtml = widgetHtmlResult.html || "";
-    } catch (error) {
-      console.error("SSR failed:", error);
-    }
+    const widgetHtml = await renderWidgetSSR({
+      screenId: resultScreenId,
+      screenJson,
+      brandingJson,
+      themeJson,
+      state,
+      authParamsJson,
+    });
 
     // If there's a custom template, use it
     if (customTemplate) {
-      const brandingProps = branding
-        ? {
-            colors: branding.colors,
-            logo_url: branding.logo_url,
-            favicon_url: branding.favicon_url,
-            font: branding.font,
-          }
-        : undefined;
+      const brandingProps = extractBrandingProps(branding);
 
       const headContent = generateHeadContent({
         clientName: client.name || "AuthHero",
@@ -1152,16 +923,7 @@ function createScreenPostHandler(screenId: string) {
       <WidgetPage
         widgetHtml={widgetHtml}
         screenId={resultScreenId}
-        branding={
-          branding
-            ? {
-                colors: branding.colors,
-                logo_url: branding.logo_url,
-                favicon_url: branding.favicon_url,
-                font: branding.font,
-              }
-            : undefined
-        }
+        branding={extractBrandingProps(branding)}
         theme={theme}
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}

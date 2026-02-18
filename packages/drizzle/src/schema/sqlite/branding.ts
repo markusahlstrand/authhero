@@ -239,7 +239,7 @@ export const hooks = sqliteTable("hooks", {
   tenant_id: text("tenant_id", { length: 191 })
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
-  url: text("url", { length: 512 }).notNull(),
+  url: text("url", { length: 512 }), // nullable - only required for webhook type hooks
   trigger_id: text("trigger_id", { length: 255 }).notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull(),
   created_at: text("created_at", { length: 35 }).notNull(),
@@ -248,8 +248,7 @@ export const hooks = sqliteTable("hooks", {
     .notNull()
     .default(false),
   priority: integer("priority"),
-  form_id: text("form_id"),
-  url_tmp: text("url_tmp", { length: 512 }),
+  form_id: text("form_id"), // only required for form type hooks
 });
 
 export const keys = sqliteTable("keys", {

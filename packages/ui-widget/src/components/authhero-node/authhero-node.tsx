@@ -113,12 +113,10 @@ export class AuthheroNode {
     hasValue?: boolean,
   ) {
     if (!text) return null;
+    // Use string class instead of object to avoid hydration mismatch
+    const labelClass = hasValue ? "input-label floating" : "input-label";
     return (
-      <label
-        class={{ "input-label": true, floating: !!hasValue }}
-        part="label"
-        htmlFor={inputId}
-      >
+      <label class={labelClass} part="label" htmlFor={inputId}>
         {text}
         {required && <span class="required">*</span>}
       </label>
@@ -140,6 +138,14 @@ export class AuthheroNode {
         {required && <span class="required">*</span>}
       </label>
     );
+  }
+
+  /**
+   * Get the input field class string.
+   * Uses string instead of object to avoid hydration mismatch.
+   */
+  private getInputFieldClass(hasError: boolean): string {
+    return hasError ? "input-field has-error" : "input-field";
   }
 
   /**
@@ -333,7 +339,7 @@ export class AuthheroNode {
           {this.renderLabel(component.label, inputId, component.required)}
           <textarea
             id={inputId}
-            class={{ "input-field": true, "has-error": errors.length > 0 }}
+            class={this.getInputFieldClass(errors.length > 0)}
             part="input textarea"
             name={component.id}
             placeholder=" "
@@ -355,7 +361,7 @@ export class AuthheroNode {
         <div class="input-container">
           <input
             id={inputId}
-            class={{ "input-field": true, "has-error": errors.length > 0 }}
+            class={this.getInputFieldClass(errors.length > 0)}
             part="input"
             type={component.sensitive ? "password" : "text"}
             name={component.id}
@@ -391,7 +397,7 @@ export class AuthheroNode {
         <div class="input-container">
           <input
             id={inputId}
-            class={{ "input-field": true, "has-error": errors.length > 0 }}
+            class={this.getInputFieldClass(errors.length > 0)}
             part="input"
             type="email"
             name={component.id}
@@ -430,7 +436,7 @@ export class AuthheroNode {
         <div class="input-container password-container">
           <input
             id={inputId}
-            class={{ "input-field": true, "has-error": errors.length > 0 }}
+            class={this.getInputFieldClass(errors.length > 0)}
             part="input"
             type={this.passwordVisible ? "text" : "password"}
             name={component.id}
@@ -484,7 +490,7 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ "input-field": true, "has-error": errors.length > 0 }}
+          class={this.getInputFieldClass(errors.length > 0)}
           part="input"
           type="number"
           name={component.id}
@@ -513,7 +519,7 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ "input-field": true, "has-error": errors.length > 0 }}
+          class={this.getInputFieldClass(errors.length > 0)}
           part="input"
           type="tel"
           name={component.id}
@@ -540,7 +546,7 @@ export class AuthheroNode {
         {this.renderLabel(component.label, inputId, component.required)}
         <input
           id={inputId}
-          class={{ "input-field": true, "has-error": errors.length > 0 }}
+          class={this.getInputFieldClass(errors.length > 0)}
           part="input"
           type="url"
           name={component.id}
@@ -561,24 +567,35 @@ export class AuthheroNode {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { min, max } = component.config ?? {};
+    // Date fields always have a value (even if placeholder format), so always float the label
+    const hasValue = true;
 
     return (
       <div class="input-wrapper" part="input-wrapper">
-        {this.renderLabel(component.label, inputId, component.required)}
-        <input
-          id={inputId}
-          class={{ "input-field": true, "has-error": errors.length > 0 }}
-          part="input"
-          type="date"
-          name={component.id}
-          value={this.value ?? ""}
-          required={component.required}
-          disabled={this.disabled}
-          min={min}
-          max={max}
-          onInput={this.handleInput}
-          onKeyDown={this.handleKeyDown}
-        />
+        <div class="input-container">
+          <input
+            id={inputId}
+            class={this.getInputFieldClass(errors.length > 0)}
+            part="input"
+            type="date"
+            name={component.id}
+            data-input-name={component.id}
+            value={this.value ?? ""}
+            placeholder=" "
+            required={component.required}
+            disabled={this.disabled}
+            min={min}
+            max={max}
+            onInput={this.handleInput}
+            onKeyDown={this.handleKeyDown}
+          />
+          {this.renderFloatingLabel(
+            component.label,
+            inputId,
+            component.required,
+            hasValue,
+          )}
+        </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
       </div>
@@ -638,34 +655,43 @@ export class AuthheroNode {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { options, placeholder } = component.config ?? {};
+    // Dropdown always has visual content (selected option), so always float the label
+    const hasValue = true;
 
     return (
       <div class="input-wrapper" part="input-wrapper">
-        {this.renderLabel(component.label, inputId, component.required)}
-        <select
-          id={inputId}
-          class={{ "input-field": true, "has-error": errors.length > 0 }}
-          part="input select"
-          name={component.id}
-          required={component.required}
-          disabled={this.disabled}
-          onChange={this.handleInput}
-        >
-          {placeholder && (
-            <option value="" disabled selected={!this.value}>
-              {placeholder}
-            </option>
+        <div class="input-container">
+          <select
+            id={inputId}
+            class={this.getInputFieldClass(errors.length > 0)}
+            part="input select"
+            name={component.id}
+            required={component.required}
+            disabled={this.disabled}
+            onChange={this.handleInput}
+          >
+            {placeholder && (
+              <option value="" disabled selected={!this.value}>
+                {placeholder}
+              </option>
+            )}
+            {options?.map((opt) => (
+              <option
+                value={opt.value}
+                selected={this.value === opt.value}
+                key={opt.value}
+              >
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {this.renderFloatingLabel(
+            component.label,
+            inputId,
+            component.required,
+            hasValue,
           )}
-          {options?.map((opt) => (
-            <option
-              value={opt.value}
-              selected={this.value === opt.value}
-              key={opt.value}
-            >
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
       </div>

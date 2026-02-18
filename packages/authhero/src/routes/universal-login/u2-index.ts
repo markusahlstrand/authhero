@@ -26,6 +26,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
+import { u2FormNodeRoutes } from "./u2-form-node.tsx";
 import { RedirectException } from "../../errors/redirect-exception";
 import { HTTPException } from "hono/http-exception";
 
@@ -99,6 +100,7 @@ export default function createU2App(config: AuthHeroConfig) {
   // Mount routes
   const u2App = app
     .route("/screen", screenApiRoutes)
+    .route("/forms", u2FormNodeRoutes)
     .route("/", u2Routes);
 
   // OpenAPI spec
@@ -116,3 +118,4 @@ export default function createU2App(config: AuthHeroConfig) {
 // Re-export the individual route modules for flexibility
 export { screenApiRoutes } from "./screen-api";
 export { u2Routes } from "./u2-routes.tsx";
+export { u2FormNodeRoutes } from "./u2-form-node.tsx";
