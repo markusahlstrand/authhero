@@ -30,176 +30,10 @@ import type {
     Theme,
 } from "@authhero/adapter-interfaces";
 import {
-    sanitizeUrl,
-    sanitizeCssColor,
-    buildThemePageBackground,
-    escapeHtml,
-} from "./sanitization-utils";
+    renderWidgetPageResponse,
+} from "./u2-widget-page";
 
-/**
- * Props for the WidgetPage component
- */
-type WidgetPageProps = {
-    widgetHtml: string;
-    screenId: string;
-    branding?: {
-        colors?: {
-            primary?: string;
-            page_background?:
-            | string
-            | { type?: string; start?: string; end?: string; angle_deg?: number };
-        };
-        logo_url?: string;
-        favicon_url?: string;
-        font?: { url?: string };
-    };
-    theme?: Theme | null;
-    themePageBackground?: {
-        background_color?: string;
-        background_image_url?: string;
-        page_layout?: string;
-    };
-    clientName: string;
-    poweredByLogo?: {
-        url: string;
-        alt: string;
-        href?: string;
-        height?: number;
-    };
-};
 
-/**
- * Widget page component - renders the HTML page with SSR widget
- */
-function WidgetPage({
-    widgetHtml,
-    screenId,
-    branding,
-    theme,
-    themePageBackground,
-    clientName,
-    poweredByLogo,
-}: WidgetPageProps) {
-    // Build CSS variables from branding
-    const cssVariables: string[] = [];
-    const primaryColor = sanitizeCssColor(branding?.colors?.primary);
-    if (primaryColor) {
-        cssVariables.push(`--ah-color-primary: ${primaryColor}`);
-    }
-
-    const pageBackground = buildThemePageBackground(
-        themePageBackground,
-        branding?.colors?.page_background,
-    );
-    const faviconUrl = sanitizeUrl(branding?.favicon_url);
-    const fontUrl = sanitizeUrl(branding?.font?.url);
-
-    // Get widget background color for mobile view
-    const widgetBackground =
-        sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
-
-    // Sanitize powered-by logo URLs
-    const safePoweredByUrl = poweredByLogo?.url
-        ? sanitizeUrl(poweredByLogo.url)
-        : null;
-    const safePoweredByHref = poweredByLogo?.href
-        ? sanitizeUrl(poweredByLogo.href)
-        : null;
-
-    // Determine justify-content based on page_layout
-    const pageLayout = themePageBackground?.page_layout || "center";
-    const justifyContent =
-        pageLayout === "left"
-            ? "flex-start"
-            : pageLayout === "right"
-                ? "flex-end"
-                : "center";
-    // Adjust padding based on page_layout
-    const padding =
-        pageLayout === "left"
-            ? "20px 20px 20px 80px"
-            : pageLayout === "right"
-                ? "20px 80px 20px 20px"
-                : "20px";
-
-    const bodyStyle = {
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent,
-        background: pageBackground,
-        fontFamily: fontUrl
-            ? "'Inter', system-ui, sans-serif"
-            : "system-ui, -apple-system, sans-serif",
-        padding,
-    };
-
-    const widgetContainerStyle =
-        cssVariables.length > 0
-            ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
-            : "max-width: 400px; width: 100%;";
-
-    return (
-        <html lang="en">
-            <head>
-                <meta charSet="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Sign in - {clientName}</title>
-                {faviconUrl && <link rel="icon" href={faviconUrl} />}
-                {fontUrl && <link rel="stylesheet" href={fontUrl} />}
-                <style
-                    dangerouslySetInnerHTML={{
-                        __html: `
-              * { box-sizing: border-box; margin: 0; padding: 0; }
-              .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
-              .powered-by:hover { opacity: 1; }
-              .powered-by img { display: block; }
-              @media (max-width: 560px) {
-                body { justify-content: center !important; padding: 20px !important; }
-              }
-              @media (max-width: 480px) {
-                body { background: ${widgetBackground} !important; padding: 0 !important; }
-                .widget-container { max-width: none; }
-              }
-            `,
-                    }}
-                />
-                <script type="module" src="/u/widget/authhero-widget.esm.js" />
-            </head>
-            <body style={bodyStyle}>
-                {/* SSR widget - rendered server-side, hydrated on client */}
-                <div
-                    data-screen={screenId}
-                    style={widgetContainerStyle}
-                    dangerouslySetInnerHTML={{ __html: widgetHtml }}
-                />
-                {safePoweredByUrl && (
-                    <div class="powered-by">
-                        {safePoweredByHref ? (
-                            <a
-                                href={safePoweredByHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <img
-                                    src={safePoweredByUrl}
-                                    alt={poweredByLogo?.alt || ""}
-                                    height={poweredByLogo?.height || 20}
-                                />
-                            </a>
-                        ) : (
-                            <img
-                                src={safePoweredByUrl}
-                                alt={poweredByLogo?.alt || ""}
-                                height={poweredByLogo?.height || 20}
-                            />
-                        )}
-                    </div>
-                )}
-            </body>
-        </html>
-    );
-}
 
 /**
  * Convert form node components to UiScreen format for the widget
@@ -264,9 +98,9 @@ function buildFormNodeScreen(
 }
 
 /**
- * Render the widget page with SSR
+ * Render the widget page with SSR for a form node screen.
  */
-async function renderWidgetPage(
+async function renderFormNodeWidgetPage(
     ctx: any,
     screenId: string,
     screen: UiScreen,
@@ -276,70 +110,23 @@ async function renderWidgetPage(
     clientName: string,
     clientId: string,
 ): Promise<Response> {
-    const authParams = {
-        client_id: clientId,
-        state,
-    };
-
-    // Serialize data for widget attributes
     const screenJson = JSON.stringify(screen);
     const brandingJson = branding ? JSON.stringify(branding) : undefined;
-    const authParamsJson = JSON.stringify(authParams);
     const themeJson = theme ? JSON.stringify(theme) : undefined;
+    const authParamsJson = JSON.stringify({ client_id: clientId, state });
 
-    // Attempt SSR for the widget
-    let widgetHtml = "";
-    try {
-        // Essential for some internal Stencil checks in edge runtimes
-        if (typeof (globalThis as any).window === "undefined") {
-            (globalThis as any).window = globalThis;
-        }
-
-        // Dynamic import to handle environments where hydrate module may not work
-        const { renderToString } = await import("@authhero/widget/hydrate");
-        const widgetHtmlResult = await renderToString(
-            `<authhero-widget
-        id="widget"
-        data-screen="${escapeHtml(screenId)}"
-        screen='${screenJson.replace(/'/g, "&#39;")}'
-        ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
-        ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
-        state="${escapeHtml(state)}"
-        auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
-        auto-submit="true"
-        auto-navigate="true"
-      ></authhero-widget>`,
-            {
-                fullDocument: false,
-                serializeShadowRoot: "declarative-shadow-dom",
-            },
-        );
-        widgetHtml = widgetHtmlResult.html || "";
-    } catch (error) {
-        console.error("SSR failed:", error);
-    }
-
-    // Return SSR widget page
-    return ctx.html(
-        <WidgetPage
-            widgetHtml={widgetHtml}
-            screenId={screenId}
-            branding={
-                branding
-                    ? {
-                        colors: branding.colors,
-                        logo_url: branding.logo_url,
-                        favicon_url: branding.favicon_url,
-                        font: branding.font,
-                    }
-                    : undefined
-            }
-            theme={theme}
-            themePageBackground={theme?.page_background}
-            clientName={clientName}
-            poweredByLogo={ctx.env.poweredByLogo}
-        />,
-    );
+    return renderWidgetPageResponse(ctx, {
+        screenId,
+        screenJson,
+        brandingJson,
+        themeJson,
+        state,
+        authParamsJson,
+        branding,
+        theme,
+        clientName,
+        poweredByLogo: ctx.env.poweredByLogo,
+    });
 }
 
 export const u2FormNodeRoutes = new OpenAPIHono<{
@@ -404,7 +191,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 state,
             );
 
-            return renderWidgetPage(
+            return renderFormNodeWidgetPage(
                 ctx,
                 `form-${node.alias || nodeId}`,
                 screen,
@@ -678,6 +465,11 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 // Fallback: return the response as-is (for web_message mode etc)
                 return result;
             } catch (err) {
+                // Let HTTPExceptions (e.g. 404 form/node not found) propagate
+                if (err instanceof HTTPException) {
+                    throw err;
+                }
+
                 // Return JSON with screen for error re-render
                 const screen = buildFormNodeScreen(
                     formId,
