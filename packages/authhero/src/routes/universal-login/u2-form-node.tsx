@@ -274,9 +274,10 @@ async function renderWidgetPage(
     branding: Branding | null,
     theme: Theme | null,
     clientName: string,
+    clientId: string,
 ): Promise<Response> {
     const authParams = {
-        client_id: "",
+        client_id: clientId,
         state,
     };
 
@@ -303,7 +304,7 @@ async function renderWidgetPage(
         screen='${screenJson.replace(/'/g, "&#39;")}'
         ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
         ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
-        state="${state}"
+        state="${escapeHtml(state)}"
         auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
         auto-submit="true"
         auto-navigate="true"
@@ -411,6 +412,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 branding,
                 theme,
                 client.name || "AuthHero",
+                client.client_id,
             );
         },
     )
@@ -541,7 +543,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 }
 
                 const user = await ctx.env.data.users.get(
-                    ctx.var.tenant_id,
+                    client.tenant.id,
                     session.user_id,
                 );
                 if (!user) {

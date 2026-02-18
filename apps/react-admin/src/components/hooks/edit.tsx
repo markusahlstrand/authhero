@@ -101,9 +101,11 @@ export function HookEdit() {
         <NumberInput
           source="priority"
           helperText="A hook with higher priority will be executed first"
-          parse={(value: string | null) =>
-            value === "" || value === null ? undefined : Number(value)
-          }
+          parse={(value: string | null) => {
+            if (value === "" || value === null) return undefined;
+            const num = Number(value);
+            return Number.isNaN(num) ? undefined : num;
+          }}
         />
         <Labeled label={<FieldTitle source="created_at" />}>
           <DateField source="created_at" showTime={true} />

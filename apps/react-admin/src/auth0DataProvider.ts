@@ -14,7 +14,7 @@ function stringify(obj: Record<string, any>): string {
     .join("&");
 }
 
-// Remove null and undefined values from an object (useful for forms where empty fields become null)
+// Remove null and undefined values from an object (used for create operations where empty form fields become null)
 function removeNullValues(data: Record<string, any>): Record<string, any> {
   const cleaned: Record<string, any> = {};
   for (const key of Object.keys(data)) {
@@ -47,9 +47,9 @@ function removeExtraFields(params: UpdateParams) {
   delete params.data?.last_login;
   delete params.data?.provider;
 
-  // Remove null and undefined properties
+  // Remove undefined properties (null is preserved to signal "unset this field" in PATCH)
   Object.keys(params.data).forEach((key) => {
-    if (params.data[key] === undefined || params.data[key] === null) {
+    if (params.data[key] === undefined) {
       delete params.data[key];
     }
   });

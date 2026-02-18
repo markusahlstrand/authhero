@@ -447,8 +447,8 @@ export async function handleFormHook(
       // For account pages (change-email, account), use continuation state
       // This allows the user to access the page without full auth, but with scope validation
       if (target === "change-email" || target === "account") {
-        // Return URL is /u/continue which will resume the login flow
-        const returnUrl = `/u/continue?state=${encodeURIComponent(loginSession.id)}`;
+        // Return URL uses the same route prefix to resume the login flow
+        const returnUrl = `${routePrefix}/continue?state=${encodeURIComponent(loginSession.id)}`;
         await startLoginSessionContinuation(
           ctx,
           tenant_id,

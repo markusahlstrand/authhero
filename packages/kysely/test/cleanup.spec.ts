@@ -276,13 +276,16 @@ describe("cleanup", () => {
       },
     });
 
-    // Create a refresh token
+    // Create a refresh token that expires in the future
+    const oneHourFromNow = new Date(
+      Date.now() + 1000 * 60 * 60,
+    ).toISOString();
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken",
       session_id: "sessionId",
       user_id: "email|userId",
       client_id: "clientId",
-      expires_at: new Date().toISOString(),
+      expires_at: oneHourFromNow,
       resource_servers: [
         {
           audience: "http://example.com",
