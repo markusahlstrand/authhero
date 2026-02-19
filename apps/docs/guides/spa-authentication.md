@@ -12,13 +12,43 @@ This guide will help you understand the fundamental trade-offs and choose the ri
 
 The "best" way to implement authentication depends on a single critical question: **Does your session need to live on one domain, or across many?**
 
-### 1. The BFF (Backend-for-Frontend)
+### 1. The BFF (Backend-for-Frontend) ⭐ Recommended
 
 **The gold standard for security.** A server-side proxy handles the login and stores tokens in a secure, server-side session. The SPA only sees a first-party, `Secure`, `HttpOnly` cookie.
 
-#### The Cross-Domain Downside
+#### Cross-Subdomain Support
 
-Cookies are domain-bound. If you have a BFF on `app.com`, it cannot share that session with `partner-site.org`. You are trading cross-domain SSO for maximum security.
+While the BFF cookie can't cross different top-level domains (`app.com` → `partner.org`), it **works across subdomains** on the same root domain (e.g., `app.example.com`, `admin.example.com`) by setting `Domain=.example.com`. On Safari, this requires all subdomains to resolve within the same `/16` IP range—see [Section 7: Strategic Auth Setup for Safari](#7-strategic-auth-setup-for-safari-itp-compliance) for details.
+
+#### Vite Proxy Example
+
+During development, you can proxy API and auth paths through Vite so everything runs on a single origin—no CORS, no third-party cookie issues:
+
+```typescript
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      // Proxy auth endpoints to your BFF / auth server
+      "/api/auth": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+      // Proxy API calls
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
+  },
+});
+```
+
+In production, use a reverse proxy (Nginx, Cloudflare, etc.) to achieve the same single-origin setup. This ensures cookies are always first-party and avoids all ITP restrictions.
 
 #### Pros
 
@@ -31,8 +61,8 @@ Cookies are domain-bound. If you have a BFF on `app.com`, it cannot share that s
 
 - Implementation complexity
 - Requires a server component
-- **Kills cross-domain SSO completely**
-- Requires careful CORS configuration
+- No cross-domain SSO (different top-level domains)
+- Requires reverse proxy configuration in production
 
 #### When to Use
 
@@ -45,7 +75,9 @@ Cookies are domain-bound. If you have a BFF on `app.com`, it cannot share that s
 
 ### 2. Token Handler Pattern (BFF Without the BFF)
 
-**The best of both worlds.** A hybrid approach where your API service handles the OAuth flow and stores tokens in HttpOnly cookies—giving you BFF-level security without a separate BFF service.
+A hybrid approach where your API service handles the OAuth flow and stores tokens in HttpOnly cookies—giving you BFF-level security without a separate BFF service.
+
+> **Safari caveat:** Because this pattern relies on cross-subdomain cookies (`Domain=.example.com`), it is subject to Safari ITP restrictions. All subdomains must share the same `/16` IP range (or the cookie is capped to **7 days**), and the user must interact with the domain at least once every **30 days** (or Safari purges the cookie entirely). See [Section 7: Strategic Auth Setup for Safari](#7-strategic-auth-setup-for-safari-itp-compliance) for the full requirements.
 
 This pattern (documented by [Curity as the Token Handler Pattern](https://curity.io/resources/learn/the-token-handler-pattern/)) works when your SPA, API, and auth server share the same top-level domain.
 
@@ -635,6 +667,60 @@ class StorageManager {
 
 const storage = new StorageManager();
 ```
+
+### 7. Strategic Auth Setup for Safari (ITP Compliance)
+
+To achieve a persistent **30-day session** on modern WebKit engines (Safari 26+), you must navigate Intelligent Tracking Prevention (ITP) restrictions. Standard client-side token management is no longer viable for long-term sessions.
+
+#### A. The Core Architecture: BFF Pattern
+
+Avoid handling OAuth/OIDC tokens (`access_token`, `id_token`, `refresh_token`) in the browser's `localStorage` or `sessionStorage`. Instead, implement a **Backend-for-Frontend (BFF)** (see [Part 1](#1-the-bff-backend-for-frontend) for the full pattern).
+
+- **Server-Side Exchange:** The browser never sees the `?code=` or `client_secret`. The exchange happens server-to-server.
+- **The Session Cookie:** The BFF issues a traditional, encrypted session cookie to the browser.
+- **Why:** Safari limits cookies set via JavaScript (`document.cookie`) to a maximum of **7 days**. Cookies set via the `Set-Cookie` HTTP header can persist for the full duration (up to the 400-day WebKit cap).
+
+#### B. Navigating the IP-Address Constraint
+
+Safari 26 employs strict "CNAME Cloaking" defense. If the subdomain setting the cookie and the subdomain the user is visiting have different IP addresses, Safari may cap the cookie to **7 days** even if it is an HTTP-set cookie.
+
+- **The /16 Rule:** For IPv4, the first two octets (the `/16` subnet, e.g., `1.2.x.x`) must match between the subdomains.
+- **The Solution:** Use a **Unified Edge/Proxy**. Route all traffic (e.g., `news.example.com`, `auth.example.com`, and `sport.example.com`) through a single Load Balancer or CDN (Cloudflare, AWS CloudFront, Akamai). This ensures all subdomains present an IP within the same `/16` range to the client.
+
+#### C. Cross-Subdomain Session Sharing
+
+To allow a single login to persist across multiple subdomains (e.g., `a.example.com` and `b.example.com`):
+
+- **Domain Attribute:** Set the cookie on the root domain:
+
+```http
+Set-Cookie: sid=xyz; Domain=example.com; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000
+```
+
+- **The "Bounce Tracking" Trap:** Avoid redirecting users through a dedicated "tracking" or "auth-only" domain that they never interact with. Safari may flag this as a "bouncer" and purge its storage. Keeping the auth-flow on the primary brand domain is essential.
+
+#### D. Preventing "Link Decoration" Penalties
+
+If a user arrives at your site via a link containing query parameters (like `?code=` or `?click_id=`) from a site Safari deems a "tracker," all cookies set in that session are capped at **24 hours**.
+
+**Implementation Strategy:**
+
+1. BFF receives the callback: `example.com/api/auth/callback?code=123`.
+2. BFF validates and sets the `Set-Cookie` header.
+3. **Crucial:** BFF performs a **302 Redirect** to a "Clean URL" (e.g., `example.com/dashboard`) without any query parameters.
+4. This "clears" the link decoration context in the eyes of Safari.
+
+#### Safari ITP Technical Checklist
+
+| Feature | Requirement | Reason |
+| --- | --- | --- |
+| **Storage** | `Set-Cookie` (Server-side) | Bypasses 7-day JS-cookie limit. |
+| **Security** | `HttpOnly`, `Secure` | Required for long-term persistence and XSS protection. |
+| **Policy** | `SameSite=Lax` | Ensures cookies are sent during top-level navigations. |
+| **Network** | Shared IP Range (`/16`) | Prevents ITP "CNAME Cloaking" restrictions. |
+| **UX** | Immediate Redirect to Clean URL | Prevents 24-hour "Link Decoration" cap. |
+
+> **Bottom line:** To keep a session for 30 days on Safari, you must act as a **true first-party**. By using a BFF on a shared IP infrastructure and cleaning the URL immediately after login, you satisfy Safari's heuristics for a legitimate, long-term user session.
 
 ---
 
