@@ -63,13 +63,17 @@ describe("user deletion - Management API logging", () => {
     // Find the sdu (SUCCESS_USER_DELETION) log
     const deletionLog = logs.find(
       (log) =>
-        log.type === "sdu" && log.description?.includes(createdUser.user_id),
+        log.type === "sdu" &&
+        log.description?.includes("delete-test@example.com"),
     );
 
     expect(deletionLog).toBeDefined();
     expect(deletionLog?.date).toBeDefined();
     expect(deletionLog?.type).toBe("sdu");
-    expect(deletionLog?.description).toBe(`user_id: ${createdUser.user_id}`);
+    expect(deletionLog?.description).toBe(
+      `Deleted user: delete-test@example.com`,
+    );
+    expect(deletionLog?.user_id).toBe(createdUser.user_id);
     expect(deletionLog?.connection).toBeDefined();
     expect(deletionLog?.strategy).toBeDefined();
     expect(deletionLog?.strategy_type).toBeDefined();
@@ -162,13 +166,17 @@ describe("user deletion - Management API logging", () => {
     // Find the sdu (SUCCESS_USER_DELETION) log
     const deletionLog = logs.find(
       (log) =>
-        log.type === "sdu" && log.description?.includes(createdUser.user_id),
+        log.type === "sdu" &&
+        log.description?.includes("delete-test@example.com"),
     );
 
     expect(deletionLog).toBeDefined();
     expect(deletionLog?.date).toBeDefined();
     expect(deletionLog?.type).toBe("sdu");
-    expect(deletionLog?.description).toBe(`user_id: ${createdUser.user_id}`);
+    expect(deletionLog?.description).toBe(
+      `Deleted user: delete-test@example.com`,
+    );
+    expect(deletionLog?.user_id).toBe(createdUser.user_id);
     expect(deletionLog?.connection).toBeDefined();
     expect(deletionLog?.strategy).toBeDefined();
     expect(deletionLog?.strategy_type).toBeDefined();
@@ -233,10 +241,12 @@ describe("user deletion - Management API logging", () => {
 
     const deletionLog = logs.find(
       (log) =>
-        log.type === "sdu" && log.description?.includes(createdUser.user_id),
+        log.type === "sdu" &&
+        log.description?.includes("database-user@example.com"),
     );
 
     expect(deletionLog).toBeDefined();
+    expect(deletionLog?.user_id).toBe(createdUser.user_id);
     expect(deletionLog?.strategy_type).toBe("database");
     expect(deletionLog?.connection).toBe("Username-Password-Authentication");
   });
@@ -299,10 +309,12 @@ describe("user deletion - Management API logging", () => {
 
     const deletionLog = logs.find(
       (log) =>
-        log.type === "sdu" && log.description?.includes(createdUser.user_id),
+        log.type === "sdu" &&
+        log.description?.includes("timestamp-delete@example.com"),
     );
 
     expect(deletionLog).toBeDefined();
+    expect(deletionLog?.user_id).toBe(createdUser.user_id);
 
     // Verify timestamp is within reasonable range
     const logDate = new Date(deletionLog!.date);
@@ -359,5 +371,124 @@ describe("user deletion - Management API logging", () => {
     );
 
     expect(newSduLogs.length).toBe(0);
+  });
+
+  it("should unlink secondary users when primary user is deleted", async () => {
+    const { env, managementApp } = await getTestServer();
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    // Create primary user
+    const createPrimaryResponse = await client.users.$post(
+      {
+        json: {
+          email: "primary@example.com",
+          email_verified: false,
+          name: "Primary User",
+          nickname: "primary",
+          connection: "Username-Password-Authentication",
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(createPrimaryResponse.status).toBe(201);
+    const primaryUser = await createPrimaryResponse.json();
+
+    // Create secondary user
+    const createSecondaryResponse = await client.users.$post(
+      {
+        json: {
+          email: "secondary@example.com",
+          email_verified: false,
+          name: "Secondary User",
+          nickname: "secondary",
+          connection: "email",
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(createSecondaryResponse.status).toBe(201);
+    const secondaryUser = await createSecondaryResponse.json();
+
+    // Link secondary to primary
+    const linkResponse = await client.users[":user_id"].identities.$post(
+      {
+        param: {
+          user_id: primaryUser.user_id,
+        },
+        json: {
+          link_with: secondaryUser.user_id,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(linkResponse.status).toBe(201);
+
+    // Verify the link is established
+    const linkedUser = await env.data.users.get(
+      "tenantId",
+      secondaryUser.user_id,
+    );
+    expect(linkedUser!.linked_to).toBe(primaryUser.user_id);
+
+    // Delete the primary user
+    const deleteResponse = await client.users[":user_id"].$delete(
+      {
+        header: {
+          "tenant-id": "tenantId",
+        },
+        param: {
+          user_id: primaryUser.user_id,
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(deleteResponse.status).toBe(200);
+
+    // Verify the primary user is deleted
+    const deletedPrimary = await env.data.users.get(
+      "tenantId",
+      primaryUser.user_id,
+    );
+    expect(deletedPrimary).toBeNull();
+
+    // Verify the secondary user still exists and is now unlinked (standalone)
+    const unlinkedSecondary = await env.data.users.get(
+      "tenantId",
+      secondaryUser.user_id,
+    );
+    expect(unlinkedSecondary).not.toBeNull();
+    expect(unlinkedSecondary!.linked_to).toBeFalsy();
+    expect(unlinkedSecondary!.email).toBe("secondary@example.com");
   });
 });

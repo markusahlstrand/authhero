@@ -116,15 +116,8 @@ export async function passwordGrant(
       description: "Too many failed login attempts",
     });
 
-    // Mark login session as failed
-    if (loginSession) {
-      await failLoginSession(
-        ctx,
-        client.tenant.id,
-        loginSession,
-        "Too many failed login attempts",
-      );
-    }
+    // Note: Not marking login session as FAILED - the user should still be able
+    // to authenticate via other methods (OTP, social login, etc.)
 
     throw new AuthError(403, {
       message: "Too many failed login attempts",

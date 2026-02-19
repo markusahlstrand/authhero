@@ -487,6 +487,23 @@ function createUserDeletionHooks(
       });
     }
 
+    // Unlink any secondary users that are linked to this primary user
+    // so they become standalone accounts again (matching Auth0 behavior)
+    const linkedUsers = await data.users.list(tenant_id, {
+      q: `linked_to:${user_id}`,
+    });
+    for (const linkedUser of linkedUsers.users) {
+      const [provider, ...rest] = linkedUser.user_id.split("|");
+      if (provider) {
+        await data.users.unlink(
+          tenant_id,
+          user_id,
+          provider,
+          rest.join("|"),
+        );
+      }
+    }
+
     // Proceed with deletion
     const result = await data.users.remove(tenant_id, user_id);
 
@@ -494,7 +511,8 @@ function createUserDeletionHooks(
     if (result) {
       logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_USER_DELETION,
-        description: `user_id: ${user_id}`,
+        description: `Deleted user: ${userToDelete.email || user_id}`,
+        userId: user_id,
         strategy: userToDelete.provider || "auth0",
         strategy_type: userToDelete.is_social ? "social" : "database",
         connection: userToDelete.connection || "",
