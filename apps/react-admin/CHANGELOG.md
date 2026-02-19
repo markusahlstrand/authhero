@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.39.0
+
+### Minor Changes
+
+- 00e9cf7: Add support for forms in the u2 login
+
+### Patch Changes
+
+- Updated dependencies [00e9cf7]
+  - @authhero/widget@0.14.0
+
 ## 0.38.0
 
 ### Minor Changes

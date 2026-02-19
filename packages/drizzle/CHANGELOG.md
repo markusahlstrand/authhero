@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.23.0
+
+### Minor Changes
+
+- 00e9cf7: Add support for forms in the u2 login
+
 ## 0.22.4
 
 ### Patch Changes
