@@ -970,7 +970,7 @@ describe("users management API endpoint", () => {
   });
 
   describe("DELETE", () => {
-    it("should delete secondary account if delete primary account", async () => {
+    it("should unlink secondary account when deleting primary account", async () => {
       const token = await getAdminToken();
       const { managementApp, env } = await getTestServer();
       const managementClient = testClient(managementApp, env);
@@ -1054,10 +1054,17 @@ describe("users management API endpoint", () => {
         },
       );
 
-      // user1 and user2 are deleted - cascading delete in SQL works (at least in SQLite)
+      // user2 is deleted, user1 is unlinked and becomes standalone (Auth0 behavior)
       const { users: usersNowDeleted } = await env.data.users.list("tenantId");
 
-      expect(usersNowDeleted.length).toBe(1);
+      expect(usersNowDeleted.length).toBe(2);
+
+      // user1 should still exist and be unlinked
+      const user1AfterDelete = usersNowDeleted.find(
+        (u: User) => u.user_id === "email|userId1",
+      );
+      expect(user1AfterDelete).toBeDefined();
+      expect(user1AfterDelete?.linked_to).toBeFalsy();
     });
   });
   // TODO - split these tests up into a new test suite one for each HTTP verb!
