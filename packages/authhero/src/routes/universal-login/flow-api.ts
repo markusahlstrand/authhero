@@ -11,6 +11,8 @@ import {
   resolveNode,
   getRedirectUrl,
   FlowFetcher,
+  buildUserUpdates,
+  mergeUserUpdates,
 } from "../../hooks/formhooks";
 
 /**
@@ -251,11 +253,11 @@ async function handleGetScreen(
     screen,
     branding: branding
       ? {
-        colors: branding.colors,
-        logo_url: branding.logo_url,
-        favicon_url: branding.favicon_url,
-        font: branding.font,
-      }
+          colors: branding.colors,
+          logo_url: branding.logo_url,
+          favicon_url: branding.favicon_url,
+          font: branding.font,
+        }
       : undefined,
   });
 }
@@ -357,22 +359,7 @@ async function handlePostScreen(
         actions: flow.actions?.map((action: any) => ({
           type: action.type,
           action: action.action,
-          params:
-            "params" in action &&
-              action.params &&
-              typeof action.params === "object" &&
-              "target" in action.params
-              ? {
-                target: action.params.target as
-                  | "change-email"
-                  | "account"
-                  | "custom",
-                custom_url:
-                  "custom_url" in action.params
-                    ? action.params.custom_url
-                    : undefined,
-              }
-              : undefined,
+          params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
         })),
       };
     };
@@ -389,15 +376,36 @@ async function handlePostScreen(
       }
     }
 
+    // Collect submitted field values
+    const submittedFields: Record<string, string> = {};
+    for (const comp of components) {
+      if (data[comp.id] !== undefined && data[comp.id] !== null && data[comp.id] !== "") {
+        submittedFields[comp.id] = String(data[comp.id]);
+      }
+    }
+
     // Resolve the next node
     const resolveResult = await resolveNode(
       form.nodes,
       nextNodeId,
-      { user },
+      { user, submittedFields },
       flowFetcher,
     );
 
     if (resolveResult) {
+      // Execute any pending user updates from AUTH0 UPDATE_USER actions
+      if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0 && user) {
+        const merged = mergeUserUpdates(resolveResult.userUpdates);
+        for (const update of merged) {
+          const userUpdates = buildUserUpdates(update.changes, user);
+          await ctx.env.data.users.update(
+            client.tenant.id,
+            update.user_id,
+            userUpdates,
+          );
+        }
+      }
+
       if (resolveResult.type === "redirect") {
         // FLOW or ACTION node with REDIRECT
         const target = resolveResult.target as "change-email" | "account" | "custom";
@@ -439,11 +447,11 @@ async function handlePostScreen(
             screen,
             branding: branding
               ? {
-                colors: branding.colors,
-                logo_url: branding.logo_url,
-                favicon_url: branding.favicon_url,
-                font: branding.font,
-              }
+                  colors: branding.colors,
+                  logo_url: branding.logo_url,
+                  favicon_url: branding.favicon_url,
+                  font: branding.font,
+                }
               : undefined,
           });
         }

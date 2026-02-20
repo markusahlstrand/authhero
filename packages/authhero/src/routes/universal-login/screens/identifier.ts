@@ -181,7 +181,7 @@ export async function identifierScreen(
           termsAndConditionsUrl,
         )
       : m.login_id_terms_and_conditions_text({ termsAndConditionsUrl });
-    footer = `<div class="terms-text">${termsText}</div>`;
+    footer = `<span class="terms-text">${termsText}</span>`;
   }
 
   // Check if password signup is available

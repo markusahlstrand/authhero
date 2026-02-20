@@ -38,6 +38,8 @@ import {
   resolveNode,
   getRedirectUrl,
   FlowFetcher,
+  buildUserUpdates,
+  mergeUserUpdates,
 } from "../../hooks/formhooks";
 
 /**
@@ -235,6 +237,7 @@ async function buildScreenContext(
   screenId: string,
   prefill?: Record<string, string>,
   errors?: Record<string, string>,
+  uiLocalesOverride?: string,
 ): Promise<ScreenContext> {
   const {
     client,
@@ -243,14 +246,34 @@ async function buildScreenContext(
     loginSession,
   } = await initJSXRoute(ctx, state, true);
 
+  // If the user changed language via the picker, persist it to the login session
+  if (
+    uiLocalesOverride &&
+    uiLocalesOverride !== loginSession?.authParams?.ui_locales
+  ) {
+    await ctx.env.data.loginSessions.update(
+      client.tenant.id,
+      loginSession.id,
+      {
+        authParams: {
+          ...loginSession.authParams,
+          ui_locales: uiLocalesOverride,
+        },
+      },
+    );
+    if (loginSession.authParams) {
+      loginSession.authParams.ui_locales = uiLocalesOverride;
+    }
+  }
+
   // Use client.connections directly - EnrichedClient already has full Connection objects
   // populated by getEnrichedClient, so no need to re-fetch from the database
   const connections = client.connections || [];
 
-  // Detect language and fetch custom text
+  // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
   const acceptLanguage = ctx.req.header("Accept-Language");
   const language = detectLanguage(
-    loginSession?.authParams?.ui_locales,
+    uiLocalesOverride || loginSession?.authParams?.ui_locales,
     acceptLanguage,
   );
   const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
@@ -400,6 +423,10 @@ export const screenApiRoutes = new OpenAPIHono<{
           nodeId: z.string().optional().openapi({
             description: "Node ID for database forms (optional)",
           }),
+          ui_locales: z.string().optional().openapi({
+            description:
+              "Language override from the language picker (e.g. 'en', 'sv')",
+          }),
         }),
       },
       responses: {
@@ -418,9 +445,16 @@ export const screenApiRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { screenId } = ctx.req.valid("param");
-      const { state, nodeId } = ctx.req.valid("query");
+      const { state, nodeId, ui_locales } = ctx.req.valid("query");
 
-      const screenContext = await buildScreenContext(ctx, state, screenId);
+      const screenContext = await buildScreenContext(
+        ctx,
+        state,
+        screenId,
+        undefined,
+        undefined,
+        ui_locales,
+      );
 
       // 1. Try built-in screens first
       const builtInResult = await getBuiltInScreen(screenId, screenContext);
@@ -668,22 +702,7 @@ export const screenApiRoutes = new OpenAPIHono<{
             actions: flow.actions?.map((action: any) => ({
               type: action.type,
               action: action.action,
-              params:
-                "params" in action &&
-                  action.params &&
-                  typeof action.params === "object" &&
-                  "target" in action.params
-                  ? {
-                    target: action.params.target as
-                      | "change-email"
-                      | "account"
-                      | "custom",
-                    custom_url:
-                      "custom_url" in action.params
-                        ? action.params.custom_url
-                        : undefined,
-                  }
-                  : undefined,
+              params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
             })),
           };
         };
@@ -702,14 +721,35 @@ export const screenApiRoutes = new OpenAPIHono<{
           }
         }
 
+        // Collect submitted field values
+        const submittedFields: Record<string, string> = {};
+        for (const comp of stepNode.config.components) {
+          if (data[comp.id] !== undefined && data[comp.id] !== null && data[comp.id] !== "") {
+            submittedFields[comp.id] = String(data[comp.id]);
+          }
+        }
+
         const resolveResult = await resolveNode(
           form.nodes,
           nextNodeId,
-          { user },
+          { user, submittedFields },
           flowFetcher,
         );
 
         if (resolveResult) {
+          // Execute any pending user updates from AUTH0 UPDATE_USER actions
+          if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0 && user) {
+            const merged = mergeUserUpdates(resolveResult.userUpdates);
+            for (const update of merged) {
+              const userUpdates = buildUserUpdates(update.changes, user);
+              await ctx.env.data.users.update(
+                client.tenant.id,
+                update.user_id,
+                userUpdates,
+              );
+            }
+          }
+
           if (resolveResult.type === "redirect") {
             const target = resolveResult.target as
               | "change-email"

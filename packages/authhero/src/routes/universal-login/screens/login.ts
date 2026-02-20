@@ -189,7 +189,7 @@ export async function loginScreen(
           termsAndConditionsUrl,
         )
       : m.login_id_terms_and_conditions_text({ termsAndConditionsUrl });
-    footer = `<div class="terms-text">${termsText}</div>`;
+    footer = `<span class="terms-text">${termsText}</span>`;
   }
 
   // Check if signups are disabled via client metadata

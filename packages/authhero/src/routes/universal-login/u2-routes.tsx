@@ -294,6 +294,88 @@ function HeadContent({
       display: block;
     }
     
+    .page-footer {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+    
+    .language-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .language-picker:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    
+    .language-icon {
+      flex-shrink: 0;
+      opacity: 0.6;
+    }
+    
+    .language-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: none;
+      border: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      padding-right: 2px;
+      outline: none;
+    }
+    
+    .dark-mode-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 7px;
+      color: #555;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .dark-mode-toggle:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    
+    html.ah-dark-mode body {
+      background: #1a1a2e !important;
+    }
+    
+    html.ah-dark-mode .page-footer .language-picker,
+    html.ah-dark-mode .page-footer .dark-mode-toggle {
+      background: rgba(30, 30, 50, 0.9);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #ccc;
+    }
+    
+    html.ah-dark-mode .page-footer .language-picker:hover,
+    html.ah-dark-mode .page-footer .dark-mode-toggle:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
     @media (max-width: 560px) {
       body {
         justify-content: center !important;
@@ -443,16 +525,92 @@ function generateWidgetContent(options: WidgetContentProps): string {
 }
 
 /**
- * Apply a Liquid template by replacing auth0:head and auth0:widget tags
+ * Language display names in their native language
+ */
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  nb: "Norsk",
+  sv: "Svenska",
+  da: "Dansk",
+  fi: "Suomi",
+  cs: "Čeština",
+  pl: "Polski",
+  it: "Italiano",
+};
+
+/**
+ * Props for footer content
+ */
+type FooterContentProps = {
+  language: string;
+  availableLanguages?: string[];
+};
+
+/**
+ * Footer content component for liquid template substitution.
+ * Renders a language picker and other page-level footer items.
+ */
+function FooterContent({
+  language,
+  availableLanguages,
+}: FooterContentProps) {
+  const langs = availableLanguages && availableLanguages.length > 1
+    ? availableLanguages
+    : undefined;
+
+  return (
+    <div class="page-footer">
+      <button
+        class="dark-mode-toggle"
+        type="button"
+        aria-label="Toggle dark mode"
+        onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)'};for(var k in v){if(isDark)h.style.setProperty(k,v[k]);else h.style.removeProperty(k)}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
+      >
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      {langs && (
+        <div class="language-picker">
+          <svg class="language-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <select
+            class="language-select"
+            onchange={`var p=new URLSearchParams(window.location.search);p.set('ui_locales',this.value);window.location.search=p.toString()`}
+          >
+            {langs.map((lang) => (
+              <option value={lang} selected={lang === language}>
+                {LANGUAGE_NAMES[lang] || lang}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Generate the footer content string for liquid template substitution
+ */
+function generateFooterContent(options: FooterContentProps): string {
+  return (<FooterContent {...options} />).toString();
+}
+
+/**
+ * Apply a Liquid template by replacing auth0:head, auth0:widget, and auth0:footer tags
  */
 function applyLiquidTemplate(
   template: string,
   headContent: string,
   widgetContent: string,
+  footerContent?: string,
 ): string {
-  return template
+  let result = template
     .replace("{%- auth0:head -%}", headContent)
     .replace("{%- auth0:widget -%}", widgetContent);
+  if (footerContent) {
+    result = result.replace("{%- auth0:footer -%}", footerContent);
+  }
+  return result;
 }
 
 /**
@@ -460,7 +618,8 @@ function applyLiquidTemplate(
  */
 function createScreenRouteHandler(screenId: string) {
   return async (ctx: any) => {
-    const { state, error, error_description } = ctx.req.valid("query");
+    const { state, error, error_description, ui_locales } =
+      ctx.req.valid("query");
 
     let theme, branding, client, loginSession;
     try {
@@ -474,6 +633,24 @@ function createScreenRouteHandler(screenId: string) {
       throw err;
     }
 
+    // If the user changed language via the picker, persist it to the login session
+    // so subsequent screens and emails use the new language
+    if (ui_locales && ui_locales !== loginSession.authParams?.ui_locales) {
+      await ctx.env.data.loginSessions.update(
+        client.tenant.id,
+        loginSession.id,
+        {
+          authParams: {
+            ...loginSession.authParams,
+            ui_locales,
+          },
+        },
+      );
+      if (loginSession.authParams) {
+        loginSession.authParams.ui_locales = ui_locales;
+      }
+    }
+
     // Get custom template if available (gracefully handle missing method/table)
     let customTemplate: { body: string } | null = null;
     try {
@@ -484,10 +661,10 @@ function createScreenRouteHandler(screenId: string) {
       // Method or table may not exist in older adapters - continue without custom template
     }
 
-    // Detect language from ui_locales (OAuth request) or Accept-Language header
+    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
     const acceptLanguage = ctx.req.header("Accept-Language");
     const language = detectLanguage(
-      loginSession.authParams?.ui_locales,
+      ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
     );
 
@@ -637,10 +814,16 @@ function createScreenRouteHandler(screenId: string) {
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
+      const footerContent = generateFooterContent({
+        language,
+        availableLanguages: Object.keys(LANGUAGE_NAMES),
+      });
+
       const renderedHtml = applyLiquidTemplate(
         customTemplate.body,
         headContent,
         widgetContent,
+        footerContent,
       );
 
       return ctx.html(renderedHtml);
@@ -656,6 +839,8 @@ function createScreenRouteHandler(screenId: string) {
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
         poweredByLogo={ctx.env.poweredByLogo}
+        language={language}
+        availableLanguages={Object.keys(LANGUAGE_NAMES)}
       />,
     );
   };
@@ -673,6 +858,10 @@ const screenQuerySchema = z.object({
   }),
   error_description: z.string().optional().openapi({
     description: "Human-readable error description",
+  }),
+  ui_locales: z.string().optional().openapi({
+    description:
+      "Language override from the language picker (e.g. 'en', 'sv')",
   }),
 });
 
@@ -748,7 +937,7 @@ function createScreenPostRoute(
  */
 function createScreenPostHandler(screenId: string) {
   return async (ctx: any) => {
-    const { state } = ctx.req.valid("query");
+    const { state, ui_locales } = ctx.req.valid("query");
 
     // Parse form data
     const formData = await ctx.req.parseBody();
@@ -763,10 +952,27 @@ function createScreenPostHandler(screenId: string) {
       true,
     );
 
-    // Detect language from ui_locales (OAuth request) or Accept-Language header
+    // If the user changed language via the picker, persist it to the login session
+    if (ui_locales && ui_locales !== loginSession.authParams?.ui_locales) {
+      await ctx.env.data.loginSessions.update(
+        client.tenant.id,
+        loginSession.id,
+        {
+          authParams: {
+            ...loginSession.authParams,
+            ui_locales,
+          },
+        },
+      );
+      if (loginSession.authParams) {
+        loginSession.authParams.ui_locales = ui_locales;
+      }
+    }
+
+    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
     const acceptLanguage = ctx.req.header("Accept-Language");
     const language = detectLanguage(
-      loginSession.authParams?.ui_locales,
+      ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
     );
 
@@ -913,6 +1119,10 @@ function createScreenPostHandler(screenId: string) {
         customTemplate.body,
         headContent,
         widgetContent,
+        generateFooterContent({
+          language,
+          availableLanguages: Object.keys(LANGUAGE_NAMES),
+        }),
       );
 
       return ctx.html(renderedHtml);
@@ -928,6 +1138,8 @@ function createScreenPostHandler(screenId: string) {
         themePageBackground={theme?.page_background}
         clientName={client.name || "AuthHero"}
         poweredByLogo={ctx.env.poweredByLogo}
+        language={language}
+        availableLanguages={Object.keys(LANGUAGE_NAMES)}
       />,
     );
   };
