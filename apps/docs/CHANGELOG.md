@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.43.0
+
+### Minor Changes
+
+- 1e49f9e: Add BFF docs
+
 ## 1.42.0
 
 ### Minor Changes

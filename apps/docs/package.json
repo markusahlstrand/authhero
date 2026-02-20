@@ -1,7 +1,7 @@
 {
   "name": "@authhero/docs",
   "private": true,
-  "version": "1.42.0",
+  "version": "1.43.0",
   "description": "AuthHero documentation site",
   "type": "module",
   "scripts": {
