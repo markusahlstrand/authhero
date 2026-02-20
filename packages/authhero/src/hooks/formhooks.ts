@@ -304,6 +304,33 @@ export function buildUserUpdates(
 }
 
 /**
+ * Merge multiple PendingUserUpdate entries by user_id so that overlapping
+ * changes (e.g. two updates both touching metadata.*) are accumulated into
+ * a single changes map per user.  This avoids the stale-snapshot problem
+ * where each call to buildUserUpdates would spread the *original* user
+ * object, causing later writes to overwrite earlier ones.
+ */
+export function mergeUserUpdates(
+  updates: PendingUserUpdate[],
+): PendingUserUpdate[] {
+  const grouped = new Map<string, PendingUserUpdate>();
+  for (const update of updates) {
+    const existing = grouped.get(update.user_id);
+    if (existing) {
+      // Later values win for the same key, matching sequential semantics
+      existing.changes = { ...existing.changes, ...update.changes };
+    } else {
+      grouped.set(update.user_id, {
+        user_id: update.user_id,
+        connection_id: update.connection_id,
+        changes: { ...update.changes },
+      });
+    }
+  }
+  return Array.from(grouped.values());
+}
+
+/**
  * Result type for node resolution
  */
 type ResolveNodeResult =
@@ -380,6 +407,7 @@ export async function resolveNode(
           type: "redirect",
           target: actionNode.config.target,
           customUrl: actionNode.config.custom_url,
+          userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
         };
       }
       // For other action types, move to next node
@@ -539,6 +567,15 @@ export async function handleFormHook(
       { user },
       flowFetcher,
     );
+
+    // Apply any pending user updates accumulated during node resolution
+    if (result && result.userUpdates && result.userUpdates.length > 0) {
+      const merged = mergeUserUpdates(result.userUpdates);
+      for (const update of merged) {
+        const userUpdates = buildUserUpdates(update.changes, user);
+        await data.users.update(tenant_id, update.user_id, userUpdates);
+      }
+    }
 
     // Handle different resolution results
     if (!result || result.type === "end") {

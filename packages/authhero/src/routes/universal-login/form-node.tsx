@@ -13,6 +13,7 @@ import {
   getRedirectUrl,
   FlowFetcher,
   buildUserUpdates,
+  mergeUserUpdates,
 } from "../../hooks/formhooks";
 
 export const formNodeRoutes = new OpenAPIHono<{
@@ -213,7 +214,8 @@ export const formNodeRoutes = new OpenAPIHono<{
           if (resolveResult) {
             // Execute any pending user updates from AUTH0 UPDATE_USER actions
             if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0) {
-              for (const update of resolveResult.userUpdates) {
+              const merged = mergeUserUpdates(resolveResult.userUpdates);
+              for (const update of merged) {
                 const userUpdates = buildUserUpdates(update.changes, user);
                 await ctx.env.data.users.update(
                   client.tenant.id,
