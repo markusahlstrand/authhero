@@ -2,7 +2,6 @@ import path from "path";
 import { defineConfig } from "vite";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import { visualizer } from "rollup-plugin-visualizer";
 
 const getPackageName = () => {
   return "authhero";
@@ -23,7 +22,7 @@ const fileName = {
 
 const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   // Client build configuration
   if (mode === "client") {
     return {
@@ -45,6 +44,7 @@ export default defineConfig(({ mode }) => {
   }
 
   // Server build configuration (default)
+  const { visualizer } = await import("rollup-plugin-visualizer");
   return {
     base: "./",
     build: {
