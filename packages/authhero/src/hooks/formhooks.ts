@@ -16,26 +16,74 @@ export function isFormHook(
 }
 
 /**
- * Resolves a template string like "{{context.user.email}}" or "{{context.user.user_metadata.country}}" to its actual value
+ * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{fields.dropdown_35aj}}" to its actual value
  */
-function resolveTemplateField(field: string, context: { user: User }): string | undefined {
+function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
   // Match patterns like {{context.user.email}} or {{context.user.user_metadata.country}}
-  const match = field.match(/^\{\{context\.user\.(.+)\}\}$/);
-  if (match && match[1]) {
-    const path = match[1];
-    // Handle nested paths like user_metadata.country
-    const parts = path.split(".");
-    let value: unknown = context.user;
-    for (const part of parts) {
-      if (value && typeof value === "object" && part in value) {
-        value = (value as Record<string, unknown>)[part];
-      } else {
-        return undefined; // Path not found
-      }
-    }
-    return typeof value === "string" ? value : (value === undefined || value === null ? undefined : String(value));
+  const contextMatch = field.match(/^\{\{context\.user\.(.+)\}\}$/);
+  if (contextMatch && contextMatch[1]) {
+    return resolveNestedPath(context.user, contextMatch[1]);
   }
+
+  // Match patterns like {{user.id}} or {{user.email}}
+  const userMatch = field.match(/^\{\{user\.(.+)\}\}$/);
+  if (userMatch && userMatch[1]) {
+    return resolveNestedPath(context.user, userMatch[1]);
+  }
+
+  // Match patterns like {{fields.dropdown_35aj}} for submitted form field values
+  const fieldsMatch = field.match(/^\{\{fields\.(.+)\}\}$/);
+  if (fieldsMatch && fieldsMatch[1] && context.submittedFields) {
+    const value = context.submittedFields[fieldsMatch[1]];
+    return value !== undefined ? String(value) : undefined;
+  }
+
   return field;
+}
+
+/**
+ * Resolves a dot-separated path on an object
+ */
+function resolveNestedPath(obj: unknown, path: string): string | undefined {
+  const parts = path.split(".");
+  let value: unknown = obj;
+  for (const part of parts) {
+    if (value && typeof value === "object" && part in value) {
+      value = (value as Record<string, unknown>)[part];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof value === "string" ? value : (value === undefined || value === null ? undefined : String(value));
+}
+
+/**
+ * Resolves all template strings in a record of values
+ */
+function resolveTemplateValues(
+  changes: Record<string, unknown>,
+  context: ResolveContext,
+): Record<string, string> {
+  const resolved: Record<string, string> = {};
+  for (const [key, value] of Object.entries(changes)) {
+    if (typeof value === "string") {
+      const resolvedValue = resolveTemplateField(value, context);
+      if (resolvedValue !== undefined) {
+        resolved[key] = resolvedValue;
+      }
+    } else if (value !== undefined && value !== null) {
+      resolved[key] = String(value);
+    }
+  }
+  return resolved;
+}
+
+/**
+ * Context passed to resolveNode and condition evaluation
+ */
+export interface ResolveContext {
+  user: User;
+  submittedFields?: Record<string, string>;
 }
 
 /**
@@ -48,7 +96,7 @@ function evaluateSingleCondition(
     value?: string;
     operands?: Array<{ operator: string; operands: string[] }>;
   },
-  context: { user: User },
+  context: ResolveContext,
 ): boolean {
   // Handle the operator at the condition level
   const operator = condition.operator?.toLowerCase();
@@ -120,7 +168,7 @@ function evaluateCondition(
     value?: string;
     operands?: Array<{ operator: string; operands: string[] }>;
   },
-  context: { user: User },
+  context: ResolveContext,
 ): boolean {
   // Handle compound conditions with AND logic
   if (condition.type === "and" && Array.isArray(condition.conditions)) {
@@ -189,6 +237,9 @@ interface FlowAction {
   params?: {
     target?: "change-email" | "account" | "custom";
     custom_url?: string;
+    user_id?: string;
+    connection_id?: string;
+    changes?: Record<string, unknown>;
   };
 }
 
@@ -200,12 +251,65 @@ export type FlowFetcher = (flowId: string) => Promise<{
 } | null>;
 
 /**
+ * Pending user update action to be executed by the caller
+ */
+export interface PendingUserUpdate {
+  user_id: string;
+  connection_id?: string;
+  changes: Record<string, string>;
+}
+
+/**
+ * Builds userUpdates object from a PendingUserUpdate's changes map.
+ * Handles dot-notation key prefixes:
+ *  - "metadata.X" → user_metadata.X
+ *  - "address.X"  → address.X  (nested OIDC address claim)
+ *  - anything else → top-level user field
+ */
+export function buildUserUpdates(
+  changes: Record<string, string>,
+  existingUser: { user_metadata?: unknown; address?: unknown },
+): Record<string, unknown> {
+  const userUpdates: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(changes)) {
+    if (key.startsWith("metadata.")) {
+      const metaKey = key.slice("metadata.".length);
+      const existingMetadata = (existingUser.user_metadata || {}) as Record<
+        string,
+        unknown
+      >;
+      userUpdates.user_metadata = {
+        ...existingMetadata,
+        ...((userUpdates.user_metadata as Record<string, unknown>) || {}),
+        [metaKey]: value,
+      };
+    } else if (key.startsWith("address.")) {
+      const addrKey = key.slice("address.".length);
+      const existingAddr = (existingUser.address || {}) as Record<
+        string,
+        unknown
+      >;
+      userUpdates.address = {
+        ...existingAddr,
+        ...((userUpdates.address as Record<string, unknown>) || {}),
+        [addrKey]: value,
+      };
+    } else {
+      userUpdates[key] = value;
+    }
+  }
+
+  return userUpdates;
+}
+
+/**
  * Result type for node resolution
  */
 type ResolveNodeResult =
-  | { type: "step"; nodeId: string }
-  | { type: "redirect"; target: string; customUrl?: string }
-  | { type: "end" }
+  | { type: "step"; nodeId: string; userUpdates?: PendingUserUpdate[] }
+  | { type: "redirect"; target: string; customUrl?: string; userUpdates?: PendingUserUpdate[] }
+  | { type: "end"; userUpdates?: PendingUserUpdate[] }
   | null;
 
 /**
@@ -244,17 +348,18 @@ export function getRedirectUrl(
 export async function resolveNode(
   nodes: Node[],
   startNodeId: string,
-  context: { user: User },
+  context: ResolveContext,
   flowFetcher?: FlowFetcher,
   maxDepth = 10,
 ): Promise<ResolveNodeResult> {
   let currentNodeId = startNodeId;
   let depth = 0;
+  const pendingUserUpdates: PendingUserUpdate[] = [];
 
   while (depth < maxDepth) {
     // Check for ending
     if (currentNodeId === "$ending") {
-      return { type: "end" };
+      return { type: "end", userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
     }
 
     const node = nodes.find((n) => n.id === currentNodeId);
@@ -264,7 +369,7 @@ export async function resolveNode(
 
     // If it's a STEP node, we found our target
     if (node.type === "STEP") {
-      return { type: "step", nodeId: node.id };
+      return { type: "step", nodeId: node.id, userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
     }
 
     // If it's an ACTION node with REDIRECT, return redirect info
@@ -316,8 +421,8 @@ export async function resolveNode(
       if (flowFetcher && flowNode.config.flow_id) {
         const flow = await flowFetcher(flowNode.config.flow_id);
         if (flow && flow.actions && flow.actions.length > 0) {
-          // Process flow actions - look for REDIRECT_USER action
           for (const action of flow.actions) {
+            // Handle REDIRECT_USER action
             if (
               action.type === "REDIRECT" &&
               action.action === "REDIRECT_USER"
@@ -328,20 +433,43 @@ export async function resolveNode(
                   type: "redirect",
                   target,
                   customUrl: action.params?.custom_url,
+                  userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
                 };
+              }
+            }
+
+            // Handle AUTH0 UPDATE_USER action
+            if (
+              action.type === "AUTH0" &&
+              action.action === "UPDATE_USER" &&
+              action.params
+            ) {
+              const userId = action.params.user_id
+                ? resolveTemplateField(action.params.user_id, context) || context.user.user_id
+                : context.user.user_id;
+              const changes = action.params.changes
+                ? resolveTemplateValues(action.params.changes, context)
+                : {};
+
+              if (Object.keys(changes).length > 0) {
+                pendingUserUpdates.push({
+                  user_id: userId,
+                  connection_id: action.params.connection_id,
+                  changes,
+                });
               }
             }
           }
         }
       }
-      // If no redirect action found or flow not found, continue to next node
+      // Continue to next node
       if (flowNode.config.next_node) {
         currentNodeId = flowNode.config.next_node;
         depth++;
         continue;
       }
       // No next_node configured, treat as end
-      return { type: "end" };
+      return { type: "end", userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
     }
 
     // Unknown node type
@@ -396,27 +524,11 @@ export async function handleFormHook(
     const flowFetcher: FlowFetcher = async (flowId: string) => {
       const flow = await data.flows.get(tenant_id, flowId);
       if (!flow) return null;
-      // Map the flow actions to the expected FlowAction interface
       return {
         actions: flow.actions?.map((action) => ({
           type: action.type,
           action: action.action,
-          params:
-            "params" in action &&
-            action.params &&
-            typeof action.params === "object" &&
-            "target" in action.params
-              ? {
-                  target: action.params.target as
-                    | "change-email"
-                    | "account"
-                    | "custom",
-                  custom_url:
-                    "custom_url" in action.params
-                      ? action.params.custom_url
-                      : undefined,
-                }
-              : undefined,
+          params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
         })),
       };
     };

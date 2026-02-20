@@ -119,6 +119,60 @@ const TextComponent = (comp: TextComponentProps) => {
   );
 };
 
+type DateComponentProps = Extract<FormNodeComponent, { type: "DATE" }>;
+const DateComponent = (comp: DateComponentProps) => {
+  return (
+    <div key={comp.id} className="mb-4">
+      {comp.label && (
+        <label htmlFor={comp.id} className="block text-sm font-medium mb-1">
+          {comp.label}
+        </label>
+      )}
+      <input
+        type="date"
+        name={comp.id}
+        required={!!comp.required}
+        min={comp.config?.min}
+        max={comp.config?.max}
+        className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-500"
+        id={comp.id}
+      />
+    </div>
+  );
+};
+
+type DropdownComponentProps = Extract<FormNodeComponent, { type: "DROPDOWN" }>;
+const DropdownComponent = (comp: DropdownComponentProps) => {
+  const options = comp.config?.options || [];
+  return (
+    <div key={comp.id} className="mb-4">
+      {comp.label && (
+        <label htmlFor={comp.id} className="block text-sm font-medium mb-1">
+          {comp.label}
+        </label>
+      )}
+      <select
+        name={comp.id}
+        required={!!comp.required}
+        multiple={!!comp.config?.multiple}
+        className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base dark:bg-gray-600 border-gray-100 dark:border-gray-500"
+        id={comp.id}
+      >
+        {comp.config?.placeholder && (
+          <option value="" disabled selected>
+            {comp.config.placeholder}
+          </option>
+        )}
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 function renderFormComponent(comp: FormNodeComponent) {
   switch (comp.type) {
     case "RICH_TEXT":
@@ -127,6 +181,10 @@ function renderFormComponent(comp: FormNodeComponent) {
       return LegalComponent(comp);
     case "TEXT":
       return TextComponent(comp);
+    case "DATE":
+      return DateComponent(comp);
+    case "DROPDOWN":
+      return DropdownComponent(comp);
     default:
       return null;
   }

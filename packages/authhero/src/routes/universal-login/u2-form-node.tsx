@@ -22,6 +22,7 @@ import {
     resolveNode,
     getRedirectUrl,
     FlowFetcher,
+    buildUserUpdates,
 } from "../../hooks/formhooks";
 import type {
     FormNodeComponent,
@@ -277,14 +278,21 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 const missingFields: string[] = [];
                 const submittedFields: Record<string, string> = {};
 
+                // Field component types that collect user input
+                const fieldTypes = new Set([
+                    "LEGAL", "TEXT", "DATE", "DROPDOWN", "EMAIL", "NUMBER",
+                    "BOOLEAN", "CHOICE", "TEL", "URL", "PASSWORD", "CARDS",
+                ]);
                 for (const comp of components) {
-                    if (comp.type === "LEGAL") {
+                    if (fieldTypes.has(comp.type)) {
                         const name = comp.id;
-                        const isRequired = !!comp.required;
+                        const compAny = comp as Record<string, unknown>;
+                        const isRequired = !!compAny.required;
                         const value = data[name];
                         if (isRequired && (!value || value === "")) {
-                            missingFields.push(name);
-                        } else if (typeof value === "string") {
+                            missingFields.push((compAny.label as string) || name);
+                        }
+                        if (typeof value === "string" && value !== "") {
                             submittedFields[name] = value;
                         }
                     }
@@ -348,22 +356,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                             actions: flow.actions?.map((action) => ({
                                 type: action.type,
                                 action: action.action,
-                                params:
-                                    "params" in action &&
-                                        action.params &&
-                                        typeof action.params === "object" &&
-                                        "target" in action.params
-                                        ? {
-                                            target: action.params.target as
-                                                | "change-email"
-                                                | "account"
-                                                | "custom",
-                                            custom_url:
-                                                "custom_url" in action.params
-                                                    ? action.params.custom_url
-                                                    : undefined,
-                                        }
-                                        : undefined,
+                                params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
                             })),
                         };
                     };
@@ -372,11 +365,23 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                     const resolveResult = await resolveNode(
                         form.nodes,
                         nextNodeId,
-                        { user },
+                        { user, submittedFields },
                         flowFetcher,
                     );
 
                     if (resolveResult) {
+                        // Execute any pending user updates from AUTH0 UPDATE_USER actions
+                        if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0) {
+                            for (const update of resolveResult.userUpdates) {
+                                const userUpdates = buildUserUpdates(update.changes, user);
+                                await ctx.env.data.users.update(
+                                    client.tenant.id,
+                                    update.user_id,
+                                    userUpdates,
+                                );
+                            }
+                        }
+
                         if (resolveResult.type === "redirect") {
                             // FLOW or ACTION node with REDIRECT - redirect to the target
                             const target = resolveResult.target as

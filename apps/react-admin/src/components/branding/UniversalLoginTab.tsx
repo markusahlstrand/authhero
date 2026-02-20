@@ -35,7 +35,13 @@ const DEFAULT_TEMPLATE = `<!DOCTYPE html>
     {%- auth0:head -%}
   </head>
   <body>
-    {%- auth0:widget -%}
+    <main id="auth-container">
+      {%- auth0:widget -%}
+    </main>
+
+    <footer>
+      {%- auth0:footer -%}
+    </footer>
   </body>
 </html>`;
 
