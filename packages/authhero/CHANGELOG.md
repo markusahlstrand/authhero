@@ -1,5 +1,12 @@
 # authhero
 
+## 4.41.0
+
+### Minor Changes
+
+- de5974b: Update u2 login and flows
+- ded42c0: Unlink the linked users on delete
+
 ## 4.40.0
 
 ### Minor Changes

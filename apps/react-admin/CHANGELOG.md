@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.40.0
+
+### Minor Changes
+
+- de5974b: Update u2 login and flows
+
 ## 0.39.0
 
 ### Minor Changes
