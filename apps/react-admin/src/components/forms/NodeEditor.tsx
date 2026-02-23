@@ -158,6 +158,18 @@ import type {
   EndingNode,
 } from "./FlowEditor";
 
+/**
+ * Converts a label to a snake_case ID, matching Auth0's convention.
+ * e.g. "Privacy Policies" → "privacy_policies", "birthdate" → "birthdate"
+ */
+function labelToId(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
 interface NodeEditorProps {
   open: boolean;
   selectedNode: Node | null;
@@ -366,10 +378,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   const handleSaveComponent = useCallback(() => {
     if (!editingComponent) return;
 
+    // Update the component ID based on the label (Auth0-style) when it has a label
+    const updatedComponent = { ...editingComponent };
+    if (updatedComponent.label) {
+      updatedComponent.id = labelToId(updatedComponent.label);
+    }
+
     setFormData((prev: any) => ({
       ...prev,
       components: prev.components.map((c: ComponentConfig) =>
-        c.id === editingComponent.id ? editingComponent : c,
+        c.id === editingComponent.id ? updatedComponent : c,
       ),
     }));
     handleCloseComponentDialog();
@@ -456,11 +474,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       }
     };
 
+    const defaultLabel = getDefaultLabel();
+    // Generate ID from label (Auth0-style) for field components, with random suffix as fallback
+    const id = defaultLabel
+      ? labelToId(defaultLabel)
+      : `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`;
     const newComponent: ComponentConfig = {
-      id: `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`,
+      id,
       type,
       category: getCategory(),
-      label: getDefaultLabel(),
+      label: defaultLabel,
       required: false,
       sensitive: false,
       config: getDefaultConfig(),
@@ -1400,6 +1423,59 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 margin="normal"
                 helperText="Placeholder text shown when field is empty"
               />
+              <Autocomplete
+                freeSolo
+                options={ROUTER_FIELD_OPTIONS}
+                getOptionLabel={(option) =>
+                  typeof option === "string" ? option : option.label
+                }
+                value={
+                  ROUTER_FIELD_OPTIONS.find(
+                    (opt) =>
+                      opt.value === editingComponent?.config?.default_value,
+                  ) || (editingComponent?.config?.default_value as string) || ""
+                }
+                onChange={(_e, newValue) => {
+                  const val =
+                    newValue === null
+                      ? ""
+                      : typeof newValue === "string"
+                        ? newValue
+                        : newValue.value;
+                  handleComponentFieldChange("default_value", val);
+                }}
+                onInputChange={(_e, newInput, reason) => {
+                  if (reason === "input") {
+                    handleComponentFieldChange("default_value", newInput);
+                  }
+                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={typeof option === "string" ? option : option.value}>
+                    <Box>
+                      <Typography variant="body2">
+                        {typeof option === "string" ? option : option.label}
+                      </Typography>
+                      {typeof option !== "string" && option.description && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          {option.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    label="Default Value"
+                    margin="normal"
+                    helperText="Pre-fill from user profile, e.g. {{context.user.user_metadata.birthdate}}"
+                  />
+                )}
+              />
             </Box>
           )}
           {editingComponent?.type === "DROPDOWN" && (
@@ -1437,7 +1513,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   handleComponentFieldChange("default_value", e.target.value)
                 }
                 margin="normal"
-                helperText="Default selected value"
+                helperText="Default selected value (or use {{context.user.…}} to populate from profile)"
               />
               <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
                 Options
@@ -1537,6 +1613,59 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 </Select>
                 <FormHelperText>Select the date/time format</FormHelperText>
               </FormControl>
+              <Autocomplete
+                freeSolo
+                options={ROUTER_FIELD_OPTIONS}
+                getOptionLabel={(option) =>
+                  typeof option === "string" ? option : option.label
+                }
+                value={
+                  ROUTER_FIELD_OPTIONS.find(
+                    (opt) =>
+                      opt.value === editingComponent?.config?.default_value,
+                  ) || (editingComponent?.config?.default_value as string) || ""
+                }
+                onChange={(_e, newValue) => {
+                  const val =
+                    newValue === null
+                      ? ""
+                      : typeof newValue === "string"
+                        ? newValue
+                        : newValue.value;
+                  handleComponentFieldChange("default_value", val);
+                }}
+                onInputChange={(_e, newInput, reason) => {
+                  if (reason === "input") {
+                    handleComponentFieldChange("default_value", newInput);
+                  }
+                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={typeof option === "string" ? option : option.value}>
+                    <Box>
+                      <Typography variant="body2">
+                        {typeof option === "string" ? option : option.label}
+                      </Typography>
+                      {typeof option !== "string" && option.description && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          {option.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    label="Default Value"
+                    margin="normal"
+                    helperText="Pre-fill from user profile, e.g. {{context.user.user_metadata.birthdate}}"
+                  />
+                )}
+              />
             </Box>
           )}
           {editingComponent?.type === "CHOICE" && (

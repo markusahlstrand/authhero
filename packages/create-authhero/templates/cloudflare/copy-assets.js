@@ -57,6 +57,12 @@ try {
     process.exit(1);
   }
 
+  // Clean target directory to remove stale files from previous builds
+  if (fs.existsSync(targetDir)) {
+    fs.rmSync(targetDir, { recursive: true });
+    console.log("🧹 Cleaned old assets");
+  }
+
   copyDirectory(sourceDir, targetDir);
 
   // Also copy widget files from @authhero/widget package

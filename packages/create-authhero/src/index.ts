@@ -95,10 +95,10 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         scripts: {
           postinstall: "node copy-assets.js",
           "copy-assets": "node copy-assets.js",
-          dev: "wrangler dev --port 3000 --local-protocol https",
+          dev: "node copy-assets.js && wrangler dev --port 3000 --local-protocol https",
           "dev:remote":
-            "wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-          deploy: "wrangler deploy --config wrangler.local.toml",
+            "node copy-assets.js && wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+          deploy: "node copy-assets.js && wrangler deploy --config wrangler.local.toml",
           "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
           "db:migrate:remote":
             "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",

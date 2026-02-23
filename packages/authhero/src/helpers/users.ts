@@ -36,9 +36,17 @@ export async function getUserByProvider({
   username,
   provider,
 }: GetUserByProviderParams): Promise<User | null> {
-  // This handles that sms users are stored with the phone number. Username accounts are not yet handled
-  const userIdQuery =
-    provider === "sms" ? `phone_number:${username}` : `email:${username}`;
+  let userIdQuery: string;
+
+  if (provider === "sms") {
+    userIdQuery = `phone_number:${username}`;
+  } else if (username.includes("@")) {
+    // Email-based lookup
+    userIdQuery = `email:${username}`;
+  } else {
+    // Username-based lookup (no @ sign means it's a plain username)
+    userIdQuery = `username:${username}`;
+  }
 
   const { users } = await userAdapter.list(tenant_id, {
     page: 0,

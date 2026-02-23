@@ -13,7 +13,9 @@ import {
   FlowFetcher,
   buildUserUpdates,
   mergeUserUpdates,
+  resolveTemplateField,
 } from "../../hooks/formhooks";
+import type { User } from "@authhero/adapter-interfaces";
 
 /**
  * Local types for the flow API
@@ -98,6 +100,7 @@ function stepToUiScreen(
     messages?: ComponentMessage[];
     fieldErrors?: Record<string, string>;
     mode?: "hosted" | "spa";
+    user?: User;
   } = {},
 ): UiScreen {
   const mode = options.mode ?? "hosted";
@@ -107,16 +110,36 @@ function stepToUiScreen(
     .filter((c) => c.visible !== false)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((component) => {
+      let resolvedComp = component;
+
+      // Resolve default_value templates using user context
+      if (
+        options.user &&
+        resolvedComp.config?.default_value &&
+        typeof resolvedComp.config.default_value === "string"
+      ) {
+        const resolved = resolveTemplateField(
+          resolvedComp.config.default_value,
+          { user: options.user },
+        );
+        if (resolved !== resolvedComp.config.default_value) {
+          resolvedComp = {
+            ...resolvedComp,
+            config: { ...resolvedComp.config, default_value: resolved },
+          };
+        }
+      }
+
       // Add field-specific error messages
-      if (options.fieldErrors?.[component.id]) {
+      if (options.fieldErrors?.[resolvedComp.id]) {
         return {
-          ...component,
+          ...resolvedComp,
           messages: [
-            { text: options.fieldErrors[component.id], type: "error" as const },
+            { text: options.fieldErrors[resolvedComp.id], type: "error" as const },
           ],
         } as FormComponent;
       }
-      return component;
+      return resolvedComp;
     });
 
   // Generate action URL based on mode
@@ -218,7 +241,7 @@ async function handleGetScreen(
   nodeId?: string,
   mode: "hosted" | "spa" = "hosted",
 ) {
-  const { client, branding } = await initJSXRoute(ctx, state, true);
+  const { client, branding, loginSession } = await initJSXRoute(ctx, state, true);
 
   const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -244,9 +267,36 @@ async function handleGetScreen(
     });
   }
 
+  // Fetch user for resolving default_value templates
+  let user: User | undefined;
+  if (loginSession) {
+    try {
+      if (loginSession.session_id) {
+        const session = await ctx.env.data.sessions.get(
+          client.tenant.id,
+          loginSession.session_id,
+        );
+        if (session?.user_id) {
+          user = await ctx.env.data.users.get(
+            client.tenant.id,
+            session.user_id,
+          );
+        }
+      } else if (loginSession.user_id) {
+        user = await ctx.env.data.users.get(
+          client.tenant.id,
+          loginSession.user_id,
+        );
+      }
+    } catch {
+      // User fetch failed - continue without defaults
+    }
+  }
+
   const screen = stepToUiScreen(stepNode, formId, state, {
     title: form.name,
     mode,
+    user,
   });
 
   return ctx.json({
@@ -273,7 +323,7 @@ async function handlePostScreen(
   data: Record<string, unknown>,
   mode: "hosted" | "spa" = "hosted",
 ) {
-  const { client, branding } = await initJSXRoute(ctx, state, true);
+  const { client, branding, loginSession: postLoginSession } = await initJSXRoute(ctx, state, true);
 
   const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -338,7 +388,7 @@ async function handlePostScreen(
   }
 
   // Get session and user
-  const loginSession = await ctx.env.data.loginSessions.get(
+  const loginSession = postLoginSession ?? await ctx.env.data.loginSessions.get(
     client.tenant.id,
     state,
   );
@@ -442,6 +492,7 @@ async function handlePostScreen(
           const screen = stepToUiScreen(nextStepNode, formId, state, {
             title: form.name,
             mode,
+            user: user ?? undefined,
           });
           return ctx.json({
             screen,

@@ -3,6 +3,7 @@ import { EnrichedClient } from "../helpers/client";
 import { PropsWithChildren } from "hono/jsx";
 import cn from "classnames";
 import i18next from "i18next";
+import { buildHash } from "../build-hash";
 
 type AuthLayoutProps = {
   title: string;
@@ -94,7 +95,7 @@ const AuthLayout = ({
         <title>{title}</title>
         <meta charset="UTF-8" />
         <meta name="robots" content="noindex, follow" />
-        <link rel="stylesheet" href="/u/css/tailwind.css" />
+        <link rel="stylesheet" href={`/u/css/tailwind.css?v=${buildHash}`} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"
@@ -132,7 +133,7 @@ const AuthLayout = ({
         </div>
         {/* Mount point for client-side hydration */}
         <div id="client-root"></div>
-        <script type="module" src="/u/js/client.js" />
+        <script type="module" src={`/u/js/client.js?v=${buildHash}`} />
       </body>
     </html>
   );

@@ -5,6 +5,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { getConnectionIdentifierConfig } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
@@ -131,6 +132,18 @@ export async function identifierScreen(
       c.strategy === "Username-Password-Authentication",
   );
 
+  // Check if the password connection has username identifier enabled
+  const passwordConnection = context.connections.find(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+  const requiresUsername = identifierConfig.usernameIdentifierActive;
+
+  // Determine the appropriate label/placeholder based on connection config
+  const identifierLabel = requiresUsername
+    ? m.email_or_username_placeholder()
+    : m.email_placeholder();
+
   const components: FormNodeComponent[] = [
     // Social login buttons (if any)
     ...socialButtons,
@@ -145,12 +158,12 @@ export async function identifierScreen(
       // Email/username input
       {
         id: "username",
-        type: "EMAIL",
+        type: requiresUsername ? "TEXT" : "EMAIL",
         category: "FIELD",
         visible: true,
-        label: m.email_placeholder(),
+        label: identifierLabel,
         config: {
-          placeholder: m.email_placeholder(),
+          placeholder: identifierLabel,
         },
         required: true,
         order: socialButtonCount + 1,
@@ -168,20 +181,6 @@ export async function identifierScreen(
         order: socialButtonCount + 2,
       },
     );
-  }
-
-  // Build terms and conditions footer if URL is configured
-  const termsAndConditionsUrl = client.client_metadata?.termsAndConditionsUrl;
-  let footer: string | undefined;
-  if (termsAndConditionsUrl) {
-    // Use custom template from customText or fall back to default message
-    const termsText = customText?.termsAndConditionsTemplate
-      ? String(customText.termsAndConditionsTemplate).replace(
-          /\$\{termsAndConditionsUrl\}/g,
-          termsAndConditionsUrl,
-        )
-      : m.login_id_terms_and_conditions_text({ termsAndConditionsUrl });
-    footer = `<span class="terms-text">${termsText}</span>`;
   }
 
   // Check if password signup is available
@@ -221,7 +220,6 @@ export async function identifierScreen(
     }),
     components,
     messages,
-    footer,
   };
 
   // Pre-fill username if provided
@@ -254,13 +252,23 @@ export const identifierScreenDefinition: ScreenDefinition = {
       const { ctx, client, state } = context;
       const username = (data.username as string)?.toLowerCase()?.trim();
 
+      // Check if the password connection has username identifier enabled
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+      const requiresUsername = identifierConfig.usernameIdentifierActive;
+
       // Validate username is provided
       if (!username) {
+        const fieldLabel = requiresUsername
+          ? "Email or username is required"
+          : "Email is required";
         return {
-          error: "Email is required",
+          error: fieldLabel,
           screen: await identifierScreen({
             ...context,
-            errors: { username: "Email is required" },
+            errors: { username: fieldLabel },
           }),
         };
       }
@@ -281,6 +289,40 @@ export const identifierScreenDefinition: ScreenDefinition = {
         };
       }
 
+      // Validate username length when connectionType is "username"
+      if (connectionType === "username" && requiresUsername) {
+        const minLength = identifierConfig.usernameMinLength;
+        const maxLength = identifierConfig.usernameMaxLength;
+
+        if (normalized.length < minLength) {
+          const locale = context.language || "en";
+          const { m } = createTranslation(locale, context.customText);
+          const errorMsg = m.username_too_short({ min: String(minLength) });
+          return {
+            error: errorMsg,
+            screen: await identifierScreen({
+              ...context,
+              prefill: { username },
+              errors: { username: errorMsg },
+            }),
+          };
+        }
+
+        if (normalized.length > maxLength) {
+          const locale = context.language || "en";
+          const { m } = createTranslation(locale, context.customText);
+          const errorMsg = m.username_too_long({ max: String(maxLength) });
+          return {
+            error: errorMsg,
+            screen: await identifierScreen({
+              ...context,
+              prefill: { username },
+              errors: { username: errorMsg },
+            }),
+          };
+        }
+      }
+
       // Look up user
       const user =
         connectionType === "email"
@@ -297,8 +339,11 @@ export const identifierScreenDefinition: ScreenDefinition = {
             });
 
       // Check if connection is allowed
+      // For "username" connectionType, allow if password connection has username identifier active
       const hasValidConnection =
-        client.connections.find((c) => c.strategy === connectionType) || user;
+        client.connections.find((c) => c.strategy === connectionType) ||
+        (connectionType === "username" && requiresUsername) ||
+        user;
 
       if (!hasValidConnection) {
         return {

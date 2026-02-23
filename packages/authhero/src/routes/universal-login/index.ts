@@ -69,6 +69,7 @@ export default function create(config: AuthHeroConfig) {
 
     return ctx.text(css, 200, {
       "content-type": "text/css; charset=utf-8",
+      "cache-control": "public, max-age=31536000, immutable",
     });
   });
 
@@ -76,6 +77,7 @@ export default function create(config: AuthHeroConfig) {
   app.get("/js/client.js", async (ctx: Context) => {
     return ctx.text(clientJs, 200, {
       "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "public, max-age=31536000, immutable",
     });
   });
 

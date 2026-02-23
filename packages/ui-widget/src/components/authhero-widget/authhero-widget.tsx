@@ -276,8 +276,34 @@ export class AuthheroWidget {
       this._screen = newValue;
     }
     if (this._screen) {
+      this.initFormDataFromDefaults(this._screen);
       this.screenChange.emit(this._screen);
       this.updateDataScreenAttribute();
+    }
+  }
+
+  /**
+   * Initialize formData from component default_value configs.
+   * This pre-fills form fields with values resolved on the server
+   * (e.g. from user profile context).
+   */
+  private initFormDataFromDefaults(screen: UiScreen) {
+    const defaults: Record<string, string> = {};
+    for (const comp of screen.components || []) {
+      if (
+        "config" in comp &&
+        comp.config &&
+        "default_value" in comp.config &&
+        comp.config.default_value
+      ) {
+        const val = comp.config.default_value;
+        if (typeof val === "string" && val !== "") {
+          defaults[comp.id] = val;
+        }
+      }
+    }
+    if (Object.keys(defaults).length > 0) {
+      this.formData = { ...defaults, ...this.formData };
     }
   }
 
@@ -534,6 +560,7 @@ export class AuthheroWidget {
           if (currentScreenId && currentScreenId !== this.screenId) {
             this.screenId = currentScreenId;
           }
+          this.initFormDataFromDefaults(this._screen);
           this.screenChange.emit(this._screen);
           this.updateDataScreenAttribute();
           this.persistState();
@@ -612,6 +639,7 @@ export class AuthheroWidget {
           // Next screen
           this._screen = result.screen;
           this.formData = {};
+          this.initFormDataFromDefaults(result.screen);
           this.screenChange.emit(result.screen);
           this.updateDataScreenAttribute();
 
@@ -654,6 +682,7 @@ export class AuthheroWidget {
         // Handle validation errors (400 response)
         if (!response.ok && result.screen) {
           this._screen = result.screen;
+          this.initFormDataFromDefaults(result.screen);
           this.screenChange.emit(result.screen);
           this.updateDataScreenAttribute();
           this.focusFirstInput();

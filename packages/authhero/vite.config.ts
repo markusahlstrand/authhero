@@ -47,6 +47,9 @@ export default defineConfig(async ({ mode }) => {
   const { visualizer } = await import("rollup-plugin-visualizer");
   return {
     base: "./",
+    define: {
+      "process.env.AUTHHERO_BUILD_HASH": JSON.stringify(Date.now().toString(36)),
+    },
     build: {
       emptyOutDir: false, // Don't wipe CSS/JS files built earlier
       outDir: "./dist",

@@ -16,9 +16,9 @@ export function isFormHook(
 }
 
 /**
- * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{fields.dropdown_35aj}}" to its actual value
+ * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{$form.gender}}" to its actual value
  */
-function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
+export function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
   // Match patterns like {{context.user.email}} or {{context.user.user_metadata.country}}
   const contextMatch = field.match(/^\{\{context\.user\.(.+)\}\}$/);
   if (contextMatch && contextMatch[1]) {
@@ -31,8 +31,8 @@ function resolveTemplateField(field: string, context: ResolveContext): string | 
     return resolveNestedPath(context.user, userMatch[1]);
   }
 
-  // Match patterns like {{fields.dropdown_35aj}} for submitted form field values
-  const fieldsMatch = field.match(/^\{\{fields\.(.+)\}\}$/);
+  // Match patterns like {{$form.gender}} for submitted form field values (Auth0 standard)
+  const fieldsMatch = field.match(/^\{\{\$form\.(.+)\}\}$/);
   if (fieldsMatch && fieldsMatch[1] && context.submittedFields) {
     const value = context.submittedFields[fieldsMatch[1]];
     return value !== undefined ? String(value) : undefined;
@@ -273,8 +273,10 @@ export function buildUserUpdates(
   const userUpdates: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(changes)) {
-    if (key.startsWith("metadata.")) {
-      const metaKey = key.slice("metadata.".length);
+    if (key.startsWith("user_metadata.") || key.startsWith("metadata.")) {
+      const metaKey = key.startsWith("user_metadata.")
+        ? key.slice("user_metadata.".length)
+        : key.slice("metadata.".length);
       const existingMetadata = (existingUser.user_metadata || {}) as Record<
         string,
         unknown

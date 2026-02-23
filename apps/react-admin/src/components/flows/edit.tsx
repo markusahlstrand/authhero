@@ -79,19 +79,7 @@ const parseFlowData = (data: Record<string, unknown>) => {
         }
       }
 
-      // Extract AUTH0 UPDATE_USER params into form fields
-      if (parsed.type === "AUTH0" && parsed.action === "UPDATE_USER" && parsed.params) {
-        const params = parsed.params as Record<string, unknown>;
-        if (params.user_id) {
-          parsed.auth0_user_id = params.user_id;
-        }
-        if (params.connection_id) {
-          parsed.auth0_connection_id = params.connection_id;
-        }
-        if (params.changes) {
-          parsed.auth0_changes = JSON.stringify(params.changes, null, 2);
-        }
-      }
+
 
       // Extract EMAIL VERIFY_EMAIL params into form fields
       if (parsed.type === "EMAIL" && parsed.action === "VERIFY_EMAIL" && parsed.params) {
@@ -131,6 +119,19 @@ export const FlowEdit = () => {
             // Remove any nested actions array (form bug workaround)
             delete transformed.actions;
 
+            // Ensure params.changes is an object for AUTH0 UPDATE_USER
+            if (transformed.type === "AUTH0" && transformed.action === "UPDATE_USER") {
+              const params = transformed.params as Record<string, unknown> | undefined;
+              if (params?.changes && typeof params.changes === "string") {
+                try {
+                  params.changes = JSON.parse(params.changes as string);
+                } catch {
+                  // If it's still not valid JSON, wrap in empty object to avoid schema error
+                  params.changes = {};
+                }
+              }
+            }
+
             // Add action type for REDIRECT
             if (transformed.type === "REDIRECT") {
               transformed.action = "REDIRECT_USER";
@@ -154,39 +155,18 @@ export const FlowEdit = () => {
               transformed.params = params;
             }
 
-            // Build params for AUTH0 UPDATE_USER
-            if (transformed.type === "AUTH0" && transformed.action === "UPDATE_USER") {
-              const params: Record<string, unknown> = {
-                user_id: (transformed.auth0_user_id as string) || "{{user.id}}",
-                changes: (() => {
-                  try {
-                    return transformed.auth0_changes
-                      ? JSON.parse(transformed.auth0_changes as string)
-                      : (transformed.params as Record<string, unknown>)?.changes || {};
-                  } catch {
-                    return (transformed.params as Record<string, unknown>)?.changes || {};
-                  }
-                })(),
-              };
-              if (transformed.auth0_connection_id) {
-                params.connection_id = transformed.auth0_connection_id;
-              }
-              transformed.params = params;
-            }
+
 
             // Build params for EMAIL VERIFY_EMAIL
             if (transformed.type === "EMAIL" && transformed.action === "VERIFY_EMAIL") {
               transformed.params = {
-                email: (transformed.email_address as string) || "{{fields.email}}",
+                email: (transformed.email_address as string) || "{{$form.email}}",
               };
             }
 
             // Clean up temporary form-only fields
             delete transformed.redirect_target;
             delete transformed.redirect_custom_url;
-            delete transformed.auth0_user_id;
-            delete transformed.auth0_connection_id;
-            delete transformed.auth0_changes;
             delete transformed.email_address;
 
             // Auto-generate ID if not provided (Auth0-style)
@@ -242,22 +222,36 @@ export const FlowEdit = () => {
                       {scopedFormData?.action === "UPDATE_USER" && (
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
                           <TextInput
-                            source="auth0_user_id"
+                            source="params.user_id"
                             label="User ID"
                             defaultValue="{{user.id}}"
                             helperText="Template variable for the user ID, e.g. {{user.id}}"
                             fullWidth
                           />
                           <TextInput
-                            source="auth0_connection_id"
+                            source="params.connection_id"
                             label="Connection ID (optional)"
                             helperText="Optional connection ID to scope the update"
                             fullWidth
                           />
                           <TextInput
-                            source="auth0_changes"
+                            source="params.changes"
                             label="Changes (JSON)"
-                            defaultValue='{"email_verified": true}'
+                            format={(value: unknown) =>
+                              value && typeof value === "object"
+                                ? JSON.stringify(value, null, 2)
+                                : typeof value === "string"
+                                  ? value
+                                  : "{}"
+                            }
+                            parse={(value: string) => {
+                              try {
+                                return value ? JSON.parse(value) : {};
+                              } catch {
+                                // Keep as string during editing; transform will handle conversion on save
+                                return value;
+                              }
+                            }}
                             helperText='JSON object of user properties to update, e.g. {"email_verified": true}'
                             multiline
                             fullWidth
@@ -282,8 +276,8 @@ export const FlowEdit = () => {
                           <TextInput
                             source="email_address"
                             label="Email"
-                            defaultValue="{{fields.email}}"
-                            helperText="Template variable for the email, e.g. {{fields.email}}"
+                            defaultValue="{{$form.email}}"
+                            helperText="Template variable for the email, e.g. {{$form.email}}"
                             fullWidth
                           />
                         </Box>

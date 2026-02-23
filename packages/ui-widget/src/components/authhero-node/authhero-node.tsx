@@ -69,6 +69,24 @@ export class AuthheroNode {
   };
 
   /**
+   * Returns the effective value for the field: uses `this.value` if set,
+   * otherwise falls back to `config.default_value` (resolved by the server).
+   */
+  private getEffectiveValue(): string | undefined {
+    if (this.value !== undefined && this.value !== null) {
+      return this.value;
+    }
+    const comp = this.component as FieldComponent;
+    if (comp.config && "default_value" in comp.config) {
+      const dv = (comp.config as Record<string, unknown>).default_value;
+      if (typeof dv === "string" && dv !== "") {
+        return dv;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Sanitize a string for use in CSS class names and part tokens.
    * Replaces spaces and special characters with hyphens, converts to lowercase.
    */
@@ -331,7 +349,8 @@ export class AuthheroNode {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { multiline, max_length } = component.config ?? {};
-    const hasValue = !!(this.value && this.value.length > 0);
+    const effectiveValue = this.getEffectiveValue();
+    const hasValue = !!(effectiveValue && effectiveValue.length > 0);
 
     if (multiline) {
       return (
@@ -348,7 +367,7 @@ export class AuthheroNode {
             maxLength={max_length}
             onInput={this.handleInput}
           >
-            {this.value ?? ""}
+            {effectiveValue ?? ""}
           </textarea>
           {this.renderErrors()}
           {errors.length === 0 && this.renderHint(component.hint)}
@@ -366,7 +385,7 @@ export class AuthheroNode {
             type={component.sensitive ? "password" : "text"}
             name={component.id}
             data-input-name={component.id}
-            value={this.value ?? ""}
+            value={effectiveValue ?? ""}
             placeholder=" "
             required={component.required}
             disabled={this.disabled}
@@ -390,7 +409,8 @@ export class AuthheroNode {
   private renderEmailField(component: FieldComponent & { type: "EMAIL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const hasValue = !!(this.value && this.value.length > 0);
+    const effectiveValue = this.getEffectiveValue();
+    const hasValue = !!(effectiveValue && effectiveValue.length > 0);
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -402,7 +422,7 @@ export class AuthheroNode {
             type="email"
             name={component.id}
             data-input-name={component.id}
-            value={this.value ?? ""}
+            value={effectiveValue ?? ""}
             placeholder=" "
             required={component.required}
             disabled={this.disabled}
@@ -428,7 +448,8 @@ export class AuthheroNode {
   ) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const hasValue = !!(this.value && this.value.length > 0);
+    const effectiveValue = this.getEffectiveValue();
+    const hasValue = !!(effectiveValue && effectiveValue.length > 0);
     const forgotPasswordLink = component.config?.forgot_password_link;
 
     return (
@@ -441,7 +462,7 @@ export class AuthheroNode {
             type={this.passwordVisible ? "text" : "password"}
             name={component.id}
             data-input-name={component.id}
-            value={this.value ?? ""}
+            value={effectiveValue ?? ""}
             placeholder=" "
             required={component.required}
             disabled={this.disabled}
@@ -484,6 +505,7 @@ export class AuthheroNode {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { placeholder, min, max, step } = component.config ?? {};
+    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -494,7 +516,7 @@ export class AuthheroNode {
           part="input"
           type="number"
           name={component.id}
-          value={this.value ?? ""}
+          value={effectiveValue ?? ""}
           placeholder={placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -513,6 +535,7 @@ export class AuthheroNode {
   private renderTelField(component: FieldComponent & { type: "TEL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
+    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -523,7 +546,7 @@ export class AuthheroNode {
           part="input"
           type="tel"
           name={component.id}
-          value={this.value ?? ""}
+          value={effectiveValue ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -540,6 +563,7 @@ export class AuthheroNode {
   private renderUrlField(component: FieldComponent & { type: "URL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
+    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -550,7 +574,7 @@ export class AuthheroNode {
           part="input"
           type="url"
           name={component.id}
-          value={this.value ?? ""}
+          value={effectiveValue ?? ""}
           placeholder={component.config?.placeholder}
           required={component.required}
           disabled={this.disabled}
@@ -569,6 +593,7 @@ export class AuthheroNode {
     const { min, max } = component.config ?? {};
     // Date fields always have a value (even if placeholder format), so always float the label
     const hasValue = true;
+    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -580,7 +605,7 @@ export class AuthheroNode {
             type="date"
             name={component.id}
             data-input-name={component.id}
-            value={this.value ?? ""}
+            value={effectiveValue ?? ""}
             placeholder=" "
             required={component.required}
             disabled={this.disabled}
@@ -657,6 +682,7 @@ export class AuthheroNode {
     const { options, placeholder } = component.config ?? {};
     // Dropdown always has visual content (selected option), so always float the label
     const hasValue = true;
+    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -671,14 +697,14 @@ export class AuthheroNode {
             onChange={this.handleInput}
           >
             {placeholder && (
-              <option value="" disabled selected={!this.value}>
+              <option value="" disabled selected={!effectiveValue}>
                 {placeholder}
               </option>
             )}
             {options?.map((opt) => (
               <option
                 value={opt.value}
-                selected={this.value === opt.value}
+                selected={effectiveValue === opt.value}
                 key={opt.value}
               >
                 {opt.label}
@@ -720,7 +746,7 @@ export class AuthheroNode {
                 part={inputType}
                 name={component.id}
                 value={opt.value}
-                checked={this.value === opt.value}
+                checked={this.getEffectiveValue() === opt.value}
                 required={component.required && !isCheckbox}
                 disabled={this.disabled}
                 onChange={this.handleInput}

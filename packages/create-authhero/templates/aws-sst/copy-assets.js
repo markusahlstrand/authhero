@@ -42,6 +42,12 @@ const widgetSource = path.join(
 const targetDir = path.join(__dirname, "dist/assets");
 const widgetTarget = path.join(targetDir, "u/widget");
 
+// Clean target directory to remove stale files from previous builds
+if (fs.existsSync(targetDir)) {
+  fs.rmSync(targetDir, { recursive: true });
+  console.log("🧹 Cleaned old assets");
+}
+
 // Copy authhero assets
 if (fs.existsSync(authHeroAssets)) {
   console.log("📦 Copying AuthHero assets...");

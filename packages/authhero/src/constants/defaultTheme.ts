@@ -67,15 +67,14 @@ export const DEFAULT_THEME: Theme = {
   },
   page_background: {
     background_color: "#F8F9FB",
-    background_image_url: "https://assets.sesamy.com/images/login-bg.jpg",
+    background_image_url: "",
     page_layout: "center",
   },
   widget: {
+    logo_url: "",
     header_text_alignment: "center",
     logo_height: 36,
     logo_position: "center",
-    logo_url:
-      "https://assets.sesamy.com/static/images/sesamy/logos/sesamy_logo_black.svg",
     social_buttons_layout: "bottom",
   },
 };

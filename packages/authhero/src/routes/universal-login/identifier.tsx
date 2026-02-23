@@ -8,7 +8,7 @@ import {
 } from "../../helpers/users";
 import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, getConnectionIdentifierConfig } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
@@ -160,6 +160,39 @@ export const identifierRoutes = new OpenAPIHono<{
         vendorCountryCode || countryCode,
       );
 
+      // Check if the password connection has username identifier enabled
+      const passwordConnection = client.connections.find(
+        (c) => c.strategy === "Username-Password-Authentication",
+      );
+      const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+      const requiresUsername = identifierConfig.usernameIdentifierActive;
+
+      // Validate username length when connectionType is "username"
+      if (connectionType === "username" && requiresUsername && username) {
+        const minLength = identifierConfig.usernameMinLength;
+        const maxLength = identifierConfig.usernameMaxLength;
+
+        if (username.length < minLength || username.length > maxLength) {
+          const errorMsg =
+            username.length < minLength
+              ? `Username must be at least ${minLength} characters`
+              : `Username must be at most ${maxLength} characters`;
+          return ctx.html(
+            <IdentifierPage
+              theme={theme}
+              branding={branding}
+              loginSession={loginSession}
+              error={errorMsg}
+              email={params.username}
+              client={client}
+              isEmbedded={isEmbedded}
+              browserName={browserName}
+            />,
+            400,
+          );
+        }
+      }
+
       // Look up user - for email use getPrimaryUserByEmail (finds any provider),
       // for sms/username use getPrimaryUserByProvider
       const user = username
@@ -179,9 +212,12 @@ export const identifierRoutes = new OpenAPIHono<{
 
       // Allow connection if:
       // 1. There's a matching connection on the client, OR
-      // 2. User already exists (can login regardless of how they signed up)
+      // 2. User already exists (can login regardless of how they signed up), OR
+      // 3. connectionType is "username" and password connection has username identifier active
       const hasValidConnection =
-        client.connections.find((c) => c.strategy === connectionType) || user;
+        client.connections.find((c) => c.strategy === connectionType) ||
+        (connectionType === "username" && requiresUsername) ||
+        user;
 
       if (!hasValidConnection || !username) {
         return ctx.html(

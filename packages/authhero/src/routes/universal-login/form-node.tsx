@@ -14,7 +14,9 @@ import {
   FlowFetcher,
   buildUserUpdates,
   mergeUserUpdates,
+  resolveTemplateField,
 } from "../../hooks/formhooks";
+import type { FormNodeComponent, User } from "@authhero/adapter-interfaces";
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -46,7 +48,7 @@ export const formNodeRoutes = new OpenAPIHono<{
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
-      const { client, theme, branding } = await initJSXRoute(ctx, state, true);
+      const { client, theme, branding, loginSession } = await initJSXRoute(ctx, state, true);
 
       const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -64,6 +66,54 @@ export const formNodeRoutes = new OpenAPIHono<{
         });
       }
 
+      // Try to fetch user for resolving default_value templates
+      let user: User | undefined;
+      if (loginSession.session_id) {
+        const session = await ctx.env.data.sessions.get(
+          client.tenant.id,
+          loginSession.session_id,
+        );
+        if (session?.user_id) {
+          user = await ctx.env.data.users.get(
+            client.tenant.id,
+            session.user_id,
+          ) ?? undefined;
+        }
+      } else if (loginSession.user_id) {
+        user = await ctx.env.data.users.get(
+          client.tenant.id,
+          loginSession.user_id,
+        ) ?? undefined;
+      }
+
+      // Resolve default_value templates in components
+      const rawComponents: FormNodeComponent[] =
+        "components" in node.config ? node.config.components : [];
+      const components = user
+        ? rawComponents.map((comp) => {
+            if (
+              comp.config &&
+              "default_value" in comp.config &&
+              typeof comp.config.default_value === "string" &&
+              comp.config.default_value.startsWith("{{") &&
+              comp.config.default_value.endsWith("}}")
+            ) {
+              const resolved = resolveTemplateField(
+                comp.config.default_value,
+                { user },
+              );
+              return {
+                ...comp,
+                config: {
+                  ...comp.config,
+                  default_value: resolved ?? "",
+                },
+              } as FormNodeComponent;
+            }
+            return comp;
+          })
+        : rawComponents;
+
       return ctx.html(
         <FormNodePage
           theme={theme}
@@ -72,7 +122,7 @@ export const formNodeRoutes = new OpenAPIHono<{
           state={state}
           formName={form.name}
           nodeAlias={node.alias || node.type}
-          components={"components" in node.config ? node.config.components : []}
+          components={components}
         />,
       );
     },
@@ -281,6 +331,17 @@ export const formNodeRoutes = new OpenAPIHono<{
         });
         return result;
       } catch (err) {
+        if (err instanceof HTTPException) {
+          throw err;
+        }
+
+        console.error("Form node POST error:", err);
+
+        const isSessionError = err instanceof Error && err.message === "Session expired";
+        const errorMessage = isSessionError
+          ? "Your session has expired. Please try again."
+          : "An error occurred. Please try again.";
+
         return ctx.html(
           <FormNodePage
             theme={theme}
@@ -290,7 +351,7 @@ export const formNodeRoutes = new OpenAPIHono<{
             formName={form?.name || ""}
             nodeAlias={node?.alias || nodeId || ""}
             components={components || []}
-            error={"Your session has expired. Please try again."}
+            error={errorMessage}
           />,
         );
       }

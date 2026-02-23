@@ -49,11 +49,11 @@
 }
 
 .input-label.floating,
-.input-field:focus + .input-label,
-.input-field:not(:placeholder-shown) + .input-label,
+.input-field:focus+.input-label,
+.input-field:not(:placeholder-shown)+.input-label,
 /* select and date inputs always display content, so always float */
-select.input-field + .input-label,
-input[type="date"].input-field + .input-label {
+select.input-field+.input-label,
+input[type="date"].input-field+.input-label {
   top: -8px;
   transform: translateY(0);
   font-size: 12px;
@@ -63,7 +63,7 @@ input[type="date"].input-field + .input-label {
   color: var(--ah-color-text-muted, #65676e);
 }
 
-.input-field:focus + .input-label {
+.input-field:focus+.input-label {
   color: var(--ah-color-primary, #635dff);
 }
 
@@ -347,6 +347,7 @@ input[type="date"].input-field + .input-label {
 
 /* Small screen: collapse social buttons to icon-only in a row only if 3+ buttons */
 @media (max-width: 480px) {
+
   /* Only apply icon-only layout when there are 3 or more social buttons */
   .social-buttons:has(.btn-social:nth-child(3)) {
     flex-direction: row;
@@ -533,6 +534,18 @@ input[type="date"].input-field + .input-label {
 
 .rich-text .terms-text a {
   font-size: 12px;
+}
+
+/* Forgot password link styling */
+.rich-text .forgot-password-link {
+  text-align: right;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.rich-text .forgot-password-link a {
+  font-size: 13px;
+  color: var(--ah-color-link, #635dff);
 }
 
 /* Signup link styling */

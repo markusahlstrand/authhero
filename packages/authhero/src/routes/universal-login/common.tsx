@@ -11,6 +11,7 @@ import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { hasValidContinuationScope } from "../../authentication-flows/common";
+import { DEFAULT_THEME } from "../../constants/defaultTheme";
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -60,10 +61,13 @@ export async function initJSXRoute(
   }
 
   // Fetch theme and branding in parallel
-  const [theme, branding] = await Promise.all([
+  const [themeResult, branding] = await Promise.all([
     env.data.themes.get(tenant.id, "default"),
     env.data.branding.get(tenant.id),
   ]);
+
+  // Fall back to DEFAULT_THEME when no theme is stored in the database
+  const theme = themeResult ?? DEFAULT_THEME;
 
   // Only include favicon_url when on a custom domain
   const brandingWithFavicon = branding
@@ -217,6 +221,12 @@ export async function getLoginStrategy(
   connectionType: "email" | "sms" | "username",
   login_selection?: "password" | "code",
 ): Promise<LoginStrategy> {
+  // Username identifiers always use password authentication
+  // (usernames only exist on password connections)
+  if (connectionType === "username") {
+    return "password";
+  }
+
   // Explicit user selection takes priority
   if (login_selection === "password") {
     return "password";

@@ -6,6 +6,7 @@ import Icon from "./Icon";
 import { PropsWithChildren } from "hono/jsx";
 import { lighten } from "../utils/color";
 import i18next from "i18next";
+import { buildHash } from "../build-hash";
 
 type LayoutProps = {
   title: string;
@@ -121,7 +122,7 @@ const Layout = ({
         {/* Mount point for client-side hydration */}
         <div id="client-root"></div>
       </body>
-      <script type="module" src="/u/js/client.js" />
+      <script type="module" src={`/u/js/client.js?v=${buildHash}`} />
     </html>
   );
 };
