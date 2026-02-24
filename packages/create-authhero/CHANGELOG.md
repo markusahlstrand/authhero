@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.29.0
+
+### Minor Changes
+
+- 65321b7: Update for forms, flows and u2 login
+
 ## 0.28.0
 
 ### Minor Changes
