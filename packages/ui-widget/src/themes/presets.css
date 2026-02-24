@@ -63,9 +63,11 @@
   --ah-color-bg: #1f2937;
   --ah-color-bg-muted: #374151;
   --ah-color-bg-disabled: #4b5563;
+  --ah-color-bg-hover: #374151;
   
   --ah-color-border: #4b5563;
   --ah-color-border-muted: #374151;
+  --ah-color-border-hover: #9ca3af;
   
   --ah-color-error-bg: rgba(220, 38, 38, 0.2);
   --ah-color-success-bg: rgba(22, 163, 74, 0.2);

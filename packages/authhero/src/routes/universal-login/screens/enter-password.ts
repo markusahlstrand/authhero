@@ -59,6 +59,17 @@ export async function enterPasswordScreen(
       order: 1,
       hint: passwordError,
     },
+    // Forgot password link (between password and submit)
+    {
+      id: "forgot-password-link",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div class="forgot-password-link"><a href="${routePrefix}/forgot-password?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
+      },
+      order: 2,
+    } as FormNodeComponent,
     // Submit button
     {
       id: "submit",
@@ -68,7 +79,7 @@ export async function enterPasswordScreen(
       config: {
         text: m.continue(),
       },
-      order: 2,
+      order: 3,
     },
   ];
 
@@ -80,12 +91,6 @@ export async function enterPasswordScreen(
     title: m.enter_password(),
     components,
     links: [
-      {
-        id: "forgot-password",
-        text: m.forgot_password_link(),
-        linkText: m.reset_password_cta(),
-        href: `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`,
-      },
       {
         id: "back",
         text: "",

@@ -112,6 +112,7 @@ const TextComponent = (comp: TextComponentProps) => {
         name={comp.id}
         placeholder={comp.config?.placeholder || ""}
         required={!!comp.required}
+        value={comp.config?.default_value as string || undefined}
         className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-500"
         id={comp.id}
       />
@@ -134,6 +135,7 @@ const DateComponent = (comp: DateComponentProps) => {
         required={!!comp.required}
         min={comp.config?.min}
         max={comp.config?.max}
+        value={comp.config?.default_value || undefined}
         className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-500"
         id={comp.id}
       />

@@ -23,6 +23,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
+import { buildHash } from "../../build-hash";
 import {
   getScreen,
   getScreenDefinition,
@@ -360,8 +361,28 @@ function HeadContent({
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
     
-    html.ah-dark-mode body {
-      background: #1a1a2e !important;
+    html.ah-dark-mode body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 0;
+      pointer-events: none;
+    }
+    
+    html.ah-dark-mode .widget-container {
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    
+    html.ah-dark-mode .page-footer-left {
+      z-index: 10;
+    }
+    
+    html.ah-dark-mode .page-footer {
+      z-index: 10;
     }
     
     html.ah-dark-mode .page-footer .language-picker,
@@ -403,7 +424,10 @@ function HeadContent({
       {faviconUrl && <link rel="icon" href={faviconUrl} />}
       {fontUrl && <link rel="stylesheet" href={fontUrl} />}
       <style dangerouslySetInnerHTML={{ __html: styleContent }} />
-      <script type="module" src="/u/widget/authhero-widget.esm.js" />
+      <script
+        type="module"
+        src={`/u/widget/authhero-widget.esm.js?v=${buildHash}`}
+      />
     </>
   );
 }
@@ -564,7 +588,7 @@ function FooterContent({
         class="dark-mode-toggle"
         type="button"
         aria-label="Toggle dark mode"
-        onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)'};for(var k in v){if(isDark)h.style.setProperty(k,v[k]);else h.style.removeProperty(k)}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
+        onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'rgba(31,41,55,0.85)','--ah-color-bg-hover':'rgba(55,65,81,0.85)','--ah-color-bg-muted':'rgba(55,65,81,0.85)','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'rgba(55,65,81,0.7)','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)'};for(var k in v){if(isDark)h.style.setProperty(k,v[k]);else h.style.removeProperty(k)}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
       >
         <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -841,6 +865,7 @@ function createScreenRouteHandler(screenId: string) {
         poweredByLogo={ctx.env.poweredByLogo}
         language={language}
         availableLanguages={Object.keys(LANGUAGE_NAMES)}
+        termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
       />,
     );
   };
@@ -1140,6 +1165,7 @@ function createScreenPostHandler(screenId: string) {
         poweredByLogo={ctx.env.poweredByLogo}
         language={language}
         availableLanguages={Object.keys(LANGUAGE_NAMES)}
+        termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
       />,
     );
   };

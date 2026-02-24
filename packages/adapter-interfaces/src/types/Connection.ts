@@ -50,6 +50,79 @@ export const connectionOptionsSchema = z.object({
       dictionary: z.array(z.string()).optional(),
     })
     .optional(),
+  // Disable signup for this connection
+  disable_signup: z.boolean().optional(),
+  // Brute force protection
+  brute_force_protection: z.boolean().optional(),
+  // Import mode
+  import_mode: z.boolean().optional(),
+  // Flexible Identifiers: attributes schema (replaces legacy requires_username)
+  attributes: z
+    .object({
+      email: z
+        .object({
+          identifier: z
+            .object({
+              active: z.boolean().optional(),
+            })
+            .optional(),
+          signup: z
+            .object({
+              status: z.enum(["required", "optional", "disabled"]).optional(),
+              verification: z
+                .object({
+                  active: z.boolean().optional(),
+                })
+                .optional(),
+            })
+            .optional(),
+          validation: z
+            .object({
+              allowed: z.boolean().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+      username: z
+        .object({
+          identifier: z
+            .object({
+              active: z.boolean().optional(),
+            })
+            .optional(),
+          signup: z
+            .object({
+              status: z.enum(["required", "optional", "disabled"]).optional(),
+            })
+            .optional(),
+          validation: z
+            .object({
+              max_length: z.number().optional(),
+              min_length: z.number().optional(),
+              allowed_types: z
+                .object({
+                  email: z.boolean().optional(),
+                  phone_number: z.boolean().optional(),
+                })
+                .optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  // Legacy username options (deprecated, use attributes instead)
+  requires_username: z.boolean().optional(),
+  validation: z
+    .object({
+      username: z
+        .object({
+          min: z.number().optional(),
+          max: z.number().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export const connectionInsertSchema = z.object({

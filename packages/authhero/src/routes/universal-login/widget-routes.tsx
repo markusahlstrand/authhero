@@ -19,6 +19,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
+import { buildHash } from "../../build-hash";
+import { TERMS_TRANSLATIONS } from "./u2-widget-page";
 import {
   getScreen,
   getScreenDefinition,
@@ -63,6 +65,8 @@ type WidgetPageProps = {
     href?: string;
     height?: number;
   };
+  termsAndConditionsUrl?: string;
+  language?: string;
 };
 
 /**
@@ -75,6 +79,8 @@ function WidgetPage({
   themePageBackground,
   clientName,
   poweredByLogo,
+  termsAndConditionsUrl,
+  language,
 }: WidgetPageProps) {
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -146,10 +152,18 @@ function WidgetPage({
               .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
               .powered-by:hover { opacity: 1; }
               .powered-by img { display: block; }
+              .page-footer-left { position: fixed; bottom: 16px; left: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; z-index: 10; }
+              .terms-link { font-size: 12px; color: rgba(0,0,0,0.45); text-decoration: none; transition: color 0.2s; }
+              .terms-link:hover { color: rgba(0,0,0,0.7); text-decoration: underline; }
+              html.ah-dark-mode .terms-link { color: rgba(255,255,255,0.45); }
+              html.ah-dark-mode .terms-link:hover { color: rgba(255,255,255,0.7); }
             `,
           }}
         />
-        <script type="module" src="/u/widget/authhero-widget.esm.js" />
+        <script
+          type="module"
+          src={`/u/widget/authhero-widget.esm.js?v=${buildHash}`}
+        />
       </head>
       <body style={bodyStyle}>
         {/* SSR widget - rendered server-side, hydrated on client */}
@@ -159,26 +173,40 @@ function WidgetPage({
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
         />
-        {safePoweredByUrl && (
-          <div class="powered-by">
-            {safePoweredByHref ? (
+        {(safePoweredByUrl || termsAndConditionsUrl) && (
+          <div class="page-footer-left">
+            {safePoweredByUrl && (
+              <div class="powered-by" style="position:static;">
+                {safePoweredByHref ? (
+                  <a
+                    href={safePoweredByHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src={safePoweredByUrl}
+                      alt={poweredByLogo?.alt || ""}
+                      height={poweredByLogo?.height || 20}
+                    />
+                  </a>
+                ) : (
+                  <img
+                    src={safePoweredByUrl}
+                    alt={poweredByLogo?.alt || ""}
+                    height={poweredByLogo?.height || 20}
+                  />
+                )}
+              </div>
+            )}
+            {termsAndConditionsUrl && (
               <a
-                href={safePoweredByHref}
+                class="terms-link"
+                href={termsAndConditionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <img
-                  src={safePoweredByUrl}
-                  alt={poweredByLogo?.alt || ""}
-                  height={poweredByLogo?.height || 20}
-                />
+                {TERMS_TRANSLATIONS[language || "en"] || TERMS_TRANSLATIONS.en}
               </a>
-            ) : (
-              <img
-                src={safePoweredByUrl}
-                alt={poweredByLogo?.alt || ""}
-                height={poweredByLogo?.height || 20}
-              />
             )}
           </div>
         )}
@@ -279,6 +307,7 @@ export const widgetRoutes = new OpenAPIHono<{
       const brandingJson = result.branding
         ? JSON.stringify(result.branding)
         : undefined;
+      const themeJson = theme ? JSON.stringify(theme) : undefined;
       const authParamsJson = JSON.stringify({
         client_id: loginSession.authParams.client_id,
         redirect_uri: loginSession.authParams.redirect_uri,
@@ -297,6 +326,7 @@ export const widgetRoutes = new OpenAPIHono<{
           data-screen="${resultScreenId}"
           screen='${screenJson.replace(/'/g, "&#39;")}'
           ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
+          ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
           state="${state}"
           auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
           auto-submit="true"
@@ -316,6 +346,8 @@ export const widgetRoutes = new OpenAPIHono<{
           themePageBackground={theme?.page_background}
           clientName={client.name || "AuthHero"}
           poweredByLogo={ctx.env.poweredByLogo}
+          termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
+          language={loginSession.authParams?.ui_locales?.split(" ")[0]}
         />,
       );
     },

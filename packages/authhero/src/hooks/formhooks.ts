@@ -1,12 +1,20 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { LoginSession, Node, User } from "@authhero/adapter-interfaces";
+import {
+  FORM_FIELD_TYPES,
+  LoginSession,
+  Node,
+  User,
+} from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import {
   startLoginSessionHook,
   startLoginSessionContinuation,
 } from "../authentication-flows/common";
 import { EnrichedClient } from "../helpers/client";
+
+// Re-export so existing consumers don't break
+export { FORM_FIELD_TYPES };
 
 // Type guard for form hooks
 export function isFormHook(
@@ -16,9 +24,9 @@ export function isFormHook(
 }
 
 /**
- * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{fields.dropdown_35aj}}" to its actual value
+ * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{$form.gender}}" to its actual value
  */
-function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
+export function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
   // Match patterns like {{context.user.email}} or {{context.user.user_metadata.country}}
   const contextMatch = field.match(/^\{\{context\.user\.(.+)\}\}$/);
   if (contextMatch && contextMatch[1]) {
@@ -31,8 +39,8 @@ function resolveTemplateField(field: string, context: ResolveContext): string | 
     return resolveNestedPath(context.user, userMatch[1]);
   }
 
-  // Match patterns like {{fields.dropdown_35aj}} for submitted form field values
-  const fieldsMatch = field.match(/^\{\{fields\.(.+)\}\}$/);
+  // Match patterns like {{$form.gender}} for submitted form field values (Auth0 standard)
+  const fieldsMatch = field.match(/^\{\{\$form\.(.+)\}\}$/);
   if (fieldsMatch && fieldsMatch[1] && context.submittedFields) {
     const value = context.submittedFields[fieldsMatch[1]];
     return value !== undefined ? String(value) : undefined;
@@ -255,7 +263,6 @@ export type FlowFetcher = (flowId: string) => Promise<{
  */
 export interface PendingUserUpdate {
   user_id: string;
-  connection_id?: string;
   changes: Record<string, string>;
 }
 
@@ -273,8 +280,10 @@ export function buildUserUpdates(
   const userUpdates: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(changes)) {
-    if (key.startsWith("metadata.")) {
-      const metaKey = key.slice("metadata.".length);
+    if (key.startsWith("user_metadata.") || key.startsWith("metadata.")) {
+      const metaKey = key.startsWith("user_metadata.")
+        ? key.slice("user_metadata.".length)
+        : key.slice("metadata.".length);
       const existingMetadata = (existingUser.user_metadata || {}) as Record<
         string,
         unknown
@@ -322,7 +331,6 @@ export function mergeUserUpdates(
     } else {
       grouped.set(update.user_id, {
         user_id: update.user_id,
-        connection_id: update.connection_id,
         changes: { ...update.changes },
       });
     }
@@ -482,7 +490,6 @@ export async function resolveNode(
               if (Object.keys(changes).length > 0) {
                 pendingUserUpdates.push({
                   user_id: userId,
-                  connection_id: action.params.connection_id,
                   changes,
                 });
               }

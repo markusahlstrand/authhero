@@ -4,7 +4,7 @@
  * Copy AuthHero assets to dist directory
  *
  * This script copies static assets from the authhero package to the dist directory
- * so they can be served by Wrangler's Assets feature. Wrangler does not support
+ * so they can be served as static files. Most deployment targets do not support
  * serving files directly from node_modules.
  */
 
@@ -55,6 +55,12 @@ try {
     console.error(`❌ Source directory not found: ${sourceDir}`);
     console.error("Make sure the authhero package is installed.");
     process.exit(1);
+  }
+
+  // Clean target directory to remove stale files from previous builds
+  if (fs.existsSync(targetDir)) {
+    fs.rmSync(targetDir, { recursive: true });
+    console.log("🧹 Cleaned old assets");
   }
 
   copyDirectory(sourceDir, targetDir);

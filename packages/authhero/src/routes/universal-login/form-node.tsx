@@ -14,7 +14,42 @@ import {
   FlowFetcher,
   buildUserUpdates,
   mergeUserUpdates,
+  resolveTemplateField,
 } from "../../hooks/formhooks";
+import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
+import type { Form, FormNodeComponent, StepNode, User } from "@authhero/adapter-interfaces";
+
+/**
+ * Resolve default_value templates (e.g. {{context.user.email}}) in form components.
+ */
+function resolveComponents(
+  rawComponents: FormNodeComponent[],
+  user: User | undefined,
+): FormNodeComponent[] {
+  if (!user) return rawComponents;
+  return rawComponents.map((comp) => {
+    if (
+      comp.config &&
+      "default_value" in comp.config &&
+      typeof comp.config.default_value === "string" &&
+      comp.config.default_value.startsWith("{{") &&
+      comp.config.default_value.endsWith("}}")
+    ) {
+      const resolved = resolveTemplateField(
+        comp.config.default_value,
+        { user },
+      );
+      return {
+        ...comp,
+        config: {
+          ...comp.config,
+          default_value: resolved ?? comp.config.default_value,
+        },
+      } as FormNodeComponent;
+    }
+    return comp;
+  });
+}
 
 export const formNodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -46,7 +81,7 @@ export const formNodeRoutes = new OpenAPIHono<{
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
-      const { client, theme, branding } = await initJSXRoute(ctx, state, true);
+      const { client, theme, branding, loginSession } = await initJSXRoute(ctx, state, true);
 
       const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -55,7 +90,7 @@ export const formNodeRoutes = new OpenAPIHono<{
       }
       // Only STEP nodes have components
       const node = (form.nodes || []).find(
-        (n: any) => n.id === nodeId && n.type === "STEP",
+        (n): n is StepNode => n.id === nodeId && n.type === "STEP",
       );
 
       if (!node) {
@@ -63,6 +98,35 @@ export const formNodeRoutes = new OpenAPIHono<{
           message: "Node not found or not a STEP node",
         });
       }
+
+      // Try to fetch user for resolving default_value templates
+      let user: User | undefined;
+      try {
+        if (loginSession.session_id) {
+          const session = await ctx.env.data.sessions.get(
+            client.tenant.id,
+            loginSession.session_id,
+          );
+          if (session?.user_id) {
+            user = await ctx.env.data.users.get(
+              client.tenant.id,
+              session.user_id,
+            ) ?? undefined;
+          }
+        } else if (loginSession.user_id) {
+          user = await ctx.env.data.users.get(
+            client.tenant.id,
+            loginSession.user_id,
+          ) ?? undefined;
+        }
+      } catch {
+        // Non-critical: user resolution for templates can fail silently
+      }
+
+      // Resolve default_value templates in components
+      const rawComponents: FormNodeComponent[] =
+        "components" in node.config ? node.config.components : [];
+      const components = resolveComponents(rawComponents, user);
 
       return ctx.html(
         <FormNodePage
@@ -72,7 +136,7 @@ export const formNodeRoutes = new OpenAPIHono<{
           state={state}
           formName={form.name}
           nodeAlias={node.alias || node.type}
-          components={"components" in node.config ? node.config.components : []}
+          components={components}
         />,
       );
     },
@@ -109,36 +173,58 @@ export const formNodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
-      const { theme, branding, client } = await initJSXRoute(ctx, state, true);
-      let form: any = undefined;
-      let node: any = undefined;
-      let components: any[] = [];
+      const { theme, branding, client, loginSession } = await initJSXRoute(ctx, state, true);
+      let form: Form | undefined = undefined;
+      let node: StepNode | undefined = undefined;
+      let components: FormNodeComponent[] = [];
+      let user: User | undefined;
       try {
-        form = await ctx.env.data.forms.get(client.tenant.id, formId);
+        form = await ctx.env.data.forms.get(client.tenant.id, formId) ?? undefined;
         if (!form) throw new HTTPException(404, { message: "Form not found" });
         node = (form.nodes || []).find(
-          (n: any) => n.id === nodeId && n.type === "STEP",
+          (n): n is StepNode => n.id === nodeId && n.type === "STEP",
         );
         if (!node)
           throw new HTTPException(404, {
             message: "Node not found or not a STEP node",
           });
         components = "components" in node.config ? node.config.components : [];
+
+        // Attempt to load user early for template resolution in error paths
+        try {
+          if (loginSession.session_id) {
+            const sess = await ctx.env.data.sessions.get(
+              client.tenant.id,
+              loginSession.session_id,
+            );
+            if (sess?.user_id) {
+              user = await ctx.env.data.users.get(
+                client.tenant.id,
+                sess.user_id,
+              ) ?? undefined;
+            }
+          } else if (loginSession.user_id) {
+            user = await ctx.env.data.users.get(
+              client.tenant.id,
+              loginSession.user_id,
+            ) ?? undefined;
+          }
+        } catch {
+          // Non-critical: user resolution for templates can fail silently
+        }
+
         const body = await ctx.req.parseBody();
         const missingFields: string[] = [];
         const submittedFields: Record<string, string> = {};
-        // Field component types that collect user input
-        const fieldTypes = new Set([
-          "LEGAL", "TEXT", "DATE", "DROPDOWN", "EMAIL", "NUMBER",
-          "BOOLEAN", "CHOICE", "TEL", "URL", "PASSWORD", "CARDS",
-        ]);
         for (const comp of components) {
-          if (fieldTypes.has(comp.type)) {
+          if (FORM_FIELD_TYPES.has(comp.type)) {
             const name = comp.id;
-            const isRequired = !!comp.required;
+            const isRequired = "required" in comp && !!comp.required;
             const value = body[name];
             if (isRequired && (!value || value === "")) {
-              missingFields.push(comp.label || name);
+              missingFields.push(
+                ("label" in comp && comp.label) || name,
+              );
             }
             if (typeof value === "string" && value !== "") {
               submittedFields[name] = value;
@@ -154,19 +240,14 @@ export const formNodeRoutes = new OpenAPIHono<{
               state={state}
               formName={form.name}
               nodeAlias={node.alias || node.type}
-              components={components}
+              components={resolveComponents(components, user)}
               error={`Missing required fields: ${missingFields.join(", ")}`}
             />,
           );
         }
 
         // All required fields present, continue with session and user lookup
-        const loginSession = await ctx.env.data.loginSessions.get(
-          client.tenant.id,
-          state,
-        );
         if (
-          !loginSession ||
           !loginSession.session_id ||
           !loginSession.authParams
         ) {
@@ -179,10 +260,13 @@ export const formNodeRoutes = new OpenAPIHono<{
         if (!session || !session.user_id) {
           throw new Error("Session expired");
         }
-        const user = await ctx.env.data.users.get(
-          ctx.var.tenant_id,
-          session.user_id,
-        );
+        // Re-fetch user if not already loaded (or ensure fresh data)
+        if (!user) {
+          user = await ctx.env.data.users.get(
+            client.tenant.id,
+            session.user_id,
+          ) ?? undefined;
+        }
         if (!user) {
           throw new Error("Session expired");
         }
@@ -281,6 +365,17 @@ export const formNodeRoutes = new OpenAPIHono<{
         });
         return result;
       } catch (err) {
+        if (err instanceof HTTPException) {
+          throw err;
+        }
+
+        console.error("Form node POST error:", err);
+
+        const isSessionError = err instanceof Error && err.message === "Session expired";
+        const errorMessage = isSessionError
+          ? "Your session has expired. Please try again."
+          : "An error occurred. Please try again.";
+
         return ctx.html(
           <FormNodePage
             theme={theme}
@@ -289,8 +384,8 @@ export const formNodeRoutes = new OpenAPIHono<{
             state={state}
             formName={form?.name || ""}
             nodeAlias={node?.alias || nodeId || ""}
-            components={components || []}
-            error={"Your session has expired. Please try again."}
+            components={resolveComponents(components || [], user)}
+            error={errorMessage}
           />,
         );
       }

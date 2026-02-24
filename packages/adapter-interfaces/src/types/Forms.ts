@@ -202,6 +202,7 @@ const dateField = fieldComponentBase.extend({
       format: z.string().optional(),
       min: z.string().optional(),
       max: z.string().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -231,6 +232,7 @@ const emailField = fieldComponentBase.extend({
   config: z
     .object({
       placeholder: z.string().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -264,6 +266,7 @@ const numberField = fieldComponentBase.extend({
       min: z.number().optional(),
       max: z.number().optional(),
       step: z.number().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -276,6 +279,7 @@ const passwordField = fieldComponentBase.extend({
       min_length: z.number().optional(),
       show_toggle: z.boolean().optional(),
       forgot_password_link: z.string().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -316,6 +320,7 @@ const telField = fieldComponentBase.extend({
     .object({
       placeholder: z.string().optional(),
       default_country: z.string().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -327,6 +332,7 @@ const textField = fieldComponentBase.extend({
       placeholder: z.string().optional(),
       multiline: z.boolean().optional(),
       max_length: z.number().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -336,6 +342,7 @@ const urlField = fieldComponentBase.extend({
   config: z
     .object({
       placeholder: z.string().optional(),
+      default_value: z.string().optional(),
     })
     .optional(),
 });
@@ -402,6 +409,16 @@ export type FormNodeComponent = z.infer<typeof formNodeComponentDefinition>;
 export type BlockComponent = z.infer<typeof blockComponentSchema>;
 export type WidgetComponent = z.infer<typeof widgetComponentSchema>;
 export type FieldComponent = z.infer<typeof fieldComponentSchema>;
+
+/**
+ * Field component type strings that collect user input in form nodes.
+ * Used at runtime to determine which components have submittable values.
+ * Excludes CUSTOM, FILE, PAYMENT, SOCIAL which use non-standard input mechanisms.
+ */
+export const FORM_FIELD_TYPES = new Set<string>([
+  "BOOLEAN", "CARDS", "CHOICE", "DATE", "DROPDOWN",
+  "EMAIL", "LEGAL", "NUMBER", "PASSWORD", "TEL", "TEXT", "URL",
+]);
 
 // Individual BLOCK component types
 export type DividerComponent = z.infer<typeof dividerComponent>;

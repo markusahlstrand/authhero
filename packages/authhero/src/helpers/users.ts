@@ -36,9 +36,20 @@ export async function getUserByProvider({
   username,
   provider,
 }: GetUserByProviderParams): Promise<User | null> {
-  // This handles that sms users are stored with the phone number. Username accounts are not yet handled
-  const userIdQuery =
-    provider === "sms" ? `phone_number:${username}` : `email:${username}`;
+  let userIdQuery: string;
+
+  if (provider === "sms") {
+    userIdQuery = `phone_number:${username}`;
+  } else if (username.includes("@")) {
+    // Email-based lookup
+    // INVARIANT: plain usernames must not contain "@", enforced by
+    // baseUserSchema in adapter-interfaces. This guarantees the heuristic
+    // here never misclassifies a username as an email.
+    userIdQuery = `email:${username}`;
+  } else {
+    // Username-based lookup (no @ sign means it's a plain username)
+    userIdQuery = `username:${username}`;
+  }
 
   const { users } = await userAdapter.list(tenant_id, {
     page: 0,
@@ -48,7 +59,7 @@ export async function getUserByProvider({
   });
 
   if (users.length > 1) {
-    console.error("More than one user found for same email and provider");
+    console.error("More than one user found for same username and provider");
   }
 
   return users[0] || null;
@@ -167,8 +178,9 @@ export async function getOrCreateUserByProvider(
   if (!user) {
     const userData = {
       user_id: `${provider}|${userId || userIdGenerate()}`,
-      email: connection !== "sms" ? username : undefined,
+      email: connection !== "sms" && username.includes("@") ? username : undefined,
       phone_number: connection === "sms" ? username : undefined,
+      username: !username.includes("@") && connection !== "sms" ? username : undefined,
       name: username,
       provider,
       connection,

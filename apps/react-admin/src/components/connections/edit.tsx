@@ -3,6 +3,7 @@ import {
   BooleanInput,
   ChipField,
   Edit,
+  FormDataConsumer,
   FunctionField,
   NumberInput,
   ReferenceManyField,
@@ -144,6 +145,32 @@ function ConnectionTabbedFrom() {
 
           {record?.strategy === "Username-Password-Authentication" && (
             <>
+              <BooleanInput
+                source="options.attributes.username.identifier.active"
+                label="Username as Identifier"
+                helperText="Allow users to log in with a username in addition to email"
+              />
+              <FormDataConsumer>
+                {({ formData }) =>
+                  formData?.options?.attributes?.username?.identifier
+                    ?.active && (
+                    <>
+                      <NumberInput
+                        source="options.attributes.username.validation.min_length"
+                        label="Minimum Username Length"
+                        defaultValue={1}
+                        min={1}
+                      />
+                      <NumberInput
+                        source="options.attributes.username.validation.max_length"
+                        label="Maximum Username Length"
+                        defaultValue={15}
+                        min={1}
+                      />
+                    </>
+                  )
+                }
+              </FormDataConsumer>
               <SelectInput
                 source="options.passwordPolicy"
                 label="Password Policy"

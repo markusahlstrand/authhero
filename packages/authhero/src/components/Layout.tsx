@@ -6,6 +6,7 @@ import Icon from "./Icon";
 import { PropsWithChildren } from "hono/jsx";
 import { lighten } from "../utils/color";
 import i18next from "i18next";
+import { buildHash } from "../build-hash";
 
 type LayoutProps = {
   title: string;
@@ -75,7 +76,7 @@ const Layout = ({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        <link rel="stylesheet" href={"/u/css/tailwind.css"} />
+        <link rel="stylesheet" href={`/u/css/tailwind.css?v=${buildHash}`} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"
@@ -121,7 +122,7 @@ const Layout = ({
         {/* Mount point for client-side hydration */}
         <div id="client-root"></div>
       </body>
-      <script type="module" src="/u/js/client.js" />
+      <script type="module" src={`/u/js/client.js?v=${buildHash}`} />
     </html>
   );
 };

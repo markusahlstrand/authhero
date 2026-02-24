@@ -255,7 +255,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
     const managementClient = testClient(managementApp, env);
     const token = await getAdminToken();
 
-    // Create a flow with UPDATE_USER action that uses {{fields.*}} templates
+    // Create a flow with UPDATE_USER action that uses {{$form.*}} templates
     const createFlowResponse = await managementClient.flows.$post(
       {
         json: {
@@ -268,9 +268,9 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
               params: {
                 user_id: "{{user.id}}",
                 changes: {
-                  "metadata.gender": "{{fields.dropdown_gender}}",
-                  "metadata.birthdate": "{{fields.date_birthdate}}",
-                  "address.country": "{{fields.dropdown_country}}",
+                  "metadata.gender": "{{$form.dropdown_gender}}",
+                  "metadata.birthdate": "{{$form.date_birthdate}}",
+                  "address.country": "{{$form.dropdown_country}}",
                 },
               },
             },
@@ -424,7 +424,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
       `/u/forms/${form.id}/nodes/step_info?state=${state}`,
     );
 
-    // Submit the form with field values - these should be injected into the flow action via {{fields.*}}
+    // Submit the form with field values - these should be injected into the flow action via {{$form.*}}
     const formStepPost = await universalClient["forms"][form.id][
       "nodes"
     ].step_info.$post({
@@ -494,7 +494,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
               params: {
                 user_id: "{{user.id}}",
                 changes: {
-                  "metadata.something": "{{fields.nonexistent_field}}",
+                  "metadata.something": "{{$form.nonexistent_field}}",
                 },
               },
             },

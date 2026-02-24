@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
+import { buildHash } from "../../build-hash";
 import {
   escapeHtml,
   escapeJs,
@@ -112,7 +113,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       margin-bottom: 16px;
     }
   </style>
-  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
+  <script type="module" src="/u/widget/authhero-widget.esm.js?v=${buildHash}"></script>
 </head>
 <body>
   <authhero-widget id="widget">

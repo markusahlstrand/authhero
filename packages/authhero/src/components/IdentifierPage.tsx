@@ -3,6 +3,7 @@ import {
   LoginSession,
   Theme,
   Branding,
+  getConnectionIdentifierConfig,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import Layout from "./Layout";
@@ -45,6 +46,12 @@ const IdentifierPage: FC<Props> = ({
     connectionStrategies.includes("email") ||
     connectionStrategies.includes("Username-Password-Authentication");
   const showPhoneInput = connectionStrategies.includes("sms");
+
+  // Check if the password connection has username identifier enabled
+  const passwordConnection = client.connections.find(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  const requiresUsername = getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;
 
   // Strategies that are handled by form inputs, not social/enterprise buttons
   const formStrategies = new Set([
@@ -91,17 +98,25 @@ const IdentifierPage: FC<Props> = ({
   const authMethodKey =
     showEmailInput && showPhoneInput
       ? "email_or_phone_placeholder"
-      : showEmailInput
-        ? "email_placeholder"
-        : "phone_placeholder";
+      : showEmailInput && requiresUsername
+        ? "email_or_username_placeholder"
+        : requiresUsername
+          ? "username_placeholder"
+          : showEmailInput
+            ? "email_placeholder"
+            : "phone_placeholder";
 
   let inputPlaceholder = i18next.t(
     authMethodKey,
     showEmailInput && showPhoneInput
       ? "Email or Phone Number"
-      : showEmailInput
-        ? "Email Address"
-        : "Phone Number",
+      : showEmailInput && requiresUsername
+        ? "Email address or Username"
+        : requiresUsername
+          ? "Username"
+          : showEmailInput
+            ? "Email Address"
+            : "Phone Number",
   );
 
   // Determine login description text based on available connections
@@ -163,9 +178,11 @@ const IdentifierPage: FC<Props> = ({
                   defaultValue:
                     showEmailInput && showPhoneInput
                       ? "email or phone number"
-                      : showEmailInput
-                        ? "email address"
-                        : "phone number",
+                      : showEmailInput && requiresUsername
+                        ? "email address or username"
+                        : showEmailInput
+                          ? "email address"
+                          : "phone number",
                 })
                 .toLocaleLowerCase(),
               defaultValue: "Sign in with your {{authMethod}}",

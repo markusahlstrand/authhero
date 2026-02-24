@@ -24,16 +24,20 @@ import {
     FlowFetcher,
     buildUserUpdates,
     mergeUserUpdates,
+    resolveTemplateField,
 } from "../../hooks/formhooks";
+import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import type {
     FormNodeComponent,
     UiScreen,
     Branding,
     Theme,
+    User,
 } from "@authhero/adapter-interfaces";
 import {
     renderWidgetPageResponse,
 } from "./u2-widget-page";
+import { sanitizeUrl } from "./sanitization-utils";
 
 
 
@@ -48,6 +52,7 @@ function buildFormNodeScreen(
     components: FormNodeComponent[],
     state: string,
     error?: string,
+    user?: User,
 ): UiScreen {
     // Build screen from form node components
     // Transform components to work with the widget's floating label pattern
@@ -56,30 +61,50 @@ function buildFormNodeScreen(
 
     // Add form components, transforming as needed for widget compatibility
     for (const comp of components) {
+        // Resolve default_value templates from user context
+        let resolvedComp = comp;
+        if (
+            user &&
+            comp.config &&
+            "default_value" in comp.config &&
+            typeof comp.config.default_value === "string" &&
+            comp.config.default_value.startsWith("{{") &&
+            comp.config.default_value.endsWith("}}")
+        ) {
+            const resolved = resolveTemplateField(comp.config.default_value, { user });
+            resolvedComp = {
+                ...comp,
+                config: {
+                    ...comp.config,
+                    default_value: resolved ?? "",
+                },
+            } as FormNodeComponent;
+        }
+
         // For field types with config.placeholder but no label, use placeholder as label
         // This ensures the floating label pattern works correctly
         // The widget uses `label` for the floating label, not `config.placeholder`
         if (
-            (comp.type === "TEXT" ||
-                comp.type === "EMAIL" ||
-                comp.type === "PASSWORD" ||
-                comp.type === "NUMBER" ||
-                comp.type === "TEL" ||
-                comp.type === "URL") &&
-            !comp.label &&
-            comp.config &&
-            "placeholder" in comp.config &&
-            comp.config.placeholder
+            (resolvedComp.type === "TEXT" ||
+                resolvedComp.type === "EMAIL" ||
+                resolvedComp.type === "PASSWORD" ||
+                resolvedComp.type === "NUMBER" ||
+                resolvedComp.type === "TEL" ||
+                resolvedComp.type === "URL") &&
+            !resolvedComp.label &&
+            resolvedComp.config &&
+            "placeholder" in resolvedComp.config &&
+            resolvedComp.config.placeholder
         ) {
             screenComponents.push({
-                ...comp,
-                label: comp.config.placeholder,
-                config: { ...comp.config, placeholder: undefined },
+                ...resolvedComp,
+                label: resolvedComp.config.placeholder,
+                config: { ...resolvedComp.config, placeholder: undefined },
                 order: order++,
             } as FormNodeComponent);
         } else {
             screenComponents.push({
-                ...comp,
+                ...resolvedComp,
                 order: order++,
             });
         }
@@ -111,6 +136,7 @@ async function renderFormNodeWidgetPage(
     theme: Theme | null,
     clientName: string,
     clientId: string,
+    termsAndConditionsUrl?: string,
 ): Promise<Response> {
     const screenJson = JSON.stringify(screen);
     const brandingJson = branding ? JSON.stringify(branding) : undefined;
@@ -128,6 +154,7 @@ async function renderFormNodeWidgetPage(
         theme,
         clientName,
         poweredByLogo: ctx.env.poweredByLogo,
+        termsAndConditionsUrl,
     });
 }
 
@@ -161,7 +188,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
             const { formId, nodeId } = ctx.req.valid("param");
             const { state } = ctx.req.valid("query");
 
-            const { client, theme, branding } = await initJSXRoute(ctx, state, true);
+            const { client, theme, branding, loginSession } = await initJSXRoute(ctx, state, true);
 
             const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -183,6 +210,26 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
             const components: FormNodeComponent[] =
                 "components" in node.config ? node.config.components : [];
 
+            // Try to fetch the user for resolving default_value templates
+            let user: User | undefined;
+            if (loginSession.session_id) {
+                const session = await ctx.env.data.sessions.get(
+                    client.tenant.id,
+                    loginSession.session_id,
+                );
+                if (session?.user_id) {
+                    user = await ctx.env.data.users.get(
+                        client.tenant.id,
+                        session.user_id,
+                    ) ?? undefined;
+                }
+            } else if (loginSession.user_id) {
+                user = await ctx.env.data.users.get(
+                    client.tenant.id,
+                    loginSession.user_id,
+                ) ?? undefined;
+            }
+
             // Build the UiScreen from form node components
             const screen = buildFormNodeScreen(
                 formId,
@@ -191,6 +238,8 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 node.alias || node.type,
                 components,
                 state,
+                undefined,
+                user,
             );
 
             return renderFormNodeWidgetPage(
@@ -202,6 +251,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 theme,
                 client.name || "AuthHero",
                 client.client_id,
+                sanitizeUrl(client.client_metadata?.termsAndConditionsUrl),
             );
         },
     )
@@ -252,7 +302,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         async (ctx) => {
             const { formId, nodeId } = ctx.req.valid("param");
             const { state } = ctx.req.valid("query");
-            const { branding, client } = await initJSXRoute(ctx, state, true);
+            const { branding, client, loginSession } = await initJSXRoute(ctx, state, true);
 
             let form: any = undefined;
             let node: any = undefined;
@@ -279,13 +329,8 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 const missingFields: string[] = [];
                 const submittedFields: Record<string, string> = {};
 
-                // Field component types that collect user input
-                const fieldTypes = new Set([
-                    "LEGAL", "TEXT", "DATE", "DROPDOWN", "EMAIL", "NUMBER",
-                    "BOOLEAN", "CHOICE", "TEL", "URL", "PASSWORD", "CARDS",
-                ]);
                 for (const comp of components) {
-                    if (fieldTypes.has(comp.type)) {
+                    if (FORM_FIELD_TYPES.has(comp.type)) {
                         const name = comp.id;
                         const compAny = comp as Record<string, unknown>;
                         const isRequired = !!compAny.required;
@@ -318,12 +363,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 }
 
                 // All required fields present, continue with session and user lookup
-                const loginSession = await ctx.env.data.loginSessions.get(
-                    client.tenant.id,
-                    state,
-                );
                 if (
-                    !loginSession ||
                     !loginSession.session_id ||
                     !loginSession.authParams
                 ) {
@@ -477,6 +517,13 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                     throw err;
                 }
 
+                console.error("Form node POST error:", err);
+
+                const isSessionError = err instanceof Error && err.message === "Session expired";
+                const errorMessage = isSessionError
+                    ? "Your session has expired. Please try again."
+                    : "An error occurred. Please try again.";
+
                 // Return JSON with screen for error re-render
                 const screen = buildFormNodeScreen(
                     formId,
@@ -485,7 +532,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                     node?.alias || nodeId || "",
                     components,
                     state,
-                    "Your session has expired. Please try again.",
+                    errorMessage,
                 );
 
                 return ctx.json({
