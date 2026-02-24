@@ -1,5 +1,17 @@
 # authhero
 
+## 4.42.0
+
+### Minor Changes
+
+- 65321b7: Update for forms, flows and u2 login
+
+### Patch Changes
+
+- Updated dependencies [65321b7]
+  - @authhero/adapter-interfaces@0.135.0
+  - @authhero/widget@0.15.0
+
 ## 4.41.0
 
 ### Minor Changes

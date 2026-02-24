@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.135.0
+
+### Minor Changes
+
+- 65321b7: Update for forms, flows and u2 login
+
 ## 0.134.0
 
 ### Minor Changes
