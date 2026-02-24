@@ -55,6 +55,7 @@
   "email_changed_to_template": "E-mail se změnil na <0>{email}</0> ",
   "email_or_phone_placeholder": "E-mail nebo telefonní číslo",
   "email_placeholder": "E-mailová adresa",
+  "username_placeholder": "Uživatelské jméno",
   "email_validated": "Vaše e-mailová adresa byla ověřena",
   "email_validated_cta": "Nyní zadejte své heslo a znovu se přihlaste",
   "email_verification_for_signup_sent_description": "E-mail byl odeslán na adresu <0>{email}</0> s ověřovacím odkazem. Kliknutím na odkaz ověřte svou e-mailovou adresu a nastavte heslo.",

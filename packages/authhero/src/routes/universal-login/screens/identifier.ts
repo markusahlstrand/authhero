@@ -138,11 +138,15 @@ export async function identifierScreen(
   );
   const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
   const requiresUsername = identifierConfig.usernameIdentifierActive;
+  const requiresEmail = identifierConfig.emailIdentifierActive;
 
   // Determine the appropriate label/placeholder based on connection config
-  const identifierLabel = requiresUsername
-    ? m.email_or_username_placeholder()
-    : m.email_placeholder();
+  const identifierLabel =
+    requiresUsername && requiresEmail
+      ? m.email_or_username_placeholder()
+      : requiresUsername
+        ? m.username_placeholder()
+        : m.email_placeholder();
 
   const components: FormNodeComponent[] = [
     // Social login buttons (if any)

@@ -100,9 +100,11 @@ const IdentifierPage: FC<Props> = ({
       ? "email_or_phone_placeholder"
       : showEmailInput && requiresUsername
         ? "email_or_username_placeholder"
-        : showEmailInput
-          ? "email_placeholder"
-          : "phone_placeholder";
+        : requiresUsername
+          ? "username_placeholder"
+          : showEmailInput
+            ? "email_placeholder"
+            : "phone_placeholder";
 
   let inputPlaceholder = i18next.t(
     authMethodKey,
@@ -110,9 +112,11 @@ const IdentifierPage: FC<Props> = ({
       ? "Email or Phone Number"
       : showEmailInput && requiresUsername
         ? "Email address or Username"
-        : showEmailInput
-          ? "Email Address"
-          : "Phone Number",
+        : requiresUsername
+          ? "Username"
+          : showEmailInput
+            ? "Email Address"
+            : "Phone Number",
   );
 
   // Determine login description text based on available connections

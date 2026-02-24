@@ -400,9 +400,10 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
     // Update the component ID based on the label (Auth0-style) when it has a label
     const updatedComponent = { ...editingComponent };
-    const derivedId = updatedComponent.label
-      ? labelToId(updatedComponent.label)
-      : null;
+    // For TEXT/EMAIL/NUMBER/TEL the editable label lives in config.label
+    const effectiveLabel =
+      updatedComponent.label || updatedComponent.config?.label;
+    const derivedId = effectiveLabel ? labelToId(effectiveLabel) : null;
     if (derivedId) {
       updatedComponent.id = uniqueComponentId(
         derivedId,
@@ -1556,7 +1557,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 onChange={(e) => {
                   const raw = e.target.value;
                   // Store as array when multiple selections are enabled
-                  if (editingComponent?.config?.multiple && raw.includes(",")) {
+                  if (editingComponent?.config?.multiple) {
                     handleComponentFieldChange(
                       "default_value",
                       raw.split(",").map((s) => s.trim()).filter(Boolean),

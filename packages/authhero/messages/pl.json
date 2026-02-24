@@ -55,6 +55,7 @@
   "email_changed_to_template": "Zmieniono adres e-mail na <0>{email}</0> ",
   "email_or_phone_placeholder": "E-mail lub numer telefonu",
   "email_placeholder": "Adres e-mail",
+  "username_placeholder": "Nazwa użytkownika",
   "email_validated": "Twój adres e-mail został zweryfikowany",
   "email_validated_cta": "Teraz wprowadź hasło, aby zalogować się ponownie",
   "email_verification_for_signup_sent_description": "Wiadomość e-mail została wysłana do <0>{email}</0> z linkiem weryfikacyjnym. Kliknij łącze, aby zweryfikować swój adres e-mail i ustawić hasło.",

@@ -55,6 +55,7 @@
   "email_changed_to_template": "Sähköposti muutettu muotoon <0>{email}</0> ",
   "email_or_phone_placeholder": "Sähköposti tai puhelinnumero",
   "email_placeholder": "Sähköpostiosoite",
+  "username_placeholder": "Käyttäjänimi",
   "email_validated": "Sähköpostiosoitteesi on vahvistettu",
   "email_validated_cta": "Kirjoita nyt salasanasi kirjautuaksesi uudelleen",
   "email_verification_for_signup_sent_description": "Sähköposti on lähetetty osoitteeseen <0>{email}</0> jossa on vahvistuslinkki. Klikkaa linkkiä vahvistaaksesi sähköpostiosoitteesi ja asettaaksesi salasanan.",

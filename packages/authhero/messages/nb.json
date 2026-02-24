@@ -55,6 +55,7 @@
   "email_changed_to_template": "E-post endret til <0>{email}</0> ",
   "email_or_phone_placeholder": "E-post eller telefonnummer",
   "email_placeholder": "E-postadresse",
+  "username_placeholder": "Brukernavn",
   "email_validated": "E-postadressen din har blitt validert",
   "email_validated_cta": "Skriv nå inn passordet ditt for å logge inn igjen",
   "email_verification_for_signup_sent_description": "En e-post har blitt sendt til <0>{email}</0> med en bekreftelseslenke. Klikk på lenken for å bekrefte e-postadressen din og angi et passord.",

@@ -55,6 +55,7 @@
   "email_changed_to_template": "E-postadressen ändrades till <0>{email}</0> ",
   "email_or_phone_placeholder": "E-post eller telefonnummer",
   "email_placeholder": "E-postadress",
+  "username_placeholder": "Användarnamn",
   "email_validated": "Din e-postadress har validerats",
   "email_validated_cta": "Ange nu ditt lösenord för att logga in igen",
   "email_verification_for_signup_sent_description": "Ett e-postmeddelande har skickats till <0>{email}</0> med en verifieringslänk. Vänligen klicka på länken för att verifiera din e-postadress och välja ett lösenord.",

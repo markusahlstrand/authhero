@@ -43,7 +43,7 @@ function resolveComponents(
         ...comp,
         config: {
           ...comp.config,
-          default_value: resolved ?? "",
+          default_value: resolved ?? comp.config.default_value,
         },
       } as FormNodeComponent;
     }
@@ -101,22 +101,26 @@ export const formNodeRoutes = new OpenAPIHono<{
 
       // Try to fetch user for resolving default_value templates
       let user: User | undefined;
-      if (loginSession.session_id) {
-        const session = await ctx.env.data.sessions.get(
-          client.tenant.id,
-          loginSession.session_id,
-        );
-        if (session?.user_id) {
+      try {
+        if (loginSession.session_id) {
+          const session = await ctx.env.data.sessions.get(
+            client.tenant.id,
+            loginSession.session_id,
+          );
+          if (session?.user_id) {
+            user = await ctx.env.data.users.get(
+              client.tenant.id,
+              session.user_id,
+            ) ?? undefined;
+          }
+        } else if (loginSession.user_id) {
           user = await ctx.env.data.users.get(
             client.tenant.id,
-            session.user_id,
+            loginSession.user_id,
           ) ?? undefined;
         }
-      } else if (loginSession.user_id) {
-        user = await ctx.env.data.users.get(
-          client.tenant.id,
-          loginSession.user_id,
-        ) ?? undefined;
+      } catch {
+        // Non-critical: user resolution for templates can fail silently
       }
 
       // Resolve default_value templates in components

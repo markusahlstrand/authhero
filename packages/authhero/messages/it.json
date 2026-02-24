@@ -55,6 +55,7 @@
   "email_changed_to_template": "L'e-mail è stata modificata in <0>{email}</0> ",
   "email_or_phone_placeholder": "Indirizzo e-mail o numero di telefono",
   "email_placeholder": "Indirizzo e-mail",
+  "username_placeholder": "Nome utente",
   "email_validated": "Il tuo indirizzo e-mail è stato convalidato",
   "email_validated_cta": "Ora inserire la password per accedere nuovamente",
   "email_verification_for_signup_sent_description": "È stata inviata un'e-mail a <0>{email}</0> con un link di verifica. Fare clic sul link per verificare l'indirizzo e-mail e impostare una password.",

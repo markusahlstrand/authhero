@@ -58,6 +58,7 @@
   "email_or_phone_placeholder": "Email or Phone Number",
   "email_or_username_placeholder": "Email address or Username",
   "email_placeholder": "Email address",
+  "username_placeholder": "Username",
   "email_validated": "Your email address has been validated",
   "email_validated_cta": "Now enter your password to login again",
   "email_verification_for_signup_sent_description": "An email has been sent to <0>{email}</0> with a verification link. Please click the link to verify your email address and set a password.",
