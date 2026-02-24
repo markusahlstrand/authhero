@@ -265,9 +265,11 @@ export const identifierScreenDefinition: ScreenDefinition = {
 
       // Validate username is provided
       if (!username) {
+        const locale = context.language || "en";
+        const { m } = createTranslation(locale, context.customText);
         const fieldLabel = requiresUsername
-          ? "Email or username is required"
-          : "Email is required";
+          ? m.no_email_or_username()
+          : m.no_email();
         return {
           error: fieldLabel,
           screen: await identifierScreen({

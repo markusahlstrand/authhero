@@ -77,7 +77,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
  */
 export const TERMS_TRANSLATIONS: Record<string, string> = {
   en: "Terms and Conditions",
-  nb: "vilkår",
+  nb: "Vilkår",
   sv: "Villkor",
   da: "Vilkår og betingelser",
   fi: "Ehdot ja edellytykset",

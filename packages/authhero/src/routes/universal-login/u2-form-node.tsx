@@ -37,6 +37,7 @@ import type {
 import {
     renderWidgetPageResponse,
 } from "./u2-widget-page";
+import { sanitizeUrl } from "./sanitization-utils";
 
 
 
@@ -250,7 +251,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 theme,
                 client.name || "AuthHero",
                 client.client_id,
-                client.client_metadata?.termsAndConditionsUrl,
+                sanitizeUrl(client.client_metadata?.termsAndConditionsUrl),
             );
         },
     )

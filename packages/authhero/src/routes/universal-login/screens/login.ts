@@ -271,7 +271,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText);
+      const { m } = createTranslation(locale, context.customText, "login");
 
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(
@@ -408,7 +408,7 @@ export const loginScreenDefinition: ScreenDefinition = {
         if (!validation.allowed) {
           const errorMsg = m.user_account_does_not_exist();
           return {
-            error: validation.reason || errorMsg,
+            error: errorMsg,
             screen: await loginScreen({
               ...context,
               prefill: { username },
