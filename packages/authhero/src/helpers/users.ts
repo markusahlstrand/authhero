@@ -42,6 +42,9 @@ export async function getUserByProvider({
     userIdQuery = `phone_number:${username}`;
   } else if (username.includes("@")) {
     // Email-based lookup
+    // INVARIANT: plain usernames must not contain "@", enforced by
+    // baseUserSchema in adapter-interfaces. This guarantees the heuristic
+    // here never misclassifies a username as an email.
     userIdQuery = `email:${username}`;
   } else {
     // Username-based lookup (no @ sign means it's a plain username)

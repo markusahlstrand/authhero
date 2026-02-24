@@ -259,7 +259,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         // Re-fetch user if not already loaded (or ensure fresh data)
         if (!user) {
           user = await ctx.env.data.users.get(
-            ctx.var.tenant_id,
+            client.tenant.id,
             session.user_id,
           ) ?? undefined;
         }

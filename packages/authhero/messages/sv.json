@@ -120,6 +120,7 @@
   "password_contains_personal_info": "Lösenordet får inte innehålla personlig information som ditt namn eller e-post",
   "password_has_been_reset": "Lösenordet har återställts",
   "password_has_been_reset_title": "Framgång",
+  "password_login_not_available": "Lösenordsinloggning är inte tillgänglig för denna applikation",
   "password_missing_lowercase": "Lösenordet måste innehålla minst en liten bokstav",
   "password_missing_number": "Lösenordet måste innehålla minst en siffra",
   "password_missing_special": "Lösenordet måste innehålla minst ett specialtecken",

@@ -120,6 +120,7 @@
   "password_contains_personal_info": "Adgangskoden må ikke indeholde personlige oplysninger som dit navn eller e-mail",
   "password_has_been_reset": "Adgangskoden er blevet nulstillet",
   "password_has_been_reset_title": "Succes",
+  "password_login_not_available": "Adgangskode-login er ikke tilgængeligt for denne applikation",
   "password_missing_lowercase": "Adgangskoden skal indeholde mindst ét lille bogstav",
   "password_missing_number": "Adgangskoden skal indeholde mindst ét tal",
   "password_missing_special": "Adgangskoden skal indeholde mindst ét specialtegn",

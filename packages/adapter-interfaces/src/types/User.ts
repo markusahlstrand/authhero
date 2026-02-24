@@ -21,7 +21,13 @@ export const baseUserSchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? val.toLowerCase() : val)),
-  username: z.string().optional(),
+  username: z
+    .string()
+    .refine((val) => !val.includes("@"), {
+      message:
+        'Usernames must not contain "@". Use the email field for email addresses.',
+    })
+    .optional(),
   phone_number: z.string().optional(),
   phone_verified: z.boolean().optional(), // OIDC phone scope claim (phone_number_verified)
   given_name: z.string().optional(),

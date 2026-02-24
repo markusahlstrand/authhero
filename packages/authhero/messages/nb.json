@@ -120,6 +120,7 @@
   "password_contains_personal_info": "Passordet kan ikke inneholde personlig informasjon som navn eller e-post",
   "password_has_been_reset": "Passordet har blitt tilbakestilt",
   "password_has_been_reset_title": "Suksess",
+  "password_login_not_available": "Passordinnlogging er ikke tilgjengelig for denne applikasjonen",
   "password_missing_lowercase": "Passordet må inneholde minst én liten bokstav",
   "password_missing_number": "Passordet må inneholde minst ett tall",
   "password_missing_special": "Passordet må inneholde minst ett spesialtegn",

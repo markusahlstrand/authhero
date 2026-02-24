@@ -120,6 +120,7 @@
   "password_contains_personal_info": "Hasło nie może zawierać danych osobowych, takich jak imię lub adres e-mail",
   "password_has_been_reset": "Hasło zostało zresetowane",
   "password_has_been_reset_title": "Sukces",
+  "password_login_not_available": "Logowanie hasłem nie jest dostępne dla tej aplikacji",
   "password_missing_lowercase": "Hasło musi zawierać co najmniej jedną małą literę",
   "password_missing_number": "Hasło musi zawierać co najmniej jedną cyfrę",
   "password_missing_special": "Hasło musi zawierać co najmniej jeden znak specjalny",

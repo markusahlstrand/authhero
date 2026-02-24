@@ -309,12 +309,13 @@ export const loginScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
+        const errorMsg = m.invalid_identifier();
         return {
-          error: "Invalid identifier",
+          error: errorMsg,
           screen: await loginScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Invalid identifier" },
+            errors: { username: errorMsg },
           }),
         };
       }
@@ -325,8 +326,6 @@ export const loginScreenDefinition: ScreenDefinition = {
         const maxLength = identifierConfig.usernameMaxLength;
 
         if (normalized.length < minLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText);
           const errorMsg = m.username_too_short({ min: String(minLength) });
           return {
             error: errorMsg,
@@ -339,8 +338,6 @@ export const loginScreenDefinition: ScreenDefinition = {
         }
 
         if (normalized.length > maxLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText);
           const errorMsg = m.username_too_long({ max: String(maxLength) });
           return {
             error: errorMsg,
@@ -355,12 +352,13 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // If connectionType is "username" but username identifier is not active, reject
       if (connectionType === "username" && !requiresUsername) {
+        const errorMsg = m.invalid_email();
         return {
-          error: "Invalid email",
+          error: errorMsg,
           screen: await loginScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Invalid email" },
+            errors: { username: errorMsg },
           }),
         };
       }
@@ -382,12 +380,13 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Check if password connection is allowed
       if (!passwordConnection) {
+        const errorMsg = m.password_login_not_available();
         return {
-          error: "Password login not available",
+          error: errorMsg,
           screen: await loginScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Password login not available for this application" },
+            errors: { username: errorMsg },
           }),
         };
       }
@@ -403,12 +402,13 @@ export const loginScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
+          const errorMsg = m.user_account_does_not_exist();
           return {
-            error: validation.reason || "Account does not exist",
+            error: validation.reason || errorMsg,
             screen: await loginScreen({
               ...context,
               prefill: { username },
-              errors: { username: "Account does not exist" },
+              errors: { username: errorMsg },
             }),
           };
         }
@@ -421,12 +421,13 @@ export const loginScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
+        const errorMsg = m.session_expired();
         return {
-          error: "Session expired",
+          error: errorMsg,
           screen: await loginScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Session expired. Please try again." },
+            errors: { username: errorMsg },
           }),
         };
       }

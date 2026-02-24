@@ -16,6 +16,9 @@ export function getConnectionFromIdentifier(
 ): NormalizedResult {
   const username = input.trim();
 
+  // INVARIANT: plain usernames must not contain "@", enforced by
+  // baseUserSchema in adapter-interfaces. Any input containing "@" is
+  // therefore safe to classify as an email identifier.
   if (username.includes("@")) {
     const normalized = username.toLowerCase();
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);

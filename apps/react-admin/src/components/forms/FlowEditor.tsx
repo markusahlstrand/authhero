@@ -41,7 +41,6 @@ export interface ComponentConfig {
   config?: {
     content?: string;
     text?: string;
-    html?: boolean;
     label?: string;
     placeholder?: string;
     // DROPDOWN config

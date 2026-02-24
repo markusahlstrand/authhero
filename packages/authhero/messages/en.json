@@ -123,6 +123,7 @@
   "password_contains_personal_info": "Password cannot contain personal information like your name or email",
   "password_has_been_reset": "The password has been reset",
   "password_has_been_reset_title": "Success",
+  "password_login_not_available": "Password login not available for this application",
   "password_missing_lowercase": "Password must contain at least one lowercase letter",
   "password_missing_number": "Password must contain at least one number",
   "password_missing_special": "Password must contain at least one special character",

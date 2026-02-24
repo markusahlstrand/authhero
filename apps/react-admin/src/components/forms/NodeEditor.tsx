@@ -162,12 +162,13 @@ import type {
  * Converts a label to a snake_case ID, matching Auth0's convention.
  * e.g. "Privacy Policies" → "privacy_policies", "birthdate" → "birthdate"
  */
-function labelToId(label: string): string {
-  return label
+function labelToId(label: string): string | null {
+  const id = label
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
+  return id || null;
 }
 
 /**
@@ -399,9 +400,12 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
     // Update the component ID based on the label (Auth0-style) when it has a label
     const updatedComponent = { ...editingComponent };
-    if (updatedComponent.label) {
+    const derivedId = updatedComponent.label
+      ? labelToId(updatedComponent.label)
+      : null;
+    if (derivedId) {
       updatedComponent.id = uniqueComponentId(
-        labelToId(updatedComponent.label),
+        derivedId,
         formData.components || [],
         editingComponent.id,
       );
@@ -415,6 +419,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     }));
     handleCloseComponentDialog();
   }, [editingComponent, handleCloseComponentDialog]);
+
+  // Safely coerce default_value to a string for single-value fields
+  const toStringValue = (
+    val: string | string[] | boolean | undefined,
+  ): string => {
+    if (val === undefined || val === null) return "";
+    if (typeof val === "boolean") return String(val);
+    if (Array.isArray(val)) return val.join(", ");
+    return val;
+  };
 
   const handleComponentFieldChange = useCallback(
     (field: string, value: any) => {
@@ -499,9 +513,9 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const defaultLabel = getDefaultLabel();
     // Generate ID from label (Auth0-style) for field components, with random suffix as fallback
-    const baseId = defaultLabel
-      ? labelToId(defaultLabel)
-      : `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`;
+    const baseId =
+      (defaultLabel && labelToId(defaultLabel)) ||
+      `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`;
     // Avoid duplicate IDs when adding multiple components of the same type
     const id = uniqueComponentId(
       baseId,
@@ -1463,7 +1477,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   ROUTER_FIELD_OPTIONS.find(
                     (opt) =>
                       opt.value === editingComponent?.config?.default_value,
-                  ) || (editingComponent?.config?.default_value as string) || ""
+                  ) || toStringValue(editingComponent?.config?.default_value)
                 }
                 onChange={(_e, newValue) => {
                   const val =
@@ -1538,12 +1552,25 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
               <TextField
                 fullWidth
                 label="Default Value"
-                value={editingComponent?.config?.default_value || ""}
-                onChange={(e) =>
-                  handleComponentFieldChange("default_value", e.target.value)
-                }
+                value={toStringValue(editingComponent?.config?.default_value)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  // Store as array when multiple selections are enabled
+                  if (editingComponent?.config?.multiple && raw.includes(",")) {
+                    handleComponentFieldChange(
+                      "default_value",
+                      raw.split(",").map((s) => s.trim()).filter(Boolean),
+                    );
+                  } else {
+                    handleComponentFieldChange("default_value", raw);
+                  }
+                }}
                 margin="normal"
-                helperText="Default selected value (or use {{context.user.…}} to populate from profile)"
+                helperText={
+                  editingComponent?.config?.multiple
+                    ? "Comma-separated values for multiple defaults (or use {{context.user.…}})"
+                    : "Default selected value (or use {{context.user.…}} to populate from profile)"
+                }
               />
               <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
                 Options
@@ -1653,7 +1680,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   ROUTER_FIELD_OPTIONS.find(
                     (opt) =>
                       opt.value === editingComponent?.config?.default_value,
-                  ) || (editingComponent?.config?.default_value as string) || ""
+                  ) || toStringValue(editingComponent?.config?.default_value)
                 }
                 onChange={(_e, newValue) => {
                   const val =
