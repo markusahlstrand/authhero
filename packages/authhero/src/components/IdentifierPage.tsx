@@ -174,9 +174,11 @@ const IdentifierPage: FC<Props> = ({
                   defaultValue:
                     showEmailInput && showPhoneInput
                       ? "email or phone number"
-                      : showEmailInput
-                        ? "email address"
-                        : "phone number",
+                      : showEmailInput && requiresUsername
+                        ? "email address or username"
+                        : showEmailInput
+                          ? "email address"
+                          : "phone number",
                 })
                 .toLocaleLowerCase(),
               defaultValue: "Sign in with your {{authMethod}}",

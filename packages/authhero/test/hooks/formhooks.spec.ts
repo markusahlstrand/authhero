@@ -213,7 +213,7 @@ describe("formhooks", () => {
         { user_id: "u1", changes: { "metadata.foo": "bar" } },
       ];
       expect(mergeUserUpdates(updates)).toEqual([
-        { user_id: "u1", connection_id: undefined, changes: { "metadata.foo": "bar" } },
+        { user_id: "u1", changes: { "metadata.foo": "bar" } },
       ]);
     });
 

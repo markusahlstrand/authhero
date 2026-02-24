@@ -170,6 +170,25 @@ function labelToId(label: string): string {
     .replace(/^_|_$/g, "");
 }
 
+/**
+ * Returns a unique component ID by appending _1, _2, … when `baseId`
+ * already exists in the list. `excludeId` lets us skip the component
+ * that is currently being renamed so it doesn't collide with itself.
+ */
+function uniqueComponentId(
+  baseId: string,
+  existing: { id: string }[],
+  excludeId?: string,
+): string {
+  const ids = new Set(
+    existing.filter((c) => c.id !== excludeId).map((c) => c.id),
+  );
+  if (!ids.has(baseId)) return baseId;
+  let n = 1;
+  while (ids.has(`${baseId}_${n}`)) n++;
+  return `${baseId}_${n}`;
+}
+
 interface NodeEditorProps {
   open: boolean;
   selectedNode: Node | null;
@@ -381,7 +400,11 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     // Update the component ID based on the label (Auth0-style) when it has a label
     const updatedComponent = { ...editingComponent };
     if (updatedComponent.label) {
-      updatedComponent.id = labelToId(updatedComponent.label);
+      updatedComponent.id = uniqueComponentId(
+        labelToId(updatedComponent.label),
+        formData.components || [],
+        editingComponent.id,
+      );
     }
 
     setFormData((prev: any) => ({
@@ -424,7 +447,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           return { label: "Email", placeholder: "Enter your email" };
         case "NUMBER":
           return { label: "Number", placeholder: "" };
-        case "PHONE":
+        case "TEL":
           return { label: "Phone", placeholder: "Enter your phone number" };
         case "DROPDOWN":
           return { options: [], multiple: false };
@@ -462,7 +485,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         case "TEXT":
         case "EMAIL":
         case "NUMBER":
-        case "PHONE":
+        case "TEL":
         case "DROPDOWN":
         case "DATE":
         case "CHOICE":
@@ -476,9 +499,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const defaultLabel = getDefaultLabel();
     // Generate ID from label (Auth0-style) for field components, with random suffix as fallback
-    const id = defaultLabel
+    const baseId = defaultLabel
       ? labelToId(defaultLabel)
       : `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 6)}`;
+    // Avoid duplicate IDs when adding multiple components of the same type
+    const id = uniqueComponentId(
+      baseId,
+      // Read from latest formData via the updater; here we just reference the
+      // outer closure which is fine for the add-component path.
+      formData.components || [],
+    );
     const newComponent: ComponentConfig = {
       id,
       type,
@@ -676,7 +706,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                         : (component.type === "TEXT" ||
                               component.type === "EMAIL" ||
                               component.type === "NUMBER" ||
-                              component.type === "PHONE") &&
+                              component.type === "TEL") &&
                             component.config?.label
                           ? `Label: ${component.config.label}`
                           : (component.type === "DROPDOWN" ||
@@ -770,7 +800,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            handleAddComponent("PHONE");
+            handleAddComponent("TEL");
             setAddComponentAnchor(null);
           }}
         >
@@ -1401,7 +1431,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
           {(editingComponent?.type === "TEXT" ||
             editingComponent?.type === "EMAIL" ||
             editingComponent?.type === "NUMBER" ||
-            editingComponent?.type === "PHONE") && (
+            editingComponent?.type === "TEL") && (
             <Box>
               <TextField
                 fullWidth

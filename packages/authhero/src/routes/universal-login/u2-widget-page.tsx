@@ -73,6 +73,20 @@ const LANGUAGE_NAMES: Record<string, string> = {
 };
 
 /**
+ * Localized "Terms and Conditions" link text
+ */
+export const TERMS_TRANSLATIONS: Record<string, string> = {
+  en: "Terms and Conditions",
+  nb: "vilkår",
+  sv: "Villkor",
+  da: "Vilkår og betingelser",
+  fi: "Ehdot ja edellytykset",
+  cs: "Podmínky a pravidla",
+  pl: "Zasady i warunki",
+  it: "Termini e condizioni",
+};
+
+/**
  * Widget page component – renders the full HTML page with the SSR widget.
  */
 export function WidgetPage({
@@ -235,7 +249,7 @@ export function WidgetPage({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Terms and Conditions
+                {TERMS_TRANSLATIONS[language || "en"] || TERMS_TRANSLATIONS.en}
               </a>
             )}
           </div>

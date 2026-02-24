@@ -410,6 +410,16 @@ export type BlockComponent = z.infer<typeof blockComponentSchema>;
 export type WidgetComponent = z.infer<typeof widgetComponentSchema>;
 export type FieldComponent = z.infer<typeof fieldComponentSchema>;
 
+/**
+ * Field component type strings that collect user input in form nodes.
+ * Used at runtime to determine which components have submittable values.
+ * Excludes CUSTOM, FILE, PAYMENT, SOCIAL which use non-standard input mechanisms.
+ */
+export const FORM_FIELD_TYPES = new Set<string>([
+  "BOOLEAN", "CARDS", "CHOICE", "DATE", "DROPDOWN",
+  "EMAIL", "LEGAL", "NUMBER", "PASSWORD", "TEL", "TEXT", "URL",
+]);
+
 // Individual BLOCK component types
 export type DividerComponent = z.infer<typeof dividerComponent>;
 export type HtmlComponent = z.infer<typeof htmlComponent>;

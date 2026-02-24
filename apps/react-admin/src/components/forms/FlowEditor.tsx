@@ -20,6 +20,7 @@ import "@xyflow/react/dist/style.css";
 import { Box, Typography, Alert, GlobalStyles } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { useTheme } from "@mui/material/styles";
+import type { FormNodeComponent } from "@authhero/adapter-interfaces";
 
 // Import the NodeEditor component
 import NodeEditor from "./NodeEditor";
@@ -32,18 +33,7 @@ export interface DropdownOption {
 
 export interface ComponentConfig {
   id: string;
-  type:
-    | "RICH_TEXT"
-    | "LEGAL"
-    | "NEXT_BUTTON"
-    | "TEXT"
-    | "EMAIL"
-    | "NUMBER"
-    | "PHONE"
-    | "DROPDOWN"
-    | "DATE"
-    | "CHOICE"
-    | "CUSTOM";
+  type: FormNodeComponent["type"];
   category?: "BLOCK" | "FIELD" | "WIDGET";
   label?: string;
   required?: boolean;
@@ -51,12 +41,13 @@ export interface ComponentConfig {
   config?: {
     content?: string;
     text?: string;
+    html?: boolean;
     label?: string;
     placeholder?: string;
     // DROPDOWN config
     options?: DropdownOption[];
     multiple?: boolean;
-    default_value?: string | string[];
+    default_value?: string | string[] | boolean;
     searchable?: boolean;
     // DATE config
     format?: "DATE" | "TIME" | "DATETIME";

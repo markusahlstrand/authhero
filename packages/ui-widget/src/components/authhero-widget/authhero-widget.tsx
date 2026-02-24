@@ -263,7 +263,6 @@ export class AuthheroWidget {
    * Emitted when the screen changes.
    */
   @Event() screenChange!: EventEmitter<UiScreen>;
-
   @Watch("screen")
   watchScreen(newValue: UiScreen | string | undefined) {
     if (typeof newValue === "string") {
@@ -276,6 +275,7 @@ export class AuthheroWidget {
       this._screen = newValue;
     }
     if (this._screen) {
+      this.formData = {};
       this.initFormDataFromDefaults(this._screen);
       this.screenChange.emit(this._screen);
       this.updateDataScreenAttribute();
@@ -635,8 +635,15 @@ export class AuthheroWidget {
           if (this.shouldAutoNavigate) {
             window.location.href = result.redirect;
           }
+        } else if (!response.ok && result.screen) {
+          // Handle validation errors (400 response) — preserve user input
+          this._screen = result.screen;
+          this.initFormDataFromDefaults(result.screen);
+          this.screenChange.emit(result.screen);
+          this.updateDataScreenAttribute();
+          this.focusFirstInput();
         } else if (result.screen) {
-          // Next screen
+          // Next screen (success)
           this._screen = result.screen;
           this.formData = {};
           this.initFormDataFromDefaults(result.screen);
@@ -677,15 +684,6 @@ export class AuthheroWidget {
         } else if (result.complete) {
           // Flow complete without redirect
           this.flowComplete.emit({});
-        }
-
-        // Handle validation errors (400 response)
-        if (!response.ok && result.screen) {
-          this._screen = result.screen;
-          this.initFormDataFromDefaults(result.screen);
-          this.screenChange.emit(result.screen);
-          this.updateDataScreenAttribute();
-          this.focusFirstInput();
         }
       }
     } catch (err) {

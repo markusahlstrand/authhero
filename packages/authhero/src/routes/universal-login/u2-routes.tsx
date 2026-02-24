@@ -865,7 +865,7 @@ function createScreenRouteHandler(screenId: string) {
         poweredByLogo={ctx.env.poweredByLogo}
         language={language}
         availableLanguages={Object.keys(LANGUAGE_NAMES)}
-        termsAndConditionsUrl={client.client_metadata?.termsAndConditionsUrl}
+        termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
       />,
     );
   };
@@ -1165,7 +1165,7 @@ function createScreenPostHandler(screenId: string) {
         poweredByLogo={ctx.env.poweredByLogo}
         language={language}
         availableLanguages={Object.keys(LANGUAGE_NAMES)}
-        termsAndConditionsUrl={client.client_metadata?.termsAndConditionsUrl}
+        termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
       />,
     );
   };

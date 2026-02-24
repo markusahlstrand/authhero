@@ -20,6 +20,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { buildHash } from "../../build-hash";
+import { TERMS_TRANSLATIONS } from "./u2-widget-page";
 import {
   getScreen,
   getScreenDefinition,
@@ -65,6 +66,7 @@ type WidgetPageProps = {
     height?: number;
   };
   termsAndConditionsUrl?: string;
+  language?: string;
 };
 
 /**
@@ -78,6 +80,7 @@ function WidgetPage({
   clientName,
   poweredByLogo,
   termsAndConditionsUrl,
+  language,
 }: WidgetPageProps) {
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -202,7 +205,7 @@ function WidgetPage({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Terms and Conditions
+                {TERMS_TRANSLATIONS[language || "en"] || TERMS_TRANSLATIONS.en}
               </a>
             )}
           </div>
@@ -343,7 +346,8 @@ export const widgetRoutes = new OpenAPIHono<{
           themePageBackground={theme?.page_background}
           clientName={client.name || "AuthHero"}
           poweredByLogo={ctx.env.poweredByLogo}
-          termsAndConditionsUrl={client.client_metadata?.termsAndConditionsUrl}
+          termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
+          language={loginSession.authParams?.ui_locales?.split(" ")[0]}
         />,
       );
     },

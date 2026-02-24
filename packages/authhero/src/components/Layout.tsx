@@ -76,7 +76,7 @@ const Layout = ({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        <link rel="stylesheet" href={"/u/css/tailwind.css"} />
+        <link rel="stylesheet" href={`/u/css/tailwind.css?v=${buildHash}`} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"

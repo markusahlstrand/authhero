@@ -56,7 +56,7 @@ export async function getUserByProvider({
   });
 
   if (users.length > 1) {
-    console.error("More than one user found for same email and provider");
+    console.error("More than one user found for same username and provider");
   }
 
   return users[0] || null;
@@ -175,8 +175,9 @@ export async function getOrCreateUserByProvider(
   if (!user) {
     const userData = {
       user_id: `${provider}|${userId || userIdGenerate()}`,
-      email: connection !== "sms" ? username : undefined,
+      email: connection !== "sms" && username.includes("@") ? username : undefined,
       phone_number: connection === "sms" ? username : undefined,
+      username: !username.includes("@") && connection !== "sms" ? username : undefined,
       name: username,
       provider,
       connection,

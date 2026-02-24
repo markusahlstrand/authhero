@@ -26,6 +26,7 @@ import {
     mergeUserUpdates,
     resolveTemplateField,
 } from "../../hooks/formhooks";
+import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import type {
     FormNodeComponent,
     UiScreen,
@@ -300,7 +301,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         async (ctx) => {
             const { formId, nodeId } = ctx.req.valid("param");
             const { state } = ctx.req.valid("query");
-            const { branding, client } = await initJSXRoute(ctx, state, true);
+            const { branding, client, loginSession } = await initJSXRoute(ctx, state, true);
 
             let form: any = undefined;
             let node: any = undefined;
@@ -327,13 +328,8 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 const missingFields: string[] = [];
                 const submittedFields: Record<string, string> = {};
 
-                // Field component types that collect user input
-                const fieldTypes = new Set([
-                    "LEGAL", "TEXT", "DATE", "DROPDOWN", "EMAIL", "NUMBER",
-                    "BOOLEAN", "CHOICE", "TEL", "URL", "PASSWORD", "CARDS",
-                ]);
                 for (const comp of components) {
-                    if (fieldTypes.has(comp.type)) {
+                    if (FORM_FIELD_TYPES.has(comp.type)) {
                         const name = comp.id;
                         const compAny = comp as Record<string, unknown>;
                         const isRequired = !!compAny.required;
@@ -366,12 +362,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
                 }
 
                 // All required fields present, continue with session and user lookup
-                const loginSession = await ctx.env.data.loginSessions.get(
-                    client.tenant.id,
-                    state,
-                );
                 if (
-                    !loginSession ||
                     !loginSession.session_id ||
                     !loginSession.authParams
                 ) {

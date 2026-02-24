@@ -265,6 +265,10 @@ export const loginScreenDefinition: ScreenDefinition = {
       const username = (data.username as string)?.toLowerCase()?.trim();
       const password = (data.password as string)?.trim();
 
+      // Initialize i18n for validation/error messages
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText);
+
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(
         (c) => c.strategy === "Username-Password-Authentication",
@@ -275,8 +279,8 @@ export const loginScreenDefinition: ScreenDefinition = {
       // Validate username is provided
       if (!username) {
         const fieldLabel = requiresUsername
-          ? "Email or username is required"
-          : "Email is required";
+          ? m.no_email_or_username()
+          : m.no_email();
         return {
           error: fieldLabel,
           screen: await loginScreen({
@@ -288,12 +292,13 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Validate password is provided
       if (!password) {
+        const errorMessage = m.no_password();
         return {
-          error: "Password is required",
+          error: errorMessage,
           screen: await loginScreen({
             ...context,
             prefill: { username },
-            errors: { password: "Password is required" },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -456,9 +461,6 @@ export const loginScreenDefinition: ScreenDefinition = {
         return { response: result };
       } catch (e: unknown) {
         const authError = e as AuthError;
-        // Initialize i18n for error messages
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText);
 
         let errorMessage = authError.message || m.invalid_password();
 

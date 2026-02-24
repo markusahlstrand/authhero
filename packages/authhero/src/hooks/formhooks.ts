@@ -1,12 +1,20 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { LoginSession, Node, User } from "@authhero/adapter-interfaces";
+import {
+  FORM_FIELD_TYPES,
+  LoginSession,
+  Node,
+  User,
+} from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import {
   startLoginSessionHook,
   startLoginSessionContinuation,
 } from "../authentication-flows/common";
 import { EnrichedClient } from "../helpers/client";
+
+// Re-export so existing consumers don't break
+export { FORM_FIELD_TYPES };
 
 // Type guard for form hooks
 export function isFormHook(
@@ -255,7 +263,6 @@ export type FlowFetcher = (flowId: string) => Promise<{
  */
 export interface PendingUserUpdate {
   user_id: string;
-  connection_id?: string;
   changes: Record<string, string>;
 }
 
@@ -324,7 +331,6 @@ export function mergeUserUpdates(
     } else {
       grouped.set(update.user_id, {
         user_id: update.user_id,
-        connection_id: update.connection_id,
         changes: { ...update.changes },
       });
     }
@@ -484,7 +490,6 @@ export async function resolveNode(
               if (Object.keys(changes).length > 0) {
                 pendingUserUpdates.push({
                   user_id: userId,
-                  connection_id: action.params.connection_id,
                   changes,
                 });
               }
