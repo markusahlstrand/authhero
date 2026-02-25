@@ -123,6 +123,12 @@ const EditFieldModal = ({
           fullWidth
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !saving) {
+              e.preventDefault();
+              handleSave();
+            }
+          }}
           sx={{ mt: 1 }}
         />
         {verifiedField && (
@@ -1728,7 +1734,6 @@ const RolesManagement = () => {
 };
 
 const IdentityCard = () => {
-  const record = useRecordContext();
   const [editField, setEditField] = useState<{
     field: string;
     label: string;
@@ -1749,9 +1754,6 @@ const IdentityCard = () => {
             gap={2}
             sx={{ "& .RaLabeled-label": { fontWeight: 500 } }}
           >
-            <Labeled label="Name">
-              <TextField source="name" emptyText="—" />
-            </Labeled>
             <Labeled label="Email">
               <FunctionField
                 render={(record: any) => (
@@ -1860,11 +1862,11 @@ const IdentityCard = () => {
             </Labeled>
             <Labeled label="Accounts Associated">
               <FunctionField
-                render={(record: any) =>
-                  record?.identities?.length > 1
-                    ? `${record.identities.length} accounts`
-                    : "None"
-                }
+                render={(record: any) => {
+                  const count = record?.identities?.length ?? 0;
+                  if (count === 0) return "None";
+                  return `${count} account${count !== 1 ? "s" : ""}`;
+                }}
               />
             </Labeled>
           </Box>
@@ -1872,7 +1874,7 @@ const IdentityCard = () => {
       </Card>
       {editField && (
         <EditFieldModal
-          open={!!editField}
+          open
           onClose={() => setEditField(null)}
           field={editField.field}
           label={editField.label}

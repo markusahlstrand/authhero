@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   BooleanInput,
   DateField,
@@ -14,38 +15,41 @@ import {
   FormDataConsumer,
   useRecordContext,
 } from "react-admin";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
+import {
+  getTemplateChoicesForTrigger,
+  hookTemplates,
+  triggerChoices,
+} from "./hookConstants";
 
 /**
- * Registry of available hook templates.
- * Each template maps to a pre-defined hook function on the server side.
+ * Watches trigger_id and clears template_id whenever the trigger changes
+ * to a value that is incompatible with the currently selected template.
+ * Renders nothing.
  */
-const hookTemplates: Record<
-  string,
-  { name: string; description: string; trigger_id: string }
-> = {
-  "ensure-username": {
-    name: "Ensure Username",
-    description:
-      "Automatically assigns a username to users who sign in without one",
-    trigger_id: "post-user-login",
-  },
-  "set-preferred-username": {
-    name: "Set Preferred Username",
-    description:
-      "Sets the preferred_username claim on tokens based on the username from the primary or linked user",
-    trigger_id: "credentials-exchange",
-  },
-};
+function ClearTemplateOnTriggerChange() {
+  const { setValue, getValues } = useFormContext();
+  const triggerId = useWatch({ name: "trigger_id" });
+  const prevTriggerId = useRef(triggerId);
 
-// Build template choices filtered by trigger_id
-function getTemplateChoicesForTrigger(triggerId?: string) {
-  return Object.entries(hookTemplates)
-    .filter(([, meta]) => !triggerId || meta.trigger_id === triggerId)
-    .map(([id, meta]) => ({
-      id,
-      name: `${meta.name} — ${meta.description}`,
-    }));
+  useEffect(() => {
+    if (
+      prevTriggerId.current !== undefined &&
+      prevTriggerId.current !== triggerId
+    ) {
+      const currentTemplateId = getValues("template_id");
+      if (currentTemplateId) {
+        const meta = hookTemplates[currentTemplateId];
+        if (!meta || meta.trigger_id !== triggerId) {
+          setValue("template_id", undefined);
+        }
+      }
+    }
+    prevTriggerId.current = triggerId;
+  }, [triggerId, setValue, getValues]);
+
+  return null;
 }
 
 export function HookEdit() {
@@ -67,6 +71,7 @@ export function HookEdit() {
   return (
     <Edit>
       <SimpleForm>
+        <ClearTemplateOnTriggerChange />
         <FormDataConsumer>
           {({ formData }) => {
             const type = getType(formData ?? record);
@@ -125,21 +130,7 @@ export function HookEdit() {
         </FormDataConsumer>
         <SelectInput
           source="trigger_id"
-          choices={[
-            { id: "pre-user-registration", name: "Pre User Registration" },
-            { id: "post-user-registration", name: "Post User Registration" },
-            { id: "post-user-login", name: "Post User Login" },
-            {
-              id: "credentials-exchange",
-              name: "Credentials Exchange",
-            },
-            {
-              id: "validate-registration-username",
-              name: "Validate Registration Username",
-            },
-            { id: "pre-user-deletion", name: "Pre User Deletion" },
-            { id: "post-user-deletion", name: "Post User Deletion" },
-          ]}
+          choices={triggerChoices}
           required
         />
         <BooleanInput source="enabled" />

@@ -74,12 +74,61 @@ export async function up(db: Kysely<Database>): Promise<void> {
   if (nullCreated > 0 || nullUpdated > 0) {
     throw new Error(
       `Preflight check failed: ${nullCreated} row(s) with NULL created_at_ts, ` +
-        `${nullUpdated} row(s) with NULL updated_at_ts. ` +
-        `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
+      `${nullUpdated} row(s) with NULL updated_at_ts. ` +
+      `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
     );
   }
 
   console.log("  Preflight check passed — all _ts columns are populated.");
+
+  // ========================================
+  // PREFLIGHT: Verify existing data fits within the narrower column sizes
+  // ========================================
+  if (dbType === "mysql") {
+    console.log(
+      "Running preflight length check on columns being narrowed...",
+    );
+
+    const { rows: lengthCheck } = await sql<{
+      long_hook_id: number;
+      long_form_id: number;
+      long_template_id: number;
+    }>`SELECT
+        SUM(CASE WHEN CHAR_LENGTH(hook_id) > 21 THEN 1 ELSE 0 END) AS long_hook_id,
+        SUM(CASE WHEN CHAR_LENGTH(form_id) > 128 THEN 1 ELSE 0 END) AS long_form_id,
+        SUM(CASE WHEN CHAR_LENGTH(template_id) > 64 THEN 1 ELSE 0 END) AS long_template_id
+      FROM hooks`.execute(db);
+
+    const longHookId = Number(lengthCheck[0]?.long_hook_id ?? 0);
+    const longFormId = Number(lengthCheck[0]?.long_form_id ?? 0);
+    const longTemplateId = Number(lengthCheck[0]?.long_template_id ?? 0);
+
+    const violations: string[] = [];
+    if (longHookId > 0) {
+      violations.push(`${longHookId} row(s) with hook_id longer than 21 chars`);
+    }
+    if (longFormId > 0) {
+      violations.push(
+        `${longFormId} row(s) with form_id longer than 128 chars`,
+      );
+    }
+    if (longTemplateId > 0) {
+      violations.push(
+        `${longTemplateId} row(s) with template_id longer than 64 chars`,
+      );
+    }
+
+    if (violations.length > 0) {
+      throw new Error(
+        `Preflight length check failed: ${violations.join("; ")}. ` +
+        `Truncate or fix oversized values before running this migration.`,
+      );
+    }
+
+    console.log(
+      "  Preflight length check passed — all values fit within new column sizes.",
+    );
+  }
 
   // ========================================
   // STEP 1: Drop old varchar date columns
@@ -131,11 +180,13 @@ export async function down(db: Kysely<Database>): Promise<void> {
 
   // Repopulate legacy columns from _ts columns so rollback restores data
   if (dbType === "mysql") {
-    // Convert epoch milliseconds back to ISO 8601 strings
+    // Convert epoch milliseconds back to ISO 8601 strings.
+    // FROM_UNIXTIME returns a value in @@session.time_zone, so we must
+    // CONVERT_TZ to UTC before formatting to avoid timestamp corruption.
     await sql`
       UPDATE hooks
-      SET created_at = DATE_FORMAT(FROM_UNIXTIME(created_at_ts / 1000), '%Y-%m-%dT%H:%i:%s.000Z'),
-          updated_at = DATE_FORMAT(FROM_UNIXTIME(updated_at_ts / 1000), '%Y-%m-%dT%H:%i:%s.000Z')
+      SET created_at = DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME(created_at_ts / 1000), @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%s.000Z'),
+          updated_at = DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME(updated_at_ts / 1000), @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%s.000Z')
       WHERE created_at_ts IS NOT NULL
     `.execute(db);
   } else {

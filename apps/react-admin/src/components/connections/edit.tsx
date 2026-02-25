@@ -52,7 +52,7 @@ function ConnectionTabbedFrom() {
   const record = useRecordContext();
 
   return (
-    <Edit transform={stripNulls}>
+    <>
       <SimpleShowLayout>
         <TextField source="name" />
         <TextField source="id" />
@@ -269,12 +269,38 @@ function ConnectionTabbedFrom() {
                       label="Minimum Length"
                       defaultValue={1}
                       min={1}
+                      validate={(value: number) => {
+                        const maxLength =
+                          formData?.options?.attributes?.username?.validation
+                            ?.max_length;
+                        if (
+                          value &&
+                          maxLength &&
+                          value > maxLength
+                        ) {
+                          return "Min length must not exceed max length";
+                        }
+                        return undefined;
+                      }}
                     />
                     <NumberInput
                       source="options.attributes.username.validation.max_length"
                       label="Maximum Length"
                       defaultValue={15}
                       min={1}
+                      validate={(value: number) => {
+                        const minLength =
+                          formData?.options?.attributes?.username?.validation
+                            ?.min_length;
+                        if (
+                          value &&
+                          minLength &&
+                          value < minLength
+                        ) {
+                          return "Max length must not be less than min length";
+                        }
+                        return undefined;
+                      }}
                     />
                     <BooleanInput
                       source="options.attributes.username.validation.allowed_types.email"
@@ -459,6 +485,6 @@ function ConnectionTabbedFrom() {
           />
         </TabbedForm.Tab>
       </TabbedForm>
-    </Edit>
+    </>
   );
 }

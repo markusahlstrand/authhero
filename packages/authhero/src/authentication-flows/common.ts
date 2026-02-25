@@ -39,6 +39,7 @@ import {
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
 import { redactUrlForLogging } from "../utils/url";
+import { OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
@@ -59,6 +60,54 @@ export interface CreateAuthTokensParams {
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
+
+function buildCredentialsExchangeApi(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  accessTokenPayload: Record<string, unknown>,
+  idTokenPayload: Record<string, unknown> | undefined,
+): OnExecuteCredentialsExchangeAPI {
+  return {
+    accessToken: {
+      setCustomClaim: (claim: string, value: any) => {
+        if (RESERVED_CLAIMS.includes(claim)) {
+          throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+        }
+        accessTokenPayload[claim] = value;
+      },
+    },
+    idToken: {
+      setCustomClaim: (claim: string, value: any) => {
+        if (RESERVED_CLAIMS.includes(claim)) {
+          throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+        }
+        if (idTokenPayload) {
+          idTokenPayload[claim] = value;
+        }
+      },
+    },
+    access: {
+      deny: (code: string) => {
+        throw new JSONHTTPException(400, {
+          message: `Access denied: ${code}`,
+        });
+      },
+    },
+    token: {
+      createServiceToken: async (params: {
+        scope: string;
+        expiresInSeconds?: number;
+      }) => {
+        const tokenResponse = await createServiceToken(
+          ctx,
+          ctx.var.tenant_id,
+          params.scope,
+          params.expiresInSeconds,
+        );
+        return tokenResponse.access_token;
+      },
+    },
+  };
+}
 
 export async function createAuthTokens(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -208,48 +257,7 @@ export async function createAuthTokens(
         scope: authParams.scope || "",
         grant_type: "",
       },
-      {
-        accessToken: {
-          setCustomClaim: (claim, value) => {
-            if (RESERVED_CLAIMS.includes(claim)) {
-              throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-            }
-            accessTokenPayload[claim] = value;
-          },
-        },
-        idToken: {
-          setCustomClaim: (claim, value) => {
-            if (RESERVED_CLAIMS.includes(claim)) {
-              throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-            }
-
-            if (idTokenPayload) {
-              idTokenPayload[claim] = value;
-            }
-          },
-        },
-        access: {
-          deny: (code) => {
-            throw new JSONHTTPException(400, {
-              message: `Access denied: ${code}`,
-            });
-          },
-        },
-        token: {
-          createServiceToken: async (params: {
-            scope: string;
-            expiresInSeconds?: number;
-          }) => {
-            const tokenResponse = await createServiceToken(
-              ctx,
-              ctx.var.tenant_id,
-              params.scope,
-              params.expiresInSeconds,
-            );
-            return tokenResponse.access_token;
-          },
-        },
-      },
+      buildCredentialsExchangeApi(ctx, accessTokenPayload, idTokenPayload),
     );
   }
 
@@ -266,47 +274,11 @@ export async function createAuthTokens(
       (h: any) => h.enabled && isTemplateHook(h),
     );
 
-    const templateApi = {
-      accessToken: {
-        setCustomClaim: (claim: string, value: any) => {
-          if (RESERVED_CLAIMS.includes(claim)) {
-            throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-          }
-          accessTokenPayload[claim] = value;
-        },
-      },
-      idToken: {
-        setCustomClaim: (claim: string, value: any) => {
-          if (RESERVED_CLAIMS.includes(claim)) {
-            throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-          }
-          if (idTokenPayload) {
-            idTokenPayload[claim] = value;
-          }
-        },
-      },
-      access: {
-        deny: (code: string) => {
-          throw new JSONHTTPException(400, {
-            message: `Access denied: ${code}`,
-          });
-        },
-      },
-      token: {
-        createServiceToken: async (params: {
-          scope: string;
-          expiresInSeconds?: number;
-        }) => {
-          const tokenResponse = await createServiceToken(
-            ctx,
-            ctx.var.tenant_id,
-            params.scope,
-            params.expiresInSeconds,
-          );
-          return tokenResponse.access_token;
-        },
-      },
-    };
+    const templateApi = buildCredentialsExchangeApi(
+      ctx,
+      accessTokenPayload,
+      idTokenPayload,
+    );
 
     if (user) {
       for (const hook of credentialsExchangeTemplateHooks) {

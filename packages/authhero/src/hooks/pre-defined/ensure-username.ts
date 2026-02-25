@@ -222,7 +222,7 @@ export function ensureUsername(
   const connection =
     options?.connection ?? "Username-Password-Authentication";
   const provider = options?.provider ?? "auth2";
-  const maxRetries = options?.maxRetries ?? 10;
+  const maxRetries = Math.max(0, Math.floor(options?.maxRetries ?? 10));
 
   return async (event, _api) => {
     const { ctx, user } = event;
