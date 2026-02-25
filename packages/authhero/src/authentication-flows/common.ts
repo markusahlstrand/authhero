@@ -117,7 +117,7 @@ export async function createAuthTokens(
     // so we lowercase the org_name to match the validation behavior
     org_name:
       organization &&
-      client.tenant.allow_organization_name_in_authentication_api
+        client.tenant.allow_organization_name_in_authentication_api
         ? organization.name.toLowerCase()
         : undefined,
     permissions,
@@ -148,49 +148,49 @@ export async function createAuthTokens(
   const idTokenPayload =
     user && hasOpenidScope
       ? {
-          // The audience for an id token is the client id
-          aud: authParams.client_id,
-          sub: user.user_id,
-          iss,
-          sid: session_id,
-          nonce: authParams.nonce,
-          // OIDC Core 2.1: auth_time is REQUIRED when max_age was used in authorization request
-          // It's the time when the End-User authentication occurred (Unix timestamp)
-          ...(authParams.max_age !== undefined && auth_time !== undefined
-            ? { auth_time }
-            : {}),
-          // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
-          // an acr claim with one of the requested values
-          ...(authParams.acr_values
-            ? { acr: authParams.acr_values.split(" ")[0] }
-            : {}),
-          // Profile scope claims - include based on auth0_conformant setting
-          // For auth0_conformant clients (default): always include when profile scope is requested
-          // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
-          ...(hasProfileScope &&
-            shouldIncludeProfileClaimsInIdToken && {
-              given_name: user.given_name,
-              family_name: user.family_name,
-              nickname: user.nickname,
-              picture: user.picture,
-              locale: user.locale,
-              name: user.name,
-            }),
-          // Email scope claims - include based on auth0_conformant setting
-          // For auth0_conformant clients (default): always include when email scope is requested
-          // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
-          ...(hasEmailScope &&
-            shouldIncludeProfileClaimsInIdToken && {
-              email: user.email,
-              email_verified: user.email_verified,
-            }),
-          act: impersonatingUser
-            ? { sub: impersonatingUser.user_id }
-            : undefined,
-          org_id: organization?.id,
-          // Auth0 SDK validates org_name case-insensitively, so we lowercase it
-          org_name: organization?.name.toLowerCase(),
-        }
+        // The audience for an id token is the client id
+        aud: authParams.client_id,
+        sub: user.user_id,
+        iss,
+        sid: session_id,
+        nonce: authParams.nonce,
+        // OIDC Core 2.1: auth_time is REQUIRED when max_age was used in authorization request
+        // It's the time when the End-User authentication occurred (Unix timestamp)
+        ...(authParams.max_age !== undefined && auth_time !== undefined
+          ? { auth_time }
+          : {}),
+        // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
+        // an acr claim with one of the requested values
+        ...(authParams.acr_values
+          ? { acr: authParams.acr_values.split(" ")[0] }
+          : {}),
+        // Profile scope claims - include based on auth0_conformant setting
+        // For auth0_conformant clients (default): always include when profile scope is requested
+        // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
+        ...(hasProfileScope &&
+          shouldIncludeProfileClaimsInIdToken && {
+          given_name: user.given_name,
+          family_name: user.family_name,
+          nickname: user.nickname,
+          picture: user.picture,
+          locale: user.locale,
+          name: user.name,
+        }),
+        // Email scope claims - include based on auth0_conformant setting
+        // For auth0_conformant clients (default): always include when email scope is requested
+        // For strict OIDC clients: only include for response_type=id_token (per OIDC 5.4)
+        ...(hasEmailScope &&
+          shouldIncludeProfileClaimsInIdToken && {
+          email: user.email,
+          email_verified: user.email_verified,
+        }),
+        act: impersonatingUser
+          ? { sub: impersonatingUser.user_id }
+          : undefined,
+        org_id: organization?.id,
+        // Auth0 SDK validates org_name case-insensitively, so we lowercase it
+        org_name: organization?.name.toLowerCase(),
+      }
       : undefined;
 
   if (ctx.env.hooks?.onExecuteCredentialsExchange) {
@@ -308,20 +308,26 @@ export async function createAuthTokens(
       },
     };
 
-    for (const hook of credentialsExchangeTemplateHooks) {
-      if (!isTemplateHook(hook)) continue;
-      try {
-        await handleCredentialsExchangeTemplateHook(
-          ctx,
-          hook.template_id,
-          user!,
-          templateApi,
-        );
-      } catch (err) {
-        console.warn(
-          `[credentials-exchange] Failed to execute template hook: ${hook.template_id}`,
-          err,
-        );
+    if (user) {
+      for (const hook of credentialsExchangeTemplateHooks) {
+        if (!isTemplateHook(hook)) continue;
+        try {
+          await handleCredentialsExchangeTemplateHook(
+            ctx,
+            hook.template_id,
+            user,
+            templateApi,
+          );
+        } catch (err) {
+          // Let HTTPExceptions (e.g. access.deny()) propagate
+          if (err instanceof HTTPException) {
+            throw err;
+          }
+          console.warn(
+            `[credentials-exchange] Failed to execute template hook: ${hook.template_id}`,
+            err,
+          );
+        }
       }
     }
   }
@@ -808,8 +814,8 @@ export async function startLoginSessionContinuation(
     // Log when state transition is invalid (state didn't change)
     console.warn(
       `Failed to start continuation for login session ${loginSession.id}: ` +
-        `cannot transition from ${currentState} to AWAITING_CONTINUATION. ` +
-        `Scope: ${JSON.stringify(scope)}, Return URL: ${redactUrlForLogging(returnUrl)}`,
+      `cannot transition from ${currentState} to AWAITING_CONTINUATION. ` +
+      `Scope: ${JSON.stringify(scope)}, Return URL: ${redactUrlForLogging(returnUrl)}`,
     );
   }
 }

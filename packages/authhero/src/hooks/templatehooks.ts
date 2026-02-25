@@ -9,7 +9,10 @@ export function isTemplateHook(
   hook: any,
 ): hook is { template_id: string; enabled: boolean } {
   return (
-    typeof hook.template_id === "string" && typeof hook.enabled === "boolean"
+    typeof hook === "object" &&
+    hook !== null &&
+    typeof hook.template_id === "string" &&
+    typeof hook.enabled === "boolean"
   );
 }
 
@@ -42,9 +45,9 @@ export async function handleTemplateHook(
           },
         } as any,
         {
-          prompt: { render: () => {} },
+          prompt: { render: () => { } },
           redirect: {
-            sendUserTo: () => {},
+            sendUserTo: () => { },
             encodeToken: () => "",
             validateToken: () => null,
           },

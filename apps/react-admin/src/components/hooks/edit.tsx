@@ -101,9 +101,9 @@ export function HookEdit() {
                       formsLoading
                         ? []
                         : (forms || []).map((form) => ({
-                            id: form.id,
-                            name: form.name,
-                          }))
+                          id: form.id,
+                          name: form.name,
+                        }))
                     }
                     validate={[required()]}
                     fullWidth

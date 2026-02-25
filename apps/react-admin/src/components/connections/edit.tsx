@@ -25,7 +25,8 @@ import { JsonOutput } from "../common/JsonOutput";
  */
 function stripNulls(obj: any): any {
   if (obj === null) return undefined;
-  if (Array.isArray(obj)) return obj.map(stripNulls);
+  if (Array.isArray(obj))
+    return obj.map(stripNulls).filter((v: any) => v !== undefined);
   if (typeof obj === "object") {
     return Object.fromEntries(
       Object.entries(obj)

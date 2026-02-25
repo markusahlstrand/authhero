@@ -91,9 +91,9 @@ export function HooksCreate() {
                     formsLoading
                       ? []
                       : (forms || []).map((form) => ({
-                          id: form.id,
-                          name: form.name,
-                        }))
+                        id: form.id,
+                        name: form.name,
+                      }))
                   }
                   validate={[required()]}
                   fullWidth
@@ -128,49 +128,49 @@ export function HooksCreate() {
             const triggerChoices =
               formData.type === "template"
                 ? [
-                    {
-                      id: "validate-registration-username",
-                      name: "Validate Registration Username",
-                    },
-                    {
-                      id: "pre-user-registration",
-                      name: "Pre User Registration",
-                    },
-                    {
-                      id: "post-user-registration",
-                      name: "Post User Registration",
-                    },
-                    { id: "post-user-login", name: "Post User Login" },
-                    {
-                      id: "credentials-exchange",
-                      name: "Credentials Exchange",
-                    },
-                    { id: "pre-user-update", name: "Pre User Update" },
-                    { id: "pre-user-deletion", name: "Pre User Deletion" },
-                    { id: "post-user-deletion", name: "Post User Deletion" },
-                  ].filter((c) => triggerIdsWithTemplates.has(c.id))
+                  {
+                    id: "validate-registration-username",
+                    name: "Validate Registration Username",
+                  },
+                  {
+                    id: "pre-user-registration",
+                    name: "Pre User Registration",
+                  },
+                  {
+                    id: "post-user-registration",
+                    name: "Post User Registration",
+                  },
+                  { id: "post-user-login", name: "Post User Login" },
+                  {
+                    id: "credentials-exchange",
+                    name: "Credentials Exchange",
+                  },
+                  { id: "pre-user-update", name: "Pre User Update" },
+                  { id: "pre-user-deletion", name: "Pre User Deletion" },
+                  { id: "post-user-deletion", name: "Post User Deletion" },
+                ].filter((c) => triggerIdsWithTemplates.has(c.id))
                 : [
-                    {
-                      id: "validate-registration-username",
-                      name: "Validate Registration Username",
-                    },
-                    {
-                      id: "pre-user-registration",
-                      name: "Pre User Registration",
-                    },
-                    {
-                      id: "post-user-registration",
-                      name: "Post User Registration",
-                    },
-                    { id: "post-user-login", name: "Post User Login" },
-                    {
-                      id: "credentials-exchange",
-                      name: "Credentials Exchange",
-                    },
-                    { id: "pre-user-update", name: "Pre User Update" },
-                    { id: "pre-user-deletion", name: "Pre User Deletion" },
-                    { id: "post-user-deletion", name: "Post User Deletion" },
-                  ];
+                  {
+                    id: "validate-registration-username",
+                    name: "Validate Registration Username",
+                  },
+                  {
+                    id: "pre-user-registration",
+                    name: "Pre User Registration",
+                  },
+                  {
+                    id: "post-user-registration",
+                    name: "Post User Registration",
+                  },
+                  { id: "post-user-login", name: "Post User Login" },
+                  {
+                    id: "credentials-exchange",
+                    name: "Credentials Exchange",
+                  },
+                  { id: "pre-user-update", name: "Pre User Update" },
+                  { id: "pre-user-deletion", name: "Pre User Deletion" },
+                  { id: "post-user-deletion", name: "Post User Deletion" },
+                ];
 
             return (
               <SelectInput

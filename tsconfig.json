@@ -28,5 +28,6 @@
     "sourceMap": true,
     "declarationMap": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "exclude": ["packages/create-authhero/templates"]
 }

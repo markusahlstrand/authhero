@@ -5,6 +5,7 @@ import {
   extractCandidateUsernames,
 } from "../../src/hooks/pre-defined/ensure-username";
 import type { HookEvent, OnExecutePostLoginAPI } from "../../src/types/Hooks";
+import { HTTPException } from "hono/http-exception";
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -450,5 +451,83 @@ describe("ensureUsername", () => {
         connection: "my-username-db",
       }),
     );
+  });
+
+  it("retries on unique constraint conflict (409) when creating", async () => {
+    // First call to create fails with 409 (concurrent claim),
+    // second call succeeds.
+    const adapter = createMockUserAdapter();
+    adapter.create
+      .mockRejectedValueOnce(new HTTPException(409, { message: "User already exists" }))
+      .mockImplementation(async (_tenantId: string, data: any) => ({
+        ...data,
+        user_id: data.user_id || "auth2|generated",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      }));
+
+    const { event, api } = createMockEvent(
+      {
+        user_id: "email|123",
+        provider: "email",
+        email: "jane@example.com",
+        connection: "email",
+      },
+      adapter,
+    );
+
+    await hook(event, api);
+
+    // create was called twice: first attempt (409), second attempt (success)
+    expect(adapter.create).toHaveBeenCalledTimes(2);
+    expect(adapter.create).toHaveBeenLastCalledWith(
+      "test-tenant",
+      expect.objectContaining({
+        username: "jane",
+        linked_to: "email|123",
+      }),
+    );
+  });
+
+  it("retries on unique constraint conflict (409) when updating", async () => {
+    const adapter = createMockUserAdapter();
+    adapter.update
+      .mockRejectedValueOnce(new HTTPException(409, { message: "User already exists" }))
+      .mockResolvedValue(true);
+
+    const { event, api } = createMockEvent(
+      {
+        user_id: "auth2|123",
+        provider: "auth2",
+        name: "John Doe",
+        username: undefined,
+      },
+      adapter,
+    );
+
+    await hook(event, api);
+
+    expect(adapter.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("propagates non-409 errors without retrying", async () => {
+    const adapter = createMockUserAdapter();
+    adapter.create.mockRejectedValue(
+      new HTTPException(500, { message: "Internal error" }),
+    );
+
+    const { event, api } = createMockEvent(
+      {
+        user_id: "email|123",
+        provider: "email",
+        email: "jane@example.com",
+        connection: "email",
+      },
+      adapter,
+    );
+
+    await expect(hook(event, api)).rejects.toThrow(HTTPException);
+    expect(adapter.create).toHaveBeenCalledTimes(1);
   });
 });

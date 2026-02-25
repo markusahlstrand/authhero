@@ -1,5 +1,13 @@
+import { HTTPException } from "hono/http-exception";
 import { OnExecutePostLogin } from "../../types/Hooks";
 import { userIdGenerate } from "../../utils/user-id";
+
+/**
+ * Check whether an error is a unique-constraint violation (HTTP 409).
+ */
+function isUniqueConstraintError(err: unknown): boolean {
+  return err instanceof HTTPException && err.status === 409;
+}
 
 export interface EnsureUsernameOptions {
   /**
@@ -240,39 +248,62 @@ export function ensureUsername(
       return;
     }
 
-    // Find a unique username
-    const username = await findUniqueUsername(
-      data.users,
-      tenantId,
-      candidates,
-      provider,
-      maxRetries,
-    );
-
-    if (!username) {
-      console.warn(
-        `[ensureUsername] Could not find a unique username for user ${user.user_id} after ${maxRetries} retries`,
-      );
-      return;
-    }
-
-    if (user.provider === provider) {
-      // This IS a username-type account — just set the username field
-      await data.users.update(tenantId, user.user_id, { username });
-    } else {
-      // Different provider — create a linked username account
-      const usernameUserId = `${provider}|${userIdGenerate()}`;
-
-      await data.users.create(tenantId, {
-        user_id: usernameUserId,
-        username,
-        name: username,
+    // Retry loop: find a unique username then attempt the write.
+    // If a concurrent request claims the same username between our check
+    // and write, the unique constraint fires a 409 and we retry.
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      // Find a unique username
+      const username = await findUniqueUsername(
+        data.users,
+        tenantId,
+        candidates,
         provider,
-        connection,
-        email_verified: false,
-        is_social: false,
-        linked_to: user.user_id,
-      });
+        maxRetries,
+      );
+
+      if (!username) {
+        console.warn(
+          `[ensureUsername] Could not find a unique username for user ${user.user_id} after ${maxRetries} retries`,
+        );
+        return;
+      }
+
+      try {
+        if (user.provider === provider) {
+          // This IS a username-type account — just set the username field
+          await data.users.update(tenantId, user.user_id, { username });
+        } else {
+          // Different provider — create a linked username account
+          const usernameUserId = `${provider}|${userIdGenerate()}`;
+
+          await data.users.create(tenantId, {
+            user_id: usernameUserId,
+            username,
+            name: username,
+            provider,
+            connection,
+            email_verified: false,
+            is_social: false,
+            linked_to: user.user_id,
+          });
+        }
+
+        // Write succeeded — done
+        return;
+      } catch (err) {
+        if (!isUniqueConstraintError(err)) {
+          throw err;
+        }
+        // Unique constraint conflict — another request claimed this username.
+        // Loop back and pick a new candidate.
+        console.info(
+          `[ensureUsername] Username "${username}" was claimed concurrently, retrying (attempt ${attempt + 1}/${maxRetries})`,
+        );
+      }
     }
+
+    console.warn(
+      `[ensureUsername] Could not allocate a username for user ${user.user_id} after ${maxRetries} conflict retries`,
+    );
   };
 }

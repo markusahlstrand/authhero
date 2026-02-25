@@ -56,6 +56,32 @@ export async function up(db: Kysely<Database>): Promise<void> {
   const dbType = await getDatabaseType(db);
 
   // ========================================
+  // PREFLIGHT: Verify all rows have valid _ts columns before dropping legacy columns
+  // ========================================
+  console.log("Running preflight integrity check on hooks timestamp columns...");
+
+  const { rows: nullCheck } = await sql<{
+    null_created: number;
+    null_updated: number;
+  }>`SELECT
+      SUM(CASE WHEN created_at_ts IS NULL THEN 1 ELSE 0 END) AS null_created,
+      SUM(CASE WHEN updated_at_ts IS NULL THEN 1 ELSE 0 END) AS null_updated
+    FROM hooks`.execute(db);
+
+  const nullCreated = Number(nullCheck[0]?.null_created ?? 0);
+  const nullUpdated = Number(nullCheck[0]?.null_updated ?? 0);
+
+  if (nullCreated > 0 || nullUpdated > 0) {
+    throw new Error(
+      `Preflight check failed: ${nullCreated} row(s) with NULL created_at_ts, ` +
+        `${nullUpdated} row(s) with NULL updated_at_ts. ` +
+        `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
+    );
+  }
+
+  console.log("  Preflight check passed — all _ts columns are populated.");
+
+  // ========================================
   // STEP 1: Drop old varchar date columns
   // ========================================
   console.log("Dropping old date columns from hooks...");
@@ -102,6 +128,25 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .alterTable("hooks")
     .addColumn("updated_at", "varchar(255)")
     .execute();
+
+  // Repopulate legacy columns from _ts columns so rollback restores data
+  if (dbType === "mysql") {
+    // Convert epoch milliseconds back to ISO 8601 strings
+    await sql`
+      UPDATE hooks
+      SET created_at = DATE_FORMAT(FROM_UNIXTIME(created_at_ts / 1000), '%Y-%m-%dT%H:%i:%s.000Z'),
+          updated_at = DATE_FORMAT(FROM_UNIXTIME(updated_at_ts / 1000), '%Y-%m-%dT%H:%i:%s.000Z')
+      WHERE created_at_ts IS NOT NULL
+    `.execute(db);
+  } else {
+    // SQLite: convert epoch milliseconds back to ISO 8601 strings
+    await sql`
+      UPDATE hooks
+      SET created_at = strftime('%Y-%m-%dT%H:%M:%fZ', created_at_ts / 1000, 'unixepoch'),
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', updated_at_ts / 1000, 'unixepoch')
+      WHERE created_at_ts IS NOT NULL
+    `.execute(db);
+  }
 
   // Revert column types (MySQL only)
   if (dbType === "mysql") {

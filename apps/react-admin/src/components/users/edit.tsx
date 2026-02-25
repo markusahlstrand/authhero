@@ -330,7 +330,12 @@ const UnlinkButton = () => {
   return (
     <>
       <Tooltip title="Unlink identity">
-        <IconButton onClick={handleOpen} color="error" size="small">
+        <IconButton
+          onClick={handleOpen}
+          color="error"
+          size="small"
+          aria-label="Unlink identity"
+        >
           <LinkOffIcon />
         </IconButton>
       </Tooltip>
@@ -804,7 +809,12 @@ const RemovePermissionButton = () => {
   return (
     <>
       <Tooltip title="Remove permission">
-        <IconButton onClick={handleOpen} color="error" size="small">
+        <IconButton
+          onClick={handleOpen}
+          color="error"
+          size="small"
+          aria-label="Remove permission"
+        >
           <DeleteIcon />
         </IconButton>
       </Tooltip>
@@ -1187,7 +1197,7 @@ const UserRolesTable = ({
                   onClick={() => handleRemoveRole(role)}
                   color="error"
                   size="small"
-                  title="Remove Role"
+                  aria-label="Remove role"
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -1761,6 +1771,7 @@ const IdentityCard = () => {
                     )}
                     <IconButton
                       size="small"
+                      aria-label="Edit email"
                       onClick={() =>
                         setEditField({
                           field: "email",
@@ -1782,6 +1793,7 @@ const IdentityCard = () => {
                     <span>{record?.username || "—"}</span>
                     <IconButton
                       size="small"
+                      aria-label="Edit username"
                       onClick={() =>
                         setEditField({
                           field: "username",
@@ -1803,12 +1815,12 @@ const IdentityCard = () => {
                     {record?.phone_number && (
                       <Chip
                         label={
-                          record?.phone_number_verified
+                          record?.phone_verified
                             ? "Verified"
                             : "Unverified"
                         }
                         color={
-                          record?.phone_number_verified
+                          record?.phone_verified
                             ? "success"
                             : "warning"
                         }
@@ -1818,11 +1830,12 @@ const IdentityCard = () => {
                     )}
                     <IconButton
                       size="small"
+                      aria-label="Edit phone number"
                       onClick={() =>
                         setEditField({
                           field: "phone_number",
                           label: "Phone Number",
-                          verifiedField: "phone_number_verified",
+                          verifiedField: "phone_verified",
                         })
                       }
                     >
