@@ -25,6 +25,10 @@ import {
 import { serializeAuthCookie } from "../utils/cookies";
 import { samlCallback } from "../strategies/saml";
 import { postUserLoginHook } from "../hooks/index";
+import {
+  isTemplateHook,
+  handleCredentialsExchangeTemplateHook,
+} from "../hooks/templatehooks";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
@@ -247,6 +251,79 @@ export async function createAuthTokens(
         },
       },
     );
+  }
+
+  // Execute credentials-exchange template hooks from the database
+  {
+    const { hooks } = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+      q: "trigger_id:credentials-exchange",
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    const credentialsExchangeTemplateHooks = hooks.filter(
+      (h: any) => h.enabled && isTemplateHook(h),
+    );
+
+    const templateApi = {
+      accessToken: {
+        setCustomClaim: (claim: string, value: any) => {
+          if (RESERVED_CLAIMS.includes(claim)) {
+            throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+          }
+          accessTokenPayload[claim] = value;
+        },
+      },
+      idToken: {
+        setCustomClaim: (claim: string, value: any) => {
+          if (RESERVED_CLAIMS.includes(claim)) {
+            throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+          }
+          if (idTokenPayload) {
+            idTokenPayload[claim] = value;
+          }
+        },
+      },
+      access: {
+        deny: (code: string) => {
+          throw new JSONHTTPException(400, {
+            message: `Access denied: ${code}`,
+          });
+        },
+      },
+      token: {
+        createServiceToken: async (params: {
+          scope: string;
+          expiresInSeconds?: number;
+        }) => {
+          const tokenResponse = await createServiceToken(
+            ctx,
+            ctx.var.tenant_id,
+            params.scope,
+            params.expiresInSeconds,
+          );
+          return tokenResponse.access_token;
+        },
+      },
+    };
+
+    for (const hook of credentialsExchangeTemplateHooks) {
+      if (!isTemplateHook(hook)) continue;
+      try {
+        await handleCredentialsExchangeTemplateHook(
+          ctx,
+          hook.template_id,
+          user!,
+          templateApi,
+        );
+      } catch (err) {
+        console.warn(
+          `[credentials-exchange] Failed to execute template hook: ${hook.template_id}`,
+          err,
+        );
+      }
+    }
   }
 
   const header = {

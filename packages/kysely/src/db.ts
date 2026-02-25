@@ -110,8 +110,8 @@ export const sqlUserSchema = z.object({
 
 const sqlHookSchema = z.object({
   tenant_id: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
   hook_id: z.string(),
   trigger_id: z.string(),
   priority: z.number().optional().nullable(),
@@ -119,6 +119,7 @@ const sqlHookSchema = z.object({
   synchronous: z.number(),
   url: z.string().optional().nullable(),
   form_id: z.string().optional().nullable(),
+  template_id: z.string().optional().nullable(),
 });
 
 const sqlEmailProvidersSchema = z.object({

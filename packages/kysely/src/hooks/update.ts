@@ -8,12 +8,18 @@ export function update(db: Kysely<Database>) {
     hook_id: string,
     hook: Partial<HookInsert>,
   ): Promise<boolean> => {
+    const { hook_id: _hookId, ...rest } = hook;
+
     const sqlHook = {
-      ...hook,
-      updated_at: new Date().toISOString(),
+      ...rest,
+      updated_at_ts: Date.now(),
       enabled: hook.enabled !== undefined ? (hook.enabled ? 1 : 0) : undefined,
       synchronous:
-        hook.enabled !== undefined ? (hook.synchronous ? 1 : 0) : undefined,
+        hook.synchronous !== undefined
+          ? hook.synchronous
+            ? 1
+            : 0
+          : undefined,
     };
 
     await db

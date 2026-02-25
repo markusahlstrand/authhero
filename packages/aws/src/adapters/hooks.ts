@@ -25,6 +25,7 @@ interface HookItem extends DynamoDBBaseItem {
   trigger_id: string;
   url?: string;
   form_id?: string;
+  template_id?: string;
   enabled: boolean;
   synchronous: boolean;
   priority?: number;
@@ -41,9 +42,11 @@ export function createHooksAdapter(ctx: DynamoDBContext): HooksAdapter {
       const now = new Date().toISOString();
       const hookId = hook.hook_id || nanoid();
 
-      // Extract url and form_id from the union type
+      // Extract url, form_id, and template_id from the union type
       const url = "url" in hook ? hook.url : undefined;
       const formId = "form_id" in hook ? hook.form_id : undefined;
+      const templateId =
+        "template_id" in hook ? hook.template_id : undefined;
 
       const item: HookItem = {
         PK: hookKeys.pk(tenantId),
@@ -54,6 +57,7 @@ export function createHooksAdapter(ctx: DynamoDBContext): HooksAdapter {
         trigger_id: hook.trigger_id,
         url,
         form_id: formId,
+        template_id: templateId,
         enabled: hook.enabled ?? false,
         synchronous: hook.synchronous ?? false,
         priority: hook.priority,

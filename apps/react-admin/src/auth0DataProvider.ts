@@ -398,7 +398,7 @@ export default (
           const entries = res.json || [];
           return {
             data: entries.map(
-              (e: { prompt: string; language: string }, idx: number) => ({
+              (e: { prompt: string; language: string }) => ({
                 id: `${e.prompt}:${e.language}`,
                 prompt: e.prompt,
                 language: e.language,
@@ -684,7 +684,7 @@ export default (
       // Handle custom-text resource (individual entries)
       if (resource === "custom-text") {
         // ID format is "prompt:language"
-        const [prompt, language] = params.id.split(":");
+        const [prompt, language] = String(params.id).split(":") || [];
         if (!prompt || !language) {
           throw new Error("Invalid custom-text ID format");
         }
@@ -1089,7 +1089,7 @@ export default (
       // Handle custom-text resource
       if (resource === "custom-text") {
         // ID format is "prompt:language"
-        const [prompt, language] = params.id.split(":");
+        const [prompt, language] = String(params.id).split(":");
         if (!prompt || !language) {
           throw new Error("Invalid custom-text ID format");
         }

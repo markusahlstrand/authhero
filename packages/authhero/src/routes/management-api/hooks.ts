@@ -139,10 +139,11 @@ export const hooksRoutes = new OpenAPIHono<{
           content: {
             "application/json": {
               // Apply transformations to each member of the hookInsertSchema union
-              schema: z.union([
-                hookInsertSchema.options[0].omit({ hook_id: true }).partial(),
-                hookInsertSchema.options[1].omit({ hook_id: true }).partial(),
-              ]),
+              schema: z.union(
+                hookInsertSchema.options.map((option: any) =>
+                  option.omit({ hook_id: true }).partial(),
+                ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+              ),
             },
           },
         },

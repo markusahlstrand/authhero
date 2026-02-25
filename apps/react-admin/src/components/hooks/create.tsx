@@ -10,6 +10,43 @@ import {
   FormDataConsumer,
 } from "react-admin";
 
+/**
+ * Registry of available hook templates.
+ * Each template maps to a pre-defined hook function on the server side.
+ */
+const hookTemplates: Record<
+  string,
+  { name: string; description: string; trigger_id: string }
+> = {
+  "ensure-username": {
+    name: "Ensure Username",
+    description:
+      "Automatically assigns a username to users who sign in without one",
+    trigger_id: "post-user-login",
+  },
+  "set-preferred-username": {
+    name: "Set Preferred Username",
+    description:
+      "Sets the preferred_username claim on tokens based on the username from the primary or linked user",
+    trigger_id: "credentials-exchange",
+  },
+};
+
+// Build template choices filtered by trigger_id
+function getTemplateChoicesForTrigger(triggerId?: string) {
+  return Object.entries(hookTemplates)
+    .filter(([, meta]) => !triggerId || meta.trigger_id === triggerId)
+    .map(([id, meta]) => ({
+      id,
+      name: `${meta.name} — ${meta.description}`,
+    }));
+}
+
+// All trigger IDs that have at least one template
+const triggerIdsWithTemplates = new Set(
+  Object.values(hookTemplates).map((t) => t.trigger_id),
+);
+
 export function HooksCreate() {
   // Fetch forms for the current tenant
   const { data: forms, isLoading: formsLoading } = useGetList("forms", {
@@ -21,6 +58,7 @@ export function HooksCreate() {
   const typeChoices = [
     { id: "webhook", name: "Webhook" },
     { id: "form", name: "Form" },
+    { id: "template", name: "Template" },
   ];
 
   return (
@@ -62,25 +100,87 @@ export function HooksCreate() {
                 />
               );
             }
+            if (formData.type === "template") {
+              const templateChoices = getTemplateChoicesForTrigger(
+                formData.trigger_id,
+              );
+              return (
+                <SelectInput
+                  source="template_id"
+                  label="Template"
+                  choices={templateChoices}
+                  validate={[required()]}
+                  fullWidth
+                  helperText={
+                    formData.trigger_id
+                      ? `${templateChoices.length} template(s) available for this trigger`
+                      : "Select a trigger first to see available templates"
+                  }
+                />
+              );
+            }
             return null;
           }}
         </FormDataConsumer>
-        <SelectInput
-          source="trigger_id"
-          choices={[
-            {
-              id: "validate-registration-username",
-              name: "Validate Registration Username",
-            },
-            { id: "pre-user-registration", name: "Pre User Registration" },
-            { id: "post-user-registration", name: "Post User Registration" },
-            { id: "post-user-login", name: "Post User Login" },
-            { id: "pre-user-update", name: "Pre User Update" },
-            { id: "pre-user-deletion", name: "Pre User Deletion" },
-            { id: "post-user-deletion", name: "Post User Deletion" },
-          ]}
-          required
-        />
+        <FormDataConsumer>
+          {({ formData }) => {
+            // When type is "template", only show triggers that have templates
+            const triggerChoices =
+              formData.type === "template"
+                ? [
+                    {
+                      id: "validate-registration-username",
+                      name: "Validate Registration Username",
+                    },
+                    {
+                      id: "pre-user-registration",
+                      name: "Pre User Registration",
+                    },
+                    {
+                      id: "post-user-registration",
+                      name: "Post User Registration",
+                    },
+                    { id: "post-user-login", name: "Post User Login" },
+                    {
+                      id: "credentials-exchange",
+                      name: "Credentials Exchange",
+                    },
+                    { id: "pre-user-update", name: "Pre User Update" },
+                    { id: "pre-user-deletion", name: "Pre User Deletion" },
+                    { id: "post-user-deletion", name: "Post User Deletion" },
+                  ].filter((c) => triggerIdsWithTemplates.has(c.id))
+                : [
+                    {
+                      id: "validate-registration-username",
+                      name: "Validate Registration Username",
+                    },
+                    {
+                      id: "pre-user-registration",
+                      name: "Pre User Registration",
+                    },
+                    {
+                      id: "post-user-registration",
+                      name: "Post User Registration",
+                    },
+                    { id: "post-user-login", name: "Post User Login" },
+                    {
+                      id: "credentials-exchange",
+                      name: "Credentials Exchange",
+                    },
+                    { id: "pre-user-update", name: "Pre User Update" },
+                    { id: "pre-user-deletion", name: "Pre User Deletion" },
+                    { id: "post-user-deletion", name: "Post User Deletion" },
+                  ];
+
+            return (
+              <SelectInput
+                source="trigger_id"
+                choices={triggerChoices}
+                required
+              />
+            );
+          }}
+        </FormDataConsumer>
         <BooleanInput source="enabled" />
         <BooleanInput
           source="synchronous"

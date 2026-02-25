@@ -24,6 +24,7 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
+import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { createServiceToken } from "../helpers/service-token";
 import { startLoginSessionHook } from "../authentication-flows/common";
 
@@ -907,6 +908,22 @@ export async function postUserLoginHook(
         user,
         pageHook.permission_required,
       );
+    }
+  }
+
+  // Handle template hooks (execute pre-defined hook functions)
+  const templateHooks = hooks.filter(
+    (h: any) => h.enabled && isTemplateHook(h),
+  );
+  for (const hook of templateHooks) {
+    if (!isTemplateHook(hook)) continue;
+    try {
+      user = await handleTemplateHook(ctx, hook.template_id, user);
+    } catch (err) {
+      logMessage(ctx, tenant_id, {
+        type: LogTypes.FAILED_HOOK,
+        description: `Failed to execute template hook: ${hook.template_id}`,
+      });
     }
   }
 
