@@ -97,6 +97,7 @@ CREATE TABLE `users` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `unique_email_provider` ON `users` (`email`,`provider`,`tenant_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_phone_provider` ON `users` (`phone_number`,`provider`,`tenant_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `unique_username_provider` ON `users` (`username`,`provider`,`tenant_id`);--> statement-breakpoint
 CREATE INDEX `users_email_index` ON `users` (`email`);--> statement-breakpoint
 CREATE INDEX `users_linked_to_index` ON `users` (`linked_to`);--> statement-breakpoint
 CREATE INDEX `users_name_index` ON `users` (`name`);--> statement-breakpoint
@@ -571,17 +572,17 @@ CREATE TABLE `forms` (
 --> statement-breakpoint
 CREATE INDEX `forms_tenant_id_idx` ON `forms` (`tenant_id`);--> statement-breakpoint
 CREATE TABLE `hooks` (
-	`hook_id` text(255) PRIMARY KEY NOT NULL,
+	`hook_id` text(21) PRIMARY KEY NOT NULL,
 	`tenant_id` text(191) NOT NULL,
-	`url` text(512) NOT NULL,
+	`url` text(512),
 	`trigger_id` text(255) NOT NULL,
 	`enabled` integer NOT NULL,
-	`created_at` text(35) NOT NULL,
-	`updated_at` text(35) NOT NULL,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
 	`synchronous` integer DEFAULT false NOT NULL,
 	`priority` integer,
-	`form_id` text,
-	`url_tmp` text(512),
+	`form_id` text(128),
+	`template_id` text(64),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

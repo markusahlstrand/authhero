@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "347080e8-a144-41f4-b15a-2b9b9b6eed73",
+  "id": "344580d9-98c4-4ecd-92cf-b8085be3ea47",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -655,6 +655,15 @@
           "name": "unique_phone_provider",
           "columns": [
             "phone_number",
+            "provider",
+            "tenant_id"
+          ],
+          "isUnique": true
+        },
+        "unique_username_provider": {
+          "name": "unique_username_provider",
+          "columns": [
+            "username",
             "provider",
             "tenant_id"
           ],
@@ -3922,7 +3931,7 @@
       "columns": {
         "hook_id": {
           "name": "hook_id",
-          "type": "text(255)",
+          "type": "text(21)",
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
@@ -3938,7 +3947,7 @@
           "name": "url",
           "type": "text(512)",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "trigger_id": {
@@ -3955,16 +3964,16 @@
           "notNull": true,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "text(35)",
+        "created_at_ts": {
+          "name": "created_at_ts",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text(35)",
+        "updated_at_ts": {
+          "name": "updated_at_ts",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -3986,14 +3995,14 @@
         },
         "form_id": {
           "name": "form_id",
-          "type": "text",
+          "type": "text(128)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "url_tmp": {
-          "name": "url_tmp",
-          "type": "text(512)",
+        "template_id": {
+          "name": "template_id",
+          "type": "text(64)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

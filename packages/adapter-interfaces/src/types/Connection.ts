@@ -81,6 +81,9 @@ export const connectionOptionsSchema = z.object({
               allowed: z.boolean().optional(),
             })
             .optional(),
+          unique: z.boolean().optional(),
+          profile_required: z.boolean().optional(),
+          verification_method: z.enum(["link", "code"]).optional(),
         })
         .optional(),
       username: z
@@ -107,8 +110,46 @@ export const connectionOptionsSchema = z.object({
                 .optional(),
             })
             .optional(),
+          profile_required: z.boolean().optional(),
         })
         .optional(),
+      phone_number: z
+        .object({
+          identifier: z
+            .object({
+              active: z.boolean().optional(),
+            })
+            .optional(),
+          signup: z
+            .object({
+              status: z.enum(["required", "optional", "disabled"]).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  // Authentication methods for Username-Password-Authentication connections
+  authentication_methods: z
+    .object({
+      password: z
+        .object({
+          enabled: z.boolean().optional(),
+        })
+        .optional(),
+      passkey: z
+        .object({
+          enabled: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  // Passkey options for Username-Password-Authentication connections
+  passkey_options: z
+    .object({
+      challenge_ui: z.enum(["both", "autofill", "button"]).optional(),
+      local_enrollment_enabled: z.boolean().optional(),
+      progressive_enrollment_enabled: z.boolean().optional(),
     })
     .optional(),
   // Legacy username options (deprecated, use attributes instead)

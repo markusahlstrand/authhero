@@ -14,7 +14,6 @@ import {
   BooleanField,
   BooleanInput,
   ArrayField,
-  SimpleShowLayout,
   useNotify,
   useDataProvider,
   useRecordContext,
@@ -41,6 +40,12 @@ import {
   Tooltip,
   DialogContentText,
   Autocomplete,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
 import { useState } from "react";
@@ -49,8 +54,104 @@ import LinkOffIcon from "@mui/icons-material/LinkOff";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
+
+const EditFieldModal = ({
+  open,
+  onClose,
+  field,
+  label,
+  verifiedField,
+}: {
+  open: boolean;
+  onClose: () => void;
+  field: string;
+  label: string;
+  verifiedField?: string;
+}) => {
+  const record = useRecordContext();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [value, setValue] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && record) {
+      setValue(record[field] || "");
+      if (verifiedField) {
+        setVerified(!!record[verifiedField]);
+      }
+    }
+  }, [open, record, field, verifiedField]);
+
+  const handleSave = async () => {
+    if (!record) return;
+    setSaving(true);
+    try {
+      const data: Record<string, any> = { [field]: value };
+      if (verifiedField) {
+        data[verifiedField] = verified;
+      }
+      await dataProvider.update("users", {
+        id: record.id,
+        data,
+        previousData: record,
+      });
+      notify(`${label} updated`, { type: "success" });
+      refresh();
+      onClose();
+    } catch (error) {
+      notify(`Error updating ${label.toLowerCase()}`, { type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Edit {label}</DialogTitle>
+      <DialogContent>
+        <MuiTextField
+          autoFocus
+          margin="dense"
+          label={label}
+          fullWidth
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !saving) {
+              e.preventDefault();
+              handleSave();
+            }
+          }}
+          sx={{ mt: 1 }}
+        />
+        {verifiedField && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={verified}
+                onChange={(e) => setVerified(e.target.checked)}
+              />
+            }
+            label="Verified"
+            sx={{ mt: 1 }}
+          />
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} variant="contained" disabled={saving}>
+          Save
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 const LinkUserButton = () => {
   const [open, setOpen] = useState(false);
@@ -234,7 +335,12 @@ const UnlinkButton = () => {
   return (
     <>
       <Tooltip title="Unlink identity">
-        <IconButton onClick={handleOpen} color="error" size="small">
+        <IconButton
+          onClick={handleOpen}
+          color="error"
+          size="small"
+          aria-label="Unlink identity"
+        >
           <LinkOffIcon />
         </IconButton>
       </Tooltip>
@@ -357,6 +463,17 @@ const PasswordChangeSection = () => {
             fullWidth
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !saving &&
+                newPassword &&
+                newPassword === confirmPassword
+              ) {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
             error={confirmPassword !== "" && newPassword !== confirmPassword}
             helperText={
               confirmPassword !== "" && newPassword !== confirmPassword
@@ -708,7 +825,12 @@ const RemovePermissionButton = () => {
   return (
     <>
       <Tooltip title="Remove permission">
-        <IconButton onClick={handleOpen} color="error" size="small">
+        <IconButton
+          onClick={handleOpen}
+          color="error"
+          size="small"
+          aria-label="Remove permission"
+        >
           <DeleteIcon />
         </IconButton>
       </Tooltip>
@@ -1091,7 +1213,7 @@ const UserRolesTable = ({
                   onClick={() => handleRemoveRole(role)}
                   color="error"
                   size="small"
-                  title="Remove Role"
+                  aria-label="Remove role"
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -1621,41 +1743,188 @@ const RolesManagement = () => {
   );
 };
 
+const IdentityCard = () => {
+  const [editField, setEditField] = useState<{
+    field: string;
+    label: string;
+    verifiedField?: string;
+  } | null>(null);
+
+  return (
+    <>
+      <Card variant="outlined" sx={{ mb: 3, width: "100%" }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Identity
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Box
+            display="grid"
+            gridTemplateColumns="1fr 1fr"
+            gap={2}
+            sx={{ "& .RaLabeled-label": { fontWeight: 500 } }}
+          >
+            <Labeled label="Email">
+              <FunctionField
+                render={(record: any) => (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{record?.email || "—"}</span>
+                    {record?.email && (
+                      <Chip
+                        label={
+                          record?.email_verified ? "Verified" : "Unverified"
+                        }
+                        color={
+                          record?.email_verified ? "success" : "warning"
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                    <IconButton
+                      size="small"
+                      aria-label="Edit email"
+                      onClick={() =>
+                        setEditField({
+                          field: "email",
+                          label: "Email",
+                          verifiedField: "email_verified",
+                        })
+                      }
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                )}
+              />
+            </Labeled>
+            <Labeled label="Username">
+              <FunctionField
+                render={(record: any) => (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{record?.username || "—"}</span>
+                    <IconButton
+                      size="small"
+                      aria-label="Edit username"
+                      onClick={() =>
+                        setEditField({
+                          field: "username",
+                          label: "Username",
+                        })
+                      }
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                )}
+              />
+            </Labeled>
+            <Labeled label="Phone Number">
+              <FunctionField
+                render={(record: any) => (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{record?.phone_number || "—"}</span>
+                    {record?.phone_number && (
+                      <Chip
+                        label={
+                          record?.phone_verified
+                            ? "Verified"
+                            : "Unverified"
+                        }
+                        color={
+                          record?.phone_verified
+                            ? "success"
+                            : "warning"
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                    <IconButton
+                      size="small"
+                      aria-label="Edit phone number"
+                      onClick={() =>
+                        setEditField({
+                          field: "phone_number",
+                          label: "Phone Number",
+                          verifiedField: "phone_verified",
+                        })
+                      }
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                )}
+              />
+            </Labeled>
+            <Labeled label="User ID">
+              <TextField source="id" />
+            </Labeled>
+            <Labeled label="Signed Up">
+              <DateField source="created_at" showTime />
+            </Labeled>
+            <Labeled label="Primary Identity Provider">
+              <TextField source="connection" emptyText="—" />
+            </Labeled>
+            <Labeled label="Latest Login">
+              <DateField
+                source="last_login"
+                showTime
+                emptyText="Never"
+              />
+            </Labeled>
+            <Labeled label="Linked Accounts">
+              <FunctionField
+                render={(record: any) => {
+                  const linked = Math.max(
+                    (record?.identities?.length ?? 1) - 1,
+                    0,
+                  );
+                  if (linked === 0) return "None";
+                  return `${linked} account${linked !== 1 ? "s" : ""}`;
+                }}
+              />
+            </Labeled>
+          </Box>
+        </CardContent>
+      </Card>
+      {editField && (
+        <EditFieldModal
+          open
+          onClose={() => setEditField(null)}
+          field={editField.field}
+          label={editField.label}
+          verifiedField={editField.verifiedField}
+        />
+      )}
+    </>
+  );
+};
+
 export function UserEdit() {
   return (
     <Edit>
-      <SimpleShowLayout>
-        <TextField source="email" />
-        <TextField source="id" />
-      </SimpleShowLayout>
       <TabbedForm>
         <TabbedForm.Tab label="details">
-          <Stack spacing={2} direction="row">
-            <TextInput source="email" sx={{ mb: 4 }} />
-            <TextInput source="phone_number" sx={{ mb: 4 }} />
-            <Labeled
-              label={React.createElement(FieldTitle as any, { source: "id" })}
-            >
-              <TextField source="id" sx={{ mb: 4 }} />
-            </Labeled>
-          </Stack>
-          <Stack spacing={2} direction="row">
-            <TextInput source="given_name" />
-            <TextInput source="family_name" />
-            <TextInput source="nickname" />
-          </Stack>
-          <Stack spacing={2} direction="row">
-            <TextInput source="name" />
-            <Labeled
-              label={React.createElement(FieldTitle as any, {
-                source: "connection",
-              })}
-            >
-              <TextField source="connection" />
-            </Labeled>
-            <BooleanInput source="email_verified" label="Email Verified" />
-          </Stack>
-          <TextInput source="picture" />
+          <IdentityCard />
+          <Card variant="outlined" sx={{ mb: 3, width: "100%" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                User Profile
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Stack spacing={2} direction="row">
+                <TextInput source="given_name" />
+                <TextInput source="family_name" />
+                <TextInput source="nickname" />
+              </Stack>
+              <Stack spacing={2} direction="row">
+                <TextInput source="name" />
+              </Stack>
+              <TextInput source="picture" fullWidth />
+            </CardContent>
+          </Card>
+
           <ArrayField source="identities">
             {React.createElement(
               Datagrid as any,
@@ -1673,21 +1942,6 @@ export function UserEdit() {
           <MetadataCard />
 
           <PasswordChangeSection />
-
-          <Labeled
-            label={React.createElement(FieldTitle as any, {
-              source: "created_at",
-            })}
-          >
-            <DateField source="created_at" showTime={true} />
-          </Labeled>
-          <Labeled
-            label={React.createElement(FieldTitle as any, {
-              source: "updated_at",
-            })}
-          >
-            <DateField source="updated_at" showTime={true} />
-          </Labeled>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="sessions">
           <ReferenceManyField

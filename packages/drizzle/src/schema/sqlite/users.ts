@@ -67,6 +67,11 @@ export const users = sqliteTable(
       table.provider,
       table.tenant_id,
     ),
+    uniqueIndex("unique_username_provider").on(
+      table.username,
+      table.provider,
+      table.tenant_id,
+    ),
     index("users_email_index").on(table.email),
     index("users_linked_to_index").on(table.linked_to),
     index("users_name_index").on(table.name),

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   BooleanInput,
   DateField,
@@ -14,7 +15,58 @@ import {
   FormDataConsumer,
   useRecordContext,
 } from "react-admin";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
+import {
+  getTemplateChoicesForTrigger,
+  hookTemplates,
+  triggerChoices,
+} from "./hookConstants";
+
+/**
+ * Watches trigger_id and clears template_id whenever the trigger changes
+ * to a value that is incompatible with the currently selected template.
+ * Renders nothing.
+ */
+function ClearTemplateOnTriggerChange() {
+  const { setValue, getValues } = useFormContext();
+  const triggerId = useWatch({ name: "trigger_id" });
+  const prevTriggerId = useRef(triggerId);
+
+  useEffect(() => {
+    if (
+      prevTriggerId.current !== undefined &&
+      prevTriggerId.current !== triggerId
+    ) {
+      const currentTemplateId = getValues("template_id");
+      if (currentTemplateId) {
+        const meta = hookTemplates[currentTemplateId];
+        if (!meta || meta.trigger_id !== triggerId) {
+          setValue("template_id", undefined);
+        }
+      }
+    }
+    prevTriggerId.current = triggerId;
+  }, [triggerId, setValue, getValues]);
+
+  return null;
+}
+
+/**
+ * Form-level validation: prevents saving an incompatible template_id / trigger_id
+ * pair even if the clearing effect hasn't fired yet.
+ */
+function validateHookForm(values: Record<string, any>) {
+  const errors: Record<string, string> = {};
+  if (values.template_id && values.trigger_id) {
+    const meta = hookTemplates[values.template_id];
+    if (meta && meta.trigger_id !== values.trigger_id) {
+      errors.template_id =
+        "This template is not compatible with the selected trigger";
+    }
+  }
+  return errors;
+}
 
 export function HookEdit() {
   // Fetch forms for the current tenant
@@ -28,12 +80,14 @@ export function HookEdit() {
   const getType = (formData: any) => {
     if (formData?.url) return "webhook";
     if (formData?.form_id) return "form";
+    if (formData?.template_id) return "template";
     return undefined;
   };
 
   return (
     <Edit>
-      <SimpleForm>
+      <SimpleForm validate={validateHookForm}>
+        <ClearTemplateOnTriggerChange />
         <FormDataConsumer>
           {({ formData }) => {
             const type = getType(formData ?? record);
@@ -44,7 +98,9 @@ export function HookEdit() {
                     ? "Webhook"
                     : type === "form"
                       ? "Form hook"
-                      : ""}
+                      : type === "template"
+                        ? "Template hook"
+                        : ""}
                 </Typography>
                 {type === "webhook" && (
                   <TextInput
@@ -66,12 +122,22 @@ export function HookEdit() {
                       formsLoading
                         ? []
                         : (forms || []).map((form) => ({
-                            id: form.id,
-                            name: form.name,
-                          }))
+                          id: form.id,
+                          name: form.name,
+                        }))
                     }
                     validate={[required()]}
                     fullWidth
+                  />
+                )}
+                {type === "template" && (
+                  <SelectInput
+                    source="template_id"
+                    label="Template"
+                    choices={getTemplateChoicesForTrigger(formData?.trigger_id)}
+                    validate={[required()]}
+                    fullWidth
+                    helperText="The pre-defined hook template to execute"
                   />
                 )}
               </>
@@ -80,17 +146,7 @@ export function HookEdit() {
         </FormDataConsumer>
         <SelectInput
           source="trigger_id"
-          choices={[
-            { id: "pre-user-registration", name: "Pre User Registration" },
-            { id: "post-user-registration", name: "Post User Registration" },
-            { id: "post-user-login", name: "Post User Login" },
-            {
-              id: "validate-registration-username",
-              name: "Validate Registration Username",
-            },
-            { id: "pre-user-deletion", name: "Pre User Deletion" },
-            { id: "post-user-deletion", name: "Post User Deletion" },
-          ]}
+          choices={triggerChoices}
           required
         />
         <BooleanInput source="enabled" />

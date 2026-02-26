@@ -9,6 +9,7 @@ export function HookList() {
         <TextField source="trigger_id" />
         <TextField source="url" />
         <TextField source="form_id" label="Form" />
+        <TextField source="template_id" label="Template" />
         <BooleanField source="enabled" />
         <BooleanField source="synchronous" />
       </Datagrid>

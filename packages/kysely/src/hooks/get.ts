@@ -2,6 +2,7 @@ import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { Hook } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function get(db: Kysely<Database>) {
   return async (tenant_id: string, hook_id: string): Promise<Hook | null> => {
@@ -16,10 +17,19 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
+    const { tenant_id: _tenantId, created_at_ts, updated_at_ts, ...rest } =
+      hook;
+
+    const dates = convertDatesToAdapter(
+      { created_at_ts, updated_at_ts },
+      ["created_at_ts", "updated_at_ts"],
+    );
+
     return removeNullProperties({
-      ...hook,
-      enabled: !!hook.enabled,
-      synchronous: !!hook.synchronous,
+      ...rest,
+      ...dates,
+      enabled: !!rest.enabled,
+      synchronous: !!rest.synchronous,
     });
   };
 }

@@ -41,6 +41,10 @@ export { HttpSamlSigner } from "@authhero/saml/core";
 export { fetchAll } from "./utils/fetchAll";
 export type { FetchAllOptions } from "./utils/fetchAll";
 
+// Export pre-defined hooks library
+export * as preDefinedHooks from "./hooks/pre-defined";
+export type { EnsureUsernameOptions } from "./hooks/pre-defined";
+
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
   fallbackLng: "en",

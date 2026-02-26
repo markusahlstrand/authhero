@@ -192,6 +192,83 @@ If you're migrating from Auth0 Actions to AuthHero Hooks:
 
 AuthHero's `onExecutePostLogin` hook provides an Auth0-compatible event object and API, making migration straightforward.
 
+## Hook Templates
+
+AuthHero ships with **pre-defined hook templates** — ready-to-use hooks that implement common authentication patterns. Instead of writing hooks from scratch, you can import a template and plug it straight into your configuration.
+
+::: tip AuthHero Exclusive
+Auth0 does not offer pre-built hook templates. In Auth0 you must write every Action from scratch or copy examples manually.
+:::
+
+### Available Templates
+
+#### `ensureUsername`
+
+Ensures every user has a username, regardless of how they signed up (email, social, SMS, etc.).
+
+**What it does:**
+
+1. After login, checks whether the user already has a username (directly or via a linked identity).
+2. If not, extracts candidate usernames from the user's profile fields (in order: `nickname`, `name`, local part of `email`, `phone_number`).
+3. Slugifies each candidate (lowercased, diacritics stripped, non-alphanumeric characters replaced with hyphens).
+4. Checks uniqueness against existing users and appends numeric suffixes if needed (e.g. `john`, `john2`, `john3`).
+5. For username-type accounts (`auth2` provider), updates the username field directly.
+6. For other providers, creates a new linked username account attached to the current user.
+
+**Basic usage:**
+
+```typescript
+import { init, preDefinedHooks } from "authhero";
+
+const { app } = init({
+  dataAdapter,
+  hooks: {
+    onExecutePostLogin: preDefinedHooks.ensureUsername(),
+  },
+});
+```
+
+**With custom options:**
+
+```typescript
+import { preDefinedHooks } from "authhero";
+
+preDefinedHooks.ensureUsername({
+  connection: "my-username-connection", // default: "Username-Password-Authentication"
+  provider: "auth2",                    // default: "auth2"
+  maxRetries: 20,                       // default: 10
+});
+```
+
+| Option       | Type     | Default                              | Description                                      |
+| ------------ | -------- | ------------------------------------ | ------------------------------------------------ |
+| `connection` | `string` | `"Username-Password-Authentication"` | Connection name for username accounts             |
+| `provider`   | `string` | `"auth2"`                            | Provider used for username accounts               |
+| `maxRetries` | `number` | `10`                                 | Max attempts to find a unique username via suffix |
+
+### Using Templates with Your Own Hooks
+
+Since templates return standard hook functions, you can compose them with your own logic:
+
+```typescript
+import { init, preDefinedHooks } from "authhero";
+
+const ensureUsernameFn = preDefinedHooks.ensureUsername();
+
+const { app } = init({
+  dataAdapter,
+  hooks: {
+    onExecutePostLogin: async (event, api) => {
+      // Your custom logic first
+      console.log(`User ${event.user?.user_id} logged in`);
+
+      // Then run the template
+      await ensureUsernameFn(event, api);
+    },
+  },
+});
+```
+
 ## Additional Resources
 
 - [Hooks Guide](../guides/hooks.md) - Complete hooks documentation

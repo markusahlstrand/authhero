@@ -21,6 +21,44 @@ const formHookAllowedTriggers = z.enum([
   "post-user-deletion",
 ]);
 
+const templateHookAllowedTriggers = z.enum([
+  "post-user-login",
+  "credentials-exchange",
+]);
+
+// Available template IDs mapped to their trigger types
+export const hookTemplateId = z.enum([
+  "ensure-username",
+  "set-preferred-username",
+]);
+export type HookTemplateId = z.infer<typeof hookTemplateId>;
+
+/**
+ * Registry of available hook templates.
+ * Maps template IDs to their metadata and allowed triggers.
+ */
+export const hookTemplates: Record<
+  HookTemplateId,
+  {
+    name: string;
+    description: string;
+    trigger_id: string;
+  }
+> = {
+  "ensure-username": {
+    name: "Ensure Username",
+    description:
+      "Automatically assigns a username to users who sign in without one. Creates a linked username account for social/email users.",
+    trigger_id: "post-user-login",
+  },
+  "set-preferred-username": {
+    name: "Set Preferred Username",
+    description:
+      "Sets the preferred_username claim on tokens based on the username from the primary or linked user.",
+    trigger_id: "credentials-exchange",
+  },
+};
+
 // Base properties common to hook definitions (excluding hook_id and trigger_id which vary)
 const hookBaseCommonProperties = {
   enabled: z.boolean().default(false),
@@ -41,9 +79,16 @@ const formHookInsertSchema = z.object({
   form_id: z.string(),
 });
 
+const templateHookInsertSchema = z.object({
+  ...hookBaseCommonProperties,
+  trigger_id: templateHookAllowedTriggers,
+  template_id: hookTemplateId,
+});
+
 export const hookInsertSchema = z.union([
   webHookInsertSchema,
   formHookInsertSchema,
+  templateHookInsertSchema,
 ]);
 export type HookInsert = z.infer<typeof hookInsertSchema>;
 
@@ -63,6 +108,18 @@ const formHookSchema = z.object({
   form_id: z.string(),
 });
 
-export const hookSchema = z.union([webHookSchema, formHookSchema]);
+const templateHookSchema = z.object({
+  ...hookBaseCommonProperties,
+  trigger_id: templateHookAllowedTriggers,
+  ...baseEntitySchema.shape,
+  hook_id: z.string(),
+  template_id: hookTemplateId,
+});
+
+export const hookSchema = z.union([
+  webHookSchema,
+  formHookSchema,
+  templateHookSchema,
+]);
 
 export type Hook = z.infer<typeof hookSchema>;

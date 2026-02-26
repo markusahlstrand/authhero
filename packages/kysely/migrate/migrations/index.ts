@@ -125,6 +125,9 @@ import * as o026_auth0_conformant from "./2026-01-28T14:00:00_auth0_conformant";
 import * as o027_universal_login_templates from "./2026-01-30T10:00:00_universal_login_templates";
 import * as o028_custom_text from "./2026-02-04T10:00:00_custom_text";
 import * as o029_guardian_mfa from "./2026-02-04T11:00:00_guardian_mfa";
+import * as o030_add_template_id_to_hooks from "./2026-02-25T10:00:00_add_template_id_to_hooks";
+import * as o031_hooks_cleanup from "./2026-02-25T11:00:00_hooks_cleanup";
+import * as o032_unique_username_provider from "./2026-02-25T12:00:00_unique_username_provider";
 
 // These need to be in alphabetic order
 export default {
@@ -255,4 +258,7 @@ export default {
   o027_universal_login_templates,
   o028_custom_text,
   o029_guardian_mfa,
+  o030_add_template_id_to_hooks,
+  o031_hooks_cleanup,
+  o032_unique_username_provider,
 };

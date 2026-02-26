@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   BooleanInput,
   Create,
@@ -9,6 +10,58 @@ import {
   useGetList,
   FormDataConsumer,
 } from "react-admin";
+import { useFormContext, useWatch } from "react-hook-form";
+import {
+  getTemplateChoicesForTrigger,
+  hookTemplates,
+  triggerChoices,
+  triggerChoicesWithTemplatesOnly,
+} from "./hookConstants";
+
+/**
+ * Watches trigger_id and clears template_id whenever the trigger changes
+ * to a value that is incompatible with the currently selected template.
+ * Renders nothing.
+ */
+function ClearTemplateOnTriggerChange() {
+  const { setValue, getValues } = useFormContext();
+  const triggerId = useWatch({ name: "trigger_id" });
+  const prevTriggerId = useRef(triggerId);
+
+  useEffect(() => {
+    if (
+      prevTriggerId.current !== undefined &&
+      prevTriggerId.current !== triggerId
+    ) {
+      const currentTemplateId = getValues("template_id");
+      if (currentTemplateId) {
+        const meta = hookTemplates[currentTemplateId];
+        if (!meta || meta.trigger_id !== triggerId) {
+          setValue("template_id", undefined);
+        }
+      }
+    }
+    prevTriggerId.current = triggerId;
+  }, [triggerId, setValue, getValues]);
+
+  return null;
+}
+
+/**
+ * Form-level validation: prevents saving an incompatible template_id / trigger_id
+ * pair even if the clearing effect hasn't fired yet.
+ */
+function validateHookForm(values: Record<string, any>) {
+  const errors: Record<string, string> = {};
+  if (values.template_id && values.trigger_id) {
+    const meta = hookTemplates[values.template_id];
+    if (meta && meta.trigger_id !== values.trigger_id) {
+      errors.template_id =
+        "This template is not compatible with the selected trigger";
+    }
+  }
+  return errors;
+}
 
 export function HooksCreate() {
   // Fetch forms for the current tenant
@@ -21,11 +74,13 @@ export function HooksCreate() {
   const typeChoices = [
     { id: "webhook", name: "Webhook" },
     { id: "form", name: "Form" },
+    { id: "template", name: "Template" },
   ];
 
   return (
     <Create>
-      <SimpleForm>
+      <SimpleForm validate={validateHookForm}>
+        <ClearTemplateOnTriggerChange />
         <SelectInput
           source="type"
           label="Type"
@@ -53,34 +108,54 @@ export function HooksCreate() {
                     formsLoading
                       ? []
                       : (forms || []).map((form) => ({
-                          id: form.id,
-                          name: form.name,
-                        }))
+                        id: form.id,
+                        name: form.name,
+                      }))
                   }
                   validate={[required()]}
                   fullWidth
                 />
               );
             }
+            if (formData.type === "template") {
+              const templateChoices = getTemplateChoicesForTrigger(
+                formData.trigger_id,
+              );
+              return (
+                <SelectInput
+                  source="template_id"
+                  label="Template"
+                  choices={templateChoices}
+                  validate={[required()]}
+                  fullWidth
+                  helperText={
+                    formData.trigger_id
+                      ? `${templateChoices.length} template(s) available for this trigger`
+                      : "Select a trigger first to see available templates"
+                  }
+                />
+              );
+            }
             return null;
           }}
         </FormDataConsumer>
-        <SelectInput
-          source="trigger_id"
-          choices={[
-            {
-              id: "validate-registration-username",
-              name: "Validate Registration Username",
-            },
-            { id: "pre-user-registration", name: "Pre User Registration" },
-            { id: "post-user-registration", name: "Post User Registration" },
-            { id: "post-user-login", name: "Post User Login" },
-            { id: "pre-user-update", name: "Pre User Update" },
-            { id: "pre-user-deletion", name: "Pre User Deletion" },
-            { id: "post-user-deletion", name: "Post User Deletion" },
-          ]}
-          required
-        />
+        <FormDataConsumer>
+          {({ formData }) => {
+            // When type is "template", only show triggers that have templates
+            const filteredTriggerChoices =
+              formData.type === "template"
+                ? triggerChoicesWithTemplatesOnly
+                : triggerChoices;
+
+            return (
+              <SelectInput
+                source="trigger_id"
+                choices={filteredTriggerChoices}
+                required
+              />
+            );
+          }}
+        </FormDataConsumer>
         <BooleanInput source="enabled" />
         <BooleanInput
           source="synchronous"

@@ -4,6 +4,7 @@ import { luceneFilter } from "../helpers/filter";
 import { ListHooksResponse, ListParams } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { convertDatesToAdapter } from "../utils/dateConversion";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -15,7 +16,7 @@ export function list(db: Kysely<Database>) {
     let query = db.selectFrom("hooks").where("hooks.tenant_id", "=", tenant_id);
 
     if (q) {
-      query = luceneFilter(db, query, q, ["url", "form_id"]);
+      query = luceneFilter(db, query, q, ["url", "form_id", "template_id"]);
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);
@@ -23,10 +24,23 @@ export function list(db: Kysely<Database>) {
     const results = await filteredQuery.selectAll().execute();
 
     const hooks = results.map((hook) => {
-      const { tenant_id, enabled, synchronous, ...rest } = hook;
+      const {
+        tenant_id: _tenantId,
+        enabled,
+        synchronous,
+        created_at_ts,
+        updated_at_ts,
+        ...rest
+      } = hook;
+
+      const dates = convertDatesToAdapter(
+        { created_at_ts, updated_at_ts },
+        ["created_at_ts", "updated_at_ts"],
+      );
 
       return removeNullProperties({
         ...rest,
+        ...dates,
         enabled: !!enabled,
         synchronous: !!synchronous,
       });
