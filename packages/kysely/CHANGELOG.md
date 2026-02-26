@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.97.0
+
+### Minor Changes
+
+- d7bcd19: Add hook templates
+
+### Patch Changes
+
+- Updated dependencies [d7bcd19]
+  - @authhero/adapter-interfaces@0.136.0
+
 ## 10.96.1
 
 ### Patch Changes
