@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.45.0
+
+### Minor Changes
+
+- 897ca72: Use username as default for create-authhero
+
 ## 1.44.0
 
 ### Minor Changes

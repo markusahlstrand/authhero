@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.137.0
+
+### Minor Changes
+
+- 0719de4: Add username to indetifier array
+
 ## 0.136.0
 
 ### Minor Changes

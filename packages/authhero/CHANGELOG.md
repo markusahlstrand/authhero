@@ -1,5 +1,18 @@
 # authhero
 
+## 4.44.0
+
+### Minor Changes
+
+- 897ca72: Use username as default for create-authhero
+- 0719de4: Add username to indetifier array
+
+### Patch Changes
+
+- Updated dependencies [0719de4]
+  - @authhero/adapter-interfaces@0.137.0
+  - @authhero/widget@0.15.2
+
 ## 4.43.0
 
 ### Minor Changes

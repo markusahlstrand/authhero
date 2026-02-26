@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.30.0
+
+### Minor Changes
+
+- 897ca72: Use username as default for create-authhero
+
 ## 0.29.0
 
 ### Minor Changes
