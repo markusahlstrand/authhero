@@ -67,7 +67,7 @@ interface PasswordItem extends DynamoDBBaseItem {
 
 function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  
+
   const data = removeNullProperties({
     ...rest,
     app_metadata: JSON.parse(item.app_metadata || "{}"),
@@ -78,12 +78,18 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
         provider: item.provider,
         user_id: parseUserId(item.user_id).id,
         isSocial: item.is_social,
+        ...(item.email ? { email: item.email } : {}),
+        ...(item.phone_number ? { phone_number: item.phone_number } : {}),
+        ...(item.username ? { username: item.username } : {}),
       },
       ...linkedUsers.map((u) => ({
         connection: u.connection,
         provider: u.provider,
         user_id: parseUserId(u.user_id).id,
         isSocial: u.is_social,
+        ...(u.email ? { email: u.email } : {}),
+        ...(u.phone_number ? { phone_number: u.phone_number } : {}),
+        ...(u.username ? { username: u.username } : {}),
       })),
     ],
   });

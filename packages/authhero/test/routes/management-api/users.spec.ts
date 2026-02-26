@@ -144,6 +144,8 @@ describe("users management API endpoint", () => {
           user_id: id,
           provider: "email",
           isSocial: false,
+          email: "test@example.com",
+          email_verified: false,
         },
       ]);
     });
@@ -284,12 +286,16 @@ describe("users management API endpoint", () => {
             provider: "auth2",
             user_id: "primaryId",
             isSocial: false,
+            email: "primary@example.com",
+            email_verified: true,
           },
           {
             connection: "email",
             provider: "email",
             user_id: "existingCodeUserId",
             isSocial: false,
+            email: "existing-code-user@example.com",
+            email_verified: true,
             profileData: {
               email: "existing-code-user@example.com",
               email_verified: true,
@@ -1222,12 +1228,16 @@ describe("users management API endpoint", () => {
           user_id: "userId1",
           provider: "email",
           isSocial: false,
+          email: "foo1@example.com",
+          email_verified: false,
         },
         {
           connection: "email",
           user_id: "userId2",
           provider: "email",
           isSocial: false,
+          email: "foo2@example.com",
+          email_verified: false,
           profileData: {
             email: "foo2@example.com",
             email_verified: false,
@@ -1381,10 +1391,14 @@ describe("users management API endpoint", () => {
           isSocial: false,
           provider: "auth2",
           user_id: "base-user",
+          email: "base-user@example.com",
+          email_verified: true,
         },
         {
           connection: "email",
           isSocial: false,
+          email: "code-user@example.com",
+          email_verified: true,
           profileData: {
             email: "code-user@example.com",
             email_verified: true,
@@ -1427,10 +1441,14 @@ describe("users management API endpoint", () => {
           isSocial: false,
           provider: "auth2",
           user_id: "base-user",
+          email: "base-user@example.com",
+          email_verified: true,
         },
         {
           connection: "email",
           isSocial: false,
+          email: "code-user@example.com",
+          email_verified: true,
           profileData: {
             email: "code-user@example.com",
             email_verified: true,
@@ -1664,12 +1682,16 @@ describe("users management API endpoint", () => {
           user_id: "userId2",
           provider: "auth2",
           isSocial: false,
+          email: "foo2@example.com",
+          email_verified: true,
         },
         {
           connection: "Username-Password-Authentication",
           user_id: "userId1",
           provider: "auth2",
           isSocial: false,
+          email: "foo1@example.com",
+          email_verified: true,
           profileData: {
             email: "foo1@example.com",
             email_verified: true,
@@ -1732,6 +1754,8 @@ describe("users management API endpoint", () => {
           user_id: "userId2",
           provider: "auth2",
           isSocial: false,
+          email: "foo2@example.com",
+          email_verified: true,
         },
       ]);
       // this shows we have unlinked
@@ -1812,12 +1836,16 @@ describe("users management API endpoint", () => {
           user_id: "userId2",
           provider: "auth2",
           isSocial: false,
+          email: "foo2@example.com",
+          email_verified: true,
         },
         {
           connection: "Username-Password-Authentication",
           user_id: "userId1",
           provider: "auth2",
           isSocial: false,
+          email: "foo1@example.com",
+          email_verified: true,
           profileData: {
             email: "foo1@example.com",
             email_verified: true,
@@ -1920,12 +1948,16 @@ describe("users management API endpoint", () => {
           user_id: "userId1",
           provider: "email",
           isSocial: false,
+          email: "foo1@example.com",
+          email_verified: false,
         },
         {
           connection: "email",
           user_id: "userId2",
           provider: "email",
           isSocial: false,
+          email: "foo2@example.com",
+          email_verified: false,
           profileData: {
             email: "foo2@example.com",
             email_verified: false,
@@ -2366,12 +2398,16 @@ describe("users management API endpoint", () => {
         expect.objectContaining({
           provider: "email",
           connection: "email",
+          email: testEmail,
+          email_verified: false,
         }),
       );
       expect(updatedPrimaryUser.identities).toContainEqual(
         expect.objectContaining({
           provider: "auth2",
           connection: "Username-Password-Authentication",
+          email: testEmail,
+          email_verified: false,
         }),
       );
 

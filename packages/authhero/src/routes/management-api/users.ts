@@ -8,8 +8,10 @@ import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
 import { hashPassword } from "../../helpers/password-policy";
 import {
+  Identity,
   LogTypes,
   auth0UserResponseSchema,
+  identitySchema,
   sessionSchema,
   totalsSchema,
   userInsertSchema,
@@ -18,6 +20,31 @@ import {
   organizationSchema,
 } from "@authhero/adapter-interfaces";
 import { getProviderFromConnection } from "../../strategies";
+
+const IDENTITY_PICK_KEYS = [
+  "email",
+  "email_verified",
+  "phone_number",
+  "phone_verified",
+  "username",
+] as const;
+
+function pickIdentity(user: Record<string, any>): Identity {
+  const identity: Identity = {
+    connection: user.connection,
+    provider: user.provider,
+    user_id: userIdParse(user.user_id)!,
+    isSocial: user.is_social,
+  };
+
+  for (const key of IDENTITY_PICK_KEYS) {
+    if (user[key] !== undefined && user[key] !== null) {
+      identity[key] = user[key];
+    }
+  }
+
+  return identity;
+}
 
 const usersWithTotalsSchema = totalsSchema.extend({
   users: z.array(auth0UserResponseSchema),
@@ -360,16 +387,9 @@ export const userRoutes = new OpenAPIHono<{
         const userResponse = result.identities
           ? result
           : {
-              ...result,
-              identities: [
-                {
-                  connection: result.connection,
-                  provider: result.provider,
-                  user_id: userIdParse(result.user_id),
-                  isSocial: result.is_social,
-                },
-              ],
-            };
+            ...result,
+            identities: [pickIdentity(result)],
+          };
 
         return ctx.json(auth0UserResponseSchema.parse(userResponse), {
           status: 201,
@@ -625,14 +645,7 @@ export const userRoutes = new OpenAPIHono<{
         201: {
           content: {
             "application/json": {
-              schema: z.array(
-                z.object({
-                  connection: z.string(),
-                  provider: z.string(),
-                  user_id: z.string(),
-                  isSocial: z.boolean(),
-                }),
-              ),
+              schema: z.array(identitySchema),
             },
           },
           description: "Status",
@@ -663,14 +676,11 @@ export const userRoutes = new OpenAPIHono<{
         q: `linked_to:${user_id}`,
       });
 
-      const identities = [user, ...linkedusers.users].map((u) => ({
-        connection: u.connection,
-        provider: u.provider,
-        user_id: userIdParse(u.user_id)!,
-        isSocial: u.is_social,
-      }));
+      const identities = [user, ...linkedusers.users].map(pickIdentity);
 
-      return ctx.json(identities, { status: 201 });
+      return ctx.json(z.array(identitySchema).parse(identities), {
+        status: 201,
+      });
     },
   )
   // --------------------------------
