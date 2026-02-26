@@ -14,7 +14,6 @@ import {
   BooleanField,
   BooleanInput,
   ArrayField,
-  SimpleShowLayout,
   useNotify,
   useDataProvider,
   useRecordContext,
@@ -464,6 +463,17 @@ const PasswordChangeSection = () => {
             fullWidth
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !saving &&
+                newPassword &&
+                newPassword === confirmPassword
+              ) {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
             error={confirmPassword !== "" && newPassword !== confirmPassword}
             helperText={
               confirmPassword !== "" && newPassword !== confirmPassword
@@ -1847,6 +1857,9 @@ const IdentityCard = () => {
                 )}
               />
             </Labeled>
+            <Labeled label="User ID">
+              <TextField source="id" />
+            </Labeled>
             <Labeled label="Signed Up">
               <DateField source="created_at" showTime />
             </Labeled>
@@ -1860,12 +1873,15 @@ const IdentityCard = () => {
                 emptyText="Never"
               />
             </Labeled>
-            <Labeled label="Accounts Associated">
+            <Labeled label="Linked Accounts">
               <FunctionField
                 render={(record: any) => {
-                  const count = record?.identities?.length ?? 0;
-                  if (count === 0) return "None";
-                  return `${count} account${count !== 1 ? "s" : ""}`;
+                  const linked = Math.max(
+                    (record?.identities?.length ?? 1) - 1,
+                    0,
+                  );
+                  if (linked === 0) return "None";
+                  return `${linked} account${linked !== 1 ? "s" : ""}`;
                 }}
               />
             </Labeled>
@@ -1888,10 +1904,6 @@ const IdentityCard = () => {
 export function UserEdit() {
   return (
     <Edit>
-      <SimpleShowLayout>
-        <TextField source="email" />
-        <TextField source="id" />
-      </SimpleShowLayout>
       <TabbedForm>
         <TabbedForm.Tab label="details">
           <IdentityCard />

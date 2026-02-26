@@ -52,6 +52,22 @@ function ClearTemplateOnTriggerChange() {
   return null;
 }
 
+/**
+ * Form-level validation: prevents saving an incompatible template_id / trigger_id
+ * pair even if the clearing effect hasn't fired yet.
+ */
+function validateHookForm(values: Record<string, any>) {
+  const errors: Record<string, string> = {};
+  if (values.template_id && values.trigger_id) {
+    const meta = hookTemplates[values.template_id];
+    if (meta && meta.trigger_id !== values.trigger_id) {
+      errors.template_id =
+        "This template is not compatible with the selected trigger";
+    }
+  }
+  return errors;
+}
+
 export function HookEdit() {
   // Fetch forms for the current tenant
   const { data: forms, isLoading: formsLoading } = useGetList("forms", {
@@ -70,7 +86,7 @@ export function HookEdit() {
 
   return (
     <Edit>
-      <SimpleForm>
+      <SimpleForm validate={validateHookForm}>
         <ClearTemplateOnTriggerChange />
         <FormDataConsumer>
           {({ formData }) => {
