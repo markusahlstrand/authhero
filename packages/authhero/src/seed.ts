@@ -552,9 +552,9 @@ export const MANAGEMENT_API_SCOPES = [
 
 export interface SeedOptions {
   /**
-   * The admin user's email address
+   * The admin user's username
    */
-  adminEmail: string;
+  adminUsername: string;
   /**
    * The admin user's password (will be hashed with bcrypt)
    */
@@ -603,7 +603,7 @@ export interface SeedOptions {
 export interface SeedResult {
   tenantId: string;
   userId: string;
-  email: string;
+  username: string;
   clientId: string;
   clientSecret: string;
 }
@@ -620,8 +620,8 @@ export interface SeedResult {
  * const adapters = createAdapters(db);
  *
  * await seed(adapters, {
- *   adminEmail: "admin@example.com",
- *   adminPassword: "secretpassword",
+ *   adminUsername: "admin",
+ *   adminPassword: "admin",
  * });
  * ```
  */
@@ -630,7 +630,7 @@ export async function seed(
   options: SeedOptions,
 ): Promise<SeedResult> {
   const {
-    adminEmail,
+    adminUsername,
     adminPassword,
     tenantId = "control_plane",
     tenantName = "Control Plane",
@@ -714,14 +714,14 @@ export async function seed(
 
   // Check if admin user already exists
   const existingUsers = await adapters.users.list(tenantId, {
-    q: `email:${adminEmail}`,
+    q: `username:${adminUsername}`,
   });
 
   let userId: string;
 
   if (existingUsers.users.length === 0) {
     if (debug) {
-      console.log(`Creating admin user "${adminEmail}"...`);
+      console.log(`Creating admin user "${adminUsername}"...`);
     }
 
     // Hash password for atomic creation
@@ -731,8 +731,8 @@ export async function seed(
     userId = `auth2|${userIdGenerate()}`;
     await adapters.users.create(tenantId, {
       user_id: userId,
-      email: adminEmail,
-      email_verified: true,
+      username: adminUsername,
+      email_verified: false,
       connection: "Username-Password-Authentication",
       provider: "auth2",
       password: { hash, algorithm },
@@ -740,12 +740,12 @@ export async function seed(
 
     if (debug) {
       console.log("✅ Admin user created");
-      console.log(`   Email: ${adminEmail}`);
+      console.log(`   Username: ${adminUsername}`);
     }
   } else {
     userId = existingUsers.users[0]!.user_id;
     if (debug) {
-      console.log(`Admin user "${adminEmail}" already exists, skipping...`);
+      console.log(`Admin user "${adminUsername}" already exists, skipping...`);
     }
   }
 
@@ -762,7 +762,16 @@ export async function seed(
     await adapters.connections.create(tenantId, {
       name: "Username-Password-Authentication",
       strategy: "Username-Password-Authentication",
-      options: {},
+      options: {
+        attributes: {
+          username: {
+            identifier: { active: true },
+          },
+          email: {
+            identifier: { active: false },
+          },
+        },
+      },
     });
     if (debug) {
       console.log("✅ Password connection created");
@@ -789,6 +798,9 @@ export async function seed(
       callbacks,
       allowed_logout_urls: allowedLogoutUrls,
       connections: ["Username-Password-Authentication"],
+      client_metadata: {
+        universal_login_version: "2",
+      },
     });
 
     if (debug) {
@@ -998,7 +1010,7 @@ export async function seed(
   return {
     tenantId,
     userId,
-    email: adminEmail,
+    username: adminUsername,
     clientId,
     clientSecret,
   };

@@ -95,7 +95,7 @@ pnpm install
 pnpm run migrate
 
 # Seed the database
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword pnpm run seed
+pnpm run seed
 
 # Start the development server
 pnpm dev

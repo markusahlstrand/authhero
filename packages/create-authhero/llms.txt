@@ -22,7 +22,7 @@ The CLI guides you through:
 
 1. **Project name** - Directory name for your project
 2. **Setup type** - Local, Cloudflare Simple, or Cloudflare Multi-Tenant
-3. **Admin credentials** - Email and password for initial admin user
+3. **Admin credentials** - Username and password for initial admin user (defaults to admin/admin)
 4. **Install dependencies** - Optional package installation
 5. **Start server** - Optional migration, seeding, and dev server start
 

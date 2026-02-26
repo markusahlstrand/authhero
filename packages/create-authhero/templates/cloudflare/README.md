@@ -43,7 +43,13 @@ This project is designed to be **open-source friendly**. Sensitive Cloudflare ID
 3. Seed the database with an admin user:
 
    ```bash
-   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
+   npm run seed
+   ```
+
+   This creates an admin user with username `admin` and password `admin`. You can override with:
+
+   ```bash
+   ADMIN_USERNAME=myadmin ADMIN_PASSWORD=mypassword npm run seed
    ```
 
 4. Start the development server:
@@ -81,7 +87,7 @@ The server will be available at `https://localhost:3000`.
 4. Seed the remote database:
 
    ```bash
-   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
+   npm run seed:remote
    ```
 
 5. Start with remote D1:
@@ -119,7 +125,7 @@ The server will be available at `https://localhost:3000`.
 
 4. Seed the production database:
    ```bash
-   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
+   npm run seed:remote
    ```
 
 ## Project Structure

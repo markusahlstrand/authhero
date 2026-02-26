@@ -72,13 +72,13 @@ wrangler d1 migrations apply AUTH_DB --remote
 **For local development:**
 
 ```bash
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:local
+npm run seed:local
 ```
 
 **For production:**
 
 ```bash
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed:remote
+npm run seed:remote
 ```
 
 ### 6. Test Locally

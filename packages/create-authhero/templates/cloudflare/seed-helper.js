@@ -8,17 +8,9 @@
 import { spawn } from "child_process";
 import { setTimeout } from "timers/promises";
 
-const adminEmail = process.argv[2] || process.env.ADMIN_EMAIL;
-const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD;
+const adminUsername = process.argv[2] || process.env.ADMIN_USERNAME || "admin";
+const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD || "admin";
 const mode = process.argv[4] || "local";
-
-if (!adminEmail || !adminPassword) {
-  console.error("Usage: node seed-helper.js <email> <password> [local|remote]");
-  console.error(
-    "   or: ADMIN_EMAIL=... ADMIN_PASSWORD=... node seed-helper.js",
-  );
-  process.exit(1);
-}
 
 console.log(`Starting seed worker in ${mode} mode...`);
 
@@ -44,7 +36,7 @@ worker.stdout?.on("data", (data) => {
   if (urlMatch) {
     workerUrl = urlMatch[0].replace(/\/$/, ""); // Remove trailing slash
   }
-  
+
   // Detect when the worker is ready
   if (output.includes("Ready on") || output.includes("Listening on")) {
     workerReady = true;
@@ -56,8 +48,8 @@ async function waitForWorker(maxAttempts = 30, delayMs = 1000) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       // Just check if the server responds (even with an error is fine)
-      const response = await fetch(workerUrl, { 
-        signal: AbortSignal.timeout(2000) 
+      const response = await fetch(workerUrl, {
+        signal: AbortSignal.timeout(2000)
       });
       // Any response means the server is up
       return true;
@@ -68,13 +60,13 @@ async function waitForWorker(maxAttempts = 30, delayMs = 1000) {
         return true;
       }
     }
-    
+
     if (workerReady) {
       // Give it a bit more time after wrangler reports ready
       await setTimeout(500);
       return true;
     }
-    
+
     await setTimeout(delayMs);
     if (i > 0 && i % 5 === 0) {
       console.log(`Still waiting for worker... (attempt ${i + 1}/${maxAttempts})`);
@@ -95,7 +87,7 @@ if (!isReady) {
 console.log(`\nMaking seed request to ${workerUrl}...`);
 
 try {
-  const url = `${workerUrl}/?email=${encodeURIComponent(adminEmail)}&password=${encodeURIComponent(adminPassword)}`;
+  const url = `${workerUrl}/?username=${encodeURIComponent(adminUsername)}&password=${encodeURIComponent(adminPassword)}`;
 
   const response = await fetch(url);
   const result = await response.json();

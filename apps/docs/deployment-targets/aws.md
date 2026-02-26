@@ -154,8 +154,7 @@ After `sst dev` deploys the infrastructure:
 ```bash
 # Get TABLE_NAME from SST output
 TABLE_NAME=<your-table> \
-ADMIN_EMAIL=admin@example.com \
-ADMIN_PASSWORD=your-password \
+ADMIN_USERNAME=admin \
 npm run seed
 ```
 

@@ -20,7 +20,7 @@ export default {
 
     const dialect = new D1Dialect({ database: env.AUTH_DB });
     const db = new Kysely<any>({ dialect });
-    const dataAdapter = createAdapters(db);
+    const dataAdapter = createAdapters(db, { useTransactions: false });
 
     // ────────────────────────────────────────────────────────────────────────
     // OPTIONAL: Cloudflare Analytics Engine for centralized logging
