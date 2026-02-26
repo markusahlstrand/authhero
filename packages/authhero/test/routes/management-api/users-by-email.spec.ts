@@ -79,6 +79,9 @@ describe("users by email", () => {
         provider: "email",
         user_id: "userId",
         isSocial: false,
+        email: "foo@example.com",
+        email_verified: true,
+        username: "testuser",
       },
     ]);
   });
@@ -156,6 +159,9 @@ describe("users by email", () => {
         provider: "email",
         user_id: "userId",
         isSocial: false,
+        email: "foo@example.com",
+        email_verified: true,
+        username: "testuser",
       },
     ]);
     expect(users[1]).toMatchObject({
@@ -262,6 +268,9 @@ describe("users by email", () => {
       provider: "email",
       user_id: fooEmailId?.split("|")[1],
       isSocial: false,
+      email: "foo@example.com",
+      email_verified: true,
+      username: "testuser",
     });
     expect(linkResponseData[1]).toEqual({
       connection: "email",
@@ -269,6 +278,8 @@ describe("users by email", () => {
       // this user_id correctly has provider prefixed
       user_id: barEmailId?.split("|")[1],
       isSocial: false,
+      email: "bar@example.com",
+      email_verified: false,
     });
 
     // foo@example.com should exist with bar as an identity
@@ -297,6 +308,9 @@ describe("users by email", () => {
         provider: "email",
         user_id: fooEmailId?.split("|")[1],
         isSocial: false,
+        email: "foo@example.com",
+        email_verified: true,
+        username: "testuser",
       },
       // this is correct. we have bar's identity here
       {
@@ -304,6 +318,8 @@ describe("users by email", () => {
         provider: "email",
         user_id: barEmailId?.split("|")[1],
         isSocial: false,
+        email: "bar@example.com",
+        email_verified: false,
         profileData: {
           email: "bar@example.com",
           email_verified: false,

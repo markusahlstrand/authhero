@@ -38,6 +38,7 @@ interface UserItem extends DynamoDBBaseItem {
   linked_to?: string;
   profileData?: string;
   email_verified: boolean;
+  phone_verified?: boolean;
   last_ip?: string;
   last_login?: string;
   provider: string;
@@ -67,7 +68,7 @@ interface PasswordItem extends DynamoDBBaseItem {
 
 function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
   const { tenant_id, ...rest } = stripDynamoDBFields(item);
-  
+
   const data = removeNullProperties({
     ...rest,
     app_metadata: JSON.parse(item.app_metadata || "{}"),
@@ -78,12 +79,22 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
         provider: item.provider,
         user_id: parseUserId(item.user_id).id,
         isSocial: item.is_social,
+        ...(item.email ? { email: item.email } : {}),
+        ...(item.email_verified !== undefined ? { email_verified: Boolean(item.email_verified) } : {}),
+        ...(item.phone_number ? { phone_number: item.phone_number } : {}),
+        ...(item.phone_verified !== undefined ? { phone_verified: Boolean(item.phone_verified) } : {}),
+        ...(item.username ? { username: item.username } : {}),
       },
       ...linkedUsers.map((u) => ({
         connection: u.connection,
         provider: u.provider,
         user_id: parseUserId(u.user_id).id,
         isSocial: u.is_social,
+        ...(u.email ? { email: u.email } : {}),
+        ...(u.email_verified !== undefined ? { email_verified: Boolean(u.email_verified) } : {}),
+        ...(u.phone_number ? { phone_number: u.phone_number } : {}),
+        ...(u.phone_verified !== undefined ? { phone_verified: Boolean(u.phone_verified) } : {}),
+        ...(u.username ? { username: u.username } : {}),
       })),
     ],
   });
