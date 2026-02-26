@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.18.0
+
+### Minor Changes
+
+- 0719de4: Add username to indetifier array
+
+### Patch Changes
+
+- Updated dependencies [0719de4]
+  - @authhero/adapter-interfaces@0.137.0
+
 ## 0.17.0
 
 ### Minor Changes
