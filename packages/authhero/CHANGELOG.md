@@ -1,5 +1,17 @@
 # authhero
 
+## 4.43.0
+
+### Minor Changes
+
+- d7bcd19: Add hook templates
+
+### Patch Changes
+
+- Updated dependencies [d7bcd19]
+  - @authhero/adapter-interfaces@0.136.0
+  - @authhero/widget@0.15.1
+
 ## 4.42.0
 
 ### Minor Changes

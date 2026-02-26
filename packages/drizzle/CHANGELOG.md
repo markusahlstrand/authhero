@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.24.0
+
+### Minor Changes
+
+- d7bcd19: Add hook templates
+
+### Patch Changes
+
+- Updated dependencies [d7bcd19]
+  - @authhero/adapter-interfaces@0.136.0
+
 ## 0.23.1
 
 ### Patch Changes

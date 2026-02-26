@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.136.0
+
+### Minor Changes
+
+- d7bcd19: Add hook templates
+
 ## 0.135.0
 
 ### Minor Changes

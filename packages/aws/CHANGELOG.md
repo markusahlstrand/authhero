@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.17.0
+
+### Minor Changes
+
+- d7bcd19: Add hook templates
+
+### Patch Changes
+
+- Updated dependencies [d7bcd19]
+  - @authhero/adapter-interfaces@0.136.0
+
 ## 0.16.4
 
 ### Patch Changes
