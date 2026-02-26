@@ -87,7 +87,7 @@ my-auth-project/
 cd my-auth-project
 npm install
 npm run migrate
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
+npm run seed
 npm run dev
 ```
 
@@ -158,7 +158,7 @@ my-auth-project/
 cd my-auth-project
 npm install
 npm run migrate
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed
+npm run seed
 npm run dev
 ```
 

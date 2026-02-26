@@ -206,9 +206,9 @@ function generateLocalSeedFileContent(
   ];
   const conformanceCallbacks = conformance
     ? [
-        `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
-        `https://localhost:8443/test/a/${conformanceAlias}/callback`,
-      ]
+      `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
+      `https://localhost:8443/test/a/${conformanceAlias}/callback`,
+    ]
     : [];
   const callbacks = [...defaultCallbacks, ...conformanceCallbacks];
 
@@ -338,14 +338,8 @@ import createAdapters from "@authhero/kysely-adapter";
 import { seed } from "authhero";
 
 async function main() {
-  const adminEmail = process.argv[2] || process.env.ADMIN_EMAIL;
-  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD;
-
-  if (!adminEmail || !adminPassword) {
-    console.error("Usage: npm run seed <email> <password>");
-    console.error("   or: ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed");
-    process.exit(1);
-  }
+  const adminUsername = process.argv[2] || process.env.ADMIN_USERNAME || "admin";
+  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD || "admin";
 
   const dialect = new SqliteDialect({
     database: new Database("db.sqlite"),
@@ -355,7 +349,7 @@ async function main() {
   const adapters = createAdapters(db);
 
   await seed(adapters, {
-    adminEmail,
+    adminUsername,
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
@@ -496,31 +490,18 @@ interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const adminEmail = url.searchParams.get("email");
-    const adminPassword = url.searchParams.get("password");
+    const adminUsername = url.searchParams.get("username") || "admin";
+    const adminPassword = url.searchParams.get("password") || "admin";
     // Compute issuer from the request URL (for Management API identifier)
     const issuer = \`\${url.protocol}//\${url.host}/\`;
-
-    if (!adminEmail || !adminPassword) {
-      return new Response(
-        JSON.stringify({
-          error: "Missing email or password query parameters",
-          usage: "/?email=admin@example.com&password=yourpassword",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
 
     try {
       const dialect = new D1Dialect({ database: env.AUTH_DB });
       const db = new Kysely<any>({ dialect });
-      const adapters = createAdapters(db);
+      const adapters = createAdapters(db, { useTransactions: false });
 
       const result = await seed(adapters, {
-        adminEmail,
+        adminUsername,
         adminPassword,
         issuer,
         tenantId: "${tenantId}",
@@ -763,15 +744,9 @@ import createAdapters from "@authhero/aws";
 import { seed } from "authhero";
 
 async function main() {
-  const adminEmail = process.argv[2] || process.env.ADMIN_EMAIL;
-  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD;
+  const adminUsername = process.argv[2] || process.env.ADMIN_USERNAME || "admin";
+  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD || "admin";
   const tableName = process.argv[4] || process.env.TABLE_NAME;
-
-  if (!adminEmail || !adminPassword) {
-    console.error("Usage: npm run seed <email> <password>");
-    console.error("   or: ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run seed");
-    process.exit(1);
-  }
 
   if (!tableName) {
     console.error("TABLE_NAME environment variable is required");
@@ -789,7 +764,7 @@ async function main() {
   const adapters = createAdapters(docClient, { tableName });
 
   await seed(adapters, {
-    adminEmail,
+    adminUsername,
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
@@ -1431,47 +1406,25 @@ program
             // Get admin credentials
             let credentials: AdminCredentials;
             if (options.email && options.password) {
-              // Validate provided credentials
-              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-              if (!emailRegex.test(options.email)) {
-                console.error("❌ Invalid email address provided");
-                process.exit(1);
-              }
-              if (options.password.length < 8) {
-                console.error("❌ Password must be at least 8 characters");
-                process.exit(1);
-              }
               credentials = {
                 username: options.email,
                 password: options.password,
               };
-              console.log(`Using admin email: ${options.email}`);
+              console.log(`Using admin username: ${options.email}`);
             } else {
               credentials = await inquirer.prompt<AdminCredentials>([
                 {
                   type: "input",
                   name: "username",
-                  message: "Admin email:",
-                  default: "admin@example.com",
-                  validate: (input: string) => {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    return (
-                      emailRegex.test(input) ||
-                      "Please enter a valid email address"
-                    );
-                  },
+                  message: "Admin username:",
+                  default: "admin",
                 },
                 {
                   type: "password",
                   name: "password",
                   message: "Admin password:",
                   mask: "*",
-                  validate: (input: string) => {
-                    if (input.length < 8) {
-                      return "Password must be at least 8 characters";
-                    }
-                    return true;
-                  },
+                  default: "admin",
                 },
               ]);
             }
@@ -1491,7 +1444,7 @@ program
                   `${packageManager} run seed`,
                   projectPath,
                   {
-                    ADMIN_EMAIL: credentials.username,
+                    ADMIN_USERNAME: credentials.username,
                     ADMIN_PASSWORD: credentials.password,
                   },
                 );
@@ -1501,7 +1454,7 @@ program
                   `${packageManager} run seed:local`,
                   projectPath,
                   {
-                    ADMIN_EMAIL: credentials.username,
+                    ADMIN_USERNAME: credentials.username,
                     ADMIN_PASSWORD: credentials.password,
                   },
                 );
@@ -1569,7 +1522,7 @@ program
         console.log("  npm install");
         console.log("  npm run migrate");
         console.log(
-          "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+          "  npm run seed  # defaults to admin/admin",
         );
         console.log("  npm run dev");
       } else if (setupType === "cloudflare") {
@@ -1578,7 +1531,7 @@ program
           "  npm run migrate  # or npm run db:migrate:remote for production",
         );
         console.log(
-          "  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+          "  npm run seed  # defaults to admin/admin",
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
       } else if (setupType === "aws-sst") {
@@ -1586,7 +1539,7 @@ program
         console.log("  npm run dev  # Deploys to AWS in development mode");
         console.log("  # After deploy, get TABLE_NAME from output, then:");
         console.log(
-          "  TABLE_NAME=<your-table> ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=yourpassword npm run seed",
+          "  TABLE_NAME=<your-table> npm run seed  # defaults to admin/admin",
         );
       }
 

@@ -33,9 +33,8 @@ A serverless AuthHero deployment using [SST](https://sst.dev) with AWS Lambda an
    After the dev server starts, seed your database:
 
    ```bash
-   # Set your admin credentials
-   export ADMIN_EMAIL=admin@example.com
-   export ADMIN_PASSWORD=your-secure-password
+   # Optionally set admin credentials (defaults to admin/admin)
+   export ADMIN_USERNAME=admin
 
    npm run seed
    ```
@@ -76,8 +75,8 @@ Set these in SST or AWS Systems Manager:
 |----------|-------------|
 | `TABLE_NAME` | DynamoDB table name (auto-set by SST) |
 | `WIDGET_URL` | URL to widget assets (auto-set by SST) |
-| `ADMIN_EMAIL` | Admin user email (required for initial seeding) |
-| `ADMIN_PASSWORD` | Admin user password (required for initial seeding) |
+| `ADMIN_USERNAME` | Admin username (defaults to "admin") |
+| `ADMIN_PASSWORD` | Admin user password (defaults to "admin") |
 
 ## Widget Assets
 
