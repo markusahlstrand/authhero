@@ -6,7 +6,8 @@ import { OnExecuteCredentialsExchange } from "../../types/Hooks";
  * Lookup order:
  * 1. `user.username` — direct username on the primary user
  * 2. `user.preferred_username` — already-set preferred username
- * 3. Linked identities — finds the first identity with a `profileData.username`
+ * 3. Linked identities — finds the first identity with `username` (top-level)
+ *    or `profileData.username`
  *
  * @returns The resolved username, or undefined if none found
  */
@@ -15,6 +16,7 @@ function resolveUsername(user: {
   preferred_username?: string | null;
   identities?: Array<{
     provider: string;
+    username?: string;
     profileData?: { username?: string };
   }> | null;
 }): string | undefined {
@@ -29,8 +31,13 @@ function resolveUsername(user: {
   }
 
   // 3. Look through linked identities for a username
+  // Check both the top-level `username` field (how the kysely adapter stores it)
+  // and `profileData.username` (legacy / alternative storage)
   if (user.identities) {
     for (const identity of user.identities) {
+      if (identity.username) {
+        return identity.username;
+      }
       if (identity.profileData?.username) {
         return identity.profileData.username;
       }
@@ -50,7 +57,7 @@ function resolveUsername(user: {
  * **Resolution order:**
  * 1. `user.username` — direct username on the primary user
  * 2. `user.preferred_username` — existing preferred_username field
- * 3. Linked identities — first identity with `profileData.username`
+ * 3. Linked identities — first identity with `username` or `profileData.username`
  *
  * @example
  * ```typescript
