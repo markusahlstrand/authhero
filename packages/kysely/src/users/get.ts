@@ -18,6 +18,7 @@ export function get(db: Kysely<Database>) {
         .where("users.tenant_id", "=", tenantId)
         .where("users.linked_to", "=", user_id)
         .selectAll()
+        .orderBy("created_at", "asc")
         .execute(),
     ]);
 

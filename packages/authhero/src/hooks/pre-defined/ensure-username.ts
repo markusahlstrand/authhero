@@ -239,6 +239,21 @@ export function ensureUsername(
       return;
     }
 
+    // Check if any linked user in the DB already has a username account.
+    // The identities array on the primary user may not be populated, so we
+    // query the database directly to avoid creating duplicate username accounts.
+    if (user.provider !== provider) {
+      const { users: linkedUsernameUsers } = await data.users.list(tenantId, {
+        page: 0,
+        per_page: 1,
+        include_totals: false,
+        q: `linked_to:${user.user_id} provider:${provider}`,
+      });
+      if (linkedUsernameUsers.length > 0) {
+        return;
+      }
+    }
+
     // Extract candidate usernames from profile
     const candidates = extractCandidateUsernames(user);
     if (candidates.length === 0) {

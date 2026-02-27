@@ -87,7 +87,7 @@ describe("extractCandidateUsernames", () => {
 // ensureUsername hook
 // ---------------------------------------------------------------------------
 
-function createMockUserAdapter(existingUsers: Array<{ username: string; provider: string }> = []) {
+function createMockUserAdapter(existingUsers: Array<{ username?: string; provider: string; linked_to?: string }> = []) {
   return {
     list: vi.fn().mockImplementation(
       async (_tenantId: string, params?: { q?: string }) => {
@@ -95,9 +95,11 @@ function createMockUserAdapter(existingUsers: Array<{ username: string; provider
         const matching = existingUsers.filter((u) => {
           const usernameMatch = q.match(/username:(\S+)/);
           const providerMatch = q.match(/provider:(\S+)/);
+          const linkedToMatch = q.match(/linked_to:(\S+)/);
           return (
             (!usernameMatch || u.username === usernameMatch[1]) &&
-            (!providerMatch || u.provider === providerMatch[1])
+            (!providerMatch || u.provider === providerMatch[1]) &&
+            (!linkedToMatch || u.linked_to === linkedToMatch[1])
           );
         });
         return { users: matching };
@@ -509,6 +511,54 @@ describe("ensureUsername", () => {
     await hook(event, api);
 
     expect(adapter.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("does nothing when a linked user in the DB already has a username", async () => {
+    // A linked username account exists in the database, but is NOT present
+    // in the primary user's identities array. The hook should still detect it
+    // via a DB query and skip creating a duplicate.
+    const adapter = createMockUserAdapter([
+      { username: "john", provider: "auth2", linked_to: "email|123" },
+    ]);
+    const { event, api } = createMockEvent(
+      {
+        user_id: "email|123",
+        provider: "email",
+        email: "john@example.com",
+        connection: "email",
+        // Note: no identities array referencing the username account
+      },
+      adapter,
+    );
+
+    await hook(event, api);
+
+    // Should NOT create another username account
+    expect(adapter.create).not.toHaveBeenCalled();
+    expect(adapter.update).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when any linked user (different provider) has a username account", async () => {
+    // Primary user logged in via google, but a linked username account already exists
+    const adapter = createMockUserAdapter([
+      { username: "mike", provider: "auth2", linked_to: "google-oauth2|789" },
+    ]);
+    const { event, api } = createMockEvent(
+      {
+        user_id: "google-oauth2|789",
+        provider: "google-oauth2",
+        email: "mike@gmail.com",
+        nickname: "mike",
+        is_social: true,
+        connection: "google-oauth2",
+      },
+      adapter,
+    );
+
+    await hook(event, api);
+
+    expect(adapter.create).not.toHaveBeenCalled();
+    expect(adapter.update).not.toHaveBeenCalled();
   });
 
   it("propagates non-409 errors without retrying", async () => {

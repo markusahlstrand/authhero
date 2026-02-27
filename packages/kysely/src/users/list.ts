@@ -41,6 +41,7 @@ export function list(db: Kysely<Database>) {
           .selectAll()
           .where("users.tenant_id", "=", tenantId)
           .where("users.linked_to", "in", userIds)
+          .orderBy("created_at", "asc")
           .execute();
 
     const usersWithProfiles = users.map((user) => {
