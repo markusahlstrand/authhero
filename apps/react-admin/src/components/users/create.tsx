@@ -85,7 +85,6 @@ export function UserCreate() {
             // Show email input for email-based connections
             if (
               connectionData.strategy === "email" ||
-              connectionData.strategy === USERNAME_PASSWORD_PROVIDER ||
               connectionData.strategy === "Username-Password-Authentication"
             ) {
               // For password connections, also show password field

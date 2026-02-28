@@ -8,7 +8,6 @@ import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
 import { Theme, Branding } from "@authhero/adapter-interfaces";
-import { USERNAME_PASSWORD_PROVIDER } from "../constants";
 import { EnrichedClient } from "../helpers/client";
 import Trans from "./Trans";
 
@@ -37,8 +36,9 @@ const EnterCodePage: FC<Props> = ({
     state,
   });
 
-  const connections = client.connections.map(({ name }) => name);
-  const showPasswordLogin = connections.includes(USERNAME_PASSWORD_PROVIDER);
+  const showPasswordLogin = client.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
 
   return (
     <Layout
