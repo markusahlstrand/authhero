@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { linkUsersHook } from "../../src/hooks/link-users";
 import { addDataHooks } from "../../src/hooks";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 describe("account-linking-hook", () => {
   it("should link an account to a matching existing verified account", async () => {
@@ -54,10 +55,10 @@ describe("account-linking-hook", () => {
 
     // Create primary email/password user
     const primaryUser = await env.data.users.create("tenantId", {
-      user_id: "auth2|primary-user",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
       email: "original-test2@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -138,10 +139,10 @@ describe("account-linking-hook", () => {
 
     // Create primary email/password user
     await env.data.users.create("tenantId", {
-      user_id: "auth2|primary-user-2",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user-2`,
       email: "user-test3@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -193,10 +194,10 @@ describe("account-linking-hook", () => {
 
     // Create primary email/password user with verified email
     await env.data.users.create("tenantId", {
-      user_id: "auth2|primary-unverified-test",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-unverified-test`,
       email: "unverified-test@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -245,10 +246,10 @@ describe("account-linking-hook", () => {
 
     // Create user in default tenant
     await env.data.users.create("tenantId", {
-      user_id: "auth2|tenant-a-user",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|tenant-a-user`,
       email: "cross-tenant@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -278,10 +279,10 @@ describe("account-linking-hook", () => {
 
     // Create primary user with lowercase email
     await env.data.users.create("tenantId", {
-      user_id: "auth2|case-test-primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|case-test-primary`,
       email: "case.test@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -303,7 +304,7 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the primary user (linked via case-insensitive match)
-    expect(result.user_id).toBe("auth2|case-test-primary");
+    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|case-test-primary`);
     expect(result.identities).toHaveLength(2);
 
     // Verify the secondary user is linked to primary
@@ -311,7 +312,7 @@ describe("account-linking-hook", () => {
       "tenantId",
       "google-oauth2|case-test-secondary",
     );
-    expect(secondaryUser?.linked_to).toBe("auth2|case-test-primary");
+    expect(secondaryUser?.linked_to).toBe(`${USERNAME_PASSWORD_PROVIDER}|case-test-primary`);
   });
 
   it("should link to primary user, not to already-linked user (no chain linking)", async () => {
@@ -319,10 +320,10 @@ describe("account-linking-hook", () => {
 
     // Create the primary user
     await env.data.users.create("tenantId", {
-      user_id: "auth2|chain-primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|chain-primary`,
       email: "chain-test@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -334,7 +335,7 @@ describe("account-linking-hook", () => {
       provider: "google-oauth2",
       connection: "google-oauth2",
       is_social: true,
-      linked_to: "auth2|chain-primary",
+      linked_to: `${USERNAME_PASSWORD_PROVIDER}|chain-primary`,
     });
 
     // Create a third user with same email - should link to primary, not secondary
@@ -354,7 +355,7 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the PRIMARY user, not the secondary
-    expect(result.user_id).toBe("auth2|chain-primary");
+    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
     expect(result.identities).toHaveLength(3);
 
     // Verify the third user is linked to primary
@@ -362,7 +363,7 @@ describe("account-linking-hook", () => {
       "tenantId",
       "facebook|chain-tertiary",
     );
-    expect(thirdUser?.linked_to).toBe("auth2|chain-primary");
+    expect(thirdUser?.linked_to).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
   });
 
   it("should NOT link user with no email", async () => {
@@ -370,10 +371,10 @@ describe("account-linking-hook", () => {
 
     // Create primary user
     await env.data.users.create("tenantId", {
-      user_id: "auth2|no-email-primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|no-email-primary`,
       email: "no-email-test@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -402,10 +403,10 @@ describe("account-linking-hook", () => {
 
     // Create primary user
     const primary = await env.data.users.create("tenantId", {
-      user_id: "auth2|hook-primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|hook-primary`,
       email: "hook-primary@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -427,7 +428,7 @@ describe("account-linking-hook", () => {
     });
 
     // Should return primary user even though emails don't match
-    expect(result.user_id).toBe("auth2|hook-primary");
+    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|hook-primary`);
     expect(result.identities).toHaveLength(2);
   });
 
@@ -436,18 +437,18 @@ describe("account-linking-hook", () => {
 
     // Create two potential primary users
     await env.data.users.create("tenantId", {
-      user_id: "auth2|priority-email-match",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|priority-email-match`,
       email: "priority-test@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
     const manualPrimary = await env.data.users.create("tenantId", {
-      user_id: "auth2|priority-manual-target",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|priority-manual-target`,
       email: "different-priority@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
     });
 
@@ -469,7 +470,7 @@ describe("account-linking-hook", () => {
     });
 
     // Should link to the manually specified user, NOT the email-matched user
-    expect(result.user_id).toBe("auth2|priority-manual-target");
+    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|priority-manual-target`);
     expect(result.identities).toHaveLength(2);
   });
 });

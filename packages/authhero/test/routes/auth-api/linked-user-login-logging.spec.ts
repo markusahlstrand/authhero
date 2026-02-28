@@ -4,6 +4,7 @@ import { testClient } from "hono/testing";
 import { nanoid } from "nanoid";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import bcryptjs from "bcryptjs";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("linked user login logging", () => {
   it("should log with database strategy when user logs in with email/password even if linked to social primary", async () => {
@@ -25,13 +26,13 @@ describe("linked user login logging", () => {
     });
 
     // Create an auth2 user (secondary) linked to the social user
-    const linkedUserId = `auth2|${nanoid()}`;
+    const linkedUserId = `${USERNAME_PASSWORD_PROVIDER}|${nanoid()}`;
     const linkedUser = await env.data.users.create("tenantId", {
       user_id: linkedUserId,
       email: "test@example.com",
       email_verified: true,
-      provider: "auth2",
-      connection: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       login_count: 0,
       created_at: new Date().toISOString(),

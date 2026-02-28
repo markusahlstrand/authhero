@@ -7,6 +7,7 @@ import {
   LogTypes,
   AuthorizationResponseType,
 } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("impersonation routes", () => {
   describe("GET /u/impersonate", () => {
@@ -17,17 +18,17 @@ describe("impersonation routes", () => {
 
       // Create user with impersonation permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         email: "user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to the user
-      await env.data.userPermissions.create("tenantId", "auth2|user123", {
-        user_id: "auth2|user123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -59,7 +60,7 @@ describe("impersonation routes", () => {
 
       // Update the session to use our test user
       await env.data.sessions.update("tenantId", existingSession.id, {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
       });
 
       // Start a new authorization flow (with existing session cookie)
@@ -126,17 +127,17 @@ describe("impersonation routes", () => {
 
       // Create user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         email: "user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.create("tenantId", "auth2|user123", {
-        user_id: "auth2|user123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -146,7 +147,7 @@ describe("impersonation routes", () => {
 
       // Update the session to use our test user
       await env.data.sessions.update("tenantId", session.id, {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
       });
 
       const response = await universalClient.impersonate.$get({
@@ -186,10 +187,10 @@ describe("impersonation routes", () => {
 
       // Create user without permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         email: "user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -209,7 +210,7 @@ describe("impersonation routes", () => {
       // Create a session
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -245,17 +246,17 @@ describe("impersonation routes", () => {
 
       // Create user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         email: "user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.create("tenantId", "auth2|user123", {
-        user_id: "auth2|user123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -275,7 +276,7 @@ describe("impersonation routes", () => {
       // Create a session
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -311,27 +312,27 @@ describe("impersonation routes", () => {
 
       // Create admin user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         email: "admin@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Create target user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target123`,
         email: "target@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
-        user_id: "auth2|admin123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -351,7 +352,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -372,7 +373,7 @@ describe("impersonation routes", () => {
 
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target123" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target123` },
       });
 
       expect(response.status).toBe(302);
@@ -386,20 +387,20 @@ describe("impersonation routes", () => {
 
       // Create user without permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         email: "user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Create target user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target123`,
         email: "target@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -419,7 +420,7 @@ describe("impersonation routes", () => {
       // Create a session for user
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|user123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -440,7 +441,7 @@ describe("impersonation routes", () => {
 
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target123" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target123` },
       });
 
       expect(response.status).toBe(403);
@@ -454,17 +455,17 @@ describe("impersonation routes", () => {
 
       // Create admin user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         email: "admin@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
-        user_id: "auth2|admin123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -484,7 +485,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -505,7 +506,7 @@ describe("impersonation routes", () => {
 
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|nonexistent" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|nonexistent` },
       });
 
       expect(response.status).toBe(400);
@@ -712,17 +713,17 @@ describe("impersonation routes", () => {
 
       // Create primary user with impersonation permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|primary-user",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
         email: "admin@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to PRIMARY user
-      await env.data.userPermissions.create("tenantId", "auth2|primary-user", {
-        user_id: "auth2|primary-user",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|primary-user`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -736,7 +737,7 @@ describe("impersonation routes", () => {
         provider: "mock-strategy",
         connection: "mock-strategy",
         is_social: true,
-        linked_to: "auth2|primary-user", // Linked to primary user
+        linked_to: `${USERNAME_PASSWORD_PROVIDER}|primary-user`, // Linked to primary user
       });
 
       // Mock the hooks.list method to return a page hook for impersonation
@@ -817,27 +818,27 @@ describe("impersonation routes", () => {
 
       // Create admin user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         email: "admin@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Create target user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target123`,
         email: "target@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", "auth2|admin123", {
-        user_id: "auth2|admin123",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -859,7 +860,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session123",
-        user_id: "auth2|admin123",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -881,7 +882,7 @@ describe("impersonation routes", () => {
       // Perform impersonation
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target123" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target123` },
       });
 
       expect(response.status).toBe(302);
@@ -901,11 +902,11 @@ describe("impersonation routes", () => {
       const payload = accessToken?.payload as any;
 
       // Verify the token is for the target user
-      expect(payload.sub).toBe("auth2|target123");
+      expect(payload.sub).toBe(`${USERNAME_PASSWORD_PROVIDER}|target123`);
 
       // Verify the act claim is present with the admin user (RFC 8693)
       expect(payload.act).toBeDefined();
-      expect(payload.act).toEqual({ sub: "auth2|admin123" });
+      expect(payload.act).toEqual({ sub: `${USERNAME_PASSWORD_PROVIDER}|admin123` });
     });
 
     it("should create impersonation log with SUCCESS_LOGIN type and impersonating user in description", async () => {
@@ -914,27 +915,27 @@ describe("impersonation routes", () => {
 
       // Create admin user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin456",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin456`,
         email: "admin456@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Create target user
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target456",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target456`,
         email: "target456@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", "auth2|admin456", {
-        user_id: "auth2|admin456",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin456`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin456`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
@@ -954,7 +955,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session456",
-        user_id: "auth2|admin456",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin456`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -976,7 +977,7 @@ describe("impersonation routes", () => {
       // Perform impersonation
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target456" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target456` },
       });
 
       expect(response.status).toBe(302);
@@ -999,7 +1000,7 @@ describe("impersonation routes", () => {
       expect(impersonationLog?.type).toBe(LogTypes.SUCCESS_LOGIN);
 
       // Verify the log shows the target user
-      expect(impersonationLog?.user_id).toBe("auth2|target456");
+      expect(impersonationLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|target456`);
 
       // Verify the log description mentions both users
       expect(impersonationLog?.description).toContain("target456@example.com");
@@ -1013,19 +1014,19 @@ describe("impersonation routes", () => {
 
       // Create admin user with impersonation permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin-code-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-code-flow`,
         email: "admin-code@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       await env.data.userPermissions.create(
         "tenantId",
-        "auth2|admin-code-flow",
+        `${USERNAME_PASSWORD_PROVIDER}|admin-code-flow`,
         {
-          user_id: "auth2|admin-code-flow",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-code-flow`,
           resource_server_identifier: "https://api.example.com/",
           permission_name: "users:impersonate",
         },
@@ -1033,10 +1034,10 @@ describe("impersonation routes", () => {
 
       // Create target user to impersonate
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target-code-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target-code-flow`,
         email: "target-code@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -1057,7 +1058,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session-code-flow",
-        user_id: "auth2|admin-code-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-code-flow`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -1079,7 +1080,7 @@ describe("impersonation routes", () => {
       // Perform impersonation
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target-code-flow" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target-code-flow` },
       });
 
       expect(response.status).toBe(302);
@@ -1107,19 +1108,19 @@ describe("impersonation routes", () => {
 
       // Create admin user with impersonation permission
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin-implicit-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow`,
         email: "admin-implicit@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       await env.data.userPermissions.create(
         "tenantId",
-        "auth2|admin-implicit-flow",
+        `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow`,
         {
-          user_id: "auth2|admin-implicit-flow",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow`,
           resource_server_identifier: "https://api.example.com/",
           permission_name: "users:impersonate",
         },
@@ -1127,10 +1128,10 @@ describe("impersonation routes", () => {
 
       // Create target user to impersonate
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target-implicit-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target-implicit-flow`,
         email: "target-implicit@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -1151,7 +1152,7 @@ describe("impersonation routes", () => {
       // Create a session for admin user
       const session = await env.data.sessions.create("tenantId", {
         id: "session-implicit-flow",
-        user_id: "auth2|admin-implicit-flow",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow`,
         login_session_id: loginSession.id,
         clients: ["clientId"],
         expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
@@ -1173,7 +1174,7 @@ describe("impersonation routes", () => {
       // Perform impersonation
       const response = await universalClient.impersonate.switch.$post({
         query: { state: loginSession.id },
-        form: { user_id: "auth2|target-implicit-flow" },
+        form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target-implicit-flow` },
       });
 
       expect(response.status).toBe(302);
@@ -1200,8 +1201,8 @@ describe("impersonation routes", () => {
       const payload = accessToken?.payload as any;
 
       // Verify the token is for the target user with act claim
-      expect(payload.sub).toBe("auth2|target-implicit-flow");
-      expect(payload.act).toEqual({ sub: "auth2|admin-implicit-flow" });
+      expect(payload.sub).toBe(`${USERNAME_PASSWORD_PROVIDER}|target-implicit-flow`);
+      expect(payload.act).toEqual({ sub: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow` });
     });
   });
 
@@ -1216,35 +1217,35 @@ describe("impersonation routes", () => {
       // Create admin user with impersonation permission
       const bcryptjs = (await import("bcryptjs")).default;
       await env.data.users.create("tenantId", {
-        user_id: "auth2|admin-pwd",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
         email: "admin-pwd@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       // Add password for admin
       await env.data.passwords.create("tenantId", {
-        user_id: "auth2|admin-pwd",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
         password: await bcryptjs.hash("adminpassword123", 10),
         algorithm: "bcrypt",
         is_current: true,
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", "auth2|admin-pwd", {
-        user_id: "auth2|admin-pwd",
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
         resource_server_identifier: "https://api.example.com/",
         permission_name: "users:impersonate",
       });
 
       // Create target user to impersonate
       await env.data.users.create("tenantId", {
-        user_id: "auth2|target-pwd",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|target-pwd`,
         email: "target-pwd@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -1372,7 +1373,7 @@ describe("impersonation routes", () => {
         const impersonatePostResponse =
           await universalClient.impersonate.switch.$post({
             query: { state: impersonateState! },
-            form: { user_id: "auth2|target-pwd" },
+            form: { user_id: `${USERNAME_PASSWORD_PROVIDER}|target-pwd` },
           });
 
         expect(impersonatePostResponse.status).toBe(302);

@@ -2,6 +2,7 @@ import { Context } from "hono";
 import bcryptjs from "bcryptjs";
 import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { USERNAME_PASSWORD_PROVIDER } from "../constants";
 import {
   AuthParams,
   LoginSession,
@@ -75,7 +76,7 @@ export async function passwordGrant(
     userAdapter: ctx.env.data.users,
     tenant_id: client.tenant.id,
     username,
-    provider: "auth2",
+    provider: USERNAME_PASSWORD_PROVIDER,
   });
 
   if (!user) {
@@ -284,7 +285,7 @@ export async function requestPasswordReset(
   await getOrCreateUserByProvider(ctx, {
     client,
     username: email,
-    provider: "auth2",
+    provider: USERNAME_PASSWORD_PROVIDER,
     connection: "Username-Password-Authentication",
     isSocial: false,
     ip: ctx.var.ip,

@@ -3,6 +3,7 @@ import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
 import { nanoid } from "nanoid";
 import { hashPassword } from "./helpers/password-policy";
+import { USERNAME_PASSWORD_PROVIDER } from "./constants";
 
 /**
  * Management API scopes for the AuthHero Management API
@@ -728,13 +729,13 @@ export async function seed(
     const { hash, algorithm } = await hashPassword(adminPassword);
 
     // Create the admin user with password atomically
-    userId = `auth2|${userIdGenerate()}`;
+    userId = `${USERNAME_PASSWORD_PROVIDER}|${userIdGenerate()}`;
     await adapters.users.create(tenantId, {
       user_id: userId,
       username: adminUsername,
       email_verified: false,
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       password: { hash, algorithm },
     });
 

@@ -41,6 +41,9 @@ export { HttpSamlSigner } from "@authhero/saml/core";
 export { fetchAll } from "./utils/fetchAll";
 export type { FetchAllOptions } from "./utils/fetchAll";
 
+// Export constants
+export { USERNAME_PASSWORD_PROVIDER } from "./constants";
+
 // Export pre-defined hooks library
 export * as preDefinedHooks from "./hooks/pre-defined";
 export type { EnsureUsernameOptions } from "./hooks/pre-defined";

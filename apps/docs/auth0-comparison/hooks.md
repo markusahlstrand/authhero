@@ -212,7 +212,7 @@ Ensures every user has a username, regardless of how they signed up (email, soci
 2. If not, extracts candidate usernames from the user's profile fields (in order: `nickname`, `name`, local part of `email`, `phone_number`).
 3. Slugifies each candidate (lowercased, diacritics stripped, non-alphanumeric characters replaced with hyphens).
 4. Checks uniqueness against existing users and appends numeric suffixes if needed (e.g. `john`, `john2`, `john3`).
-5. For username-type accounts (`auth2` provider), updates the username field directly.
+5. For username-type accounts (username-password provider), updates the username field directly.
 6. For other providers, creates a new linked username account attached to the current user.
 
 **Basic usage:**
@@ -235,7 +235,7 @@ import { preDefinedHooks } from "authhero";
 
 preDefinedHooks.ensureUsername({
   connection: "my-username-connection", // default: "Username-Password-Authentication"
-  provider: "auth2",                    // default: "auth2"
+  provider: "my-custom-provider",       // default: USERNAME_PASSWORD_PROVIDER
   maxRetries: 20,                       // default: 10
 });
 ```
@@ -243,7 +243,7 @@ preDefinedHooks.ensureUsername({
 | Option       | Type     | Default                              | Description                                      |
 | ------------ | -------- | ------------------------------------ | ------------------------------------------------ |
 | `connection` | `string` | `"Username-Password-Authentication"` | Connection name for username accounts             |
-| `provider`   | `string` | `"auth2"`                            | Provider used for username accounts               |
+| `provider`   | `string` | `USERNAME_PASSWORD_PROVIDER` (`"auth0"`) | Provider used for username accounts               |
 | `maxRetries` | `number` | `10`                                 | Max attempts to find a unique username via suffix |
 
 ### Using Templates with Your Own Hooks

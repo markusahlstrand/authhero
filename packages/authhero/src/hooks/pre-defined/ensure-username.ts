@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { OnExecutePostLogin } from "../../types/Hooks";
 import { userIdGenerate } from "../../utils/user-id";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 
 /**
  * Check whether an error is a unique-constraint violation (HTTP 409).
@@ -18,7 +19,7 @@ export interface EnsureUsernameOptions {
 
   /**
    * The provider used for username accounts.
-   * @default "auth2"
+   * @default USERNAME_PASSWORD_PROVIDER
    */
   provider?: string;
 
@@ -146,7 +147,7 @@ async function findUniqueUsername(
 
 /**
  * Check if a user already has a username — either directly on the user
- * or via a linked identity with provider "auth2" (username connection).
+ * or via a linked identity with the username-password provider (username connection).
  */
 function userHasUsername(
   user: {
@@ -180,7 +181,7 @@ function userHasUsername(
  * Creates a post-login hook that ensures every user has a username.
  *
  * **Behavior:**
- * - If the user is a username-type account (`auth2` provider), it verifies
+ * - If the user is a username-type account (username-password provider), it verifies
  *   the `username` field is set. If not, it picks one from the profile fields.
  * - If the user logged in via another provider (email, social, SMS), it checks
  *   whether a linked username account already exists. If not, it creates a new
@@ -211,7 +212,7 @@ function userHasUsername(
  * ```typescript
  * preDefinedHooks.ensureUsername({
  *   connection: "my-username-connection",
- *   provider: "auth2",
+ *   provider: USERNAME_PASSWORD_PROVIDER,
  *   maxRetries: 20,
  * })
  * ```
@@ -221,7 +222,7 @@ export function ensureUsername(
 ): OnExecutePostLogin {
   const connection =
     options?.connection ?? "Username-Password-Authentication";
-  const provider = options?.provider ?? "auth2";
+  const provider = options?.provider ?? USERNAME_PASSWORD_PROVIDER;
   const maxRetries = Math.max(0, Math.floor(options?.maxRetries ?? 10));
 
   return async (event, _api) => {

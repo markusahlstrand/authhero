@@ -4,6 +4,7 @@ import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 import { UserResponse } from "../../../src/types/auth0";
 import { Identity } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("users by email", () => {
   it("should return empty list if there are no users with queried email address", async () => {
@@ -102,11 +103,11 @@ describe("users by email", () => {
           name: "Test User with password",
           email: "foo@example.com",
           connection: "Username-Password-Authentication",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           email_verified: false,
           // seems odd that this isn't allowed... I think this endpoint needs looking at
           // maybe it's good we have to use the mgmt API for our test fixtures
-          // provider: "auth2",
+          // provider: USERNAME_PASSWORD_PROVIDER,
         },
         header: {
           "tenant-id": "tenantId",
@@ -168,7 +169,7 @@ describe("users by email", () => {
       email: "foo@example.com",
       tenant_id: "tenantId",
       name: "Test User with password",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
       email_verified: false,
       is_social: false,

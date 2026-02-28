@@ -433,7 +433,7 @@ This will update the linked identity that matches the specified connection. Supp
 
 ```bash
 curl --request PATCH \
-  --url 'https://yourdomain.com/api/v2/users/auth2|primary-user-id' \
+  --url 'https://yourdomain.com/api/v2/users/Username-Password-Authentication|primary-user-id' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --header 'Content-Type: application/json' \
   --header 'tenant-id: YOUR_TENANT_ID' \

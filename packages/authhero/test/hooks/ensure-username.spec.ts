@@ -6,6 +6,7 @@ import {
 } from "../../src/hooks/pre-defined/ensure-username";
 import type { HookEvent, OnExecutePostLoginAPI } from "../../src/types/Hooks";
 import { HTTPException } from "hono/http-exception";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -106,7 +107,7 @@ function createMockUserAdapter(existingUsers: Array<{ username: string; provider
     create: vi.fn().mockImplementation(
       async (_tenantId: string, data: any) => ({
         ...data,
-        user_id: data.user_id || "auth2|generated",
+        user_id: data.user_id || `${USERNAME_PASSWORD_PROVIDER}|generated`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         login_count: 0,
@@ -168,8 +169,8 @@ describe("ensureUsername", () => {
     const adapter = createMockUserAdapter();
     const { event, api } = createMockEvent(
       {
-        user_id: "auth2|123",
-        provider: "auth2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|123`,
+        provider: USERNAME_PASSWORD_PROVIDER,
         username: "existing-user",
       },
       adapter,
@@ -190,9 +191,9 @@ describe("ensureUsername", () => {
         email: "john@example.com",
         identities: [
           {
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
-            user_id: "auth2|456",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|456`,
             isSocial: false,
             profileData: { username: "john" },
           },
@@ -207,12 +208,12 @@ describe("ensureUsername", () => {
     expect(adapter.create).not.toHaveBeenCalled();
   });
 
-  it("updates username on auth2 user when username field is empty", async () => {
+  it("updates username on username-password user when username field is empty", async () => {
     const adapter = createMockUserAdapter();
     const { event, api } = createMockEvent(
       {
-        user_id: "auth2|123",
-        provider: "auth2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|123`,
+        provider: USERNAME_PASSWORD_PROVIDER,
         name: "John Doe",
         username: undefined,
       },
@@ -221,7 +222,7 @@ describe("ensureUsername", () => {
 
     await hook(event, api);
 
-    expect(adapter.update).toHaveBeenCalledWith("test-tenant", "auth2|123", {
+    expect(adapter.update).toHaveBeenCalledWith("test-tenant", `${USERNAME_PASSWORD_PROVIDER}|123`, {
       username: "john-doe",
     });
     expect(adapter.create).not.toHaveBeenCalled();
@@ -245,7 +246,7 @@ describe("ensureUsername", () => {
       "test-tenant",
       expect.objectContaining({
         username: "jane",
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         linked_to: "email|123",
       }),
@@ -279,7 +280,7 @@ describe("ensureUsername", () => {
 
   it("appends number when username is taken", async () => {
     const adapter = createMockUserAdapter([
-      { username: "john", provider: "auth2" },
+      { username: "john", provider: USERNAME_PASSWORD_PROVIDER },
     ]);
     const { event, api } = createMockEvent(
       {
@@ -304,9 +305,9 @@ describe("ensureUsername", () => {
 
   it("tries multiple numeric suffixes", async () => {
     const adapter = createMockUserAdapter([
-      { username: "john", provider: "auth2" },
-      { username: "john2", provider: "auth2" },
-      { username: "john3", provider: "auth2" },
+      { username: "john", provider: USERNAME_PASSWORD_PROVIDER },
+      { username: "john2", provider: USERNAME_PASSWORD_PROVIDER },
+      { username: "john3", provider: USERNAME_PASSWORD_PROVIDER },
     ]);
     const { event, api } = createMockEvent(
       {
@@ -330,9 +331,9 @@ describe("ensureUsername", () => {
 
   it("falls back to next candidate if first is exhausted", async () => {
     // Create adapter where "john" through "john11" are all taken (maxRetries=10)
-    const taken = [{ username: "john", provider: "auth2" }];
+    const taken = [{ username: "john", provider: USERNAME_PASSWORD_PROVIDER }];
     for (let i = 2; i <= 11; i++) {
-      taken.push({ username: `john${i}`, provider: "auth2" });
+      taken.push({ username: `john${i}`, provider: USERNAME_PASSWORD_PROVIDER });
     }
     const adapter = createMockUserAdapter(taken);
 
@@ -461,7 +462,7 @@ describe("ensureUsername", () => {
       .mockRejectedValueOnce(new HTTPException(409, { message: "User already exists" }))
       .mockImplementation(async (_tenantId: string, data: any) => ({
         ...data,
-        user_id: data.user_id || "auth2|generated",
+        user_id: data.user_id || `${USERNAME_PASSWORD_PROVIDER}|generated`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         login_count: 0,
@@ -498,8 +499,8 @@ describe("ensureUsername", () => {
 
     const { event, api } = createMockEvent(
       {
-        user_id: "auth2|123",
-        provider: "auth2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|123`,
+        provider: USERNAME_PASSWORD_PROVIDER,
         name: "John Doe",
         username: undefined,
       },

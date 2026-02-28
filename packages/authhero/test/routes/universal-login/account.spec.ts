@@ -7,6 +7,7 @@ import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
 } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("account", () => {
   it("should send verification code and redirect to change-email page, then update email after code verification", async () => {
@@ -232,12 +233,12 @@ describe("account", () => {
 
     // Create linked email/password user with same email
     const linkedPasswordUser = await env.data.users.create("tenantId", {
-      user_id: "auth2|linked-password-user",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|linked-password-user`,
       email: originalEmail,
       email_verified: true,
       name: "Linked Password User",
       nickname: "passworduser",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
       is_social: false,
       linked_to: primaryUser.user_id,

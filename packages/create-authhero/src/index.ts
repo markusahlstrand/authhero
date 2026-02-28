@@ -282,7 +282,7 @@ function generateLocalSeedFileContent(
   // This is required for OIDCC-5.4 (VerifyScopesReturnedInUserInfoClaims) test
   try {
     await adapters.users.create("${tenantId}", {
-      user_id: "auth2|conformance-user",
+      user_id: \`\${USERNAME_PASSWORD_PROVIDER}|conformance-user\`,
       email: "conformance@example.com",
       email_verified: true,
       name: "Conformance Test User",
@@ -299,7 +299,7 @@ function generateLocalSeedFileContent(
       zoneinfo: "Europe/London",
       locale: "en-US",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
     });
     console.log("✅ Created conformance test user (conformance@example.com)");
@@ -317,7 +317,7 @@ function generateLocalSeedFileContent(
     const bcrypt = await import("bcryptjs");
     const hashedPassword = await bcrypt.hash("ConformanceTest123!", 10);
     await adapters.passwords.create("${tenantId}", {
-      user_id: "auth2|conformance-user",
+      user_id: \`\${USERNAME_PASSWORD_PROVIDER}|conformance-user\`,
       password: hashedPassword,
     });
     console.log("✅ Created password for conformance test user");

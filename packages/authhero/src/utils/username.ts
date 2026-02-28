@@ -1,4 +1,5 @@
 import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js";
+import { USERNAME_PASSWORD_PROVIDER } from "../constants";
 
 type ConnectionType = "email" | "sms" | "username";
 
@@ -6,7 +7,7 @@ interface NormalizedResult {
   connectionType: ConnectionType;
   normalized: string | null;
   isValid: boolean;
-  /** The provider to use for user lookup. For email, this is "email" but password users use "auth2" */
+  /** The provider to use for user lookup. For email, this is "email" but password users use the username-password provider */
   provider: string;
 }
 
@@ -52,7 +53,7 @@ export function getConnectionFromIdentifier(
       connectionType: "username",
       normalized: username,
       isValid: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
     };
   }
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("login identifier page", () => {
   it("should return an invalid email error when entering an invalid email", async () => {
@@ -299,7 +300,7 @@ describe("login identifier page", () => {
 
     // Create a user first
     await env.data.users.create("tenantId", {
-      user_id: "auth2|existinguser",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|existinguser`,
       email: "existing@example.com",
       email_verified: true,
       provider: "email",
@@ -350,12 +351,12 @@ describe("login identifier page", () => {
 
     // Create a user with password strategy (auth2 provider, not email provider)
     // This tests the bug where getPrimaryUserByProvider couldn't find the user
-    // because it was looking for provider="email" but user had provider="auth2"
+    // because it was looking for provider="email" but user had the username-password provider
     await env.data.users.create("tenantId", {
-      user_id: "auth2|passworduser",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|passworduser`,
       email: "password@example.com",
       email_verified: true,
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       connection: "Username-Password-Authentication",
       is_social: false,
       app_metadata: {

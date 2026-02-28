@@ -10,6 +10,9 @@ import {
 } from "react-admin";
 import { useState } from "react";
 
+// Matches the USERNAME_PASSWORD_PROVIDER constant in the authhero package
+const USERNAME_PASSWORD_PROVIDER = "auth2";
+
 export function UserCreate() {
   const [_, setSelectedConnection] = useState(null);
 
@@ -26,9 +29,9 @@ export function UserCreate() {
         (c) => c.name === data.connection,
       );
       if (connectionData) {
-        // For Username-Password-Authentication connections, the provider should be "auth2"
+        // For Username-Password-Authentication connections, use the username-password provider
         if (connectionData.strategy === "Username-Password-Authentication") {
-          data.provider = "auth2";
+          data.provider = USERNAME_PASSWORD_PROVIDER;
         } else {
           data.provider = connectionData.strategy || "database";
         }
@@ -47,11 +50,11 @@ export function UserCreate() {
             isLoading
               ? []
               : connections?.map((connection) => ({
-                  id: connection.name,
-                  name: connection.name,
-                  // Store connection strategy for reference
-                  _strategy: connection.strategy,
-                }))
+                id: connection.name,
+                name: connection.name,
+                // Store connection strategy for reference
+                _strategy: connection.strategy,
+              }))
           }
           validate={[required()]}
           onChange={(e) => {
@@ -82,7 +85,7 @@ export function UserCreate() {
             // Show email input for email-based connections
             if (
               connectionData.strategy === "email" ||
-              connectionData.strategy === "auth2" ||
+              connectionData.strategy === USERNAME_PASSWORD_PROVIDER ||
               connectionData.strategy === "Username-Password-Authentication"
             ) {
               // For password connections, also show password field

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { getTestServer } from "../../helpers/test-server";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("successful login - logging", () => {
   it("should log successful login with type 's' and comprehensive details", async () => {
@@ -15,15 +16,15 @@ describe("successful login - logging", () => {
       name: "Test User",
       nickname: "testuser",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|test123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|test123`,
       login_count: 5,
     });
 
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|test123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|test123`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });
@@ -65,7 +66,7 @@ describe("successful login - logging", () => {
     expect(logDate.getTime()).toBeLessThanOrEqual(afterLogin.getTime());
 
     // Verify user details
-    expect(successLoginLog?.user_id).toBe("auth2|test123");
+    expect(successLoginLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|test123`);
     expect(successLoginLog?.user_name).toBeDefined();
 
     // Verify connection details
@@ -129,14 +130,14 @@ describe("successful login - logging", () => {
       name: "Count Test User",
       nickname: "counttest",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|count123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|count123`,
     });
 
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|count123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|count123`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });
@@ -154,7 +155,7 @@ describe("successful login - logging", () => {
     expect(loginResponse.status).toEqual(200);
 
     // Verify user's login count was incremented
-    const updatedUser = await env.data.users.get("tenantId", "auth2|count123");
+    const updatedUser = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|count123`);
     expect(updatedUser?.login_count).toBe(1);
 
     // Verify last_login and last_ip were updated
@@ -173,14 +174,14 @@ describe("successful login - logging", () => {
       name: "Hostname Test User",
       nickname: "hostnametest",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|hostname123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|hostname123`,
     });
 
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|hostname123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|hostname123`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });
@@ -221,14 +222,14 @@ describe("successful login - logging", () => {
       name: "Connection Test User",
       nickname: "connectiontest",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|conn123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|conn123`,
     });
 
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|conn123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|conn123`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });

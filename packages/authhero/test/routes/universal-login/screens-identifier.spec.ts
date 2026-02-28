@@ -115,7 +115,7 @@ describe("identifier screen - social buttons with provider details", () => {
       },
     });
 
-    // Update client to have this connection AND the default auth2 connection
+    // Update client to have this connection AND the default username-password connection
     await env.data.clientConnections.updateByClient("tenantId", "clientId", [
       "vipps-oidc-no-icon",
       "Username-Password-Authentication", // Keep the default connection so the form can work

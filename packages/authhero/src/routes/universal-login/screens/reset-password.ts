@@ -9,6 +9,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUserByProvider } from "../../../helpers/users";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 import { logMessage } from "../../../helpers/logging";
 import {
   getPasswordPolicy,
@@ -150,7 +151,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
         username: loginSession.authParams.username,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
 
       if (!user) {
