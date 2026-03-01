@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.46.0
+
+### Minor Changes
+
+- 818846d: Change to use auth0 instead of auth2
+
 ## 1.45.0
 
 ### Minor Changes
