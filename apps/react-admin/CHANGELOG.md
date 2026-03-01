@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.43.0
+
+### Minor Changes
+
+- 818846d: Change to use auth0 instead of auth2
+
 ## 0.42.0
 
 ### Minor Changes

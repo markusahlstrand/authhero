@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.99.0
+
+### Minor Changes
+
+- 6476145: Use username from linked identities
+
 ## 10.98.0
 
 ### Minor Changes
