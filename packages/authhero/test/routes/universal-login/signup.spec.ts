@@ -5,7 +5,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { getPrimaryUserByEmail } from "../../../src/helpers/users";
 
 describe("signup", () => {
-  it("should allow a user to sign up with email verification and set a password, linking an auth2 account", async () => {
+  it("should allow a user to sign up with email verification and set a password, linking a username-password account", async () => {
     const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,
       testTenantLanguage: "en",
@@ -89,7 +89,7 @@ describe("signup", () => {
     });
     expect(signupPostWithCode.status).toBe(302);
 
-    // Check that an auth2 account is now linked to foo@example.com
+    // Check that a username-password account is now linked to foo@example.com
     const user = await getPrimaryUserByEmail({
       userAdapter: env.data.users,
       email: "foo@example.com",

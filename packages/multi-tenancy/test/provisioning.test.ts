@@ -5,6 +5,7 @@ import SQLite from "better-sqlite3";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
 import { setupMultiTenancy, MANAGEMENT_API_SCOPES } from "../src/index";
+import { USERNAME_PASSWORD_PROVIDER } from "../../authhero/src/constants";
 
 describe("Tenant Provisioning with User Organization Membership", () => {
   let app: Hono<{
@@ -62,7 +63,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
       email: "testuser@example.com",
       email_verified: true,
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
     });
 
     // Setup multi-tenancy with access control and issuer for admin role creation
@@ -403,7 +404,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
       email: "testuser@example.com",
       email_verified: true,
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
     });
 
     // Setup multi-tenancy WITHOUT issuer (no admin role will be created)
@@ -527,7 +528,7 @@ describe("Tenant Provisioning with addCreatorToOrganization disabled", () => {
       email: "testuser@example.com",
       email_verified: true,
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
     });
 
     // Setup multi-tenancy with addCreatorToOrganization disabled
@@ -658,7 +659,7 @@ describe("Tenant Provisioning with admin:organizations permission", () => {
       email: "global-admin@example.com",
       email_verified: true,
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
     });
 
     // Create a global admin role with admin:organizations permission

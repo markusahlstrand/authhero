@@ -3,6 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { calculateScopesAndPermissions } from "../../src/helpers/scopes-permissions";
 import { Context } from "hono";
 import { Bindings, Variables } from "../../src/types";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 describe("permissions in access token", () => {
   it("demonstrates that permissions are computed but not included in access tokens for access_token_authz dialect", async () => {
@@ -39,7 +40,7 @@ describe("permissions in access token", () => {
       email: "test@example.com",
       name: "Test User",
       connection: "email",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       email_verified: true,
     });

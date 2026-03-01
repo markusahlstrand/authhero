@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 import {
@@ -102,7 +103,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
         username: email,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
 
       if (existingUser) {
@@ -115,10 +116,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
 
       // Create the new user with password atomically in a single transaction
       const newUser = await ctx.env.data.users.create(client.tenant.id, {
-        user_id: `auth2|${userIdGenerate()}`,
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|${userIdGenerate()}`,
         email,
         email_verified: false,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
         password: { hash, algorithm },
@@ -188,7 +189,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
         username: email,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
 
       if (!existingUser) {

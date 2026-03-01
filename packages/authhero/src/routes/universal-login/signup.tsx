@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
 import {
@@ -212,24 +213,24 @@ export const signupRoutes = new OpenAPIHono<{
 
         const emailVerificationCode = loginParams.code
           ? await env.data.codes.get(
-              client.tenant.id,
-              loginParams.code,
-              "email_verification",
-            )
+            client.tenant.id,
+            loginParams.code,
+            "email_verification",
+          )
           : undefined;
 
         const emailVerificationSession = emailVerificationCode
           ? await env.data.loginSessions.get(
-              client.tenant.id,
-              emailVerificationCode.login_id,
-            )
+            client.tenant.id,
+            emailVerificationCode.login_id,
+          )
           : undefined;
 
         const existingUser = await getUserByProvider({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
           username: loginSession.authParams.username,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
         });
 
         if (existingUser) {
@@ -251,14 +252,14 @@ export const signupRoutes = new OpenAPIHono<{
           emailVerificationSession?.authParams.username ===
           loginSession.authParams.username;
 
-        const user_id = `auth2|${userIdGenerate()}`;
+        const user_id = `${USERNAME_PASSWORD_PROVIDER}|${userIdGenerate()}`;
 
         // This returns the primary user and not necessarily the one that is being created
         const newUser = await env.data.users.create(client.tenant.id, {
           user_id,
           email: loginSession.authParams.username,
           email_verified,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection,
           is_social: false,
         });

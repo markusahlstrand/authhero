@@ -5,10 +5,11 @@ import { Bindings, Variables } from "../types";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
 import { getEnrichedClient } from "../helpers/client";
+import { USERNAME_PASSWORD_PROVIDER } from "../constants";
 
 function getProviderFromRealm(realm: string) {
   if (realm === "Username-Password-Authentication") {
-    return "auth2";
+    return USERNAME_PASSWORD_PROVIDER;
   }
 
   if (realm === "email") {
@@ -57,7 +58,7 @@ export async function ticketAuth(
   const connection = client.connections.find((c) => c.name === realm);
   const strategy =
     connection?.strategy ||
-    (provider === "auth2" ? "Username-Password-Authentication" : "email");
+    (provider === USERNAME_PASSWORD_PROVIDER ? "Username-Password-Authentication" : "email");
   const strategy_type =
     strategy === "Username-Password-Authentication"
       ? "database"

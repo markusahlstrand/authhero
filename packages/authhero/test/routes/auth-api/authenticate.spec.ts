@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { getTestServer } from "../../helpers/test-server";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("authenticate", () => {
   it("should return a token for a successful login", async () => {
@@ -15,13 +16,13 @@ describe("authenticate", () => {
       name: "Test User",
       nickname: "Test User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });
@@ -94,13 +95,13 @@ describe("authenticate", () => {
       name: "Test User",
       nickname: "Test User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });
@@ -137,13 +138,13 @@ describe("authenticate", () => {
       name: "Test User",
       nickname: "Test User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
       password: await bcryptjs.hash("Test1234!", 10),
       algorithm: "bcrypt",
     });

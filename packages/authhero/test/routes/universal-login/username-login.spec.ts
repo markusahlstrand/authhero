@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 /**
  * Helper to start an OAuth authorize flow and return the state parameter
@@ -41,7 +42,7 @@ async function setupUsernameConnection(
     validation?: { min_length?: number; max_length?: number };
   } = {},
 ) {
-  // The test server creates the connection with strategy "auth2",
+  // The test server creates the connection with the username-password strategy,
   // but the screen code checks for strategy === "Username-Password-Authentication".
   // Update both strategy and options.
   const usernameActive = options.usernameIdentifierActive ?? true;
@@ -114,13 +115,13 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
       username: "johndoe",
       picture: "https://example.com/test.png",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|usernameUserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|usernameUserId`,
     });
 
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|usernameUserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|usernameUserId`,
       password: await bcryptjs.hash("Password1!", 10),
       algorithm: "bcrypt",
     });
@@ -261,13 +262,13 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
       nickname: "emailuser",
       picture: "https://example.com/test.png",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|emailUserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|emailUserId`,
     });
 
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|emailUserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|emailUserId`,
       password: await bcryptjs.hash("Password1!", 10),
       algorithm: "bcrypt",
     });
@@ -337,13 +338,13 @@ describe("username login - combined login flow (u2/login)", () => {
       username: "janedoe",
       picture: "https://example.com/test.png",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|u2UserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|u2UserId`,
     });
 
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|u2UserId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|u2UserId`,
       password: await bcryptjs.hash("Password1!", 10),
       algorithm: "bcrypt",
     });

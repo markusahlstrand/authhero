@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
 import { getUserByProvider, getUsersByEmail } from "../../helpers/users";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
 
 export const validateEmailRoutes = new OpenAPIHono<{
@@ -52,7 +53,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
         username: username,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
       if (!user) {
         throw new HTTPException(500, { message: "No user found" });
@@ -79,7 +80,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
       );
 
       const usersWithSameEmailButNotUsernamePassword =
-        usersWithSameEmail.filter((user) => user.provider !== "auth2");
+        usersWithSameEmail.filter((user) => user.provider !== USERNAME_PASSWORD_PROVIDER);
 
       if (usersWithSameEmailButNotUsernamePassword.length > 0) {
         const primaryUsers = usersWithSameEmailButNotUsernamePassword.filter(

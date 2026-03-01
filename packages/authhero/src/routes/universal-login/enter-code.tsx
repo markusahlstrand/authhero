@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import EnterCodePage from "../../components/EnterCodePage";
 import { getPrimaryUserByProvider } from "../../helpers/users";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
@@ -111,7 +112,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
           username: loginSession.authParams.username,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
         });
 
         // Classic style
@@ -251,7 +252,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
             userAdapter: ctx.env.data.users,
             tenant_id: client.tenant.id,
             username: loginSession.authParams.username,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
           });
         } catch {
           passwordUser = null;

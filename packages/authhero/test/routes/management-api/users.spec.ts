@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 import { User } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("users management API endpoint", () => {
   describe("POST", () => {
@@ -159,9 +160,9 @@ describe("users management API endpoint", () => {
       const createUserResponse = await managementClient.users.$post(
         {
           json: {
-            user_id: "auth2|myCustomId",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|myCustomId`,
             email: "prefixed@example.com",
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
           },
           header: {
@@ -179,10 +180,10 @@ describe("users management API endpoint", () => {
       const newUser = await createUserResponse.json();
 
       // Should not double-prefix - should be auth2|myCustomId, not auth2|auth2|myCustomId
-      expect(newUser.user_id).toBe("auth2|myCustomId");
+      expect(newUser.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|myCustomId`);
 
       const [provider, id] = newUser.user_id.split("|");
-      expect(provider).toBe("auth2");
+      expect(provider).toBe(USERNAME_PASSWORD_PROVIDER);
       expect(id).toBe("myCustomId");
     });
 
@@ -244,8 +245,8 @@ describe("users management API endpoint", () => {
 
         await env.data.users.create("tenantId", {
           email: "primary@example.com",
-          user_id: "auth2|primaryId",
-          provider: "auth2",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|primaryId`,
+          provider: USERNAME_PASSWORD_PROVIDER,
           email_verified: true,
           connection: "Username-Password-Authentication",
           is_social: false,
@@ -258,14 +259,14 @@ describe("users management API endpoint", () => {
           email_verified: true,
           connection: "email",
           is_social: false,
-          linked_to: "auth2|primaryId",
+          linked_to: `${USERNAME_PASSWORD_PROVIDER}|primaryId`,
         });
 
         // sanity check that primary user is set up correctly
         const primaryUserRes = await managementClient.users[":user_id"].$get(
           {
             param: {
-              user_id: "auth2|primaryId",
+              user_id: `${USERNAME_PASSWORD_PROVIDER}|primaryId`,
             },
             header: {
               "tenant-id": "tenantId",
@@ -283,7 +284,7 @@ describe("users management API endpoint", () => {
         expect(primaryUser.identities).toEqual([
           {
             connection: "Username-Password-Authentication",
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             user_id: "primaryId",
             isSocial: false,
             email: "primary@example.com",
@@ -468,19 +469,19 @@ describe("users management API endpoint", () => {
       const managementClient = testClient(managementApp, env);
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
         email: "foo@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
         email: "foo2@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -489,7 +490,7 @@ describe("users management API endpoint", () => {
         ":user_id"
       ].$patch(
         {
-          param: { user_id: "auth2|userId" },
+          param: { user_id: `${USERNAME_PASSWORD_PROVIDER}|userId` },
           json: {
             email: "foo2@example.com",
           },
@@ -642,10 +643,10 @@ describe("users management API endpoint", () => {
 
         // Create primary user with password connection
         await env.data.users.create("tenantId", {
-          user_id: "auth2|primary-user",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
           email: "primary@example.com",
           email_verified: true,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection: "Username-Password-Authentication",
           is_social: false,
         });
@@ -658,14 +659,14 @@ describe("users management API endpoint", () => {
           provider: "sms",
           connection: "sms",
           is_social: false,
-          linked_to: "auth2|primary-user",
+          linked_to: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
         });
 
         // Update the secondary account via primary user ID with connection parameter
         const updateResponse = await managementClient.users[":user_id"].$patch(
           {
             param: {
-              user_id: "auth2|primary-user",
+              user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
             },
             json: {
               phone_number: "+46709876543",
@@ -709,10 +710,10 @@ describe("users management API endpoint", () => {
 
         // Create secondary user with password connection and link it
         await env.data.users.create("tenantId", {
-          user_id: "auth2|secondary-user",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|secondary-user`,
           email: "secondary@example.com",
           email_verified: false,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection: "Username-Password-Authentication",
           is_social: false,
           linked_to: "email|primary-user",
@@ -745,7 +746,7 @@ describe("users management API endpoint", () => {
         // Verify the secondary account's app_metadata was updated
         const secondaryUser = await env.data.users.get(
           "tenantId",
-          "auth2|secondary-user",
+          `${USERNAME_PASSWORD_PROVIDER}|secondary-user`,
         );
         expect(secondaryUser?.app_metadata).toEqual({
           role: "admin",
@@ -760,10 +761,10 @@ describe("users management API endpoint", () => {
 
         // Create primary user
         await env.data.users.create("tenantId", {
-          user_id: "auth2|primary-user",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
           email: "primary@example.com",
           email_verified: true,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection: "Username-Password-Authentication",
           is_social: false,
         });
@@ -776,14 +777,14 @@ describe("users management API endpoint", () => {
           provider: "email",
           connection: "email",
           is_social: false,
-          linked_to: "auth2|primary-user",
+          linked_to: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
         });
 
         // Update email_verified on the secondary account
         const updateResponse = await managementClient.users[":user_id"].$patch(
           {
             param: {
-              user_id: "auth2|primary-user",
+              user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
             },
             json: {
               email_verified: true,
@@ -831,10 +832,10 @@ describe("users management API endpoint", () => {
 
         // Create secondary user with password connection and link it
         await env.data.users.create("tenantId", {
-          user_id: "auth2|secondary-user",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|secondary-user`,
           email: "secondary@example.com",
           email_verified: true,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection: "Username-Password-Authentication",
           is_social: false,
           linked_to: "email|primary-user",
@@ -842,7 +843,7 @@ describe("users management API endpoint", () => {
 
         // Create initial password for secondary user
         await env.data.passwords.create("tenantId", {
-          user_id: "auth2|secondary-user",
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|secondary-user`,
           password: await import("bcryptjs").then((bcrypt) =>
             bcrypt.hash("oldPassword123", 10),
           ),
@@ -875,7 +876,7 @@ describe("users management API endpoint", () => {
         // Verify the password was updated
         const updatedPassword = await env.data.passwords.get(
           "tenantId",
-          "auth2|secondary-user",
+          `${USERNAME_PASSWORD_PROVIDER}|secondary-user`,
         );
         expect(updatedPassword).toBeDefined();
 
@@ -1349,29 +1350,29 @@ describe("users management API endpoint", () => {
 
       // create new password user
       env.data.users.create("tenantId", {
-        user_id: "auth2|base-user",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|base-user`,
         email: "base-user@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
       // create new code user WITH DIFFERENT EMAIL ADDRESS and link this to the password user
       env.data.users.create("tenantId", {
-        user_id: "auth2|code-user",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|code-user`,
         email: "code-user@example.com",
         email_verified: true,
         provider: "email",
         connection: "email",
         is_social: false,
-        linked_to: "auth2|base-user",
+        linked_to: `${USERNAME_PASSWORD_PROVIDER}|base-user`,
       });
 
       // sanity check - get base user and check identities
       const baseUserRes = await managementClient.users[":user_id"].$get(
         {
           param: {
-            user_id: "auth2|base-user",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|base-user`,
           },
           header: {
             "tenant-id": "tenantId",
@@ -1389,7 +1390,7 @@ describe("users management API endpoint", () => {
         {
           connection: "Username-Password-Authentication",
           isSocial: false,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           user_id: "base-user",
           email: "base-user@example.com",
           email_verified: true,
@@ -1439,7 +1440,7 @@ describe("users management API endpoint", () => {
         {
           connection: "Username-Password-Authentication",
           isSocial: false,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           user_id: "base-user",
           email: "base-user@example.com",
           email_verified: true,
@@ -1610,19 +1611,19 @@ describe("users management API endpoint", () => {
       const managementClient = testClient(managementApp, env);
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId1",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId1`,
         email: "foo1@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
         email: "foo2@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -1632,10 +1633,10 @@ describe("users management API endpoint", () => {
       ].identities.$post(
         {
           param: {
-            user_id: "auth2|userId2",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
           },
           json: {
-            link_with: "auth2|userId1",
+            link_with: `${USERNAME_PASSWORD_PROVIDER}|userId1`,
           },
           header: {
             "tenant-id": "tenantId",
@@ -1673,14 +1674,14 @@ describe("users management API endpoint", () => {
       }
       expect(usersList.length).toBe(2);
       const newUser = usersList.find(
-        (u: User) => u.user_id === "auth2|userId2",
+        (u: User) => u.user_id === `${USERNAME_PASSWORD_PROVIDER}|userId2`,
       );
       expect(newUser).toBeDefined();
       expect(newUser?.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
           email: "foo2@example.com",
           email_verified: true,
@@ -1688,7 +1689,7 @@ describe("users management API endpoint", () => {
         {
           connection: "Username-Password-Authentication",
           user_id: "userId1",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
           email: "foo1@example.com",
           email_verified: true,
@@ -1705,8 +1706,8 @@ describe("users management API endpoint", () => {
       ].identities[":provider"][":linked_user_id"].$delete(
         {
           param: {
-            user_id: "auth2|userId2",
-            provider: "auth2",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
+            provider: USERNAME_PASSWORD_PROVIDER,
             linked_user_id: "userId1",
           },
           header: { "tenant-id": "tenantId" },
@@ -1723,19 +1724,19 @@ describe("users management API endpoint", () => {
       if (!Array.isArray(unlinkUserBody)) {
         throw new Error("Expected an array of users");
       }
-      expect(unlinkUserBody[0]?.user_id).toBe("auth2|userId2");
+      expect(unlinkUserBody[0]?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|userId2`);
 
       // manually check in the db that the linked_to field has been reset
       const user1Updated = await env.data.users.get(
         "tenantId",
-        "auth2|userId1",
+        `${USERNAME_PASSWORD_PROVIDER}|userId1`,
       );
       expect(user1Updated!.linked_to).toBeUndefined();
 
       // now fetch user 2 again to check doesn't have user2 as identity
       const userResponse2 = await managementClient.users[":user_id"].$get(
         {
-          param: { user_id: "auth2|userId2" },
+          param: { user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2` },
           header: { "tenant-id": "tenantId" },
         },
         {
@@ -1752,7 +1753,7 @@ describe("users management API endpoint", () => {
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
           email: "foo2@example.com",
           email_verified: true,
@@ -1769,19 +1770,19 @@ describe("users management API endpoint", () => {
       const managementClient = testClient(managementApp, env);
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId1",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId1`,
         email: "foo1@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
 
       await env.data.users.create("tenantId", {
-        user_id: "auth2|userId2",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
         email: "foo2@example.com",
         email_verified: true,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
         connection: "Username-Password-Authentication",
         is_social: false,
       });
@@ -1790,10 +1791,10 @@ describe("users management API endpoint", () => {
         ":user_id"
       ].identities.$post(
         {
-          param: { user_id: "auth2|userId2" },
+          param: { user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2` },
           json: {
-            provider: "auth2",
-            user_id: "auth2|userId1",
+            provider: USERNAME_PASSWORD_PROVIDER,
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|userId1`,
           },
           header: {
             "tenant-id": "tenantId",
@@ -1813,7 +1814,7 @@ describe("users management API endpoint", () => {
         {
           param: {
             // note we fetch with the user_id prefixed with provider as per the Auth0 standard
-            user_id: "auth2|userId2",
+            user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
           },
           header: {
             "tenant-id": "tenantId",
@@ -1829,12 +1830,12 @@ describe("users management API endpoint", () => {
       expect(userResponse.status).toBe(200);
 
       const body = await userResponse.json();
-      expect(body.user_id).toBe("auth2|userId2");
+      expect(body.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|userId2`);
       expect(body.identities).toEqual([
         {
           connection: "Username-Password-Authentication",
           user_id: "userId2",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
           email: "foo2@example.com",
           email_verified: true,
@@ -1842,7 +1843,7 @@ describe("users management API endpoint", () => {
         {
           connection: "Username-Password-Authentication",
           user_id: "userId1",
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
           email: "foo1@example.com",
           email_verified: true,
@@ -2296,7 +2297,7 @@ describe("users management API endpoint", () => {
         {
           json: {
             email: testEmail,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
           },
           header: {
@@ -2312,7 +2313,7 @@ describe("users management API endpoint", () => {
 
       expect(createPasswordUserResponse.status).toBe(201);
       const passwordUser = await createPasswordUserResponse.json();
-      expect(passwordUser.user_id).toMatch(/^auth2\|/);
+      expect(passwordUser.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
       expect(passwordUser.email).toBe(testEmail);
 
       // Step 3: Set the password for the password user via PATCH
@@ -2404,7 +2405,7 @@ describe("users management API endpoint", () => {
       );
       expect(updatedPrimaryUser.identities).toContainEqual(
         expect.objectContaining({
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection: "Username-Password-Authentication",
           email: testEmail,
           email_verified: false,
@@ -2460,7 +2461,7 @@ describe("users management API endpoint", () => {
         {
           json: {
             email: testEmail,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
           },
           header: {
@@ -2476,7 +2477,7 @@ describe("users management API endpoint", () => {
 
       expect(createUserResponse.status).toBe(201);
       const user = await createUserResponse.json();
-      expect(user.user_id).toMatch(/^auth2\|/);
+      expect(user.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
       expect(user.email).toBe(testEmail);
 
       // Verify no password exists yet
@@ -2564,7 +2565,7 @@ describe("users management API endpoint", () => {
         {
           json: {
             email: testEmail,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
             password: firstPassword,
           },
@@ -2581,7 +2582,7 @@ describe("users management API endpoint", () => {
 
       expect(createUserResponse.status).toBe(201);
       const user = await createUserResponse.json();
-      expect(user.user_id).toMatch(/^auth2\|/);
+      expect(user.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
 
       // Verify password was created
       const initialPasswordRecord = await env.data.passwords.get(
@@ -2708,7 +2709,7 @@ describe("users management API endpoint", () => {
             email: testEmail,
             email_verified: true, // This should trigger automatic linking
             password: testPassword,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
             connection: "Username-Password-Authentication",
           },
           header: {

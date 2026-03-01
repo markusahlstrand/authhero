@@ -36,8 +36,9 @@ const EnterCodePage: FC<Props> = ({
     state,
   });
 
-  const connections = client.connections.map(({ name }) => name);
-  const showPasswordLogin = connections.includes("auth2");
+  const showPasswordLogin = client.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
 
   return (
     <Layout

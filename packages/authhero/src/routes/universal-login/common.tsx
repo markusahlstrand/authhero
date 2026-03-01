@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import i18next from "i18next";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import {
   getPrimaryUserByEmail,
   getPrimaryUserByProvider,
@@ -248,7 +249,7 @@ export async function getLoginStrategy(
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
         username,
-        provider: connectionType === "sms" ? "sms" : "auth2",
+        provider: connectionType === "sms" ? "sms" : USERNAME_PASSWORD_PROVIDER,
       });
 
   // Check user's preferred login method (last used)

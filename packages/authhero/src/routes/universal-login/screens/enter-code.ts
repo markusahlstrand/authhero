@@ -9,6 +9,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 
 /**
  * Create the enter-code screen
@@ -173,7 +174,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
             userAdapter: ctx.env.data.users,
             tenant_id: client.tenant.id,
             username: loginSession.authParams.username,
-            provider: "auth2",
+            provider: USERNAME_PASSWORD_PROVIDER,
           });
           hasPasswordLogin = !!passwordUser;
         } catch {

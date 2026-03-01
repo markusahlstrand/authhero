@@ -22,6 +22,7 @@ import { Bindings } from "../../src/types";
 import { MockEmailService } from "./mock-email-service";
 import { MockSmsService } from "./mock-sms-service";
 import { mockStrategy } from "./mock-strategy";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 type getEnvParams = {
   testTenantLanguage?: string;
@@ -113,7 +114,7 @@ export async function getTestServer(
   await data.connections.create("tenantId", {
     id: "Username-Password-Authentication",
     name: "Username-Password-Authentication",
-    strategy: "auth2",
+    strategy: USERNAME_PASSWORD_PROVIDER,
     options: {},
   });
 

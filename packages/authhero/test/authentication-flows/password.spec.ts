@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 describe("password authentication - failed login tracking", () => {
   it("should reject a login after three failed attempts and record in app_metadata", async () => {
@@ -15,13 +16,13 @@ describe("password authentication - failed login tracking", () => {
       name: "Test User",
       nickname: "Test User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
       password: await bcryptjs.hash("CorrectPassword123!", 10),
       algorithm: "bcrypt",
     });
@@ -57,7 +58,7 @@ describe("password authentication - failed login tracking", () => {
     expect(blockedResponse.status).toEqual(403);
 
     // Verify user has failed_logins in app_metadata
-    const user = await env.data.users.get("tenantId", "auth2|userId");
+    const user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId`);
     expect(user?.app_metadata?.failed_logins).toBeDefined();
     expect(Array.isArray(user?.app_metadata?.failed_logins)).toBe(true);
     expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThanOrEqual(3);
@@ -79,13 +80,13 @@ describe("password authentication - failed login tracking", () => {
       name: "Test User 2",
       nickname: "Test User 2",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId2",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
     });
     // Set the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId2",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
       password: await bcryptjs.hash("CorrectPassword123!", 10),
       algorithm: "bcrypt",
     });
@@ -104,7 +105,7 @@ describe("password authentication - failed login tracking", () => {
     expect(incorrectPasswordResponse.status).toEqual(403);
 
     // Verify failed login was recorded
-    let user = await env.data.users.get("tenantId", "auth2|userId2");
+    let user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId2`);
     if (user?.app_metadata?.failed_logins) {
       expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThan(0);
     }
@@ -123,7 +124,7 @@ describe("password authentication - failed login tracking", () => {
     expect(successResponse.status).toEqual(200);
 
     // Verify failed_logins was cleared
-    user = await env.data.users.get("tenantId", "auth2|userId2");
+    user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId2`);
     expect(user?.app_metadata?.failed_logins).toBeDefined();
     // After successful login, failed_logins should be empty or cleared
     if (user?.app_metadata?.failed_logins) {
@@ -141,9 +142,9 @@ describe("password authentication - failed login tracking", () => {
       name: "Test User 3",
       nickname: "Test User 3",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId3",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId3`,
     });
 
     // Manually add old timestamps
@@ -154,12 +155,12 @@ describe("password authentication - failed login tracking", () => {
       Date.now(), // now
     ];
 
-    await env.data.users.update("tenantId", "auth2|userId3", {
+    await env.data.users.update("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId3`, {
       app_metadata: appMetadata,
     });
 
     // Verify we have 3 timestamps
-    let user = await env.data.users.get("tenantId", "auth2|userId3");
+    let user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId3`);
     expect(user?.app_metadata?.failed_logins?.length).toBe(3);
 
     // Now trigger the cleanup by recording a new failed login
@@ -186,9 +187,9 @@ describe("password authentication - failed login tracking", () => {
       name: "Primary User",
       nickname: "Primary User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|primary`,
     });
 
     // Create linked user
@@ -198,15 +199,15 @@ describe("password authentication - failed login tracking", () => {
       name: "Linked User",
       nickname: "Linked User",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|linked",
-      linked_to: "auth2|primary",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|linked`,
+      linked_to: `${USERNAME_PASSWORD_PROVIDER}|primary`,
     });
 
     // Set password for linked user
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|linked",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|linked`,
       password: await bcryptjs.hash("LinkedPassword123!", 10),
       algorithm: "bcrypt",
     });
@@ -227,7 +228,7 @@ describe("password authentication - failed login tracking", () => {
     // Verify failed login was recorded on PRIMARY user's app_metadata
     const updatedPrimaryUser = await env.data.users.get(
       "tenantId",
-      "auth2|primary",
+      `${USERNAME_PASSWORD_PROVIDER}|primary`,
     );
     if (updatedPrimaryUser?.app_metadata?.failed_logins) {
       expect(

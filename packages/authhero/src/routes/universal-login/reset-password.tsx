@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import ResetPasswordPage from "../../components/ResetPasswordPage";
@@ -134,7 +135,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         userAdapter: env.data.users,
         tenant_id: client.tenant.id,
         username: loginSession.authParams.username,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
 
       if (!user) {

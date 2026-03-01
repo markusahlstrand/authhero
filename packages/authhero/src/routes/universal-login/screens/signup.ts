@@ -12,6 +12,7 @@ import type {
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
 import { getUserByProvider } from "../../../helpers/users";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
@@ -243,7 +244,7 @@ export const signupScreenDefinition: ScreenDefinition = {
         userAdapter: ctx.env.data.users,
         tenant_id: client.tenant.id,
         username: email,
-        provider: "auth2",
+        provider: USERNAME_PASSWORD_PROVIDER,
       });
 
       if (existingUser) {
@@ -282,7 +283,7 @@ export const signupScreenDefinition: ScreenDefinition = {
         loginSession,
       );
 
-      const user_id = `auth2|${userIdGenerate()}`;
+      const user_id = `${USERNAME_PASSWORD_PROVIDER}|${userIdGenerate()}`;
 
       // Hash password first
       const { hash, algorithm } = await hashPassword(password);
@@ -295,7 +296,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           user_id,
           email,
           email_verified: false,
-          provider: "auth2",
+          provider: USERNAME_PASSWORD_PROVIDER,
           connection,
           is_social: false,
           password: { hash, algorithm },

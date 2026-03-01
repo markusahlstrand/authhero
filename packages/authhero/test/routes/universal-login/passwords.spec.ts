@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { LogTypes, AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("passwords", () => {
   it("should login using a password", async () => {
@@ -21,14 +22,14 @@ describe("passwords", () => {
       nickname: "Test User",
       picture: "https://example.com/test.png",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     });
 
     // Add the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|userId",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
       password: await bcryptjs.hash("password", 10),
       algorithm: "bcrypt",
     });
@@ -112,7 +113,7 @@ describe("passwords", () => {
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
     expect(redirectUri.searchParams.get("state")).toBe("state");
 
-    const user = await env.data.users.get("tenantId", "auth2|userId");
+    const user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId`);
     if (!user) {
       throw new Error("User not found");
     }
@@ -201,14 +202,14 @@ describe("passwords", () => {
       name: "Reset Log User",
       nickname: "resetlog",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|resetLog123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetLog123`,
     });
 
     // Add the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|resetLog123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetLog123`,
       password: await bcryptjs.hash("password", 10),
       algorithm: "bcrypt",
     });
@@ -276,14 +277,14 @@ describe("passwords", () => {
       name: "Reset Complete User",
       nickname: "resetcomplete",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|resetComplete456",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetComplete456`,
     });
 
     // Add the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|resetComplete456",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetComplete456`,
       password: await bcryptjs.hash("password", 10),
       algorithm: "bcrypt",
     });
@@ -358,7 +359,7 @@ describe("passwords", () => {
     );
 
     expect(passwordResetSuccessLog).toBeDefined();
-    expect(passwordResetSuccessLog?.user_id).toBe("auth2|resetComplete456");
+    expect(passwordResetSuccessLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|resetComplete456`);
   });
 
   it("should successfully change password and allow login with new password", async () => {
@@ -379,14 +380,14 @@ describe("passwords", () => {
       name: "Change Password User",
       nickname: "changepass",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|changePass789",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|changePass789`,
     });
 
     // Add the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|changePass789",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|changePass789`,
       password: await bcryptjs.hash(oldPassword, 10),
       algorithm: "bcrypt",
     });
@@ -477,7 +478,7 @@ describe("passwords", () => {
     // Verify the password record was updated
     const currentPassword = await env.data.passwords.get(
       "tenantId",
-      "auth2|changePass789",
+      `${USERNAME_PASSWORD_PROVIDER}|changePass789`,
     );
     expect(currentPassword).toBeDefined();
     expect(currentPassword?.is_current).toBe(true);
@@ -556,14 +557,14 @@ describe("passwords", () => {
       name: "Weak Password User",
       nickname: "weakpass",
       connection: "Username-Password-Authentication",
-      provider: "auth2",
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|weakPass123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|weakPass123`,
     });
 
     // Add the password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|weakPass123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|weakPass123`,
       password: await bcryptjs.hash("OldP@ssw0rd!", 10),
       algorithm: "bcrypt",
     });
@@ -644,7 +645,7 @@ describe("passwords", () => {
     //
     // The bug occurred because:
     // 1. Users are created with connection: "Username-Password-Authentication" (hardcoded)
-    // 2. But the actual connection might have name: "auth2" with strategy: "Username-Password-Authentication"
+    // 2. But the actual connection might have name: USERNAME_PASSWORD_PROVIDER with strategy: "Username-Password-Authentication"
     // 3. getPasswordPolicy looked up by connection NAME, not finding the connection
     // 4. This caused default policy (8 chars, uppercase, etc.) to be applied instead
     //
@@ -663,7 +664,7 @@ describe("passwords", () => {
     // Create a connection with a DIFFERENT name but same strategy, with lenient password policy
     await env.data.connections.create("tenantId", {
       id: "custom-pwd-conn",
-      name: "auth2", // Different name than "Username-Password-Authentication"
+      name: USERNAME_PASSWORD_PROVIDER, // Different name than "Username-Password-Authentication"
       strategy: "Username-Password-Authentication", // But same strategy
       options: {
         passwordPolicy: "none", // No complexity requirements
@@ -680,15 +681,15 @@ describe("passwords", () => {
       email_verified: true,
       name: "Policy Test User",
       nickname: "policytest",
-      connection: "Username-Password-Authentication", // This doesn't match connection name "auth2"
-      provider: "auth2",
+      connection: "Username-Password-Authentication", // This doesn't match connection name (username-password)
+      provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: "auth2|policyTest123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|policyTest123`,
     });
 
     // Add a password
     await env.data.passwords.create("tenantId", {
-      user_id: "auth2|policyTest123",
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|policyTest123`,
       password: await bcryptjs.hash("OldP@ss123!", 10),
       algorithm: "bcrypt",
     });
