@@ -1,5 +1,11 @@
 # authhero
 
+## 4.47.0
+
+### Minor Changes
+
+- 8d348ab: Expose a webhook invoker
+
 ## 4.46.0
 
 ### Minor Changes
