@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.12.0
+
+### Minor Changes
+
+- 818846d: Change to use auth0 instead of auth2
+
+### Patch Changes
+
+- Updated dependencies [818846d]
+- Updated dependencies [6476145]
+  - authhero@4.45.0
+
 ## 14.11.0
 
 ### Minor Changes
