@@ -14,21 +14,38 @@ async function invokeHooks(
   hooks: Hook[],
   data: any & { tenant_id: string },
 ) {
-  const token = await createServiceToken(ctx, data.tenant_id, "webhook");
+  const customInvoker = ctx.env.webhookInvoker;
+
+  // Lazy token factory — caches per scope so repeated calls don't re-create
+  const tokenCache = new Map<string, string>();
+  const lazyCreateServiceToken = async (scope = "webhook"): Promise<string> => {
+    const cached = tokenCache.get(scope);
+    if (cached) return cached;
+    const result = await createServiceToken(ctx, data.tenant_id, scope);
+    tokenCache.set(scope, result.access_token);
+    return result.access_token;
+  };
 
   for await (const hook of hooks.filter((h) => "url" in h)) {
     let responseBody: string | undefined;
     let responseStatus: number | undefined;
 
     try {
-      const response = await fetch(hook.url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = customInvoker
+        ? await customInvoker({
+            hook,
+            data,
+            tenant_id: data.tenant_id,
+            createServiceToken: lazyCreateServiceToken,
+          })
+        : await fetch(hook.url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${await lazyCreateServiceToken()}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
 
       responseStatus = response.status;
 
@@ -43,14 +60,16 @@ async function invokeHooks(
           type: LogTypes.FAILED_HOOK,
           description: `Failed to invoke hook ${hook.hook_id} - ${response.status} ${response.statusText}`,
           userId: data.user?.user_id,
-          body: {
+          details: {
             trigger_id: data.trigger_id,
             hook_id: hook.hook_id,
             hook_url: hook.url,
-            payload: data,
+            user_id: data.user?.user_id,
+            user_name: data.user?.name || data.user?.email,
+            connection: data.user?.connection,
             response: {
               statusCode: responseStatus,
-              body: responseBody,
+              body: responseBody?.substring(0, 512),
             },
           },
           connection: data.user?.connection,
@@ -61,11 +80,13 @@ async function invokeHooks(
         type: LogTypes.FAILED_HOOK,
         description: `Failed to invoke hook ${hook.hook_id} - ${error instanceof Error ? error.message : "Unknown error"}`,
         userId: data.user?.user_id,
-        body: {
+        details: {
           trigger_id: data.trigger_id,
           hook_id: hook.hook_id,
           hook_url: hook.url,
-          payload: data,
+          user_id: data.user?.user_id,
+          user_name: data.user?.name || data.user?.email,
+          connection: data.user?.connection,
           error: error instanceof Error ? error.message : String(error),
         },
         connection: data.user?.connection,

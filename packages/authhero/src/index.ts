@@ -97,6 +97,11 @@ export function init(config: AuthHeroConfig) {
       ctx.env.poweredByLogo = config.poweredByLogo;
     }
 
+    // Add webhookInvoker from config if provided
+    if (config.webhookInvoker) {
+      ctx.env.webhookInvoker = config.webhookInvoker;
+    }
+
     await next();
   });
 

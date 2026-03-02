@@ -1,6 +1,6 @@
 ---
 title: AuthHero Configuration
-description: Configure the AuthHero package including dataAdapter, allowedOrigins, samlSigner, and hooks for customizing authentication behavior.
+description: Configure the AuthHero package including dataAdapter, allowedOrigins, samlSigner, webhookInvoker, and hooks for customizing authentication behavior.
 ---
 
 # AuthHero Configuration
@@ -98,6 +98,47 @@ const config: AuthHeroConfig = {
 ::: tip
 This option is different from `powered_by_logo_url` in the branding API. The `poweredByLogo` config option is set in code at initialization time and applies to all tenants, while the branding API field is stored in the database per tenant. Use this config option when you want to enforce a consistent powered-by logo across all tenants.
 :::
+
+### `webhookInvoker` (optional)
+
+A custom function that replaces the default webhook invocation logic. By default, AuthHero sends webhook requests as `POST` with a JSON body and a `Bearer` service token. Use this option to format the message differently, add your own authentication, set custom headers, or route webhooks through a proxy.
+
+The function receives an object with these properties:
+
+| Parameter             | Type                                  | Description                                                                                    |
+| --------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `hook`                | `Hook`                                | The hook being invoked (contains `url`, `hook_id`, `trigger_id`, etc.)                         |
+| `data`                | `Record<string, unknown>`             | The payload data for the webhook                                                               |
+| `tenant_id`           | `string`                              | The tenant ID                                                                                  |
+| `createServiceToken`  | `(scope?: string) => Promise<string>` | Lazily creates a service token. Only generates the token when called — no overhead if not used. |
+
+The function must return a `Response` object. If the response status is >= 400, the invocation will be logged as failed.
+
+```typescript
+const config: AuthHeroConfig = {
+  dataAdapter: adapter,
+  webhookInvoker: async ({ hook, data, tenant_id, createServiceToken }) => {
+    // Use the built-in service token, or replace with your own auth
+    const token = await createServiceToken();
+
+    return fetch(hook.url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-Tenant-Id": tenant_id,
+      },
+      body: JSON.stringify({
+        event: data.trigger_id,
+        timestamp: new Date().toISOString(),
+        payload: data,
+      }),
+    });
+  },
+};
+```
+
+For more details and examples, see the [Hooks Guide — Custom Webhook Invoker](../../guides/hooks.md#custom-webhook-invoker).
 
 ## Hooks Configuration
 
@@ -307,6 +348,19 @@ const config: AuthHeroConfig = {
     alt: "Powered by Example",
     href: "https://example.com",
     height: 20,
+  },
+
+  // Optional: Custom webhook invoker
+  webhookInvoker: async ({ hook, data, tenant_id, createServiceToken }) => {
+    const token = await createServiceToken();
+    return fetch(hook.url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ event: data.trigger_id, payload: data }),
+    });
   },
 
   // Optional: Hooks for custom logic

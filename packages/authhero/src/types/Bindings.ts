@@ -1,7 +1,7 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
-import { EntityHooksConfig } from "./AuthHeroConfig";
+import { EntityHooksConfig, WebhookInvoker } from "./AuthHeroConfig";
 import { EmailService } from "./EmailService";
 import { Strategy } from "../strategies";
 import { smsService } from "./SMSService";
@@ -56,4 +56,8 @@ export type Bindings = {
     href?: string;
     height?: number;
   };
+
+  // Optional custom webhook invoker
+  // Set via init({ webhookInvoker: ... })
+  webhookInvoker?: WebhookInvoker;
 };
