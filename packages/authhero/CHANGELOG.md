@@ -1,5 +1,11 @@
 # authhero
 
+## 4.46.0
+
+### Minor Changes
+
+- 553ada7: Improve logging of failed hooks
+
 ## 4.45.0
 
 ### Minor Changes
