@@ -170,6 +170,7 @@ export default function create(config: AuthHeroConfig) {
         "promptSettings",
         "customText",
         "forms",
+        "hooks",
       ],
       cache: cacheAdapter,
     });

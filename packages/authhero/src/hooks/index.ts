@@ -8,6 +8,7 @@ import {
 import { EnrichedClient } from "../helpers/client";
 import { linkUsersHook } from "./link-users";
 import {
+  invokeHooks,
   postUserRegistrationWebhook,
   preUserRegistrationWebhook,
   getValidateRegistrationUsernameWebhook,
@@ -643,11 +644,11 @@ async function buildEnhancedEventObject(
   // Get organization information if available
   let organizationInfo:
     | {
-        id: string;
-        name: string;
-        display_name: string;
-        metadata: any;
-      }
+      id: string;
+      name: string;
+      display_name: string;
+      metadata: any;
+    }
     | undefined = undefined;
   try {
     if (loginSession.authParams?.organization) {
@@ -726,15 +727,15 @@ async function buildEnhancedEventObject(
       Object.keys(connectionInfo).length > 0
         ? connectionInfo
         : {
-            id: user.connection || "Username-Password-Authentication",
-            name: user.connection || "Username-Password-Authentication",
-            strategy: user.provider || "auth0",
-          },
+          id: user.connection || "Username-Password-Authentication",
+          name: user.connection || "Username-Password-Authentication",
+          strategy: user.provider || "auth0",
+        },
     organization: organizationInfo,
     resource_server: params.authParams?.audience
       ? {
-          identifier: params.authParams.audience,
-        }
+        identifier: params.authParams.audience,
+      }
       : undefined,
     stats: {
       logins_count: user.login_count || 0,
@@ -825,7 +826,7 @@ export async function postUserLoginHook(
 
     await ctx.env.hooks.onExecutePostLogin(eventObject, {
       prompt: {
-        render: (_formId: string) => {},
+        render: (_formId: string) => { },
       },
       redirect: {
         sendUserTo: (
@@ -884,22 +885,18 @@ export async function postUserLoginHook(
     }
   }
 
-  const { hooks } = await data.hooks.list(tenant_id, {
-    q: "trigger_id:post-user-login",
-    page: 0,
-    per_page: 100,
-    include_totals: false,
-  });
+  const { hooks } = await data.hooks.list(tenant_id);
+  const postLoginHooks = hooks.filter((h: any) => h.trigger_id === "post-user-login");
 
   // Handle form hook (redirect) if we have a login session
   if (loginSession) {
-    const formHook = hooks.find((h: any) => h.enabled && isFormHook(h));
+    const formHook = postLoginHooks.find((h: any) => h.enabled && isFormHook(h));
     if (formHook && isFormHook(formHook)) {
       return handleFormHook(ctx, formHook.form_id, loginSession, user, params?.client);
     }
 
     // Handle page hook (redirect) if we have a login session
-    const pageHook = hooks.find((h: any) => h.enabled && isPageHook(h));
+    const pageHook = postLoginHooks.find((h: any) => h.enabled && isPageHook(h));
     if (pageHook && isPageHook(pageHook)) {
       return handlePageHook(
         ctx,
@@ -912,7 +909,7 @@ export async function postUserLoginHook(
   }
 
   // Handle template hooks (execute pre-defined hook functions)
-  const templateHooks = hooks.filter(
+  const templateHooks = postLoginHooks.filter(
     (h: any) => h.enabled && isTemplateHook(h),
   );
   for (const hook of templateHooks) {
@@ -928,28 +925,12 @@ export async function postUserLoginHook(
   }
 
   // Handle webhook hooks (invoke all enabled webhooks)
-  const webHooks = hooks.filter((h: any) => h.enabled && isWebHook(h));
-  for (const hook of webHooks) {
-    if (!isWebHook(hook)) continue;
-    try {
-      await fetch(hook.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tenant_id,
-          user,
-          trigger_id: "post-user-login",
-        }),
-      });
-    } catch (err) {
-      logMessage(ctx, tenant_id, {
-        type: LogTypes.FAILED_HOOK,
-        description: `Failed to invoke post-user-login webhook: ${hook.url}`,
-      });
-    }
-  }
+  const webHooks = postLoginHooks.filter((h: any) => h.enabled && isWebHook(h));
+  await invokeHooks(ctx, webHooks, {
+    tenant_id,
+    user,
+    trigger_id: "post-user-login",
+  });
 
   // If no form hook, just return the user
   return user;

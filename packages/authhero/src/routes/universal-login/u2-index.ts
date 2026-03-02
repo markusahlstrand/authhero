@@ -88,6 +88,7 @@ export default function createU2App(config: AuthHeroConfig) {
           "themes",
           "promptSettings",
           "forms",
+          "hooks",
         ],
         cache: cacheAdapter,
       });
