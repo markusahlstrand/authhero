@@ -22,6 +22,12 @@ export type LogParams = {
     body?: unknown;
   };
   /**
+   * When provided, replaces the auto-generated details object entirely.
+   * Use this to store a compact, pre-built details payload (e.g. for webhook logs)
+   * that fits within storage limits (Analytics Engine blob: 1024 bytes).
+   */
+  details?: Record<string, unknown>;
+  /**
    * If true, wait for the log to complete before returning.
    * If false (default), execute logging asynchronously in the background.
    * @default false
@@ -67,7 +73,7 @@ export async function logMessage(
       user_agent: ctx.var.useragent || "",
       auth0_client: ctx.var.auth0_client,
       date: new Date().toISOString(),
-      details: {
+      details: params.details || {
         request: {
           method: ctx.req.method,
           path: ctx.req.path,
