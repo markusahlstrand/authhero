@@ -17,19 +17,58 @@ async function invokeHooks(
   const token = await createServiceToken(ctx, data.tenant_id, "webhook");
 
   for await (const hook of hooks.filter((h) => "url" in h)) {
-    const response = await fetch(hook.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+    let responseBody: string | undefined;
+    let responseStatus: number | undefined;
 
-    if (!response.ok) {
+    try {
+      const response = await fetch(hook.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      responseStatus = response.status;
+
+      if (!response.ok) {
+        try {
+          responseBody = await response.text();
+        } catch {
+          // ignore read errors
+        }
+
+        logMessage(ctx, data.tenant_id, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Failed to invoke hook ${hook.hook_id} - ${response.status} ${response.statusText}`,
+          userId: data.user?.user_id,
+          body: {
+            trigger_id: data.trigger_id,
+            hook_id: hook.hook_id,
+            hook_url: hook.url,
+            payload: data,
+            response: {
+              statusCode: responseStatus,
+              body: responseBody,
+            },
+          },
+          connection: data.user?.connection,
+        });
+      }
+    } catch (error) {
       logMessage(ctx, data.tenant_id, {
         type: LogTypes.FAILED_HOOK,
-        description: `Failed to invoke hook ${hook.hook_id}`,
+        description: `Failed to invoke hook ${hook.hook_id} - ${error instanceof Error ? error.message : "Unknown error"}`,
+        userId: data.user?.user_id,
+        body: {
+          trigger_id: data.trigger_id,
+          hook_id: hook.hook_id,
+          hook_url: hook.url,
+          payload: data,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        connection: data.user?.connection,
       });
     }
   }
