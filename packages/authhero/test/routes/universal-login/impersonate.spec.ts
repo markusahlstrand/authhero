@@ -36,22 +36,20 @@ describe("impersonation routes", () => {
       // Mock the hooks.list method to return a page hook for impersonation
       // Page hooks are not stored in the database but recognized by the postUserLoginHook function
       const originalHooksList = env.data.hooks.list;
-      env.data.hooks.list = async (tenant_id: string, query: any) => {
+      env.data.hooks.list = async (tenant_id: string, query?: any) => {
         const result = await originalHooksList(tenant_id, query);
-        if (query.q === "trigger_id:post-user-login") {
-          // Add a page hook to the results
-          result.hooks.push({
-            hook_id: "hook_impersonate_001",
-            enabled: true,
-            trigger_id: "post-user-login",
-            page_id: "impersonate",
-            permission_required: "users:impersonate",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            synchronous: false,
-            // This is neither a webhook nor form hook, but a page hook
-          } as any);
-        }
+        // Add a page hook to the results
+        result.hooks.push({
+          hook_id: "hook_impersonate_001",
+          enabled: true,
+          trigger_id: "post-user-login",
+          page_id: "impersonate",
+          permission_required: "users:impersonate",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          synchronous: false,
+          // This is neither a webhook nor form hook, but a page hook
+        } as any);
         return result;
       };
 
@@ -543,18 +541,16 @@ describe("impersonation routes", () => {
       const originalHooksList = env.data.hooks.list;
       env.data.hooks.list = async (tenant_id: string, query?: any) => {
         const result = await originalHooksList(tenant_id, query);
-        if (query?.q === "trigger_id:post-user-login") {
-          result.hooks.push({
-            hook_id: "hook_impersonate_social",
-            enabled: true,
-            trigger_id: "post-user-login",
-            page_id: "impersonate",
-            permission_required: "users:impersonate",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            synchronous: false,
-          } as any);
-        }
+        result.hooks.push({
+          hook_id: "hook_impersonate_social",
+          enabled: true,
+          trigger_id: "post-user-login",
+          page_id: "impersonate",
+          permission_required: "users:impersonate",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          synchronous: false,
+        } as any);
         return result;
       };
 
@@ -640,18 +636,16 @@ describe("impersonation routes", () => {
       const originalHooksList = env.data.hooks.list;
       env.data.hooks.list = async (tenant_id: string, query?: any) => {
         const result = await originalHooksList(tenant_id, query);
-        if (query?.q === "trigger_id:post-user-login") {
-          result.hooks.push({
-            hook_id: "hook_impersonate_social_2",
-            enabled: true,
-            trigger_id: "post-user-login",
-            page_id: "impersonate",
-            permission_required: "users:impersonate",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            synchronous: false,
-          } as any);
-        }
+        result.hooks.push({
+          hook_id: "hook_impersonate_social_2",
+          enabled: true,
+          trigger_id: "post-user-login",
+          page_id: "impersonate",
+          permission_required: "users:impersonate",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          synchronous: false,
+        } as any);
         return result;
       };
 
@@ -745,18 +739,16 @@ describe("impersonation routes", () => {
       const originalHooksList = env.data.hooks.list;
       env.data.hooks.list = async (tenant_id: string, query?: any) => {
         const result = await originalHooksList(tenant_id, query);
-        if (query?.q === "trigger_id:post-user-login") {
-          result.hooks.push({
-            hook_id: "hook_impersonate_linked",
-            enabled: true,
-            trigger_id: "post-user-login",
-            page_id: "impersonate",
-            permission_required: "users:impersonate",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            synchronous: false,
-          } as any);
-        }
+        result.hooks.push({
+          hook_id: "hook_impersonate_linked",
+          enabled: true,
+          trigger_id: "post-user-login",
+          page_id: "impersonate",
+          permission_required: "users:impersonate",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          synchronous: false,
+        } as any);
         return result;
       };
 
@@ -1254,18 +1246,16 @@ describe("impersonation routes", () => {
       const originalHooksList = env.data.hooks.list;
       env.data.hooks.list = async (tenant_id: string, query?: any) => {
         const result = await originalHooksList(tenant_id, query);
-        if (query?.q === "trigger_id:post-user-login") {
-          result.hooks.push({
-            hook_id: "hook_impersonate_pwd",
-            enabled: true,
-            trigger_id: "post-user-login",
-            page_id: "impersonate",
-            permission_required: "users:impersonate",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            synchronous: false,
-          } as any);
-        }
+        result.hooks.push({
+          hook_id: "hook_impersonate_pwd",
+          enabled: true,
+          trigger_id: "post-user-login",
+          page_id: "impersonate",
+          permission_required: "users:impersonate",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          synchronous: false,
+        } as any);
         return result;
       };
 

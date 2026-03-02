@@ -9,20 +9,15 @@ import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 import { createServiceToken } from "../helpers/service-token";
 
-async function invokeHooks(
+export async function invokeHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   hooks: Hook[],
   data: any & { tenant_id: string },
 ) {
   const customInvoker = ctx.env.webhookInvoker;
 
-  // Lazy token factory — caches per scope so repeated calls don't re-create
-  const tokenCache = new Map<string, string>();
-  const lazyCreateServiceToken = async (scope = "webhook"): Promise<string> => {
-    const cached = tokenCache.get(scope);
-    if (cached) return cached;
+  const getServiceToken = async (scope = "webhook"): Promise<string> => {
     const result = await createServiceToken(ctx, data.tenant_id, scope);
-    tokenCache.set(scope, result.access_token);
     return result.access_token;
   };
 
@@ -31,21 +26,31 @@ async function invokeHooks(
     let responseStatus: number | undefined;
 
     try {
+      const startTime = performance.now();
       const response = customInvoker
         ? await customInvoker({
-            hook,
-            data,
-            tenant_id: data.tenant_id,
-            createServiceToken: lazyCreateServiceToken,
-          })
+          hook,
+          data,
+          tenant_id: data.tenant_id,
+          createServiceToken: getServiceToken,
+        })
         : await fetch(hook.url, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${await lazyCreateServiceToken()}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-          });
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${await getServiceToken()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+      const duration = performance.now() - startTime;
+
+      // Add webhook call to server-timing header
+      const existingHeader = ctx.res.headers.get("Server-Timing") || "";
+      const timingEntry = `webhook-${hook.hook_id};dur=${duration.toFixed(2)}`;
+      ctx.res.headers.set(
+        "Server-Timing",
+        existingHeader ? `${existingHeader}, ${timingEntry}` : timingEntry,
+      );
 
       responseStatus = response.status;
 
@@ -56,9 +61,11 @@ async function invokeHooks(
           // ignore read errors
         }
 
-        logMessage(ctx, data.tenant_id, {
+        const failDescription = `Failed to invoke hook ${hook.hook_id} - ${response.status} ${response.statusText}`;
+        console.error(failDescription, { hook_url: hook.url, body: responseBody?.substring(0, 512) });
+        await logMessage(ctx, data.tenant_id, {
           type: LogTypes.FAILED_HOOK,
-          description: `Failed to invoke hook ${hook.hook_id} - ${response.status} ${response.statusText}`,
+          description: failDescription,
           userId: data.user?.user_id,
           details: {
             trigger_id: data.trigger_id,
@@ -73,12 +80,15 @@ async function invokeHooks(
             },
           },
           connection: data.user?.connection,
+          waitForCompletion: true,
         });
       }
     } catch (error) {
-      logMessage(ctx, data.tenant_id, {
+      const errorDescription = `Failed to invoke hook ${hook.hook_id} - ${error instanceof Error ? error.message : "Unknown error"}`;
+      console.error(errorDescription, error);
+      await logMessage(ctx, data.tenant_id, {
         type: LogTypes.FAILED_HOOK,
-        description: `Failed to invoke hook ${hook.hook_id} - ${error instanceof Error ? error.message : "Unknown error"}`,
+        description: errorDescription,
         userId: data.user?.user_id,
         details: {
           trigger_id: data.trigger_id,
@@ -90,6 +100,7 @@ async function invokeHooks(
           error: error instanceof Error ? error.message : String(error),
         },
         connection: data.user?.connection,
+        waitForCompletion: true,
       });
     }
   }
@@ -100,8 +111,9 @@ export function postUserRegistrationWebhook(
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
     const { hooks } = await ctx.env.data.hooks.list(tenant_id);
+    const filtered = hooks.filter((h) => h.trigger_id === "post-user-registration");
 
-    await invokeHooks(ctx, hooks, {
+    await invokeHooks(ctx, filtered, {
       tenant_id,
       user,
       trigger_id: "post-user-registration",
@@ -115,14 +127,10 @@ export function preUserRegistrationWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
 ) {
   return async (tenant_id: string, email: string): Promise<void> => {
-    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-      q: "trigger_id:pre-user-registration",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id);
+    const filtered = hooks.filter((h) => h.trigger_id === "pre-user-registration");
 
-    await invokeHooks(ctx, hooks, {
+    await invokeHooks(ctx, filtered, {
       tenant_id,
       email,
       trigger_id: "pre-user-registration",
@@ -138,14 +146,10 @@ export function postUserLoginWebhook(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
-    const { hooks } = await data.hooks.list(tenant_id, {
-      q: "trigger_id:post-user-login",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await data.hooks.list(tenant_id);
+    const filtered = hooks.filter((h) => h.trigger_id === "post-user-login");
 
-    await invokeHooks(ctx, hooks, {
+    await invokeHooks(ctx, filtered, {
       tenant_id,
       user,
       trigger_id: "post-user-login",
@@ -159,14 +163,11 @@ export async function getValidateRegistrationUsernameWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
 ): Promise<Hook | null> {
-  const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-    q: "trigger_id:validate-registration-username",
-    page: 0,
-    per_page: 1,
-    include_totals: false,
-  });
+  const { hooks } = await ctx.env.data.hooks.list(tenant_id);
 
-  return hooks.find((h) => "url" in h && h.enabled) || null;
+  return hooks.find(
+    (h) => h.trigger_id === "validate-registration-username" && "url" in h && h.enabled,
+  ) || null;
 }
 
 // Backwards compatibility alias
@@ -177,14 +178,10 @@ export function preUserDeletionWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
-    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-      q: "trigger_id:pre-user-deletion",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id);
+    const filtered = hooks.filter((h) => h.trigger_id === "pre-user-deletion");
 
-    await invokeHooks(ctx, hooks, {
+    await invokeHooks(ctx, filtered, {
       tenant_id,
       user,
       trigger_id: "pre-user-deletion",
@@ -198,14 +195,10 @@ export function postUserDeletionWebhook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
-    const { hooks } = await ctx.env.data.hooks.list(tenant_id, {
-      q: "trigger_id:post-user-deletion",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await ctx.env.data.hooks.list(tenant_id);
+    const filtered = hooks.filter((h) => h.trigger_id === "post-user-deletion");
 
-    await invokeHooks(ctx, hooks, {
+    await invokeHooks(ctx, filtered, {
       tenant_id,
       user,
       trigger_id: "post-user-deletion",

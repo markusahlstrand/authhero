@@ -60,6 +60,7 @@ export default function create(config: AuthHeroConfig) {
         "organizations",
         "userRoles",
         "userPermissions",
+        "hooks",
       ],
       cache: cacheAdapter,
     });
