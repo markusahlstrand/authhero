@@ -1,5 +1,11 @@
 # authhero
 
+## 4.48.0
+
+### Minor Changes
+
+- 945b9e2: Fix issues with how the hooks were fetched
+
 ## 4.47.0
 
 ### Minor Changes
