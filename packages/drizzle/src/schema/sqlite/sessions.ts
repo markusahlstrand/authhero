@@ -44,6 +44,7 @@ export const refreshTokens = sqliteTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     client_id: text("client_id", { length: 191 }).notNull(),
     session_id: text("session_id", { length: 21 }).notNull(),
+    login_id: text("login_id", { length: 21 }),
     user_id: text("user_id", { length: 255 }),
     resource_servers: text("resource_servers").notNull(),
     device: text("device").notNull(),
@@ -60,6 +61,7 @@ export const refreshTokens = sqliteTable(
     }),
     index("idx_refresh_tokens_user_id").on(table.tenant_id, table.user_id),
     index("idx_refresh_tokens_session_id").on(table.session_id),
+    index("idx_refresh_tokens_login_id").on(table.login_id),
     index("idx_refresh_tokens_expires_at_ts").on(table.expires_at_ts),
   ],
 );

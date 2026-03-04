@@ -20,7 +20,7 @@ export function list(db: Kysely<Database>) {
       .where("refresh_tokens.tenant_id", "=", tenant_id);
 
     if (q) {
-      query = luceneFilter(db, query, q, ["token", "session_id"]);
+      query = luceneFilter(db, query, q, ["token", "session_id", "login_id"]);
     }
 
     let filteredQuery = query;

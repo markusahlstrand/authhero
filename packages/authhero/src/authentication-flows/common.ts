@@ -368,6 +368,7 @@ export interface CreateRefreshTokenParams {
   user: User;
   client: EnrichedClient;
   session_id: string;
+  login_id?: string;
   scope: string;
   audience?: string;
 }
@@ -382,6 +383,7 @@ export async function createRefreshToken(
     // fallback to the default audience on the client
     audience = client.tenant.audience,
     session_id,
+    login_id,
   } = params;
 
   const refreshToken = await ctx.env.data.refreshTokens.create(
@@ -389,6 +391,7 @@ export async function createRefreshToken(
     {
       id: ulid(),
       session_id,
+      login_id,
       client_id: client.client_id,
       idle_expires_at: new Date(
         Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
@@ -1064,6 +1067,7 @@ export async function createFrontChannelAuthResponse(
       user,
       client,
       session_id,
+      login_id: params.loginSession?.id,
       scope: authParams.scope,
       audience: authParams.audience,
     });

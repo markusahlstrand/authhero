@@ -179,6 +179,7 @@ export async function authorizationCodeGrantUser(
       user,
       client,
       session_id: loginSession.session_id,
+      login_id: loginSession.id,
       scope: loginSession.authParams.scope,
       audience: loginSession.authParams.audience,
     });

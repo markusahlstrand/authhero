@@ -8,6 +8,9 @@ export const refreshTokenInsertSchema = z.object({
   // Link to the session record
   session_id: z.string(),
 
+  // Link to the login session (will replace session_id)
+  login_id: z.string().optional(),
+
   // Link to user (foreign key)
   user_id: z.string(),
 
