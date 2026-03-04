@@ -23,6 +23,7 @@ interface RefreshTokenItem extends DynamoDBBaseItem {
   tenant_id: string;
   user_id: string;
   session_id: string;
+  login_id?: string;
   client_id: string;
   expires_at?: string;
   idle_expires_at?: string;
@@ -64,6 +65,7 @@ export function createRefreshTokensAdapter(
         id: refreshToken.id,
         user_id: refreshToken.user_id,
         session_id: refreshToken.session_id,
+        login_id: refreshToken.login_id,
         client_id: refreshToken.client_id,
         expires_at: refreshToken.expires_at,
         idle_expires_at: refreshToken.idle_expires_at,

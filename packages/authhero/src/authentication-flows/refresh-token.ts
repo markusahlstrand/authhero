@@ -95,6 +95,7 @@ export async function refreshTokenGrant(
     client,
     refresh_token: refreshToken.id,
     session_id: refreshToken.session_id,
+    login_id: refreshToken.login_id,
     authParams: {
       client_id: client.client_id,
       audience: resourceServer?.audience,

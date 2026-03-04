@@ -11,6 +11,7 @@ export interface GrantFlowResult {
   refresh_token?: string;
   loginSession?: LoginSession;
   session_id?: string;
+  login_id?: string;
   authParams: AuthParams;
   organization?: { id: string; name: string };
   impersonatingUser?: User; // The original user who is impersonating (RFC 8693)
