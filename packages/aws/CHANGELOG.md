@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.19.0
+
+### Minor Changes
+
+- 192f480: First step in refresh tokens refactor
+
+### Patch Changes
+
+- Updated dependencies [192f480]
+  - @authhero/adapter-interfaces@0.138.0
+
 ## 0.18.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.100.0
+
+### Minor Changes
+
+- 192f480: First step in refresh tokens refactor
+
+### Patch Changes
+
+- Updated dependencies [192f480]
+  - @authhero/adapter-interfaces@0.138.0
+
 ## 10.99.0
 
 ### Minor Changes

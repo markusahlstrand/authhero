@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.138.0
+
+### Minor Changes
+
+- 192f480: First step in refresh tokens refactor
+
 ## 0.137.0
 
 ### Minor Changes

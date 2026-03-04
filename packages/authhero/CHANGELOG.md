@@ -1,5 +1,17 @@
 # authhero
 
+## 4.49.0
+
+### Minor Changes
+
+- 192f480: First step in refresh tokens refactor
+
+### Patch Changes
+
+- Updated dependencies [192f480]
+  - @authhero/adapter-interfaces@0.138.0
+  - @authhero/widget@0.15.3
+
 ## 4.48.0
 
 ### Minor Changes
