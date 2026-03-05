@@ -16,6 +16,9 @@ export function getByDomain(db: Kysely<Database>) {
     return {
       ...customDomain,
       primary: customDomain.primary === 1,
+      domain_metadata: customDomain.domain_metadata
+        ? JSON.parse(customDomain.domain_metadata)
+        : undefined,
     };
   };
 }

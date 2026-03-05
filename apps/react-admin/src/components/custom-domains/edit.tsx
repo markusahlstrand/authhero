@@ -13,7 +13,8 @@ import {
 } from "react-admin";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import { Typography, Box } from "@mui/material";
+import { Typography, Box, Divider } from "@mui/material";
+import { flattenDomainMetadata } from "./domainMetadataUtils";
 
 const StatusField = () => {
   const record = useRecordContext();
@@ -50,12 +51,37 @@ const StatusField = () => {
 
 export function DomainEdit() {
   return (
-    <Edit>
+    <Edit transform={flattenDomainMetadata} mutationMode="pessimistic">
       <SimpleForm>
         <TextInput source="domain" />
         <Labeled label="Status">
           <StatusField />
         </Labeled>
+        <Divider sx={{ width: "100%", my: 2 }} />
+        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          SSL Settings
+        </Typography>
+        <SelectInput
+          source="domain_metadata.ssl.certificate_authority"
+          label="Certificate Authority"
+          emptyText="Default (Cloudflare selects)"
+          choices={[
+            { id: "google", name: "Google Trust Services" },
+            { id: "lets_encrypt", name: "Let's Encrypt" },
+            { id: "sectigo", name: "Sectigo" },
+            { id: "digicert", name: "DigiCert (Enterprise)" },
+          ]}
+        />
+        <SelectInput
+          source="domain_metadata.ssl.method"
+          label="SSL Verification Method"
+          choices={[
+            { id: "txt", name: "TXT" },
+            { id: "http", name: "HTTP" },
+            { id: "email", name: "Email" },
+          ]}
+        />
+        <Divider sx={{ width: "100%", my: 2 }} />
         <SelectInput
           source="email_service"
           choices={[

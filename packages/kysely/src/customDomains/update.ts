@@ -12,6 +12,9 @@ export function update(db: Kysely<Database>) {
       ...params,
       updated_at: new Date().toISOString(),
       primary: params.primary ? 1 : 0,
+      domain_metadata: params.domain_metadata
+        ? JSON.stringify(params.domain_metadata)
+        : undefined,
     };
 
     const results = await db

@@ -186,6 +186,7 @@ const sqlCustomDomainSchema = z.object({
   ...customDomainSchema.shape,
   primary: z.number(),
   tenant_id: z.string(),
+  domain_metadata: z.string().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });

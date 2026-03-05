@@ -23,6 +23,9 @@ export function create(db: Kysely<Database>) {
         updated_at: new Date().toISOString(),
         tenant_id,
         primary: customDomain.primary ? 1 : 0,
+        domain_metadata: customDomain.domain_metadata
+          ? JSON.stringify(customDomain.domain_metadata)
+          : undefined,
       })
       .execute();
 

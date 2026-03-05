@@ -2,6 +2,7 @@ import { fetchUtils, DataProvider } from "ra-core";
 import { UpdateParams } from "react-admin";
 import { createManagementClient } from "./authProvider";
 import { ManagementClient } from "auth0";
+import { unflattenDomainMetadata } from "./components/custom-domains/domainMetadataUtils";
 
 // Add this at the top of the file with other imports
 function stringify(obj: Record<string, any>): string {
@@ -611,11 +612,16 @@ export default (
         // Unwrap SDK response wrapper if present
         const data = (result as any).response || result;
 
+        const record = {
+          id: data[handler.idKey] || data.id,
+          ...data,
+        };
+
         return {
-          data: {
-            id: data[handler.idKey] || data.id,
-            ...data,
-          },
+          data:
+            resource === "custom-domains"
+              ? unflattenDomainMetadata(record)
+              : record,
         };
       }
 
