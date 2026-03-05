@@ -41,9 +41,23 @@ import { createServiceToken } from "../helpers/service-token";
 import { redactUrlForLogging } from "../utils/url";
 import { OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 
+/**
+ * Minimal client properties actually used by createAuthTokens.
+ * This avoids requiring a full EnrichedClient when only a few fields are needed
+ * (e.g. service tokens).
+ */
+export interface AuthTokenClient {
+  client_id: string;
+  tenant: {
+    audience: string;
+    allow_organization_name_in_authentication_api?: boolean;
+  };
+  auth0_conformant?: boolean;
+}
+
 export interface CreateAuthTokensParams {
   authParams: AuthParams;
-  client: EnrichedClient;
+  client: AuthTokenClient;
   loginSession?: LoginSession;
   user?: User;
   session_id?: string;
@@ -57,6 +71,8 @@ export interface CreateAuthTokensParams {
   impersonatingUser?: User; // The original user who is impersonating
   // OIDC Core 2.1: auth_time is required when max_age is used in authorization request
   auth_time?: number; // Unix timestamp of when the user was authenticated
+  /** Custom claims to add to the access token payload (cannot override reserved claims) */
+  customClaims?: Record<string, unknown>;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -96,12 +112,14 @@ function buildCredentialsExchangeApi(
       createServiceToken: async (params: {
         scope: string;
         expiresInSeconds?: number;
+        customClaims?: Record<string, unknown>;
       }) => {
         const tokenResponse = await createServiceToken(
           ctx,
           ctx.var.tenant_id,
           params.scope,
           params.expiresInSeconds,
+          params.customClaims,
         );
         return tokenResponse.access_token;
       },
@@ -170,7 +188,18 @@ export async function createAuthTokens(
         ? organization.name.toLowerCase()
         : undefined,
     permissions,
+    // Spread custom claims last so they can add new fields but not override reserved ones above
+    ...params.customClaims,
   };
+
+  // Validate that custom claims don't override reserved JWT claims
+  if (params.customClaims) {
+    for (const claim of RESERVED_CLAIMS) {
+      if (claim in params.customClaims) {
+        throw new Error(`Cannot overwrite reserved claim '${claim}'`);
+      }
+    }
+  }
 
   // Parse scopes to determine which claims to include in id_token
   // Following OIDC Core spec section 5.4 for standard claims
@@ -246,7 +275,7 @@ export async function createAuthTokens(
     await ctx.env.hooks.onExecuteCredentialsExchange(
       {
         ctx,
-        client,
+        client: client as EnrichedClient,
         user,
         request: {
           ip: ctx.var.ip || "",
@@ -1193,7 +1222,10 @@ export async function createFrontChannelAuthResponse(
 // Wrapper to trigger OnExecutePostLogin before issuing tokens or codes
 export async function completeLogin(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: CreateAuthTokensParams & { responseType?: AuthorizationResponseType },
+  params: Omit<CreateAuthTokensParams, "client"> & {
+    client: EnrichedClient;
+    responseType?: AuthorizationResponseType;
+  },
 ): Promise<TokenResponse | { code: string; state?: string } | Response> {
   let { user } = params;
   const responseType = params.responseType || AuthorizationResponseType.TOKEN;

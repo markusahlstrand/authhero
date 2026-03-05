@@ -613,8 +613,9 @@ The token API is available in all hooks via `api.token.createServiceToken()`:
 
 ```typescript
 api.token.createServiceToken({
-  scope: string;           // The scope(s) for the token (space-separated)
-  expiresInSeconds?: number; // Optional expiration time (default: 3600 = 1 hour)
+  scope: string;                            // The scope(s) for the token (space-separated)
+  expiresInSeconds?: number;                // Optional expiration time (default: 3600 = 1 hour)
+  customClaims?: Record<string, unknown>;   // Optional custom claims to include in the token
 }): Promise<string>
 ```
 
@@ -624,6 +625,34 @@ The service token is a JWT signed with your AuthHero instance's private key and 
 - **scope**: The requested scope(s)
 - **tenant_id**: Your tenant ID
 - **exp**: Expiration timestamp
+- Any additional **custom claims** you pass via `customClaims`
+
+> **Note:** Reserved JWT claims (`sub`, `iss`, `aud`, `exp`, `nbf`, `iat`, `jti`) cannot be overwritten via `customClaims` — an error will be thrown if attempted.
+
+#### Custom Claims Example
+
+```typescript
+onExecutePostLogin: async (event, api) => {
+  const token = await api.token.createServiceToken({
+    scope: "sync:users",
+    expiresInSeconds: 300,
+    customClaims: {
+      "https://my-app.com/user_id": event.user.user_id,
+      "https://my-app.com/connection": event.connection?.name,
+      action: "post-login-sync",
+    },
+  });
+
+  await fetch("https://api.example.com/sync", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ user: event.user }),
+  });
+},
+```
 
 #### Security Considerations
 
