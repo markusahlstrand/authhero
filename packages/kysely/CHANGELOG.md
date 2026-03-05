@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.101.0
+
+### Minor Changes
+
+- 35691f6: Set custom domain metadata
+
 ## 10.100.0
 
 ### Minor Changes

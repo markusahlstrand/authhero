@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.19.0
+
+### Minor Changes
+
+- 35691f6: Set custom domain metadata
+
+### Patch Changes
+
+- Updated dependencies [35691f6]
+  - @authhero/kysely-adapter@10.101.0
+
 ## 2.18.16
 
 ### Patch Changes
