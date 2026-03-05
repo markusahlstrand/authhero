@@ -120,8 +120,8 @@ export function createCustomDomainsAdapter(
               },
               custom_metadata: config.enterprise
                 ? {
-                    tenant_id,
-                  }
+                  tenant_id,
+                }
                 : undefined,
             },
             "/custom_hostnames",
@@ -283,17 +283,19 @@ export function createCustomDomainsAdapter(
         };
       }
 
-      const response = await getClient(config)
-        .patch(
-          cfPayload,
-          `/custom_hostnames/${encodeURIComponent(domain_id)}`,
-        )
-        .res();
+      if (Object.keys(cfPayload).length > 0) {
+        const response = await getClient(config)
+          .patch(
+            cfPayload,
+            `/custom_hostnames/${encodeURIComponent(domain_id)}`,
+          )
+          .res();
 
-      if (!response.ok) {
-        throw new HTTPException(503, {
-          message: await response.text(),
-        });
+        if (!response.ok) {
+          throw new HTTPException(503, {
+            message: await response.text(),
+          });
+        }
       }
 
       return config.customDomainAdapter.update(

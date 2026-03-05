@@ -77,8 +77,8 @@ const server = setupServer(
           ssl: {
             ...result.result.ssl,
             ...(mockDatabase as Record<string, unknown>).ssl as
-              | Record<string, unknown>
-              | undefined,
+            | Record<string, unknown>
+            | undefined,
             ...(body.ssl as Record<string, unknown>),
           },
         };
@@ -115,11 +115,11 @@ const server = setupServer(
         ...restMock,
         ...(mockSsl
           ? {
-              ssl: {
-                ...result.result.ssl,
-                ...(mockSsl as Record<string, unknown>),
-              },
-            }
+            ssl: {
+              ...result.result.ssl,
+              ...(mockSsl as Record<string, unknown>),
+            },
+          }
           : {}),
       };
 
