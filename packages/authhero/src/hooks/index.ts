@@ -38,12 +38,14 @@ function createTokenAPI(
     createServiceToken: async (params: {
       scope: string;
       expiresInSeconds?: number;
+      customClaims?: Record<string, unknown>;
     }) => {
       const tokenResponse = await createServiceToken(
         ctx,
         tenant_id,
         params.scope,
         params.expiresInSeconds,
+        params.customClaims,
       );
       return tokenResponse.access_token;
     },

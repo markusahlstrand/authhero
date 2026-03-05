@@ -762,7 +762,8 @@ Validates if an email can be used for signup.
   token: {
     createServiceToken: (params: {
       scope: string,
-      expiresInSeconds?: number
+      expiresInSeconds?: number,
+      customClaims?: Record<string, unknown>
     }) => Promise<string>
   }
 }
@@ -1029,7 +1030,11 @@ Available in all hooks:
 ```typescript
 api.token.createServiceToken({
   scope: 'read:users write:users',
-  expiresInSeconds: 300
+  expiresInSeconds: 300,
+  customClaims: {                        // Optional custom claims
+    'https://my-app.com/role': 'admin',
+    tenant_type: 'enterprise'
+  }
 }): Promise<string>
 ```
 

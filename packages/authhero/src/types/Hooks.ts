@@ -172,6 +172,7 @@ export type TokenAPI = {
   createServiceToken: (params: {
     scope: string;
     expiresInSeconds?: number;
+    customClaims?: Record<string, unknown>;
   }) => Promise<string>;
 };
 
