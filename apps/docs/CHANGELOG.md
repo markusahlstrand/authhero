@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.48.0
+
+### Minor Changes
+
+- 8b49a84: Add custom claims to service tokens
+
 ## 1.47.0
 
 ### Minor Changes

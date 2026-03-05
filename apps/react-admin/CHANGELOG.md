@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.44.0
+
+### Minor Changes
+
+- 35691f6: Set custom domain metadata
+
 ## 0.43.0
 
 ### Minor Changes
