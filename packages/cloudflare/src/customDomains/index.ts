@@ -25,8 +25,35 @@ function getClient(config: CloudflareConfig) {
     .middlewares([retry(), dedupe()]);
 }
 
+/**
+ * Extract ssl.* prefixed keys from domain_metadata and return them as
+ * a partial SSL config object, plus the remaining metadata.
+ */
+function extractSslFromMetadata(metadata?: Record<string, string>): {
+  sslOverrides: Record<string, string>;
+  rest: Record<string, string>;
+} {
+  const sslOverrides: Record<string, string> = {};
+  const rest: Record<string, string> = {};
+
+  if (!metadata) return { sslOverrides, rest };
+
+  for (const [key, value] of Object.entries(metadata)) {
+    if (key.startsWith("ssl.")) {
+      sslOverrides[key.slice(4)] = value;
+    } else {
+      rest[key] = value;
+    }
+  }
+
+  return { sslOverrides, rest };
+}
+
 function mapCustomDomainResponse(
-  result: CustomDomainResult & { primary: boolean },
+  result: CustomDomainResult & {
+    primary: boolean;
+    domain_metadata?: Record<string, string>;
+  },
 ): CustomDomain {
   const methods: VerificationMethods[] = [];
 
@@ -50,6 +77,15 @@ function mapCustomDomainResponse(
     });
   }
 
+  // Build domain_metadata: start with any non-ssl metadata from the DB record,
+  // then reflect current Cloudflare SSL state as ssl.* keys
+  const domain_metadata: Record<string, string> = {
+    ...(result.domain_metadata || {}),
+    "ssl.method": result.ssl.method,
+    "ssl.type": result.ssl.type,
+    "ssl.certificate_authority": result.ssl.certificate_authority,
+  };
+
   return {
     custom_domain_id: result.id,
     domain: result.hostname,
@@ -59,6 +95,7 @@ function mapCustomDomainResponse(
     verification: {
       methods: z.array(verificationMethodsSchema).parse(methods),
     },
+    domain_metadata,
   };
 }
 
@@ -67,6 +104,10 @@ export function createCustomDomainsAdapter(
 ): CustomDomainsAdapter {
   return {
     create: async (tenant_id: string, domain: CustomDomainInsert) => {
+      const { sslOverrides, rest } = extractSslFromMetadata(
+        domain.domain_metadata,
+      );
+
       const { result, errors, success } = customDomainResponseSchema.parse(
         await getClient(config)
           .post(
@@ -75,11 +116,12 @@ export function createCustomDomainsAdapter(
               ssl: {
                 method: "txt",
                 type: "dv",
+                ...sslOverrides,
               },
               custom_metadata: config.enterprise
                 ? {
-                    tenant_id,
-                  }
+                  tenant_id,
+                }
                 : undefined,
             },
             "/custom_hostnames",
@@ -94,6 +136,7 @@ export function createCustomDomainsAdapter(
       const customDomain = mapCustomDomainResponse({
         ...result,
         primary: false,
+        domain_metadata: rest,
       });
 
       // Store the custom domain in the database as well
@@ -101,6 +144,7 @@ export function createCustomDomainsAdapter(
         custom_domain_id: customDomain.custom_domain_id,
         domain: customDomain.domain,
         type: customDomain.type,
+        domain_metadata: domain.domain_metadata,
       });
 
       return customDomain;
@@ -209,17 +253,49 @@ export function createCustomDomainsAdapter(
       domain_id: string,
       custom_domain: Partial<CustomDomain>,
     ) => {
-      const response = await getClient(config)
-        .patch(
-          custom_domain,
-          `/custom_hostnames/${encodeURIComponent(domain_id)}`,
-        )
-        .res();
+      const { sslOverrides } = extractSslFromMetadata(
+        custom_domain.domain_metadata,
+      );
 
-      if (!response.ok) {
-        throw new HTTPException(503, {
-          message: await response.text(),
-        });
+      const cfPayload: Record<string, unknown> = {};
+
+      // If there are ssl.* overrides, fetch the current SSL state from
+      // Cloudflare and merge so we always send a complete ssl object
+      if (Object.keys(sslOverrides).length > 0) {
+        const currentBody = await getClient(config)
+          .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+          .json();
+
+        const { result: currentResult, success: currentSuccess } =
+          customDomainResponseSchema.parse(currentBody);
+
+        if (!currentSuccess) {
+          throw new HTTPException(503, {
+            message: "Failed to fetch current custom hostname state",
+          });
+        }
+
+        cfPayload.ssl = {
+          method: currentResult.ssl.method,
+          type: currentResult.ssl.type,
+          certificate_authority: currentResult.ssl.certificate_authority,
+          ...sslOverrides,
+        };
+      }
+
+      if (Object.keys(cfPayload).length > 0) {
+        const response = await getClient(config)
+          .patch(
+            cfPayload,
+            `/custom_hostnames/${encodeURIComponent(domain_id)}`,
+          )
+          .res();
+
+        if (!response.ok) {
+          throw new HTTPException(503, {
+            message: await response.text(),
+          });
+        }
       }
 
       return config.customDomainAdapter.update(

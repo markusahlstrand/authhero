@@ -35,16 +35,30 @@ const baseMock = {
 };
 
 let mockDatabase = {};
+let lastCreatePayload: Record<string, unknown> = {};
+let lastUpdatePayload: Record<string, unknown> = {};
 
 const server = setupServer(
   http.post(
     "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
     async ({ request }) => {
-      const body = await request.json();
+      const body = (await request.json()) as Record<string, unknown>;
 
       const result = structuredClone(baseMock);
-      // @ts-ignore
       result.result.hostname = body.hostname as string;
+
+      // Capture the ssl.certificate_authority if provided
+      if (
+        body.ssl &&
+        typeof body.ssl === "object" &&
+        "certificate_authority" in body.ssl
+      ) {
+        result.result.ssl.certificate_authority = (
+          body.ssl as Record<string, string>
+        ).certificate_authority;
+      }
+
+      lastCreatePayload = body;
 
       return HttpResponse.json(result);
     },
@@ -54,18 +68,33 @@ const server = setupServer(
     async ({ request }) => {
       const result = structuredClone(baseMock);
 
-      const body = await request.json();
+      const body = (await request.json()) as Record<string, unknown>;
 
-      mockDatabase = {
-        ...mockDatabase,
-        //@ts-ignore
-        ...body,
-      };
+      // Deep merge ssl so we don't lose fields like wildcard
+      if (body.ssl && typeof body.ssl === "object") {
+        mockDatabase = {
+          ...mockDatabase,
+          ssl: {
+            ...result.result.ssl,
+            ...(mockDatabase as Record<string, unknown>).ssl as
+            | Record<string, unknown>
+            | undefined,
+            ...(body.ssl as Record<string, unknown>),
+          },
+        };
+      } else {
+        mockDatabase = {
+          ...mockDatabase,
+          ...body,
+        };
+      }
 
       result.result = {
         ...result.result,
         ...mockDatabase,
       };
+
+      lastUpdatePayload = body;
 
       return HttpResponse.json(result);
     },
@@ -76,9 +105,22 @@ const server = setupServer(
     async () => {
       const result = structuredClone(baseMock);
 
+      // Deep merge ssl so we don't lose required fields
+      const { ssl: mockSsl, ...restMock } = mockDatabase as Record<
+        string,
+        unknown
+      >;
       result.result = {
         ...result.result,
-        ...mockDatabase,
+        ...restMock,
+        ...(mockSsl
+          ? {
+            ssl: {
+              ...result.result.ssl,
+              ...(mockSsl as Record<string, unknown>),
+            },
+          }
+          : {}),
       };
 
       return HttpResponse.json(result);
@@ -114,6 +156,8 @@ describe("customDomains", () => {
   beforeAll(() => server.listen());
   afterEach(() => {
     mockDatabase = {};
+    lastCreatePayload = {};
+    lastUpdatePayload = {};
     server.resetHandlers();
   });
   afterAll(() => server.close());
@@ -233,5 +277,129 @@ describe("customDomains", () => {
         throw err;
       }
     }
+  });
+
+  it("should pass ssl properties to Cloudflare when set in domain_metadata", async () => {
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    // ----------------------------------------
+    // Create with ssl.certificate_authority in domain_metadata
+    // ----------------------------------------
+
+    const createdCustomDomain = await customDomains.create("tenantId", {
+      domain: "example.com",
+      type: "auth0_managed_certs",
+      domain_metadata: {
+        "ssl.certificate_authority": "google",
+      },
+    });
+
+    expect(createdCustomDomain).toMatchObject({
+      domain: "example.com",
+      type: "auth0_managed_certs",
+      custom_domain_id: expect.any(String),
+      status: "pending",
+    });
+
+    // Verify the Cloudflare API was called with certificate_authority in ssl
+    expect(lastCreatePayload).toMatchObject({
+      hostname: "example.com",
+      ssl: {
+        method: "txt",
+        type: "dv",
+        certificate_authority: "google",
+      },
+    });
+
+    // Verify domain_metadata was persisted to the database
+    const databaseCustomDomain = await data.customDomains.get(
+      "tenantId",
+      createdCustomDomain.custom_domain_id,
+    );
+    expect(databaseCustomDomain?.domain_metadata).toEqual({
+      "ssl.certificate_authority": "google",
+    });
+
+    // Verify the response includes ssl.* keys in domain_metadata
+    // (ssl.method reflects the Cloudflare response, which may differ from input)
+    expect(createdCustomDomain.domain_metadata).toMatchObject({
+      "ssl.certificate_authority": "google",
+      "ssl.type": "dv",
+    });
+
+    // ----------------------------------------
+    // Update ssl.certificate_authority via domain_metadata
+    // The update should fetch current state and merge
+    // ----------------------------------------
+
+    await customDomains.update(
+      "tenantId",
+      createdCustomDomain.custom_domain_id,
+      {
+        domain_metadata: {
+          "ssl.certificate_authority": "lets_encrypt",
+        },
+      },
+    );
+
+    // Verify the Cloudflare API was called with a merged ssl object
+    // containing the current method/type plus the new certificate_authority
+    expect(lastUpdatePayload).toMatchObject({
+      ssl: {
+        method: expect.any(String),
+        type: "dv",
+        certificate_authority: "lets_encrypt",
+      },
+    });
+
+    // Verify domain_metadata was updated in the database
+    const updatedDatabaseCustomDomain = await data.customDomains.get(
+      "tenantId",
+      createdCustomDomain.custom_domain_id,
+    );
+    expect(updatedDatabaseCustomDomain?.domain_metadata).toEqual({
+      "ssl.certificate_authority": "lets_encrypt",
+    });
+
+    // ----------------------------------------
+    // Update ssl.method via domain_metadata
+    // ----------------------------------------
+
+    lastUpdatePayload = {};
+    await customDomains.update(
+      "tenantId",
+      createdCustomDomain.custom_domain_id,
+      {
+        domain_metadata: {
+          "ssl.method": "http",
+        },
+      },
+    );
+
+    // Verify the merged ssl object contains the new method
+    // plus the existing certificate_authority and type
+    expect(lastUpdatePayload).toMatchObject({
+      ssl: {
+        method: "http",
+        type: "dv",
+        certificate_authority: expect.any(String),
+      },
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { parseJsonIfDefined } from "../helpers/parse";
 
 export function getByDomain(db: Kysely<Database>) {
   return async (domain: string) => {
@@ -16,6 +17,7 @@ export function getByDomain(db: Kysely<Database>) {
     return {
       ...customDomain,
       primary: customDomain.primary === 1,
+      domain_metadata: parseJsonIfDefined(customDomain.domain_metadata, undefined),
     };
   };
 }
