@@ -119,6 +119,15 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
+          {record?.strategy === "oidc" && (
+            <TextInput
+              source="name"
+              label="Name"
+              helperText="Unique identifier name for the connection"
+              fullWidth
+            />
+          )}
+
           {["oauth2", "oidc"].includes(record?.strategy) && (
             <>
               <SelectInput
