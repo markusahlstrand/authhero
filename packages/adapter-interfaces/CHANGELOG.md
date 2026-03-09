@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.139.0
+
+### Minor Changes
+
+- 2617efb: Update stylig for widget
+
 ## 0.138.0
 
 ### Minor Changes

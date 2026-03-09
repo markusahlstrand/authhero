@@ -1,5 +1,17 @@
 # authhero
 
+## 4.51.0
+
+### Minor Changes
+
+- 2617efb: Update stylig for widget
+
+### Patch Changes
+
+- Updated dependencies [2617efb]
+  - @authhero/adapter-interfaces@0.139.0
+  - @authhero/widget@0.16.0
+
 ## 4.50.0
 
 ### Minor Changes
