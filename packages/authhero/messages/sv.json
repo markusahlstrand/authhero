@@ -116,6 +116,7 @@
   "no_email": "Vänligen ange en e-postadress",
   "no_email_address": "Ingen e-postadress angiven",
   "no_email_or_username": "E-post eller användarnamn krävs",
+  "no_code": "Verifieringskod krävs",
   "no_password": "Lösenord krävs",
   "no_username": "Användarnamn krävs",
   "no_use_another": "Nej, jag vill använda ett annat konto",

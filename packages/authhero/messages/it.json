@@ -116,6 +116,7 @@
   "no_email": "Inserisci un indirizzo email",
   "no_email_address": "Nessun indirizzo email impostato",
   "no_email_or_username": "Email o nome utente sono obbligatori",
+  "no_code": "Il codice di verifica è obbligatorio",
   "no_password": "La password è obbligatoria",
   "no_username": "Il nome utente è obbligatorio",
   "no_use_another": "No, voglio usare un altro account",

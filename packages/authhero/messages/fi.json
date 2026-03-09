@@ -116,6 +116,7 @@
   "no_email": "Sähköpostiosoite vaaditaan",
   "no_email_address": "Ei sähköpostiosoitetta asetettu",
   "no_email_or_username": "Sähköposti tai käyttäjänimi vaaditaan",
+  "no_code": "Vahvistuskoodi vaaditaan",
   "no_password": "Salasana vaaditaan",
   "no_username": "Käyttäjänimi vaaditaan",
   "no_use_another": "Ei, haluan käyttää toista tiliä",

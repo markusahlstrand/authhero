@@ -116,6 +116,7 @@
   "no_email": "Vennligst oppgi en e-postadresse",
   "no_email_address": "Ingen e-postadresse satt",
   "no_email_or_username": "E-post eller brukernavn er påkrevd",
+  "no_code": "Bekreftelseskode er påkrevd",
   "no_password": "Passord er påkrevd",
   "no_username": "Brukernavn er påkrevd",
   "no_use_another": "Nei, jeg vil bruke en annen konto",

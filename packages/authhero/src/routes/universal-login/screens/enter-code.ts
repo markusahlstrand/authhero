@@ -29,8 +29,8 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
 
   const description = maskedEmail
     ? m.code_sent_template({
-        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
-      })
+      username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+    })
     : m.enter_code_description();
 
   const components: FormNodeComponent[] = [
@@ -78,7 +78,7 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/enter-code?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.verify_your_email(),
+    title: m.enter_code_title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -111,13 +111,18 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       const { ctx, client, state } = context;
       const code = (data.code as string)?.trim();
 
+      // Initialize i18n for validation/error messages
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText);
+
       // Validate code is provided
       if (!code) {
+        const errorMessage = m.no_code();
         return {
-          error: "Verification code is required",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "Verification code is required" },
+            errors: { code: errorMessage },
           }),
         };
       }
@@ -129,11 +134,12 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
+        const errorMessage = m.session_expired();
         return {
-          error: "Session expired",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "Session expired. Please start over." },
+            errors: { code: errorMessage },
           }),
         };
       }
@@ -159,11 +165,12 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
+        const errorMessage = m.unexpected_error_try_again();
         return {
-          error: "Unexpected error",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "An unexpected error occurred. Please try again." },
+            errors: { code: errorMessage },
           }),
         };
       } catch (e: unknown) {
@@ -181,7 +188,8 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        const errorMessage = (e as Error).message || "Invalid or expired code";
+        const errorMessage =
+          (e as Error).message || m.unexpected_error_try_again();
 
         return {
           error: errorMessage,

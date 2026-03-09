@@ -116,6 +116,7 @@
   "no_email": "Zadejte prosím e-mailovou adresu",
   "no_email_address": "Žádná e-mailová adresa není nastavena",
   "no_email_or_username": "E-mail nebo uživatelské jméno je povinné",
+  "no_code": "Ověřovací kód je povinný",
   "no_password": "Heslo je povinné",
   "no_username": "Uživatelské jméno je povinné",
   "no_use_another": "Ne, chci použít jiný účet",

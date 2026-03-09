@@ -119,6 +119,7 @@
   "no_email": "Please enter an email address",
   "no_email_address": "No email address set",
   "no_email_or_username": "Email or username is required",
+  "no_code": "Verification code is required",
   "no_password": "Password is required",
   "no_username": "Username is required",
   "no_use_another": "No, I want to use another account",

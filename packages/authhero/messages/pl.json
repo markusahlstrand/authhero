@@ -116,6 +116,7 @@
   "no_email": "Wprowadź adres e-mail",
   "no_email_address": "Brak ustawionego adresu e-mail",
   "no_email_or_username": "Adres e-mail lub nazwa użytkownika jest wymagana",
+  "no_code": "Kod weryfikacyjny jest wymagany",
   "no_password": "Hasło jest wymagane",
   "no_username": "Nazwa użytkownika jest wymagana",
   "no_use_another": "Nie, chcę użyć innego konta",
