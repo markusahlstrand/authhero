@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.45.0
+
+### Minor Changes
+
+- 597eb2f: Show connection name in react-admin
+
+### Patch Changes
+
+- Updated dependencies [2617efb]
+  - @authhero/adapter-interfaces@0.139.0
+  - @authhero/widget@0.16.0
+
 ## 0.44.0
 
 ### Minor Changes
