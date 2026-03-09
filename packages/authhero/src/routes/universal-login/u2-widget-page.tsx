@@ -28,8 +28,8 @@ export type WidgetPageProps = {
     colors?: {
       primary?: string;
       page_background?:
-        | string
-        | { type?: string; start?: string; end?: string; angle_deg?: number };
+      | string
+      | { type?: string; start?: string; end?: string; angle_deg?: number };
     };
     logo_url?: string;
     favicon_url?: string;
@@ -187,8 +187,8 @@ export function WidgetPage({
               .language-select { appearance: none; -webkit-appearance: none; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding-right: 2px; outline: none; }
               .dark-mode-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 7px; color: #555; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
               .dark-mode-toggle:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-              html.ah-dark-mode body::before { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 0; pointer-events: none; }
-              html.ah-dark-mode .widget-container { position: relative; z-index: 1; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+              html.ah-dark-mode body { background: #111827 !important; }
+              html.ah-dark-mode .widget-container { position: relative; z-index: 1; }
               html.ah-dark-mode .page-footer-left { z-index: 10; }
               html.ah-dark-mode .page-footer { z-index: 10; }
               html.ah-dark-mode .page-footer .language-picker, html.ah-dark-mode .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
@@ -198,6 +198,7 @@ export function WidgetPage({
               }
               @media (max-width: 480px) {
                 body { background: ${widgetBackground} !important; padding: 0 !important; }
+                html.ah-dark-mode body { background: #111827 !important; }
                 .widget-container { max-width: none; }
               }
             `,
@@ -260,14 +261,14 @@ export function WidgetPage({
               class="dark-mode-toggle"
               type="button"
               aria-label="Toggle dark mode"
-              onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'rgba(31,41,55,0.85)','--ah-color-bg-hover':'rgba(55,65,81,0.85)','--ah-color-bg-muted':'rgba(55,65,81,0.85)','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'rgba(55,65,81,0.7)','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)'};for(var k in v){if(isDark)h.style.setProperty(k,v[k]);else h.style.removeProperty(k)}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
+              onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-hover':'#374151','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)','--ah-color-link':'#60a5fa'};var w=document.querySelector('authhero-widget');for(var k in v){if(isDark){h.style.setProperty(k,v[k]);if(w)w.style.setProperty(k,v[k])}else{h.style.removeProperty(k);if(w)w.style.removeProperty(k)}}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
             >
-              <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-              <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+              <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
             </button>
             {availableLanguages && availableLanguages.length > 1 && (
               <div class="language-picker">
-                <svg class="language-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <svg class="language-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
                 <select
                   class="language-select"
                   onchange={`var p=new URLSearchParams(window.location.search);p.set('ui_locales',this.value);window.location.search=p.toString()`}
@@ -282,7 +283,7 @@ export function WidgetPage({
             )}
           </div>
         </footer>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=document.documentElement;var pref=localStorage.getItem('ah-dark-mode');var isDark=pref==='1'||(pref===null&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(isDark){h.classList.add('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'rgba(31,41,55,0.85)','--ah-color-bg-hover':'rgba(55,65,81,0.85)','--ah-color-bg-muted':'rgba(55,65,81,0.85)','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'rgba(55,65,81,0.7)','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)'};for(var k in v)h.style.setProperty(k,v[k]);var btn=document.querySelector('.dark-mode-toggle');if(btn){btn.querySelector('.icon-sun').style.display='none';btn.querySelector('.icon-moon').style.display='block'}}}catch(e){}})()` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=document.documentElement;var pref=localStorage.getItem('ah-dark-mode');var isDark=pref==='1'||(pref===null&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(isDark){h.classList.add('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-hover':'#374151','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)','--ah-color-link':'#60a5fa'};var w=document.querySelector('authhero-widget');for(var k in v){h.style.setProperty(k,v[k]);if(w)w.style.setProperty(k,v[k])}var btn=document.querySelector('.dark-mode-toggle');if(btn){btn.querySelector('.icon-sun').style.display='none';btn.querySelector('.icon-moon').style.display='block'}}}catch(e){}})()` }} />
       </body>
     </html>
   );

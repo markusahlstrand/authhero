@@ -189,4 +189,26 @@ describe('authhero-widget', () => {
     const form = page.root!.shadowRoot!.querySelector('form');
     expect(form).not.toBeNull();
   });
+
+  it('updates data-screen attribute when screen prop changes', async () => {
+    const loginScreen = { ...screens.login, name: 'login' };
+    const signupScreen = { ...screens.signup, name: 'signup' };
+
+    const page = await newSpecPage({
+      components: [AuthheroWidget, AuthheroNode],
+      html: `<authhero-widget screen='${JSON.stringify(loginScreen)}'></authhero-widget>`,
+    });
+
+    await page.waitForChanges();
+
+    // data-screen should reflect the screen name from the initial screen
+    expect(page.root!.getAttribute('data-screen')).toBe('login');
+
+    // Simulate client-side navigation by changing the screen prop
+    page.root!.setAttribute('screen', JSON.stringify(signupScreen));
+    await page.waitForChanges();
+
+    // data-screen should update to reflect the new screen's name
+    expect(page.root!.getAttribute('data-screen')).toBe('signup');
+  });
 });

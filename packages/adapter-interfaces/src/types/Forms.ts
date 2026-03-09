@@ -30,7 +30,9 @@ const blockComponentBase = formNodeComponentBase.extend({
 
 const dividerComponent = blockComponentBase.extend({
   type: z.literal("DIVIDER"),
-  config: z.object({}).optional(),
+  config: z.object({
+    text: z.string().optional(),
+  }).optional(),
 });
 
 const htmlComponent = blockComponentBase.extend({

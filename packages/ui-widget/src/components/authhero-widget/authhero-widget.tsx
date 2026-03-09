@@ -11,6 +11,7 @@ import {
 import type {
   UiScreen,
   FormComponent,
+  DividerComponent,
 } from "../../types/components";
 import type { WidgetBranding, WidgetTheme } from "../../utils/branding";
 import { mergeThemeVars, applyCssVars } from "../../utils/branding";
@@ -312,8 +313,9 @@ export class AuthheroWidget {
    * This allows external CSS to target different screens using attribute selectors.
    */
   private updateDataScreenAttribute() {
-    if (this.screenId) {
-      this.el.setAttribute("data-screen", this.screenId);
+    const screenName = this.screenId || this._screen?.name;
+    if (screenName) {
+      this.el.setAttribute("data-screen", screenName);
     } else {
       this.el.removeAttribute("data-screen");
     }
@@ -700,7 +702,7 @@ export class AuthheroWidget {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
       // Create a synthetic submit event and call handleSubmit
-      const syntheticEvent = { preventDefault: () => {} } as Event;
+      const syntheticEvent = { preventDefault: () => { } } as Event;
       this.handleSubmit(syntheticEvent);
       return;
     }
@@ -815,7 +817,7 @@ export class AuthheroWidget {
 
   render() {
     const screen = this._screen;
-    
+
     if (this.loading && !screen) {
       return (
         <div class="widget-container">
@@ -846,7 +848,9 @@ export class AuthheroWidget {
     const fieldComponents = components.filter(
       (c) => !this.isSocialComponent(c) && !this.isDividerComponent(c),
     );
-    const hasDivider = components.some((c) => this.isDividerComponent(c));
+    const dividerComponent = components.find((c) => this.isDividerComponent(c));
+    const hasDivider = !!dividerComponent;
+    const dividerText = (dividerComponent as DividerComponent)?.config?.text || "Or";
 
     // Build dynamic exportparts for social buttons including provider-specific parts
     const getExportParts = (component: FormComponent): string => {
@@ -957,7 +961,7 @@ export class AuthheroWidget {
                 fieldComponents.length > 0 &&
                 hasDivider && (
                   <div class="divider" part="divider">
-                    <span class="divider-text">Or</span>
+                    <span class="divider-text">{dividerText}</span>
                   </div>
                 )}
 

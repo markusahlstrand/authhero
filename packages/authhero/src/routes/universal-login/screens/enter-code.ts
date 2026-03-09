@@ -7,6 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
+import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
@@ -15,38 +16,37 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
  * Create the enter-code screen
  */
 export async function enterCodeScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { branding, state, errors, messages, data, routePrefix } = context;
+  const { branding, state, errors, messages, data, customText, routePrefix } = context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(locale, customText);
 
   const email = data?.email as string | undefined;
   const maskedEmail = email
     ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-    : "your email";
+    : "";
+
+  const description = maskedEmail
+    ? m.code_sent_template({
+      username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+    })
+    : m.enter_code_description();
 
   const components: FormNodeComponent[] = [
-    // Info text
-    {
-      id: "info",
-      type: "RICH_TEXT",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        content: `We sent a code to ${escapeHtml(maskedEmail)}. Enter it below to continue.`,
-      },
-      order: 0,
-    },
     // Code input
     {
       id: "code",
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Verification code",
+      label: m.enter_code_label(),
       config: {
-        placeholder: "Enter code",
+        placeholder: m.enter_code_placeholder(),
         max_length: 6,
       },
       required: true,
-      order: 1,
+      order: 0,
       hint: errors?.code,
     },
     // Submit button
@@ -56,9 +56,9 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Continue",
+        text: m.continue(),
       },
-      order: 2,
+      order: 1,
     },
     // Resend button
     {
@@ -67,9 +67,9 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Resend code",
+        text: m.resend_code(),
       },
-      order: 3,
+      order: 2,
     },
   ];
 
@@ -78,15 +78,15 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/enter-code?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Check your email",
-    description: "Enter the verification code",
+    title: m.enter_code_title(),
+    description,
     components,
-    messages: messages?.map((m) => ({ text: m.text, type: m.type })),
+    messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
     links: [
       {
         id: "back",
-        text: "Back to",
-        linkText: "login",
+        text: "",
+        linkText: m.go_back(),
         href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -111,13 +111,18 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       const { ctx, client, state } = context;
       const code = (data.code as string)?.trim();
 
+      // Initialize i18n for validation/error messages
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText);
+
       // Validate code is provided
       if (!code) {
+        const errorMessage = m.no_code();
         return {
-          error: "Verification code is required",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "Verification code is required" },
+            errors: { code: errorMessage },
           }),
         };
       }
@@ -129,11 +134,12 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
+        const errorMessage = m.session_expired();
         return {
-          error: "Session expired",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "Session expired. Please start over." },
+            errors: { code: errorMessage },
           }),
         };
       }
@@ -159,11 +165,12 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
+        const errorMessage = m.unexpected_error_try_again();
         return {
-          error: "Unexpected error",
+          error: errorMessage,
           screen: await enterCodeScreen({
             ...context,
-            errors: { code: "An unexpected error occurred. Please try again." },
+            errors: { code: errorMessage },
           }),
         };
       } catch (e: unknown) {
@@ -181,7 +188,8 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        const errorMessage = (e as Error).message || "Invalid or expired code";
+        const errorMessage =
+          (e as Error).message || m.unexpected_error_try_again();
 
         return {
           error: errorMessage,
