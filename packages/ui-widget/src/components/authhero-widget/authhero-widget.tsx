@@ -309,8 +309,10 @@ export class AuthheroWidget {
   }
 
   /**
-   * Updates the data-screen attribute on the host element.
+   * Updates the data-screen attribute on the host element and its parent container.
    * This allows external CSS to target different screens using attribute selectors.
+   * The parent container (e.g. widget-container div from SSR) is also updated
+   * so that page-level CSS selectors work during SPA navigation.
    */
   private updateDataScreenAttribute() {
     const screenName = this.screenId || this._screen?.name;
@@ -318,6 +320,18 @@ export class AuthheroWidget {
       this.el.setAttribute("data-screen", screenName);
     } else {
       this.el.removeAttribute("data-screen");
+    }
+    // Also update the parent element's data-screen if it has one (e.g. the
+    // widget-container div rendered by the server). This keeps page-level CSS
+    // selectors like .widget-container[data-screen="..."] in sync during
+    // client-side navigation.
+    const parent = this.el.parentElement;
+    if (parent?.hasAttribute("data-screen")) {
+      if (screenName) {
+        parent.setAttribute("data-screen", screenName);
+      } else {
+        parent.removeAttribute("data-screen");
+      }
     }
   }
 
