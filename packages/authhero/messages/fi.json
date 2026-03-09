@@ -72,6 +72,7 @@
   "enter_new_password_placeholder": "Anna uusi salasana",
   "enter_password": "Anna salasana",
   "enter_password_description": "Anna sähköpostiosoitteesi ja salasanasi kirjautuaksesi sisään.",
+  "enter_password_signing_in_as": "Kirjaudutaan sisään käyttäjänä {email}",
   "enter_your_password_btn": "Syötä salasanasi",
   "error_page_title": "Jotain meni pieleen",
   "expired_code": "Taikalinkki on vanhentunut. Klikkaa alla olevaa painiketta saadaksesi uuden linkin sähköpostiisi.",

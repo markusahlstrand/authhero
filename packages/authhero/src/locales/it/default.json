@@ -64,6 +64,7 @@
   "enter_new_password_placeholder": "Inserire la nuova password",
   "enter_password": "Inserire la password",
   "enter_password_description": "Inserire l'indirizzo e-mail e la password per accedere.",
+  "enter_password_signing_in_as": "Accesso come {{email}}",
   "enter_your_password_btn": "Inserire la password",
   "error_page_title": "Qualcosa è andato storto",
   "expired_code": "Il link magico è scaduto. Cliccate sul pulsante sottostante per ricevere un nuovo link nella vostra casella di posta elettronica.",

@@ -152,17 +152,8 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
     action: "#",
     method: "POST",
     title: "Enter your password",
+    description: "Signing in as <strong>user@example.com</strong>",
     components: [
-      {
-        id: "email-display",
-        type: "RICH_TEXT",
-        category: "BLOCK",
-        visible: true,
-        config: {
-          content: "Signing in as <strong>user@example.com</strong>",
-        },
-        order: 0,
-      },
       {
         id: "password",
         type: "PASSWORD",
@@ -174,7 +165,7 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
         },
         required: true,
         sensitive: true,
-        order: 1,
+        order: 0,
       },
       {
         id: "submit",
@@ -184,7 +175,7 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
         config: {
           text: "Continue",
         },
-        order: 2,
+        order: 1,
       },
     ],
     links: [

@@ -186,21 +186,10 @@ function createEnterPasswordScreen(
     action: `${baseUrl}/u2/screen/enter-password?state=${state}`,
     method: "POST",
     title: "Enter your password",
+    description: email
+      ? `Signing in as <strong>${email}</strong>`
+      : undefined,
     components: [
-      ...(email
-        ? [
-            {
-              id: "email-display",
-              type: "RICH_TEXT" as const,
-              category: "BLOCK" as const,
-              visible: true,
-              config: {
-                content: `Signing in as <strong>${email}</strong>`,
-              },
-              order: 0,
-            },
-          ]
-        : []),
       {
         id: "password",
         type: "PASSWORD",
@@ -212,7 +201,7 @@ function createEnterPasswordScreen(
         },
         required: true,
         sensitive: true,
-        order: 1,
+        order: 0,
       },
       {
         id: "submit",
@@ -222,7 +211,7 @@ function createEnterPasswordScreen(
         config: {
           text: "Continue",
         },
-        order: 2,
+        order: 1,
       },
     ],
     links: [

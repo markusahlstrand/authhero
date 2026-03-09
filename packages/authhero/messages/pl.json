@@ -72,6 +72,7 @@
   "enter_new_password_placeholder": "Wprowadź nowe hasło",
   "enter_password": "Wprowadź hasło",
   "enter_password_description": "Wprowadź swój adres e-mail i hasło, aby się zalogować.",
+  "enter_password_signing_in_as": "Logowanie jako {email}",
   "enter_your_password_btn": "Wprowadź hasło",
   "error_page_title": "Coś poszło nie tak",
   "expired_code": "Magiczny link wygasł. Kliknij poniższy przycisk, aby otrzymać nowy link w skrzynce odbiorczej.",

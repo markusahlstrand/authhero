@@ -315,7 +315,7 @@ export class AuthheroWidget {
    * so that page-level CSS selectors work during SPA navigation.
    */
   private updateDataScreenAttribute() {
-    const screenName = this.screenId || this._screen?.name;
+    const screenName = this._screen?.name || this.screenId;
     if (screenName) {
       this.el.setAttribute("data-screen", screenName);
     } else {

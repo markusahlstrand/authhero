@@ -72,6 +72,7 @@
   "enter_new_password_placeholder": "Skriv inn nytt passord",
   "enter_password": "Oppgi passord",
   "enter_password_description": "Skriv inn e-postadressen og passordet ditt for å logge inn.",
+  "enter_password_signing_in_as": "Logger inn som {email}",
   "enter_your_password_btn": "Skriv inn passordet ditt",
   "error_page_title": "Noe gikk galt",
   "expired_code": "Den magiske lenken er utløpt. Vennligst klikk på knappen nedenfor for å motta en ny lenke i innboksen din.",
