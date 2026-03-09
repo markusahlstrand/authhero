@@ -7,6 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
+import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
@@ -15,38 +16,37 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
  * Create the enter-code screen
  */
 export async function enterCodeScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { branding, state, errors, messages, data, routePrefix } = context;
+  const { branding, state, errors, messages, data, customText, routePrefix } = context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(locale, customText);
 
   const email = data?.email as string | undefined;
   const maskedEmail = email
     ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-    : "your email";
+    : "";
+
+  const description = maskedEmail
+    ? m.code_sent_template({
+        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+      })
+    : m.enter_code_description();
 
   const components: FormNodeComponent[] = [
-    // Info text
-    {
-      id: "info",
-      type: "RICH_TEXT",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        content: `We sent a code to ${escapeHtml(maskedEmail)}. Enter it below to continue.`,
-      },
-      order: 0,
-    },
     // Code input
     {
       id: "code",
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Verification code",
+      label: m.enter_code_label(),
       config: {
-        placeholder: "Enter code",
+        placeholder: m.enter_code_placeholder(),
         max_length: 6,
       },
       required: true,
-      order: 1,
+      order: 0,
       hint: errors?.code,
     },
     // Submit button
@@ -56,9 +56,9 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Continue",
+        text: m.continue(),
       },
-      order: 2,
+      order: 1,
     },
     // Resend button
     {
@@ -67,9 +67,9 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Resend code",
+        text: m.resend_code(),
       },
-      order: 3,
+      order: 2,
     },
   ];
 
@@ -78,15 +78,15 @@ export async function enterCodeScreen(context: ScreenContext): Promise<ScreenRes
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/enter-code?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Check your email",
-    description: "Enter the verification code",
+    title: m.verify_your_email(),
+    description,
     components,
-    messages: messages?.map((m) => ({ text: m.text, type: m.type })),
+    messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
     links: [
       {
         id: "back",
-        text: "Back to",
-        linkText: "login",
+        text: "",
+        linkText: m.go_back(),
         href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
       },
     ],
