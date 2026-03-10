@@ -321,17 +321,21 @@ export class AuthheroWidget {
     } else {
       this.el.removeAttribute("data-screen");
     }
-    // Also update the parent element's data-screen if it is the SSR
-    // widget-container (identified by the data-authhero-widget-container
-    // marker). This keeps page-level CSS selectors like
-    // .widget-container[data-screen="..."] in sync during client-side
-    // navigation without mutating arbitrary consumer-owned elements.
-    const parent = this.el.parentElement;
-    if (parent?.hasAttribute("data-authhero-widget-container")) {
+    // Also update the nearest ancestor widget-container's data-screen
+    // (identified by the data-authhero-widget-container marker). We use
+    // closest() instead of parentElement because WidgetContent in
+    // u2-routes.tsx wraps the widget in an intermediate
+    // <div data-screen={screenId}>, so parentElement would hit that wrapper
+    // rather than the marked .widget-container. This keeps page-level CSS
+    // selectors like .widget-container[data-screen="..."] in sync during
+    // client-side navigation without mutating arbitrary consumer-owned
+    // elements.
+    const container = this.el.closest("[data-authhero-widget-container]");
+    if (container) {
       if (screenName) {
-        parent.setAttribute("data-screen", screenName);
+        container.setAttribute("data-screen", screenName);
       } else {
-        parent.removeAttribute("data-screen");
+        container.removeAttribute("data-screen");
       }
     }
   }

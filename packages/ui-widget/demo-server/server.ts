@@ -697,7 +697,7 @@ function handleForgotPasswordPost(
       ...screen,
       messages: [
         {
-          text: `If an account exists for ${escapeHtml(email)}, you will receive a reset link.`,
+          text: `If an account exists for ${email}, you will receive a reset link.`,
           type: "success",
         },
       ],
