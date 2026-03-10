@@ -309,15 +309,34 @@ export class AuthheroWidget {
   }
 
   /**
-   * Updates the data-screen attribute on the host element.
+   * Updates the data-screen attribute on the host element and its parent container.
    * This allows external CSS to target different screens using attribute selectors.
+   * The parent container (e.g. widget-container div from SSR) is also updated
+   * so that page-level CSS selectors work during SPA navigation.
    */
   private updateDataScreenAttribute() {
-    const screenName = this.screenId || this._screen?.name;
+    const screenName = this._screen?.name || this.screenId;
     if (screenName) {
       this.el.setAttribute("data-screen", screenName);
     } else {
       this.el.removeAttribute("data-screen");
+    }
+    // Also update the nearest ancestor widget-container's data-screen
+    // (identified by the data-authhero-widget-container marker). We use
+    // closest() instead of parentElement because WidgetContent in
+    // u2-routes.tsx wraps the widget in an intermediate
+    // <div data-screen={screenId}>, so parentElement would hit that wrapper
+    // rather than the marked .widget-container. This keeps page-level CSS
+    // selectors like .widget-container[data-screen="..."] in sync during
+    // client-side navigation without mutating arbitrary consumer-owned
+    // elements.
+    const container = this.el.closest("[data-authhero-widget-container]");
+    if (container) {
+      if (screenName) {
+        container.setAttribute("data-screen", screenName);
+      } else {
+        container.removeAttribute("data-screen");
+      }
     }
   }
 

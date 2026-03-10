@@ -152,17 +152,8 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
     action: "#",
     method: "POST",
     title: "Enter your password",
+    description: "Signing in as <strong>user@example.com</strong>",
     components: [
-      {
-        id: "email-display",
-        type: "RICH_TEXT",
-        category: "BLOCK",
-        visible: true,
-        config: {
-          content: "Signing in as <strong>user@example.com</strong>",
-        },
-        order: 0,
-      },
       {
         id: "password",
         type: "PASSWORD",
@@ -174,7 +165,7 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
         },
         required: true,
         sensitive: true,
-        order: 1,
+        order: 0,
       },
       {
         id: "submit",
@@ -184,7 +175,7 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
         config: {
           text: "Continue",
         },
-        order: 2,
+        order: 1,
       },
     ],
     links: [
@@ -202,13 +193,13 @@ interface WidgetBranding {
   colors?: {
     primary?: string;
     page_background?:
-      | {
-          type?: string;
-          start?: string;
-          end?: string;
-          angle_deg?: number;
-        }
-      | string;
+    | {
+      type?: string;
+      start?: string;
+      end?: string;
+      angle_deg?: number;
+    }
+    | string;
   };
   logo_url?: string;
   favicon_url?: string;
@@ -302,12 +293,12 @@ export function BrandingPreview() {
   // Convert themes to widget theme format
   const theme: WidgetTheme | undefined = themes
     ? {
-        borders: themes.borders,
-        colors: themes.colors,
-        fonts: themes.fonts,
-        page_background: themes.page_background,
-        widget: themes.widget,
-      }
+      borders: themes.borders,
+      colors: themes.colors,
+      fonts: themes.fonts,
+      page_background: themes.page_background,
+      widget: themes.widget,
+    }
     : undefined;
 
   // Get background style for the preview container

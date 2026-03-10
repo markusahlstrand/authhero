@@ -28,22 +28,14 @@ export async function enterPasswordScreen(
   // Get error hint - use raw error message
   const passwordError = errors?.password;
 
+  // Build description with email display (like enter-code screen)
+  const description = email
+    ? m.enter_password_signing_in_as({
+      email: `<strong>${escapeHtml(email)}</strong>`,
+    })
+    : undefined;
+
   const components: FormNodeComponent[] = [
-    // Show email being logged in
-    ...(email
-      ? [
-          {
-            id: "email-display",
-            type: "RICH_TEXT",
-            category: "BLOCK",
-            visible: true,
-            config: {
-              content: `Signing in as <strong>${escapeHtml(email)}</strong>`,
-            },
-            order: 0,
-          } as FormNodeComponent,
-        ]
-      : []),
     // Password input
     {
       id: "password",
@@ -56,7 +48,7 @@ export async function enterPasswordScreen(
       },
       required: true,
       sensitive: true,
-      order: 1,
+      order: 0,
       hint: passwordError,
     },
     // Forgot password link (between password and submit)
@@ -68,7 +60,7 @@ export async function enterPasswordScreen(
       config: {
         content: `<div class="forgot-password-link"><a href="${routePrefix}/forgot-password?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
       },
-      order: 2,
+      order: 1,
     } as FormNodeComponent,
     // Submit button
     {
@@ -79,7 +71,7 @@ export async function enterPasswordScreen(
       config: {
         text: m.continue(),
       },
-      order: 3,
+      order: 2,
     },
   ];
 
@@ -89,6 +81,7 @@ export async function enterPasswordScreen(
     action: `${routePrefix}/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.enter_password(),
+    description,
     components,
     links: [
       {

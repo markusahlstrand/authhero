@@ -17,6 +17,19 @@ import type { UiScreen, FormComponent } from "../src/types/components";
 import { renderToString } from "../hydrate";
 
 // ============================================
+// Helpers
+// ============================================
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ============================================
 // Types
 // ============================================
 
@@ -166,13 +179,13 @@ function createIdentifierScreen(
     ],
     links: settings.allowSignup
       ? [
-          {
-            id: "signup",
-            text: "Don't have an account?",
-            linkText: "Sign up",
-            href: `${baseUrl}/u2/signup?state=${state}`,
-          },
-        ]
+        {
+          id: "signup",
+          text: "Don't have an account?",
+          linkText: "Sign up",
+          href: `${baseUrl}/u2/signup?state=${state}`,
+        },
+      ]
       : [],
   };
 }
@@ -186,21 +199,10 @@ function createEnterPasswordScreen(
     action: `${baseUrl}/u2/screen/enter-password?state=${state}`,
     method: "POST",
     title: "Enter your password",
+    description: email
+      ? `Signing in as <strong>${escapeHtml(email)}</strong>`
+      : undefined,
     components: [
-      ...(email
-        ? [
-            {
-              id: "email-display",
-              type: "RICH_TEXT" as const,
-              category: "BLOCK" as const,
-              visible: true,
-              config: {
-                content: `Signing in as <strong>${email}</strong>`,
-              },
-              order: 0,
-            },
-          ]
-        : []),
       {
         id: "password",
         type: "PASSWORD",
@@ -212,7 +214,7 @@ function createEnterPasswordScreen(
         },
         required: true,
         sensitive: true,
-        order: 1,
+        order: 0,
       },
       {
         id: "submit",
@@ -222,7 +224,7 @@ function createEnterPasswordScreen(
         config: {
           text: "Continue",
         },
-        order: 2,
+        order: 1,
       },
     ],
     links: [
@@ -423,7 +425,7 @@ function createSuccessScreen(
     action: `${baseUrl}/callback?code=demo_auth_code&state=${state}`,
     method: "GET",
     title: "Welcome back!",
-    description: email ? `Successfully signed in as ${email}` : "Success!",
+    description: email ? `Successfully signed in as ${escapeHtml(email)}` : "Success!",
     components: [
       {
         id: "success-message",
@@ -714,6 +716,7 @@ async function renderWidgetPage(options: {
   urlMode: "path" | "query";
   providers?: string;
   renderMode?: "client" | "ssr";
+  email?: string;
 }): Promise<string> {
   const {
     screenId,
@@ -722,6 +725,7 @@ async function renderWidgetPage(options: {
     urlMode,
     providers,
     renderMode = "client",
+    email,
   } = options;
 
   // Pre-render widget HTML if SSR mode
@@ -743,7 +747,7 @@ async function renderWidgetPage(options: {
         screen = createIdentifierScreen(state, baseUrl, settings);
         break;
       case "enter-password":
-        screen = createEnterPasswordScreen(state, baseUrl);
+        screen = createEnterPasswordScreen(state, baseUrl, email);
         break;
       case "enter-code":
         screen = createEnterCodeScreen(state, baseUrl);
@@ -2547,6 +2551,7 @@ app.get("/u2/enter-password", async (c) => {
   const state = c.req.query("state") || "demo";
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
+  const session = getSession(state);
   return c.html(
     await renderWidgetPage({
       screenId: "enter-password",
@@ -2554,6 +2559,7 @@ app.get("/u2/enter-password", async (c) => {
       baseUrl,
       urlMode: "path",
       renderMode,
+      email: session.email,
     }),
   );
 });
@@ -2627,6 +2633,7 @@ app.get("/u2/login", async (c) => {
     c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
+  const session = getSession(state);
   return c.html(
     await renderWidgetPage({
       screenId: screen,
@@ -2634,6 +2641,7 @@ app.get("/u2/login", async (c) => {
       baseUrl,
       urlMode: "query",
       renderMode,
+      email: session.email,
     }),
   );
 });

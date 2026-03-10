@@ -72,6 +72,7 @@
   "enter_new_password_placeholder": "Indtast ny adgangskode",
   "enter_password": "Indtast adgangskode",
   "enter_password_description": "Indtast din e-mailadresse og adgangskode for at logge ind.",
+  "enter_password_signing_in_as": "Logger ind som {email}",
   "enter_your_password_btn": "Indtast din adgangskode",
   "error_page_title": "Noget gik galt",
   "expired_code": "Det magiske link er udløbet. Klik på knappen nedenfor for at modtage et nyt link i din indbakke.",

@@ -66,6 +66,7 @@
   "enter_new_password_placeholder": "Enter new password",
   "enter_password": "Enter password",
   "enter_password_description": "Enter your email address and password to login.",
+  "enter_password_signing_in_as": "Signing in as {{email}}",
   "enter_your_password_btn": "Enter your password",
   "error_page_title": "Something went wrong",
   "expired_code": "The magic link has expired. Please click on the button below to receive a new link in your inbox.",

@@ -64,6 +64,7 @@
   "enter_new_password_placeholder": "Ange nytt lösenord",
   "enter_password": "Ange lösenord",
   "enter_password_description": "Ange din e-postadress och ditt lösenord för att logga in.",
+  "enter_password_signing_in_as": "Loggar in som {{email}}",
   "enter_your_password_btn": "Logga in med lösenord",
   "error_page_title": "Något gick fel",
   "expired_code": "Länken är inte längre giltig. Klicka på knappen för att skicka en ny länk till din epost.",

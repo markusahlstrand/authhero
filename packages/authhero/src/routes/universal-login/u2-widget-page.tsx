@@ -214,6 +214,7 @@ export function WidgetPage({
         {/* data-screen attribute allows CSS targeting for specific screens */}
         <div
           class="widget-container"
+          data-authhero-widget-container
           data-screen={screenId}
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
