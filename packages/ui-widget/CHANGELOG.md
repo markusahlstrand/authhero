@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.17.0
+
+### Minor Changes
+
+- e849524: Update the data-screen on client side navigatin
+
 ## 0.16.0
 
 ### Minor Changes
