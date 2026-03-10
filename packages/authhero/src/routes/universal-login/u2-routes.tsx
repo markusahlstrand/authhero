@@ -509,7 +509,7 @@ function WidgetContent({
   );
 
   return (
-    <div class="widget-container">
+    <div class="widget-container" data-authhero-widget-container>
       {widgetElement}
       {safePoweredByUrl && (
         <div class="powered-by">

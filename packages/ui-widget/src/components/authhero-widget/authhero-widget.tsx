@@ -321,12 +321,13 @@ export class AuthheroWidget {
     } else {
       this.el.removeAttribute("data-screen");
     }
-    // Also update the parent element's data-screen if it has one (e.g. the
-    // widget-container div rendered by the server). This keeps page-level CSS
-    // selectors like .widget-container[data-screen="..."] in sync during
-    // client-side navigation.
+    // Also update the parent element's data-screen if it is the SSR
+    // widget-container (identified by the data-authhero-widget-container
+    // marker). This keeps page-level CSS selectors like
+    // .widget-container[data-screen="..."] in sync during client-side
+    // navigation without mutating arbitrary consumer-owned elements.
     const parent = this.el.parentElement;
-    if (parent?.hasAttribute("data-screen")) {
+    if (parent?.hasAttribute("data-authhero-widget-container")) {
       if (screenName) {
         parent.setAttribute("data-screen", screenName);
       } else {

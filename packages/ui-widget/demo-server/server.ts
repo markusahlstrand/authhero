@@ -17,6 +17,19 @@ import type { UiScreen, FormComponent } from "../src/types/components";
 import { renderToString } from "../hydrate";
 
 // ============================================
+// Helpers
+// ============================================
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ============================================
 // Types
 // ============================================
 
@@ -166,13 +179,13 @@ function createIdentifierScreen(
     ],
     links: settings.allowSignup
       ? [
-          {
-            id: "signup",
-            text: "Don't have an account?",
-            linkText: "Sign up",
-            href: `${baseUrl}/u2/signup?state=${state}`,
-          },
-        ]
+        {
+          id: "signup",
+          text: "Don't have an account?",
+          linkText: "Sign up",
+          href: `${baseUrl}/u2/signup?state=${state}`,
+        },
+      ]
       : [],
   };
 }
@@ -187,7 +200,7 @@ function createEnterPasswordScreen(
     method: "POST",
     title: "Enter your password",
     description: email
-      ? `Signing in as <strong>${email}</strong>`
+      ? `Signing in as <strong>${escapeHtml(email)}</strong>`
       : undefined,
     components: [
       {
@@ -412,7 +425,7 @@ function createSuccessScreen(
     action: `${baseUrl}/callback?code=demo_auth_code&state=${state}`,
     method: "GET",
     title: "Welcome back!",
-    description: email ? `Successfully signed in as ${email}` : "Success!",
+    description: email ? `Successfully signed in as ${escapeHtml(email)}` : "Success!",
     components: [
       {
         id: "success-message",
@@ -684,7 +697,7 @@ function handleForgotPasswordPost(
       ...screen,
       messages: [
         {
-          text: `If an account exists for ${email}, you will receive a reset link.`,
+          text: `If an account exists for ${escapeHtml(email)}, you will receive a reset link.`,
           type: "success",
         },
       ],
@@ -703,6 +716,7 @@ async function renderWidgetPage(options: {
   urlMode: "path" | "query";
   providers?: string;
   renderMode?: "client" | "ssr";
+  email?: string;
 }): Promise<string> {
   const {
     screenId,
@@ -711,6 +725,7 @@ async function renderWidgetPage(options: {
     urlMode,
     providers,
     renderMode = "client",
+    email,
   } = options;
 
   // Pre-render widget HTML if SSR mode
@@ -732,7 +747,7 @@ async function renderWidgetPage(options: {
         screen = createIdentifierScreen(state, baseUrl, settings);
         break;
       case "enter-password":
-        screen = createEnterPasswordScreen(state, baseUrl);
+        screen = createEnterPasswordScreen(state, baseUrl, email);
         break;
       case "enter-code":
         screen = createEnterCodeScreen(state, baseUrl);
@@ -2536,6 +2551,7 @@ app.get("/u2/enter-password", async (c) => {
   const state = c.req.query("state") || "demo";
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
+  const session = getSession(state);
   return c.html(
     await renderWidgetPage({
       screenId: "enter-password",
@@ -2543,6 +2559,7 @@ app.get("/u2/enter-password", async (c) => {
       baseUrl,
       urlMode: "path",
       renderMode,
+      email: session.email,
     }),
   );
 });
@@ -2616,6 +2633,7 @@ app.get("/u2/login", async (c) => {
     c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
+  const session = getSession(state);
   return c.html(
     await renderWidgetPage({
       screenId: screen,
@@ -2623,6 +2641,7 @@ app.get("/u2/login", async (c) => {
       baseUrl,
       urlMode: "query",
       renderMode,
+      email: session.email,
     }),
   );
 });
