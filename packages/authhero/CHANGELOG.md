@@ -1,5 +1,17 @@
 # authhero
 
+## 4.52.0
+
+### Minor Changes
+
+- 7154fe1: Update refresh-tokens schema
+
+### Patch Changes
+
+- Updated dependencies [7154fe1]
+  - @authhero/adapter-interfaces@0.140.0
+  - @authhero/widget@0.17.1
+
 ## 4.51.0
 
 ### Minor Changes
