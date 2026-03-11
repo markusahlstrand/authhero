@@ -285,12 +285,15 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
+        const locale = context.language || "en";
+        const { m } = createTranslation(locale, context.customText);
+        const errorMsg = m.invalid_identifier();
         return {
-          error: "Invalid identifier",
+          error: errorMsg,
           screen: await identifierScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Invalid identifier" },
+            errors: { username: errorMsg },
           }),
         };
       }
@@ -333,16 +336,16 @@ export const identifierScreenDefinition: ScreenDefinition = {
       const user =
         connectionType === "email"
           ? await getPrimaryUserByEmail({
-              userAdapter: ctx.env.data.users,
-              tenant_id: client.tenant.id,
-              email: normalized,
-            })
+            userAdapter: ctx.env.data.users,
+            tenant_id: client.tenant.id,
+            email: normalized,
+          })
           : await getPrimaryUserByProvider({
-              userAdapter: ctx.env.data.users,
-              tenant_id: client.tenant.id,
-              username: normalized,
-              provider,
-            });
+            userAdapter: ctx.env.data.users,
+            tenant_id: client.tenant.id,
+            username: normalized,
+            provider,
+          });
 
       // Check if connection is allowed
       // For "username" connectionType, allow if password connection has username identifier active
@@ -352,12 +355,15 @@ export const identifierScreenDefinition: ScreenDefinition = {
         user;
 
       if (!hasValidConnection) {
+        const locale = context.language || "en";
+        const { m } = createTranslation(locale, context.customText);
+        const errorMsg = m.invalid_identifier();
         return {
-          error: "Invalid identifier",
+          error: errorMsg,
           screen: await identifierScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Invalid identifier" },
+            errors: { username: errorMsg },
           }),
         };
       }
@@ -373,12 +379,15 @@ export const identifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
+          const locale = context.language || "en";
+          const { m } = createTranslation(locale, context.customText);
+          const errorMsg = validation.reason || m.user_account_does_not_exist();
           return {
-            error: validation.reason || "Account does not exist",
+            error: errorMsg,
             screen: await identifierScreen({
               ...context,
               prefill: { username },
-              errors: { username: "Account does not exist" },
+              errors: { username: m.user_account_does_not_exist() },
             }),
           };
         }
@@ -391,12 +400,15 @@ export const identifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
+        const locale = context.language || "en";
+        const { m } = createTranslation(locale, context.customText);
+        const errorMsg = m.session_expired();
         return {
-          error: "Session expired",
+          error: errorMsg,
           screen: await identifierScreen({
             ...context,
             prefill: { username },
-            errors: { username: "Session expired. Please try again." },
+            errors: { username: errorMsg },
           }),
         };
       }

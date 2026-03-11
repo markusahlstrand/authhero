@@ -67,12 +67,12 @@ describe("logout", () => {
     const client = testClient(oauthApp, env);
 
     // Use the helper to create sessions
-    const { session } = await createSessions(env.data);
+    const { loginSession, session } = await createSessions(env.data);
 
     // Create a refresh token
     await env.data.refreshTokens.create("tenantId", {
       id: "refreshToken",
-      session_id: session.id,
+      login_id: loginSession.id,
       user_id: "email|userId",
       client_id: "clientId",
       resource_servers: [
@@ -110,7 +110,7 @@ describe("logout", () => {
     expect(sessionAfter?.revoked_at).toBeTypeOf("string");
 
     const refreshtokens = await env.data.refreshTokens.list("tenantId", {
-      q: `session_id:${session.id}`,
+      q: `login_id:${loginSession.id}`,
       include_totals: false,
       per_page: 1,
       page: 0,

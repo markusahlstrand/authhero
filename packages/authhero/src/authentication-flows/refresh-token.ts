@@ -74,6 +74,16 @@ export async function refreshTokenGrant(
 
   const resourceServer = refreshToken.resource_servers[0];
 
+  // Resolve session_id from the login session
+  let sessionId: string | undefined;
+  if (refreshToken.login_id) {
+    const loginSession = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      refreshToken.login_id,
+    );
+    sessionId = loginSession?.session_id;
+  }
+
   // Update the idle_expires_at
   if (refreshToken.idle_expires_at) {
     const idleExpiresAt = new Date(
@@ -94,7 +104,7 @@ export async function refreshTokenGrant(
     user,
     client,
     refresh_token: refreshToken.id,
-    session_id: refreshToken.session_id,
+    session_id: sessionId,
     login_id: refreshToken.login_id,
     authParams: {
       client_id: client.client_id,

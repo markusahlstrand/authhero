@@ -396,8 +396,7 @@ export async function createCodeData(
 export interface CreateRefreshTokenParams {
   user: User;
   client: EnrichedClient;
-  session_id: string;
-  login_id?: string;
+  login_id: string;
   scope: string;
   audience?: string;
 }
@@ -411,7 +410,6 @@ export async function createRefreshToken(
     scope,
     // fallback to the default audience on the client
     audience = client.tenant.audience,
-    session_id,
     login_id,
   } = params;
 
@@ -419,7 +417,6 @@ export async function createRefreshToken(
     client.tenant.id,
     {
       id: ulid(),
-      session_id,
       login_id,
       client_id: client.client_id,
       idle_expires_at: new Date(
@@ -1095,8 +1092,7 @@ export async function createFrontChannelAuthResponse(
     const newRefreshToken = await createRefreshToken(ctx, {
       user,
       client,
-      session_id,
-      login_id: params.loginSession?.id,
+      login_id: params.loginSession?.id || "",
       scope: authParams.scope,
       audience: authParams.audience,
     });

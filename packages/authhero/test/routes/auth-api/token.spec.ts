@@ -946,7 +946,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1011,7 +1011,7 @@ describe("token", () => {
       const originalScopes = "openid profile email read:users";
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshTokenWithScopes",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1063,7 +1063,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1110,7 +1110,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1161,7 +1161,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1215,7 +1215,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -1272,7 +1272,7 @@ describe("token", () => {
 
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshToken",
-        session_id: "sessionId",
+        login_id: "loginSessionId",
         user_id: "email|userId",
         client_id: "clientId",
         resource_servers: [
@@ -2229,7 +2229,7 @@ describe("token", () => {
 
         await env.data.refreshTokens.create("tenantId", {
           id: "testRefreshToken",
-          session_id: "sessionId",
+          login_id: "loginSessionId",
           user_id: "email|userId",
           client_id: "clientId",
           resource_servers: [

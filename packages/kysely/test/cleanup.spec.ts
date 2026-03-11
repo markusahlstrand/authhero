@@ -76,7 +76,7 @@ describe("cleanup", () => {
     // Create a refresh token
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken",
-      session_id: "sessionId",
+      login_id: "loginSessionId",
       user_id: "email|userId",
       client_id: "clientId",
       expires_at: fourMonthsAgo,
@@ -263,7 +263,7 @@ describe("cleanup", () => {
     });
 
     // Create the login session
-    await data.loginSessions.create("tenantId", {
+    const loginSession = await data.loginSessions.create("tenantId", {
       expires_at: fourMonthsAgo,
       csrf_token: "csrfToken",
       session_id: "sessionId",
@@ -276,13 +276,18 @@ describe("cleanup", () => {
       },
     });
 
+    // Link the session back to the login session
+    await data.sessions.update("tenantId", "sessionId", {
+      login_session_id: loginSession.id,
+    });
+
     // Create a refresh token that expires in the future
     const oneHourFromNow = new Date(
       Date.now() + 1000 * 60 * 60,
     ).toISOString();
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken",
-      session_id: "sessionId",
+      login_id: loginSession.id,
       user_id: "email|userId",
       client_id: "clientId",
       expires_at: oneHourFromNow,
@@ -392,7 +397,7 @@ describe("sessionCleanup", () => {
     // Create expired refresh token for user1
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken1",
-      session_id: "session1",
+      login_id: "loginSession1",
       user_id: "email|user1",
       client_id: "clientId",
       expires_at: oneHourAgo,
@@ -427,7 +432,7 @@ describe("sessionCleanup", () => {
     // Create non-expired refresh token for user2
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken2",
-      session_id: "session2",
+      login_id: "loginSession2",
       user_id: "email|user2",
       client_id: "clientId",
       expires_at: oneHourFromNow,
@@ -636,6 +641,7 @@ describe("sessionCleanup", () => {
     await data.sessions.create("tenantId", {
       id: "session1",
       user_id: "email|user1",
+      login_session_id: "loginSession1",
       clients: ["clientId"],
       expires_at: oneHourAgo,
       device: {
@@ -651,7 +657,7 @@ describe("sessionCleanup", () => {
     // Create NON-expired refresh token for the expired session
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken1",
-      session_id: "session1",
+      login_id: "loginSession1",
       user_id: "email|user1",
       client_id: "clientId",
       expires_at: oneHourFromNow,

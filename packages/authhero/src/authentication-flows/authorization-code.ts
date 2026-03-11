@@ -178,7 +178,6 @@ export async function authorizationCodeGrantUser(
     refreshToken = await createRefreshToken(ctx, {
       user,
       client,
-      session_id: loginSession.session_id,
       login_id: loginSession.id,
       scope: loginSession.authParams.scope,
       audience: loginSession.authParams.audience,

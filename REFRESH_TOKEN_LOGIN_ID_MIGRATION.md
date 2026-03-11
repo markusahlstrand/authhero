@@ -45,42 +45,62 @@ Add an optional `login_id` field to refresh tokens and populate it on all newly 
 
 ---
 
-## Stage 2: Backfill existing tokens — ⬜ Not started
+## Stage 2: Backfill existing tokens — ✅ Complete
 
-Write a backfill script/migration to populate `login_id` on existing refresh tokens by joining through `session_id` → `sessions.login_session_id`.
+Backfill script created to populate `login_id` on existing refresh tokens by joining through `session_id` → `sessions.login_session_id`.
 
-### Plan
+### Changes
 
-- Query `refresh_tokens` where `login_id IS NULL`
-- Join with `sessions` on `refresh_tokens.session_id = sessions.id`
-- Set `refresh_tokens.login_id = sessions.login_session_id`
-- Run in batches to avoid locking issues
+- **`scripts/backfill_refresh_token_login_id.sql`** — PlanetScale-compatible SQL script that backfills in 10K-row batches (run ~13 times until 0 rows affected)
 
 ---
 
-## Stage 3: Make `login_id` mandatory — ⬜ Not started
+## Stage 3: Make `login_id` mandatory — ✅ Complete
 
-Once all existing tokens are backfilled, make `login_id` required and switch application logic to use it.
+Made `login_id` required in the schema and updated all application logic to use it instead of `session_id`.
 
-### Plan
+### Changes
 
-- Change `login_id` from `z.string().optional()` to `z.string()` in the schema
-- Update `packages/kysely/src/cleanup.ts` to use `login_id` instead of `session_id` when protecting login sessions from deletion
-- Update `packages/authhero/src/routes/auth-api/logout.ts` to query refresh tokens by `login_id` instead of `session_id`
-- Update Drizzle schema to mark `login_id` as `.notNull()`
-- Create a migration to add `NOT NULL` constraint (once backfill is verified complete)
+- **Type definitions**
+  - `packages/adapter-interfaces/src/types/RefreshTokens.ts` — Changed `login_id` from `z.string().optional()` to `z.string()` (required)
+  - `packages/authhero/src/authentication-flows/common.ts` — Made `login_id` required in `CreateRefreshTokenParams`, removed `session_id`
+
+- **Application logic**
+  - `packages/authhero/src/authentication-flows/authorization-code.ts` — Removed `session_id` from `createRefreshToken` call
+  - `packages/authhero/src/authentication-flows/refresh-token.ts` — Resolves `session_id` by looking up login session via `refreshToken.login_id`
+  - `packages/authhero/src/routes/auth-api/logout.ts` — Queries refresh tokens by `login_id` (via `session.login_session_id`) instead of `session_id`
+
+- **Cleanup logic**
+  - `packages/kysely/src/cleanup.ts` — Step 3 now uses `login_id` from refresh_tokens matched against `login_session_id` on sessions
+
+- **Adapters**
+  - `packages/aws/src/adapters/refreshTokens.ts` — Made `login_id` required, removed `session_id` from DynamoDB item
 
 ---
 
-## Stage 4: Remove `session_id` — ⬜ Not started
+## Stage 4: Remove `session_id` — ✅ Complete
 
-Remove the now-redundant `session_id` from refresh tokens.
+Removed the `session_id` column from refresh tokens entirely.
 
-### Plan
+### Changes
 
-- Remove `session_id` from `refreshTokenInsertSchema` and `refreshTokenSchema`
-- Remove `session_id` from Drizzle schema, Kysely DB type, and AWS adapter
-- Create a migration to drop the `session_id` column and its index
-- Remove `session_id` from Lucene-filterable fields in list
-- Update any remaining code referencing `refreshToken.session_id`
-- Clean up `GrantFlowResult.session_id` if it becomes unused
+- **Type definitions**
+  - `packages/adapter-interfaces/src/types/RefreshTokens.ts` — Removed `session_id` from both insert and read schemas
+
+- **Database layer**
+  - `packages/kysely/migrate/migrations/2026-03-11T10:00:00_refresh_tokens_replace_session_id_with_login_id.ts` — Migration: make `login_id` NOT NULL, drop `session_id` index, drop `session_id` column
+  - `packages/kysely/migrate/migrations/index.ts` — Registered migration as `o034_refresh_tokens_replace_session_id_with_login_id`
+  - `packages/drizzle/src/schema/sqlite/sessions.ts` — Removed `session_id` column + index, made `login_id` `.notNull()`
+  - `packages/kysely/src/refreshTokens/list.ts` — Removed `session_id` from Lucene-filterable fields
+
+- **Adapters**
+  - `packages/aws/src/adapters/refreshTokens.ts` — Removed `session_id` from `RefreshTokenItem` interface and create method
+
+- **Tests**
+  - `packages/kysely/test/cleanup.spec.ts` — Updated all refresh token fixtures to use `login_id` instead of `session_id`
+  - `packages/authhero/test/routes/auth-api/token.spec.ts` — Updated all refresh token fixtures to use `login_id`
+  - `packages/authhero/test/routes/auth-api/logout.spec.ts` — Updated refresh token creation and query assertions to use `login_id`
+
+### Notes
+
+- `GrantFlowResult.session_id` was intentionally kept — it's used for session cookies in the token endpoint, not derived from refresh tokens

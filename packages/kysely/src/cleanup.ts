@@ -88,10 +88,10 @@ export function createSessionCleanup(db: Kysely<Database>) {
       await refreshTokensQuery.limit(1000).execute();
 
       // 3. Delete expired sessions that have no active refresh tokens
-      // First, get IDs of sessions with active refresh tokens
+      // First, get login_ids of sessions with active refresh tokens
       let activeRefreshTokensQuery = db
         .selectFrom("refresh_tokens")
-        .select("session_id")
+        .select("login_id")
         .where((eb) =>
           eb.and([
             eb.or([
@@ -129,7 +129,12 @@ export function createSessionCleanup(db: Kysely<Database>) {
             eb("idle_expires_at_ts", "<", now),
           ]),
         )
-        .where("id", "not in", activeRefreshTokensQuery);
+        .where((eb) =>
+          eb.or([
+            eb("login_session_id", "is", null),
+            eb("login_session_id", "not in", activeRefreshTokensQuery),
+          ]),
+        );
 
       if (tenant_id) {
         sessionsQuery = sessionsQuery.where("tenant_id", "=", tenant_id);
@@ -139,6 +144,7 @@ export function createSessionCleanup(db: Kysely<Database>) {
       }
 
       await sessionsQuery.limit(1000).execute();
+
     } catch (error) {
       // Log but don't throw - this is a background cleanup task
       console.error("Error during session cleanup:", error);
