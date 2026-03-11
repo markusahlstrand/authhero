@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.140.0
+
+### Minor Changes
+
+- 7154fe1: Update refresh-tokens schema
+
 ## 0.139.0
 
 ### Minor Changes

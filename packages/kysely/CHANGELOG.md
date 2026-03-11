@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.102.0
+
+### Minor Changes
+
+- 7154fe1: Update refresh-tokens schema
+
+### Patch Changes
+
+- Updated dependencies [7154fe1]
+  - @authhero/adapter-interfaces@0.140.0
+
 ## 10.101.1
 
 ### Patch Changes
