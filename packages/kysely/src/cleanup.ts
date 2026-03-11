@@ -5,6 +5,10 @@ import { SessionCleanupParams } from "@authhero/adapter-interfaces";
 /**
  * Create a scoped session cleanup function that can filter by tenant and/or user.
  * This is designed for lazy cleanup after login session creation.
+ *
+ * Since login_sessions.expires_at is extended whenever refresh tokens or sessions
+ * are renewed, we can simply delete expired records independently without
+ * expensive subqueries to check for active children.
  */
 export function createSessionCleanup(db: Kysely<Database>) {
   return async (params?: SessionCleanupParams): Promise<void> => {
@@ -12,59 +16,7 @@ export function createSessionCleanup(db: Kysely<Database>) {
     const now = Date.now();
 
     try {
-      // 1. Delete expired login_sessions that don't have active sessions connected
-      // Build subquery for login_sessions that have active sessions
-      let activeSessionsQuery = db
-        .selectFrom("sessions")
-        .select("login_session_id")
-        .where("login_session_id", "is not", null)
-        .where((eb) =>
-          eb.and([
-            eb.or([
-              eb("expires_at_ts", "is", null),
-              eb("expires_at_ts", ">=", now),
-            ]),
-            eb.or([
-              eb("idle_expires_at_ts", "is", null),
-              eb("idle_expires_at_ts", ">=", now),
-            ]),
-          ]),
-        );
-
-      if (tenant_id) {
-        activeSessionsQuery = activeSessionsQuery.where(
-          "tenant_id",
-          "=",
-          tenant_id,
-        );
-      }
-      if (user_id) {
-        activeSessionsQuery = activeSessionsQuery.where(
-          "user_id",
-          "=",
-          user_id,
-        );
-      }
-
-      let loginSessionsQuery = db
-        .deleteFrom("login_sessions")
-        .where("expires_at_ts", "<", now)
-        .where("id", "not in", activeSessionsQuery);
-
-      if (tenant_id) {
-        loginSessionsQuery = loginSessionsQuery.where(
-          "tenant_id",
-          "=",
-          tenant_id,
-        );
-      }
-      if (user_id) {
-        loginSessionsQuery = loginSessionsQuery.where("user_id", "=", user_id);
-      }
-
-      await loginSessionsQuery.limit(1000).execute();
-
-      // 2. Delete expired refresh_tokens
+      // 1. Delete expired refresh_tokens
       let refreshTokensQuery = db
         .deleteFrom("refresh_tokens")
         .where((eb) =>
@@ -87,52 +39,13 @@ export function createSessionCleanup(db: Kysely<Database>) {
 
       await refreshTokensQuery.limit(1000).execute();
 
-      // 3. Delete expired sessions that have no active refresh tokens
-      // First, get login_ids of sessions with active refresh tokens
-      let activeRefreshTokensQuery = db
-        .selectFrom("refresh_tokens")
-        .select("login_id")
-        .where((eb) =>
-          eb.and([
-            eb.or([
-              eb("expires_at_ts", "is", null),
-              eb("expires_at_ts", ">=", now),
-            ]),
-            eb.or([
-              eb("idle_expires_at_ts", "is", null),
-              eb("idle_expires_at_ts", ">=", now),
-            ]),
-          ]),
-        );
-
-      if (tenant_id) {
-        activeRefreshTokensQuery = activeRefreshTokensQuery.where(
-          "tenant_id",
-          "=",
-          tenant_id,
-        );
-      }
-      if (user_id) {
-        activeRefreshTokensQuery = activeRefreshTokensQuery.where(
-          "user_id",
-          "=",
-          user_id,
-        );
-      }
-
-      // Build the sessions delete query
+      // 2. Delete expired sessions
       let sessionsQuery = db
         .deleteFrom("sessions")
         .where((eb) =>
           eb.or([
             eb("expires_at_ts", "<", now),
             eb("idle_expires_at_ts", "<", now),
-          ]),
-        )
-        .where((eb) =>
-          eb.or([
-            eb("login_session_id", "is", null),
-            eb("login_session_id", "not in", activeRefreshTokensQuery),
           ]),
         );
 
@@ -145,6 +58,23 @@ export function createSessionCleanup(db: Kysely<Database>) {
 
       await sessionsQuery.limit(1000).execute();
 
+      // 3. Delete expired login_sessions
+      let loginSessionsQuery = db
+        .deleteFrom("login_sessions")
+        .where("expires_at_ts", "<", now);
+
+      if (tenant_id) {
+        loginSessionsQuery = loginSessionsQuery.where(
+          "tenant_id",
+          "=",
+          tenant_id,
+        );
+      }
+      if (user_id) {
+        loginSessionsQuery = loginSessionsQuery.where("user_id", "=", user_id);
+      }
+
+      await loginSessionsQuery.limit(1000).execute();
     } catch (error) {
       // Log but don't throw - this is a background cleanup task
       console.error("Error during session cleanup:", error);

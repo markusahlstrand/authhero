@@ -999,6 +999,80 @@ describe("token", () => {
       expect(refreshToken.idle_expires_at).not.toBe(idle_expires_at);
     });
 
+    it("should extend login_session expires_at when refresh token is exchanged", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a login session
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      const loginSessionBefore = await env.data.loginSessions.get(
+        "tenantId",
+        loginSession.id,
+      );
+      expect(loginSessionBefore).toBeDefined();
+      const expiresAtBefore = loginSessionBefore!.expires_at;
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenLoginSession",
+        login_id: loginSession.id,
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenLoginSession",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+
+      // Verify the login session's expires_at was extended
+      const loginSessionAfter = await env.data.loginSessions.get(
+        "tenantId",
+        loginSession.id,
+      );
+      expect(loginSessionAfter).toBeDefined();
+      expect(
+        new Date(loginSessionAfter!.expires_at).getTime(),
+      ).toBeGreaterThan(new Date(expiresAtBefore).getTime());
+    });
+
     it("should preserve the original scopes in the new access token", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

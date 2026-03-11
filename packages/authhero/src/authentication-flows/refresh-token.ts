@@ -98,6 +98,17 @@ export async function refreshTokenGrant(
         last_user_agent: ctx.req.header["user-agent"] || "",
       },
     });
+
+    // Keep the login_session alive as long as its refresh tokens are active
+    if (refreshToken.login_id) {
+      await ctx.env.data.loginSessions.update(
+        client.tenant.id,
+        refreshToken.login_id,
+        {
+          expires_at: idleExpiresAt.toISOString(),
+        },
+      );
+    }
   }
 
   return {

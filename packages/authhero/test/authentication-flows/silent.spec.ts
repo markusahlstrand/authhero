@@ -36,6 +36,7 @@ describe("silent", () => {
         last_asn: "",
       },
       expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       clients: ["clientId"],
     });
 
@@ -124,6 +125,20 @@ describe("silent", () => {
     expect(updatedSession.used_at).not.toEqual(session.used_at);
     // The session should now be linked to the new login session
     expect(updatedSession.login_session_id).toEqual(code?.login_id);
+
+    // Verify the new login session's expires_at was extended to match the session's idle_expires_at
+    // (it was initially created with a 5-minute expiry, but should now be ~30 days)
+    const updatedLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      code?.login_id || "",
+    );
+    expect(updatedLoginSession).toBeDefined();
+    const loginSessionExpiresAt = new Date(
+      updatedLoginSession!.expires_at,
+    ).getTime();
+    // Should be at least 29 days from now (30 days minus test execution time)
+    const twentyNineDaysFromNow = Date.now() + 29 * 24 * 60 * 60 * 1000;
+    expect(loginSessionExpiresAt).toBeGreaterThan(twentyNineDaysFromNow);
   });
 
   it("should clear session cookie when silent auth fails with expired session", async () => {

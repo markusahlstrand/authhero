@@ -117,7 +117,7 @@ describe("cleanup", () => {
     expect(refreshTokens).toEqual([]);
   });
 
-  it("should not remove a expired login session that has a non-expired session", async () => {
+  it("should remove an expired login session even if it has a non-expired session", async () => {
     const fourMonthsAgo = new Date(
       Date.now() - 1000 * 60 * 60 * 24 * 30 * 3,
     ).toISOString();
@@ -177,35 +177,44 @@ describe("cleanup", () => {
       },
     });
 
-    // Create the login session
-    await data.loginSessions.create("tenantId", {
-      expires_at: fourMonthsAgo,
-      csrf_token: "csrfToken",
-      session_id: "sessionId",
-      authParams: {
-        client_id: "clientId",
-        username: "foo@exampl.com",
-        scope: "",
-        audience: "http://example.com",
-        redirect_uri: "http://example.com/callback",
-      },
-    });
+    // Create the login session with expired timestamp directly in DB
+    // (loginSessions.create always sets expires_at_ts to now + 24h)
+    const fourMonthsAgoTs = Date.now() - 1000 * 60 * 60 * 24 * 30 * 3;
+    await db
+      .insertInto("login_sessions")
+      .values({
+        id: "expiredLoginSession",
+        tenant_id: "tenantId",
+        csrf_token: "csrfToken",
+        session_id: "sessionId",
+        authParams_client_id: "clientId",
+        authParams_scope: "",
+        authParams_audience: "http://example.com",
+        authParams_redirect_uri: "http://example.com/callback",
+        created_at_ts: fourMonthsAgoTs,
+        updated_at_ts: fourMonthsAgoTs,
+        expires_at_ts: fourMonthsAgoTs,
+        state: "pending",
+      })
+      .execute();
 
     // Do the cleanup
     await data.sessionCleanup!();
 
-    // Check that the login session still is there even though it's expired
+    // Login session is expired so it gets deleted (in the new model,
+    // its expires_at would have been extended on renewal if still active)
     const loginSessions = await db
       .selectFrom("login_sessions")
       .selectAll()
       .execute();
-    expect(loginSessions.length).toEqual(1);
+    expect(loginSessions.length).toEqual(0);
 
+    // The non-expired session should still exist
     const sessions = await db.selectFrom("sessions").selectAll().execute();
     expect(sessions.length).toEqual(1);
   });
 
-  it("should not remove a expired session that has a non-expired refresh token", async () => {
+  it("should remove an expired session even if it has a non-expired refresh token", async () => {
     const fourMonthsAgo = new Date(
       Date.now() - 1000 * 60 * 60 * 24 * 30 * 3,
     ).toISOString();
@@ -311,16 +320,18 @@ describe("cleanup", () => {
     // Do the cleanup
     await data.sessionCleanup!();
 
-    // Check that the login session still is there even though it's expired
+    // Expired login session and session are deleted (in the new model,
+    // their expires_at would have been extended on renewal if still active)
     const loginSessions = await db
       .selectFrom("login_sessions")
       .selectAll()
       .execute();
-    expect(loginSessions.length).toEqual(1);
+    expect(loginSessions.length).toEqual(0);
 
     const sessions = await db.selectFrom("sessions").selectAll().execute();
-    expect(sessions.length).toEqual(1);
+    expect(sessions.length).toEqual(0);
 
+    // The non-expired refresh token should still exist
     const refreshTokens = await db
       .selectFrom("refresh_tokens")
       .selectAll()
@@ -515,7 +526,7 @@ describe("sessionCleanup", () => {
     expect(loginSessions.length).toEqual(0);
   });
 
-  it("should not remove expired login sessions with active sessions connected", async () => {
+  it("should remove expired login sessions regardless of active sessions", async () => {
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -589,20 +600,20 @@ describe("sessionCleanup", () => {
     // Run cleanup for user1
     await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
 
-    // Check that the expired login session is NOT deleted (has active session)
+    // Expired login session is deleted (in the new model, its expires_at
+    // would have been extended on renewal if the session was still active)
     const loginSessions = await db
       .selectFrom("login_sessions")
       .selectAll()
       .execute();
-    expect(loginSessions.length).toEqual(1);
-    expect(loginSessions[0].id).toEqual("expiredLoginSession");
+    expect(loginSessions.length).toEqual(0);
 
-    // The session should still exist too
+    // The non-expired session should still exist
     const sessions = await db.selectFrom("sessions").selectAll().execute();
     expect(sessions.length).toEqual(1);
   });
 
-  it("should not remove sessions with active refresh tokens", async () => {
+  it("should remove expired sessions even if they have active refresh tokens", async () => {
     const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
@@ -676,10 +687,12 @@ describe("sessionCleanup", () => {
     // Run cleanup for user1
     await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
 
-    // Session should NOT be deleted because it has an active refresh token
+    // Expired session is deleted (in the new model, the session's expiry
+    // would have been extended on renewal if still active)
     const sessions = await db.selectFrom("sessions").selectAll().execute();
-    expect(sessions.length).toEqual(1);
+    expect(sessions.length).toEqual(0);
 
+    // Non-expired refresh token should still exist
     const refreshTokens = await db
       .selectFrom("refresh_tokens")
       .selectAll()
