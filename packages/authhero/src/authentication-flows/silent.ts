@@ -264,14 +264,18 @@ export async function silentAuth({
   const tokenResponse =
     response_type === AuthorizationResponseType.CODE
       ? await createCodeData(ctx, {
-          user,
-          client,
-          authParams: tokenResponseOptions.authParams,
-          login_id: loginSession.id,
-        })
+        user,
+        client,
+        authParams: tokenResponseOptions.authParams,
+        login_id: loginSession.id,
+      })
       : await createAuthTokens(ctx, tokenResponseOptions);
 
   // Update session
+  const newIdleExpiresAt = session.idle_expires_at
+    ? new Date(Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000).toISOString()
+    : undefined;
+
   await env.data.sessions.update(client.tenant.id, session.id, {
     used_at: new Date().toISOString(),
     last_interaction_at: new Date().toISOString(),
@@ -281,12 +285,15 @@ export async function silentAuth({
       last_ip: ctx.var.ip || "",
       last_user_agent: ctx.var.useragent || "",
     },
-    idle_expires_at: session.idle_expires_at
-      ? new Date(
-          Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
-        ).toISOString()
-      : undefined,
+    idle_expires_at: newIdleExpiresAt,
   });
+
+  // Keep the login_session alive as long as the session is active
+  if (newIdleExpiresAt) {
+    await env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      expires_at: newIdleExpiresAt,
+    });
+  }
 
   // Log successful authentication
   logMessage(ctx, client.tenant.id, {
