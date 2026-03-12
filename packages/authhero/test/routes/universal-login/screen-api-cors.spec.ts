@@ -120,6 +120,52 @@ describe("screen-api CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
   });
 
+  it("should include name field in screen response for data-screen attribute", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    const response = await u2App.request(
+      `/screen/identifier?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as {
+      screen: { name?: string; action: string };
+    };
+
+    // The name field must be present so the widget can set data-screen attribute
+    expect(body.screen.name).toBe("identifier");
+  });
+
   it("should use relative URLs in action field for cross-origin compatibility", async () => {
     const { u2App, oauthApp, env } = await getTestServer({
       mockEmail: true,
