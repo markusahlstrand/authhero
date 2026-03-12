@@ -188,6 +188,7 @@ const formComponentSchema = z.object({
  * UI Screen schema
  */
 const uiScreenSchema = z.object({
+  name: z.string().optional(),
   action: z.string(),
   method: z.enum(["POST", "GET"]),
   title: z.string().optional(),
