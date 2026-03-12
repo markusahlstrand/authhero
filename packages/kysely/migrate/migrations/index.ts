@@ -130,6 +130,7 @@ import * as o031_hooks_cleanup from "./2026-02-25T11:00:00_hooks_cleanup";
 import * as o032_unique_username_provider from "./2026-02-25T12:00:00_unique_username_provider";
 import * as o033_add_login_id_to_refresh_tokens from "./2026-03-04T10:00:00_add_login_id_to_refresh_tokens";
 import * as o034_refresh_tokens_replace_session_id_with_login_id from "./2026-03-11T10:00:00_refresh_tokens_replace_session_id_with_login_id";
+import * as o035_idle_expires_at_ts_indexes from "./2026-03-12T10:00:00_idle_expires_at_ts_indexes";
 
 // These need to be in alphabetic order
 export default {
@@ -265,4 +266,5 @@ export default {
   o032_unique_username_provider,
   o033_add_login_id_to_refresh_tokens,
   o034_refresh_tokens_replace_session_id_with_login_id,
+  o035_idle_expires_at_ts_indexes,
 };

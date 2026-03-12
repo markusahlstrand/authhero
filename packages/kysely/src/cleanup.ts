@@ -47,8 +47,9 @@ export function createSessionCleanup(db: Kysely<Database>) {
         }
 
         const result = await refreshTokensQuery.limit(BATCH_SIZE).execute();
-        deletedRefreshTokens += result.length;
-        if (result.length < BATCH_SIZE) break;
+        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
+        deletedRefreshTokens += deletedCount;
+        if (deletedCount < BATCH_SIZE) break;
       }
 
       // 2. Delete sessions in batches
@@ -71,8 +72,9 @@ export function createSessionCleanup(db: Kysely<Database>) {
         }
 
         const result = await sessionsQuery.limit(BATCH_SIZE).execute();
-        deletedSessions += result.length;
-        if (result.length < BATCH_SIZE) break;
+        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
+        deletedSessions += deletedCount;
+        if (deletedCount < BATCH_SIZE) break;
       }
 
       // 3. Delete login_sessions in batches
@@ -94,8 +96,9 @@ export function createSessionCleanup(db: Kysely<Database>) {
         }
 
         const result = await loginSessionsQuery.limit(BATCH_SIZE).execute();
-        deletedLoginSessions += result.length;
-        if (result.length < BATCH_SIZE) break;
+        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
+        deletedLoginSessions += deletedCount;
+        if (deletedCount < BATCH_SIZE) break;
       }
 
       if (deletedRefreshTokens > 0 || deletedSessions > 0 || deletedLoginSessions > 0) {
