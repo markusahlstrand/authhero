@@ -1,5 +1,12 @@
 # authhero
 
+## 4.54.0
+
+### Minor Changes
+
+- 9125101: Fix the screen name
+- 3b61167: Set login session state for impersonation
+
 ## 4.53.0
 
 ### Minor Changes
