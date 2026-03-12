@@ -4,11 +4,14 @@ import {
 } from "@authhero/adapter-interfaces";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { JWKS_CACHE_TIMEOUT_IN_SECONDS } from "../../constants";
-import { Bindings } from "../../types";
+import { Bindings, Variables } from "../../types";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { getJwksFromDatabase } from "../../utils/jwks";
 
-export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
+export const wellKnownRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
   // --------------------------------
   // GET /.well-known/jwks.json
   // --------------------------------
@@ -150,4 +153,34 @@ export const wellKnownRoutes = new OpenAPIHono<{ Bindings: Bindings }>()
         },
       });
     },
-  );
+  )
+  // --------------------------------
+  // GET /.well-known/* (HTTP domain validation)
+  // --------------------------------
+  .get("/*", async (ctx) => {
+    const domain =
+      ctx.var.custom_domain || ctx.req.header("x-forwarded-host");
+    if (!domain) return ctx.text("Not Found", 404);
+
+    const customDomain = await ctx.env.data.customDomains.getByDomain(domain);
+    if (!customDomain) return ctx.text("Not Found", 404);
+
+    const fullDomain = await ctx.env.data.customDomains.get(
+      customDomain.tenant_id,
+      customDomain.custom_domain_id,
+    );
+    if (!fullDomain?.verification?.methods) return ctx.text("Not Found", 404);
+
+    const requestPath = new URL(ctx.req.url).pathname;
+    const httpMethod = fullDomain.verification.methods.find(
+      (m) => m.name === "http" && new URL(m.http_url).pathname === requestPath,
+    );
+
+    if (!httpMethod || httpMethod.name !== "http") {
+      return ctx.text("Not Found", 404);
+    }
+
+    return ctx.text(httpMethod.http_body, 200, {
+      "content-type": "text/plain",
+    });
+  });
