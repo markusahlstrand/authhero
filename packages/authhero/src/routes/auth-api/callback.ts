@@ -8,7 +8,7 @@ import { connectionCallback } from "../../authentication-flows/connection";
 import { logMessage } from "../../helpers/logging";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 
-import { getUniversalLoginUrl } from "../../variables";
+import { getEnrichedClient } from "../../helpers/client";
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -54,8 +54,24 @@ async function returnError(
     state: loginSession.authParams.state,
   });
 
+  let routePrefix = "/u";
+  if (loginSession.authParams.client_id) {
+    try {
+      const client = await getEnrichedClient(
+        ctx.env,
+        loginSession.authParams.client_id,
+        ctx.var.tenant_id,
+      );
+      if (client?.client_metadata?.universal_login_version === "2") {
+        routePrefix = "/u2";
+      }
+    } catch {
+      // fall back to /u
+    }
+  }
+
   return ctx.redirect(
-    `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${loginSession.id}&error=${encodeURIComponent(error)}${error_description ? `&error_description=${encodeURIComponent(error_description)}` : ""}`,
+    `${ctx.env.ISSUER}${routePrefix.slice(1)}/login/identifier?state=${loginSession.id}&error=${encodeURIComponent(error)}${error_description ? `&error_description=${encodeURIComponent(error_description)}` : ""}`,
   );
 }
 
