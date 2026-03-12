@@ -1,5 +1,18 @@
 # @authhero/cloudflare-adapter
 
+## 2.20.0
+
+### Minor Changes
+
+- 3de697d: Add support for http validation of domains
+
+### Patch Changes
+
+- Updated dependencies [c65565c]
+- Updated dependencies [3de697d]
+  - @authhero/kysely-adapter@10.104.0
+  - @authhero/adapter-interfaces@0.141.0
+
 ## 2.19.3
 
 ### Patch Changes
