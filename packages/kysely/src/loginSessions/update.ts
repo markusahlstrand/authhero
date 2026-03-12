@@ -29,7 +29,8 @@ export function update(db: Kysely<Database>) {
         ...flattened,
         updated_at_ts: Date.now(),
         // Only update expires_at_ts if a new expires_at was provided
-        ...(expires_at ? { expires_at_ts: isoToDbDate(expires_at) } : {}),
+        // Use !== undefined to preserve null values (which mean "doesn't expire")
+        ...(expires_at !== undefined ? { expires_at_ts: isoToDbDate(expires_at) } : {}),
       })
       .where("login_sessions.id", "=", login_id)
       .where("login_sessions.tenant_id", "=", tenant_id)

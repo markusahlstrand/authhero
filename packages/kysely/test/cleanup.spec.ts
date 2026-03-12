@@ -342,7 +342,8 @@ describe("cleanup", () => {
 
 describe("sessionCleanup", () => {
   it("should remove expired sessions for a specific user", async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60).toISOString();
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -394,7 +395,7 @@ describe("sessionCleanup", () => {
       id: "session1",
       user_id: "email|user1",
       clients: ["clientId"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -411,7 +412,7 @@ describe("sessionCleanup", () => {
       login_id: "loginSession1",
       user_id: "email|user1",
       client_id: "clientId",
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       resource_servers: [{ audience: "http://example.com", scopes: "openid" }],
       device: {
         last_ip: "",
@@ -496,7 +497,8 @@ describe("sessionCleanup", () => {
     });
 
     // Insert login session directly with expired timestamp (no active session connected)
-    const oneHourAgoTs = Date.now() - 1000 * 60 * 60;
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgoTs = Date.now() - 1000 * 60 * 60 * 24 * 14;
     await db
       .insertInto("login_sessions")
       .values({
@@ -508,9 +510,9 @@ describe("sessionCleanup", () => {
         authParams_scope: "",
         authParams_audience: "http://example.com",
         authParams_redirect_uri: "http://example.com/callback",
-        created_at_ts: oneHourAgoTs,
-        updated_at_ts: oneHourAgoTs,
-        expires_at_ts: oneHourAgoTs,
+        created_at_ts: twoWeeksAgoTs,
+        updated_at_ts: twoWeeksAgoTs,
+        expires_at_ts: twoWeeksAgoTs,
         state: "pending",
       })
       .execute();
@@ -527,6 +529,8 @@ describe("sessionCleanup", () => {
   });
 
   it("should remove expired login sessions regardless of active sessions", async () => {
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -561,7 +565,8 @@ describe("sessionCleanup", () => {
     });
 
     // Insert login session directly with expired timestamp
-    const oneHourAgoTs = Date.now() - 1000 * 60 * 60;
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgoTs = Date.now() - 1000 * 60 * 60 * 24 * 14;
     await db
       .insertInto("login_sessions")
       .values({
@@ -573,9 +578,9 @@ describe("sessionCleanup", () => {
         authParams_scope: "",
         authParams_audience: "http://example.com",
         authParams_redirect_uri: "http://example.com/callback",
-        created_at_ts: oneHourAgoTs,
-        updated_at_ts: oneHourAgoTs,
-        expires_at_ts: oneHourAgoTs,
+        created_at_ts: twoWeeksAgoTs,
+        updated_at_ts: twoWeeksAgoTs,
+        expires_at_ts: twoWeeksAgoTs,
         state: "pending",
       })
       .execute();
@@ -614,7 +619,8 @@ describe("sessionCleanup", () => {
   });
 
   it("should remove expired sessions even if they have active refresh tokens", async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60).toISOString();
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -654,7 +660,7 @@ describe("sessionCleanup", () => {
       user_id: "email|user1",
       login_session_id: "loginSession1",
       clients: ["clientId"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -701,7 +707,8 @@ describe("sessionCleanup", () => {
   });
 
   it("should cleanup all tenants when no tenant_id is provided", async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60).toISOString();
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
 
     const { data, db } = await getTestServer();
 
@@ -769,7 +776,7 @@ describe("sessionCleanup", () => {
       id: "session1",
       user_id: "email|user1",
       clients: ["client1"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -784,7 +791,7 @@ describe("sessionCleanup", () => {
       id: "session2",
       user_id: "email|user2",
       clients: ["client2"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -804,7 +811,8 @@ describe("sessionCleanup", () => {
   });
 
   it("should only cleanup sessions for specified tenant", async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60).toISOString();
+    // Grace period is 1 week, so use 2 weeks ago for expired records
+    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
 
     const { data, db } = await getTestServer();
 
@@ -872,7 +880,7 @@ describe("sessionCleanup", () => {
       id: "session1",
       user_id: "email|user1",
       clients: ["client1"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
@@ -887,7 +895,7 @@ describe("sessionCleanup", () => {
       id: "session2",
       user_id: "email|user2",
       clients: ["client2"],
-      expires_at: oneHourAgo,
+      expires_at: twoWeeksAgo,
       device: {
         last_ip: "",
         initial_ip: "",
