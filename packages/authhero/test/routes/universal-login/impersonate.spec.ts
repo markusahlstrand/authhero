@@ -6,6 +6,7 @@ import { parseJWT } from "oslo/jwt";
 import {
   LogTypes,
   AuthorizationResponseType,
+  LoginSessionState,
 } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -300,6 +301,81 @@ describe("impersonation routes", () => {
       expect(response.status).toBe(302);
       const location = response.headers.get("location");
       expect(location).toBeTruthy();
+    });
+
+    it("should transition login session from awaiting_hook to completed", async () => {
+      const { universalApp, env } = await getTestServer();
+      const universalClient = testClient(universalApp, env);
+
+      // Create user with impersonation permission
+      await env.data.users.create("tenantId", {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
+        email: "user-hook@example.com",
+        email_verified: true,
+        provider: USERNAME_PASSWORD_PROVIDER,
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      });
+
+      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user-hook`, {
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
+        resource_server_identifier: "https://api.example.com/",
+        permission_name: "users:impersonate",
+      });
+
+      // Create login session in AWAITING_HOOK state
+      // (simulating state after onExecutePostLogin redirected to impersonate)
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        state: LoginSessionState.AWAITING_HOOK,
+        authParams: {
+          client_id: "clientId",
+          username: "user-hook@example.com",
+          scope: "openid",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      });
+
+      // Create a session
+      const session = await env.data.sessions.create("tenantId", {
+        id: "session-hook",
+        user_id: `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
+        login_session_id: loginSession.id,
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      // Link session to login session
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: session.id,
+      });
+
+      const response = await universalClient.impersonate.continue.$post({
+        query: { state: loginSession.id },
+      });
+
+      // Should redirect with auth code
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location");
+      expect(location).toContain("https://example.com/callback");
+      expect(location).toContain("code=");
+
+      // Verify the login session state transitioned to completed
+      const loginSessionAfter = await env.data.loginSessions.get(
+        "tenantId",
+        loginSession.id,
+      );
+      expect(loginSessionAfter?.state).toBe(LoginSessionState.COMPLETED);
     });
   });
 

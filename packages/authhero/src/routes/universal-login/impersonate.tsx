@@ -3,7 +3,10 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import ImpersonationPage from "../../components/ImpersonationPage";
 import { HTTPException } from "hono/http-exception";
-import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
+import {
+  createFrontChannelAuthResponse,
+  completeLoginSessionHook,
+} from "../../authentication-flows/common";
 import MessagePage from "../../components/MessagePage";
 import { logMessage } from "../../helpers/logging";
 
@@ -172,6 +175,9 @@ export const impersonateRoutes = new OpenAPIHono<{
         });
       }
 
+      // Complete the hook state transition before creating the auth response
+      await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
+
       // Continue with the normal authentication flow
       return createFrontChannelAuthResponse(ctx, {
         client,
@@ -310,6 +316,9 @@ export const impersonateRoutes = new OpenAPIHono<{
         strategy: targetUser.connection,
         strategy_type: targetUser.is_social ? "social" : "database",
       });
+
+      // Complete the hook state transition before creating the auth response
+      await completeLoginSessionHook(ctx, client.tenant.id, loginSession);
 
       // Continue with the authentication flow using the impersonated user
       // Use the original response_type and response_mode from the authorize request
