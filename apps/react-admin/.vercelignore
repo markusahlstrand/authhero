@@ -1,4 +1,13 @@
 # Ignore other projects in the monorepo
 ../auth0-proxy
 ../demo
-../../packages
+../../packages/adapter-interfaces
+../../packages/authhero
+../../packages/aws
+../../packages/cloudflare
+../../packages/create-authhero
+../../packages/drizzle
+../../packages/kysely
+../../packages/multi-tenancy
+../../packages/saml
+../../packages/ui-widget
