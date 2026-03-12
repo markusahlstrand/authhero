@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 10.104.0
+
+### Minor Changes
+
+- c65565c: Fix bug with removing sessions in cleanup
+- 3de697d: Add support for http validation of domains
+
+### Patch Changes
+
+- Updated dependencies [3de697d]
+  - @authhero/adapter-interfaces@0.141.0
+
 ## 10.103.0
 
 ### Minor Changes

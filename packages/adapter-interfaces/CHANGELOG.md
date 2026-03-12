@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.141.0
+
+### Minor Changes
+
+- 3de697d: Add support for http validation of domains
+
 ## 0.140.0
 
 ### Minor Changes

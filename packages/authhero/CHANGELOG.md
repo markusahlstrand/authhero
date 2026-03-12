@@ -1,5 +1,17 @@
 # authhero
 
+## 4.55.0
+
+### Minor Changes
+
+- 3de697d: Add support for http validation of domains
+
+### Patch Changes
+
+- Updated dependencies [3de697d]
+  - @authhero/adapter-interfaces@0.141.0
+  - @authhero/widget@0.17.2
+
 ## 4.54.0
 
 ### Minor Changes
