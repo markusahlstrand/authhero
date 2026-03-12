@@ -45,18 +45,16 @@ async function returnError(
     description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
   });
 
-  const redirectUri = new URL(redirect_uri);
-  setSearchParams(redirectUri, {
+  const loginUrl = new URL(`${getUniversalLoginUrl(ctx.env)}login/identifier`);
+  setSearchParams(loginUrl, {
+    state: loginSession.id,
     error,
     error_description,
-    error_reason,
     error_code,
-    state: loginSession.authParams.state,
+    error_reason,
   });
 
-  return ctx.redirect(
-    `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${loginSession.id}&error=${encodeURIComponent(error)}${error_description ? `&error_description=${encodeURIComponent(error_description)}` : ""}`,
-  );
+  return ctx.redirect(loginUrl.toString());
 }
 
 export const callbackRoutes = new OpenAPIHono<{
