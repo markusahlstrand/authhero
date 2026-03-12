@@ -20,11 +20,18 @@ export const customDomainInsertSchema = z.object({
 
 export type CustomDomainInsert = z.infer<typeof customDomainInsertSchema>;
 
-export const verificationMethodsSchema = z.object({
-  name: z.literal("txt"),
-  record: z.string(),
-  domain: z.string(),
-});
+export const verificationMethodsSchema = z.discriminatedUnion("name", [
+  z.object({
+    name: z.literal("txt"),
+    record: z.string(),
+    domain: z.string(),
+  }),
+  z.object({
+    name: z.literal("http"),
+    http_body: z.string(),
+    http_url: z.string(),
+  }),
+]);
 
 export type VerificationMethods = z.infer<typeof verificationMethodsSchema>;
 

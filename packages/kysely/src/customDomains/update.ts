@@ -8,13 +8,17 @@ export function update(db: Kysely<Database>) {
     custom_domain_id: string,
     params: Partial<CustomDomain>,
   ): Promise<boolean> => {
+    const { verification, domain_metadata, primary, ...rest } = params;
     const sqlCustomDomain = {
-      ...params,
+      ...rest,
       updated_at: new Date().toISOString(),
-      primary: params.primary ? 1 : 0,
-      domain_metadata: params.domain_metadata
-        ? JSON.stringify(params.domain_metadata)
-        : undefined,
+      ...(primary !== undefined && { primary: primary ? 1 : 0 }),
+      ...(domain_metadata !== undefined && {
+        domain_metadata: JSON.stringify(domain_metadata),
+      }),
+      ...(verification !== undefined && {
+        verification: JSON.stringify(verification) as any,
+      }),
     };
 
     const results = await db

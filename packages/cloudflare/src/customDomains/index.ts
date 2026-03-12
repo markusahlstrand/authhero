@@ -77,6 +77,29 @@ function mapCustomDomainResponse(
     });
   }
 
+  if (
+    result.ownership_verification_http?.http_body &&
+    result.ownership_verification_http?.http_url
+  ) {
+    methods.push({
+      name: "http",
+      http_body: result.ownership_verification_http.http_body,
+      http_url: result.ownership_verification_http.http_url,
+    });
+  }
+
+  if (result.ssl.validation_records) {
+    for (const record of result.ssl.validation_records) {
+      if (record.http_body && record.http_url) {
+        methods.push({
+          name: "http",
+          http_body: record.http_body,
+          http_url: record.http_url,
+        });
+      }
+    }
+  }
+
   // Build domain_metadata: start with any non-ssl metadata from the DB record,
   // then reflect current Cloudflare SSL state as ssl.* keys
   const domain_metadata: Record<string, string> = {
