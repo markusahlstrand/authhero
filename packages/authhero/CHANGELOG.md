@@ -1,5 +1,12 @@
 # authhero
 
+## 4.53.0
+
+### Minor Changes
+
+- c7c8770: Update expire_at_ts for login_sesssions
+- 38d5be2: Update login_sessions expire
+
 ## 4.52.0
 
 ### Minor Changes

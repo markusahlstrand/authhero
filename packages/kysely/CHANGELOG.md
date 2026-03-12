@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 10.103.0
+
+### Minor Changes
+
+- c7c8770: Update expire_at_ts for login_sesssions
+- 38d5be2: Update login_sessions expire
+
 ## 10.102.0
 
 ### Minor Changes
