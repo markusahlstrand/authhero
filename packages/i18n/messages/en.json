@@ -5,6 +5,7 @@
   "account_with_sso_provider": "We have detected that you have already created an account through",
   "agree_to": "By signing in, you agree to our",
   "already_have_account": "Already have an account?",
+  "back_to_login": "Back to login",
   "and": "and",
   "auth_method_email": "email address",
   "auth_method_email_or_phone": "email or phone number",

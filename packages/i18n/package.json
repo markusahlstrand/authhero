@@ -1,0 +1,21 @@
+{
+  "name": "@authhero/i18n",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
+  "homepage": "https://authhero.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusahlstrand/authhero"
+  },
+  "version": "0.1.0",
+  "files": [
+    "messages"
+  ],
+  "exports": {
+    "./messages/*.json": "./messages/*.json"
+  }
+}

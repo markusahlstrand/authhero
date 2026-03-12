@@ -128,6 +128,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: ^0.116.0
         version: 0.116.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+      '@authhero/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@authhero/widget':
         specifier: ^0.8.1
         version: 0.8.2(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
@@ -613,6 +616,8 @@ importers:
       vite:
         specifier: ^5.3.2
         version: 5.4.21(@types/node@20.19.27)
+
+  packages/i18n: {}
 
   packages/kysely:
     dependencies:

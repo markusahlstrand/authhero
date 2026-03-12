@@ -45,6 +45,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { useState, useCallback } from "react";
+import enMessages from "@authhero/i18n/messages/en.json";
 
 // Available prompt screens
 const PROMPT_SCREENS = [
@@ -94,8 +95,84 @@ const LANGUAGES = [
   { id: "cs", name: "Czech" },
 ];
 
-// Default text keys for each screen type with their default values
-const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
+// Map Auth0 custom text camelCase key names to authhero snake_case i18n keys
+// where they differ from the auto-converted name
+const I18N_KEY_ALIASES: Record<string, string> = {
+  button_text: "continue",
+  continue_button_text: "continue",
+  back_to_login_text: "back_to_login",
+  forgot_password_text: "forgot_password_link",
+  password_placeholder: "password",
+  show_password_text: "show_password",
+  hide_password_text: "hide_password",
+  edit_email_text: "edit",
+  footer_link_text: "create_new_account_link",
+  footer_text: "dont_have_account",
+  signup_action_text: "dont_have_account",
+  signup_action_link_text: "create_new_account_link",
+  login_action_link_text: "log_in",
+  login_action_text: "already_have_account",
+  resend_text: "resend_code",
+  code_placeholder: "enter_code_placeholder",
+  terms_of_service_link_text: "terms",
+  privacy_policy_link_text: "privacy_policy",
+  try_again_text: "unexpected_error_try_again",
+  or_text: "or",
+  separator_text: "or",
+  no_email: "no_email",
+  no_password: "no_password",
+  no_username: "no_username",
+  user_not_found: "user_not_found",
+  email_already_exists: "email_already_taken",
+  invalid_email_format: "invalid_email",
+};
+
+// Resolve a single screen's keys against the authhero en.json messages,
+// falling back to the hardcoded value when no match is found.
+function resolveDefaults(
+  screen: string,
+  keys: Record<string, string>,
+): Record<string, string> {
+  const msgs = enMessages as Record<string, string>;
+  const snakeScreen = screen.replace(/-/g, "_");
+  return Object.fromEntries(
+    Object.entries(keys).map(([key, fallback]) => {
+      const snakeKey = key
+        .replace(/([A-Z])/g, "_$1")
+        .replace(/-/g, "_")
+        .toLowerCase()
+        .replace(/^_/, "");
+
+      // 1. Screen-specific key: e.g. login_id_button_text
+      if (`${snakeScreen}_${snakeKey}` in msgs)
+        return [key, msgs[`${snakeScreen}_${snakeKey}`]!];
+
+      // 2. Direct snake_case key: e.g. no_email
+      if (snakeKey in msgs) return [key, msgs[snakeKey]!];
+
+      // 3. Alias: e.g. button_text → continue
+      const aliased = I18N_KEY_ALIASES[snakeKey];
+      if (aliased && aliased in msgs) return [key, msgs[aliased]!];
+
+      return [key, fallback];
+    }),
+  );
+}
+
+function resolveAllDefaults(
+  screens: Record<string, Record<string, string>>,
+): Record<string, Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(screens).map(([screen, keys]) => [
+      screen,
+      resolveDefaults(screen, keys),
+    ]),
+  );
+}
+
+// Default text keys for each screen type with their default values,
+// resolved against authhero's en.json translations where available.
+const DEFAULT_TEXT_KEYS = resolveAllDefaults({
   login: {
     pageTitle: "Log in | ${clientName}",
     title: "Welcome",
@@ -435,7 +512,7 @@ const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
     errorText: "An error occurred",
     tryAgainText: "Try again",
   },
-};
+});
 
 // Login flow options
 const LOGIN_FLOW_OPTIONS = [
