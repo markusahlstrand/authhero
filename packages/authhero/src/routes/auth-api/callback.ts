@@ -16,7 +16,6 @@ async function returnError(
   error: string,
   error_description?: string,
   error_code?: string,
-  error_reason?: string,
 ) {
   const oauth2code = await ctx.env.data.codes.get(
     ctx.var.tenant_id || "",
@@ -43,15 +42,6 @@ async function returnError(
   logMessage(ctx, ctx.var.tenant_id, {
     type: LogTypes.FAILED_LOGIN,
     description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
-  });
-
-  const redirectUri = new URL(redirect_uri);
-  setSearchParams(redirectUri, {
-    error,
-    error_description,
-    error_reason,
-    error_code,
-    state: loginSession.authParams.state,
   });
 
   let routePrefix = "/u";
@@ -82,9 +72,14 @@ async function returnError(
     }
   }
 
-  return ctx.redirect(
-    `${ctx.env.ISSUER}${routePrefix.slice(1)}${loginPath}?state=${loginSession.id}&error=${encodeURIComponent(error)}${error_description ? `&error_description=${encodeURIComponent(error_description)}` : ""}`,
-  );
+  const loginUrl = new URL(`${routePrefix}${loginPath}`, ctx.env.ISSUER);
+  setSearchParams(loginUrl, {
+    state: loginSession.id,
+    error,
+    error_description,
+  });
+
+  return ctx.redirect(loginUrl.toString());
 }
 
 export const callbackRoutes = new OpenAPIHono<{
@@ -144,7 +139,6 @@ export const callbackRoutes = new OpenAPIHono<{
         error,
         error_description,
         error_code,
-        error_reason,
       } = ctx.req.valid("query");
       if (error) {
         return returnError(
@@ -153,7 +147,6 @@ export const callbackRoutes = new OpenAPIHono<{
           error,
           error_description,
           error_code,
-          error_reason,
         );
       }
 
@@ -265,7 +258,6 @@ export const callbackRoutes = new OpenAPIHono<{
         error,
         error_description,
         error_code,
-        error_reason,
       } = ctx.req.valid("form");
 
       if (error) {
@@ -275,7 +267,6 @@ export const callbackRoutes = new OpenAPIHono<{
           error,
           error_description,
           error_code,
-          error_reason,
         );
       }
       if (!code) {
