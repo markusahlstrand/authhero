@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, promptSettingSchema } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
 import { Bindings, Variables } from "../../types";
@@ -8,7 +8,7 @@ import { connectionCallback } from "../../authentication-flows/connection";
 import { logMessage } from "../../helpers/logging";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 
-import { getUniversalLoginUrl } from "../../variables";
+import { getEnrichedClient } from "../../helpers/client";
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -54,7 +54,37 @@ async function returnError(
     error_reason,
   });
 
-  return ctx.redirect(loginUrl.toString());
+  let routePrefix = "/u";
+  let loginPath = "/login/identifier";
+  if (loginSession.authParams.client_id) {
+    try {
+      const client = await getEnrichedClient(
+        ctx.env,
+        loginSession.authParams.client_id,
+        ctx.var.tenant_id,
+      );
+      if (client?.client_metadata?.universal_login_version === "2") {
+        routePrefix = "/u2";
+
+        const promptSettings = await ctx.env.data.promptSettings.get(
+          ctx.var.tenant_id,
+        );
+        const settings = promptSettingSchema.parse(promptSettings || {});
+        const hasPasswordConnection = client.connections.some(
+          (c) => c.strategy === "Username-Password-Authentication",
+        );
+        if (settings.identifier_first === false && hasPasswordConnection) {
+          loginPath = "/login";
+        }
+      }
+    } catch {
+      // fall back to /u/login/identifier
+    }
+  }
+
+  return ctx.redirect(
+    `${ctx.env.ISSUER}${routePrefix.slice(1)}${loginPath}?state=${loginSession.id}&error=${encodeURIComponent(error)}${error_description ? `&error_description=${encodeURIComponent(error_description)}` : ""}`,
+  );
 }
 
 export const callbackRoutes = new OpenAPIHono<{
