@@ -1,5 +1,11 @@
 # authhero
 
+## 4.56.0
+
+### Minor Changes
+
+- 4a207af: Redirect to correct version of ui
+
 ## 4.55.0
 
 ### Minor Changes

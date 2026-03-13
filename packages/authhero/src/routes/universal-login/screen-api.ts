@@ -583,9 +583,7 @@ export const screenApiRoutes = new OpenAPIHono<{
         // Override action URL to use the screen-api endpoint for JSON submissions
         // Use relative URLs - browser will resolve against current origin
         const screenData = result.screen;
-        const nextScreenId =
-          screenData.screen.action?.match(/\/u2\/(?:screen\/)?([^/?]+)/)?.[1] ||
-          screenId;
+        const nextScreenId = screenData.screen.name || screenId;
 
         // Build navigateUrl for client-side routing (updates browser URL without page reload)
         const navigateUrl =
