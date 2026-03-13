@@ -49,13 +49,13 @@ async function waitForWorker(maxAttempts = 30, delayMs = 1000) {
     try {
       // Just check if the server responds (even with an error is fine)
       const response = await fetch(workerUrl, {
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(2000),
       });
       // Any response means the server is up
       return true;
     } catch (e) {
       // ECONNREFUSED means server not ready yet
-      if (e.cause?.code !== 'ECONNREFUSED') {
+      if (e.cause?.code !== "ECONNREFUSED") {
         // Other errors might mean the server is actually responding
         return true;
       }
@@ -69,7 +69,9 @@ async function waitForWorker(maxAttempts = 30, delayMs = 1000) {
 
     await setTimeout(delayMs);
     if (i > 0 && i % 5 === 0) {
-      console.log(`Still waiting for worker... (attempt ${i + 1}/${maxAttempts})`);
+      console.log(
+        `Still waiting for worker... (attempt ${i + 1}/${maxAttempts})`,
+      );
     }
   }
   return false;

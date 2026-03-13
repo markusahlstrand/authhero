@@ -13,7 +13,14 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 export async function forgotPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, prefill, errors, messages, routePrefix = "/u2" } = context;
+  const {
+    branding,
+    state,
+    prefill,
+    errors,
+    messages,
+    routePrefix = "/u2",
+  } = context;
 
   const components: FormNodeComponent[] = [
     // Info text

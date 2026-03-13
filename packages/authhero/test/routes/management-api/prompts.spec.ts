@@ -85,9 +85,9 @@ describe("prompts", () => {
     // ----------------------------------------
     // Set custom text
     // ----------------------------------------
-    const setResponse = await managementClient.prompts[":prompt"]["custom-text"][
-      ":language"
-    ].$put(
+    const setResponse = await managementClient.prompts[":prompt"][
+      "custom-text"
+    ][":language"].$put(
       {
         header: { "tenant-id": "tenantId" },
         param: { prompt: "login", language: "en" },
@@ -114,9 +114,9 @@ describe("prompts", () => {
     // ----------------------------------------
     // Get custom text
     // ----------------------------------------
-    const getResponse = await managementClient.prompts[":prompt"]["custom-text"][
-      ":language"
-    ].$get(
+    const getResponse = await managementClient.prompts[":prompt"][
+      "custom-text"
+    ][":language"].$get(
       {
         header: { "tenant-id": "tenantId" },
         param: { prompt: "login", language: "en" },
@@ -175,15 +175,14 @@ describe("prompts", () => {
     // ----------------------------------------
     // List all custom text entries
     // ----------------------------------------
-    const listResponse =
-      await managementClient.prompts["custom-text"].$get(
-        {
-          header: { "tenant-id": "tenantId" },
-        },
-        {
-          headers: { authorization: `Bearer ${token}` },
-        },
-      );
+    const listResponse = await managementClient.prompts["custom-text"].$get(
+      {
+        header: { "tenant-id": "tenantId" },
+      },
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
     expect(listResponse.status).toBe(200);
     const entries = await listResponse.json();
     expect(entries).toHaveLength(3);
@@ -222,15 +221,16 @@ describe("prompts", () => {
     expect(await afterDeleteResponse.json()).toEqual({});
 
     // Verify list is updated
-    const listAfterDeleteResponse =
-      await managementClient.prompts["custom-text"].$get(
-        {
-          header: { "tenant-id": "tenantId" },
-        },
-        {
-          headers: { authorization: `Bearer ${token}` },
-        },
-      );
+    const listAfterDeleteResponse = await managementClient.prompts[
+      "custom-text"
+    ].$get(
+      {
+        header: { "tenant-id": "tenantId" },
+      },
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
     const entriesAfterDelete = await listAfterDeleteResponse.json();
     expect(entriesAfterDelete).toHaveLength(2);
   });

@@ -51,7 +51,8 @@ const IdentifierPage: FC<Props> = ({
   const passwordConnection = client.connections.find(
     (c) => c.strategy === "Username-Password-Authentication",
   );
-  const requiresUsername = getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;
+  const requiresUsername =
+    getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;
 
   // Strategies that are handled by form inputs, not social/enterprise buttons
   const formStrategies = new Set([

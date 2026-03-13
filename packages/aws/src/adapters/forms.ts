@@ -123,7 +123,8 @@ export function createFormsAdapter(ctx: DynamoDBContext): FormsAdapter {
       if (form.name !== undefined) updates.name = form.name;
       if (form.nodes !== undefined) updates.nodes = JSON.stringify(form.nodes);
       if (form.start !== undefined) updates.start = JSON.stringify(form.start);
-      if (form.ending !== undefined) updates.ending = JSON.stringify(form.ending);
+      if (form.ending !== undefined)
+        updates.ending = JSON.stringify(form.ending);
       if (form.messages !== undefined)
         updates.messages = JSON.stringify(form.messages);
       if (form.languages !== undefined)

@@ -41,6 +41,10 @@
     }
   ],
   "links": [
-    { "id": "signup", "text": "Don't have an account? Sign up", "href": "/register" }
+    {
+      "id": "signup",
+      "text": "Don't have an account? Sign up",
+      "href": "/register"
+    }
   ]
 }

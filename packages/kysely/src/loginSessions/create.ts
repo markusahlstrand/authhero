@@ -5,7 +5,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { ulid } from "ulid";
-import { Database } from "../db"
+import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 import { nowIso } from "../utils/dateConversion";
 

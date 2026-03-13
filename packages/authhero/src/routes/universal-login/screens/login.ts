@@ -277,7 +277,8 @@ export const loginScreenDefinition: ScreenDefinition = {
       const passwordConnection = client.connections.find(
         (c) => c.strategy === "Username-Password-Authentication",
       );
-      const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+      const identifierConfig =
+        getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
 
       // Validate username is provided

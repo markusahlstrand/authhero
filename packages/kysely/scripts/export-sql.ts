@@ -13,7 +13,12 @@
  */
 
 import { Kysely, SqliteDialect } from "kysely";
-import type { CompiledQuery, DatabaseConnection, Driver, QueryResult } from "kysely";
+import type {
+  CompiledQuery,
+  DatabaseConnection,
+  Driver,
+  QueryResult,
+} from "kysely";
 import migrations from "../migrate/migrations";
 import fs from "fs";
 import path from "path";
@@ -40,18 +45,18 @@ const SKIP_PATTERNS = [
   /INFORMATION_SCHEMA/i,
   /^SELECT.*FROM.*sqlite_master/i,
   /^PRAGMA/i,
-  /ADD CONSTRAINT/i,                   // SQLite doesn't support ADD CONSTRAINT via ALTER
-  /DROP FOREIGN KEY/i,                 // SQLite doesn't support DROP FOREIGN KEY
-  /DROP CONSTRAINT/i,                  // SQLite doesn't support DROP CONSTRAINT
-  /CREATE TABLE.*_backup/i,            // Skip backup table creation (MySQL migration pattern)
-  /_backup/i,                          // Skip any statement involving backup tables
-  /rename to.*_backup/i,               // Skip rename to backup
-  /^DROP TABLE/i,                      // Skip DROP TABLE (not needed for fresh db)
-  /^drop table/i,                      // Skip drop table (lowercase variant)
+  /ADD CONSTRAINT/i, // SQLite doesn't support ADD CONSTRAINT via ALTER
+  /DROP FOREIGN KEY/i, // SQLite doesn't support DROP FOREIGN KEY
+  /DROP CONSTRAINT/i, // SQLite doesn't support DROP CONSTRAINT
+  /CREATE TABLE.*_backup/i, // Skip backup table creation (MySQL migration pattern)
+  /_backup/i, // Skip any statement involving backup tables
+  /rename to.*_backup/i, // Skip rename to backup
+  /^DROP TABLE/i, // Skip DROP TABLE (not needed for fresh db)
+  /^drop table/i, // Skip drop table (lowercase variant)
 ];
 
 function shouldSkipStatement(sql: string): boolean {
-  return SKIP_PATTERNS.some(pattern => pattern.test(sql));
+  return SKIP_PATTERNS.some((pattern) => pattern.test(sql));
 }
 
 class SqlCaptureConnection implements DatabaseConnection {
@@ -96,10 +101,13 @@ class SqlCaptureConnection implements DatabaseConnection {
 // Create a Kysely instance with our capturing driver
 const db = new Kysely<any>({
   dialect: {
-    createAdapter: () => new SqliteDialect({ database: {} as any }).createAdapter(),
+    createAdapter: () =>
+      new SqliteDialect({ database: {} as any }).createAdapter(),
     createDriver: () => new SqlCaptureDriver(),
-    createIntrospector: (db) => new SqliteDialect({ database: {} as any }).createIntrospector(db),
-    createQueryCompiler: () => new SqliteDialect({ database: {} as any }).createQueryCompiler(),
+    createIntrospector: (db) =>
+      new SqliteDialect({ database: {} as any }).createIntrospector(db),
+    createQueryCompiler: () =>
+      new SqliteDialect({ database: {} as any }).createQueryCompiler(),
   },
 });
 
@@ -114,7 +122,7 @@ async function collectMigrations(): Promise<MigrationResult[]> {
 
   // Sort migrations by name (which includes timestamp)
   const sortedMigrations = Object.entries(migrations).sort(([a], [b]) =>
-    a.localeCompare(b)
+    a.localeCompare(b),
   );
 
   for (const [name, migration] of sortedMigrations) {
@@ -163,14 +171,14 @@ async function outputCombined(results: MigrationResult[]) {
 
 async function outputD1Migrations(results: MigrationResult[]) {
   const outDir = path.join(process.cwd(), "migrations");
-  
+
   // Create migrations directory
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
   let migrationIndex = 0;
-  
+
   for (const result of results) {
     if (result.skipped || result.sql.length === 0) {
       continue;
@@ -186,7 +194,7 @@ async function outputD1Migrations(results: MigrationResult[]) {
       `-- Migration: ${result.name}`,
       `-- Generated from Kysely migration`,
       "",
-      ...result.sql.map(s => s + ";"),
+      ...result.sql.map((s) => s + ";"),
       "",
     ].join("\n");
 
@@ -200,7 +208,7 @@ async function outputD1Migrations(results: MigrationResult[]) {
 
 async function outputSingleFile(results: MigrationResult[]) {
   const outDir = path.join(process.cwd(), "sql-migrations");
-  
+
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
@@ -216,7 +224,7 @@ async function outputSingleFile(results: MigrationResult[]) {
   for (const result of results) {
     if (!result.skipped && result.sql.length > 0) {
       allSql.push(`-- ${result.name}`);
-      allSql.push(...result.sql.map(s => s + ";"));
+      allSql.push(...result.sql.map((s) => s + ";"));
       allSql.push("");
     }
   }
@@ -228,7 +236,7 @@ async function outputSingleFile(results: MigrationResult[]) {
 
 async function outputSquashed(results: MigrationResult[], outputDir?: string) {
   const outDir = outputDir || path.join(process.cwd(), "migrations");
-  
+
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
@@ -258,7 +266,7 @@ async function outputSquashed(results: MigrationResult[], outputDir?: string) {
     if (createTableMatch) {
       const tableName = createTableMatch[1];
       // Skip intermediate migration tables (ending with _2, _backup, etc.)
-      if (!tableName.match(/_\d+$/) && !tableName.includes('_backup')) {
+      if (!tableName.match(/_\d+$/) && !tableName.includes("_backup")) {
         createTableMap.set(tableName, stmt);
         // Reset added columns when we see a new CREATE TABLE for this table
         addColumnMap.delete(tableName);
@@ -270,14 +278,19 @@ async function outputSquashed(results: MigrationResult[], outputDir?: string) {
     if (createIndexMatch) {
       // Skip duplicate indices (keep first occurrence of each)
       const indexName = stmt.match(/create index "([^"]+)"/i)?.[1];
-      if (indexName && !createIndexStatements.some(s => s.includes(`"${indexName}"`))) {
+      if (
+        indexName &&
+        !createIndexStatements.some((s) => s.includes(`"${indexName}"`))
+      ) {
         createIndexStatements.push(stmt);
       }
       continue;
     }
 
     // Track ALTER TABLE ADD COLUMN to merge into CREATE TABLE
-    const addColumnMatch = stmt.match(/^alter table "([^"]+)" add column (.+)$/i);
+    const addColumnMatch = stmt.match(
+      /^alter table "([^"]+)" add column (.+)$/i,
+    );
     if (addColumnMatch) {
       const tableName = addColumnMatch[1];
       const columnDef = addColumnMatch[2];
@@ -290,17 +303,25 @@ async function outputSquashed(results: MigrationResult[], outputDir?: string) {
   }
 
   // Helper function to merge ADD COLUMN into CREATE TABLE
-  function mergeColumnsIntoCreateTable(createStmt: string, columnsToAdd: string[]): string {
+  function mergeColumnsIntoCreateTable(
+    createStmt: string,
+    columnsToAdd: string[],
+  ): string {
     // Find the closing paren of the CREATE TABLE
     // CREATE TABLE "x" (...columns...) -> need to insert before the last )
-    const lastParenIndex = createStmt.lastIndexOf(')');
+    const lastParenIndex = createStmt.lastIndexOf(")");
     if (lastParenIndex === -1) return createStmt;
-    
+
     // Build the new column definitions
-    const newColumns = columnsToAdd.join(', ');
-    
+    const newColumns = columnsToAdd.join(", ");
+
     // Insert the new columns before the closing paren
-    return createStmt.slice(0, lastParenIndex) + ', ' + newColumns + createStmt.slice(lastParenIndex);
+    return (
+      createStmt.slice(0, lastParenIndex) +
+      ", " +
+      newColumns +
+      createStmt.slice(lastParenIndex)
+    );
   }
 
   // Merge ADD COLUMN statements into CREATE TABLE statements
@@ -308,7 +329,7 @@ async function outputSquashed(results: MigrationResult[], outputDir?: string) {
     const createStmt = createTableMap.get(tableName);
     if (createStmt) {
       // Filter out columns that already exist in the CREATE TABLE
-      const filteredColumns = columns.filter(col => {
+      const filteredColumns = columns.filter((col) => {
         const colNameMatch = col.match(/^"([^"]+)"/);
         if (colNameMatch) {
           const colName = colNameMatch[1];
@@ -317,37 +338,40 @@ async function outputSquashed(results: MigrationResult[], outputDir?: string) {
         }
         return true;
       });
-      
+
       if (filteredColumns.length > 0) {
-        createTableMap.set(tableName, mergeColumnsIntoCreateTable(createStmt, filteredColumns));
+        createTableMap.set(
+          tableName,
+          mergeColumnsIntoCreateTable(createStmt, filteredColumns),
+        );
       }
     }
   }
 
   // Define table creation order based on foreign key dependencies
   const tableOrder = [
-    'tenants',
-    'members',
-    'applications',
-    'connections',
-    'migrations',
-    'domains',
-    'users',
-    'passwords',
-    'keys',
-    'logs',
-    'sessions',
-    'refresh_tokens',
-    'tickets',
-    'otps',
-    'codes',
-    'logins',
-    'forms',
-    'branding',
-    'themes',
-    'email_providers',
-    'hooks',
-    'prompt_settings',
+    "tenants",
+    "members",
+    "applications",
+    "connections",
+    "migrations",
+    "domains",
+    "users",
+    "passwords",
+    "keys",
+    "logs",
+    "sessions",
+    "refresh_tokens",
+    "tickets",
+    "otps",
+    "codes",
+    "logins",
+    "forms",
+    "branding",
+    "themes",
+    "email_providers",
+    "hooks",
+    "prompt_settings",
   ];
 
   const orderedSql: string[] = [

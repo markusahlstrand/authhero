@@ -50,7 +50,7 @@ function getApiUrl(): string {
   const selectedDomain = getSelectedDomainFromStorage();
   const formattedSelectedDomain = formatDomain(selectedDomain);
   const domainConfig = domains.find(
-    (d) => formatDomain(d.url) === formattedSelectedDomain
+    (d) => formatDomain(d.url) === formattedSelectedDomain,
   );
 
   let apiUrl: string;
@@ -69,8 +69,7 @@ function getApiUrl(): string {
 function getHttpClient(tenantId: string) {
   // Check single-tenant mode at request time
   const storedFlag = sessionStorage.getItem("isSingleTenant");
-  const isSingleTenant =
-    storedFlag?.endsWith("|true") || storedFlag === "true";
+  const isSingleTenant = storedFlag?.endsWith("|true") || storedFlag === "true";
 
   // In single-tenant mode, use the regular authorized client without organization scope
   // In multi-tenant mode, use organization-scoped client for proper access control
@@ -102,7 +101,7 @@ export function UniversalLoginTab() {
       const apiUrl = getApiUrl();
       const httpClient = getHttpClient(tenantId);
       const url = `${apiUrl}/api/v2/branding/templates/universal-login`;
-      
+
       const response = await httpClient(url, {
         headers: new Headers({
           "tenant-id": tenantId,
@@ -154,17 +153,14 @@ export function UniversalLoginTab() {
     try {
       const apiUrl = getApiUrl();
       const httpClient = getHttpClient(tenantId);
-      await httpClient(
-        `${apiUrl}/api/v2/branding/templates/universal-login`,
-        {
-          method: "PUT",
-          headers: new Headers({
-            "tenant-id": tenantId,
-            "Content-Type": "application/json",
-          }),
-          body: JSON.stringify({ body: template }),
-        }
-      );
+      await httpClient(`${apiUrl}/api/v2/branding/templates/universal-login`, {
+        method: "PUT",
+        headers: new Headers({
+          "tenant-id": tenantId,
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ body: template }),
+      });
 
       setOriginalTemplate(template);
       setHasTemplate(true);
@@ -182,7 +178,7 @@ export function UniversalLoginTab() {
 
     if (
       !window.confirm(
-        "Are you sure you want to delete the custom template? The default template will be used instead."
+        "Are you sure you want to delete the custom template? The default template will be used instead.",
       )
     ) {
       return;
@@ -194,15 +190,12 @@ export function UniversalLoginTab() {
     try {
       const apiUrl = getApiUrl();
       const httpClient = getHttpClient(tenantId);
-      await httpClient(
-        `${apiUrl}/api/v2/branding/templates/universal-login`,
-        {
-          method: "DELETE",
-          headers: new Headers({
-            "tenant-id": tenantId,
-          }),
-        }
-      );
+      await httpClient(`${apiUrl}/api/v2/branding/templates/universal-login`, {
+        method: "DELETE",
+        headers: new Headers({
+          "tenant-id": tenantId,
+        }),
+      });
 
       setTemplate("");
       setOriginalTemplate("");

@@ -67,18 +67,11 @@ export function createStatsAdapter(db: Kysely<Database>): StatsAdapter {
           dateExpr.as("date"),
           eb.fn
             .sum(
-              eb
-                .case()
-                .when("type", "in", LOGIN_TYPES)
-                .then(1)
-                .else(0)
-                .end(),
+              eb.case().when("type", "in", LOGIN_TYPES).then(1).else(0).end(),
             )
             .as("logins"),
           eb.fn
-            .sum(
-              eb.case().when("type", "=", "ss").then(1).else(0).end(),
-            )
+            .sum(eb.case().when("type", "=", "ss").then(1).else(0).end())
             .as("signups"),
           eb.fn
             .sum(
@@ -117,9 +110,7 @@ export function createStatsAdapter(db: Kysely<Database>): StatsAdapter {
         .where("date", ">=", thirtyDaysAgo.toISOString())
         .where("type", "in", LOGIN_TYPES)
         .where("user_id", "is not", null)
-        .select((eb) =>
-          eb.fn.count<number>("user_id").distinct().as("count"),
-        )
+        .select((eb) => eb.fn.count<number>("user_id").distinct().as("count"))
         .executeTakeFirstOrThrow();
 
       return result.count || 0;

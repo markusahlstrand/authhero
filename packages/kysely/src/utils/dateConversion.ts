@@ -98,7 +98,7 @@ export function nowIso(): string {
 export function convertDatesToAdapter<
   T extends Record<string, DbDateField>,
   R extends keyof T,
-  O extends keyof T = never
+  O extends keyof T = never,
 >(
   row: T,
   requiredColumns: R[],
@@ -120,4 +120,3 @@ export function convertDatesToAdapter<
 
   return result;
 }
-

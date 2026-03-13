@@ -1774,9 +1774,7 @@ const IdentityCard = () => {
                         label={
                           record?.email_verified ? "Verified" : "Unverified"
                         }
-                        color={
-                          record?.email_verified ? "success" : "warning"
-                        }
+                        color={record?.email_verified ? "success" : "warning"}
                         size="small"
                         variant="outlined"
                       />
@@ -1827,15 +1825,9 @@ const IdentityCard = () => {
                     {record?.phone_number && (
                       <Chip
                         label={
-                          record?.phone_verified
-                            ? "Verified"
-                            : "Unverified"
+                          record?.phone_verified ? "Verified" : "Unverified"
                         }
-                        color={
-                          record?.phone_verified
-                            ? "success"
-                            : "warning"
-                        }
+                        color={record?.phone_verified ? "success" : "warning"}
                         size="small"
                         variant="outlined"
                       />
@@ -1867,11 +1859,7 @@ const IdentityCard = () => {
               <TextField source="connection" emptyText="—" />
             </Labeled>
             <Labeled label="Latest Login">
-              <DateField
-                source="last_login"
-                showTime
-                emptyText="Never"
-              />
+              <DateField source="last_login" showTime emptyText="Never" />
             </Labeled>
             <Labeled label="Linked Accounts">
               <FunctionField

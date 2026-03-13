@@ -28,8 +28,7 @@ import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
 import { impersonateRoutes } from "./impersonate";
 import { continueRoutes } from "./continue";
-import { RedirectException } from "../../errors/redirect-exception";
-import { HTTPException } from "hono/http-exception";
+import { createUniversalLoginErrorHandler } from "./error-handler";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -49,19 +48,8 @@ export default function create(config: AuthHeroConfig) {
   // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
   const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
 
-  // As we want to be able to redirect on errors, we need to handle all errors explicitly
-  app.onError((err, c) => {
-    if (err instanceof RedirectException) {
-      return c.redirect(err.location, err.status);
-    }
-
-    // Optionally handle other error types
-    if (err instanceof HTTPException) {
-      return c.text(err.message || "Error", err.status);
-    }
-
-    return c.text("Unexpected error", 500);
-  });
+  // Render a branded error page for all errors (except redirects)
+  app.onError(createUniversalLoginErrorHandler());
 
   // Handle CSS route separately to avoid unnecessary middleware
   app.get("/css/tailwind.css", async (ctx: Context) => {

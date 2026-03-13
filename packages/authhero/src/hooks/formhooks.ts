@@ -26,7 +26,10 @@ export function isFormHook(
 /**
  * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{$form.gender}}" to its actual value
  */
-export function resolveTemplateField(field: string, context: ResolveContext): string | undefined {
+export function resolveTemplateField(
+  field: string,
+  context: ResolveContext,
+): string | undefined {
   // Match patterns like {{context.user.email}} or {{context.user.user_metadata.country}}
   const contextMatch = field.match(/^\{\{context\.user\.(.+)\}\}$/);
   if (contextMatch && contextMatch[1]) {
@@ -62,7 +65,11 @@ function resolveNestedPath(obj: unknown, path: string): string | undefined {
       return undefined;
     }
   }
-  return typeof value === "string" ? value : (value === undefined || value === null ? undefined : String(value));
+  return typeof value === "string"
+    ? value
+    : value === undefined || value === null
+      ? undefined
+      : String(value);
 }
 
 /**
@@ -148,7 +155,10 @@ function evaluateSingleCondition(
                 `{{context.user.${fieldName}}}`,
                 context,
               );
-              if (typeof resolvedField === "string" && resolvedField.endsWith(matchValue)) {
+              if (
+                typeof resolvedField === "string" &&
+                resolvedField.endsWith(matchValue)
+              ) {
                 return true;
               }
             }
@@ -181,7 +191,9 @@ function evaluateCondition(
   // Handle compound conditions with AND logic
   if (condition.type === "and" && Array.isArray(condition.conditions)) {
     // All conditions must be true (AND logic)
-    return condition.conditions.every((cond) => evaluateSingleCondition(cond, context));
+    return condition.conditions.every((cond) =>
+      evaluateSingleCondition(cond, context),
+    );
   }
 
   // Handle single condition (backward compatibility)
@@ -343,7 +355,12 @@ export function mergeUserUpdates(
  */
 type ResolveNodeResult =
   | { type: "step"; nodeId: string; userUpdates?: PendingUserUpdate[] }
-  | { type: "redirect"; target: string; customUrl?: string; userUpdates?: PendingUserUpdate[] }
+  | {
+      type: "redirect";
+      target: string;
+      customUrl?: string;
+      userUpdates?: PendingUserUpdate[];
+    }
   | { type: "end"; userUpdates?: PendingUserUpdate[] }
   | null;
 
@@ -394,7 +411,11 @@ export async function resolveNode(
   while (depth < maxDepth) {
     // Check for ending
     if (currentNodeId === "$ending") {
-      return { type: "end", userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
+      return {
+        type: "end",
+        userUpdates:
+          pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
+      };
     }
 
     const node = nodes.find((n) => n.id === currentNodeId);
@@ -404,7 +425,12 @@ export async function resolveNode(
 
     // If it's a STEP node, we found our target
     if (node.type === "STEP") {
-      return { type: "step", nodeId: node.id, userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
+      return {
+        type: "step",
+        nodeId: node.id,
+        userUpdates:
+          pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
+      };
     }
 
     // If it's an ACTION node with REDIRECT, return redirect info
@@ -415,7 +441,8 @@ export async function resolveNode(
           type: "redirect",
           target: actionNode.config.target,
           customUrl: actionNode.config.custom_url,
-          userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
+          userUpdates:
+            pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
         };
       }
       // For other action types, move to next node
@@ -469,7 +496,10 @@ export async function resolveNode(
                   type: "redirect",
                   target,
                   customUrl: action.params?.custom_url,
-                  userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
+                  userUpdates:
+                    pendingUserUpdates.length > 0
+                      ? pendingUserUpdates
+                      : undefined,
                 };
               }
             }
@@ -481,7 +511,8 @@ export async function resolveNode(
               action.params
             ) {
               const userId = action.params.user_id
-                ? resolveTemplateField(action.params.user_id, context) || context.user.user_id
+                ? resolveTemplateField(action.params.user_id, context) ||
+                  context.user.user_id
                 : context.user.user_id;
               const changes = action.params.changes
                 ? resolveTemplateValues(action.params.changes, context)
@@ -504,7 +535,11 @@ export async function resolveNode(
         continue;
       }
       // No next_node configured, treat as end
-      return { type: "end", userUpdates: pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined };
+      return {
+        type: "end",
+        userUpdates:
+          pendingUserUpdates.length > 0 ? pendingUserUpdates : undefined,
+      };
     }
 
     // Unknown node type
@@ -532,11 +567,11 @@ export async function handleFormHook(
   if (!tenant_id) {
     throw new HTTPException(400, { message: "Missing tenant_id in context" });
   }
-  
+
   // Determine route prefix based on client's universal_login_version
   const routePrefix =
     client?.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
-    
+
   const form = await data.forms.get(tenant_id, form_id);
   if (!form) {
     throw new HTTPException(404, {
@@ -563,7 +598,10 @@ export async function handleFormHook(
         actions: flow.actions?.map((action) => ({
           type: action.type,
           action: action.action,
-          params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
+          params:
+            "params" in action && action.params
+              ? (action.params as Record<string, unknown>)
+              : undefined,
         })),
       };
     };

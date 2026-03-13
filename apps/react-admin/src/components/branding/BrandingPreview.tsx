@@ -13,7 +13,8 @@ import { defineCustomElements } from "@authhero/widget/loader";
 // Initialize the widget custom elements with CDN path for assets
 if (typeof window !== "undefined") {
   defineCustomElements(window, {
-    resourcesUrl: "https://unpkg.com/@authhero/widget@latest/dist/authhero-widget/",
+    resourcesUrl:
+      "https://unpkg.com/@authhero/widget@latest/dist/authhero-widget/",
   });
 }
 
@@ -193,13 +194,13 @@ interface WidgetBranding {
   colors?: {
     primary?: string;
     page_background?:
-    | {
-      type?: string;
-      start?: string;
-      end?: string;
-      angle_deg?: number;
-    }
-    | string;
+      | {
+          type?: string;
+          start?: string;
+          end?: string;
+          angle_deg?: number;
+        }
+      | string;
   };
   logo_url?: string;
   favicon_url?: string;
@@ -293,12 +294,12 @@ export function BrandingPreview() {
   // Convert themes to widget theme format
   const theme: WidgetTheme | undefined = themes
     ? {
-      borders: themes.borders,
-      colors: themes.colors,
-      fonts: themes.fonts,
-      page_background: themes.page_background,
-      widget: themes.widget,
-    }
+        borders: themes.borders,
+        colors: themes.colors,
+        fonts: themes.fonts,
+        page_background: themes.page_background,
+        widget: themes.widget,
+      }
     : undefined;
 
   // Get background style for the preview container

@@ -1,2 +1,2 @@
 // Export types for consumers
-export * from './types/components';
+export * from "./types/components";

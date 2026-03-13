@@ -107,7 +107,7 @@ export async function loginWithCode(
   // Split by comma to get individual cookies, then find the one with a value (not the clear cookie)
   const cookies = setCookieHeader.split(", ");
   const actualCookie = cookies.find((c) => !c.includes("Max-Age=0"));
-  
+
   if (!actualCookie) {
     throw new Error("No actual session cookie found (only clear cookies)");
   }

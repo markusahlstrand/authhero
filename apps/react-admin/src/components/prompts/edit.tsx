@@ -515,9 +515,7 @@ function LoginFlowInput() {
               p: 2,
               border: 1,
               borderColor:
-                getCurrentValue() === option.value
-                  ? "primary.main"
-                  : "divider",
+                getCurrentValue() === option.value ? "primary.main" : "divider",
               borderRadius: 1,
               backgroundColor:
                 getCurrentValue() === option.value
@@ -708,7 +706,9 @@ function CustomTextTab() {
           typeof textsToSave !== "object" ||
           Array.isArray(textsToSave)
         ) {
-          notify("JSON must be an object with string values", { type: "error" });
+          notify("JSON must be an object with string values", {
+            type: "error",
+          });
           return;
         }
         // Validate all values are strings
@@ -751,7 +751,15 @@ function CustomTextTab() {
     } finally {
       setLoading(false);
     }
-  }, [dataProvider, selectedEntry, editingTexts, jsonValue, viewMode, notify, refresh]);
+  }, [
+    dataProvider,
+    selectedEntry,
+    editingTexts,
+    jsonValue,
+    viewMode,
+    notify,
+    refresh,
+  ]);
 
   const handleDelete = useCallback(
     async (entry: CustomTextEntry) => {
@@ -822,7 +830,10 @@ function CustomTextTab() {
   }, []);
 
   const handleViewModeChange = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, newMode: "form" | "json" | null) => {
+    (
+      _event: React.MouseEvent<HTMLElement>,
+      newMode: "form" | "json" | null,
+    ) => {
       if (newMode !== null) {
         // Sync data between views
         if (newMode === "json") {
@@ -1186,9 +1197,13 @@ function CustomTextTab() {
               </>
             ) : (
               <>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                  Edit all text values as JSON. You can copy and paste the entire
-                  JSON object to quickly update all values.
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ mb: 2 }}
+                >
+                  Edit all text values as JSON. You can copy and paste the
+                  entire JSON object to quickly update all values.
                 </Typography>
                 {jsonError && (
                   <Alert severity="error" sx={{ mb: 2 }}>

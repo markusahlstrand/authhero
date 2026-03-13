@@ -22,7 +22,10 @@ type Story = StoryObj<typeof meta>;
 const mockClient = {
   connections: [
     { name: "email", strategy: "email" },
-    { name: USERNAME_PASSWORD_PROVIDER, strategy: "Username-Password-Authentication" },
+    {
+      name: USERNAME_PASSWORD_PROVIDER,
+      strategy: "Username-Password-Authentication",
+    },
   ],
 } as any;
 

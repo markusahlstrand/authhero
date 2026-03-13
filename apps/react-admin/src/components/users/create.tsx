@@ -50,11 +50,11 @@ export function UserCreate() {
             isLoading
               ? []
               : connections?.map((connection) => ({
-                id: connection.name,
-                name: connection.name,
-                // Store connection strategy for reference
-                _strategy: connection.strategy,
-              }))
+                  id: connection.name,
+                  name: connection.name,
+                  // Store connection strategy for reference
+                  _strategy: connection.strategy,
+                }))
           }
           validate={[required()]}
           onChange={(e) => {

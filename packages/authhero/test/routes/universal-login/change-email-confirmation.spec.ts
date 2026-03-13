@@ -172,7 +172,9 @@ describe("change-email-confirmation", () => {
       "tenantId",
       loginSession.id,
     );
-    expect(loginSessionAfter?.state).toBe(LoginSessionState.AWAITING_CONTINUATION);
+    expect(loginSessionAfter?.state).toBe(
+      LoginSessionState.AWAITING_CONTINUATION,
+    );
 
     // Verify state_data is preserved (not cleared)
     expect(loginSessionAfter?.state_data).toBeTruthy();
@@ -228,7 +230,9 @@ describe("change-email-confirmation", () => {
       "tenantId",
       loginSession.id,
     );
-    expect(loginSessionMid?.state).toBe(LoginSessionState.AWAITING_CONTINUATION);
+    expect(loginSessionMid?.state).toBe(
+      LoginSessionState.AWAITING_CONTINUATION,
+    );
 
     // Now call /u/continue - this should work because state is still AWAITING_CONTINUATION
     const continueResponse = await universalClient.continue.$get({

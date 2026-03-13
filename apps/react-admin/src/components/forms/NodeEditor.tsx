@@ -313,7 +313,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 
     // Serialize current form data to compare
     const serialized = JSON.stringify(formData);
-    
+
     // Skip if this is the same data we just propagated or just initialized
     if (lastPropagatedData.current === serialized) {
       return;
@@ -1265,9 +1265,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
             </MenuItem>
           ))}
         </Select>
-        <FormHelperText>
-          Node to go to if no rules match
-        </FormHelperText>
+        <FormHelperText>Node to go to if no rules match</FormHelperText>
       </FormControl>
     </Box>
   );
@@ -1495,16 +1493,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   }
                 }}
                 renderOption={(props, option) => (
-                  <li {...props} key={typeof option === "string" ? option : option.value}>
+                  <li
+                    {...props}
+                    key={typeof option === "string" ? option : option.value}
+                  >
                     <Box>
                       <Typography variant="body2">
                         {typeof option === "string" ? option : option.label}
                       </Typography>
                       {typeof option !== "string" && option.description && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                        >
+                        <Typography variant="caption" color="text.secondary">
                           {option.description}
                         </Typography>
                       )}
@@ -1560,7 +1558,10 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   if (editingComponent?.config?.multiple) {
                     handleComponentFieldChange(
                       "default_value",
-                      raw.split(",").map((s) => s.trim()).filter(Boolean),
+                      raw
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
                     );
                   } else {
                     handleComponentFieldChange("default_value", raw);
@@ -1580,7 +1581,12 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 (option: { label: string; value: string }, index: number) => (
                   <Box
                     key={index}
-                    sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      mb: 1,
+                      alignItems: "center",
+                    }}
                   >
                     <TextField
                       size="small"
@@ -1698,16 +1704,16 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                   }
                 }}
                 renderOption={(props, option) => (
-                  <li {...props} key={typeof option === "string" ? option : option.value}>
+                  <li
+                    {...props}
+                    key={typeof option === "string" ? option : option.value}
+                  >
                     <Box>
                       <Typography variant="body2">
                         {typeof option === "string" ? option : option.label}
                       </Typography>
                       {typeof option !== "string" && option.description && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                        >
+                        <Typography variant="caption" color="text.secondary">
                           {option.description}
                         </Typography>
                       )}
@@ -1760,7 +1766,12 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 (option: { label: string; value: string }, index: number) => (
                   <Box
                     key={index}
-                    sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      mb: 1,
+                      alignItems: "center",
+                    }}
                   >
                     <TextField
                       size="small"

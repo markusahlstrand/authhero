@@ -33,7 +33,8 @@ interface RefreshTokenItem extends DynamoDBBaseItem {
 }
 
 function toRefreshToken(item: RefreshTokenItem): RefreshToken {
-  const { tenant_id, device, resource_servers, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, device, resource_servers, ...rest } =
+    stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,
@@ -132,7 +133,9 @@ export function createRefreshTokensAdapter(
         updates.device = JSON.stringify(refreshToken.device);
       }
       if (refreshToken.resource_servers !== undefined) {
-        updates.resource_servers = JSON.stringify(refreshToken.resource_servers);
+        updates.resource_servers = JSON.stringify(
+          refreshToken.resource_servers,
+        );
       }
 
       // Remove id from updates

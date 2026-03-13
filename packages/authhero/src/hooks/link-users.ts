@@ -50,4 +50,3 @@ export function linkUsersHook(data: DataAdapters) {
     return createdUser;
   };
 }
-

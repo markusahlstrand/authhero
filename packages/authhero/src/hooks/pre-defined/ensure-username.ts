@@ -136,7 +136,9 @@ async function findUniqueUsername(
     // Try numbered suffixes
     for (let i = 2; i <= maxRetries + 1; i++) {
       const candidate = `${base}${i}`;
-      if (!(await isUsernameTaken(userAdapter, tenantId, candidate, provider))) {
+      if (
+        !(await isUsernameTaken(userAdapter, tenantId, candidate, provider))
+      ) {
         return candidate;
       }
     }
@@ -169,8 +171,7 @@ function userHasUsername(
   if (user.identities) {
     return user.identities.some(
       (identity) =>
-        identity.provider === provider &&
-        identity.profileData?.username,
+        identity.provider === provider && identity.profileData?.username,
     );
   }
 
@@ -220,8 +221,7 @@ function userHasUsername(
 export function ensureUsername(
   options?: EnsureUsernameOptions,
 ): OnExecutePostLogin {
-  const connection =
-    options?.connection ?? "Username-Password-Authentication";
+  const connection = options?.connection ?? "Username-Password-Authentication";
   const provider = options?.provider ?? USERNAME_PASSWORD_PROVIDER;
   const maxRetries = Math.max(0, Math.floor(options?.maxRetries ?? 10));
 

@@ -27,8 +27,7 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
 import { u2FormNodeRoutes } from "./u2-form-node.tsx";
-import { RedirectException } from "../../errors/redirect-exception";
-import { HTTPException } from "hono/http-exception";
+import { createUniversalLoginErrorHandler } from "./error-handler";
 
 export default function createU2App(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -47,16 +46,8 @@ export default function createU2App(config: AuthHeroConfig) {
 
   const defaultTtl = config.dataAdapter.cache ? 300 : 0;
 
-  // Error handling
-  app.onError((err, c) => {
-    if (err instanceof RedirectException) {
-      return c.redirect(err.location, err.status);
-    }
-    if (err instanceof HTTPException) {
-      return c.text(err.message || "Error", err.status);
-    }
-    return c.text("Unexpected error", 500);
-  });
+  // Render a branded error page for all errors (except redirects)
+  app.onError(createUniversalLoginErrorHandler());
 
   // CORS middleware for screen API - allow requests from any origin
   app.use(

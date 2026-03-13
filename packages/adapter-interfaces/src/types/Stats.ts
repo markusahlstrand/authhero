@@ -19,7 +19,8 @@ export const dailyStatsSchema = z.object({
     example: 0,
   }),
   updated_at: z.string().openapi({
-    description: "Date and time this stats entry was last updated in ISO 8601 format",
+    description:
+      "Date and time this stats entry was last updated in ISO 8601 format",
     example: "2025-12-19T10:30:00.000Z",
   }),
   created_at: z.string().openapi({

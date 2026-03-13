@@ -387,9 +387,9 @@ export const userRoutes = new OpenAPIHono<{
         const userResponse = result.identities
           ? result
           : {
-            ...result,
-            identities: [pickIdentity(result)],
-          };
+              ...result,
+              identities: [pickIdentity(result)],
+            };
 
         return ctx.json(auth0UserResponseSchema.parse(userResponse), {
           status: 201,

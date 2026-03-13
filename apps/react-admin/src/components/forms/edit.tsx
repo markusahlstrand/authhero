@@ -51,11 +51,19 @@ const FlowDiagram = () => {
     if (nodeId === "start") {
       // Update the start node
       const currentStart = form.getValues("start") || {};
-      form.setValue("start", { ...currentStart, ...updates }, { shouldDirty: true });
+      form.setValue(
+        "start",
+        { ...currentStart, ...updates },
+        { shouldDirty: true },
+      );
     } else if (nodeId === "end") {
       // Update the ending node
       const currentEnding = form.getValues("ending") || {};
-      form.setValue("ending", { ...currentEnding, ...updates }, { shouldDirty: true });
+      form.setValue(
+        "ending",
+        { ...currentEnding, ...updates },
+        { shouldDirty: true },
+      );
     } else {
       // Check if this is a new node (has 'type' property in updates indicating full node data)
       const isNewNode =
@@ -66,7 +74,9 @@ const FlowDiagram = () => {
       if (isNewNode) {
         // Adding a new node
         const newNode = { id: nodeId, ...updates } as FlowNodeData;
-        form.setValue("nodes", [...currentNodes, newNode], { shouldDirty: true });
+        form.setValue("nodes", [...currentNodes, newNode], {
+          shouldDirty: true,
+        });
       } else {
         // Update an existing node
         const nodeIndex = currentNodes.findIndex(

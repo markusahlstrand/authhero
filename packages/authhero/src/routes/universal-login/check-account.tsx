@@ -84,7 +84,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
         : null;
 
       // Detect route prefix from request URL (u or u2)
-      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/") ? "/u2" : "/u";
+      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/")
+        ? "/u2"
+        : "/u";
 
       // Check if session exists and is not revoked
       if (!authSession || authSession.revoked_at) {
@@ -179,7 +181,9 @@ export const checkAccountRoutes = new OpenAPIHono<{
         : null;
 
       // Detect route prefix from request URL (u or u2)
-      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/") ? "/u2" : "/u";
+      const routePrefix = new URL(ctx.req.url).pathname.startsWith("/u2/")
+        ? "/u2"
+        : "/u";
 
       // Check if session exists and is not revoked
       if (!authSession || authSession.revoked_at) {

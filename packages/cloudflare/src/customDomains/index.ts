@@ -143,8 +143,8 @@ export function createCustomDomainsAdapter(
               },
               custom_metadata: config.enterprise
                 ? {
-                  tenant_id,
-                }
+                    tenant_id,
+                  }
                 : undefined,
             },
             "/custom_hostnames",

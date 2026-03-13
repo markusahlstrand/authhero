@@ -79,10 +79,12 @@ const parseFlowData = (data: Record<string, unknown>) => {
         }
       }
 
-
-
       // Extract EMAIL VERIFY_EMAIL params into form fields
-      if (parsed.type === "EMAIL" && parsed.action === "VERIFY_EMAIL" && parsed.params) {
+      if (
+        parsed.type === "EMAIL" &&
+        parsed.action === "VERIFY_EMAIL" &&
+        parsed.params
+      ) {
         const params = parsed.params as Record<string, unknown>;
         if (params.email) {
           parsed.email_address = params.email;
@@ -120,8 +122,13 @@ export const FlowEdit = () => {
             delete transformed.actions;
 
             // Ensure params.changes is an object for AUTH0 UPDATE_USER
-            if (transformed.type === "AUTH0" && transformed.action === "UPDATE_USER") {
-              const params = transformed.params as Record<string, unknown> | undefined;
+            if (
+              transformed.type === "AUTH0" &&
+              transformed.action === "UPDATE_USER"
+            ) {
+              const params = transformed.params as
+                | Record<string, unknown>
+                | undefined;
               if (params?.changes && typeof params.changes === "string") {
                 try {
                   params.changes = JSON.parse(params.changes as string);
@@ -155,12 +162,14 @@ export const FlowEdit = () => {
               transformed.params = params;
             }
 
-
-
             // Build params for EMAIL VERIFY_EMAIL
-            if (transformed.type === "EMAIL" && transformed.action === "VERIFY_EMAIL") {
+            if (
+              transformed.type === "EMAIL" &&
+              transformed.action === "VERIFY_EMAIL"
+            ) {
               transformed.params = {
-                email: (transformed.email_address as string) || "{{$form.email}}",
+                email:
+                  (transformed.email_address as string) || "{{$form.email}}",
               };
             }
 
@@ -220,7 +229,14 @@ export const FlowEdit = () => {
                         validate={[required()]}
                       />
                       {scopedFormData?.action === "UPDATE_USER" && (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                            mt: 1,
+                          }}
+                        >
                           <TextInput
                             source="params.user_id"
                             label="User ID"

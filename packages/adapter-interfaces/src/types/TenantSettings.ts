@@ -115,7 +115,9 @@ export const tenantSettingsSchema = z.object({
       // SMS provider configuration
       sms_provider: z
         .object({
-          provider: z.enum(["twilio", "vonage", "aws_sns", "phone_message_hook"]).optional(),
+          provider: z
+            .enum(["twilio", "vonage", "aws_sns", "phone_message_hook"])
+            .optional(),
         })
         .optional(),
       // Twilio-specific configuration

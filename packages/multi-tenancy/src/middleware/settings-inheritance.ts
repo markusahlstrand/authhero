@@ -47,10 +47,7 @@ function mergeUrlArrays(
   tenantUrls: string[] | undefined,
   controlPlaneUrls: string[] | undefined,
 ): string[] {
-  const combined = [
-    ...(controlPlaneUrls || []),
-    ...(tenantUrls || []),
-  ];
+  const combined = [...(controlPlaneUrls || []), ...(tenantUrls || [])];
   // Deduplicate while preserving order (tenant URLs take precedence)
   return [...new Set(combined)];
 }
@@ -299,7 +296,10 @@ export function createRuntimeFallbackAdapter(
     clients: {
       ...baseAdapters.clients,
 
-      get: async (tenantId: string, clientId: string): Promise<Client | null> => {
+      get: async (
+        tenantId: string,
+        clientId: string,
+      ): Promise<Client | null> => {
         const client = await baseAdapters.clients.get(tenantId, clientId);
         if (!client) {
           return null;
@@ -327,7 +327,9 @@ export function createRuntimeFallbackAdapter(
         return mergeClientWithFallback(client, controlPlaneClient);
       },
 
-      getByClientId: async (clientId: string): Promise<(Client & { tenant_id: string }) | null> => {
+      getByClientId: async (
+        clientId: string,
+      ): Promise<(Client & { tenant_id: string }) | null> => {
         const client = await baseAdapters.clients.getByClientId(clientId);
         if (!client) {
           return null;
@@ -363,8 +365,7 @@ export function createRuntimeFallbackAdapter(
       ...baseAdapters.emailProviders,
 
       get: async (tenantId: string) => {
-        const emailProvider =
-          await baseAdapters.emailProviders.get(tenantId);
+        const emailProvider = await baseAdapters.emailProviders.get(tenantId);
 
         // Return tenant's email provider if found
         if (emailProvider) {
@@ -417,16 +418,18 @@ export function createRuntimeFallbackAdapter(
       },
 
       list: async (tenantId: string, params?) => {
-        const result = await baseAdapters.resourceServers.list(tenantId, params);
+        const result = await baseAdapters.resourceServers.list(
+          tenantId,
+          params,
+        );
 
         if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
           return result;
         }
 
         // Get all control plane resource servers for scope fallback
-        const controlPlaneResult = await baseAdapters.resourceServers.list(
-          controlPlaneTenantId,
-        );
+        const controlPlaneResult =
+          await baseAdapters.resourceServers.list(controlPlaneTenantId);
 
         // Create a map of control plane resource servers by identifier
         const controlPlaneByIdentifier = new Map(

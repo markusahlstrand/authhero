@@ -5,12 +5,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { customTextKeys } from "../keys";
-import {
-  getItem,
-  putItem,
-  deleteItem,
-  queryItems,
-} from "../utils";
+import { getItem, putItem, deleteItem, queryItems } from "../utils";
 
 interface CustomTextItem extends DynamoDBBaseItem {
   tenant_id: string;

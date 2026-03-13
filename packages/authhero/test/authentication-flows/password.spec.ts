@@ -58,7 +58,10 @@ describe("password authentication - failed login tracking", () => {
     expect(blockedResponse.status).toEqual(403);
 
     // Verify user has failed_logins in app_metadata
-    const user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId`);
+    const user = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId`,
+    );
     expect(user?.app_metadata?.failed_logins).toBeDefined();
     expect(Array.isArray(user?.app_metadata?.failed_logins)).toBe(true);
     expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThanOrEqual(3);
@@ -105,7 +108,10 @@ describe("password authentication - failed login tracking", () => {
     expect(incorrectPasswordResponse.status).toEqual(403);
 
     // Verify failed login was recorded
-    let user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId2`);
+    let user = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId2`,
+    );
     if (user?.app_metadata?.failed_logins) {
       expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThan(0);
     }
@@ -124,7 +130,10 @@ describe("password authentication - failed login tracking", () => {
     expect(successResponse.status).toEqual(200);
 
     // Verify failed_logins was cleared
-    user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId2`);
+    user = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId2`,
+    );
     expect(user?.app_metadata?.failed_logins).toBeDefined();
     // After successful login, failed_logins should be empty or cleared
     if (user?.app_metadata?.failed_logins) {
@@ -155,12 +164,19 @@ describe("password authentication - failed login tracking", () => {
       Date.now(), // now
     ];
 
-    await env.data.users.update("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId3`, {
-      app_metadata: appMetadata,
-    });
+    await env.data.users.update(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId3`,
+      {
+        app_metadata: appMetadata,
+      },
+    );
 
     // Verify we have 3 timestamps
-    let user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId3`);
+    let user = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId3`,
+    );
     expect(user?.app_metadata?.failed_logins?.length).toBe(3);
 
     // Now trigger the cleanup by recording a new failed login

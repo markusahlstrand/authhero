@@ -46,15 +46,11 @@ describe("password-policy helper", () => {
 
     it("should throw on reused password", async () => {
       const policy = { password_history: { enable: true, size: 5 } };
-      mockData.passwords.list = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            password: await import("bcryptjs").then((b) =>
-              b.hash("oldpass", 10),
-            ),
-          },
-        ]);
+      mockData.passwords.list = vi.fn().mockResolvedValue([
+        {
+          password: await import("bcryptjs").then((b) => b.hash("oldpass", 10)),
+        },
+      ]);
       await expect(
         validatePasswordPolicy(policy, {
           newPassword: "oldpass",

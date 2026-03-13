@@ -89,8 +89,14 @@ export async function getEnrichedClient(
   return {
     ...finalClient,
     // Always include universal login URLs required for auth flows
-    web_origins: [...(finalClient.web_origins || []), `${universalLoginUrl}login`],
-    allowed_logout_urls: [...(finalClient.allowed_logout_urls || []), env.ISSUER],
+    web_origins: [
+      ...(finalClient.web_origins || []),
+      `${universalLoginUrl}login`,
+    ],
+    allowed_logout_urls: [
+      ...(finalClient.allowed_logout_urls || []),
+      env.ISSUER,
+    ],
     callbacks: [...(finalClient.callbacks || []), `${universalLoginUrl}info`],
     tenant,
     connections,

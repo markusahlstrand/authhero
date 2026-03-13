@@ -2,11 +2,7 @@ import Button from "./Button";
 import Layout from "./Layout";
 import i18next from "i18next";
 import type { FC } from "hono/jsx";
-import {
-  AuthParams,
-  Theme,
-  Branding,
-} from "@authhero/adapter-interfaces";
+import { AuthParams, Theme, Branding } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 
 type Props = {

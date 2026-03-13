@@ -116,14 +116,10 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
 
     async used(tenantId: string, codeId: string): Promise<boolean> {
       // Query using code_id prefix to find the code efficiently (O(1) lookup)
-      const { items } = await queryItems<CodeItem>(
-        ctx,
-        codeKeys.pk(tenantId),
-        {
-          skPrefix: codeKeys.skPrefixByCodeId(codeId),
-          limit: 1,
-        },
-      );
+      const { items } = await queryItems<CodeItem>(ctx, codeKeys.pk(tenantId), {
+        skPrefix: codeKeys.skPrefixByCodeId(codeId),
+        limit: 1,
+      });
 
       const code = items[0];
       if (!code) return false;
@@ -138,14 +134,10 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
 
     async remove(tenantId: string, codeId: string): Promise<boolean> {
       // Query using code_id prefix to find the code efficiently (O(1) lookup)
-      const { items } = await queryItems<CodeItem>(
-        ctx,
-        codeKeys.pk(tenantId),
-        {
-          skPrefix: codeKeys.skPrefixByCodeId(codeId),
-          limit: 1,
-        },
-      );
+      const { items } = await queryItems<CodeItem>(ctx, codeKeys.pk(tenantId), {
+        skPrefix: codeKeys.skPrefixByCodeId(codeId),
+        limit: 1,
+      });
 
       const code = items[0];
       if (!code) return false;

@@ -158,8 +158,7 @@ export const wellKnownRoutes = new OpenAPIHono<{
   // GET /.well-known/* (HTTP domain validation)
   // --------------------------------
   .get("/*", async (ctx) => {
-    const domain =
-      ctx.var.custom_domain || ctx.req.header("x-forwarded-host");
+    const domain = ctx.var.custom_domain || ctx.req.header("x-forwarded-host");
     if (!domain) return ctx.text("Not Found", 404);
 
     const customDomain = await ctx.env.data.customDomains.getByDomain(domain);

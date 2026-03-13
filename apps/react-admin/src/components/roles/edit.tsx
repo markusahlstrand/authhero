@@ -273,8 +273,13 @@ const AddRolePermissionButton = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => setSelectedPermissions([...availablePermissions])}
-                      disabled={selectedPermissions.length === availablePermissions.length}
+                      onClick={() =>
+                        setSelectedPermissions([...availablePermissions])
+                      }
+                      disabled={
+                        selectedPermissions.length ===
+                        availablePermissions.length
+                      }
                     >
                       Select All ({availablePermissions.length})
                     </Button>

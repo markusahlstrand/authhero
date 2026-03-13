@@ -270,7 +270,10 @@ const createMockAdapters = (): DataAdapters => ({
       };
       return servers[tenantId]?.[id] || null;
     },
-    list: async (tenantId: string, params?: { q?: string; per_page?: number }) => {
+    list: async (
+      tenantId: string,
+      params?: { q?: string; per_page?: number },
+    ) => {
       const servers: Record<string, ResourceServer[]> = {
         "control-plane": [
           {
@@ -606,9 +609,8 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     });
 
     it("should work with getByClientId", async () => {
-      const client = await fallbackAdapter.clients.getByClientId(
-        "tenant-client",
-      );
+      const client =
+        await fallbackAdapter.clients.getByClientId("tenant-client");
 
       expect(client).toBeDefined();
       expect(client!.tenant_id).toBe("tenant-1");
@@ -699,9 +701,8 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     });
 
     it("should return raw client data via getByClientId without URL merging", async () => {
-      const client = await managementAdapter.clients.getByClientId(
-        "tenant-client",
-      );
+      const client =
+        await managementAdapter.clients.getByClientId("tenant-client");
 
       expect(client).toBeDefined();
       expect(client!.tenant_id).toBe("tenant-1");
@@ -752,7 +753,10 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
 
   describe("resourceServers scope inheritance", () => {
     it("should inherit scopes from control plane when tenant has no scopes", async () => {
-      const rs = await fallbackAdapter.resourceServers.get("tenant-1", "api-rs");
+      const rs = await fallbackAdapter.resourceServers.get(
+        "tenant-1",
+        "api-rs",
+      );
 
       expect(rs).toBeDefined();
       expect(rs!.token_lifetime).toBe(3600); // Tenant value preserved
@@ -774,7 +778,7 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
 
       expect(rs).toBeDefined();
       expect(rs!.scopes).toHaveLength(4); // 3 from control plane + 1 custom (read:users is overridden)
-      
+
       // Find scope values
       const scopeValues = rs!.scopes!.map((s) => s.value);
       expect(scopeValues).toContain("read:users");
@@ -788,7 +792,10 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     });
 
     it("should not merge scopes for control plane tenant itself", async () => {
-      const rs = await fallbackAdapter.resourceServers.get("control-plane", "api-rs");
+      const rs = await fallbackAdapter.resourceServers.get(
+        "control-plane",
+        "api-rs",
+      );
 
       expect(rs).toBeDefined();
       expect(rs!.scopes).toHaveLength(3);

@@ -721,7 +721,7 @@ export class AuthheroWidget {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
       // Create a synthetic submit event and call handleSubmit
-      const syntheticEvent = { preventDefault: () => { } } as Event;
+      const syntheticEvent = { preventDefault: () => {} } as Event;
       this.handleSubmit(syntheticEvent);
       return;
     }
@@ -854,8 +854,10 @@ export class AuthheroWidget {
     }
 
     // Use the local screen variable for all rendering
-    const screenErrors = screen.messages?.filter((m) => m.type === "error") || [];
-    const screenSuccesses = screen.messages?.filter((m) => m.type === "success") || [];
+    const screenErrors =
+      screen.messages?.filter((m) => m.type === "error") || [];
+    const screenSuccesses =
+      screen.messages?.filter((m) => m.type === "success") || [];
     const components = [...(screen.components ?? [])]
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -869,7 +871,8 @@ export class AuthheroWidget {
     );
     const dividerComponent = components.find((c) => this.isDividerComponent(c));
     const hasDivider = !!dividerComponent;
-    const dividerText = (dividerComponent as DividerComponent)?.config?.text || "Or";
+    const dividerText =
+      (dividerComponent as DividerComponent)?.config?.text || "Or";
 
     // Build dynamic exportparts for social buttons including provider-specific parts
     const getExportParts = (component: FormComponent): string => {

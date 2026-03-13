@@ -66,7 +66,9 @@ describe("successful login - logging", () => {
     expect(logDate.getTime()).toBeLessThanOrEqual(afterLogin.getTime());
 
     // Verify user details
-    expect(successLoginLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|test123`);
+    expect(successLoginLog?.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|test123`,
+    );
     expect(successLoginLog?.user_name).toBeDefined();
 
     // Verify connection details
@@ -155,7 +157,10 @@ describe("successful login - logging", () => {
     expect(loginResponse.status).toEqual(200);
 
     // Verify user's login count was incremented
-    const updatedUser = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|count123`);
+    const updatedUser = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|count123`,
+    );
     expect(updatedUser?.login_count).toBe(1);
 
     // Verify last_login and last_ip were updated

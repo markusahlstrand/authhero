@@ -206,10 +206,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
       "tenantId",
       loginSession!.session_id!,
     );
-    const userBefore = await env.data.users.get(
-      "tenantId",
-      session!.user_id!,
-    );
+    const userBefore = await env.data.users.get("tenantId", session!.user_id!);
     expect(userBefore).toBeTruthy();
     // Before submission, user should not have gender in user_metadata
     expect(
@@ -234,14 +231,11 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
     expect(postLocation).toContain("code=");
 
     // Verify the user was updated with the static value from the flow action
-    const userAfter = await env.data.users.get(
-      "tenantId",
-      session!.user_id!,
-    );
+    const userAfter = await env.data.users.get("tenantId", session!.user_id!);
     expect(userAfter).toBeTruthy();
-    expect(
-      (userAfter!.user_metadata as Record<string, unknown>)?.gender,
-    ).toBe("male"); // Static value from the flow action
+    expect((userAfter!.user_metadata as Record<string, unknown>)?.gender).toBe(
+      "male",
+    ); // Static value from the flow action
   });
 
   it("should execute UPDATE_USER with template field references after submitting form", async () => {
@@ -448,16 +442,13 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
       "tenantId",
       loginSession!.session_id!,
     );
-    const userAfter = await env.data.users.get(
-      "tenantId",
-      session!.user_id!,
-    );
+    const userAfter = await env.data.users.get("tenantId", session!.user_id!);
     expect(userAfter).toBeTruthy();
 
     // metadata.gender should map to user_metadata.gender
-    expect(
-      (userAfter!.user_metadata as Record<string, unknown>)?.gender,
-    ).toBe("female");
+    expect((userAfter!.user_metadata as Record<string, unknown>)?.gender).toBe(
+      "female",
+    );
 
     // metadata.birthdate should map to user_metadata.birthdate
     expect(
@@ -465,9 +456,9 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
     ).toBe("1985-03-20");
 
     // address.country should map to address.country (OIDC address claim)
-    expect(
-      (userAfter!.address as Record<string, unknown>)?.country,
-    ).toBe("swe");
+    expect((userAfter!.address as Record<string, unknown>)?.country).toBe(
+      "swe",
+    );
   });
 
   it("should skip UPDATE_USER when flow has no changes", async () => {
@@ -618,10 +609,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
       "tenantId",
       loginSession!.session_id!,
     );
-    const userAfter = await env.data.users.get(
-      "tenantId",
-      session!.user_id!,
-    );
+    const userAfter = await env.data.users.get("tenantId", session!.user_id!);
     expect(userAfter).toBeTruthy();
     // "something" field should not exist since the template referenced a nonexistent field
     expect(

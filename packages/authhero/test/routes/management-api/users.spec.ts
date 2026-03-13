@@ -1724,7 +1724,9 @@ describe("users management API endpoint", () => {
       if (!Array.isArray(unlinkUserBody)) {
         throw new Error("Expected an array of users");
       }
-      expect(unlinkUserBody[0]?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|userId2`);
+      expect(unlinkUserBody[0]?.user_id).toBe(
+        `${USERNAME_PASSWORD_PROVIDER}|userId2`,
+      );
 
       // manually check in the db that the linked_to field has been reset
       const user1Updated = await env.data.users.get(
@@ -2313,7 +2315,9 @@ describe("users management API endpoint", () => {
 
       expect(createPasswordUserResponse.status).toBe(201);
       const passwordUser = await createPasswordUserResponse.json();
-      expect(passwordUser.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
+      expect(passwordUser.user_id).toMatch(
+        new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`),
+      );
       expect(passwordUser.email).toBe(testEmail);
 
       // Step 3: Set the password for the password user via PATCH
@@ -2477,7 +2481,9 @@ describe("users management API endpoint", () => {
 
       expect(createUserResponse.status).toBe(201);
       const user = await createUserResponse.json();
-      expect(user.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
+      expect(user.user_id).toMatch(
+        new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`),
+      );
       expect(user.email).toBe(testEmail);
 
       // Verify no password exists yet
@@ -2582,7 +2588,9 @@ describe("users management API endpoint", () => {
 
       expect(createUserResponse.status).toBe(201);
       const user = await createUserResponse.json();
-      expect(user.user_id).toMatch(new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`));
+      expect(user.user_id).toMatch(
+        new RegExp(`^${USERNAME_PASSWORD_PROVIDER}\\|`),
+      );
 
       // Verify password was created
       const initialPasswordRecord = await env.data.passwords.get(

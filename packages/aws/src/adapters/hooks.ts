@@ -45,8 +45,7 @@ export function createHooksAdapter(ctx: DynamoDBContext): HooksAdapter {
       // Extract url, form_id, and template_id from the union type
       const url = "url" in hook ? hook.url : undefined;
       const formId = "form_id" in hook ? hook.form_id : undefined;
-      const templateId =
-        "template_id" in hook ? hook.template_id : undefined;
+      const templateId = "template_id" in hook ? hook.template_id : undefined;
 
       const item: HookItem = {
         PK: hookKeys.pk(tenantId),

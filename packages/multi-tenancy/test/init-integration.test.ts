@@ -11,7 +11,11 @@ import {
   MultiTenancyConfig,
   MultiTenancyHooks,
 } from "../src/index";
-import { Role, ResourceServer, DataAdapters } from "@authhero/adapter-interfaces";
+import {
+  Role,
+  ResourceServer,
+  DataAdapters,
+} from "@authhero/adapter-interfaces";
 import { EntityHookContext } from "authhero";
 
 /**
@@ -536,7 +540,9 @@ describe("Tenant Sync Hooks Integration", () => {
       "ExistingRole",
     );
     expect(childRole).toBeDefined();
-    expect(childRole?.description).toBe("Updated description from control plane");
+    expect(childRole?.description).toBe(
+      "Updated description from control plane",
+    );
     expect(childRole?.is_system).toBe(true);
   });
 });

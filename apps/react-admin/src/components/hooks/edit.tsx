@@ -122,9 +122,9 @@ export function HookEdit() {
                       formsLoading
                         ? []
                         : (forms || []).map((form) => ({
-                          id: form.id,
-                          name: form.name,
-                        }))
+                            id: form.id,
+                            name: form.name,
+                          }))
                     }
                     validate={[required()]}
                     fullWidth
@@ -144,11 +144,7 @@ export function HookEdit() {
             );
           }}
         </FormDataConsumer>
-        <SelectInput
-          source="trigger_id"
-          choices={triggerChoices}
-          required
-        />
+        <SelectInput source="trigger_id" choices={triggerChoices} required />
         <BooleanInput source="enabled" />
         <BooleanInput
           source="synchronous"

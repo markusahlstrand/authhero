@@ -18,8 +18,14 @@ export function get(db: Kysely<Database>) {
     return {
       ...customDomain,
       primary: customDomain.primary === 1,
-      domain_metadata: parseJsonIfDefined(customDomain.domain_metadata, undefined),
-      verification: parseJsonIfDefined(customDomain.verification as any, undefined),
+      domain_metadata: parseJsonIfDefined(
+        customDomain.domain_metadata,
+        undefined,
+      ),
+      verification: parseJsonIfDefined(
+        customDomain.verification as any,
+        undefined,
+      ),
     };
   };
 }

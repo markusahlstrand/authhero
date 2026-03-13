@@ -33,7 +33,8 @@ function toPromptSettings(item: PromptSettingsItem): PromptSetting {
     universal_login_experience: rest.universal_login_experience || "new",
     identifier_first: rest.identifier_first ?? false,
     password_first: rest.password_first ?? false,
-    webauthn_platform_first_factor: rest.webauthn_platform_first_factor ?? false,
+    webauthn_platform_first_factor:
+      rest.webauthn_platform_first_factor ?? false,
   });
 
   return promptSettingSchema.parse(data);

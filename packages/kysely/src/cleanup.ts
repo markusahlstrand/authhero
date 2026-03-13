@@ -43,7 +43,11 @@ export function createSessionCleanup(db: Kysely<Database>) {
           );
         }
         if (user_id) {
-          refreshTokensQuery = refreshTokensQuery.where("user_id", "=", user_id);
+          refreshTokensQuery = refreshTokensQuery.where(
+            "user_id",
+            "=",
+            user_id,
+          );
         }
 
         const result = await refreshTokensQuery.limit(BATCH_SIZE).execute();
@@ -92,7 +96,11 @@ export function createSessionCleanup(db: Kysely<Database>) {
           );
         }
         if (user_id) {
-          loginSessionsQuery = loginSessionsQuery.where("user_id", "=", user_id);
+          loginSessionsQuery = loginSessionsQuery.where(
+            "user_id",
+            "=",
+            user_id,
+          );
         }
 
         const result = await loginSessionsQuery.limit(BATCH_SIZE).execute();
@@ -101,7 +109,11 @@ export function createSessionCleanup(db: Kysely<Database>) {
         if (deletedCount < BATCH_SIZE) break;
       }
 
-      if (deletedRefreshTokens > 0 || deletedSessions > 0 || deletedLoginSessions > 0) {
+      if (
+        deletedRefreshTokens > 0 ||
+        deletedSessions > 0 ||
+        deletedLoginSessions > 0
+      ) {
         console.log(
           `Session cleanup: deleted ${deletedRefreshTokens} refresh_tokens, ${deletedSessions} sessions, ${deletedLoginSessions} login_sessions`,
         );

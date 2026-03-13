@@ -252,16 +252,12 @@ async function buildScreenContext(
     uiLocalesOverride &&
     uiLocalesOverride !== loginSession?.authParams?.ui_locales
   ) {
-    await ctx.env.data.loginSessions.update(
-      client.tenant.id,
-      loginSession.id,
-      {
-        authParams: {
-          ...loginSession.authParams,
-          ui_locales: uiLocalesOverride,
-        },
+    await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+      authParams: {
+        ...loginSession.authParams,
+        ui_locales: uiLocalesOverride,
       },
-    );
+    });
     if (loginSession.authParams) {
       loginSession.authParams.ui_locales = uiLocalesOverride;
     }
@@ -701,7 +697,10 @@ export const screenApiRoutes = new OpenAPIHono<{
             actions: flow.actions?.map((action: any) => ({
               type: action.type,
               action: action.action,
-              params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
+              params:
+                "params" in action && action.params
+                  ? (action.params as Record<string, unknown>)
+                  : undefined,
             })),
           };
         };
@@ -723,7 +722,11 @@ export const screenApiRoutes = new OpenAPIHono<{
         // Collect submitted field values
         const submittedFields: Record<string, string> = {};
         for (const comp of stepNode.config.components) {
-          if (data[comp.id] !== undefined && data[comp.id] !== null && data[comp.id] !== "") {
+          if (
+            data[comp.id] !== undefined &&
+            data[comp.id] !== null &&
+            data[comp.id] !== ""
+          ) {
             submittedFields[comp.id] = String(data[comp.id]);
           }
         }
@@ -737,7 +740,11 @@ export const screenApiRoutes = new OpenAPIHono<{
 
         if (resolveResult) {
           // Execute any pending user updates from AUTH0 UPDATE_USER actions
-          if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0 && user) {
+          if (
+            resolveResult.userUpdates &&
+            resolveResult.userUpdates.length > 0 &&
+            user
+          ) {
             const merged = mergeUserUpdates(resolveResult.userUpdates);
             for (const update of merged) {
               const userUpdates = buildUserUpdates(update.changes, user);

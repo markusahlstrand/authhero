@@ -79,29 +79,51 @@ function toClient(item: ClientItem): Client {
   const data = removeNullProperties({
     ...rest,
     callbacks: item.callbacks ? JSON.parse(item.callbacks) : undefined,
-    allowed_origins: item.allowed_origins ? JSON.parse(item.allowed_origins) : undefined,
+    allowed_origins: item.allowed_origins
+      ? JSON.parse(item.allowed_origins)
+      : undefined,
     web_origins: item.web_origins ? JSON.parse(item.web_origins) : undefined,
-    client_aliases: item.client_aliases ? JSON.parse(item.client_aliases) : undefined,
-    allowed_clients: item.allowed_clients ? JSON.parse(item.allowed_clients) : undefined,
+    client_aliases: item.client_aliases
+      ? JSON.parse(item.client_aliases)
+      : undefined,
+    allowed_clients: item.allowed_clients
+      ? JSON.parse(item.allowed_clients)
+      : undefined,
     connections: item.connections ? JSON.parse(item.connections) : undefined,
-    allowed_logout_urls: item.allowed_logout_urls ? JSON.parse(item.allowed_logout_urls) : undefined,
-    session_transfer: item.session_transfer ? JSON.parse(item.session_transfer) : undefined,
+    allowed_logout_urls: item.allowed_logout_urls
+      ? JSON.parse(item.allowed_logout_urls)
+      : undefined,
+    session_transfer: item.session_transfer
+      ? JSON.parse(item.session_transfer)
+      : undefined,
     oidc_logout: item.oidc_logout ? JSON.parse(item.oidc_logout) : undefined,
     grant_types: item.grant_types ? JSON.parse(item.grant_types) : undefined,
-    jwt_configuration: item.jwt_configuration ? JSON.parse(item.jwt_configuration) : undefined,
+    jwt_configuration: item.jwt_configuration
+      ? JSON.parse(item.jwt_configuration)
+      : undefined,
     signing_keys: item.signing_keys ? JSON.parse(item.signing_keys) : undefined,
-    encryption_key: item.encryption_key ? JSON.parse(item.encryption_key) : undefined,
+    encryption_key: item.encryption_key
+      ? JSON.parse(item.encryption_key)
+      : undefined,
     addons: item.addons ? JSON.parse(item.addons) : undefined,
-    client_metadata: item.client_metadata ? JSON.parse(item.client_metadata) : undefined,
+    client_metadata: item.client_metadata
+      ? JSON.parse(item.client_metadata)
+      : undefined,
     mobile: item.mobile ? JSON.parse(item.mobile) : undefined,
-    native_social_login: item.native_social_login ? JSON.parse(item.native_social_login) : undefined,
-    refresh_token: item.refresh_token ? JSON.parse(item.refresh_token) : undefined,
-    default_organization: item.default_organization ? JSON.parse(item.default_organization) : undefined,
-    client_authentication_methods: item.client_authentication_methods 
+    native_social_login: item.native_social_login
+      ? JSON.parse(item.native_social_login)
+      : undefined,
+    refresh_token: item.refresh_token
+      ? JSON.parse(item.refresh_token)
+      : undefined,
+    default_organization: item.default_organization
+      ? JSON.parse(item.default_organization)
+      : undefined,
+    client_authentication_methods: item.client_authentication_methods
       ? JSON.parse(item.client_authentication_methods)
       : undefined,
-    signed_request_object: item.signed_request_object 
-      ? JSON.parse(item.signed_request_object) 
+    signed_request_object: item.signed_request_object
+      ? JSON.parse(item.signed_request_object)
       : undefined,
     token_quota: item.token_quota ? JSON.parse(item.token_quota) : undefined,
   });
@@ -151,34 +173,71 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
         sso_disabled: params.sso_disabled,
         cross_origin_authentication: params.cross_origin_authentication,
         custom_login_page_on: params.custom_login_page_on,
-        require_pushed_authorization_requests: params.require_pushed_authorization_requests,
+        require_pushed_authorization_requests:
+          params.require_pushed_authorization_requests,
         require_proof_of_possession: params.require_proof_of_possession,
-        callbacks: params.callbacks ? JSON.stringify(params.callbacks) : undefined,
-        allowed_origins: params.allowed_origins ? JSON.stringify(params.allowed_origins) : undefined,
-        web_origins: params.web_origins ? JSON.stringify(params.web_origins) : undefined,
-        client_aliases: params.client_aliases ? JSON.stringify(params.client_aliases) : undefined,
-        allowed_clients: params.allowed_clients ? JSON.stringify(params.allowed_clients) : undefined,
-        connections: params.connections ? JSON.stringify(params.connections) : undefined,
-        allowed_logout_urls: params.allowed_logout_urls ? JSON.stringify(params.allowed_logout_urls) : undefined,
-        session_transfer: params.session_transfer ? JSON.stringify(params.session_transfer) : undefined,
-        oidc_logout: params.oidc_logout ? JSON.stringify(params.oidc_logout) : undefined,
-        grant_types: params.grant_types ? JSON.stringify(params.grant_types) : undefined,
-        jwt_configuration: params.jwt_configuration ? JSON.stringify(params.jwt_configuration) : undefined,
-        signing_keys: params.signing_keys ? JSON.stringify(params.signing_keys) : undefined,
-        encryption_key: params.encryption_key ? JSON.stringify(params.encryption_key) : undefined,
+        callbacks: params.callbacks
+          ? JSON.stringify(params.callbacks)
+          : undefined,
+        allowed_origins: params.allowed_origins
+          ? JSON.stringify(params.allowed_origins)
+          : undefined,
+        web_origins: params.web_origins
+          ? JSON.stringify(params.web_origins)
+          : undefined,
+        client_aliases: params.client_aliases
+          ? JSON.stringify(params.client_aliases)
+          : undefined,
+        allowed_clients: params.allowed_clients
+          ? JSON.stringify(params.allowed_clients)
+          : undefined,
+        connections: params.connections
+          ? JSON.stringify(params.connections)
+          : undefined,
+        allowed_logout_urls: params.allowed_logout_urls
+          ? JSON.stringify(params.allowed_logout_urls)
+          : undefined,
+        session_transfer: params.session_transfer
+          ? JSON.stringify(params.session_transfer)
+          : undefined,
+        oidc_logout: params.oidc_logout
+          ? JSON.stringify(params.oidc_logout)
+          : undefined,
+        grant_types: params.grant_types
+          ? JSON.stringify(params.grant_types)
+          : undefined,
+        jwt_configuration: params.jwt_configuration
+          ? JSON.stringify(params.jwt_configuration)
+          : undefined,
+        signing_keys: params.signing_keys
+          ? JSON.stringify(params.signing_keys)
+          : undefined,
+        encryption_key: params.encryption_key
+          ? JSON.stringify(params.encryption_key)
+          : undefined,
         addons: params.addons ? JSON.stringify(params.addons) : undefined,
-        client_metadata: params.client_metadata ? JSON.stringify(params.client_metadata) : undefined,
+        client_metadata: params.client_metadata
+          ? JSON.stringify(params.client_metadata)
+          : undefined,
         mobile: params.mobile ? JSON.stringify(params.mobile) : undefined,
-        native_social_login: params.native_social_login ? JSON.stringify(params.native_social_login) : undefined,
-        refresh_token: params.refresh_token ? JSON.stringify(params.refresh_token) : undefined,
-        default_organization: params.default_organization ? JSON.stringify(params.default_organization) : undefined,
-        client_authentication_methods: params.client_authentication_methods 
-          ? JSON.stringify(params.client_authentication_methods) 
+        native_social_login: params.native_social_login
+          ? JSON.stringify(params.native_social_login)
           : undefined,
-        signed_request_object: params.signed_request_object 
-          ? JSON.stringify(params.signed_request_object) 
+        refresh_token: params.refresh_token
+          ? JSON.stringify(params.refresh_token)
           : undefined,
-        token_quota: params.token_quota ? JSON.stringify(params.token_quota) : undefined,
+        default_organization: params.default_organization
+          ? JSON.stringify(params.default_organization)
+          : undefined,
+        client_authentication_methods: params.client_authentication_methods
+          ? JSON.stringify(params.client_authentication_methods)
+          : undefined,
+        signed_request_object: params.signed_request_object
+          ? JSON.stringify(params.signed_request_object)
+          : undefined,
+        token_quota: params.token_quota
+          ? JSON.stringify(params.token_quota)
+          : undefined,
         created_at: now,
         updated_at: now,
       };
@@ -259,17 +318,33 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
         ...client,
         updated_at: new Date().toISOString(),
       };
-      
+
       // Serialize arrays and objects
       const jsonFields = [
-        "callbacks", "allowed_origins", "web_origins", "client_aliases",
-        "allowed_clients", "connections", "allowed_logout_urls", "session_transfer",
-        "oidc_logout", "grant_types", "jwt_configuration", "signing_keys",
-        "encryption_key", "addons", "client_metadata", "mobile",
-        "native_social_login", "refresh_token", "default_organization",
-        "client_authentication_methods", "signed_request_object", "token_quota"
+        "callbacks",
+        "allowed_origins",
+        "web_origins",
+        "client_aliases",
+        "allowed_clients",
+        "connections",
+        "allowed_logout_urls",
+        "session_transfer",
+        "oidc_logout",
+        "grant_types",
+        "jwt_configuration",
+        "signing_keys",
+        "encryption_key",
+        "addons",
+        "client_metadata",
+        "mobile",
+        "native_social_login",
+        "refresh_token",
+        "default_organization",
+        "client_authentication_methods",
+        "signed_request_object",
+        "token_quota",
       ];
-      
+
       for (const field of jsonFields) {
         if ((client as any)[field] !== undefined) {
           updates[field] = JSON.stringify((client as any)[field]);

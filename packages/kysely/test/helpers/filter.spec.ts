@@ -119,7 +119,12 @@ describe("luceneFilter", () => {
 
   // Quote handling tests
   it("handles quoted values", () => {
-    luceneFilter(mockDb, mockQb as any, 'email:"test@example.com"', searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'email:"test@example.com"',
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
   });
 
@@ -129,8 +134,17 @@ describe("luceneFilter", () => {
   });
 
   it("handles quoted values with special characters", () => {
-    luceneFilter(mockDb, mockQb as any, 'description:"Value with @#$% special chars"', searchableColumns);
-    expect(mockQb.where).toHaveBeenCalledWith("description", "=", "Value with @#$% special chars");
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'description:"Value with @#$% special chars"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "description",
+      "=",
+      "Value with @#$% special chars",
+    );
   });
 
   it("handles empty quoted values", () => {
@@ -144,17 +158,36 @@ describe("luceneFilter", () => {
   });
 
   it("handles quoted values with operators", () => {
-    luceneFilter(mockDb, mockQb as any, 'date:>"2023-01-01"', searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'date:>"2023-01-01"',
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith("date", ">", "2023-01-01");
   });
 
   it("handles negated quoted values", () => {
-    luceneFilter(mockDb, mockQb as any, '-email:"blocked@example.com"', searchableColumns);
-    expect(mockQb.where).toHaveBeenCalledWith("email", "!=", "blocked@example.com");
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      '-email:"blocked@example.com"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "email",
+      "!=",
+      "blocked@example.com",
+    );
   });
 
   it("handles mixed quoted and unquoted values", () => {
-    luceneFilter(mockDb, mockQb as any, 'email:"test@example.com" status:active', searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'email:"test@example.com" status:active',
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledTimes(2);
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
     expect(mockQb.where).toHaveBeenCalledWith("status", "=", "active");
@@ -178,26 +211,49 @@ describe("luceneFilter", () => {
 
   // Common use cases
   it("handles email searches properly", () => {
-    luceneFilter(mockDb, mockQb as any, 'email:"user@domain.com"', searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'email:"user@domain.com"',
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "user@domain.com");
   });
 
   it("handles phone number searches", () => {
-    luceneFilter(mockDb, mockQb as any, 'phone_number:"+1-555-123-4567"', searchableColumns);
-    expect(mockQb.where).toHaveBeenCalledWith("phone_number", "=", "+1-555-123-4567");
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'phone_number:"+1-555-123-4567"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "phone_number",
+      "=",
+      "+1-555-123-4567",
+    );
   });
 
   it("handles user ID searches with pipes", () => {
-    luceneFilter(mockDb, mockQb as any, 'user_id:"auth0|123456789"', searchableColumns);
-    expect(mockQb.where).toHaveBeenCalledWith("user_id", "=", "auth0|123456789");
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'user_id:"auth0|123456789"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "user_id",
+      "=",
+      "auth0|123456789",
+    );
   });
 
   it("handles complex queries with quotes and operators", () => {
     luceneFilter(
-      mockDb, 
-      mockQb as any, 
-      'email:"test@example.com" created_at:>"2023-01-01" -status:"banned"', 
-      searchableColumns
+      mockDb,
+      mockQb as any,
+      'email:"test@example.com" created_at:>"2023-01-01" -status:"banned"',
+      searchableColumns,
     );
     expect(mockQb.where).toHaveBeenCalledTimes(3);
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
@@ -207,27 +263,52 @@ describe("luceneFilter", () => {
 
   // OR logic tests
   it("handles simple OR query", () => {
-    luceneFilter(mockDb, mockQb as any, "field1:value1 OR field2:value2", searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      "field1:value1 OR field2:value2",
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("handles OR query with multiple fields", () => {
-    luceneFilter(mockDb, mockQb as any, "id:tenant1 OR id:tenant2 OR id:tenant3", searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      "id:tenant1 OR id:tenant2 OR id:tenant3",
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("handles OR query with quoted values", () => {
-    luceneFilter(mockDb, mockQb as any, 'name:"John Doe" OR name:"Jane Smith"', searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'name:"John Doe" OR name:"Jane Smith"',
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("handles OR query case-insensitively", () => {
-    luceneFilter(mockDb, mockQb as any, "field1:value1 or field2:value2", searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      "field1:value1 or field2:value2",
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("handles OR query with mixed case", () => {
-    luceneFilter(mockDb, mockQb as any, "field1:value1 Or field2:value2", searchableColumns);
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      "field1:value1 Or field2:value2",
+      searchableColumns,
+    );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 });

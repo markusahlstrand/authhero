@@ -60,7 +60,9 @@ describe("roles - metadata", () => {
 
     expect(list.roles.length).toBe(2);
 
-    const withMetadata = list.roles.find((r) => r.name === "role-with-metadata");
+    const withMetadata = list.roles.find(
+      (r) => r.name === "role-with-metadata",
+    );
     expect(withMetadata?.metadata?.sync).toBe(true);
     expect(withMetadata?.metadata?.category).toBe("standard");
 

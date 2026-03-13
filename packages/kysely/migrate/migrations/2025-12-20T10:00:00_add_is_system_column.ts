@@ -19,7 +19,10 @@ export async function up(db: Kysely<Database>): Promise<void> {
 }
 
 export async function down(db: Kysely<Database>): Promise<void> {
-  await db.schema.alterTable("resource_servers").dropColumn("is_system").execute();
+  await db.schema
+    .alterTable("resource_servers")
+    .dropColumn("is_system")
+    .execute();
 
   await db.schema.alterTable("roles").dropColumn("is_system").execute();
 

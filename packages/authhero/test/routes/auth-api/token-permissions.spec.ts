@@ -510,7 +510,10 @@ describe("token endpoint - permissions in JWT", () => {
 
       // Auth0 behavior: return 403 for unauthorized scopes
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string; error_description: string };
+      const body = (await response.json()) as {
+        error: string;
+        error_description: string;
+      };
       expect(body.error).toBe("access_denied");
       expect(body.error_description).toContain("admin:data");
 

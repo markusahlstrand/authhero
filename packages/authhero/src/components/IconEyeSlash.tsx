@@ -5,7 +5,12 @@ type Props = {
   "data-hide-icon"?: boolean;
 };
 
-const IconEyeSlash = ({ width = 23, height = 18, className, ...props }: Props) => (
+const IconEyeSlash = ({
+  width = 23,
+  height = 18,
+  className,
+  ...props
+}: Props) => (
   <svg
     width={width}
     height={height}

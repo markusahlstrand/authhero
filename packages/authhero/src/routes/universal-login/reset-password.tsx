@@ -148,8 +148,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       const passwordConnection = client.connections.find(
         (c) => c.strategy === "Username-Password-Authentication",
       );
-      const connectionName =
-        passwordConnection?.name || user.connection;
+      const connectionName = passwordConnection?.name || user.connection;
 
       // Validate password against connection policy
       const policy = await getPasswordPolicy(

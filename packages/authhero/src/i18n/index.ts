@@ -20,7 +20,11 @@
  */
 
 import * as originalMessages from "../paraglide/messages.js";
-import { overwriteGetLocale, locales, baseLocale } from "../paraglide/runtime.js";
+import {
+  overwriteGetLocale,
+  locales,
+  baseLocale,
+} from "../paraglide/runtime.js";
 import type { CustomText } from "@authhero/adapter-interfaces";
 
 // Re-export Locale type

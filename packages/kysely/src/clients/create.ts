@@ -48,33 +48,31 @@ export function create(db: Kysely<Database>) {
 
     // Convert array/object fields to JSON strings for SQL storage
     Object.assign(insertData, {
-        callbacks: JSON.stringify(params.callbacks || []),
-        allowed_origins: JSON.stringify(params.allowed_origins || []),
-        web_origins: JSON.stringify(params.web_origins || []),
-        client_aliases: JSON.stringify(params.client_aliases || []),
-        allowed_clients: JSON.stringify(params.allowed_clients || []),
-        connections: JSON.stringify(params.connections || []),
-        allowed_logout_urls: JSON.stringify(params.allowed_logout_urls || []),
-        session_transfer: JSON.stringify(params.session_transfer || {}),
-        oidc_logout: JSON.stringify(params.oidc_logout || {}),
-        grant_types: JSON.stringify(params.grant_types || []),
-        jwt_configuration: JSON.stringify(params.jwt_configuration || {}),
-        signing_keys: JSON.stringify(params.signing_keys || []),
-        encryption_key: JSON.stringify(params.encryption_key || {}),
-        addons: JSON.stringify(params.addons || {}),
-        client_metadata: JSON.stringify(params.client_metadata || {}),
-        mobile: JSON.stringify(params.mobile || {}),
-        native_social_login: JSON.stringify(params.native_social_login || {}),
-        refresh_token: JSON.stringify(params.refresh_token || {}),
-        default_organization: JSON.stringify(params.default_organization || {}),
-        client_authentication_methods: JSON.stringify(
-          params.client_authentication_methods || {},
-        ),
-        signed_request_object: JSON.stringify(
-          params.signed_request_object || {},
-        ),
-        token_quota: JSON.stringify(params.token_quota || {}),
-      });
+      callbacks: JSON.stringify(params.callbacks || []),
+      allowed_origins: JSON.stringify(params.allowed_origins || []),
+      web_origins: JSON.stringify(params.web_origins || []),
+      client_aliases: JSON.stringify(params.client_aliases || []),
+      allowed_clients: JSON.stringify(params.allowed_clients || []),
+      connections: JSON.stringify(params.connections || []),
+      allowed_logout_urls: JSON.stringify(params.allowed_logout_urls || []),
+      session_transfer: JSON.stringify(params.session_transfer || {}),
+      oidc_logout: JSON.stringify(params.oidc_logout || {}),
+      grant_types: JSON.stringify(params.grant_types || []),
+      jwt_configuration: JSON.stringify(params.jwt_configuration || {}),
+      signing_keys: JSON.stringify(params.signing_keys || []),
+      encryption_key: JSON.stringify(params.encryption_key || {}),
+      addons: JSON.stringify(params.addons || {}),
+      client_metadata: JSON.stringify(params.client_metadata || {}),
+      mobile: JSON.stringify(params.mobile || {}),
+      native_social_login: JSON.stringify(params.native_social_login || {}),
+      refresh_token: JSON.stringify(params.refresh_token || {}),
+      default_organization: JSON.stringify(params.default_organization || {}),
+      client_authentication_methods: JSON.stringify(
+        params.client_authentication_methods || {},
+      ),
+      signed_request_object: JSON.stringify(params.signed_request_object || {}),
+      token_quota: JSON.stringify(params.token_quota || {}),
+    });
 
     await db.insertInto("clients").values(insertData).execute();
 

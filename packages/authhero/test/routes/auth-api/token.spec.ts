@@ -1068,9 +1068,9 @@ describe("token", () => {
         loginSession.id,
       );
       expect(loginSessionAfter).toBeDefined();
-      expect(
-        new Date(loginSessionAfter!.expires_at).getTime(),
-      ).toBeGreaterThan(new Date(expiresAtBefore).getTime());
+      expect(new Date(loginSessionAfter!.expires_at).getTime()).toBeGreaterThan(
+        new Date(expiresAtBefore).getTime(),
+      );
     });
 
     it("should preserve the original scopes in the new access token", async () => {

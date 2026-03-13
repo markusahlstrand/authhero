@@ -51,7 +51,10 @@ describe("clients", () => {
     expect(updated).toBe(true);
 
     // Verify update
-    const fetchedAfterUpdate = await data.clients.get("tenantId", "test-client-id");
+    const fetchedAfterUpdate = await data.clients.get(
+      "tenantId",
+      "test-client-id",
+    );
     expect(fetchedAfterUpdate?.name).toBe("Updated Application Name");
 
     // ----------------------------------------
@@ -59,7 +62,9 @@ describe("clients", () => {
     // ----------------------------------------
     const list = await data.clients.list("tenantId", {});
     expect(list.clients.length).toBeGreaterThanOrEqual(1);
-    expect(list.clients.some((c) => c.client_id === "test-client-id")).toBe(true);
+    expect(list.clients.some((c) => c.client_id === "test-client-id")).toBe(
+      true,
+    );
 
     // ----------------------------------------
     // Delete
@@ -68,7 +73,10 @@ describe("clients", () => {
     expect(deleted).toBe(true);
 
     // Verify deletion
-    const fetchedAfterDelete = await data.clients.get("tenantId", "test-client-id");
+    const fetchedAfterDelete = await data.clients.get(
+      "tenantId",
+      "test-client-id",
+    );
     expect(fetchedAfterDelete).toBeNull();
   });
 

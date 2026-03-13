@@ -32,7 +32,12 @@ interface SetupConfig {
   name: string;
   description: string;
   templateDir: string;
-  packageJson: (projectName: string, multiTenant: boolean, conformance?: boolean, workspace?: boolean) => object;
+  packageJson: (
+    projectName: string,
+    multiTenant: boolean,
+    conformance?: boolean,
+    workspace?: boolean,
+  ) => object;
   seedFile?: string;
 }
 
@@ -98,7 +103,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           dev: "node copy-assets.js && wrangler dev --port 3000 --local-protocol https",
           "dev:remote":
             "node copy-assets.js && wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
-          deploy: "node copy-assets.js && wrangler deploy --config wrangler.local.toml",
+          deploy:
+            "node copy-assets.js && wrangler deploy --config wrangler.local.toml",
           "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
           "db:migrate:remote":
             "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
@@ -206,9 +212,9 @@ function generateLocalSeedFileContent(
   ];
   const conformanceCallbacks = conformance
     ? [
-      `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
-      `https://localhost:8443/test/a/${conformanceAlias}/callback`,
-    ]
+        `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
+        `https://localhost:8443/test/a/${conformanceAlias}/callback`,
+      ]
     : [];
   const callbacks = [...defaultCallbacks, ...conformanceCallbacks];
 
@@ -1070,7 +1076,10 @@ program
     "--conformance-alias <alias>",
     "alias for conformance suite (default: authhero-local)",
   )
-  .option("--workspace", "use workspace:* dependencies for local monorepo development")
+  .option(
+    "--workspace",
+    "use workspace:* dependencies for local monorepo development",
+  )
   .option("-y, --yes", "skip all prompts and use defaults/provided options")
   .action(async (projectNameArg, options: CliOptions) => {
     // Only be fully non-interactive when --yes is explicitly passed
@@ -1187,7 +1196,11 @@ program
     // Write package.json with multi-tenant option
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
-      JSON.stringify(config.packageJson(projectName, multiTenant, conformance, workspace), null, 2),
+      JSON.stringify(
+        config.packageJson(projectName, multiTenant, conformance, workspace),
+        null,
+        2,
+      ),
     );
 
     // Copy template files
@@ -1521,18 +1534,14 @@ program
       if (setupType === "local") {
         console.log("  npm install");
         console.log("  npm run migrate");
-        console.log(
-          "  npm run seed  # defaults to admin/admin",
-        );
+        console.log("  npm run seed  # defaults to admin/admin");
         console.log("  npm run dev");
       } else if (setupType === "cloudflare") {
         console.log("  npm install");
         console.log(
           "  npm run migrate  # or npm run db:migrate:remote for production",
         );
-        console.log(
-          "  npm run seed  # defaults to admin/admin",
-        );
+        console.log("  npm run seed  # defaults to admin/admin");
         console.log("  npm run dev  # or npm run dev:remote for production");
       } else if (setupType === "aws-sst") {
         console.log("  npm install");

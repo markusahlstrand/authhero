@@ -14,68 +14,68 @@ import { Database } from "../../src/db";
  */
 
 async function getDatabaseType(
-    db: Kysely<Database>,
+  db: Kysely<Database>,
 ): Promise<"mysql" | "sqlite"> {
-    try {
-        await sql`SELECT VERSION()`.execute(db);
-        return "mysql";
-    } catch {
-        return "sqlite";
-    }
+  try {
+    await sql`SELECT VERSION()`.execute(db);
+    return "mysql";
+  } catch {
+    return "sqlite";
+  }
 }
 
 export async function up(db: Kysely<any>): Promise<void> {
-    const dbType = await getDatabaseType(db);
+  const dbType = await getDatabaseType(db);
 
-    if (dbType === "mysql") {
-        // Make login_id NOT NULL
-        await db.schema
-            .alterTable("refresh_tokens")
-            .modifyColumn("login_id", "varchar(26)", (col) => col.notNull())
-            .execute();
+  if (dbType === "mysql") {
+    // Make login_id NOT NULL
+    await db.schema
+      .alterTable("refresh_tokens")
+      .modifyColumn("login_id", "varchar(26)", (col) => col.notNull())
+      .execute();
 
-        // Drop the session_id index and column
-        await db.schema.dropIndex("idx_refresh_tokens_session_id").execute();
-        await db.schema
-            .alterTable("refresh_tokens")
-            .dropColumn("session_id")
-            .execute();
-    } else {
-        // SQLite doesn't support MODIFY COLUMN, but modern SQLite (3.35+) supports DROP COLUMN
-        // Must drop the index first before dropping the column
-        await db.schema.dropIndex("idx_refresh_tokens_session_id").execute();
-        await db.schema
-            .alterTable("refresh_tokens")
-            .dropColumn("session_id")
-            .execute();
-    }
+    // Drop the session_id index and column
+    await db.schema.dropIndex("idx_refresh_tokens_session_id").execute();
+    await db.schema
+      .alterTable("refresh_tokens")
+      .dropColumn("session_id")
+      .execute();
+  } else {
+    // SQLite doesn't support MODIFY COLUMN, but modern SQLite (3.35+) supports DROP COLUMN
+    // Must drop the index first before dropping the column
+    await db.schema.dropIndex("idx_refresh_tokens_session_id").execute();
+    await db.schema
+      .alterTable("refresh_tokens")
+      .dropColumn("session_id")
+      .execute();
+  }
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-    const dbType = await getDatabaseType(db);
+  const dbType = await getDatabaseType(db);
 
-    if (dbType === "mysql") {
-        // Re-add session_id column
-        await db.schema
-            .alterTable("refresh_tokens")
-            .addColumn("session_id", "varchar(26)")
-            .execute();
+  if (dbType === "mysql") {
+    // Re-add session_id column
+    await db.schema
+      .alterTable("refresh_tokens")
+      .addColumn("session_id", "varchar(26)")
+      .execute();
 
-        await db.schema
-            .createIndex("idx_refresh_tokens_session_id")
-            .on("refresh_tokens")
-            .column("session_id")
-            .execute();
+    await db.schema
+      .createIndex("idx_refresh_tokens_session_id")
+      .on("refresh_tokens")
+      .column("session_id")
+      .execute();
 
-        // Make login_id nullable again
-        await db.schema
-            .alterTable("refresh_tokens")
-            .modifyColumn("login_id", "varchar(26)")
-            .execute();
-    } else {
-        await db.schema
-            .alterTable("refresh_tokens")
-            .addColumn("session_id", "varchar(21)")
-            .execute();
-    }
+    // Make login_id nullable again
+    await db.schema
+      .alterTable("refresh_tokens")
+      .modifyColumn("login_id", "varchar(26)")
+      .execute();
+  } else {
+    await db.schema
+      .alterTable("refresh_tokens")
+      .addColumn("session_id", "varchar(21)")
+      .execute();
+  }
 }

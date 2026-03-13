@@ -494,6 +494,8 @@ describe("silent", () => {
     expect(response.status).toEqual(200);
     const htmlBody = await response.text();
     expect(htmlBody).toContain("login_required");
-    expect(htmlBody).toContain("User is not a member of the specified organization");
+    expect(htmlBody).toContain(
+      "User is not a member of the specified organization",
+    );
   });
 });

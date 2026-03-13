@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { JSONHTTPException } from "../../errors/json-http-exception";
+import { HTTPException } from "hono/http-exception";
 import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import i18next from "i18next";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
@@ -26,7 +26,7 @@ export async function initJSXRoute(
   );
 
   if (!loginSession) {
-    throw new JSONHTTPException(400, { message: "Login session not found" });
+    throw new HTTPException(400, { message: "Login session not found" });
   }
 
   ctx.set("loginSession", loginSession);
@@ -44,7 +44,7 @@ export async function initJSXRoute(
   if (loginSession.session_id && !allowSession) {
     // Return redirect response with error parameters as per RFC 6749 section 4.1.2.1
     if (!loginSession.authParams.redirect_uri) {
-      throw new JSONHTTPException(400, {
+      throw new HTTPException(400, {
         message: "Login session closed and no redirect URI available",
       });
     }
@@ -73,9 +73,9 @@ export async function initJSXRoute(
   // Only include favicon_url when on a custom domain
   const brandingWithFavicon = branding
     ? {
-      ...branding,
-      favicon_url: ctx.var.custom_domain ? branding.favicon_url : undefined,
-    }
+        ...branding,
+        favicon_url: ctx.var.custom_domain ? branding.favicon_url : undefined,
+      }
     : null;
 
   const loginSessionLanguage = loginSession.authParams?.ui_locales
@@ -153,9 +153,9 @@ export async function initJSXRouteWithSession(
     // Get session if it exists (it might not for continuation flows)
     const session = loginSession.session_id
       ? await ctx.env.data.sessions.get(
-        client.tenant.id,
-        loginSession.session_id,
-      )
+          client.tenant.id,
+          loginSession.session_id,
+        )
       : null;
 
     return {
@@ -241,16 +241,17 @@ export async function getLoginStrategy(
   const user =
     connectionType === "email"
       ? await getPrimaryUserByEmail({
-        userAdapter: ctx.env.data.users,
-        tenant_id: client.tenant.id,
-        email: username,
-      })
+          userAdapter: ctx.env.data.users,
+          tenant_id: client.tenant.id,
+          email: username,
+        })
       : await getPrimaryUserByProvider({
-        userAdapter: ctx.env.data.users,
-        tenant_id: client.tenant.id,
-        username,
-        provider: connectionType === "sms" ? "sms" : USERNAME_PASSWORD_PROVIDER,
-      });
+          userAdapter: ctx.env.data.users,
+          tenant_id: client.tenant.id,
+          username,
+          provider:
+            connectionType === "sms" ? "sms" : USERNAME_PASSWORD_PROVIDER,
+        });
 
   // Check user's preferred login method (last used)
   const userStrategy = user?.app_metadata?.strategy;

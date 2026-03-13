@@ -49,10 +49,8 @@ export function getConnectionIdentifierConfig(
     const emailIdentifierActive =
       attributes.email?.identifier?.active !== false;
 
-    const usernameMinLength =
-      attributes.username?.validation?.min_length ?? 1;
-    const usernameMaxLength =
-      attributes.username?.validation?.max_length ?? 15;
+    const usernameMinLength = attributes.username?.validation?.min_length ?? 1;
+    const usernameMaxLength = attributes.username?.validation?.max_length ?? 15;
 
     return {
       usernameIdentifierActive,

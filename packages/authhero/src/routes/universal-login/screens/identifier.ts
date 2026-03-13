@@ -260,7 +260,8 @@ export const identifierScreenDefinition: ScreenDefinition = {
       const passwordConnection = client.connections.find(
         (c) => c.strategy === "Username-Password-Authentication",
       );
-      const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+      const identifierConfig =
+        getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
 
       // Validate username is provided
@@ -336,16 +337,16 @@ export const identifierScreenDefinition: ScreenDefinition = {
       const user =
         connectionType === "email"
           ? await getPrimaryUserByEmail({
-            userAdapter: ctx.env.data.users,
-            tenant_id: client.tenant.id,
-            email: normalized,
-          })
+              userAdapter: ctx.env.data.users,
+              tenant_id: client.tenant.id,
+              email: normalized,
+            })
           : await getPrimaryUserByProvider({
-            userAdapter: ctx.env.data.users,
-            tenant_id: client.tenant.id,
-            username: normalized,
-            provider,
-          });
+              userAdapter: ctx.env.data.users,
+              tenant_id: client.tenant.id,
+              username: normalized,
+              provider,
+            });
 
       // Check if connection is allowed
       // For "username" connectionType, allow if password connection has username identifier active

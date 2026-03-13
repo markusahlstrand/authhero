@@ -173,7 +173,11 @@ function wrapEntityAdapter<
   TUpdate,
   TAdapter extends {
     create: (tenantId: string, data: TInsert) => Promise<TEntity>;
-    update: (tenantId: string, id: string, data: TUpdate) => Promise<TEntity | boolean>;
+    update: (
+      tenantId: string,
+      id: string,
+      data: TUpdate,
+    ) => Promise<TEntity | boolean>;
     remove: (tenantId: string, id: string) => Promise<boolean>;
     get: (tenantId: string, id: string) => Promise<TEntity | null>;
   },
@@ -474,10 +478,22 @@ export function addEntityHooks(
 
   return {
     ...data,
-    connections: wrapEntityAdapter(data.connections, hooks.connections, context),
+    connections: wrapEntityAdapter(
+      data.connections,
+      hooks.connections,
+      context,
+    ),
     roles: wrapEntityAdapter(data.roles, hooks.roles, context),
-    resourceServers: wrapEntityAdapter(data.resourceServers, hooks.resourceServers, context),
-    rolePermissions: wrapRolePermissionsAdapter(data.rolePermissions, hooks.rolePermissions, context),
+    resourceServers: wrapEntityAdapter(
+      data.resourceServers,
+      hooks.resourceServers,
+      context,
+    ),
+    rolePermissions: wrapRolePermissionsAdapter(
+      data.rolePermissions,
+      hooks.rolePermissions,
+      context,
+    ),
     tenants: wrapTenantsAdapter(data.tenants, hooks.tenants, context),
   };
 }

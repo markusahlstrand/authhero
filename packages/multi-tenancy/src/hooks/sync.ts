@@ -355,9 +355,9 @@ export interface SyncHooksResult {
  * Default filter that checks if an entity should be synced based on its metadata.
  * Returns false if metadata.sync is explicitly set to false.
  */
-function defaultSyncFilter(
-  entity: { metadata?: Record<string, unknown> },
-): boolean {
+function defaultSyncFilter(entity: {
+  metadata?: Record<string, unknown>;
+}): boolean {
   return entity.metadata?.sync !== false;
 }
 
@@ -388,11 +388,7 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     : undefined;
 
   const roleHooks = syncRoles
-    ? createEntitySyncHooks<Role, RoleInsert>(
-        config,
-        roleAdapter,
-        roleFilter,
-      )
+    ? createEntitySyncHooks<Role, RoleInsert>(config, roleAdapter, roleFilter)
     : undefined;
 
   // Create tenant sync hooks

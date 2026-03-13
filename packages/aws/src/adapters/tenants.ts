@@ -17,7 +17,8 @@ import {
   removeNullProperties,
 } from "../utils";
 
-interface TenantItem extends DynamoDBBaseItem, Omit<Tenant, "created_at" | "updated_at"> {
+interface TenantItem
+  extends DynamoDBBaseItem, Omit<Tenant, "created_at" | "updated_at"> {
   GSI1PK: string;
   GSI1SK: string;
 }
@@ -65,7 +66,10 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
       return toTenant(item);
     },
 
-    async list(params = {}): Promise<{ tenants: Tenant[]; totals?: { start: number; limit: number; length: number } }> {
+    async list(params = {}): Promise<{
+      tenants: Tenant[];
+      totals?: { start: number; limit: number; length: number };
+    }> {
       const { include_totals = false } = params;
 
       // Query all tenants using GSI1 where all tenants share GSI1PK="TENANTS"

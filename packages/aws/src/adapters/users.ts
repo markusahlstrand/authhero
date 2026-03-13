@@ -80,9 +80,13 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
         user_id: parseUserId(item.user_id).id,
         isSocial: item.is_social,
         ...(item.email ? { email: item.email } : {}),
-        ...(item.email_verified !== undefined ? { email_verified: Boolean(item.email_verified) } : {}),
+        ...(item.email_verified !== undefined
+          ? { email_verified: Boolean(item.email_verified) }
+          : {}),
         ...(item.phone_number ? { phone_number: item.phone_number } : {}),
-        ...(item.phone_verified !== undefined ? { phone_verified: Boolean(item.phone_verified) } : {}),
+        ...(item.phone_verified !== undefined
+          ? { phone_verified: Boolean(item.phone_verified) }
+          : {}),
         ...(item.username ? { username: item.username } : {}),
       },
       ...linkedUsers.map((u) => ({
@@ -91,9 +95,13 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
         user_id: parseUserId(u.user_id).id,
         isSocial: u.is_social,
         ...(u.email ? { email: u.email } : {}),
-        ...(u.email_verified !== undefined ? { email_verified: Boolean(u.email_verified) } : {}),
+        ...(u.email_verified !== undefined
+          ? { email_verified: Boolean(u.email_verified) }
+          : {}),
         ...(u.phone_number ? { phone_number: u.phone_number } : {}),
-        ...(u.phone_verified !== undefined ? { phone_verified: Boolean(u.phone_verified) } : {}),
+        ...(u.phone_verified !== undefined
+          ? { phone_verified: Boolean(u.phone_verified) }
+          : {}),
         ...(u.username ? { username: u.username } : {}),
       })),
     ],
@@ -218,9 +226,7 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
         getItem<UserItem>(ctx, userKeys.pk(tenantId), userKeys.sk(userId)),
         queryItems<UserItem>(ctx, userKeys.pk(tenantId), {
           skPrefix: "USER#",
-        }).then((result) =>
-          result.items.filter((u) => u.linked_to === userId),
-        ),
+        }).then((result) => result.items.filter((u) => u.linked_to === userId)),
       ]);
 
       if (!item) return null;
@@ -280,7 +286,12 @@ export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
       delete updates.user_id;
       delete updates.identities;
 
-      return updateItem(ctx, userKeys.pk(tenantId), userKeys.sk(userId), updates);
+      return updateItem(
+        ctx,
+        userKeys.pk(tenantId),
+        userKeys.sk(userId),
+        updates,
+      );
     },
 
     async remove(tenantId: string, userId: string): Promise<boolean> {

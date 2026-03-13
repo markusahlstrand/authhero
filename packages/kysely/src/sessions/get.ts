@@ -33,8 +33,22 @@ export function get(db: Kysely<Database>) {
 
     // Convert dates from DB format (bigint) to ISO strings
     const dates = convertDatesToAdapter(
-      { created_at_ts, updated_at_ts, expires_at_ts, idle_expires_at_ts, authenticated_at_ts, last_interaction_at_ts, used_at_ts, revoked_at_ts },
-      ["created_at_ts", "updated_at_ts", "authenticated_at_ts", "last_interaction_at_ts"],
+      {
+        created_at_ts,
+        updated_at_ts,
+        expires_at_ts,
+        idle_expires_at_ts,
+        authenticated_at_ts,
+        last_interaction_at_ts,
+        used_at_ts,
+        revoked_at_ts,
+      },
+      [
+        "created_at_ts",
+        "updated_at_ts",
+        "authenticated_at_ts",
+        "last_interaction_at_ts",
+      ],
       ["expires_at_ts", "idle_expires_at_ts", "used_at_ts", "revoked_at_ts"],
     ) as {
       created_at: string;

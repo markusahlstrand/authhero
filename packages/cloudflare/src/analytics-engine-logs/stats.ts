@@ -17,11 +17,7 @@ const LOGIN_TYPES = [
 ];
 
 // Log types that indicate leaked password detection
-const LEAKED_PASSWORD_TYPES = [
-  "pwd_leak",
-  "signup_pwd_leak",
-  "reset_pwd_leak",
-];
+const LEAKED_PASSWORD_TYPES = ["pwd_leak", "signup_pwd_leak", "reset_pwd_leak"];
 
 /**
  * Parses a date string in YYYYMMDD format to YYYY-MM-DD
@@ -62,11 +58,12 @@ export function createAnalyticsEngineStatsAdapter(
 
       // Convert to timestamps for comparison with double2 (epoch milliseconds)
       const fromTimestamp = new Date(`${fromDate}T00:00:00Z`).getTime();
-      const toTimestamp =
-        new Date(`${toDate}T23:59:59.999Z`).getTime();
+      const toTimestamp = new Date(`${toDate}T23:59:59.999Z`).getTime();
 
       // Build IN clause for login types
-      const loginTypesIn = LOGIN_TYPES.map((t) => escapeSQLString(t)).join(", ");
+      const loginTypesIn = LOGIN_TYPES.map((t) => escapeSQLString(t)).join(
+        ", ",
+      );
       const leakedPasswordTypesIn = LEAKED_PASSWORD_TYPES.map((t) =>
         escapeSQLString(t),
       ).join(", ");
@@ -111,7 +108,9 @@ export function createAnalyticsEngineStatsAdapter(
       const fromTimestamp = thirtyDaysAgo.getTime();
 
       // Build IN clause for login types
-      const loginTypesIn = LOGIN_TYPES.map((t) => escapeSQLString(t)).join(", ");
+      const loginTypesIn = LOGIN_TYPES.map((t) => escapeSQLString(t)).join(
+        ", ",
+      );
 
       // Count distinct users who have logged in within the last 30 days
       // blob7 = user_id, blob3 = type, double2 = timestamp (epoch ms)

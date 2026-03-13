@@ -10,5 +10,8 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.alterTable("clients").dropColumn("auth0_conformant").execute();
+  await db.schema
+    .alterTable("clients")
+    .dropColumn("auth0_conformant")
+    .execute();
 }

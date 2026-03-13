@@ -15,11 +15,7 @@ export function update(db: Kysely<Database>) {
       updated_at_ts: Date.now(),
       enabled: hook.enabled !== undefined ? (hook.enabled ? 1 : 0) : undefined,
       synchronous:
-        hook.synchronous !== undefined
-          ? hook.synchronous
-            ? 1
-            : 0
-          : undefined,
+        hook.synchronous !== undefined ? (hook.synchronous ? 1 : 0) : undefined,
     };
 
     await db

@@ -28,11 +28,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to the user
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|user123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Mock the hooks.list method to return a page hook for impersonation
       // Page hooks are not stored in the database but recognized by the postUserLoginHook function
@@ -135,11 +139,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|user123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session and session using helper
       const { loginSession, session } = await createSessions(env.data);
@@ -254,11 +262,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to user
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|user123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|user123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -317,11 +329,15 @@ describe("impersonation routes", () => {
         is_social: false,
       });
 
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|user-hook`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|user-hook`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session in AWAITING_HOOK state
       // (simulating state after onExecutePostLogin redirected to impersonate)
@@ -405,11 +421,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -538,11 +558,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -792,11 +816,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to PRIMARY user
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|primary-user`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|primary-user`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create linked Google account (using mock-strategy)
       // Note: mock-strategy returns sub: "foo" for code "foo@example.com"
@@ -905,11 +933,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin123`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session with audience to get access token
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -974,7 +1006,9 @@ describe("impersonation routes", () => {
 
       // Verify the act claim is present with the admin user (RFC 8693)
       expect(payload.act).toBeDefined();
-      expect(payload.act).toEqual({ sub: `${USERNAME_PASSWORD_PROVIDER}|admin123` });
+      expect(payload.act).toEqual({
+        sub: `${USERNAME_PASSWORD_PROVIDER}|admin123`,
+      });
     });
 
     it("should create impersonation log with SUCCESS_LOGIN type and impersonating user in description", async () => {
@@ -1002,11 +1036,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin456`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin456`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|admin456`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin456`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create login session
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -1068,7 +1106,9 @@ describe("impersonation routes", () => {
       expect(impersonationLog?.type).toBe(LogTypes.SUCCESS_LOGIN);
 
       // Verify the log shows the target user
-      expect(impersonationLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|target456`);
+      expect(impersonationLog?.user_id).toBe(
+        `${USERNAME_PASSWORD_PROVIDER}|target456`,
+      );
 
       // Verify the log description mentions both users
       expect(impersonationLog?.description).toContain("target456@example.com");
@@ -1269,8 +1309,12 @@ describe("impersonation routes", () => {
       const payload = accessToken?.payload as any;
 
       // Verify the token is for the target user with act claim
-      expect(payload.sub).toBe(`${USERNAME_PASSWORD_PROVIDER}|target-implicit-flow`);
-      expect(payload.act).toEqual({ sub: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow` });
+      expect(payload.sub).toBe(
+        `${USERNAME_PASSWORD_PROVIDER}|target-implicit-flow`,
+      );
+      expect(payload.act).toEqual({
+        sub: `${USERNAME_PASSWORD_PROVIDER}|admin-implicit-flow`,
+      });
     });
   });
 
@@ -1302,11 +1346,15 @@ describe("impersonation routes", () => {
       });
 
       // Assign impersonation permission to admin
-      await env.data.userPermissions.create("tenantId", `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`, {
-        user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
-        resource_server_identifier: "https://api.example.com/",
-        permission_name: "users:impersonate",
-      });
+      await env.data.userPermissions.create(
+        "tenantId",
+        `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
+        {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|admin-pwd`,
+          resource_server_identifier: "https://api.example.com/",
+          permission_name: "users:impersonate",
+        },
+      );
 
       // Create target user to impersonate
       await env.data.users.create("tenantId", {

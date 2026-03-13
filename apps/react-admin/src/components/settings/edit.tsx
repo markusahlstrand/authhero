@@ -10,7 +10,9 @@ import {
 import { Stack } from "@mui/material";
 
 // Recursively remove null/undefined values from an object
-function removeNullValues(obj: Record<string, unknown>): Record<string, unknown> {
+function removeNullValues(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === null || value === undefined) {
@@ -150,7 +152,10 @@ export function SettingsEdit() {
         <TabbedForm.Tab label="MFA Factors">
           <Stack spacing={2}>
             <BooleanInput source="mfa.factors.sms" label="SMS" />
-            <BooleanInput source="mfa.factors.otp" label="One-Time Password (OTP)" />
+            <BooleanInput
+              source="mfa.factors.otp"
+              label="One-Time Password (OTP)"
+            />
             <BooleanInput source="mfa.factors.email" label="Email" />
             <BooleanInput
               source="mfa.factors.push_notification"
