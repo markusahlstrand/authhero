@@ -232,9 +232,6 @@ describe("callback", () => {
     expect(redirectUri.searchParams.get("error_description")).toEqual(
       "Signup disabled",
     );
-    expect(redirectUri.searchParams.get("error_code")).toEqual(
-      "signup_disabled",
-    );
     expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });
 

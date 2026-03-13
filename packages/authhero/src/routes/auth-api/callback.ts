@@ -16,7 +16,6 @@ async function returnError(
   error: string,
   error_description?: string,
   error_code?: string,
-  error_reason?: string,
 ) {
   const oauth2code = await ctx.env.data.codes.get(
     ctx.var.tenant_id || "",
@@ -73,15 +72,11 @@ async function returnError(
     }
   }
 
-  const loginUrl = new URL(
-    `${ctx.env.ISSUER}${routePrefix.slice(1)}${loginPath}`,
-  );
+  const loginUrl = new URL(`${routePrefix}${loginPath}`, ctx.env.ISSUER);
   setSearchParams(loginUrl, {
     state: loginSession.id,
     error,
     error_description,
-    error_code,
-    error_reason,
   });
 
   return ctx.redirect(loginUrl.toString());
@@ -144,7 +139,6 @@ export const callbackRoutes = new OpenAPIHono<{
         error,
         error_description,
         error_code,
-        error_reason,
       } = ctx.req.valid("query");
       if (error) {
         return returnError(
@@ -153,7 +147,6 @@ export const callbackRoutes = new OpenAPIHono<{
           error,
           error_description,
           error_code,
-          error_reason,
         );
       }
 
@@ -265,7 +258,6 @@ export const callbackRoutes = new OpenAPIHono<{
         error,
         error_description,
         error_code,
-        error_reason,
       } = ctx.req.valid("form");
 
       if (error) {
@@ -275,7 +267,6 @@ export const callbackRoutes = new OpenAPIHono<{
           error,
           error_description,
           error_code,
-          error_reason,
         );
       }
       if (!code) {
