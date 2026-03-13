@@ -1,8 +1,9 @@
 export default function generateOTP() {
-  const digits = "1234567890";
+  const randomBytes = new Uint8Array(6);
+  crypto.getRandomValues(randomBytes);
   let otp = "";
   for (let i = 0; i < 6; i += 1) {
-    otp += digits[Math.floor(Math.random() * 10)];
+    otp += (randomBytes[i]! % 10).toString();
   }
-  return otp.toString();
+  return otp;
 }

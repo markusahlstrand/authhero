@@ -45,6 +45,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { useState, useCallback } from "react";
+import { messages as i18nMessages } from "../../i18n/messages/index";
 
 // Available prompt screens
 const PROMPT_SCREENS = [
@@ -147,7 +148,7 @@ const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
     invitationTitle: "You've Been Invited!",
     invitationDescription:
       "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
-    termsAndConditionsTemplate:
+    termsAndConditionsText:
       'By continuing, you agree to our <a href="${termsAndConditionsUrl}" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.',
     captchaCodePlaceholder: "Enter the code shown above",
     logoAltText: "${companyName}",
@@ -436,6 +437,28 @@ const DEFAULT_TEXT_KEYS: Record<string, Record<string, string>> = {
     tryAgainText: "Try again",
   },
 };
+
+function getDefaultText(
+  prompt: string,
+  key: string,
+  language: string,
+): string {
+  const langMessages = i18nMessages[language] ?? i18nMessages["en"] ?? {};
+  const enMessages = i18nMessages["en"] ?? {};
+  const prefix = prompt.replace(/-/g, "_") + "_";
+  const snakeKey = key
+    .replace(/([A-Z])/g, "_$1")
+    .replace(/-/g, "_")
+    .toLowerCase()
+    .replace(/^_/, "");
+  return (
+    langMessages[prefix + snakeKey] ??
+    langMessages[snakeKey] ??
+    enMessages[prefix + snakeKey] ??
+    enMessages[snakeKey] ??
+    ""
+  );
+}
 
 // Login flow options
 const LOGIN_FLOW_OPTIONS = [
@@ -1129,7 +1152,16 @@ function CustomTextTab() {
                         <AccordionDetails>
                           <Stack spacing={2}>
                             {items.map(([key, value]) => {
-                              const defaultValue = defaults[key] || "";
+                              const defaultValue =
+                                (selectedEntry
+                                  ? getDefaultText(
+                                      selectedEntry.prompt,
+                                      key,
+                                      selectedEntry.language,
+                                    )
+                                  : "") ||
+                                defaults[key] ||
+                                "";
                               const isCustom = !(key in defaults);
                               return (
                                 <Box

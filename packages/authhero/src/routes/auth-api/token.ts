@@ -76,8 +76,17 @@ function parseBasicAuthHeader(authHeader?: string) {
 
   const [type, token] = authHeader.split(" ");
   if (type?.toLowerCase() === "basic" && token) {
-    const [client_id, client_secret] = atob(token).split(":");
-    return { client_id, client_secret };
+    try {
+      const decoded = atob(token);
+      const colonIndex = decoded.indexOf(":");
+      if (colonIndex === -1) return {};
+      return {
+        client_id: decoded.slice(0, colonIndex),
+        client_secret: decoded.slice(colonIndex + 1),
+      };
+    } catch {
+      return {};
+    }
   }
   return {};
 }

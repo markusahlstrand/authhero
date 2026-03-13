@@ -117,7 +117,8 @@ export const samlpRoutes = new OpenAPIHono<{
       ctx.set("client_id", client.client_id);
       setTenantId(ctx, client.tenant.id);
 
-      // TODO: Validate the Signature and SigAlg if provided
+      // SECURITY TODO: Validate the Signature and SigAlg if provided.
+      // Without this, SAML AuthnRequests can be forged by any party.
 
       const samlRequest = await parseSamlRequestQuery(SAMLRequest);
       const issuer = samlRequest["samlp:AuthnRequest"]["saml:Issuer"]["#text"];
@@ -135,7 +136,8 @@ export const samlpRoutes = new OpenAPIHono<{
             }),
             response_mode: AuthorizationResponseMode.SAML_POST,
             redirect_uri:
-              // TODO: validate this URL against the saml settings
+              // SECURITY TODO: validate this URL against the saml settings.
+              // Without this, SAML responses can be redirected to attacker-controlled URLs.
               samlRequest["samlp:AuthnRequest"][
                 "@_AssertionConsumerServiceURL"
               ],
