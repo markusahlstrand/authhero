@@ -1,5 +1,11 @@
 # authhero
 
+## 4.57.0
+
+### Minor Changes
+
+- c5b14e4: Pass the error correctly on callback from oidc login
+
 ## 4.56.0
 
 ### Minor Changes
