@@ -1,5 +1,17 @@
 # @authhero/cloudflare-adapter
 
+## 2.21.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
+### Patch Changes
+
+- Updated dependencies [1a72b93]
+  - @authhero/adapter-interfaces@0.142.0
+  - @authhero/kysely-adapter@10.105.0
+
 ## 2.20.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.142.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
 ## 0.141.0
 
 ### Minor Changes

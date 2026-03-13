@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.49.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
 ## 1.48.0
 
 ### Minor Changes
