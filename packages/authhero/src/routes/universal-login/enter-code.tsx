@@ -87,8 +87,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
       }
 
       try {
-        ({ theme, branding, loginSession, client } =
-          await initJSXRoute(ctx, state));
+        ({ theme, branding, loginSession, client } = await initJSXRoute(
+          ctx,
+          state,
+        ));
 
         if (!loginSession.authParams.username) {
           // Render an error page if username is not found
@@ -214,8 +216,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      const { theme, branding, client, loginSession } =
-        await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       if (!loginSession.authParams.username) {
         // Render an error page if username is not found

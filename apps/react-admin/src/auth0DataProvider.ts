@@ -392,19 +392,16 @@ export default (
       if (resource === "custom-text") {
         const headers = createHeaders(tenantId);
         try {
-          const res = await httpClient(
-            `${apiUrl}/api/v2/prompts/custom-text`,
-            { headers },
-          );
+          const res = await httpClient(`${apiUrl}/api/v2/prompts/custom-text`, {
+            headers,
+          });
           const entries = res.json || [];
           return {
-            data: entries.map(
-              (e: { prompt: string; language: string }) => ({
-                id: `${e.prompt}:${e.language}`,
-                prompt: e.prompt,
-                language: e.language,
-              }),
-            ),
+            data: entries.map((e: { prompt: string; language: string }) => ({
+              id: `${e.prompt}:${e.language}`,
+              prompt: e.prompt,
+              language: e.language,
+            })),
             total: entries.length,
           };
         } catch (error) {
@@ -1120,9 +1117,8 @@ export default (
         const { themes, ...brandingData } = cleanParams.data;
 
         // Update branding (without themes)
-        const brandingResult = await managementClient.branding.update(
-          brandingData,
-        );
+        const brandingResult =
+          await managementClient.branding.update(brandingData);
 
         // Update themes if provided
         const result: any = {

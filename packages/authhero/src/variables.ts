@@ -1,6 +1,9 @@
 import { Bindings } from "./types";
 
-export function getIssuer(env: Bindings) {
+export function getIssuer(env: Bindings, customDomain?: string) {
+  if (customDomain) {
+    return `https://${customDomain}/`;
+  }
   return env.ISSUER;
 }
 

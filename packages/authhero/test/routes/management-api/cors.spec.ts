@@ -62,7 +62,9 @@ describe("management-api CORS", () => {
       env,
     );
 
-    expect(initialResponse.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect(
+      initialResponse.headers.get("Access-Control-Allow-Origin"),
+    ).toBeNull();
 
     // Update the client to add the new origin
     await env.data.clients.update("tenantId", "clientId", {
@@ -109,6 +111,8 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
       "https://example.com",
     );
-    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
+      "true",
+    );
   });
 });

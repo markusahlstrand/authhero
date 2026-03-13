@@ -179,13 +179,13 @@ function createIdentifierScreen(
     ],
     links: settings.allowSignup
       ? [
-        {
-          id: "signup",
-          text: "Don't have an account?",
-          linkText: "Sign up",
-          href: `${baseUrl}/u2/signup?state=${state}`,
-        },
-      ]
+          {
+            id: "signup",
+            text: "Don't have an account?",
+            linkText: "Sign up",
+            href: `${baseUrl}/u2/signup?state=${state}`,
+          },
+        ]
       : [],
   };
 }
@@ -425,7 +425,9 @@ function createSuccessScreen(
     action: `${baseUrl}/callback?code=demo_auth_code&state=${state}`,
     method: "GET",
     title: "Welcome back!",
-    description: email ? `Successfully signed in as ${escapeHtml(email)}` : "Success!",
+    description: email
+      ? `Successfully signed in as ${escapeHtml(email)}`
+      : "Success!",
     components: [
       {
         id: "success-message",

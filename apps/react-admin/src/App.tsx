@@ -61,7 +61,7 @@ interface AppProps {
 
 export function App(props: AppProps) {
   const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
-  
+
   // Use a default domain for now - in the working project, domain selection might be handled differently
   const selectedDomain =
     props.initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "";
@@ -69,15 +69,19 @@ export function App(props: AppProps) {
   // Check if we've already verified single-tenant mode for THIS domain
   // The flag is stored as "domain|true" or "domain|false" to ensure we re-check when domain changes
   // Using | as separator since domains can contain : (e.g., localhost:3000)
-  const storedFlag = sessionStorage.getItem('isSingleTenant');
-  const separatorIndex = storedFlag?.lastIndexOf('|') ?? -1;
-  const [storedDomain, storedValue] = separatorIndex > -1
-    ? [storedFlag!.substring(0, separatorIndex), storedFlag!.substring(separatorIndex + 1)]
-    : [null, storedFlag];
-  
+  const storedFlag = sessionStorage.getItem("isSingleTenant");
+  const separatorIndex = storedFlag?.lastIndexOf("|") ?? -1;
+  const [storedDomain, storedValue] =
+    separatorIndex > -1
+      ? [
+          storedFlag!.substring(0, separatorIndex),
+          storedFlag!.substring(separatorIndex + 1),
+        ]
+      : [null, storedFlag];
+
   const [isSingleTenantChecked, setIsSingleTenantChecked] = useState<boolean>(
     // Only skip check if we have a flag for the SAME domain
-    storedDomain === selectedDomain && storedValue !== null
+    storedDomain === selectedDomain && storedValue !== null,
   );
 
   // Check for single-tenant mode on mount if not already checked
@@ -92,23 +96,23 @@ export function App(props: AppProps) {
       try {
         // Try to fetch the tenants endpoint - if it exists, we're in multi-tenant mode
         const response = await fetch(`${apiUrl}/api/v2/tenants?per_page=1`, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
-        
+
         // If we get a 401/403 (auth required) or 200, the endpoint exists -> multi-tenant
         // If we get a 404, the endpoint doesn't exist -> single-tenant
         if (response.status === 404) {
           // Store domain|value so we know which domain was checked (using | since domain can contain :)
-          sessionStorage.setItem('isSingleTenant', `${selectedDomain}|true`);
+          sessionStorage.setItem("isSingleTenant", `${selectedDomain}|true`);
         } else {
-          sessionStorage.setItem('isSingleTenant', `${selectedDomain}|false`);
+          sessionStorage.setItem("isSingleTenant", `${selectedDomain}|false`);
         }
       } catch {
         // Network error or endpoint doesn't exist -> assume single-tenant
-        sessionStorage.setItem('isSingleTenant', `${selectedDomain}|true`);
+        sessionStorage.setItem("isSingleTenant", `${selectedDomain}|true`);
       }
       setIsSingleTenantChecked(true);
     };

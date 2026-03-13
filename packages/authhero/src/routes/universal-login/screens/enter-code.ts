@@ -15,22 +15,23 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 /**
  * Create the enter-code screen
  */
-export async function enterCodeScreen(context: ScreenContext): Promise<ScreenResult> {
-  const { branding, state, errors, messages, data, customText, routePrefix } = context;
+export async function enterCodeScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
+  const { branding, state, errors, messages, data, customText, routePrefix } =
+    context;
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(locale, customText);
 
   const email = data?.email as string | undefined;
-  const maskedEmail = email
-    ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-    : "";
+  const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
   const description = maskedEmail
     ? m.code_sent_template({
-      username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
-    })
+        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+      })
     : m.enter_code_description();
 
   const components: FormNodeComponent[] = [

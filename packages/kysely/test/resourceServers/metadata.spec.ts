@@ -64,7 +64,9 @@ describe("resourceServers - metadata", () => {
 
     expect(list.resource_servers.length).toBe(2);
 
-    const publicApi = list.resource_servers.find((r) => r.name === "Public API");
+    const publicApi = list.resource_servers.find(
+      (r) => r.name === "Public API",
+    );
     expect(publicApi?.metadata?.sync).toBe(true);
     expect(publicApi?.metadata?.visibility).toBe("public");
 

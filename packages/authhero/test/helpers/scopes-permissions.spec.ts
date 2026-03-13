@@ -192,7 +192,10 @@ describe("scopes-permissions helper", () => {
         name: "Test API with Restricted Scopes",
         identifier: "https://restricted-api.example.com",
         scopes: [
-          { value: "impersonate", description: "Impersonate users - restricted" },
+          {
+            value: "impersonate",
+            description: "Impersonate users - restricted",
+          },
         ],
         options: {
           enforce_policies: true, // RBAC enabled
@@ -236,7 +239,10 @@ describe("scopes-permissions helper", () => {
         name: "Test API with Impersonate",
         identifier: "https://impersonate-api.example.com",
         scopes: [
-          { value: "impersonate", description: "Impersonate users - restricted" },
+          {
+            value: "impersonate",
+            description: "Impersonate users - restricted",
+          },
         ],
         options: {
           enforce_policies: true,
@@ -712,7 +718,10 @@ describe("scopes-permissions helper", () => {
             scopes: [
               { value: "read:users", description: "Read users" },
               { value: "write:users", description: "Write users" },
-              { value: "admin:organizations", description: "Admin organizations" },
+              {
+                value: "admin:organizations",
+                description: "Admin organizations",
+              },
             ],
             options: {
               enforce_policies: true,
@@ -775,7 +784,10 @@ describe("scopes-permissions helper", () => {
 
         expect(result).toEqual({
           scopes: [],
-          permissions: expect.arrayContaining(["admin:organizations", "read:users"]),
+          permissions: expect.arrayContaining([
+            "admin:organizations",
+            "read:users",
+          ]),
         });
 
         // Clean up
@@ -809,7 +821,10 @@ describe("scopes-permissions helper", () => {
               { value: "read:users", description: "Read users" },
               { value: "write:users", description: "Write users" },
               { value: "delete:users", description: "Delete users" },
-              { value: "admin:organizations", description: "Admin organizations" },
+              {
+                value: "admin:organizations",
+                description: "Admin organizations",
+              },
             ],
             options: {
               enforce_policies: true,
@@ -834,12 +849,14 @@ describe("scopes-permissions helper", () => {
         await env.data.rolePermissions.assign("tenantId", limitedRole.id, [
           {
             role_id: limitedRole.id,
-            resource_server_identifier: "https://permission-check-api.example.com",
+            resource_server_identifier:
+              "https://permission-check-api.example.com",
             permission_name: "admin:organizations",
           },
           {
             role_id: limitedRole.id,
-            resource_server_identifier: "https://permission-check-api.example.com",
+            resource_server_identifier:
+              "https://permission-check-api.example.com",
             permission_name: "read:users",
           },
         ]);
@@ -865,7 +882,12 @@ describe("scopes-permissions helper", () => {
           clientId: "test-client-id",
           userId: "limitedAdminUserId",
           audience: "https://permission-check-api.example.com",
-          requestedScopes: ["read:users", "write:users", "delete:users", "admin:organizations"],
+          requestedScopes: [
+            "read:users",
+            "write:users",
+            "delete:users",
+            "admin:organizations",
+          ],
           organizationId: organization.id,
         });
 
@@ -902,9 +924,7 @@ describe("scopes-permissions helper", () => {
           {
             name: "Test API for Rejection",
             identifier: "https://rejection-test-api.example.com",
-            scopes: [
-              { value: "read:users", description: "Read users" },
-            ],
+            scopes: [{ value: "read:users", description: "Read users" }],
             options: {
               enforce_policies: true,
               token_dialect: "access_token_authz",
@@ -927,7 +947,8 @@ describe("scopes-permissions helper", () => {
         await env.data.rolePermissions.assign("tenantId", regularRole.id, [
           {
             role_id: regularRole.id,
-            resource_server_identifier: "https://rejection-test-api.example.com",
+            resource_server_identifier:
+              "https://rejection-test-api.example.com",
             permission_name: "read:users",
           },
         ]);

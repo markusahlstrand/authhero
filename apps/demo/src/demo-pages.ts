@@ -10,119 +10,148 @@ export const demoPages = new Hono();
 const htmlHead = (title: string) => html`
   <!DOCTYPE html>
   <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - AuthHero Widget Demo</title>
-    <script type="module" src="/widget/authhero-widget.esm.js"></script>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #f5f5f5;
-        margin: 0;
-        padding: 20px;
-        min-height: 100vh;
-      }
-      .demo-container {
-        max-width: 800px;
-        margin: 0 auto;
-      }
-      h1 {
-        color: #333;
-        margin-bottom: 10px;
-      }
-      .description {
-        color: #666;
-        margin-bottom: 20px;
-        line-height: 1.6;
-      }
-      .widget-wrapper {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 40px;
-        margin-bottom: 20px;
-      }
-      .debug-panel {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border-radius: 8px;
-        padding: 16px;
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 12px;
-        max-height: 300px;
-        overflow-y: auto;
-      }
-      .debug-panel h3 {
-        color: #569cd6;
-        margin: 0 0 10px 0;
-        font-size: 14px;
-      }
-      .debug-entry {
-        margin: 4px 0;
-        padding: 4px;
-        border-left: 2px solid #569cd6;
-        padding-left: 8px;
-      }
-      .debug-entry.event { border-color: #4ec9b0; }
-      .debug-entry.response { border-color: #ce9178; }
-      .debug-entry.error { border-color: #f44747; }
-      .nav {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-      }
-      .nav a {
-        padding: 8px 16px;
-        background: #6366f1;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        font-size: 14px;
-      }
-      .nav a:hover {
-        background: #4f46e5;
-      }
-      .nav a.active {
-        background: #4338ca;
-      }
-      pre {
-        background: #f8f8f8;
-        padding: 12px;
-        border-radius: 6px;
-        overflow-x: auto;
-        font-size: 12px;
-      }
-      code {
-        font-family: 'Monaco', 'Menlo', monospace;
-      }
-      .status {
-        padding: 8px 16px;
-        border-radius: 6px;
-        margin-bottom: 16px;
-        font-weight: 500;
-      }
-      .status.info { background: #dbeafe; color: #1e40af; }
-      .status.success { background: #dcfce7; color: #166534; }
-      .status.error { background: #fee2e2; color: #991b1b; }
-    </style>
-  </head>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>${title} - AuthHero Widget Demo</title>
+      <script type="module" src="/widget/authhero-widget.esm.js"></script>
+      <style>
+        * {
+          box-sizing: border-box;
+        }
+        body {
+          font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: #f5f5f5;
+          margin: 0;
+          padding: 20px;
+          min-height: 100vh;
+        }
+        .demo-container {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        h1 {
+          color: #333;
+          margin-bottom: 10px;
+        }
+        .description {
+          color: #666;
+          margin-bottom: 20px;
+          line-height: 1.6;
+        }
+        .widget-wrapper {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          padding: 40px;
+          margin-bottom: 20px;
+        }
+        .debug-panel {
+          background: #1e1e1e;
+          color: #d4d4d4;
+          border-radius: 8px;
+          padding: 16px;
+          font-family: "Monaco", "Menlo", monospace;
+          font-size: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        .debug-panel h3 {
+          color: #569cd6;
+          margin: 0 0 10px 0;
+          font-size: 14px;
+        }
+        .debug-entry {
+          margin: 4px 0;
+          padding: 4px;
+          border-left: 2px solid #569cd6;
+          padding-left: 8px;
+        }
+        .debug-entry.event {
+          border-color: #4ec9b0;
+        }
+        .debug-entry.response {
+          border-color: #ce9178;
+        }
+        .debug-entry.error {
+          border-color: #f44747;
+        }
+        .nav {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+        .nav a {
+          padding: 8px 16px;
+          background: #6366f1;
+          color: white;
+          text-decoration: none;
+          border-radius: 6px;
+          font-size: 14px;
+        }
+        .nav a:hover {
+          background: #4f46e5;
+        }
+        .nav a.active {
+          background: #4338ca;
+        }
+        pre {
+          background: #f8f8f8;
+          padding: 12px;
+          border-radius: 6px;
+          overflow-x: auto;
+          font-size: 12px;
+        }
+        code {
+          font-family: "Monaco", "Menlo", monospace;
+        }
+        .status {
+          padding: 8px 16px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+          font-weight: 500;
+        }
+        .status.info {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+        .status.success {
+          background: #dcfce7;
+          color: #166534;
+        }
+        .status.error {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+      </style>
+    </head>
+  </html>
 `;
 
 // Navigation component
 const navigation = (active: string) => html`
   <nav class="nav">
-    <a href="/demo" class="${active === 'index' ? 'active' : ''}">Index</a>
-    <a href="/demo/pattern1" class="${active === 'pattern1' ? 'active' : ''}">1. Event-Based</a>
-    <a href="/demo/pattern2" class="${active === 'pattern2' ? 'active' : ''}">2. Self-Contained</a>
-    <a href="/demo/pattern3" class="${active === 'pattern3' ? 'active' : ''}">3. Auth0-SPA-JS</a>
-    <a href="/demo/pattern4" class="${active === 'pattern4' ? 'active' : ''}">4. Custom Tokens</a>
-    <a href="/demo/pattern5" class="${active === 'pattern5' ? 'active' : ''}">5. Generic Forms</a>
-    <a href="/demo/pattern6" class="${active === 'pattern6' ? 'active' : ''}">6. Cross-Domain</a>
+    <a href="/demo" class="${active === "index" ? "active" : ""}">Index</a>
+    <a href="/demo/pattern1" class="${active === "pattern1" ? "active" : ""}"
+      >1. Event-Based</a
+    >
+    <a href="/demo/pattern2" class="${active === "pattern2" ? "active" : ""}"
+      >2. Self-Contained</a
+    >
+    <a href="/demo/pattern3" class="${active === "pattern3" ? "active" : ""}"
+      >3. Auth0-SPA-JS</a
+    >
+    <a href="/demo/pattern4" class="${active === "pattern4" ? "active" : ""}"
+      >4. Custom Tokens</a
+    >
+    <a href="/demo/pattern5" class="${active === "pattern5" ? "active" : ""}"
+      >5. Generic Forms</a
+    >
+    <a href="/demo/pattern6" class="${active === "pattern6" ? "active" : ""}"
+      >6. Cross-Domain</a
+    >
   </nav>
 `;
 

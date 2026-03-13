@@ -42,7 +42,11 @@ describe("cache-wrapper", () => {
           return { clients: mockClients };
         },
         create: async (tenantId: string, client: any) => {
-          const newClient = { ...client, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          const newClient = {
+            ...client,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
           mockClients.push(newClient);
           return newClient;
         },
@@ -127,7 +131,9 @@ describe("cache-wrapper", () => {
       expect(getCallCount).toBe(1); // Cache hit
 
       // Update the client
-      await cachedData.clients.update("tenant1", "client1", { name: "Updated Name" });
+      await cachedData.clients.update("tenant1", "client1", {
+        name: "Updated Name",
+      });
 
       // Cache should be invalidated, next get should hit database
       await cachedData.clients.get("tenant1", "client1");

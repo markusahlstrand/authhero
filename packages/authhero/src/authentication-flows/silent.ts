@@ -264,11 +264,11 @@ export async function silentAuth({
   const tokenResponse =
     response_type === AuthorizationResponseType.CODE
       ? await createCodeData(ctx, {
-        user,
-        client,
-        authParams: tokenResponseOptions.authParams,
-        login_id: loginSession.id,
-      })
+          user,
+          client,
+          authParams: tokenResponseOptions.authParams,
+          login_id: loginSession.id,
+        })
       : await createAuthTokens(ctx, tokenResponseOptions);
 
   // Update session

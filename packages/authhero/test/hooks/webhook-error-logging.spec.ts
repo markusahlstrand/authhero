@@ -4,10 +4,7 @@ import { testClient } from "hono/testing";
 import http from "node:http";
 
 function createWebhookServer(
-  handler: (
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-  ) => void,
+  handler: (req: http.IncomingMessage, res: http.ServerResponse) => void,
 ): Promise<{ url: string; server: http.Server; close: () => Promise<void> }> {
   return new Promise((resolve) => {
     const server = http.createServer(handler);
@@ -16,8 +13,7 @@ function createWebhookServer(
       resolve({
         url: `http://127.0.0.1:${addr.port}`,
         server,
-        close: () =>
-          new Promise<void>((res) => server.close(() => res())),
+        close: () => new Promise<void>((res) => server.close(() => res())),
       });
     });
   });
@@ -179,9 +175,7 @@ describe("webhook error logging", () => {
     const details = failedHookLog!.details as any;
     expect(details.error).toBeTruthy();
     expect(details.user_id).toBeTruthy();
-    expect(details.user_name).toBe(
-      "webhook-unreachable@example.com",
-    );
+    expect(details.user_name).toBe("webhook-unreachable@example.com");
   });
 
   it("should log user_id and connection from the user object in webhook data", async () => {

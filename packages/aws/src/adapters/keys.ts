@@ -32,7 +32,9 @@ interface KeyItem extends DynamoDBBaseItem {
 }
 
 function toSigningKey(item: KeyItem): SigningKey {
-  return signingKeySchema.parse(removeNullProperties(stripDynamoDBFields(item)));
+  return signingKeySchema.parse(
+    removeNullProperties(stripDynamoDBFields(item)),
+  );
 }
 
 export function createKeysAdapter(ctx: DynamoDBContext): KeysAdapter {
@@ -65,9 +67,12 @@ export function createKeysAdapter(ctx: DynamoDBContext): KeysAdapter {
       await putItem(ctx, item);
     },
 
-    async list(
-      params: ListParams = {},
-    ): Promise<{ signingKeys: SigningKey[]; start: number; limit: number; length: number }> {
+    async list(params: ListParams = {}): Promise<{
+      signingKeys: SigningKey[];
+      start: number;
+      limit: number;
+      length: number;
+    }> {
       const result = await queryWithPagination<KeyItem>(
         ctx,
         keyKeys.pk(),

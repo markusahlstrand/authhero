@@ -69,7 +69,15 @@
     }
   ],
   "links": [
-    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" },
-    { "id": "signup", "text": "Don't have an account? Sign up", "href": "/register" }
+    {
+      "id": "forgot-password",
+      "text": "Forgot password?",
+      "href": "/forgot-password"
+    },
+    {
+      "id": "signup",
+      "text": "Don't have an account? Sign up",
+      "href": "/register"
+    }
   ]
 }

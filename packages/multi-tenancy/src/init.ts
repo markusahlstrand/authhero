@@ -276,7 +276,10 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   });
 
   // Add middleware to resolve tenant from org_name for control plane users
-  app.use("/api/v2/*", createControlPlaneTenantMiddleware(controlPlaneTenantId));
+  app.use(
+    "/api/v2/*",
+    createControlPlaneTenantMiddleware(controlPlaneTenantId),
+  );
 
   // Add middleware to protect synced entities
   if (syncEnabled) {

@@ -58,7 +58,9 @@ export async function ticketAuth(
   const connection = client.connections.find((c) => c.name === realm);
   const strategy =
     connection?.strategy ||
-    (provider === USERNAME_PASSWORD_PROVIDER ? "Username-Password-Authentication" : "email");
+    (provider === USERNAME_PASSWORD_PROVIDER
+      ? "Username-Password-Authentication"
+      : "email");
   const strategy_type =
     strategy === "Username-Password-Authentication"
       ? "database"

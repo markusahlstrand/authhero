@@ -30,11 +30,16 @@ export function update(db: Kysely<Database>) {
       rotating: rotating !== undefined ? (rotating ? 1 : 0) : undefined,
       // Convert date fields to bigint format
       // Use !== undefined to preserve null values (which mean "doesn't expire")
-      expires_at_ts: expires_at !== undefined ? isoToDbDate(expires_at) : undefined,
+      expires_at_ts:
+        expires_at !== undefined ? isoToDbDate(expires_at) : undefined,
       idle_expires_at_ts:
-        idle_expires_at !== undefined ? isoToDbDate(idle_expires_at) : undefined,
+        idle_expires_at !== undefined
+          ? isoToDbDate(idle_expires_at)
+          : undefined,
       last_exchanged_at_ts:
-        last_exchanged_at !== undefined ? isoToDbDate(last_exchanged_at) : undefined,
+        last_exchanged_at !== undefined
+          ? isoToDbDate(last_exchanged_at)
+          : undefined,
     };
 
     const results = await db

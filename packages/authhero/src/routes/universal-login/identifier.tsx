@@ -8,7 +8,10 @@ import {
 } from "../../helpers/users";
 import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
-import { LogTypes, getConnectionIdentifierConfig } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  getConnectionIdentifierConfig,
+} from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
@@ -164,7 +167,8 @@ export const identifierRoutes = new OpenAPIHono<{
       const passwordConnection = client.connections.find(
         (c) => c.strategy === "Username-Password-Authentication",
       );
-      const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
+      const identifierConfig =
+        getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
 
       // Validate username length when connectionType is "username"

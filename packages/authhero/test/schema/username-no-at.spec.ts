@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  baseUserSchema,
-  userInsertSchema,
-} from "@authhero/adapter-interfaces";
+import { baseUserSchema, userInsertSchema } from "@authhero/adapter-interfaces";
 
 /**
  * INVARIANT: plain usernames must not contain "@".
@@ -22,8 +19,8 @@ describe("username must not contain @", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      const usernameErrors = result.error.issues.filter(
-        (i) => i.path.includes("username"),
+      const usernameErrors = result.error.issues.filter((i) =>
+        i.path.includes("username"),
       );
       expect(usernameErrors.length).toBeGreaterThan(0);
       expect(usernameErrors[0]!.message).toContain("@");

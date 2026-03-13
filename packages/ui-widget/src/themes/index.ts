@@ -41,41 +41,45 @@ export {
   themeToCssVars,
   mergeThemeVars,
   applyCssVars,
-} from '../utils/branding';
+} from "../utils/branding";
 
-export type { WidgetBranding, WidgetTheme } from '../utils/branding';
+export type { WidgetBranding, WidgetTheme } from "../utils/branding";
 
 // Theme preset class names
-export const themePresets = ['ah-theme-minimal', 'ah-theme-rounded', 'ah-theme-dark'] as const;
+export const themePresets = [
+  "ah-theme-minimal",
+  "ah-theme-rounded",
+  "ah-theme-dark",
+] as const;
 
 // CSS part names for ::part() styling
 export const cssParts = [
-  'container',
-  'logo',
-  'title',
-  'form',
-  'links',
-  'link',
-  'link-wrapper',
-  'divider',
-  'divider-text',
-  'message',
-  'message-error',
-  'message-success',
-  'input-wrapper',
-  'label',
-  'input',
-  'helper-text',
-  'error-text',
-  'button',
-  'button-primary',
-  'button-secondary',
-  'checkbox-wrapper',
-  'checkbox',
-  'checkbox-label',
-  'image',
-  'text-title',
-  'text-description',
-  'text-error',
-  'text-success',
+  "container",
+  "logo",
+  "title",
+  "form",
+  "links",
+  "link",
+  "link-wrapper",
+  "divider",
+  "divider-text",
+  "message",
+  "message-error",
+  "message-success",
+  "input-wrapper",
+  "label",
+  "input",
+  "helper-text",
+  "error-text",
+  "button",
+  "button-primary",
+  "button-secondary",
+  "checkbox-wrapper",
+  "checkbox",
+  "checkbox-label",
+  "image",
+  "text-title",
+  "text-description",
+  "text-error",
+  "text-success",
 ] as const;

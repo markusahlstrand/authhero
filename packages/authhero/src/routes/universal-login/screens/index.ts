@@ -31,4 +31,8 @@ export type { ScreenContext, ScreenFactory, ScreenResult } from "./types";
 export { getScreen, screenRegistry } from "./registry";
 
 // Export i18n utilities
-export { createTranslation, type Messages, type TranslationContext } from "../../../i18n";
+export {
+  createTranslation,
+  type Messages,
+  type TranslationContext,
+} from "../../../i18n";

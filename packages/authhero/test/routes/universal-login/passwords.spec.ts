@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
-import { LogTypes, AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  AuthorizationResponseType,
+} from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -113,7 +116,10 @@ describe("passwords", () => {
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
     expect(redirectUri.searchParams.get("state")).toBe("state");
 
-    const user = await env.data.users.get("tenantId", `${USERNAME_PASSWORD_PROVIDER}|userId`);
+    const user = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId`,
+    );
     if (!user) {
       throw new Error("User not found");
     }
@@ -359,7 +365,9 @@ describe("passwords", () => {
     );
 
     expect(passwordResetSuccessLog).toBeDefined();
-    expect(passwordResetSuccessLog?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|resetComplete456`);
+    expect(passwordResetSuccessLog?.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|resetComplete456`,
+    );
   });
 
   it("should successfully change password and allow login with new password", async () => {
@@ -659,7 +667,10 @@ describe("passwords", () => {
     const universalClient = testClient(universalApp, env);
 
     // Delete the default Username-Password-Authentication connection
-    await env.data.connections.remove("tenantId", "Username-Password-Authentication");
+    await env.data.connections.remove(
+      "tenantId",
+      "Username-Password-Authentication",
+    );
 
     // Create a connection with a DIFFERENT name but same strategy, with lenient password policy
     await env.data.connections.create("tenantId", {
@@ -741,15 +752,15 @@ describe("passwords", () => {
     //
     // If the bug is present (looking up by user.connection name instead of by strategy),
     // this would FAIL because default policy requires 8 chars + uppercase + lowercase + number + special
-    const simplePasswordResponse = await universalClient["reset-password"].$post(
-      {
-        query: { state: resetState, code: passwordResetCode },
-        form: {
-          password: "simple", // 6 chars, no complexity - should pass with policy "none"
-          "re-enter-password": "simple",
-        },
+    const simplePasswordResponse = await universalClient[
+      "reset-password"
+    ].$post({
+      query: { state: resetState, code: passwordResetCode },
+      form: {
+        password: "simple", // 6 chars, no complexity - should pass with policy "none"
+        "re-enter-password": "simple",
       },
-    );
+    });
 
     // If this assertion fails with status 400, the bug is back!
     // The error message would say something like "at least 8 characters" or "uppercase letter"
@@ -787,4 +798,3 @@ describe("passwords", () => {
     expect(loginWithNewPassword.status).toBe(302);
   });
 });
-

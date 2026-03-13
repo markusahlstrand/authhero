@@ -23,7 +23,9 @@ export function update(db: Kysely<Database>) {
       sqlSession.authenticated_at_ts = isoToDbDate(session.authenticated_at);
     }
     if (session.last_interaction_at !== undefined) {
-      sqlSession.last_interaction_at_ts = isoToDbDate(session.last_interaction_at);
+      sqlSession.last_interaction_at_ts = isoToDbDate(
+        session.last_interaction_at,
+      );
     }
     if (session.used_at !== undefined) {
       sqlSession.used_at_ts = isoToDbDate(session.used_at);

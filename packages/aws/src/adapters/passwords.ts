@@ -29,9 +29,7 @@ function toPassword(item: PasswordItem): Password {
   return passwordSchema.parse(removeNullProperties(rest));
 }
 
-export function createPasswordsAdapter(
-  ctx: DynamoDBContext,
-): PasswordsAdapter {
+export function createPasswordsAdapter(ctx: DynamoDBContext): PasswordsAdapter {
   return {
     async create(tenantId: string, params: PasswordInsert): Promise<Password> {
       const now = new Date().toISOString();

@@ -13,7 +13,10 @@ export function list(db: Kysely<Database>) {
     return customDomains.map((customDomain) => ({
       ...customDomain,
       primary: customDomain.primary === 1,
-      domain_metadata: parseJsonIfDefined(customDomain.domain_metadata, undefined),
+      domain_metadata: parseJsonIfDefined(
+        customDomain.domain_metadata,
+        undefined,
+      ),
     }));
   };
 }

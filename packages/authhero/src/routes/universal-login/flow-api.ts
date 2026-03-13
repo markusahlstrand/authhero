@@ -135,7 +135,10 @@ function stepToUiScreen(
         return {
           ...resolvedComp,
           messages: [
-            { text: options.fieldErrors[resolvedComp.id], type: "error" as const },
+            {
+              text: options.fieldErrors[resolvedComp.id],
+              type: "error" as const,
+            },
           ],
         } as FormComponent;
       }
@@ -241,7 +244,11 @@ async function handleGetScreen(
   nodeId?: string,
   mode: "hosted" | "spa" = "hosted",
 ) {
-  const { client, branding, loginSession } = await initJSXRoute(ctx, state, true);
+  const { client, branding, loginSession } = await initJSXRoute(
+    ctx,
+    state,
+    true,
+  );
 
   const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -323,7 +330,11 @@ async function handlePostScreen(
   data: Record<string, unknown>,
   mode: "hosted" | "spa" = "hosted",
 ) {
-  const { client, branding, loginSession: postLoginSession } = await initJSXRoute(ctx, state, true);
+  const {
+    client,
+    branding,
+    loginSession: postLoginSession,
+  } = await initJSXRoute(ctx, state, true);
 
   const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -388,10 +399,9 @@ async function handlePostScreen(
   }
 
   // Get session and user
-  const loginSession = postLoginSession ?? await ctx.env.data.loginSessions.get(
-    client.tenant.id,
-    state,
-  );
+  const loginSession =
+    postLoginSession ??
+    (await ctx.env.data.loginSessions.get(client.tenant.id, state));
 
   if (!loginSession || !loginSession.authParams) {
     throw new HTTPException(400, { message: "Session expired" });
@@ -409,7 +419,10 @@ async function handlePostScreen(
         actions: flow.actions?.map((action: any) => ({
           type: action.type,
           action: action.action,
-          params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
+          params:
+            "params" in action && action.params
+              ? (action.params as Record<string, unknown>)
+              : undefined,
         })),
       };
     };
@@ -429,7 +442,11 @@ async function handlePostScreen(
     // Collect submitted field values
     const submittedFields: Record<string, string> = {};
     for (const comp of components) {
-      if (data[comp.id] !== undefined && data[comp.id] !== null && data[comp.id] !== "") {
+      if (
+        data[comp.id] !== undefined &&
+        data[comp.id] !== null &&
+        data[comp.id] !== ""
+      ) {
         submittedFields[comp.id] = String(data[comp.id]);
       }
     }
@@ -444,7 +461,11 @@ async function handlePostScreen(
 
     if (resolveResult) {
       // Execute any pending user updates from AUTH0 UPDATE_USER actions
-      if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0 && user) {
+      if (
+        resolveResult.userUpdates &&
+        resolveResult.userUpdates.length > 0 &&
+        user
+      ) {
         const merged = mergeUserUpdates(resolveResult.userUpdates);
         for (const update of merged) {
           const userUpdates = buildUserUpdates(update.changes, user);
@@ -458,7 +479,10 @@ async function handlePostScreen(
 
       if (resolveResult.type === "redirect") {
         // FLOW or ACTION node with REDIRECT
-        const target = resolveResult.target as "change-email" | "account" | "custom";
+        const target = resolveResult.target as
+          | "change-email"
+          | "account"
+          | "custom";
         const redirectUrl = getRedirectUrl(
           target,
           resolveResult.customUrl,

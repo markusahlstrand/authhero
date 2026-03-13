@@ -129,9 +129,7 @@ export async function queryItems<T>(
     scanIndexForward = true,
   } = options || {};
 
-  let keyConditionExpression = indexName
-    ? `${indexName}PK = :pk`
-    : "PK = :pk";
+  let keyConditionExpression = indexName ? `${indexName}PK = :pk` : "PK = :pk";
   const expressionAttributeValues: Record<string, unknown> = {
     ":pk": pk,
   };
@@ -192,9 +190,7 @@ export async function queryWithPagination<T>(
   const limit = take || per_page || 50;
   const skip = from !== undefined ? parseInt(from, 10) : (page || 0) * limit;
 
-  let keyConditionExpression = indexName
-    ? `${indexName}PK = :pk`
-    : "PK = :pk";
+  let keyConditionExpression = indexName ? `${indexName}PK = :pk` : "PK = :pk";
   const expressionAttributeValues: Record<string, unknown> = {
     ":pk": pk,
   };
@@ -288,7 +284,9 @@ export async function updateItem(
 
   const updateExpression =
     "SET " +
-    filteredUpdates.map(([_key], index) => `#attr${index} = :val${index}`).join(", ");
+    filteredUpdates
+      .map(([_key], index) => `#attr${index} = :val${index}`)
+      .join(", ");
 
   const expressionAttributeNames: Record<string, string> = {};
   const expressionAttributeValues: Record<string, unknown> = {};
@@ -316,12 +314,22 @@ export async function updateItem(
  */
 export function stripDynamoDBFields<T>(
   item: T,
-): Omit<T, "PK" | "SK" | "GSI1PK" | "GSI1SK" | "GSI2PK" | "GSI2SK" | "entityType" | "ttl"> {
+): Omit<
+  T,
+  "PK" | "SK" | "GSI1PK" | "GSI1SK" | "GSI2PK" | "GSI2SK" | "entityType" | "ttl"
+> {
   const { PK, SK, GSI1PK, GSI1SK, GSI2PK, GSI2SK, entityType, ttl, ...rest } =
     item as any;
   return rest as Omit<
     T,
-    "PK" | "SK" | "GSI1PK" | "GSI1SK" | "GSI2PK" | "GSI2SK" | "entityType" | "ttl"
+    | "PK"
+    | "SK"
+    | "GSI1PK"
+    | "GSI1SK"
+    | "GSI2PK"
+    | "GSI2SK"
+    | "entityType"
+    | "ttl"
   >;
 }
 

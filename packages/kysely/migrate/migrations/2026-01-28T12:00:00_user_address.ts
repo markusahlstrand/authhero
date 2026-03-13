@@ -12,10 +12,7 @@ import { Kysely } from "kysely";
  * - country: Country name
  */
 export async function up(db: Kysely<Database>): Promise<void> {
-  await db.schema
-    .alterTable("users")
-    .addColumn("address", "text")
-    .execute();
+  await db.schema.alterTable("users").addColumn("address", "text").execute();
 }
 
 export async function down(db: Kysely<Database>): Promise<void> {

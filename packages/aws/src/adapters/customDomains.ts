@@ -35,7 +35,8 @@ interface CustomDomainItem extends DynamoDBBaseItem {
 }
 
 function toCustomDomain(item: CustomDomainItem): CustomDomain {
-  const { tenant_id, verification, domain_metadata, ...rest } = stripDynamoDBFields(item);
+  const { tenant_id, verification, domain_metadata, ...rest } =
+    stripDynamoDBFields(item);
 
   const data = removeNullProperties({
     ...rest,
@@ -111,7 +112,9 @@ export function createCustomDomainsAdapter(
       return toCustomDomain(item);
     },
 
-    async getByDomain(domain: string): Promise<CustomDomainWithTenantId | null> {
+    async getByDomain(
+      domain: string,
+    ): Promise<CustomDomainWithTenantId | null> {
       const { items } = await queryItems<CustomDomainItem>(
         ctx,
         customDomainKeys.gsi1pk(domain),

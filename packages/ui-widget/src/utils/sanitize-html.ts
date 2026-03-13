@@ -89,10 +89,14 @@ export function sanitizeHtml(html: string | undefined | null): string {
             // For href, validate it's a safe URL
             if (attrName.toLowerCase() === "href") {
               if (isSafeUrl(attrValue || "")) {
-                filteredAttrs.push(`${attrName}="${escapeAttr(attrValue || "")}"`);
+                filteredAttrs.push(
+                  `${attrName}="${escapeAttr(attrValue || "")}"`,
+                );
               }
             } else {
-              filteredAttrs.push(`${attrName}="${escapeAttr(attrValue || "")}"`);
+              filteredAttrs.push(
+                `${attrName}="${escapeAttr(attrValue || "")}"`,
+              );
             }
           }
         }

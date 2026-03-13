@@ -3,10 +3,7 @@ import { luceneFilter } from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
-import {
-  ListParams,
-  ListUsersResponse,
-} from "@authhero/adapter-interfaces";
+import { ListParams, ListUsersResponse } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
 export function list(db: Kysely<Database>) {

@@ -20,7 +20,9 @@ export function removeClientFromConnection(db: Kysely<Database>) {
     }
 
     const connections: string[] = JSON.parse(client.connections || "[]");
-    const filteredConnections = connections.filter((id) => id !== connection_id);
+    const filteredConnections = connections.filter(
+      (id) => id !== connection_id,
+    );
 
     // Only update if something changed
     if (filteredConnections.length !== connections.length) {

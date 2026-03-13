@@ -4,11 +4,7 @@ import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import { GoBack } from "./GoBack";
-import {
-  Theme,
-  Branding,
-  User,
-} from "@authhero/adapter-interfaces";
+import { Theme, Branding, User } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 
 type Props = {

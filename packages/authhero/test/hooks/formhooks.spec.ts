@@ -209,9 +209,7 @@ describe("formhooks", () => {
     });
 
     it("should pass through a single update unchanged", () => {
-      const updates = [
-        { user_id: "u1", changes: { "metadata.foo": "bar" } },
-      ];
+      const updates = [{ user_id: "u1", changes: { "metadata.foo": "bar" } }];
       expect(mergeUserUpdates(updates)).toEqual([
         { user_id: "u1", changes: { "metadata.foo": "bar" } },
       ]);

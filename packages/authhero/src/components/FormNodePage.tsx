@@ -20,30 +20,54 @@ import Icon from "./Icon";
 function sanitizeHtml(html: string): string {
   return sanitizeHtmlLib(html, {
     allowedTags: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'br', 'hr',
-      'ul', 'ol', 'li',
-      'strong', 'b', 'em', 'i', 'u', 's', 'mark',
-      'a', 'span', 'div',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'blockquote', 'pre', 'code',
-      'img',
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "br",
+      "hr",
+      "ul",
+      "ol",
+      "li",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "u",
+      "s",
+      "mark",
+      "a",
+      "span",
+      "div",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "blockquote",
+      "pre",
+      "code",
+      "img",
     ],
     allowedAttributes: {
-      a: ['href', 'target', 'rel'],
-      img: ['src', 'alt', 'width', 'height'],
-      '*': ['class', 'id'],
+      a: ["href", "target", "rel"],
+      img: ["src", "alt", "width", "height"],
+      "*": ["class", "id"],
     },
-    allowedSchemes: ['http', 'https', 'mailto'],
-    allowedSchemesAppliedToAttributes: ['href', 'src'],
+    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesAppliedToAttributes: ["href", "src"],
     // Restrict image sources to https and data URIs (for inline images)
     // This prevents tracking pixels from arbitrary http domains
     transformTags: {
       img: (tagName, attribs) => {
-        const src = attribs.src || '';
+        const src = attribs.src || "";
         // Only allow https:// URLs and data: URIs for images
-        if (src && !src.startsWith('https://') && !src.startsWith('data:')) {
-          return { tagName: 'span', attribs: {} };
+        if (src && !src.startsWith("https://") && !src.startsWith("data:")) {
+          return { tagName: "span", attribs: {} };
         }
         return { tagName, attribs };
       },
@@ -53,7 +77,7 @@ function sanitizeHtml(html: string): string {
           tagName,
           attribs: {
             ...attribs,
-            rel: 'noopener noreferrer',
+            rel: "noopener noreferrer",
           },
         };
       },
@@ -112,7 +136,7 @@ const TextComponent = (comp: TextComponentProps) => {
         name={comp.id}
         placeholder={comp.config?.placeholder || ""}
         required={!!comp.required}
-        value={comp.config?.default_value as string || undefined}
+        value={(comp.config?.default_value as string) || undefined}
         className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base placeholder:text-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-500"
         id={comp.id}
       />

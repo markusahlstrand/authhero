@@ -8,7 +8,10 @@ const PICK_KEYS = [
   "username",
 ] as const;
 
-export function userToIdentity(user: any, isPrimary: boolean = false): Identity {
+export function userToIdentity(
+  user: any,
+  isPrimary: boolean = false,
+): Identity {
   const identity: Identity = {
     connection: user.connection,
     provider: user.provider,

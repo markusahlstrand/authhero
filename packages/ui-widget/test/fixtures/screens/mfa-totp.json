@@ -34,7 +34,11 @@
     }
   ],
   "links": [
-    { "id": "backup", "text": "Use a backup code instead", "href": "/mfa/backup" },
+    {
+      "id": "backup",
+      "text": "Use a backup code instead",
+      "href": "/mfa/backup"
+    },
     { "id": "back", "text": "Back to login", "href": "/login" }
   ]
 }

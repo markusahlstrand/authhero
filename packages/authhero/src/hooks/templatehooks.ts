@@ -45,9 +45,9 @@ export async function handleTemplateHook(
           },
         } as any,
         {
-          prompt: { render: () => { } },
+          prompt: { render: () => {} },
           redirect: {
-            sendUserTo: () => { },
+            sendUserTo: () => {},
             encodeToken: () => "",
             validateToken: () => null,
           },
@@ -57,10 +57,7 @@ export async function handleTemplateHook(
         },
       );
       // ensureUsername modifies the user in the database, re-fetch
-      const updatedUser = await ctx.env.data.users.get(
-        tenant_id,
-        user.user_id,
-      );
+      const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
       return updatedUser || user;
     }
     default:

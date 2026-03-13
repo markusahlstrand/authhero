@@ -39,6 +39,10 @@
     }
   ],
   "links": [
-    { "id": "change-email", "text": "Use a different email", "href": "/register" }
+    {
+      "id": "change-email",
+      "text": "Use a different email",
+      "href": "/register"
+    }
   ]
 }

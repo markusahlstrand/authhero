@@ -15,9 +15,8 @@ export function listUserOrganizations(db: Kysely<Database>) {
     // Join user_organizations with organizations to get full organization details
     let query = db
       .selectFrom("user_organizations")
-      .innerJoin(
-        "organizations",
-        (join) => join
+      .innerJoin("organizations", (join) =>
+        join
           .onRef("organizations.id", "=", "user_organizations.organization_id")
           .on("organizations.tenant_id", "=", tenantId),
       )
@@ -47,9 +46,8 @@ export function listUserOrganizations(db: Kysely<Database>) {
     // Get total count
     const countResult = await db
       .selectFrom("user_organizations")
-      .innerJoin(
-        "organizations",
-        (join) => join
+      .innerJoin("organizations", (join) =>
+        join
           .onRef("organizations.id", "=", "user_organizations.organization_id")
           .on("organizations.tenant_id", "=", tenantId),
       )

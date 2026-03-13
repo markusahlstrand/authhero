@@ -9,6 +9,7 @@ import { logMessage } from "../../helpers/logging";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 
 import { getEnrichedClient } from "../../helpers/client";
+import { getIssuer } from "../../variables";
 
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -72,7 +73,10 @@ async function returnError(
     }
   }
 
-  const loginUrl = new URL(`${routePrefix}${loginPath}`, ctx.env.ISSUER);
+  const loginUrl = new URL(
+    `${routePrefix}${loginPath}`,
+    getIssuer(ctx.env, ctx.var.custom_domain),
+  );
   setSearchParams(loginUrl, {
     state: loginSession.id,
     error,
@@ -133,21 +137,10 @@ export const callbackRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const {
-        state,
-        code,
-        error,
-        error_description,
-        error_code,
-      } = ctx.req.valid("query");
+      const { state, code, error, error_description, error_code } =
+        ctx.req.valid("query");
       if (error) {
-        return returnError(
-          ctx,
-          state,
-          error,
-          error_description,
-          error_code,
-        );
+        return returnError(ctx, state, error, error_description, error_code);
       }
 
       if (!code) {
@@ -252,22 +245,11 @@ export const callbackRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const {
-        state,
-        code,
-        error,
-        error_description,
-        error_code,
-      } = ctx.req.valid("form");
+      const { state, code, error, error_description, error_code } =
+        ctx.req.valid("form");
 
       if (error) {
-        return returnError(
-          ctx,
-          state,
-          error,
-          error_description,
-          error_code,
-        );
+        return returnError(ctx, state, error, error_description, error_code);
       }
       if (!code) {
         throw new HTTPException(400, { message: "Code is required" });

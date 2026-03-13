@@ -30,9 +30,11 @@ const blockComponentBase = formNodeComponentBase.extend({
 
 const dividerComponent = blockComponentBase.extend({
   type: z.literal("DIVIDER"),
-  config: z.object({
-    text: z.string().optional(),
-  }).optional(),
+  config: z
+    .object({
+      text: z.string().optional(),
+    })
+    .optional(),
 });
 
 const htmlComponent = blockComponentBase.extend({
@@ -418,8 +420,18 @@ export type FieldComponent = z.infer<typeof fieldComponentSchema>;
  * Excludes CUSTOM, FILE, PAYMENT, SOCIAL which use non-standard input mechanisms.
  */
 export const FORM_FIELD_TYPES = new Set<string>([
-  "BOOLEAN", "CARDS", "CHOICE", "DATE", "DROPDOWN",
-  "EMAIL", "LEGAL", "NUMBER", "PASSWORD", "TEL", "TEXT", "URL",
+  "BOOLEAN",
+  "CARDS",
+  "CHOICE",
+  "DATE",
+  "DROPDOWN",
+  "EMAIL",
+  "LEGAL",
+  "NUMBER",
+  "PASSWORD",
+  "TEL",
+  "TEXT",
+  "URL",
 ]);
 
 // Individual BLOCK component types

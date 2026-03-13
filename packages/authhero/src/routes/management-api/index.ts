@@ -131,8 +131,7 @@ export default function create(config: AuthHeroConfig) {
       }
 
       // Try to get tenant ID from context (set by tenant middleware)
-      const tenantId =
-        ctx.var.tenant_id || ctx.req.header("tenant-id");
+      const tenantId = ctx.var.tenant_id || ctx.req.header("tenant-id");
       if (tenantId) {
         const clients = await managementAdapter.clients.list(tenantId, {});
         const allWebOrigins = clients.clients.flatMap(

@@ -219,7 +219,9 @@ describe("Multi-Tenancy", () => {
     expect(data.tenants).toHaveLength(1); // accessible-tenant only (user is not member of control_plane)
     expect(data.tenants.map((t: any) => t.id)).toContain("accessible-tenant");
     expect(data.tenants.map((t: any) => t.id)).not.toContain("main");
-    expect(data.tenants.map((t: any) => t.id)).not.toContain("inaccessible-tenant");
+    expect(data.tenants.map((t: any) => t.id)).not.toContain(
+      "inaccessible-tenant",
+    );
   });
 
   it("should delete a tenant", async () => {

@@ -59,7 +59,10 @@ export interface ScreenContext {
   /** Error messages to display */
   errors?: Record<string, string>;
   /** Screen-level messages to display (errors, success, info, warnings) */
-  messages?: Array<{ text: string; type: "error" | "success" | "info" | "warning" }>;
+  messages?: Array<{
+    text: string;
+    type: "error" | "success" | "info" | "warning";
+  }>;
   /** Additional screen-specific data */
   data?: Record<string, unknown>;
   /** Route prefix for universal login routes (e.g., "/u" or "/u2") */

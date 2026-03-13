@@ -1,10 +1,6 @@
 import type { FC } from "hono/jsx";
 import Layout from "./Layout";
-import {
-  Theme,
-  Branding,
-  User,
-} from "@authhero/adapter-interfaces";
+import { Theme, Branding, User } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import ErrorMessage from "./ErrorMessage";

@@ -31,8 +31,8 @@ export async function enterPasswordScreen(
   // Build description with email display (like enter-code screen)
   const description = email
     ? m.enter_password_signing_in_as({
-      email: `<strong>${escapeHtml(email)}</strong>`,
-    })
+        email: `<strong>${escapeHtml(email)}</strong>`,
+      })
     : undefined;
 
   const components: FormNodeComponent[] = [

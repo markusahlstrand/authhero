@@ -48,7 +48,9 @@ export default defineConfig(async ({ mode }) => {
   return {
     base: "./",
     define: {
-      "process.env.AUTHHERO_BUILD_HASH": JSON.stringify(Date.now().toString(36)),
+      "process.env.AUTHHERO_BUILD_HASH": JSON.stringify(
+        Date.now().toString(36),
+      ),
     },
     build: {
       emptyOutDir: false, // Don't wipe CSS/JS files built earlier
@@ -60,11 +62,7 @@ export default defineConfig(async ({ mode }) => {
         fileName: (format) => fileName[format],
       },
       rollupOptions: {
-        external: [
-          "@hono/zod-openapi",
-          "hono",
-          "@authhero/widget/hydrate",
-        ],
+        external: ["@hono/zod-openapi", "hono", "@authhero/widget/hydrate"],
         output: {
           assetFileNames: (assetInfo) => {
             if (assetInfo.name === "style.css") return "tailwind.css";

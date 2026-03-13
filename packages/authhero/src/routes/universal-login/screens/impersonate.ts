@@ -19,7 +19,15 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 export async function impersonateScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, tenant, client, branding, state, errors, routePrefix = "/u2" } = context;
+  const {
+    ctx,
+    tenant,
+    client,
+    branding,
+    state,
+    errors,
+    routePrefix = "/u2",
+  } = context;
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);

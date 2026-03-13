@@ -33,10 +33,10 @@ export function list(db: Kysely<Database>) {
         ...rest
       } = hook;
 
-      const dates = convertDatesToAdapter(
-        { created_at_ts, updated_at_ts },
-        ["created_at_ts", "updated_at_ts"],
-      );
+      const dates = convertDatesToAdapter({ created_at_ts, updated_at_ts }, [
+        "created_at_ts",
+        "updated_at_ts",
+      ]);
 
       return removeNullProperties({
         ...rest,

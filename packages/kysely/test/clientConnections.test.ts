@@ -635,10 +635,14 @@ describe("ClientConnectionsAdapter", () => {
         "conn-3",
       ]);
 
-      const client1Connections =
-        await adapter.clientConnections.listByClient(tenantId, "client-1");
-      const client2Connections =
-        await adapter.clientConnections.listByClient(tenantId, "client-2");
+      const client1Connections = await adapter.clientConnections.listByClient(
+        tenantId,
+        "client-1",
+      );
+      const client2Connections = await adapter.clientConnections.listByClient(
+        tenantId,
+        "client-2",
+      );
 
       expect(client1Connections.map((c: any) => c.id)).toEqual([
         "conn-1",

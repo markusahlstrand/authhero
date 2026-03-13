@@ -29,19 +29,19 @@ export async function invokeHooks(
       const startTime = performance.now();
       const response = customInvoker
         ? await customInvoker({
-          hook,
-          data,
-          tenant_id: data.tenant_id,
-          createServiceToken: getServiceToken,
-        })
+            hook,
+            data,
+            tenant_id: data.tenant_id,
+            createServiceToken: getServiceToken,
+          })
         : await fetch(hook.url, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${await getServiceToken()}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${await getServiceToken()}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
       const duration = performance.now() - startTime;
 
       // Add webhook call to server-timing header
@@ -62,7 +62,10 @@ export async function invokeHooks(
         }
 
         const failDescription = `Failed to invoke hook ${hook.hook_id} - ${response.status} ${response.statusText}`;
-        console.error(failDescription, { hook_url: hook.url, body: responseBody?.substring(0, 512) });
+        console.error(failDescription, {
+          hook_url: hook.url,
+          body: responseBody?.substring(0, 512),
+        });
         await logMessage(ctx, data.tenant_id, {
           type: LogTypes.FAILED_HOOK,
           description: failDescription,
@@ -111,7 +114,9 @@ export function postUserRegistrationWebhook(
 ) {
   return async (tenant_id: string, user: User): Promise<User> => {
     const { hooks } = await ctx.env.data.hooks.list(tenant_id);
-    const filtered = hooks.filter((h) => h.trigger_id === "post-user-registration");
+    const filtered = hooks.filter(
+      (h) => h.trigger_id === "post-user-registration",
+    );
 
     await invokeHooks(ctx, filtered, {
       tenant_id,
@@ -128,7 +133,9 @@ export function preUserRegistrationWebhook(
 ) {
   return async (tenant_id: string, email: string): Promise<void> => {
     const { hooks } = await ctx.env.data.hooks.list(tenant_id);
-    const filtered = hooks.filter((h) => h.trigger_id === "pre-user-registration");
+    const filtered = hooks.filter(
+      (h) => h.trigger_id === "pre-user-registration",
+    );
 
     await invokeHooks(ctx, filtered, {
       tenant_id,
@@ -165,9 +172,14 @@ export async function getValidateRegistrationUsernameWebhook(
 ): Promise<Hook | null> {
   const { hooks } = await ctx.env.data.hooks.list(tenant_id);
 
-  return hooks.find(
-    (h) => h.trigger_id === "validate-registration-username" && "url" in h && h.enabled,
-  ) || null;
+  return (
+    hooks.find(
+      (h) =>
+        h.trigger_id === "validate-registration-username" &&
+        "url" in h &&
+        h.enabled,
+    ) || null
+  );
 }
 
 // Backwards compatibility alias

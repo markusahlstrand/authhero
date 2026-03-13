@@ -9,7 +9,25 @@ import {
   FormDataConsumer,
   useRecordContext,
 } from "react-admin";
-import { Stack, Alert, Box, Typography, Button, IconButton, TextField as MuiTextField, InputAdornment, TableContainer, Table, TableHead, TableBody, TableRow, TableCell, TableSortLabel, Paper, TablePagination } from "@mui/material";
+import {
+  Stack,
+  Alert,
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  TextField as MuiTextField,
+  InputAdornment,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableSortLabel,
+  Paper,
+  TablePagination,
+} from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -47,18 +65,21 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const filteredAndSortedScopes = useMemo(() => {
-    let result = scopes.map((scope, index) => ({ ...scope, originalIndex: index }));
-    
+    let result = scopes.map((scope, index) => ({
+      ...scope,
+      originalIndex: index,
+    }));
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (scope) =>
           scope.value?.toLowerCase().includes(query) ||
-          scope.description?.toLowerCase().includes(query)
+          scope.description?.toLowerCase().includes(query),
       );
     }
-    
+
     // Sort
     result.sort((a, b) => {
       const aValue = (a[sortField] || "").toLowerCase();
@@ -66,7 +87,7 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
       const comparison = aValue.localeCompare(bValue);
       return sortOrder === "asc" ? comparison : -comparison;
     });
-    
+
     return result;
   }, [scopes, searchQuery, sortField, sortOrder]);
 
@@ -86,38 +107,65 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
 
   const handleAdd = useCallback(() => {
     const currentScopes = getValues("scopes") || [];
-    setValue("scopes", [...currentScopes, { value: "", description: "" }], { shouldDirty: true });
+    setValue("scopes", [...currentScopes, { value: "", description: "" }], {
+      shouldDirty: true,
+    });
     // Clear search and go to last page to show the new item
     setSearchQuery("");
     const newTotal = currentScopes.length + 1;
     setPage(Math.floor(newTotal / rowsPerPage));
   }, [getValues, setValue, rowsPerPage]);
 
-  const handleRemove = useCallback((originalIndex: number) => {
-    const currentScopes = getValues("scopes") || [];
-    const newScopes = currentScopes.filter((_: Scope, i: number) => i !== originalIndex);
-    setValue("scopes", newScopes, { shouldDirty: true });
-  }, [getValues, setValue]);
+  const handleRemove = useCallback(
+    (originalIndex: number) => {
+      const currentScopes = getValues("scopes") || [];
+      const newScopes = currentScopes.filter(
+        (_: Scope, i: number) => i !== originalIndex,
+      );
+      setValue("scopes", newScopes, { shouldDirty: true });
+    },
+    [getValues, setValue],
+  );
 
-  const handleScopeChange = useCallback((originalIndex: number, field: "value" | "description", newValue: string) => {
-    const currentScopes = getValues("scopes") || [];
-    const newScopes = [...currentScopes];
-    newScopes[originalIndex] = { ...newScopes[originalIndex], [field]: newValue };
-    setValue("scopes", newScopes, { shouldDirty: true });
-  }, [getValues, setValue]);
+  const handleScopeChange = useCallback(
+    (
+      originalIndex: number,
+      field: "value" | "description",
+      newValue: string,
+    ) => {
+      const currentScopes = getValues("scopes") || [];
+      const newScopes = [...currentScopes];
+      newScopes[originalIndex] = {
+        ...newScopes[originalIndex],
+        [field]: newValue,
+      };
+      setValue("scopes", newScopes, { shouldDirty: true });
+    },
+    [getValues, setValue],
+  );
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+          gap: 2,
+        }}
+      >
         <MuiTextField
           placeholder="Search scopes..."
           value={searchQuery}
@@ -137,7 +185,8 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
         />
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            {filteredAndSortedScopes.length} of {scopes.length} scope{scopes.length !== 1 ? "s" : ""}
+            {filteredAndSortedScopes.length} of {scopes.length} scope
+            {scopes.length !== 1 ? "s" : ""}
           </Typography>
           {!disabled && (
             <Button
@@ -180,9 +229,15 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
           <TableBody>
             {paginatedScopes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={disabled ? 2 : 3} align="center" sx={{ py: 4 }}>
+                <TableCell
+                  colSpan={disabled ? 2 : 3}
+                  align="center"
+                  sx={{ py: 4 }}
+                >
                   <Typography color="text.secondary">
-                    {searchQuery ? "No scopes match your search" : "No scopes defined"}
+                    {searchQuery
+                      ? "No scopes match your search"
+                      : "No scopes defined"}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -192,7 +247,13 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
                   <TableCell>
                     <MuiTextField
                       value={scope.value || ""}
-                      onChange={(e) => handleScopeChange(scope.originalIndex, "value", e.target.value)}
+                      onChange={(e) =>
+                        handleScopeChange(
+                          scope.originalIndex,
+                          "value",
+                          e.target.value,
+                        )
+                      }
                       size="small"
                       fullWidth
                       disabled={disabled}
@@ -204,7 +265,13 @@ function ScopesListInput({ disabled }: { disabled?: boolean }) {
                   <TableCell>
                     <MuiTextField
                       value={scope.description || ""}
-                      onChange={(e) => handleScopeChange(scope.originalIndex, "description", e.target.value)}
+                      onChange={(e) =>
+                        handleScopeChange(
+                          scope.originalIndex,
+                          "description",
+                          e.target.value,
+                        )
+                      }
                       size="small"
                       fullWidth
                       disabled={disabled}
@@ -252,7 +319,11 @@ function ResourceServerForm() {
       <TabbedForm.Tab label="Details">
         <SystemEntityAlert />
         <Stack spacing={2}>
-          <TextInput source="name" validate={[required()]} disabled={isSystem} />
+          <TextInput
+            source="name"
+            validate={[required()]}
+            disabled={isSystem}
+          />
           <TextInput
             source="identifier"
             validate={[required()]}
@@ -272,7 +343,11 @@ function ResourceServerForm() {
             defaultValue={true}
             disabled={isSystem}
           />
-          <BooleanInput source="allow_offline_access" defaultValue={true} disabled={isSystem} />
+          <BooleanInput
+            source="allow_offline_access"
+            defaultValue={true}
+            disabled={isSystem}
+          />
         </Stack>
 
         <Stack spacing={2} direction="row" sx={{ mt: 2 }}>

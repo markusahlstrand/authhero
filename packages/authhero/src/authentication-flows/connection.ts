@@ -1,8 +1,5 @@
 import { Context } from "hono";
-import {
-  AuthParams,
-  LogTypes,
-} from "@authhero/adapter-interfaces";
+import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { logMessage } from "../helpers/logging";
@@ -12,7 +9,7 @@ import {
   OAUTH2_CODE_EXPIRES_IN_SECONDS,
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
-import { getStrategy } from "../strategies";
+import { getStrategy, getProviderFromConnection } from "../strategies";
 import { getEnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { createFrontChannelAuthResponse } from "./common";
@@ -192,7 +189,7 @@ export async function connectionCallback(
   const user = await getOrCreateUserByProvider(ctx, {
     client,
     username: email,
-    provider: connection.strategy,
+    provider: getProviderFromConnection(connection),
     connection: connection.name,
     userId: sub,
     profileData,

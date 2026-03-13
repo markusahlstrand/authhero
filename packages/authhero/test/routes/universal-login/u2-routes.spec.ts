@@ -78,22 +78,23 @@ describe("u2 routes", () => {
   </body>
 </html>`;
 
-      const setTemplateResponse =
-        await managementClient.branding.templates["universal-login"].$put(
-          {
-            header: {
-              "tenant-id": "tenantId",
-            },
-            json: {
-              body: customTemplate,
-            },
+      const setTemplateResponse = await managementClient.branding.templates[
+        "universal-login"
+      ].$put(
+        {
+          header: {
+            "tenant-id": "tenantId",
           },
-          {
-            headers: {
-              authorization: `Bearer ${token}`,
-            },
+          json: {
+            body: customTemplate,
           },
-        );
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       expect([201, 204]).toContain(setTemplateResponse.status);
 

@@ -121,9 +121,7 @@ describe("cleanup", () => {
     const fourMonthsAgo = new Date(
       Date.now() - 1000 * 60 * 60 * 24 * 30 * 3,
     ).toISOString();
-    const oneHourFromNow = new Date(
-      Date.now() + 1000 * 60 * 60,
-    ).toISOString();
+    const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
 
@@ -291,9 +289,7 @@ describe("cleanup", () => {
     });
 
     // Create a refresh token that expires in the future
-    const oneHourFromNow = new Date(
-      Date.now() + 1000 * 60 * 60,
-    ).toISOString();
+    const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
     await data.refreshTokens.create("tenantId", {
       id: "refreshToken",
       login_id: loginSession.id,
@@ -343,7 +339,9 @@ describe("cleanup", () => {
 describe("sessionCleanup", () => {
   it("should remove expired sessions for a specific user", async () => {
     // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -461,7 +459,10 @@ describe("sessionCleanup", () => {
     });
 
     // Run cleanup for user1 only
-    await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
+    await data.sessionCleanup!({
+      tenant_id: "tenantId",
+      user_id: "email|user1",
+    });
 
     // Check that user1's expired data is gone
     const sessions = await db.selectFrom("sessions").selectAll().execute();
@@ -518,7 +519,10 @@ describe("sessionCleanup", () => {
       .execute();
 
     // Run cleanup for user1
-    await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
+    await data.sessionCleanup!({
+      tenant_id: "tenantId",
+      user_id: "email|user1",
+    });
 
     // Check that the expired login session is gone (no active session connected)
     const loginSessions = await db
@@ -530,7 +534,9 @@ describe("sessionCleanup", () => {
 
   it("should remove expired login sessions regardless of active sessions", async () => {
     // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -603,7 +609,10 @@ describe("sessionCleanup", () => {
     });
 
     // Run cleanup for user1
-    await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
+    await data.sessionCleanup!({
+      tenant_id: "tenantId",
+      user_id: "email|user1",
+    });
 
     // Expired login session is deleted (in the new model, its expires_at
     // would have been extended on renewal if the session was still active)
@@ -620,7 +629,9 @@ describe("sessionCleanup", () => {
 
   it("should remove expired sessions even if they have active refresh tokens", async () => {
     // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -691,7 +702,10 @@ describe("sessionCleanup", () => {
     });
 
     // Run cleanup for user1
-    await data.sessionCleanup!({ tenant_id: "tenantId", user_id: "email|user1" });
+    await data.sessionCleanup!({
+      tenant_id: "tenantId",
+      user_id: "email|user1",
+    });
 
     // Expired session is deleted (in the new model, the session's expiry
     // would have been extended on renewal if still active)
@@ -708,7 +722,9 @@ describe("sessionCleanup", () => {
 
   it("should cleanup all tenants when no tenant_id is provided", async () => {
     // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
 
     const { data, db } = await getTestServer();
 
@@ -812,7 +828,9 @@ describe("sessionCleanup", () => {
 
   it("should only cleanup sessions for specified tenant", async () => {
     // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
 
     const { data, db } = await getTestServer();
 

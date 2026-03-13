@@ -34,6 +34,10 @@
     }
   ],
   "links": [
-    { "id": "forgot-password", "text": "Forgot password?", "href": "/forgot-password" }
+    {
+      "id": "forgot-password",
+      "text": "Forgot password?",
+      "href": "/forgot-password"
+    }
   ]
 }

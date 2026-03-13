@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
-import { ListConnectionsResponse, ListParams } from "@authhero/adapter-interfaces";
+import {
+  ListConnectionsResponse,
+  ListParams,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { transformConnections } from "./transform";

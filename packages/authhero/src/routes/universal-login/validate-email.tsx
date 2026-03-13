@@ -39,8 +39,10 @@ export const validateEmailRoutes = new OpenAPIHono<{
 
       const { env } = ctx;
 
-      const { client, loginSession, theme, branding } =
-        await initJSXRoute(ctx, state);
+      const { client, loginSession, theme, branding } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       const { username } = loginSession.authParams;
       if (!username) {
@@ -80,7 +82,9 @@ export const validateEmailRoutes = new OpenAPIHono<{
       );
 
       const usersWithSameEmailButNotUsernamePassword =
-        usersWithSameEmail.filter((user) => user.provider !== USERNAME_PASSWORD_PROVIDER);
+        usersWithSameEmail.filter(
+          (user) => user.provider !== USERNAME_PASSWORD_PROVIDER,
+        );
 
       if (usersWithSameEmailButNotUsernamePassword.length > 0) {
         const primaryUsers = usersWithSameEmailButNotUsernamePassword.filter(

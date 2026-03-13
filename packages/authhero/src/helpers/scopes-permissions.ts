@@ -207,7 +207,9 @@ async function calculateClientCredentialsScopes(
   const resultScopes =
     nonOidcRequestedScopes.length === 0
       ? allGrantedScopes // No scopes requested - return all granted
-      : nonOidcRequestedScopes.filter((scope) => allGrantedScopes.includes(scope)); // Intersection
+      : nonOidcRequestedScopes.filter((scope) =>
+          allGrantedScopes.includes(scope),
+        ); // Intersection
 
   // If RBAC is not enabled, return scopes (no permissions claim)
   if (!rbacEnabled) {

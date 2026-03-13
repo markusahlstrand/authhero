@@ -81,7 +81,9 @@ try {
     copyDirectory(widgetSourceDir, widgetTargetDir);
   } else {
     console.warn(`⚠️  Widget directory not found: ${widgetSourceDir}`);
-    console.warn("Widget features may not work. Install @authhero/widget to enable.");
+    console.warn(
+      "Widget features may not work. Install @authhero/widget to enable.",
+    );
   }
 
   console.log(`✅ Assets copied to ${targetDir}`);

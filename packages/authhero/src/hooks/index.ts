@@ -499,12 +499,7 @@ function createUserDeletionHooks(
     for (const linkedUser of linkedUsers.users) {
       const [provider, ...rest] = linkedUser.user_id.split("|");
       if (provider) {
-        await data.users.unlink(
-          tenant_id,
-          user_id,
-          provider,
-          rest.join("|"),
-        );
+        await data.users.unlink(tenant_id, user_id, provider, rest.join("|"));
       }
     }
 
@@ -646,11 +641,11 @@ async function buildEnhancedEventObject(
   // Get organization information if available
   let organizationInfo:
     | {
-      id: string;
-      name: string;
-      display_name: string;
-      metadata: any;
-    }
+        id: string;
+        name: string;
+        display_name: string;
+        metadata: any;
+      }
     | undefined = undefined;
   try {
     if (loginSession.authParams?.organization) {
@@ -729,15 +724,15 @@ async function buildEnhancedEventObject(
       Object.keys(connectionInfo).length > 0
         ? connectionInfo
         : {
-          id: user.connection || "Username-Password-Authentication",
-          name: user.connection || "Username-Password-Authentication",
-          strategy: user.provider || "auth0",
-        },
+            id: user.connection || "Username-Password-Authentication",
+            name: user.connection || "Username-Password-Authentication",
+            strategy: user.provider || "auth0",
+          },
     organization: organizationInfo,
     resource_server: params.authParams?.audience
       ? {
-        identifier: params.authParams.audience,
-      }
+          identifier: params.authParams.audience,
+        }
       : undefined,
     stats: {
       logins_count: user.login_count || 0,
@@ -828,7 +823,7 @@ export async function postUserLoginHook(
 
     await ctx.env.hooks.onExecutePostLogin(eventObject, {
       prompt: {
-        render: (_formId: string) => { },
+        render: (_formId: string) => {},
       },
       redirect: {
         sendUserTo: (
@@ -888,17 +883,29 @@ export async function postUserLoginHook(
   }
 
   const { hooks } = await data.hooks.list(tenant_id);
-  const postLoginHooks = hooks.filter((h: any) => h.trigger_id === "post-user-login");
+  const postLoginHooks = hooks.filter(
+    (h: any) => h.trigger_id === "post-user-login",
+  );
 
   // Handle form hook (redirect) if we have a login session
   if (loginSession) {
-    const formHook = postLoginHooks.find((h: any) => h.enabled && isFormHook(h));
+    const formHook = postLoginHooks.find(
+      (h: any) => h.enabled && isFormHook(h),
+    );
     if (formHook && isFormHook(formHook)) {
-      return handleFormHook(ctx, formHook.form_id, loginSession, user, params?.client);
+      return handleFormHook(
+        ctx,
+        formHook.form_id,
+        loginSession,
+        user,
+        params?.client,
+      );
     }
 
     // Handle page hook (redirect) if we have a login session
-    const pageHook = postLoginHooks.find((h: any) => h.enabled && isPageHook(h));
+    const pageHook = postLoginHooks.find(
+      (h: any) => h.enabled && isPageHook(h),
+    );
     if (pageHook && isPageHook(pageHook)) {
       return handlePageHook(
         ctx,

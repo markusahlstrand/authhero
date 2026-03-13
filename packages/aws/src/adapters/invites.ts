@@ -44,9 +44,7 @@ function toInvite(item: InviteItem): Invite {
     ...rest,
     inviter: item.inviter ? JSON.parse(item.inviter) : {},
     invitee: item.invitee ? JSON.parse(item.invitee) : {},
-    app_metadata: item.app_metadata
-      ? JSON.parse(item.app_metadata)
-      : undefined,
+    app_metadata: item.app_metadata ? JSON.parse(item.app_metadata) : undefined,
     user_metadata: item.user_metadata
       ? JSON.parse(item.user_metadata)
       : undefined,
@@ -61,7 +59,7 @@ export function createInvitesAdapter(ctx: DynamoDBContext): InvitesAdapter {
     async create(tenantId: string, params: InviteInsert): Promise<Invite> {
       const now = new Date().toISOString();
       const id = nanoid();
-      
+
       // Calculate expires_at from ttl_sec (default 7 days = 604800 seconds)
       const ttlSec = params.ttl_sec || 604800;
       const expiresAt = new Date(Date.now() + ttlSec * 1000).toISOString();

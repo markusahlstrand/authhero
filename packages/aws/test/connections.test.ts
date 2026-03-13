@@ -51,7 +51,10 @@ describe("connections", () => {
     expect(updated).toBe(true);
 
     // Verify update
-    const fetchedAfterUpdate = await data.connections.get("tenantId", connectionId);
+    const fetchedAfterUpdate = await data.connections.get(
+      "tenantId",
+      connectionId,
+    );
     expect(fetchedAfterUpdate?.display_name).toBe("Google Login");
 
     // ----------------------------------------
@@ -67,7 +70,10 @@ describe("connections", () => {
     expect(deleted).toBe(true);
 
     // Verify deletion
-    const fetchedAfterDelete = await data.connections.get("tenantId", connectionId);
+    const fetchedAfterDelete = await data.connections.get(
+      "tenantId",
+      connectionId,
+    );
     expect(fetchedAfterDelete).toBeNull();
   });
 });

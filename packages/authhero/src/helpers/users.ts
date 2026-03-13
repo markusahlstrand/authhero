@@ -1,7 +1,4 @@
-import {
-  User,
-  UserDataAdapter,
-} from "@authhero/adapter-interfaces";
+import { User, UserDataAdapter } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "./client";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
@@ -178,9 +175,11 @@ export async function getOrCreateUserByProvider(
   if (!user) {
     const userData = {
       user_id: `${provider}|${userId || userIdGenerate()}`,
-      email: connection !== "sms" && username.includes("@") ? username : undefined,
+      email:
+        connection !== "sms" && username.includes("@") ? username : undefined,
       phone_number: connection === "sms" ? username : undefined,
-      username: !username.includes("@") && connection !== "sms" ? username : undefined,
+      username:
+        !username.includes("@") && connection !== "sms" ? username : undefined,
       name: username,
       provider,
       connection,

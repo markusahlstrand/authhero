@@ -346,7 +346,9 @@ export const widgetRoutes = new OpenAPIHono<{
           themePageBackground={theme?.page_background}
           clientName={client.name || "AuthHero"}
           poweredByLogo={ctx.env.poweredByLogo}
-          termsAndConditionsUrl={sanitizeUrl(client.client_metadata?.termsAndConditionsUrl)}
+          termsAndConditionsUrl={sanitizeUrl(
+            client.client_metadata?.termsAndConditionsUrl,
+          )}
           language={loginSession.authParams?.ui_locales?.split(" ")[0]}
         />,
       );
@@ -539,7 +541,9 @@ export const widgetRoutes = new OpenAPIHono<{
       const screenResult = getScreen(targetScreenId, screenContext);
 
       if (!screenResult) {
-        return ctx.json({ redirect: `/callback?state=${encodeURIComponent(state)}` });
+        return ctx.json({
+          redirect: `/callback?state=${encodeURIComponent(state)}`,
+        });
       }
 
       // Handle both sync and async screen factories

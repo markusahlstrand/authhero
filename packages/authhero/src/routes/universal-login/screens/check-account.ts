@@ -195,7 +195,11 @@ async function handleCheckAccountSubmit(
     // For other errors, show a user-friendly error on the check-account screen
     // Note: We create a fresh translation context here since we're in the error handler
     const locale = context.language || "en";
-    const { m } = createTranslation(locale, context.customText, "check-account");
+    const { m } = createTranslation(
+      locale,
+      context.customText,
+      "check-account",
+    );
     return {
       error: m.check_account_error(),
       screen: await checkAccountScreen(context),

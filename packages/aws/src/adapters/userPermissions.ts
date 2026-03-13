@@ -31,7 +31,8 @@ function toUserPermission(item: UserPermissionItem): UserPermissionWithDetails {
   const { tenant_id, sources, ...rest } = stripDynamoDBFields(item);
   const data = removeNullProperties({
     ...rest,
-    resource_server_name: item.resource_server_name || item.resource_server_identifier,
+    resource_server_name:
+      item.resource_server_name || item.resource_server_identifier,
     sources: sources ? JSON.parse(sources) : undefined,
   });
 

@@ -31,12 +31,12 @@ function isSessionExpiredByMaxAge(
   if (!session || maxAge === undefined) {
     return false;
   }
-  
+
   // Check if session's authenticated_at is older than max_age seconds
   const authenticatedAt = new Date(session.authenticated_at).getTime();
   const maxAgeMs = maxAge * 1000;
   const now = Date.now();
-  
+
   return now - authenticatedAt > maxAgeMs;
 }
 
@@ -127,7 +127,9 @@ export async function universalAuth({
 
   // If there is a session we redirect to the check-account page
   if (session) {
-    return ctx.redirect(`${routePrefix}/check-account?state=${loginSession.id}`);
+    return ctx.redirect(
+      `${routePrefix}/check-account?state=${loginSession.id}`,
+    );
   }
 
   // For u2 routes, check if we should use identifier+password flow
@@ -151,5 +153,7 @@ export async function universalAuth({
     }
   }
 
-  return ctx.redirect(`${routePrefix}/login/identifier?state=${loginSession.id}`);
+  return ctx.redirect(
+    `${routePrefix}/login/identifier?state=${loginSession.id}`,
+  );
 }

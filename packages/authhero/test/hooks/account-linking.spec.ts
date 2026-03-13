@@ -304,7 +304,9 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the primary user (linked via case-insensitive match)
-    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|case-test-primary`);
+    expect(result.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|case-test-primary`,
+    );
     expect(result.identities).toHaveLength(2);
 
     // Verify the secondary user is linked to primary
@@ -312,7 +314,9 @@ describe("account-linking-hook", () => {
       "tenantId",
       "google-oauth2|case-test-secondary",
     );
-    expect(secondaryUser?.linked_to).toBe(`${USERNAME_PASSWORD_PROVIDER}|case-test-primary`);
+    expect(secondaryUser?.linked_to).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|case-test-primary`,
+    );
   });
 
   it("should link to primary user, not to already-linked user (no chain linking)", async () => {
@@ -363,7 +367,9 @@ describe("account-linking-hook", () => {
       "tenantId",
       "facebook|chain-tertiary",
     );
-    expect(thirdUser?.linked_to).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
+    expect(thirdUser?.linked_to).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|chain-primary`,
+    );
   });
 
   it("should NOT link user with no email", async () => {
@@ -470,7 +476,9 @@ describe("account-linking-hook", () => {
     });
 
     // Should link to the manually specified user, NOT the email-matched user
-    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|priority-manual-target`);
+    expect(result.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|priority-manual-target`,
+    );
     expect(result.identities).toHaveLength(2);
   });
 });

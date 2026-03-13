@@ -58,7 +58,9 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ========================================
   // PREFLIGHT: Verify all rows have valid _ts columns before dropping legacy columns
   // ========================================
-  console.log("Running preflight integrity check on hooks timestamp columns...");
+  console.log(
+    "Running preflight integrity check on hooks timestamp columns...",
+  );
 
   const { rows: nullCheck } = await sql<{
     null_created: number;
@@ -74,8 +76,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
   if (nullCreated > 0 || nullUpdated > 0) {
     throw new Error(
       `Preflight check failed: ${nullCreated} row(s) with NULL created_at_ts, ` +
-      `${nullUpdated} row(s) with NULL updated_at_ts. ` +
-      `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
+        `${nullUpdated} row(s) with NULL updated_at_ts. ` +
+        `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
     );
   }
 
@@ -85,9 +87,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // PREFLIGHT: Verify existing data fits within the narrower column sizes
   // ========================================
   if (dbType === "mysql") {
-    console.log(
-      "Running preflight length check on columns being narrowed...",
-    );
+    console.log("Running preflight length check on columns being narrowed...");
 
     const { rows: lengthCheck } = await sql<{
       long_hook_id: number;
@@ -121,7 +121,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     if (violations.length > 0) {
       throw new Error(
         `Preflight length check failed: ${violations.join("; ")}. ` +
-        `Truncate or fix oversized values before running this migration.`,
+          `Truncate or fix oversized values before running this migration.`,
       );
     }
 

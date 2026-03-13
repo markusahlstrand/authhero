@@ -1,8 +1,4 @@
-import {
-  CreateTenantParams,
-  DataAdapters,
-  Tenant,
-} from "authhero";
+import { CreateTenantParams, DataAdapters, Tenant } from "authhero";
 import { Context } from "hono";
 
 /**

@@ -213,17 +213,17 @@ export const signupRoutes = new OpenAPIHono<{
 
         const emailVerificationCode = loginParams.code
           ? await env.data.codes.get(
-            client.tenant.id,
-            loginParams.code,
-            "email_verification",
-          )
+              client.tenant.id,
+              loginParams.code,
+              "email_verification",
+            )
           : undefined;
 
         const emailVerificationSession = emailVerificationCode
           ? await env.data.loginSessions.get(
-            client.tenant.id,
-            emailVerificationCode.login_id,
-          )
+              client.tenant.id,
+              emailVerificationCode.login_id,
+            )
           : undefined;
 
         const existingUser = await getUserByProvider({

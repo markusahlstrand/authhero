@@ -144,7 +144,9 @@ export function createOrganizationsAdapter(
         updates.metadata = JSON.stringify(params.metadata);
       }
       if (params.enabled_connections !== undefined) {
-        updates.enabled_connections = JSON.stringify(params.enabled_connections);
+        updates.enabled_connections = JSON.stringify(
+          params.enabled_connections,
+        );
       }
       if (params.token_quota !== undefined) {
         updates.token_quota = JSON.stringify(params.token_quota);

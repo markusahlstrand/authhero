@@ -4,7 +4,10 @@ import { Database } from "../db";
 import { transformConnection } from "../connections/transform";
 
 export function listByClient(db: Kysely<Database>) {
-  return async (tenant_id: string, client_id: string): Promise<Connection[]> => {
+  return async (
+    tenant_id: string,
+    client_id: string,
+  ): Promise<Connection[]> => {
     // First get the client's connections array
     const client = await db
       .selectFrom("clients")

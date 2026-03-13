@@ -571,7 +571,11 @@ const ManageMemberRolesButton = ({ record }: { record: any }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSaveRoles} variant="contained" disabled={loading}>
+          <Button
+            onClick={handleSaveRoles}
+            variant="contained"
+            disabled={loading}
+          >
             Save Roles
           </Button>
         </DialogActions>

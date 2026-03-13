@@ -833,10 +833,20 @@ export class AuthheroNode {
               key={provider}
             >
               {icon}
-              <span class="btn-social-content" part={`button-social-content button-social-content-${safeProvider}`}>
-                <span part={`button-social-text button-social-text-${safeProvider}`}>{getButtonText(provider)}</span>
+              <span
+                class="btn-social-content"
+                part={`button-social-content button-social-content-${safeProvider}`}
+              >
+                <span
+                  part={`button-social-text button-social-text-${safeProvider}`}
+                >
+                  {getButtonText(provider)}
+                </span>
                 {/* Empty subtitle span - style via ::part(button-social-subtitle-{provider})::before { content: "..."; } */}
-                <span class="btn-social-subtitle" part={`button-social-subtitle button-social-subtitle-${safeProvider}`}></span>
+                <span
+                  class="btn-social-subtitle"
+                  part={`button-social-subtitle button-social-subtitle-${safeProvider}`}
+                ></span>
               </span>
             </button>
           );

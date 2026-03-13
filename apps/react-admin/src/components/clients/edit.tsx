@@ -823,7 +823,9 @@ const getApiBaseUrl = (): string => {
   const selectedDomain = getSelectedDomainFromStorage();
   const domains = getDomainFromStorage();
   const formattedDomain = formatDomain(selectedDomain);
-  const domainConfig = domains.find((d) => formatDomain(d.url) === formattedDomain);
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === formattedDomain,
+  );
 
   if (domainConfig?.restApiUrl) {
     return domainConfig.restApiUrl.replace(/\/$/, "");
@@ -931,17 +933,14 @@ const ConnectionsTab = () => {
       // Use organization-scoped HTTP client to ensure proper org_id in token
       const baseUrl = getApiBaseUrl();
       const orgHttpClient = createOrganizationHttpClient(tenantId);
-      await orgHttpClient(
-        `${baseUrl}/api/v2/clients/${clientId}/connections`,
-        {
-          method: "PATCH",
-          headers: {
-            "tenant-id": tenantId,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newConnectionIds),
+      await orgHttpClient(`${baseUrl}/api/v2/clients/${clientId}/connections`, {
+        method: "PATCH",
+        headers: {
+          "tenant-id": tenantId,
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(newConnectionIds),
+      });
       return true;
     } catch (error) {
       console.error("Error updating client connections:", error);

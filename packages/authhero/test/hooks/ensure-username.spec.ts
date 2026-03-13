@@ -54,12 +54,7 @@ describe("extractCandidateUsernames", () => {
       email: "jdoe@example.com",
       phone_number: "+15551234567",
     });
-    expect(candidates).toEqual([
-      "johnny",
-      "john-doe",
-      "jdoe",
-      "15551234567",
-    ]);
+    expect(candidates).toEqual(["johnny", "john-doe", "jdoe", "15551234567"]);
   });
 
   it("deduplicates candidates", () => {
@@ -88,33 +83,41 @@ describe("extractCandidateUsernames", () => {
 // ensureUsername hook
 // ---------------------------------------------------------------------------
 
-function createMockUserAdapter(existingUsers: Array<{ username?: string; provider: string; linked_to?: string }> = []) {
+function createMockUserAdapter(
+  existingUsers: Array<{
+    username?: string;
+    provider: string;
+    linked_to?: string;
+  }> = [],
+) {
   return {
-    list: vi.fn().mockImplementation(
-      async (_tenantId: string, params?: { q?: string }) => {
-        const q = params?.q || "";
-        const matching = existingUsers.filter((u) => {
-          const usernameMatch = q.match(/username:(\S+)/);
-          const providerMatch = q.match(/provider:(\S+)/);
-          const linkedToMatch = q.match(/linked_to:(\S+)/);
-          return (
-            (!usernameMatch || u.username === usernameMatch[1]) &&
-            (!providerMatch || u.provider === providerMatch[1]) &&
-            (!linkedToMatch || u.linked_to === linkedToMatch[1])
-          );
-        });
-        return { users: matching };
-      },
-    ),
-    create: vi.fn().mockImplementation(
-      async (_tenantId: string, data: any) => ({
+    list: vi
+      .fn()
+      .mockImplementation(
+        async (_tenantId: string, params?: { q?: string }) => {
+          const q = params?.q || "";
+          const matching = existingUsers.filter((u) => {
+            const usernameMatch = q.match(/username:(\S+)/);
+            const providerMatch = q.match(/provider:(\S+)/);
+            const linkedToMatch = q.match(/linked_to:(\S+)/);
+            return (
+              (!usernameMatch || u.username === usernameMatch[1]) &&
+              (!providerMatch || u.provider === providerMatch[1]) &&
+              (!linkedToMatch || u.linked_to === linkedToMatch[1])
+            );
+          });
+          return { users: matching };
+        },
+      ),
+    create: vi
+      .fn()
+      .mockImplementation(async (_tenantId: string, data: any) => ({
         ...data,
         user_id: data.user_id || `${USERNAME_PASSWORD_PROVIDER}|generated`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         login_count: 0,
-      }),
-    ),
+      })),
     update: vi.fn().mockResolvedValue(true),
     get: vi.fn().mockResolvedValue(null),
   };
@@ -224,9 +227,13 @@ describe("ensureUsername", () => {
 
     await hook(event, api);
 
-    expect(adapter.update).toHaveBeenCalledWith("test-tenant", `${USERNAME_PASSWORD_PROVIDER}|123`, {
-      username: "john-doe",
-    });
+    expect(adapter.update).toHaveBeenCalledWith(
+      "test-tenant",
+      `${USERNAME_PASSWORD_PROVIDER}|123`,
+      {
+        username: "john-doe",
+      },
+    );
     expect(adapter.create).not.toHaveBeenCalled();
   });
 
@@ -335,7 +342,10 @@ describe("ensureUsername", () => {
     // Create adapter where "john" through "john11" are all taken (maxRetries=10)
     const taken = [{ username: "john", provider: USERNAME_PASSWORD_PROVIDER }];
     for (let i = 2; i <= 11; i++) {
-      taken.push({ username: `john${i}`, provider: USERNAME_PASSWORD_PROVIDER });
+      taken.push({
+        username: `john${i}`,
+        provider: USERNAME_PASSWORD_PROVIDER,
+      });
     }
     const adapter = createMockUserAdapter(taken);
 
@@ -417,7 +427,11 @@ describe("ensureUsername", () => {
 
     const api = {
       prompt: { render: vi.fn() },
-      redirect: { sendUserTo: vi.fn(), encodeToken: vi.fn(), validateToken: vi.fn() },
+      redirect: {
+        sendUserTo: vi.fn(),
+        encodeToken: vi.fn(),
+        validateToken: vi.fn(),
+      },
       token: { createServiceToken: vi.fn() },
     } as unknown as OnExecutePostLoginAPI;
 
@@ -461,7 +475,9 @@ describe("ensureUsername", () => {
     // second call succeeds.
     const adapter = createMockUserAdapter();
     adapter.create
-      .mockRejectedValueOnce(new HTTPException(409, { message: "User already exists" }))
+      .mockRejectedValueOnce(
+        new HTTPException(409, { message: "User already exists" }),
+      )
       .mockImplementation(async (_tenantId: string, data: any) => ({
         ...data,
         user_id: data.user_id || `${USERNAME_PASSWORD_PROVIDER}|generated`,
@@ -496,7 +512,9 @@ describe("ensureUsername", () => {
   it("retries on unique constraint conflict (409) when updating", async () => {
     const adapter = createMockUserAdapter();
     adapter.update
-      .mockRejectedValueOnce(new HTTPException(409, { message: "User already exists" }))
+      .mockRejectedValueOnce(
+        new HTTPException(409, { message: "User already exists" }),
+      )
       .mockResolvedValue(true);
 
     const { event, api } = createMockEvent(

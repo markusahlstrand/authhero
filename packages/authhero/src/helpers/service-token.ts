@@ -1,7 +1,5 @@
 import { Context } from "hono";
-import {
-  AuthorizationResponseType,
-} from "@authhero/adapter-interfaces";
+import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { createAuthTokens } from "../authentication-flows/common";
 

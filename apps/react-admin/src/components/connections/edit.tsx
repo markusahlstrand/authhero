@@ -282,11 +282,7 @@ function ConnectionTabbedFrom() {
                         const maxLength =
                           formData?.options?.attributes?.username?.validation
                             ?.max_length;
-                        if (
-                          value &&
-                          maxLength &&
-                          value > maxLength
-                        ) {
+                        if (value && maxLength && value > maxLength) {
                           return "Min length must not exceed max length";
                         }
                         return undefined;
@@ -301,11 +297,7 @@ function ConnectionTabbedFrom() {
                         const minLength =
                           formData?.options?.attributes?.username?.validation
                             ?.min_length;
-                        if (
-                          value &&
-                          minLength &&
-                          value < minLength
-                        ) {
+                        if (value && minLength && value < minLength) {
                           return "Max length must not be less than min length";
                         }
                         return undefined;

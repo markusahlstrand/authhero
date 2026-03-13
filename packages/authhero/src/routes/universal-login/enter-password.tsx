@@ -36,8 +36,10 @@ export const enterPasswordRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { state } = ctx.req.valid("query");
 
-      const { theme, branding, client, loginSession } =
-        await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       if (!loginSession.authParams.username) {
         throw new HTTPException(400, { message: "Username required" });
@@ -106,8 +108,10 @@ export const enterPasswordRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("form");
       const { password } = body;
 
-      const { theme, branding, client, loginSession } =
-        await initJSXRoute(ctx, state);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
       const { username } = loginSession.authParams;
 

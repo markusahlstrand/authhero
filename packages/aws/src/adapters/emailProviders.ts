@@ -39,7 +39,10 @@ export function createEmailProvidersAdapter(
   ctx: DynamoDBContext,
 ): EmailProvidersAdapter {
   return {
-    async create(tenantId: string, emailProvider: EmailProvider): Promise<void> {
+    async create(
+      tenantId: string,
+      emailProvider: EmailProvider,
+    ): Promise<void> {
       const now = new Date().toISOString();
 
       const item: EmailProviderItem = {

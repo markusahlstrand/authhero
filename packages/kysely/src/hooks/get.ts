@@ -17,13 +17,17 @@ export function get(db: Kysely<Database>) {
       return null;
     }
 
-    const { tenant_id: _tenantId, created_at_ts, updated_at_ts, ...rest } =
-      hook;
+    const {
+      tenant_id: _tenantId,
+      created_at_ts,
+      updated_at_ts,
+      ...rest
+    } = hook;
 
-    const dates = convertDatesToAdapter(
-      { created_at_ts, updated_at_ts },
-      ["created_at_ts", "updated_at_ts"],
-    );
+    const dates = convertDatesToAdapter({ created_at_ts, updated_at_ts }, [
+      "created_at_ts",
+      "updated_at_ts",
+    ]);
 
     return removeNullProperties({
       ...rest,

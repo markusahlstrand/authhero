@@ -45,7 +45,10 @@ export function createClientConnectionsAdapter(
   ctx: DynamoDBContext,
 ): ClientConnectionsAdapter {
   return {
-    async listByClient(tenantId: string, clientId: string): Promise<Connection[]> {
+    async listByClient(
+      tenantId: string,
+      clientId: string,
+    ): Promise<Connection[]> {
       const { items } = await queryItems<ClientConnectionItem>(
         ctx,
         clientConnectionKeys.pk(tenantId, clientId),

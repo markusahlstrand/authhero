@@ -8,9 +8,7 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 /**
  * Helper to start an OAuth authorize flow and return the state parameter
  */
-async function startAuthorizeFlow(
-  oauthClient: ReturnType<typeof testClient>,
-) {
+async function startAuthorizeFlow(oauthClient: ReturnType<typeof testClient>) {
   const authorizeResponse = await oauthClient.authorize.$get({
     query: {
       client_id: "clientId",
@@ -58,9 +56,7 @@ async function setupUsernameConnection(
           },
           username: {
             identifier: { active: usernameActive },
-            ...(options.validation
-              ? { validation: options.validation }
-              : {}),
+            ...(options.validation ? { validation: options.validation } : {}),
           },
         },
       },
@@ -149,9 +145,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
     });
 
     expect(passwordResponse.status).toBe(302);
-    const redirectUri = new URL(
-      passwordResponse.headers.get("location")!,
-    );
+    const redirectUri = new URL(passwordResponse.headers.get("location")!);
     expect(redirectUri.pathname).toEqual("/callback");
     expect(redirectUri.searchParams.get("code")).toBeTypeOf("string");
   });

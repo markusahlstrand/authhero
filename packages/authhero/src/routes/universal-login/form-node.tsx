@@ -17,7 +17,12 @@ import {
   resolveTemplateField,
 } from "../../hooks/formhooks";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
-import type { Form, FormNodeComponent, StepNode, User } from "@authhero/adapter-interfaces";
+import type {
+  Form,
+  FormNodeComponent,
+  StepNode,
+  User,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Resolve default_value templates (e.g. {{context.user.email}}) in form components.
@@ -35,10 +40,9 @@ function resolveComponents(
       comp.config.default_value.startsWith("{{") &&
       comp.config.default_value.endsWith("}}")
     ) {
-      const resolved = resolveTemplateField(
-        comp.config.default_value,
-        { user },
-      );
+      const resolved = resolveTemplateField(comp.config.default_value, {
+        user,
+      });
       return {
         ...comp,
         config: {
@@ -81,7 +85,11 @@ export const formNodeRoutes = new OpenAPIHono<{
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
-      const { client, theme, branding, loginSession } = await initJSXRoute(ctx, state, true);
+      const { client, theme, branding, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+        true,
+      );
 
       const form = await ctx.env.data.forms.get(client.tenant.id, formId);
 
@@ -108,16 +116,18 @@ export const formNodeRoutes = new OpenAPIHono<{
             loginSession.session_id,
           );
           if (session?.user_id) {
-            user = await ctx.env.data.users.get(
-              client.tenant.id,
-              session.user_id,
-            ) ?? undefined;
+            user =
+              (await ctx.env.data.users.get(
+                client.tenant.id,
+                session.user_id,
+              )) ?? undefined;
           }
         } else if (loginSession.user_id) {
-          user = await ctx.env.data.users.get(
-            client.tenant.id,
-            loginSession.user_id,
-          ) ?? undefined;
+          user =
+            (await ctx.env.data.users.get(
+              client.tenant.id,
+              loginSession.user_id,
+            )) ?? undefined;
         }
       } catch {
         // Non-critical: user resolution for templates can fail silently
@@ -173,13 +183,18 @@ export const formNodeRoutes = new OpenAPIHono<{
     async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
-      const { theme, branding, client, loginSession } = await initJSXRoute(ctx, state, true);
+      const { theme, branding, client, loginSession } = await initJSXRoute(
+        ctx,
+        state,
+        true,
+      );
       let form: Form | undefined = undefined;
       let node: StepNode | undefined = undefined;
       let components: FormNodeComponent[] = [];
       let user: User | undefined;
       try {
-        form = await ctx.env.data.forms.get(client.tenant.id, formId) ?? undefined;
+        form =
+          (await ctx.env.data.forms.get(client.tenant.id, formId)) ?? undefined;
         if (!form) throw new HTTPException(404, { message: "Form not found" });
         node = (form.nodes || []).find(
           (n): n is StepNode => n.id === nodeId && n.type === "STEP",
@@ -198,16 +213,18 @@ export const formNodeRoutes = new OpenAPIHono<{
               loginSession.session_id,
             );
             if (sess?.user_id) {
-              user = await ctx.env.data.users.get(
-                client.tenant.id,
-                sess.user_id,
-              ) ?? undefined;
+              user =
+                (await ctx.env.data.users.get(
+                  client.tenant.id,
+                  sess.user_id,
+                )) ?? undefined;
             }
           } else if (loginSession.user_id) {
-            user = await ctx.env.data.users.get(
-              client.tenant.id,
-              loginSession.user_id,
-            ) ?? undefined;
+            user =
+              (await ctx.env.data.users.get(
+                client.tenant.id,
+                loginSession.user_id,
+              )) ?? undefined;
           }
         } catch {
           // Non-critical: user resolution for templates can fail silently
@@ -222,9 +239,7 @@ export const formNodeRoutes = new OpenAPIHono<{
             const isRequired = "required" in comp && !!comp.required;
             const value = body[name];
             if (isRequired && (!value || value === "")) {
-              missingFields.push(
-                ("label" in comp && comp.label) || name,
-              );
+              missingFields.push(("label" in comp && comp.label) || name);
             }
             if (typeof value === "string" && value !== "") {
               submittedFields[name] = value;
@@ -247,10 +262,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         }
 
         // All required fields present, continue with session and user lookup
-        if (
-          !loginSession.session_id ||
-          !loginSession.authParams
-        ) {
+        if (!loginSession.session_id || !loginSession.authParams) {
           throw new Error("Session expired");
         }
         const session = await ctx.env.data.sessions.get(
@@ -262,10 +274,9 @@ export const formNodeRoutes = new OpenAPIHono<{
         }
         // Re-fetch user if not already loaded (or ensure fresh data)
         if (!user) {
-          user = await ctx.env.data.users.get(
-            client.tenant.id,
-            session.user_id,
-          ) ?? undefined;
+          user =
+            (await ctx.env.data.users.get(client.tenant.id, session.user_id)) ??
+            undefined;
         }
         if (!user) {
           throw new Error("Session expired");
@@ -282,7 +293,10 @@ export const formNodeRoutes = new OpenAPIHono<{
               actions: flow.actions?.map((action) => ({
                 type: action.type,
                 action: action.action,
-                params: "params" in action && action.params ? action.params as Record<string, unknown> : undefined,
+                params:
+                  "params" in action && action.params
+                    ? (action.params as Record<string, unknown>)
+                    : undefined,
               })),
             };
           };
@@ -297,7 +311,10 @@ export const formNodeRoutes = new OpenAPIHono<{
 
           if (resolveResult) {
             // Execute any pending user updates from AUTH0 UPDATE_USER actions
-            if (resolveResult.userUpdates && resolveResult.userUpdates.length > 0) {
+            if (
+              resolveResult.userUpdates &&
+              resolveResult.userUpdates.length > 0
+            ) {
               const merged = mergeUserUpdates(resolveResult.userUpdates);
               for (const update of merged) {
                 const userUpdates = buildUserUpdates(update.changes, user);
@@ -311,7 +328,10 @@ export const formNodeRoutes = new OpenAPIHono<{
 
             if (resolveResult.type === "redirect") {
               // FLOW or ACTION node with REDIRECT - redirect to the target
-              const target = resolveResult.target as "change-email" | "account" | "custom";
+              const target = resolveResult.target as
+                | "change-email"
+                | "account"
+                | "custom";
               const redirectUrl = getRedirectUrl(
                 target,
                 resolveResult.customUrl,
@@ -371,7 +391,8 @@ export const formNodeRoutes = new OpenAPIHono<{
 
         console.error("Form node POST error:", err);
 
-        const isSessionError = err instanceof Error && err.message === "Session expired";
+        const isSessionError =
+          err instanceof Error && err.message === "Session expired";
         const errorMessage = isSessionError
           ? "Your session has expired. Please try again."
           : "An error occurred. Please try again.";

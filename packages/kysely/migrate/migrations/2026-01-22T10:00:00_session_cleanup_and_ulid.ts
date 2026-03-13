@@ -41,7 +41,10 @@ async function safeDropColumn(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     // Ignore "column doesn't exist" errors (errno 1091 for MySQL, "no such column" for SQLite)
-    if (errorMessage.includes("1091") || errorMessage.includes("no such column")) {
+    if (
+      errorMessage.includes("1091") ||
+      errorMessage.includes("no such column")
+    ) {
       console.log(
         `  Column ${tableName}.${columnName} doesn't exist, skipping`,
       );

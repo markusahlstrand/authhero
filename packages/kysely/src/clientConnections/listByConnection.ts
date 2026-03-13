@@ -2,7 +2,10 @@ import { Kysely } from "kysely";
 import { Database } from "../db";
 
 export function listByConnection(db: Kysely<Database>) {
-  return async (tenant_id: string, connection_id: string): Promise<string[]> => {
+  return async (
+    tenant_id: string,
+    connection_id: string,
+  ): Promise<string[]> => {
     // Fetch all clients for the tenant and filter in application code
     // This is database-agnostic (works with SQLite, MySQL, PostgreSQL, etc.)
     const clients = await db
