@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.13.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
+### Patch Changes
+
+- Updated dependencies [1a72b93]
+  - @authhero/adapter-interfaces@0.142.0
+  - authhero@4.58.0
+
 ## 14.12.0
 
 ### Minor Changes

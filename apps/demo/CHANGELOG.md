@@ -1,5 +1,18 @@
 # @authhero/demo
 
+## 0.31.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
+### Patch Changes
+
+- Updated dependencies [1a72b93]
+  - @authhero/widget@0.18.0
+  - authhero@4.58.0
+  - @authhero/kysely-adapter@10.105.0
+
 ## 0.30.8
 
 ### Patch Changes

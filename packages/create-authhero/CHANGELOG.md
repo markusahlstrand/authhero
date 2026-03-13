@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.32.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
 ## 0.31.0
 
 ### Minor Changes

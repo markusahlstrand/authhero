@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.27.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
+### Patch Changes
+
+- Updated dependencies [1a72b93]
+  - @authhero/adapter-interfaces@0.142.0
+
 ## 0.26.1
 
 ### Patch Changes

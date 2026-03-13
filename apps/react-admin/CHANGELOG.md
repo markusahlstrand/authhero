@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.46.0
+
+### Minor Changes
+
+- 1a72b93: Added error pages and fixed provider user id
+
+### Patch Changes
+
+- Updated dependencies [1a72b93]
+  - @authhero/adapter-interfaces@0.142.0
+  - @authhero/widget@0.18.0
+
 ## 0.45.0
 
 ### Minor Changes
