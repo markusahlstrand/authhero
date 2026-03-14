@@ -1,7 +1,7 @@
 /**
- * Enter Code screen - for email/SMS OTP verification
+ * Email OTP Challenge screen - for email OTP verification
  *
- * Corresponds to: /u/enter-code
+ * Corresponds to: /u/login/email-otp-challenge
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
@@ -13,9 +13,9 @@ import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 
 /**
- * Create the enter-code screen
+ * Create the email-otp-challenge screen
  */
-export async function enterCodeScreen(
+export async function emailOtpChallengeScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
   const { branding, state, errors, messages, data, customText, routePrefix } =
@@ -23,7 +23,7 @@ export async function enterCodeScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText);
+  const { m } = createTranslation(locale, customText, undefined, "email-otp-challenge");
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
@@ -48,7 +48,9 @@ export async function enterCodeScreen(
       },
       required: true,
       order: 0,
-      hint: errors?.code,
+      messages: errors?.code
+        ? [{ text: errors.code, type: "error" as const }]
+        : undefined,
     },
     // Submit button
     {
@@ -57,7 +59,7 @@ export async function enterCodeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.continue(),
+        text: m.log_in(),
       },
       order: 1,
     },
@@ -75,9 +77,9 @@ export async function enterCodeScreen(
   ];
 
   const screen: UiScreen = {
-    name: "enter-code",
+    name: "email-otp-challenge",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${routePrefix}/enter-code?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/login/email-otp-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.enter_code_title(),
     description,
@@ -100,28 +102,28 @@ export async function enterCodeScreen(
 }
 
 /**
- * Screen definition for the enter-code screen
+ * Screen definition for the email-otp-challenge screen
  */
-export const enterCodeScreenDefinition: ScreenDefinition = {
-  id: "enter-code",
-  name: "Enter Code",
-  description: "OTP code verification screen",
+export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
+  id: "email-otp-challenge",
+  name: "Email OTP Challenge",
+  description: "Email OTP code verification screen",
   handler: {
-    get: enterCodeScreen,
+    get: emailOtpChallengeScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
       const code = (data.code as string)?.trim();
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText);
+      const { m } = createTranslation(locale, context.customText, undefined, "email-otp-challenge");
 
       // Validate code is provided
       if (!code) {
         const errorMessage = m.no_code();
         return {
           error: errorMessage,
-          screen: await enterCodeScreen({
+          screen: await emailOtpChallengeScreen({
             ...context,
             errors: { code: errorMessage },
           }),
@@ -138,7 +140,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
         const errorMessage = m.session_expired();
         return {
           error: errorMessage,
-          screen: await enterCodeScreen({
+          screen: await emailOtpChallengeScreen({
             ...context,
             errors: { code: errorMessage },
           }),
@@ -169,7 +171,7 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
         const errorMessage = m.unexpected_error_try_again();
         return {
           error: errorMessage,
-          screen: await enterCodeScreen({
+          screen: await emailOtpChallengeScreen({
             ...context,
             errors: { code: errorMessage },
           }),
@@ -189,12 +191,20 @@ export const enterCodeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        const errorMessage =
-          (e as Error).message || m.unexpected_error_try_again();
+        let errorMessage: string = m.unexpected_error_try_again() as string;
+        const rawMessage = (e as Error).message;
+        if (rawMessage) {
+          try {
+            const parsed = JSON.parse(rawMessage);
+            errorMessage = parsed.message || rawMessage;
+          } catch {
+            errorMessage = rawMessage;
+          }
+        }
 
         return {
           error: errorMessage,
-          screen: await enterCodeScreen({
+          screen: await emailOtpChallengeScreen({
             ...context,
             errors: { code: errorMessage },
             data: {

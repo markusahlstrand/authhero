@@ -136,7 +136,9 @@ export async function impersonateScreen(
       },
       required: false,
       order: 3,
-      hint: errors?.user_id,
+      messages: errors?.user_id
+        ? [{ text: errors.user_id, type: "error" as const }]
+        : undefined,
     },
     // Submit button
     {

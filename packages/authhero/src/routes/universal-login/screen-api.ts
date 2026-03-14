@@ -5,7 +5,7 @@
  * 1. Built-in screens (from the registry in ./screens/registry.ts)
  * 2. Database-defined forms (fallback)
  *
- * Built-in screen IDs: identifier, enter-code, enter-password, signup, forgot-password, reset-password
+ * Built-in screen IDs: identifier, email-otp-challenge, sms-otp-challenge, enter-password, signup, forgot-password, reset-password
  * Database forms: Any form stored in the database (typically prefixed with "form_" or custom IDs)
  *
  * Routes:
@@ -48,7 +48,8 @@ import {
 const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   identifier: "login-id",
   "enter-password": "login-password",
-  "enter-code": "login",
+  "email-otp-challenge": "email-otp-challenge",
+  "sms-otp-challenge": "email-otp-challenge",
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
@@ -467,7 +468,8 @@ export const screenApiRoutes = new OpenAPIHono<{
             href: link.href
               .replace("/u/widget/", "/u2/")
               .replace("/u/signup", "/u2/signup")
-              .replace("/u/enter-", "/u2/enter-"),
+              .replace("/u/enter-", "/u2/enter-")
+              .replace("/u/login/", "/u2/login/"),
           })),
         };
         return ctx.json({
@@ -598,7 +600,8 @@ export const screenApiRoutes = new OpenAPIHono<{
                 href: link.href
                   .replace("/u/widget/", "/u2/")
                   .replace("/u/signup", "/u2/signup")
-                  .replace("/u/enter-", "/u2/enter-"),
+                  .replace("/u/enter-", "/u2/enter-")
+              .replace("/u/login/", "/u2/login/"),
               })),
             },
             branding: screenData.branding,

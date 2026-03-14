@@ -6,7 +6,8 @@
  *
  * Screen IDs match the existing route paths:
  * - identifier: /u/login/identifier
- * - enter-code: /u/enter-code
+ * - email-otp-challenge: /u/login/email-otp-challenge
+ * - sms-otp-challenge: /u/login/sms-otp-challenge
  * - enter-password: /u/enter-password
  * - signup: /u/signup
  * - forgot-password: /u/forgot-password
@@ -17,7 +18,8 @@
  */
 
 export { identifierScreen } from "./identifier";
-export { enterCodeScreen } from "./enter-code";
+export { emailOtpChallengeScreen } from "./email-otp-challenge";
+export { smsOtpChallengeScreen } from "./sms-otp-challenge";
 export { enterPasswordScreen } from "./enter-password";
 export { signupScreen } from "./signup";
 export { forgotPasswordScreen } from "./forgot-password";

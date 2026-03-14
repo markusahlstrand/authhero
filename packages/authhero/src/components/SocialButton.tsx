@@ -45,7 +45,7 @@ const SocialButton = ({
   return (
     <Button
       className={cn(
-        "border border-gray-200 bg-white hover:bg-gray-100 dark:border-gray-400 dark:bg-black dark:hover:bg-black/90",
+        "border border-gray-400 bg-white hover:bg-gray-100 dark:border-gray-500 dark:bg-black dark:hover:bg-black/90",
         {
           ["px-0 py-3 sm:px-10 sm:py-4 short:px-0 short:py-3"]: canResize,
           ["px-10 py-3"]: !canResize,

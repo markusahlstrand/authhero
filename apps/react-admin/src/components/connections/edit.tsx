@@ -1,3 +1,4 @@
+import { SecretInput } from "../common/SecretInput";
 import {
   ArrayInput,
   BooleanInput,
@@ -71,7 +72,7 @@ function ConnectionTabbedFrom() {
           {!isDbConnection(record?.strategy) && (
             <>
               <TextInput source="options.client_id" label="Client Id" />
-              <TextInput
+              <SecretInput
                 source="options.client_secret"
                 label="Client Secret"
                 style={{ width: "800px" }}
@@ -84,7 +85,7 @@ function ConnectionTabbedFrom() {
               <TextInput source="options.kid" label="Key ID" />
               <TextInput source="options.team_id" label="Team ID" />
               <TextInput source="options.realms" label="Realms" />
-              <TextInput source="options.app_secret" label="App Secret" />
+              <SecretInput source="options.app_secret" label="App Secret" />
               <TextInput source="options.scope" fullWidth />
             </>
           )}
@@ -174,7 +175,7 @@ function ConnectionTabbedFrom() {
                 source="options.twilio_sid"
                 label="Twillio Account ID"
               />
-              <TextInput source="options.twilio_token" label="Twilio Token" />
+              <SecretInput source="options.twilio_token" label="Twilio Token" />
               <TextInput source="options.from" label="From" />
             </>
           )}

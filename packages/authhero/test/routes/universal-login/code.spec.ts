@@ -55,7 +55,7 @@ describe("code", () => {
     // --------------------------------
     // Incorrect code
     // --------------------------------
-    const increctCodeResponse = await universalClient["enter-code"].$post({
+    const increctCodeResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code: "222222" },
     });
@@ -68,7 +68,7 @@ describe("code", () => {
     // --------------------------------
     // enter correct code
     // --------------------------------
-    const enterCodeGetResponse = await universalClient["enter-code"].$get({
+    const enterCodeGetResponse = await universalClient.login["email-otp-challenge"].$get({
       query: { state },
     });
     expect(enterCodeGetResponse.status).toBe(200);
@@ -92,7 +92,7 @@ describe("code", () => {
     expect(magicLinkUrl.searchParams.get("client_id")).toBe("clientId");
     expect(magicLinkUrl.searchParams.get("connection")).toBe("email");
 
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });
@@ -155,7 +155,7 @@ describe("code", () => {
     // --------------------------------
     // enter correct code
     // --------------------------------
-    const enterCodeGetResponse = await universalClient["enter-code"].$get({
+    const enterCodeGetResponse = await universalClient.login["email-otp-challenge"].$get({
       query: { state },
     });
     expect(enterCodeGetResponse.status).toBe(200);
@@ -163,7 +163,7 @@ describe("code", () => {
     const email = getSentEmails()[0];
     const { code } = email.data;
 
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });
@@ -228,7 +228,7 @@ describe("code", () => {
     // --------------------------------
     // enter correct code
     // --------------------------------
-    const enterCodeGetResponse = await universalClient["enter-code"].$get({
+    const enterCodeGetResponse = await universalClient.login["email-otp-challenge"].$get({
       query: { state },
     });
     expect(enterCodeGetResponse.status).toBe(200);
@@ -236,7 +236,7 @@ describe("code", () => {
     const email = getSentEmails()[0];
     const { code } = email.data;
 
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });

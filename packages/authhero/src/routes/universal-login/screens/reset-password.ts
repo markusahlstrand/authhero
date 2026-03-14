@@ -40,7 +40,9 @@ export async function resetPasswordScreen(
       required: true,
       sensitive: true,
       order: 0,
-      hint: errors?.password,
+      messages: errors?.password
+        ? [{ text: errors.password, type: "error" as const }]
+        : undefined,
     },
     // Confirm password input
     {
@@ -55,7 +57,9 @@ export async function resetPasswordScreen(
       required: true,
       sensitive: true,
       order: 1,
-      hint: errors?.confirm_password,
+      messages: errors?.confirm_password
+        ? [{ text: errors.confirm_password, type: "error" as const }]
+        : undefined,
     },
     // Submit button
     {
@@ -105,7 +109,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText);
+      const { m } = createTranslation(locale, context.customText, undefined, "reset-password");
 
       // Validate password is provided
       if (!password) {

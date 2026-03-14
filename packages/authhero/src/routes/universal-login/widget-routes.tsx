@@ -9,7 +9,8 @@
  *
  * Available screens:
  * - /u/widget/identifier - Email/username input (first screen)
- * - /u/widget/enter-code - OTP code verification
+ * - /u/widget/email-otp-challenge - Email OTP code verification
+ * - /u/widget/sms-otp-challenge - SMS OTP code verification
  * - /u/widget/enter-password - Password authentication
  * - /u/widget/signup - New user registration
  * - /u/widget/forgot-password - Password reset request
@@ -505,7 +506,8 @@ export const widgetRoutes = new OpenAPIHono<{
           errors = { password: "Invalid password" };
           break;
 
-        case "enter-code":
+        case "email-otp-challenge":
+        case "sms-otp-challenge":
           // Validate code
           errors = { code: "Invalid code" };
           break;

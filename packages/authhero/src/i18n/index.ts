@@ -73,20 +73,28 @@ function normalizeLocale(locale: string): Locale {
 
 /**
  * Convert custom text to overrides map
+ *
+ * CustomText is nested: { "screen-name": { "key": "value" } }
+ * The screenName parameter selects which nested object to use.
  */
 function buildOverrides(
   customText?: CustomText,
   promptScreen?: string,
+  screenName?: string,
 ): Record<string, string> {
   const overrides: Record<string, string> = {};
   if (!customText) return overrides;
+
+  // Extract screen-specific text from nested structure
+  const screenText = screenName ? customText[screenName] : undefined;
+  if (!screenText) return overrides;
 
   // Normalize prompt screen to snake_case for key prefix
   const promptPrefix = promptScreen
     ? promptScreen.replace(/-/g, "_").toLowerCase() + "_"
     : "";
 
-  for (const [key, value] of Object.entries(customText)) {
+  for (const [key, value] of Object.entries(screenText)) {
     if (typeof value === "string") {
       // Convert camelCase/kebab-case to snake_case to match Paraglide keys
       const snakeKey = key
@@ -166,17 +174,19 @@ export interface TranslationContext {
  * in concurrent serverless environments.
  *
  * @param locale - The locale code (e.g., 'nb', 'en', 'sv')
- * @param customText - Optional custom text overrides from database
+ * @param customText - Optional custom text overrides from database (nested by screen name)
  * @param promptScreen - Optional prompt screen ID for namespacing (e.g., 'login-id', 'signup')
+ * @param screenName - Optional screen name to extract from nested custom text
  * @returns TranslationContext with locale and typed message functions
  */
 export function createTranslation(
   locale: string,
   customText?: CustomText,
   promptScreen?: string,
+  screenName?: string,
 ): TranslationContext {
   const validLocale = normalizeLocale(locale);
-  const overrides = buildOverrides(customText, promptScreen);
+  const overrides = buildOverrides(customText, promptScreen, screenName);
   const m = createMessageWrappers(validLocale, overrides);
 
   return {

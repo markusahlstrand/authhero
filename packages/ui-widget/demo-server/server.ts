@@ -254,7 +254,7 @@ function createEnterCodeScreen(
     : "your email";
 
   return {
-    action: `${baseUrl}/u2/screen/enter-code?state=${state}`,
+    action: `${baseUrl}/u2/screen/email-otp-challenge?state=${state}`,
     method: "POST",
     title: "Check your email",
     description: "Enter the verification code",
@@ -516,7 +516,7 @@ function getScreen(
         screen: createEnterPasswordScreen(state, baseUrl, session.email),
         branding,
       };
-    case "enter-code":
+    case "email-otp-challenge":
       return {
         screen: createEnterCodeScreen(state, baseUrl, session.email),
         branding,
@@ -580,7 +580,7 @@ function handleIdentifierPost(
   session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
   console.log(`📧 Mock OTP code for ${username}: ${session.codeId}`);
 
-  return { redirect: `${baseUrl}/u2/enter-code?state=${state}` };
+  return { redirect: `${baseUrl}/u2/login/email-otp-challenge?state=${state}` };
 }
 
 function handleEnterPasswordPost(
@@ -751,7 +751,7 @@ async function renderWidgetPage(options: {
       case "enter-password":
         screen = createEnterPasswordScreen(state, baseUrl, email);
         break;
-      case "enter-code":
+      case "email-otp-challenge":
         screen = createEnterCodeScreen(state, baseUrl);
         break;
       case "signup":
@@ -1165,7 +1165,7 @@ async function renderWidgetPage(options: {
             <option value="identifier">Identifier (Email Input)</option>
             <option value="identifier-social">Identifier (3 Social Buttons)</option>
             <option value="enter-password">Enter Password</option>
-            <option value="enter-code">Enter Code (OTP)</option>
+            <option value="email-otp-challenge">Email OTP Challenge</option>
             <option value="signup">Sign Up</option>
             <option value="forgot-password">Forgot Password</option>
             <option value="success">Success</option>
@@ -1174,8 +1174,8 @@ async function renderWidgetPage(options: {
         <div class="setting-row">
           <label for="url-mode">URL Mode</label>
           <select id="url-mode">
-            <option value="path">Path-based (/u2/enter-code)</option>
-            <option value="query">Query-based (?screen=enter-code)</option>
+            <option value="path">Path-based (/u2/login/email-otp-challenge)</option>
+            <option value="query">Query-based (?screen=email-otp-challenge)</option>
             <option value="ssr">Server-Side Rendered (Full Page)</option>
           </select>
         </div>
@@ -1813,7 +1813,7 @@ async function renderWidgetPage(options: {
         '/u2/login/identifier-social': 'identifier-social',
         '/u2/login/identifier': 'identifier',
         '/u2/enter-password': 'enter-password',
-        '/u2/enter-code': 'enter-code',
+        '/u2/login/email-otp-challenge': 'email-otp-challenge',
         '/u2/signup': 'signup',
         '/u2/forgot-password': 'forgot-password',
         '/u2/success': 'success',
@@ -1833,7 +1833,7 @@ async function renderWidgetPage(options: {
           'identifier': '/u2/login/identifier',
           'identifier-social': '/u2/login/identifier-social',
           'enter-password': '/u2/enter-password',
-          'enter-code': '/u2/enter-code',
+          'email-otp-challenge': '/u2/login/email-otp-challenge',
           'signup': '/u2/signup',
           'forgot-password': '/u2/forgot-password',
           'success': '/u2/success',
@@ -2491,7 +2491,7 @@ app.post("/u2/screen/:screenId", async (c) => {
     case "enter-password":
       result = handleEnterPasswordPost(data, state, baseUrl);
       break;
-    case "enter-code":
+    case "email-otp-challenge":
       result = handleEnterCodePost(data, state, baseUrl);
       break;
     case "signup":
@@ -2566,13 +2566,13 @@ app.get("/u2/enter-password", async (c) => {
   );
 });
 
-app.get("/u2/enter-code", async (c) => {
+app.get("/u2/login/email-otp-challenge", async (c) => {
   const state = c.req.query("state") || "demo";
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
   return c.html(
     await renderWidgetPage({
-      screenId: "enter-code",
+      screenId: "email-otp-challenge",
       state,
       baseUrl,
       urlMode: "path",

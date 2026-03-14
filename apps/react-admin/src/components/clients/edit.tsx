@@ -55,6 +55,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { SecretInput } from "../common/SecretInput";
 import { createOrganizationHttpClient } from "../../authProvider";
 import {
   getDomainFromStorage,
@@ -1211,7 +1212,7 @@ export function ClientEdit() {
         <TabbedForm.Tab label="details">
           <TextInput source="id" />
           <TextInput source="name" />
-          <TextInput source="client_secret" />
+          <SecretInput source="client_secret" />
           <SelectInput
             source="client_metadata.email_validation"
             choices={[

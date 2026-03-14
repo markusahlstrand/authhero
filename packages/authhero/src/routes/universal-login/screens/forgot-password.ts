@@ -47,7 +47,9 @@ export async function forgotPasswordScreen(
       },
       required: true,
       order: 1,
-      hint: errors?.email,
+      messages: errors?.email
+        ? [{ text: errors.email, type: "error" as const }]
+        : undefined,
     },
     // Submit button
     {
