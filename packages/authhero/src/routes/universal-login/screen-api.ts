@@ -286,6 +286,17 @@ async function buildScreenContext(
   const routePrefix =
     client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
 
+  // Build screen-specific data from the login session
+  const data: Record<string, unknown> = {};
+  const username = loginSession?.authParams?.username;
+  if (username) {
+    if (screenId === "email-otp-challenge") {
+      data.email = username;
+    } else if (screenId === "sms-otp-challenge") {
+      data.email = username;
+    }
+  }
+
   return {
     ctx,
     tenant: client.tenant,
@@ -299,6 +310,7 @@ async function buildScreenContext(
       username: loginSession?.authParams?.username,
       email: loginSession?.authParams?.username,
     },
+    data: Object.keys(data).length > 0 ? data : undefined,
     errors,
     customText,
     language,
@@ -584,9 +596,18 @@ export const screenApiRoutes = new OpenAPIHono<{
         const nextScreenId = screenData.screen.name || screenId;
 
         // Build navigateUrl for client-side routing (updates browser URL without page reload)
+        // Login-family screens are routed under /u2/login/ (e.g., /u2/login/identifier)
+        const loginScreenIds = [
+          "identifier",
+          "email-otp-challenge",
+          "sms-otp-challenge",
+        ];
+        const navigatePrefix = loginScreenIds.includes(nextScreenId)
+          ? "/u2/login"
+          : "/u2";
         const navigateUrl =
           nextScreenId !== screenId
-            ? `/u2/${nextScreenId}?state=${encodeURIComponent(state)}`
+            ? `${navigatePrefix}/${nextScreenId}?state=${encodeURIComponent(state)}`
             : undefined;
 
         return ctx.json(

@@ -93,17 +93,21 @@ export function DomainEdit() {
         <SecretInput
           label="PEM Private Key"
           source="dkim_private_key"
-          style={{ width: "800px" }}
+          multiline
+          minRows={6}
+          sx={{ width: "800px" }}
         />
         <SecretInput
           label="PEM Public Key"
           source="dkim_public_key"
-          style={{ width: "800px" }}
+          multiline
+          minRows={6}
+          sx={{ width: "800px" }}
         />
         <SecretInput
           label="Api Key"
           source="email_api_key"
-          style={{ width: "800px" }}
+          sx={{ width: "800px" }}
         />
         <Labeled label="Verification Methods">
           <ArrayField source="verification.methods">

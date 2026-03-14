@@ -285,11 +285,11 @@ export async function createAuthTokens(
           include_totals: false,
         },
       );
-      const connection = connections.connections.find(
-        (c) =>
-          c.name === user.connection ||
-          c.name.toLowerCase() === user.connection?.toLowerCase(),
-      );
+      const connection =
+        connections.connections.find((c) => c.name === user.connection) ??
+        connections.connections.find(
+          (c) => c.name.toLowerCase() === user.connection?.toLowerCase(),
+        );
       if (connection) {
         connectionInfo = {
           id: connection.id || connection.name,

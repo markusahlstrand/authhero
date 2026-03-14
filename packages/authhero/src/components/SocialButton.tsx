@@ -34,9 +34,6 @@ const SocialButton = ({
   if (loginSession.authParams.nonce) {
     queryString.set("nonce", loginSession.authParams.nonce);
   }
-  if (loginSession.authParams.response_type) {
-    queryString.set("response_type", loginSession.authParams.response_type);
-  }
   if (loginSession.authParams.state) {
     queryString.set("state", loginSession.id);
   }

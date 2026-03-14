@@ -25,12 +25,34 @@ export async function smsOtpChallengeScreen(
   const locale = context.language || "en";
   const { m } = createTranslation(locale, customText, undefined, "sms-otp-challenge");
 
+  const phone = data?.phone as string | undefined;
   const email = data?.email as string | undefined;
-  const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
-  const description = maskedEmail
+  // Determine the destination: prefer phone for SMS, fall back to email
+  const destination = phone || email;
+  const isPhone = !!destination && /^\+?\d[\d\s\-()]+$/.test(destination);
+
+  let maskedDestination = "";
+  if (destination) {
+    if (isPhone) {
+      // Mask middle digits of phone number, preserving first 4 and last 2 chars
+      const digits = destination.replace(/\D/g, "");
+      if (digits.length > 6) {
+        const prefix = destination.slice(0, 4);
+        const suffix = destination.slice(-2);
+        maskedDestination =
+          prefix + "*".repeat(destination.length - 6) + suffix;
+      } else {
+        maskedDestination = destination;
+      }
+    } else {
+      maskedDestination = destination.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+    }
+  }
+
+  const description = maskedDestination
     ? m.code_sent_template({
-        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+        username: `<strong>${escapeHtml(maskedDestination)}</strong>`,
       })
     : m.enter_code_description();
 
@@ -196,9 +218,11 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         if (rawMessage) {
           try {
             const parsed = JSON.parse(rawMessage);
-            errorMessage = parsed.message || rawMessage;
+            if (parsed.message) {
+              errorMessage = parsed.message;
+            }
           } catch {
-            errorMessage = rawMessage;
+            // Keep the generic error message for non-JSON errors
           }
         }
 

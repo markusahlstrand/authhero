@@ -196,9 +196,11 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         if (rawMessage) {
           try {
             const parsed = JSON.parse(rawMessage);
-            errorMessage = parsed.message || rawMessage;
+            if (parsed.message) {
+              errorMessage = parsed.message;
+            }
           } catch {
-            errorMessage = rawMessage;
+            // Keep the generic error message for non-JSON errors
           }
         }
 

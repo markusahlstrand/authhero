@@ -267,10 +267,12 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
 
+      // Initialize i18n once for all error branches
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText, undefined, "identifier");
+
       // Validate username is provided
       if (!username) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText, undefined, "identifier");
         const fieldLabel = requiresUsername
           ? m.no_email_or_username()
           : m.no_email();
@@ -289,8 +291,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText, undefined, "identifier");
         const errorMsg = m.invalid_identifier();
         return {
           error: errorMsg,
@@ -308,8 +308,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         const maxLength = identifierConfig.usernameMaxLength;
 
         if (normalized.length < minLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText, undefined, "identifier");
           const errorMsg = m.username_too_short({ min: String(minLength) });
           return {
             error: errorMsg,
@@ -322,8 +320,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         }
 
         if (normalized.length > maxLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText, undefined, "identifier");
           const errorMsg = m.username_too_long({ max: String(maxLength) });
           return {
             error: errorMsg,
@@ -359,8 +355,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         user;
 
       if (!hasValidConnection) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText, undefined, "identifier");
         const errorMsg = m.invalid_identifier();
         return {
           error: errorMsg,
@@ -383,8 +377,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText, undefined, "identifier");
           const errorMsg = validation.reason || m.user_account_does_not_exist();
           return {
             error: errorMsg,
@@ -404,8 +396,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText, undefined, "identifier");
         const errorMsg = m.session_expired();
         return {
           error: errorMsg,
