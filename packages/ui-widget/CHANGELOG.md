@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.19.0
+
+### Minor Changes
+
+- 39df1aa: Change url of enter-code page
+
+### Patch Changes
+
+- Updated dependencies [39df1aa]
+  - @authhero/adapter-interfaces@0.143.0
+
 ## 0.18.0
 
 ### Minor Changes

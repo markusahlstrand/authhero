@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.143.0
+
+### Minor Changes
+
+- 39df1aa: Change url of enter-code page
+
 ## 0.142.0
 
 ### Minor Changes
