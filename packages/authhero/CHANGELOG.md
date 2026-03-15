@@ -1,5 +1,19 @@
 # authhero
 
+## 4.59.0
+
+### Minor Changes
+
+- 39df1aa: Pass connection in credentials event
+- 39df1aa: Update styling of error messages
+- 39df1aa: Change url of enter-code page
+
+### Patch Changes
+
+- Updated dependencies [39df1aa]
+  - @authhero/adapter-interfaces@0.143.0
+  - @authhero/widget@0.19.0
+
 ## 4.58.0
 
 ### Minor Changes

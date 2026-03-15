@@ -1,5 +1,19 @@
 # @authhero/react-admin
 
+## 0.47.0
+
+### Minor Changes
+
+- 39df1aa: Pass connection in credentials event
+- 39df1aa: Change url of enter-code page
+- 39df1aa: Hide secrets in react-admin
+
+### Patch Changes
+
+- Updated dependencies [39df1aa]
+  - @authhero/adapter-interfaces@0.143.0
+  - @authhero/widget@0.19.0
+
 ## 0.46.0
 
 ### Minor Changes
