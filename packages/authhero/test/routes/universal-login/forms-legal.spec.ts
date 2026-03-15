@@ -120,7 +120,7 @@ describe("forms - legal consent post-login flow", () => {
     // --------------------------------
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });

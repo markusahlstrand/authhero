@@ -68,7 +68,7 @@ export async function loginWithCode(
   // --------------------------------
   // enter correct code
   // --------------------------------
-  const enterCodeGetResponse = await universalClient["enter-code"].$get({
+  const enterCodeGetResponse = await universalClient.login["email-otp-challenge"].$get({
     query: { state },
   });
 
@@ -81,7 +81,7 @@ export async function loginWithCode(
   const email = getSentEmails()[0];
   const { code } = email.data;
 
-  const enterCodePostResponse = await universalClient["enter-code"].$post({
+  const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
     query: { state },
     form: { code },
   });

@@ -32,7 +32,7 @@ export async function checkAccountScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, "check-account");
+  const { m } = createTranslation(locale, customText, "check-account", "check-account");
 
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -198,6 +198,7 @@ async function handleCheckAccountSubmit(
     const { m } = createTranslation(
       locale,
       context.customText,
+      "check-account",
       "check-account",
     );
     return {

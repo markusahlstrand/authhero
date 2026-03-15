@@ -12,6 +12,7 @@ import {
   useRecordContext,
 } from "react-admin";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { SecretInput } from "../common/SecretInput";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import { Typography, Box, Divider } from "@mui/material";
 import { flattenDomainMetadata } from "./domainMetadataUtils";
@@ -89,22 +90,24 @@ export function DomainEdit() {
             { id: "mailgun", name: "Mailgun" },
           ]}
         />
-        <TextInput
+        <SecretInput
           label="PEM Private Key"
           source="dkim_private_key"
-          style={{ width: "800px" }}
-          multiline={true}
+          multiline
+          minRows={6}
+          sx={{ width: "800px" }}
         />
-        <TextInput
+        <SecretInput
           label="PEM Public Key"
           source="dkim_public_key"
-          style={{ width: "800px" }}
-          multiline={true}
+          multiline
+          minRows={6}
+          sx={{ width: "800px" }}
         />
-        <TextInput
+        <SecretInput
           label="Api Key"
           source="email_api_key"
-          style={{ width: "800px" }}
+          sx={{ width: "800px" }}
         />
         <Labeled label="Verification Methods">
           <ArrayField source="verification.methods">

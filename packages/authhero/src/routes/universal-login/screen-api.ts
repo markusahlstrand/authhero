@@ -5,7 +5,7 @@
  * 1. Built-in screens (from the registry in ./screens/registry.ts)
  * 2. Database-defined forms (fallback)
  *
- * Built-in screen IDs: identifier, enter-code, enter-password, signup, forgot-password, reset-password
+ * Built-in screen IDs: identifier, email-otp-challenge, sms-otp-challenge, enter-password, signup, forgot-password, reset-password
  * Database forms: Any form stored in the database (typically prefixed with "form_" or custom IDs)
  *
  * Routes:
@@ -48,7 +48,8 @@ import {
 const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   identifier: "login-id",
   "enter-password": "login-password",
-  "enter-code": "login",
+  "email-otp-challenge": "email-otp-challenge",
+  "sms-otp-challenge": "email-otp-challenge",
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
@@ -285,6 +286,17 @@ async function buildScreenContext(
   const routePrefix =
     client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
 
+  // Build screen-specific data from the login session
+  const data: Record<string, unknown> = {};
+  const username = loginSession?.authParams?.username;
+  if (username) {
+    if (screenId === "email-otp-challenge") {
+      data.email = username;
+    } else if (screenId === "sms-otp-challenge") {
+      data.phone = username;
+    }
+  }
+
   return {
     ctx,
     tenant: client.tenant,
@@ -298,6 +310,7 @@ async function buildScreenContext(
       username: loginSession?.authParams?.username,
       email: loginSession?.authParams?.username,
     },
+    data: Object.keys(data).length > 0 ? data : undefined,
     errors,
     customText,
     language,
@@ -467,7 +480,8 @@ export const screenApiRoutes = new OpenAPIHono<{
             href: link.href
               .replace("/u/widget/", "/u2/")
               .replace("/u/signup", "/u2/signup")
-              .replace("/u/enter-", "/u2/enter-"),
+              .replace("/u/enter-", "/u2/enter-")
+              .replace("/u/login/", "/u2/login/"),
           })),
         };
         return ctx.json({
@@ -582,9 +596,18 @@ export const screenApiRoutes = new OpenAPIHono<{
         const nextScreenId = screenData.screen.name || screenId;
 
         // Build navigateUrl for client-side routing (updates browser URL without page reload)
+        // Login-family screens are routed under /u2/login/ (e.g., /u2/login/identifier)
+        const loginScreenIds = [
+          "identifier",
+          "email-otp-challenge",
+          "sms-otp-challenge",
+        ];
+        const navigatePrefix = loginScreenIds.includes(nextScreenId)
+          ? "/u2/login"
+          : "/u2";
         const navigateUrl =
           nextScreenId !== screenId
-            ? `/u2/${nextScreenId}?state=${encodeURIComponent(state)}`
+            ? `${navigatePrefix}/${nextScreenId}?state=${encodeURIComponent(state)}`
             : undefined;
 
         return ctx.json(
@@ -598,7 +621,8 @@ export const screenApiRoutes = new OpenAPIHono<{
                 href: link.href
                   .replace("/u/widget/", "/u2/")
                   .replace("/u/signup", "/u2/signup")
-                  .replace("/u/enter-", "/u2/enter-"),
+                  .replace("/u/enter-", "/u2/enter-")
+                  .replace("/u/login/", "/u2/login/"),
               })),
             },
             branding: screenData.branding,

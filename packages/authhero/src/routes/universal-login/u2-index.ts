@@ -8,7 +8,8 @@
  * Routes:
  * - /u2/screen/:screenId - Screen API (GET/POST)
  * - /u2/login/identifier - Identifier screen
- * - /u2/enter-code - OTP code verification
+ * - /u2/login/email-otp-challenge - Email OTP code verification
+ * - /u2/login/sms-otp-challenge - SMS OTP code verification
  * - /u2/enter-password - Password authentication
  * - /u2/signup - New user registration
  * - /u2/forgot-password - Password reset request

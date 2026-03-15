@@ -37,14 +37,19 @@ export const promptScreenSchema = z.enum([
 export type PromptScreen = z.infer<typeof promptScreenSchema>;
 
 /**
- * Custom text for a specific prompt screen and language
- * The values are key-value pairs where the key is the text identifier
- * and the value is the custom text to display
+ * Custom text for a specific prompt and language
+ * Top-level keys are screen names, values are key-value pairs of text overrides
+ * e.g. { "email-otp-challenge": { "buttonText": "Continue" } }
  */
-export const customTextSchema = z.record(z.string(), z.string()).openapi({
-  type: "object",
-  additionalProperties: { type: "string" },
-});
+export const customTextSchema = z
+  .record(z.string(), z.record(z.string(), z.string()))
+  .openapi({
+    type: "object",
+    additionalProperties: {
+      type: "object",
+      additionalProperties: { type: "string" },
+    },
+  });
 
 export type CustomText = z.infer<typeof customTextSchema>;
 

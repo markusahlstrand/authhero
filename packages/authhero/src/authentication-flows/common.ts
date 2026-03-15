@@ -40,7 +40,10 @@ import {
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
 import { redactUrlForLogging } from "../utils/url";
-import { OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
+import {
+  HookEvent,
+  OnExecuteCredentialsExchangeAPI,
+} from "../types/Hooks";
 
 /**
  * Minimal client properties actually used by createAuthTokens.
@@ -270,6 +273,36 @@ export async function createAuthTokens(
         }
       : undefined;
 
+  // Look up connection info for hooks
+  let connectionInfo: HookEvent["connection"] | undefined;
+  if (user?.connection) {
+    try {
+      const connections = await ctx.env.data.connections.list(
+        ctx.var.tenant_id,
+        {
+          page: 0,
+          per_page: 100,
+          include_totals: false,
+        },
+      );
+      const connection =
+        connections.connections.find((c) => c.name === user.connection) ??
+        connections.connections.find(
+          (c) => c.name.toLowerCase() === user.connection?.toLowerCase(),
+        );
+      if (connection) {
+        connectionInfo = {
+          id: connection.id || connection.name,
+          name: connection.name,
+          strategy: connection.strategy || user.provider || "auth0",
+          metadata: connection.options || {},
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching connection info:", error);
+    }
+  }
+
   if (ctx.env.hooks?.onExecuteCredentialsExchange) {
     await ctx.env.hooks.onExecuteCredentialsExchange(
       {
@@ -284,6 +317,13 @@ export async function createAuthTokens(
         },
         scope: authParams.scope || "",
         grant_type: "",
+        connection: connectionInfo || (user?.connection
+          ? {
+              id: user.connection,
+              name: user.connection,
+              strategy: user.provider || "auth0",
+            }
+          : undefined),
       },
       buildCredentialsExchangeApi(ctx, accessTokenPayload, idTokenPayload),
     );

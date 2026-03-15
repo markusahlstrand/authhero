@@ -122,7 +122,7 @@ export async function universalAuth({
       authParams,
     });
 
-    return ctx.redirect(`${routePrefix}/enter-code?state=${loginSession.id}`);
+    return ctx.redirect(`${routePrefix}/login/email-otp-challenge?state=${loginSession.id}`);
   }
 
   // If there is a session we redirect to the check-account page

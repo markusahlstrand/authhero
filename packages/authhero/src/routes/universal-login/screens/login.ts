@@ -114,7 +114,7 @@ export async function loginScreen(
 
   // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, promptScreen || "login");
+  const { m } = createTranslation(locale, customText, promptScreen || "login", "login");
 
   const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;
@@ -143,9 +143,12 @@ export async function loginScreen(
 
   // Only add email/password inputs if we have password connection
   if (hasPasswordConnection) {
-    // Get error hints
-    const usernameError = errors?.username;
-    const passwordError = errors?.password;
+    const usernameMessages = errors?.username
+      ? [{ text: errors.username, type: "error" as const }]
+      : undefined;
+    const passwordMessages = errors?.password
+      ? [{ text: errors.password, type: "error" as const }]
+      : undefined;
 
     components.push(
       // Email/username input
@@ -160,7 +163,7 @@ export async function loginScreen(
         },
         required: true,
         order: socialButtonCount + 1,
-        hint: usernameError,
+        messages: usernameMessages,
       },
       // Password input
       {
@@ -175,7 +178,7 @@ export async function loginScreen(
         required: true,
         sensitive: true,
         order: socialButtonCount + 2,
-        hint: passwordError,
+        messages: passwordMessages,
       },
     );
 
@@ -271,7 +274,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, "login");
+      const { m } = createTranslation(locale, context.customText, "login", "login");
 
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(

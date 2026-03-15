@@ -278,10 +278,10 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
       form: { username: "emailuser@example.com" },
     });
 
-    // Email identifiers go through enter-code by default (email strategy)
+    // Email identifiers go through email-otp-challenge by default (email strategy)
     expect(identifierResponse.status).toBe(302);
     const location = identifierResponse.headers.get("location");
-    expect(location).toContain("/u/enter-code");
+    expect(location).toContain("/u/login/email-otp-challenge");
   });
 });
 

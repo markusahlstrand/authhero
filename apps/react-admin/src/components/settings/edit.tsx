@@ -8,6 +8,7 @@ import {
   SimpleFormIterator,
 } from "react-admin";
 import { Stack } from "@mui/material";
+import { SecretInput } from "../common/SecretInput";
 
 // Recursively remove null/undefined values from an object
 function removeNullValues(
@@ -190,7 +191,7 @@ export function SettingsEdit() {
               label="Twilio Account SID"
               fullWidth
             />
-            <TextInput
+            <SecretInput
               source="mfa.twilio.auth_token"
               label="Twilio Auth Token"
               fullWidth
