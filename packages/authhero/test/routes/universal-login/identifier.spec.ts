@@ -164,9 +164,9 @@ describe("login identifier page", () => {
     // Should redirect (status 302) on valid email, not return 400
     expect(validEmailResponse.status).toBe(302);
 
-    // Should redirect to enter-code page for email authentication
+    // Should redirect to email-otp-challenge page for email authentication
     const redirectLocation = validEmailResponse.headers.get("location");
-    expect(redirectLocation).toContain("/u/enter-code");
+    expect(redirectLocation).toContain("/u/login/email-otp-challenge");
   });
 
   it("should call validateSignupEmail hook when user doesn't exist", async () => {

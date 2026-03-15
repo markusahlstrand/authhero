@@ -52,18 +52,21 @@ export async function passwordlessGrantUser(
   if (!code) {
     throw new JSONHTTPException(400, {
       message: t("code_invalid"),
+      userSafe: true,
     });
   }
 
   if (code.expires_at < new Date().toISOString()) {
     throw new JSONHTTPException(400, {
       message: t("code_expired"),
+      userSafe: true,
     });
   }
 
   if (code.used_at) {
     throw new JSONHTTPException(400, {
       message: t("code_used"),
+      userSafe: true,
     });
   }
 
@@ -75,6 +78,7 @@ export async function passwordlessGrantUser(
   if (!loginSession || loginSession.authParams.username !== username) {
     throw new JSONHTTPException(400, {
       message: "Code not found or expired",
+      userSafe: true,
     });
   }
 

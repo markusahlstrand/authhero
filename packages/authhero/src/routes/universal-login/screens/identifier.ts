@@ -17,7 +17,8 @@ import { getLoginStrategy } from "../common";
 import generateOTP from "../../../utils/otp";
 import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
-import { enterCodeScreen } from "./enter-code";
+import { emailOtpChallengeScreen } from "./email-otp-challenge";
+import { smsOtpChallengeScreen } from "./sms-otp-challenge";
 import { enterPasswordScreen } from "./enter-password";
 import { createTranslation, type Messages } from "../../../i18n";
 import { getConnectionIconUrl } from "../../../strategies";
@@ -119,6 +120,7 @@ export async function identifierScreen(
     locale,
     customText,
     promptScreen || "login-id",
+    "identifier",
   );
 
   const socialButtons = buildSocialButtons(context, m);
@@ -155,8 +157,9 @@ export async function identifierScreen(
 
   // Only add email input and continue button if we have email/sms/password connections
   if (hasEmailOrPasswordConnection) {
-    // Get error hint - use raw error message for now
-    const errorHint = errors?.username;
+    const errorMessages = errors?.username
+      ? [{ text: errors.username, type: "error" as const }]
+      : undefined;
 
     components.push(
       // Email/username input
@@ -171,7 +174,7 @@ export async function identifierScreen(
         },
         required: true,
         order: socialButtonCount + 1,
-        hint: errorHint,
+        messages: errorMessages,
       },
       // Continue button
       {
@@ -264,10 +267,12 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
 
+      // Initialize i18n once for all error branches
+      const locale = context.language || "en";
+      const { m } = createTranslation(locale, context.customText, undefined, "identifier");
+
       // Validate username is provided
       if (!username) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText);
         const fieldLabel = requiresUsername
           ? m.no_email_or_username()
           : m.no_email();
@@ -286,8 +291,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText);
         const errorMsg = m.invalid_identifier();
         return {
           error: errorMsg,
@@ -305,8 +308,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         const maxLength = identifierConfig.usernameMaxLength;
 
         if (normalized.length < minLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText);
           const errorMsg = m.username_too_short({ min: String(minLength) });
           return {
             error: errorMsg,
@@ -319,8 +320,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         }
 
         if (normalized.length > maxLength) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText);
           const errorMsg = m.username_too_long({ max: String(maxLength) });
           return {
             error: errorMsg,
@@ -356,8 +355,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         user;
 
       if (!hasValidConnection) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText);
         const errorMsg = m.invalid_identifier();
         return {
           error: errorMsg,
@@ -380,8 +377,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const locale = context.language || "en";
-          const { m } = createTranslation(locale, context.customText);
           const errorMsg = validation.reason || m.user_account_does_not_exist();
           return {
             error: errorMsg,
@@ -401,8 +396,6 @@ export const identifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
-        const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText);
         const errorMsg = m.session_expired();
         return {
           error: errorMsg,
@@ -495,8 +488,11 @@ export const identifierScreenDefinition: ScreenDefinition = {
         });
       }
 
-      // Return enter-code screen directly
-      return { screen: await enterCodeScreen(nextContext) };
+      // Return OTP challenge screen based on connection type
+      if (connectionType === "sms") {
+        return { screen: await smsOtpChallengeScreen(nextContext) };
+      }
+      return { screen: await emailOtpChallengeScreen(nextContext) };
     },
   },
 };

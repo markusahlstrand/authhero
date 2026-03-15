@@ -138,6 +138,15 @@ const fieldComponentBase = formNodeComponentBase.extend({
   category: z.literal("FIELD").optional(),
   label: z.string().min(1).optional(),
   hint: z.string().min(1).max(500).optional(),
+  messages: z
+    .array(
+      z.object({
+        id: z.number().optional(),
+        text: z.string(),
+        type: z.enum(["info", "error", "success", "warning"]),
+      }),
+    )
+    .optional(),
   required: z.boolean().optional(),
   sensitive: z.boolean().optional(),
 });

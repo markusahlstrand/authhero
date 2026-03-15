@@ -118,7 +118,7 @@ describe("sms", () => {
     // --------------------------------
     const { code } = codeSms.data;
 
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["sms-otp-challenge"].$post({
       query: { state },
       form: { code },
     });

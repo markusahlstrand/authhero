@@ -6,7 +6,8 @@
  *
  * Routes:
  * - GET /u2/login/identifier - Identifier screen (first screen of login flow)
- * - GET /u2/enter-code - OTP code verification
+ * - GET /u2/login/email-otp-challenge - Email OTP code verification
+ * - GET /u2/login/sms-otp-challenge - SMS OTP code verification
  * - GET /u2/enter-password - Password authentication
  * - GET /u2/signup - New user registration
  * - GET /u2/forgot-password - Password reset request
@@ -51,7 +52,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   identifier: "login-id",
   login: "login", // Combined identifier + password screen
   "enter-password": "login-password",
-  "enter-code": "login", // OTP code entry is part of login flow
+  "email-otp-challenge": "email-otp-challenge",
+  "sms-otp-challenge": "email-otp-challenge", // SMS shares email-otp-challenge prompt
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
@@ -71,7 +73,6 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   status: "status",
   "device-flow": "device-flow",
   "email-verification": "email-verification",
-  "email-otp-challenge": "email-otp-challenge",
   organizations: "organizations",
   invitation: "invitation",
 };
@@ -1250,15 +1251,26 @@ export const u2Routes = new OpenAPIHono<{
     createScreenRouteHandler("identifier"),
   )
   // --------------------------------
-  // GET /u2/enter-code - OTP code verification
+  // GET /u2/login/email-otp-challenge - Email OTP code verification
   // --------------------------------
   .openapi(
     createScreenRoute(
-      "enter-code",
-      "/enter-code",
-      "Enter code screen - OTP verification",
+      "email-otp-challenge",
+      "/login/email-otp-challenge",
+      "Email OTP challenge screen - email code verification",
     ),
-    createScreenRouteHandler("enter-code"),
+    createScreenRouteHandler("email-otp-challenge"),
+  )
+  // --------------------------------
+  // GET /u2/login/sms-otp-challenge - SMS OTP code verification
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "sms-otp-challenge",
+      "/login/sms-otp-challenge",
+      "SMS OTP challenge screen - SMS code verification",
+    ),
+    createScreenRouteHandler("sms-otp-challenge"),
   )
   // --------------------------------
   // GET /u2/enter-password - Password authentication
@@ -1336,11 +1348,19 @@ export const u2Routes = new OpenAPIHono<{
   )
   .openapi(
     createScreenPostRoute(
-      "enter-code",
-      "/enter-code",
-      "Process enter-code form submission (no-JS fallback)",
+      "email-otp-challenge",
+      "/login/email-otp-challenge",
+      "Process email-otp-challenge form submission (no-JS fallback)",
     ),
-    createScreenPostHandler("enter-code"),
+    createScreenPostHandler("email-otp-challenge"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "sms-otp-challenge",
+      "/login/sms-otp-challenge",
+      "Process sms-otp-challenge form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("sms-otp-challenge"),
   )
   .openapi(
     createScreenPostRoute(

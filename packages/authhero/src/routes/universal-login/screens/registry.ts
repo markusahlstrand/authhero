@@ -5,7 +5,8 @@
 import type { ScreenDefinition, ScreenContext, ScreenResult } from "./types";
 import { identifierScreenDefinition } from "./identifier";
 import { loginScreenDefinition } from "./login";
-import { enterCodeScreenDefinition } from "./enter-code";
+import { emailOtpChallengeScreenDefinition } from "./email-otp-challenge";
+import { smsOtpChallengeScreenDefinition } from "./sms-otp-challenge";
 import { enterPasswordScreenDefinition } from "./enter-password";
 import { signupScreenDefinition } from "./signup";
 import { forgotPasswordScreenDefinition } from "./forgot-password";
@@ -19,7 +20,8 @@ import { checkAccountScreenDefinition } from "./check-account";
 export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["identifier", identifierScreenDefinition],
   ["login", loginScreenDefinition],
-  ["enter-code", enterCodeScreenDefinition],
+  ["email-otp-challenge", emailOtpChallengeScreenDefinition],
+  ["sms-otp-challenge", smsOtpChallengeScreenDefinition],
   ["enter-password", enterPasswordScreenDefinition],
   ["signup", signupScreenDefinition],
   ["forgot-password", forgotPasswordScreenDefinition],
@@ -40,7 +42,7 @@ export function getScreenDefinition(
 /**
  * Get a screen by ID
  *
- * @param screenId - The screen ID (e.g., "identifier", "enter-code")
+ * @param screenId - The screen ID (e.g., "identifier", "email-otp-challenge")
  * @param context - The screen context with tenant, client, branding, etc.
  * @returns The screen result promise or undefined if not found
  */

@@ -73,6 +73,8 @@ export interface ScreenContext {
   language?: string;
   /** Prompt screen ID for custom text namespacing (e.g., 'login-id', 'signup') */
   promptScreen?: string;
+  /** Screen name for extracting screen-specific custom text from nested structure */
+  screenName?: string;
 }
 
 /**

@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { identifierRoutes } from "./identifier";
-import { enterCodeRoutes } from "./enter-code";
+import { enterCodeRoutes } from "./otp-challenge";
 import { enterPasswordRoutes } from "./enter-password";
 import { signupRoutes } from "./signup";
 import { resetPasswordRoutes } from "./reset-password";
@@ -128,7 +128,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/account/change-email-verify", changeEmailVerifyRoutes)
     .route("/account/change-email-confirmation", changeEmailConfirmationRoutes)
     .route("/login/identifier", identifierRoutes)
-    .route("/enter-code", enterCodeRoutes)
+    .route("/login/email-otp-challenge", enterCodeRoutes)
+    .route("/login/sms-otp-challenge", enterCodeRoutes)
     .route("/enter-password", enterPasswordRoutes)
     .route("/invalid-session", invalidSessionRoutes)
     .route("/pre-signup", preSignupRoutes)

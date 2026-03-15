@@ -32,7 +32,7 @@ export async function signupScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText);
+  const { m } = createTranslation(locale, customText, undefined, "signup");
 
   // Check if we have password signup available
   const hasPasswordSignup = context.connections.some(
@@ -58,7 +58,9 @@ export async function signupScreen(
         },
         required: true,
         order: order++,
-        hint: errors?.email,
+        messages: errors?.email
+          ? [{ text: errors.email, type: "error" as const }]
+          : undefined,
       },
       // Password input
       {
@@ -74,7 +76,9 @@ export async function signupScreen(
         required: true,
         sensitive: true,
         order: order++,
-        hint: errors?.password,
+        messages: errors?.password
+          ? [{ text: errors.password, type: "error" as const }]
+          : undefined,
       },
       // Confirm password input
       {
@@ -90,7 +94,9 @@ export async function signupScreen(
         required: true,
         sensitive: true,
         order: order++,
-        hint: errors?.re_password,
+        messages: errors?.re_password
+          ? [{ text: errors.re_password, type: "error" as const }]
+          : undefined,
       },
       // Submit button
       {
@@ -155,7 +161,7 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText);
+      const { m } = createTranslation(locale, context.customText, undefined, "signup");
 
       // Validate required fields
       if (!email) {

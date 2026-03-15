@@ -172,7 +172,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
     // Enter the verification code
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });
@@ -406,7 +406,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
 
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient["enter-code"].$post({
+    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });
@@ -584,7 +584,7 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
 
     const email = getSentEmails()[0];
     const { code } = email.data;
-    await universalClient["enter-code"].$post({
+    await universalClient.login["email-otp-challenge"].$post({
       query: { state },
       form: { code },
     });

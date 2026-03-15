@@ -352,6 +352,10 @@ export const identifierRoutes = new OpenAPIHono<{
         });
       }
 
-      return ctx.redirect(`/u/enter-code?state=${state}`);
+      const otpScreen =
+        connectionType === "sms"
+          ? "sms-otp-challenge"
+          : "email-otp-challenge";
+      return ctx.redirect(`/u/login/${otpScreen}?state=${state}`);
     },
   );
