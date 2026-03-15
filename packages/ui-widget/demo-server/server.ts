@@ -752,7 +752,7 @@ async function renderWidgetPage(options: {
         screen = createEnterPasswordScreen(state, baseUrl, email);
         break;
       case "email-otp-challenge":
-        screen = createEnterCodeScreen(state, baseUrl);
+        screen = createEnterCodeScreen(state, baseUrl, email);
         break;
       case "signup":
         screen = createSignupScreen(state, baseUrl, settings);

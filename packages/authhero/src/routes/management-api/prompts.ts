@@ -6,11 +6,6 @@ import {
   customTextSchema,
 } from "@authhero/adapter-interfaces";
 
-const flatCustomTextSchema = z.record(z.string(), z.string()).openapi({
-  type: "object",
-  additionalProperties: { type: "string" },
-});
-
 export const promptsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -211,7 +206,7 @@ export const promptsRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: flatCustomTextSchema,
+              schema: customTextSchema,
             },
           },
         },
@@ -225,7 +220,7 @@ export const promptsRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: flatCustomTextSchema,
+              schema: customTextSchema,
             },
           },
           description: "Updated custom text",
@@ -234,13 +229,14 @@ export const promptsRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
-      const customText = flatCustomTextSchema.parse(await ctx.req.json());
+      const body = await ctx.req.json();
+      const customText = customTextSchema.parse(body);
 
       await ctx.env.data.customText.set(
         ctx.var.tenant_id,
         prompt,
         language,
-        customText as any,
+        customText,
       );
 
       return ctx.json(customText);

@@ -92,9 +92,11 @@ describe("prompts", () => {
         header: { "tenant-id": "tenantId" },
         param: { prompt: "login", language: "en" },
         json: {
-          pageTitle: "Welcome Back",
-          buttonText: "Sign In",
-          description: "Please enter your credentials",
+          login: {
+            pageTitle: "Welcome Back",
+            buttonText: "Sign In",
+            description: "Please enter your credentials",
+          },
         },
       },
       {
@@ -106,9 +108,11 @@ describe("prompts", () => {
     );
     expect(setResponse.status).toBe(200);
     expect(await setResponse.json()).toEqual({
-      pageTitle: "Welcome Back",
-      buttonText: "Sign In",
-      description: "Please enter your credentials",
+      login: {
+        pageTitle: "Welcome Back",
+        buttonText: "Sign In",
+        description: "Please enter your credentials",
+      },
     });
 
     // ----------------------------------------
@@ -127,9 +131,11 @@ describe("prompts", () => {
     );
     expect(getResponse.status).toBe(200);
     expect(await getResponse.json()).toEqual({
-      pageTitle: "Welcome Back",
-      buttonText: "Sign In",
-      description: "Please enter your credentials",
+      login: {
+        pageTitle: "Welcome Back",
+        buttonText: "Sign In",
+        description: "Please enter your credentials",
+      },
     });
 
     // ----------------------------------------
@@ -140,8 +146,10 @@ describe("prompts", () => {
         header: { "tenant-id": "tenantId" },
         param: { prompt: "login", language: "de" },
         json: {
-          pageTitle: "Willkommen zurück",
-          buttonText: "Anmelden",
+          login: {
+            pageTitle: "Willkommen zurück",
+            buttonText: "Anmelden",
+          },
         },
       },
       {
@@ -160,8 +168,10 @@ describe("prompts", () => {
         header: { "tenant-id": "tenantId" },
         param: { prompt: "signup", language: "en" },
         json: {
-          pageTitle: "Create Account",
-          buttonText: "Sign Up",
+          signup: {
+            pageTitle: "Create Account",
+            buttonText: "Sign Up",
+          },
         },
       },
       {

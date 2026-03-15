@@ -9,6 +9,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
+import { JSONHTTPException } from "../../../errors/json-http-exception";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 
@@ -192,10 +193,9 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         }
 
         let errorMessage: string = m.unexpected_error_try_again() as string;
-        const rawMessage = (e as Error).message;
-        if (rawMessage) {
+        if (e instanceof JSONHTTPException) {
           try {
-            const parsed = JSON.parse(rawMessage);
+            const parsed = JSON.parse((e as Error).message);
             if (parsed.message) {
               errorMessage = parsed.message;
             }

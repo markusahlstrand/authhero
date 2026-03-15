@@ -293,7 +293,7 @@ async function buildScreenContext(
     if (screenId === "email-otp-challenge") {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
-      data.email = username;
+      data.phone = username;
     }
   }
 
@@ -622,7 +622,7 @@ export const screenApiRoutes = new OpenAPIHono<{
                   .replace("/u/widget/", "/u2/")
                   .replace("/u/signup", "/u2/signup")
                   .replace("/u/enter-", "/u2/enter-")
-              .replace("/u/login/", "/u2/login/"),
+                  .replace("/u/login/", "/u2/login/"),
               })),
             },
             branding: screenData.branding,

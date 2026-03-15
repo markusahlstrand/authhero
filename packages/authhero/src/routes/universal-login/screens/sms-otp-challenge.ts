@@ -218,7 +218,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         if (rawMessage) {
           try {
             const parsed = JSON.parse(rawMessage);
-            if (parsed.message) {
+            if (parsed.userSafe && parsed.message) {
               errorMessage = parsed.message;
             }
           } catch {
