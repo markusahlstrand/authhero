@@ -17,6 +17,8 @@ export interface GrantFlowResult {
   impersonatingUser?: User; // The original user who is impersonating (RFC 8693)
   // OIDC Core 2.1: auth_time is required when max_age was used in authorization request
   auth_time?: number; // Unix timestamp of when the user was authenticated
+  /** The connection name used for authentication (e.g., "email", "google-oauth2") */
+  authConnection?: string;
 }
 
 export interface GrantFlowUserResult extends GrantFlowResult {

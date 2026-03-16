@@ -67,6 +67,8 @@ export interface CreateAuthTokensParams {
   session_id?: string;
   refresh_token?: string;
   authStrategy?: { strategy: string; strategy_type: string };
+  /** The connection name used for authentication (e.g., "email", "google-oauth2") */
+  authConnection?: string;
   ticketAuth?: boolean;
   skipHooks?: boolean;
   organization?: { id: string; name: string };
@@ -275,9 +277,12 @@ export async function createAuthTokens(
 
   // Look up connection info for hooks
   // Prefer the login session's connection (the actual auth method used) over user.connection
-  // (which may be the primary user's connection in linked identity scenarios)
+  // Do NOT fall back to user.connection — for linked users, user is the primary
+  // user whose connection may differ from the one actually used for authentication
   const connectionName =
-    params.loginSession?.auth_connection || ctx.var.connection || user?.connection;
+    params.loginSession?.auth_connection ||
+    params.authConnection ||
+    ctx.var.connection;
   let connectionInfo: HookEvent["connection"] | undefined;
   if (connectionName) {
     try {
@@ -531,6 +536,8 @@ export interface AuthenticateLoginSessionParams {
   loginSession: LoginSession;
   /** Optional existing session to reuse instead of creating a new one */
   existingSessionId?: string;
+  /** The connection name used for authentication (e.g., "email", "google-oauth2") */
+  authConnection?: string;
 }
 
 /**
@@ -552,6 +559,7 @@ export async function authenticateLoginSession(
     client,
     loginSession,
     existingSessionId,
+    authConnection,
   }: AuthenticateLoginSessionParams,
 ): Promise<string> {
   // Re-fetch current state to prevent stale overwrites
@@ -637,12 +645,16 @@ export async function authenticateLoginSession(
     userId: user.user_id,
   });
 
-  // Update the login session with session_id, user_id, new state, and the connection used to authenticate
+  // Resolve the connection used for authentication
+  const resolvedConnection = authConnection || ctx.var.connection;
+
+  // Update the login session with session_id, user_id, new state, and auth_connection
+  // auth_connection is stored early so it survives hook redirects (new HTTP requests)
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id,
     state: newState,
     user_id: user.user_id,
-    ...(ctx.var.connection ? { auth_connection: ctx.var.connection } : {}),
+    ...(resolvedConnection ? { auth_connection: resolvedConnection } : {}),
   });
 
   return session_id;
@@ -793,6 +805,7 @@ export async function completeLoginSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   loginSession: LoginSession,
+  auth_connection?: string,
 ): Promise<void> {
   // Re-fetch current state to prevent stale overwrites
   const currentSession = await ctx.env.data.loginSessions.get(
@@ -815,6 +828,7 @@ export async function completeLoginSession(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
+      ...(auth_connection ? { auth_connection } : {}),
     });
   }
 }
@@ -969,6 +983,8 @@ export interface CreateAuthResponseParams {
   refreshToken?: string;
   ticketAuth?: boolean;
   authStrategy?: { strategy: string; strategy_type: string };
+  /** The connection name used for authentication (e.g., "email", "google-oauth2") */
+  authConnection?: string;
   skipHooks?: boolean;
   organization?: { id: string; name: string };
   impersonatingUser?: User; // The original user who is impersonating
@@ -1107,6 +1123,7 @@ export async function createFrontChannelAuthResponse(
         client,
         loginSession: params.loginSession,
         existingSessionId: params.existingSessionIdToLink,
+        authConnection: params.authConnection,
       });
     } else {
       // State is AUTHENTICATED (or AWAITING_* states that allow completion)
@@ -1169,6 +1186,7 @@ export async function createFrontChannelAuthResponse(
     session_id,
     refresh_token,
     authStrategy: params.authStrategy,
+    authConnection: params.authConnection,
     loginSession: params.loginSession,
     responseType,
     skipHooks: params.skipHooks,
@@ -1404,6 +1422,15 @@ export async function completeLogin(
     user = hookResult;
   }
 
+  // Resolve the connection used for authentication
+  // Prefer the login session's stored connection, then explicit param, then context variable
+  // Do NOT fall back to user.connection — for linked users, user is the primary
+  // user whose connection may differ from the one actually used for authentication
+  const authConnection =
+    params.loginSession?.auth_connection ||
+    params.authConnection ||
+    ctx.var.connection;
+
   // Return either code data or tokens based on response type
   // Note: completeLoginSession is called AFTER successful creation to avoid
   // marking session as COMPLETED if token/code creation fails
@@ -1425,6 +1452,7 @@ export async function completeLogin(
       ctx,
       params.client.tenant.id,
       params.loginSession,
+      authConnection,
     );
 
     return codeData;
@@ -1442,6 +1470,7 @@ export async function completeLogin(
         ctx,
         params.client.tenant.id,
         params.loginSession,
+        authConnection,
       );
     }
 

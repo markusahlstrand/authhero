@@ -143,3 +143,6 @@ packages/kysely/sql-migrations
 .vitepress/dist
 apps/docs/.vitepress/cache
 apps/docs/.vitepress/dist
+
+# Claude Code
+.claude/
