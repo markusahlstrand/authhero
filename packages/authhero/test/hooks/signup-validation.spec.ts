@@ -1,6 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
+import { nanoid } from "nanoid";
+import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 
 describe("signup validation hooks", () => {
   describe("validateRegistrationUsername", () => {
@@ -239,6 +241,55 @@ describe("signup validation hooks", () => {
       const signupLog = logs.find((log) => log.type === "fs");
       expect(signupLog).toBeDefined();
       expect(signupLog?.description).toContain("User account does not exist");
+    });
+  });
+
+  describe("validateRegistrationUsername connection parameter", () => {
+    it("should pass the correct connection name for social login signups", async () => {
+      const hookSpy = vi.fn(async () => {});
+
+      const { oauthApp, env } = await getTestServer({
+        hooks: {
+          onExecuteValidateRegistrationUsername: hookSpy,
+        },
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create a login session for the social callback
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          response_mode: AuthorizationResponseMode.QUERY,
+        },
+      });
+
+      // Create an oauth2 state code pointing to the mock-strategy connection
+      const state = await env.data.codes.create("tenantId", {
+        code_id: nanoid(),
+        code_type: "oauth2_state",
+        login_id: loginSession.id,
+        connection_id: "mock-strategy",
+        code_verifier: "verifier",
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      });
+
+      // Trigger callback — the mock strategy returns hello@example.com for
+      // unknown codes, which doesn't exist yet and triggers user creation
+      await oauthClient.callback.$get({
+        query: {
+          state: state.code_id,
+          code: "code",
+        },
+      });
+
+      // The hook should have been called with the social connection name,
+      // not the default "email"
+      expect(hookSpy).toHaveBeenCalled();
+      const hookEvent = hookSpy.mock.calls[0][0];
+      expect(hookEvent.user.connection).toBe("mock-strategy");
     });
   });
 });
