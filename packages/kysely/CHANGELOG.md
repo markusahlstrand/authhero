@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.106.0
+
+### Minor Changes
+
+- dcbd1d7: Store the used connection on the login_session
+
+### Patch Changes
+
+- Updated dependencies [dcbd1d7]
+  - @authhero/adapter-interfaces@0.144.0
+
 ## 10.105.1
 
 ### Patch Changes

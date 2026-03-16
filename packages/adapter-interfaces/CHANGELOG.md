@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.144.0
+
+### Minor Changes
+
+- dcbd1d7: Store the used connection on the login_session
+
 ## 0.143.0
 
 ### Minor Changes
