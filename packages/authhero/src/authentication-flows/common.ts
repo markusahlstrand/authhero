@@ -277,7 +277,7 @@ export async function createAuthTokens(
   // Prefer the login session's connection (the actual auth method used) over user.connection
   // (which may be the primary user's connection in linked identity scenarios)
   const connectionName =
-    params.loginSession?.auth_connection || user?.connection;
+    params.loginSession?.auth_connection || ctx.var.connection || user?.connection;
   let connectionInfo: HookEvent["connection"] | undefined;
   if (connectionName) {
     try {
