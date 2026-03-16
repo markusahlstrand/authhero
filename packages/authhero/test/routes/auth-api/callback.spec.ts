@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
 
 describe("callback", () => {
-  it("should return a 403 if the state isn't found", async () => {
+  it("should redirect to /u/error if the state isn't found", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
@@ -16,9 +16,14 @@ describe("callback", () => {
       },
     });
 
-    expect(response.status).toEqual(403);
-    const responseBody = await response.json();
-    expect(responseBody).toEqual({ message: "State not found" });
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error("No location header");
+    }
+    const redirectUri = new URL(location);
+    expect(redirectUri.pathname).toEqual("/u/error");
+    expect(redirectUri.searchParams.get("error")).toEqual("state_not_found");
   });
 
   it("should redirect to identifier page with error when signup is disabled for new social login user (web_message response_mode)", async () => {

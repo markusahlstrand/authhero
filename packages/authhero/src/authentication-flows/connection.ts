@@ -114,18 +114,16 @@ export async function connectionCallback(
 
   // Check if the login was initiated from a custom domain that doesn't match the current request
   if (loginSession.authorization_url) {
-    const authorizationUrlDomain = new URL(loginSession.authorization_url)
-      .hostname;
-    const currentRequestDomain = ctx.var.host || "";
+    const authorizationUrl = new URL(loginSession.authorization_url);
+    // Use .host (not .hostname) to include the port — ctx.var.host includes the port
+    const authorizationUrlHost = authorizationUrl.host;
+    const currentRequestHost = ctx.var.host || "";
 
-    // If the domains don't match and we have a custom domain in the current tenant
-    if (
-      authorizationUrlDomain !== currentRequestDomain &&
-      authorizationUrlDomain
-    ) {
+    // If the hosts don't match and we have a custom domain in the current tenant
+    if (authorizationUrlHost !== currentRequestHost && authorizationUrlHost) {
       // Redirect to the same callback endpoint but on the original domain
-      // Use 307 Temporary Redirect to preserve the HTTP method (POST/GET)
-      const url = new URL(`https://${authorizationUrlDomain}/callback`);
+      // Use the origin to preserve protocol and port
+      const url = new URL(`${authorizationUrl.origin}/callback`);
       url.searchParams.set("state", state);
       url.searchParams.set("code", code);
 

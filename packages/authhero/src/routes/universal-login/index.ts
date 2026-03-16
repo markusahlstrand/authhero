@@ -28,6 +28,7 @@ import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
 import { impersonateRoutes } from "./impersonate";
 import { continueRoutes } from "./continue";
+import { errorRoutes } from "./error";
 import { createUniversalLoginErrorHandler } from "./error-handler";
 
 export default function create(config: AuthHeroConfig) {
@@ -140,7 +141,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/signup", signupRoutes)
     .route("/impersonate", impersonateRoutes)
     .route("/forms", formNodeRoutes)
-    .route("/continue", continueRoutes);
+    .route("/continue", continueRoutes)
+    .route("/error", errorRoutes);
 
   universalApp.doc("/spec", {
     openapi: "3.0.0",

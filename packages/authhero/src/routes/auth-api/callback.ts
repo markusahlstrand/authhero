@@ -11,6 +11,22 @@ import { JSONHTTPException } from "../../errors/json-http-exception";
 import { getEnrichedClient } from "../../helpers/client";
 import { getIssuer } from "../../variables";
 
+function redirectToErrorPage(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  error: string,
+  errorDescription?: string,
+) {
+  const errorUrl = new URL(
+    "/u/error",
+    getIssuer(ctx.env, ctx.var.custom_domain),
+  );
+  setSearchParams(errorUrl, {
+    error,
+    error_description: errorDescription,
+  });
+  return ctx.redirect(errorUrl.toString());
+}
+
 async function returnError(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
@@ -24,7 +40,7 @@ async function returnError(
     "oauth2_state",
   );
   if (!oauth2code) {
-    throw new HTTPException(400, { message: "State not found" });
+    return redirectToErrorPage(ctx, "state_not_found");
   }
 
   const loginSession = await ctx.env.data.loginSessions.get(
@@ -32,7 +48,7 @@ async function returnError(
     oauth2code.login_id,
   );
   if (!loginSession) {
-    throw new HTTPException(400, { message: "Login not found" });
+    return redirectToErrorPage(ctx, "session_not_found");
   }
 
   const { redirect_uri } = loginSession.authParams;
@@ -160,31 +176,36 @@ export const callbackRoutes = new OpenAPIHono<{
 
         return result;
       } catch (err) {
-        // Handle JSONHTTPException with 400 status (e.g., signup disabled)
-        // Redirect to identifier page for all social login flows
-        // 403 errors (state not found, session not found) should still be thrown as JSON errors
-        if (err instanceof JSONHTTPException && err.status === 400) {
-          // Look up the login session to redirect back
-          const oauth2code = await ctx.env.data.codes.get(
-            ctx.var.tenant_id || "",
-            state,
-            "oauth2_state",
-          );
-          if (oauth2code) {
-            const loginSession = await ctx.env.data.loginSessions.get(
-              ctx.var.tenant_id,
-              oauth2code.login_id,
+        if (err instanceof JSONHTTPException) {
+          // State/session not found - redirect to branded error page
+          if (err.status === 403) {
+            return redirectToErrorPage(ctx, "state_not_found");
+          }
+          // Handle JSONHTTPException with 400 status (e.g., signup disabled)
+          // Redirect to identifier page for all social login flows
+          if (err.status === 400) {
+            // Look up the login session to redirect back
+            const oauth2code = await ctx.env.data.codes.get(
+              ctx.var.tenant_id || "",
+              state,
+              "oauth2_state",
             );
-            if (loginSession) {
-              let errorMessage = "access_denied";
-              try {
-                const body = JSON.parse(err.message);
-                errorMessage = body.message || errorMessage;
-              } catch {
-                // If message is not JSON, use it directly
-                errorMessage = err.message || errorMessage;
+            if (oauth2code) {
+              const loginSession = await ctx.env.data.loginSessions.get(
+                ctx.var.tenant_id,
+                oauth2code.login_id,
+              );
+              if (loginSession) {
+                let errorMessage = "access_denied";
+                try {
+                  const body = JSON.parse(err.message);
+                  errorMessage = body.message || errorMessage;
+                } catch {
+                  // If message is not JSON, use it directly
+                  errorMessage = err.message || errorMessage;
+                }
+                return returnError(ctx, state, "access_denied", errorMessage);
               }
-              return returnError(ctx, state, "access_denied", errorMessage);
             }
           }
         }
@@ -267,31 +288,36 @@ export const callbackRoutes = new OpenAPIHono<{
 
         return result;
       } catch (err) {
-        // Handle JSONHTTPException with 400 status (e.g., signup disabled)
-        // Redirect to identifier page for all social login flows
-        // 403 errors (state not found, session not found) should still be thrown as JSON errors
-        if (err instanceof JSONHTTPException && err.status === 400) {
-          // Look up the login session to redirect back
-          const oauth2code = await ctx.env.data.codes.get(
-            ctx.var.tenant_id || "",
-            state,
-            "oauth2_state",
-          );
-          if (oauth2code) {
-            const loginSession = await ctx.env.data.loginSessions.get(
-              ctx.var.tenant_id,
-              oauth2code.login_id,
+        if (err instanceof JSONHTTPException) {
+          // State/session not found - redirect to branded error page
+          if (err.status === 403) {
+            return redirectToErrorPage(ctx, "state_not_found");
+          }
+          // Handle JSONHTTPException with 400 status (e.g., signup disabled)
+          // Redirect to identifier page for all social login flows
+          if (err.status === 400) {
+            // Look up the login session to redirect back
+            const oauth2code = await ctx.env.data.codes.get(
+              ctx.var.tenant_id || "",
+              state,
+              "oauth2_state",
             );
-            if (loginSession) {
-              let errorMessage = "access_denied";
-              try {
-                const body = JSON.parse(err.message);
-                errorMessage = body.message || errorMessage;
-              } catch {
-                // If message is not JSON, use it directly
-                errorMessage = err.message || errorMessage;
+            if (oauth2code) {
+              const loginSession = await ctx.env.data.loginSessions.get(
+                ctx.var.tenant_id,
+                oauth2code.login_id,
+              );
+              if (loginSession) {
+                let errorMessage = "access_denied";
+                try {
+                  const body = JSON.parse(err.message);
+                  errorMessage = body.message || errorMessage;
+                } catch {
+                  // If message is not JSON, use it directly
+                  errorMessage = err.message || errorMessage;
+                }
+                return returnError(ctx, state, "access_denied", errorMessage);
               }
-              return returnError(ctx, state, "access_denied", errorMessage);
             }
           }
         }
