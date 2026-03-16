@@ -1,5 +1,12 @@
 # authhero
 
+## 4.61.0
+
+### Minor Changes
+
+- 3d1af41: Set connection on login_sessions
+- b999582: Add a error page and fix a callback url port issue
+
 ## 4.60.0
 
 ### Minor Changes
