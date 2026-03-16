@@ -112,6 +112,7 @@ export async function passwordlessGrantUser(
     client,
     loginSession,
     connectionType,
+    authConnection: connectionType,
     session_id: loginSession.session_id,
     authParams: {
       ...loginSession.authParams,
@@ -132,6 +133,7 @@ export async function passwordlessGrant(
     client: result.client,
     user: result.user,
     loginSession: result.loginSession,
+    authConnection: result.connectionType,
     authStrategy: {
       strategy: "email",
       strategy_type: "passwordless",

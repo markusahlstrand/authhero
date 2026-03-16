@@ -88,6 +88,7 @@ export async function ticketAuth(
     loginSession: loginSession,
     user,
     client,
+    authConnection: realm,
     authStrategy: {
       strategy,
       strategy_type,

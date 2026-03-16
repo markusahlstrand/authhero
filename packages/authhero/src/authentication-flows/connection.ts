@@ -200,6 +200,7 @@ export async function connectionCallback(
     authParams: loginSession.authParams,
     loginSession,
     user,
+    authConnection: connection.name,
     authStrategy: {
       strategy: connection.strategy,
       strategy_type: "social",
