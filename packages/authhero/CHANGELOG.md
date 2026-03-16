@@ -1,5 +1,11 @@
 # authhero
 
+## 4.62.0
+
+### Minor Changes
+
+- e006fce: Set connection for onExecuteValidateRegistrationUsername
+
 ## 4.61.0
 
 ### Minor Changes
