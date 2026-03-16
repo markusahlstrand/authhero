@@ -4,8 +4,12 @@ import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
-import { MANAGEMENT_API_SCOPES, CreateTenantParams, Tenant } from "authhero";
-import { USERNAME_PASSWORD_PROVIDER } from "../../authhero/src/constants";
+import {
+  MANAGEMENT_API_SCOPES,
+  CreateTenantParams,
+  Tenant,
+  USERNAME_PASSWORD_PROVIDER,
+} from "authhero";
 import { createProvisioningHooks, createSyncHooks } from "../src/hooks";
 import { createTenantsOpenAPIRouter } from "../src/routes";
 import { TenantEntityHooks, TenantHookContext } from "../src/types";
