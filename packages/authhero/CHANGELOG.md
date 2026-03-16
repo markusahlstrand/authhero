@@ -1,5 +1,17 @@
 # authhero
 
+## 4.60.0
+
+### Minor Changes
+
+- dcbd1d7: Store the used connection on the login_session
+
+### Patch Changes
+
+- Updated dependencies [dcbd1d7]
+  - @authhero/adapter-interfaces@0.144.0
+  - @authhero/widget@0.19.1
+
 ## 4.59.0
 
 ### Minor Changes
