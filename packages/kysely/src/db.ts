@@ -46,6 +46,7 @@ const sqlLoginSchema = flattenSchema(loginSessionSchema)
     state_data: z.string().optional(),
     failure_reason: z.string().optional(),
     user_id: z.string().optional(),
+    auth_connection: z.string().optional(),
     // Date fields - bigint timestamps with _ts suffix
     created_at_ts: z.number(),
     updated_at_ts: z.number(),

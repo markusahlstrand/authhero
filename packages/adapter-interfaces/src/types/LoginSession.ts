@@ -43,6 +43,7 @@ export const loginSessionInsertSchema = z
     state_data: z.string().optional(), // JSON: { hookId?, continuationScope?, continuationReturnUrl? }
     failure_reason: z.string().optional(),
     user_id: z.string().optional(), // Set once user is authenticated
+    auth_connection: z.string().optional(), // The connection used to authenticate (may differ from primary user's connection)
   })
   .openapi({
     description: "This represents a login sesion",

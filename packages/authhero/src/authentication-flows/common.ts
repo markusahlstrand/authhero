@@ -274,8 +274,12 @@ export async function createAuthTokens(
       : undefined;
 
   // Look up connection info for hooks
+  // Prefer the login session's connection (the actual auth method used) over user.connection
+  // (which may be the primary user's connection in linked identity scenarios)
+  const connectionName =
+    params.loginSession?.auth_connection || ctx.var.connection || user?.connection;
   let connectionInfo: HookEvent["connection"] | undefined;
-  if (user?.connection) {
+  if (connectionName) {
     try {
       const connections = await ctx.env.data.connections.list(
         ctx.var.tenant_id,
@@ -286,15 +290,15 @@ export async function createAuthTokens(
         },
       );
       const connection =
-        connections.connections.find((c) => c.name === user.connection) ??
+        connections.connections.find((c) => c.name === connectionName) ??
         connections.connections.find(
-          (c) => c.name.toLowerCase() === user.connection?.toLowerCase(),
+          (c) => c.name.toLowerCase() === connectionName.toLowerCase(),
         );
       if (connection) {
         connectionInfo = {
           id: connection.id || connection.name,
           name: connection.name,
-          strategy: connection.strategy || user.provider || "auth0",
+          strategy: connection.strategy || user?.provider || "auth0",
           metadata: connection.options || {},
         };
       }
@@ -317,11 +321,11 @@ export async function createAuthTokens(
         },
         scope: authParams.scope || "",
         grant_type: "",
-        connection: connectionInfo || (user?.connection
+        connection: connectionInfo || (connectionName
           ? {
-              id: user.connection,
-              name: user.connection,
-              strategy: user.provider || "auth0",
+              id: connectionName,
+              name: connectionName,
+              strategy: user?.provider || "auth0",
             }
           : undefined),
       },
@@ -633,11 +637,12 @@ export async function authenticateLoginSession(
     userId: user.user_id,
   });
 
-  // Update the login session with session_id, user_id, and new state
+  // Update the login session with session_id, user_id, new state, and the connection used to authenticate
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id,
     state: newState,
     user_id: user.user_id,
+    ...(ctx.var.connection ? { auth_connection: ctx.var.connection } : {}),
   });
 
   return session_id;
