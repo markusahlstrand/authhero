@@ -44,6 +44,12 @@ export async function passwordlessGrantUser(
     });
   }
 
+  // Set the connection on context so it's available for auth_connection tracking
+  // and hook connection info. Use the actual connection type (email/sms) determined
+  // from the username, not the resolved primary user's connection which may differ
+  // for linked accounts.
+  ctx.set("connection", connectionType);
+
   const client = await getEnrichedClient(ctx.env, client_id, ctx.var.tenant_id);
 
   const { env } = ctx;
@@ -105,6 +111,7 @@ export async function passwordlessGrantUser(
     user,
     client,
     loginSession,
+    connectionType,
     session_id: loginSession.session_id,
     authParams: {
       ...loginSession.authParams,

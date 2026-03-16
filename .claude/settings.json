@@ -6,7 +6,8 @@
       "Bash(do if:*)",
       "Bash(then echo:*)",
       "Bash(fi)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(grep -n \"ctx.set.*connection\\\\|ctx.var.connection\" packages/authhero/src/authentication-flows/*.ts)"
     ]
   }
 }

@@ -275,9 +275,10 @@ export async function createAuthTokens(
 
   // Look up connection info for hooks
   // Prefer the login session's connection (the actual auth method used) over user.connection
-  // (which may be the primary user's connection in linked identity scenarios)
+  // Do NOT fall back to user.connection — for linked users, user is the primary
+  // user whose connection may differ from the one actually used for authentication
   const connectionName =
-    params.loginSession?.auth_connection || ctx.var.connection || user?.connection;
+    params.loginSession?.auth_connection || ctx.var.connection;
   let connectionInfo: HookEvent["connection"] | undefined;
   if (connectionName) {
     try {
@@ -637,12 +638,12 @@ export async function authenticateLoginSession(
     userId: user.user_id,
   });
 
-  // Update the login session with session_id, user_id, new state, and the connection used to authenticate
+  // Update the login session with session_id, user_id, and new state
+  // Note: auth_connection is set later when the session is completed
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id,
     state: newState,
     user_id: user.user_id,
-    ...(ctx.var.connection ? { auth_connection: ctx.var.connection } : {}),
   });
 
   return session_id;
@@ -793,6 +794,7 @@ export async function completeLoginSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   loginSession: LoginSession,
+  auth_connection?: string,
 ): Promise<void> {
   // Re-fetch current state to prevent stale overwrites
   const currentSession = await ctx.env.data.loginSessions.get(
@@ -815,6 +817,7 @@ export async function completeLoginSession(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
+      ...(auth_connection ? { auth_connection } : {}),
     });
   }
 }
@@ -1404,6 +1407,13 @@ export async function completeLogin(
     user = hookResult;
   }
 
+  // Resolve the connection used for authentication
+  // Prefer the login session's stored connection, then context variable
+  // Do NOT fall back to user.connection — for linked users, user is the primary
+  // user whose connection may differ from the one actually used for authentication
+  const authConnection =
+    params.loginSession?.auth_connection || ctx.var.connection;
+
   // Return either code data or tokens based on response type
   // Note: completeLoginSession is called AFTER successful creation to avoid
   // marking session as COMPLETED if token/code creation fails
@@ -1425,6 +1435,7 @@ export async function completeLogin(
       ctx,
       params.client.tenant.id,
       params.loginSession,
+      authConnection,
     );
 
     return codeData;
@@ -1442,6 +1453,7 @@ export async function completeLogin(
         ctx,
         params.client.tenant.id,
         params.loginSession,
+        authConnection,
       );
     }
 
