@@ -213,7 +213,7 @@ export async function loginWithPassword(
   return createFrontChannelAuthResponse(ctx, {
     ...result,
     ticketAuth,
-    authConnection: "Username-Password-Authentication",
+    authConnection: ctx.get("connection") || "Username-Password-Authentication",
     authStrategy: {
       strategy: "Username-Password-Authentication",
       strategy_type: "database",
