@@ -75,7 +75,7 @@ function createUserHooks(
       // This ensures ALL signup methods (email, code, social) are checked
       // Only validate email-based signups (skip SMS/phone-based signups)
       if (user.email) {
-        await preUserSignupHook(ctx, client, data, user.email);
+        await preUserSignupHook(ctx, client, data, user.email, user.connection);
       }
     }
 
@@ -402,9 +402,16 @@ export async function preUserSignupHook(
   client: EnrichedClient,
   data: DataAdapters,
   email: string,
+  connection?: string,
 ) {
   // Re-validate signup eligibility at creation time
-  const validation = await validateSignupEmail(ctx, client, data, email);
+  const validation = await validateSignupEmail(
+    ctx,
+    client,
+    data,
+    email,
+    connection,
+  );
 
   if (!validation.allowed) {
     logMessage(ctx, client.tenant.id, {
