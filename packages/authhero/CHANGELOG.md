@@ -1,5 +1,11 @@
 # authhero
 
+## 4.64.0
+
+### Minor Changes
+
+- fddedad: Fix darkmode persistence
+
 ## 4.63.0
 
 ### Minor Changes
