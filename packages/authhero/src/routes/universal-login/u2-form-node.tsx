@@ -35,7 +35,9 @@ import type {
   User,
 } from "@authhero/adapter-interfaces";
 import { renderWidgetPageResponse } from "./u2-widget-page";
+import type { DarkModePreference } from "./u2-widget-page";
 import { sanitizeUrl } from "./sanitization-utils";
+import { getCookie } from "hono/cookie";
 
 /**
  * Convert form node components to UiScreen format for the widget
@@ -139,6 +141,12 @@ async function renderFormNodeWidgetPage(
   const themeJson = theme ? JSON.stringify(theme) : undefined;
   const authParamsJson = JSON.stringify({ client_id: clientId, state });
 
+  const darkModeCookie = getCookie(ctx, "ah-dark-mode");
+  const darkMode: DarkModePreference =
+    darkModeCookie === "dark" || darkModeCookie === "light"
+      ? darkModeCookie
+      : "auto";
+
   return renderWidgetPageResponse(ctx, {
     screenId,
     screenJson,
@@ -151,6 +159,7 @@ async function renderFormNodeWidgetPage(
     clientName,
     poweredByLogo: ctx.env.poweredByLogo,
     termsAndConditionsUrl,
+    darkMode,
   });
 }
 

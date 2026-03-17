@@ -42,7 +42,9 @@ import {
   WidgetPage,
   renderWidgetSSR,
   extractBrandingProps,
+  type DarkModePreference,
 } from "./u2-widget-page";
+import { getCookie } from "hono/cookie";
 
 /**
  * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
@@ -82,6 +84,16 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
  */
 function getPromptScreenForScreen(screenId: string): PromptScreen | undefined {
   return SCREEN_TO_PROMPT_MAP[screenId];
+}
+
+/**
+ * Read the dark mode preference from the ah-dark-mode cookie.
+ * Returns "auto" if no cookie is set or the value is invalid.
+ */
+function getDarkModeFromCookie(ctx: any): DarkModePreference {
+  const value = getCookie(ctx, "ah-dark-mode");
+  if (value === "dark" || value === "light") return value;
+  return "auto";
 }
 
 /**
@@ -362,42 +374,70 @@ function HeadContent({
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
     
+    /* Explicit dark mode */
     html.ah-dark-mode body {
       background: #111827 !important;
     }
-    
+
     html.ah-dark-mode .widget-container {
       position: relative;
       z-index: 1;
     }
-    
+
     html.ah-dark-mode .page-footer-left {
       z-index: 10;
     }
-    
+
     html.ah-dark-mode .page-footer {
       z-index: 10;
     }
-    
+
     html.ah-dark-mode .page-footer .language-picker,
     html.ah-dark-mode .page-footer .dark-mode-toggle {
       background: rgba(30, 30, 50, 0.9);
       border-color: rgba(255, 255, 255, 0.15);
       color: #ccc;
     }
-    
+
     html.ah-dark-mode .page-footer .language-picker:hover,
     html.ah-dark-mode .page-footer .dark-mode-toggle:hover {
       border-color: rgba(255, 255, 255, 0.3);
     }
-    
+
+    /* Auto mode: follow system preference, unless explicitly set to light */
+    @media (prefers-color-scheme: dark) {
+      html:not(.ah-light-mode) body {
+        background: #111827 !important;
+      }
+      html:not(.ah-light-mode) .widget-container {
+        position: relative;
+        z-index: 1;
+      }
+      html:not(.ah-light-mode) .page-footer-left {
+        z-index: 10;
+      }
+      html:not(.ah-light-mode) .page-footer {
+        z-index: 10;
+      }
+      html:not(.ah-light-mode) .page-footer .language-picker,
+      html:not(.ah-light-mode) .page-footer .dark-mode-toggle {
+        background: rgba(30, 30, 50, 0.9);
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #ccc;
+      }
+      html:not(.ah-light-mode) .page-footer .language-picker:hover,
+      html:not(.ah-light-mode) .page-footer .dark-mode-toggle:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+    }
+
     @media (max-width: 560px) {
       body {
         justify-content: center !important;
         padding: 20px !important;
       }
     }
-    
+
     @media (max-width: 480px) {
       body {
         background: ${widgetBackground} !important;
@@ -407,9 +447,15 @@ function HeadContent({
       html.ah-dark-mode body {
         background: #111827 !important;
       }
-      
+
       .widget-container {
         max-width: none;
+      }
+    }
+
+    @media (max-width: 480px) and (prefers-color-scheme: dark) {
+      html:not(.ah-light-mode) body {
+        background: #111827 !important;
       }
     }
   `;
@@ -570,13 +616,18 @@ const LANGUAGE_NAMES: Record<string, string> = {
 type FooterContentProps = {
   language: string;
   availableLanguages?: string[];
+  darkMode?: DarkModePreference;
 };
 
 /**
  * Footer content component for liquid template substitution.
  * Renders a language picker and other page-level footer items.
  */
-function FooterContent({ language, availableLanguages }: FooterContentProps) {
+function FooterContent({
+  language,
+  availableLanguages,
+  darkMode = "auto",
+}: FooterContentProps) {
   const langs =
     availableLanguages && availableLanguages.length > 1
       ? availableLanguages
@@ -588,8 +639,26 @@ function FooterContent({ language, availableLanguages }: FooterContentProps) {
         class="dark-mode-toggle"
         type="button"
         aria-label="Toggle dark mode"
-        onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-hover':'#374151','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)','--ah-color-link':'#60a5fa'};var w=document.querySelector('authhero-widget');for(var k in v){if(isDark){h.style.setProperty(k,v[k]);if(w)w.style.setProperty(k,v[k])}else{h.style.removeProperty(k);if(w)w.style.removeProperty(k)}}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
+        onclick={`(function(btn){var h=document.documentElement;var cur=h.classList.contains('ah-dark-mode')?'dark':h.classList.contains('ah-light-mode')?'light':'auto';var next=cur==='auto'?'dark':cur==='dark'?'light':'auto';h.classList.remove('ah-dark-mode','ah-light-mode');if(next==='dark')h.classList.add('ah-dark-mode');else if(next==='light')h.classList.add('ah-light-mode');btn.querySelector('.icon-sun').style.display=next==='light'?'block':'none';btn.querySelector('.icon-moon').style.display=next==='dark'?'block':'none';btn.querySelector('.icon-auto').style.display=next==='auto'?'block':'none';document.cookie='ah-dark-mode='+next+';path=/;max-age=31536000;SameSite=Lax'})(this)`}
       >
+        {/* Auto icon (half circle - system preference) */}
+        <svg
+          class="icon-auto"
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style={darkMode === "auto" ? undefined : "display:none"}
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" />
+        </svg>
+        {/* Sun icon (light mode) */}
         <svg
           class="icon-sun"
           xmlns="http://www.w3.org/2000/svg"
@@ -601,6 +670,7 @@ function FooterContent({ language, availableLanguages }: FooterContentProps) {
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
+          style={darkMode === "light" ? undefined : "display:none"}
         >
           <circle cx="12" cy="12" r="5" />
           <line x1="12" y1="1" x2="12" y2="3" />
@@ -612,6 +682,7 @@ function FooterContent({ language, availableLanguages }: FooterContentProps) {
           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
+        {/* Moon icon (dark mode) */}
         <svg
           class="icon-moon"
           xmlns="http://www.w3.org/2000/svg"
@@ -623,7 +694,7 @@ function FooterContent({ language, availableLanguages }: FooterContentProps) {
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          style="display:none"
+          style={darkMode === "dark" ? undefined : "display:none"}
         >
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
@@ -866,6 +937,8 @@ function createScreenRouteHandler(screenId: string) {
       authParamsJson,
     });
 
+    const darkMode = getDarkModeFromCookie(ctx);
+
     // If there's a custom template, use liquid template rendering with SSR content
     if (customTemplate) {
       const brandingProps = extractBrandingProps(branding);
@@ -891,6 +964,7 @@ function createScreenRouteHandler(screenId: string) {
       const footerContent = generateFooterContent({
         language,
         availableLanguages: Object.keys(LANGUAGE_NAMES),
+        darkMode,
       });
 
       const renderedHtml = applyLiquidTemplate(
@@ -918,6 +992,7 @@ function createScreenRouteHandler(screenId: string) {
         termsAndConditionsUrl={sanitizeUrl(
           client.client_metadata?.termsAndConditionsUrl,
         )}
+        darkMode={darkMode}
       />,
     );
   };
@@ -1169,6 +1244,8 @@ function createScreenPostHandler(screenId: string) {
       authParamsJson,
     });
 
+    const darkMode = getDarkModeFromCookie(ctx);
+
     // If there's a custom template, use it
     if (customTemplate) {
       const brandingProps = extractBrandingProps(branding);
@@ -1198,6 +1275,7 @@ function createScreenPostHandler(screenId: string) {
         generateFooterContent({
           language,
           availableLanguages: Object.keys(LANGUAGE_NAMES),
+          darkMode,
         }),
       );
 
@@ -1219,6 +1297,7 @@ function createScreenPostHandler(screenId: string) {
         termsAndConditionsUrl={sanitizeUrl(
           client.client_metadata?.termsAndConditionsUrl,
         )}
+        darkMode={darkMode}
       />,
     );
   };

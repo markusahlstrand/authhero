@@ -3,7 +3,9 @@ import type { Branding, Theme } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { ErrorPage } from "./error-page";
 import { extractBrandingProps } from "./u2-widget-page";
+import type { DarkModePreference } from "./u2-widget-page";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
+import { getCookie } from "hono/cookie";
 
 function mapErrorToMessage(error?: string, errorDescription?: string): string {
   if (errorDescription) {
@@ -69,6 +71,11 @@ export const errorRoutes = new OpenAPIHono<{
       : null;
 
     const message = mapErrorToMessage(error, error_description);
+    const darkModeCookie = getCookie(ctx, "ah-dark-mode");
+    const darkMode: DarkModePreference =
+      darkModeCookie === "dark" || darkModeCookie === "light"
+        ? darkModeCookie
+        : "auto";
 
     return ctx.html(
       <ErrorPage
@@ -76,6 +83,7 @@ export const errorRoutes = new OpenAPIHono<{
         statusCode={400}
         branding={extractBrandingProps(brandingWithFavicon)}
         theme={resolvedTheme}
+        darkMode={darkMode}
       />,
       400,
     );

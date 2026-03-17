@@ -11,6 +11,7 @@ import {
   buildThemePageBackground,
 } from "./sanitization-utils";
 import type { Theme } from "@authhero/adapter-interfaces";
+import type { DarkModePreference } from "./u2-widget-page";
 
 export type ErrorPageProps = {
   title?: string;
@@ -28,6 +29,7 @@ export type ErrorPageProps = {
     font?: { url?: string };
   };
   theme?: Theme | null;
+  darkMode?: DarkModePreference;
 };
 
 export function ErrorPage({
@@ -36,6 +38,7 @@ export function ErrorPage({
   statusCode,
   branding,
   theme,
+  darkMode = "auto",
 }: ErrorPageProps) {
   const pageBackground = buildThemePageBackground(
     theme?.page_background,
@@ -51,8 +54,15 @@ export function ErrorPage({
   const showWidgetShadow = theme?.borders?.show_widget_shadow !== false;
   const errorColor = sanitizeCssColor(theme?.colors?.error) || "#DC2626";
 
+  const htmlClass =
+    darkMode === "dark"
+      ? "ah-dark-mode"
+      : darkMode === "light"
+        ? "ah-light-mode"
+        : undefined;
+
   return (
-    <html lang="en">
+    <html lang="en" class={htmlClass}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -102,14 +112,25 @@ export function ErrorPage({
                 color: #666;
                 line-height: 1.5;
               }
+              /* Explicit dark mode */
               html.ah-dark-mode body { background: #111827 !important; }
               html.ah-dark-mode .error-card { background: #1f2937; }
               html.ah-dark-mode .error-title { color: #f9fafb; }
               html.ah-dark-mode .error-message { color: #9ca3af; }
+              /* Auto mode: follow system preference */
+              @media (prefers-color-scheme: dark) {
+                html:not(.ah-light-mode) body { background: #111827 !important; }
+                html:not(.ah-light-mode) .error-card { background: #1f2937; }
+                html:not(.ah-light-mode) .error-title { color: #f9fafb; }
+                html:not(.ah-light-mode) .error-message { color: #9ca3af; }
+              }
               @media (max-width: 480px) {
                 body { background: ${widgetBackground} !important; padding: 0 !important; }
                 html.ah-dark-mode body { background: #111827 !important; }
                 .error-card { box-shadow: none; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+              }
+              @media (max-width: 480px) and (prefers-color-scheme: dark) {
+                html:not(.ah-light-mode) body { background: #111827 !important; }
               }
             `,
           }}
@@ -144,7 +165,7 @@ export function ErrorPage({
         </div>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var h=document.documentElement;var pref=localStorage.getItem('ah-dark-mode');var isDark=pref==='1'||(pref===null&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(isDark){h.classList.add('ah-dark-mode')}}catch(e){}})()`,
+            __html: `(function(){try{var p=localStorage.getItem('ah-dark-mode');if(p!==null&&!document.cookie.match(/ah-dark-mode=/)){var v=p==='1'?'dark':'light';document.cookie='ah-dark-mode='+v+';path=/;max-age=31536000;SameSite=Lax';localStorage.removeItem('ah-dark-mode')}}catch(e){}})()`,
           }}
         />
       </body>

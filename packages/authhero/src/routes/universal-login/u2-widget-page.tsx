@@ -21,6 +21,8 @@ import { buildHash } from "../../build-hash";
 /**
  * Props for the WidgetPage component
  */
+export type DarkModePreference = "auto" | "light" | "dark";
+
 export type WidgetPageProps = {
   widgetHtml: string;
   screenId: string;
@@ -52,6 +54,7 @@ export type WidgetPageProps = {
   language?: string;
   availableLanguages?: string[];
   termsAndConditionsUrl?: string;
+  darkMode?: DarkModePreference;
 };
 
 // ---------------------------------------------------------------------------
@@ -87,6 +90,37 @@ export const TERMS_TRANSLATIONS: Record<string, string> = {
 };
 
 /**
+ * Dark mode CSS custom property values used by the widget and page.
+ */
+const DARK_MODE_CSS_VARS: Record<string, string> = {
+  "--ah-color-text": "#f9fafb",
+  "--ah-color-text-muted": "#9ca3af",
+  "--ah-color-text-label": "#d1d5db",
+  "--ah-color-header": "#f9fafb",
+  "--ah-color-bg": "#1f2937",
+  "--ah-color-bg-hover": "#374151",
+  "--ah-color-bg-muted": "#374151",
+  "--ah-color-bg-disabled": "#4b5563",
+  "--ah-color-input-bg": "#374151",
+  "--ah-color-border": "#4b5563",
+  "--ah-color-border-hover": "#6b7280",
+  "--ah-color-border-muted": "#374151",
+  "--ah-color-error-bg": "rgba(220,38,38,0.2)",
+  "--ah-color-success-bg": "rgba(22,163,74,0.2)",
+  "--ah-color-link": "#60a5fa",
+};
+
+/**
+ * Generate CSS rules for dark mode variables on a selector.
+ */
+function darkModeCssVarRules(selector: string): string {
+  const props = Object.entries(DARK_MODE_CSS_VARS)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("; ");
+  return `${selector} { ${props}; }`;
+}
+
+/**
  * Widget page component – renders the full HTML page with the SSR widget.
  */
 export function WidgetPage({
@@ -100,6 +134,7 @@ export function WidgetPage({
   language,
   availableLanguages,
   termsAndConditionsUrl,
+  darkMode = "auto",
 }: WidgetPageProps) {
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -160,8 +195,15 @@ export function WidgetPage({
       ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
       : "max-width: 400px; width: 100%;";
 
+  const htmlClass =
+    darkMode === "dark"
+      ? "ah-dark-mode"
+      : darkMode === "light"
+        ? "ah-light-mode"
+        : undefined;
+
   return (
-    <html lang="en">
+    <html lang="en" class={htmlClass}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -178,8 +220,6 @@ export function WidgetPage({
               .page-footer-left { position: fixed; bottom: 16px; left: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; z-index: 10; }
               .terms-link { font-size: 12px; color: rgba(0,0,0,0.45); text-decoration: none; transition: color 0.2s; }
               .terms-link:hover { color: rgba(0,0,0,0.7); text-decoration: underline; }
-              html.ah-dark-mode .terms-link { color: rgba(255,255,255,0.45); }
-              html.ah-dark-mode .terms-link:hover { color: rgba(255,255,255,0.7); }
               .page-footer { position: fixed; bottom: 16px; right: 16px; display: flex; align-items: center; gap: 12px; z-index: 10; }
               .language-picker { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 6px 10px; font-size: 13px; color: #555; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
               .language-picker:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
@@ -187,12 +227,31 @@ export function WidgetPage({
               .language-select { appearance: none; -webkit-appearance: none; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding-right: 2px; outline: none; }
               .dark-mode-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 7px; color: #555; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
               .dark-mode-toggle:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+              /* Explicit dark mode */
               html.ah-dark-mode body { background: #111827 !important; }
               html.ah-dark-mode .widget-container { position: relative; z-index: 1; }
               html.ah-dark-mode .page-footer-left { z-index: 10; }
               html.ah-dark-mode .page-footer { z-index: 10; }
+              html.ah-dark-mode .terms-link { color: rgba(255,255,255,0.45); }
+              html.ah-dark-mode .terms-link:hover { color: rgba(255,255,255,0.7); }
               html.ah-dark-mode .page-footer .language-picker, html.ah-dark-mode .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
               html.ah-dark-mode .page-footer .language-picker:hover, html.ah-dark-mode .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
+              ${darkModeCssVarRules("html.ah-dark-mode authhero-widget")}
+
+              /* Auto mode: follow system preference, unless explicitly set to light */
+              @media (prefers-color-scheme: dark) {
+                html:not(.ah-light-mode) body { background: #111827 !important; }
+                html:not(.ah-light-mode) .widget-container { position: relative; z-index: 1; }
+                html:not(.ah-light-mode) .page-footer-left { z-index: 10; }
+                html:not(.ah-light-mode) .page-footer { z-index: 10; }
+                html:not(.ah-light-mode) .terms-link { color: rgba(255,255,255,0.45); }
+                html:not(.ah-light-mode) .terms-link:hover { color: rgba(255,255,255,0.7); }
+                html:not(.ah-light-mode) .page-footer .language-picker, html:not(.ah-light-mode) .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
+                html:not(.ah-light-mode) .page-footer .language-picker:hover, html:not(.ah-light-mode) .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
+                ${darkModeCssVarRules("html:not(.ah-light-mode) authhero-widget")}
+              }
+
               @media (max-width: 560px) {
                 body { justify-content: center !important; padding: 20px !important; }
               }
@@ -200,6 +259,9 @@ export function WidgetPage({
                 body { background: ${widgetBackground} !important; padding: 0 !important; }
                 html.ah-dark-mode body { background: #111827 !important; }
                 .widget-container { max-width: none; }
+              }
+              @media (max-width: 480px) and (prefers-color-scheme: dark) {
+                html:not(.ah-light-mode) body { background: #111827 !important; }
               }
             `,
           }}
@@ -262,8 +324,26 @@ export function WidgetPage({
               class="dark-mode-toggle"
               type="button"
               aria-label="Toggle dark mode"
-              onclick={`(function(btn){var h=document.documentElement,isDark=h.classList.toggle('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-hover':'#374151','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)','--ah-color-link':'#60a5fa'};var w=document.querySelector('authhero-widget');for(var k in v){if(isDark){h.style.setProperty(k,v[k]);if(w)w.style.setProperty(k,v[k])}else{h.style.removeProperty(k);if(w)w.style.removeProperty(k)}}btn.querySelector('.icon-sun').style.display=isDark?'none':'block';btn.querySelector('.icon-moon').style.display=isDark?'block':'none';try{localStorage.setItem('ah-dark-mode',isDark?'1':'0')}catch(e){}})(this)`}
+              onclick={`(function(btn){var h=document.documentElement;var cur=h.classList.contains('ah-dark-mode')?'dark':h.classList.contains('ah-light-mode')?'light':'auto';var next=cur==='auto'?'dark':cur==='dark'?'light':'auto';h.classList.remove('ah-dark-mode','ah-light-mode');if(next==='dark')h.classList.add('ah-dark-mode');else if(next==='light')h.classList.add('ah-light-mode');btn.querySelector('.icon-sun').style.display=next==='light'?'block':'none';btn.querySelector('.icon-moon').style.display=next==='dark'?'block':'none';btn.querySelector('.icon-auto').style.display=next==='auto'?'block':'none';document.cookie='ah-dark-mode='+next+';path=/;max-age=31536000;SameSite=Lax'})(this)`}
             >
+              {/* Auto icon (half circle - system preference) */}
+              <svg
+                class="icon-auto"
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style={darkMode === "auto" ? undefined : "display:none"}
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" />
+              </svg>
+              {/* Sun icon (light mode) */}
               <svg
                 class="icon-sun"
                 xmlns="http://www.w3.org/2000/svg"
@@ -275,6 +355,7 @@ export function WidgetPage({
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
+                style={darkMode === "light" ? undefined : "display:none"}
               >
                 <circle cx="12" cy="12" r="5" />
                 <line x1="12" y1="1" x2="12" y2="3" />
@@ -286,6 +367,7 @@ export function WidgetPage({
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
               </svg>
+              {/* Moon icon (dark mode) */}
               <svg
                 class="icon-moon"
                 xmlns="http://www.w3.org/2000/svg"
@@ -297,7 +379,7 @@ export function WidgetPage({
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                style="display:none"
+                style={darkMode === "dark" ? undefined : "display:none"}
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
@@ -336,7 +418,7 @@ export function WidgetPage({
         </footer>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var h=document.documentElement;var pref=localStorage.getItem('ah-dark-mode');var isDark=pref==='1'||(pref===null&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(isDark){h.classList.add('ah-dark-mode');var v={'--ah-color-text':'#f9fafb','--ah-color-text-muted':'#9ca3af','--ah-color-text-label':'#d1d5db','--ah-color-header':'#f9fafb','--ah-color-bg':'#1f2937','--ah-color-bg-hover':'#374151','--ah-color-bg-muted':'#374151','--ah-color-bg-disabled':'#4b5563','--ah-color-input-bg':'#374151','--ah-color-border':'#4b5563','--ah-color-border-hover':'#6b7280','--ah-color-border-muted':'#374151','--ah-color-error-bg':'rgba(220,38,38,0.2)','--ah-color-success-bg':'rgba(22,163,74,0.2)','--ah-color-link':'#60a5fa'};var w=document.querySelector('authhero-widget');for(var k in v){h.style.setProperty(k,v[k]);if(w)w.style.setProperty(k,v[k])}var btn=document.querySelector('.dark-mode-toggle');if(btn){btn.querySelector('.icon-sun').style.display='none';btn.querySelector('.icon-moon').style.display='block'}}}catch(e){}})()`,
+            __html: `(function(){try{var p=localStorage.getItem('ah-dark-mode');if(p!==null&&!document.cookie.match(/ah-dark-mode=/)){var v=p==='1'?'dark':'light';document.cookie='ah-dark-mode='+v+';path=/;max-age=31536000;SameSite=Lax';localStorage.removeItem('ah-dark-mode')}}catch(e){}})()`,
           }}
         />
       </body>
@@ -443,6 +525,7 @@ export async function renderWidgetPageResponse(
     language?: string;
     availableLanguages?: string[];
     termsAndConditionsUrl?: string;
+    darkMode?: DarkModePreference;
   },
 ): Promise<Response> {
   const widgetHtml = await renderWidgetSSR({
@@ -466,6 +549,7 @@ export async function renderWidgetPageResponse(
       language={opts.language}
       availableLanguages={opts.availableLanguages}
       termsAndConditionsUrl={opts.termsAndConditionsUrl}
+      darkMode={opts.darkMode}
     />,
   );
 }
