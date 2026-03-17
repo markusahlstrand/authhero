@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.48.0
+
+### Minor Changes
+
+- 30b5be1: Add support for set_user_root_attributes
+
+### Patch Changes
+
+- Updated dependencies [30b5be1]
+  - @authhero/adapter-interfaces@0.145.0
+  - @authhero/widget@0.19.2
+
 ## 0.47.0
 
 ### Minor Changes
