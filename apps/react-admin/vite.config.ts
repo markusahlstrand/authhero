@@ -2,6 +2,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
+import path from "path";
 import http from "http";
 
 // Redirect HTTP to HTTPS
@@ -50,6 +51,19 @@ export default defineConfig({
       VITE_AUTH0_API_URL: "http://localhost:3000",
       VITE_AUTH0_DOMAIN: "test.auth0.com",
     },
+    alias: {
+      // @tiptap packages have broken exports for Vitest's resolver
+      "@tiptap/react": path.resolve(__dirname, "src/__mocks__/tiptap.ts"),
+      "@tiptap/starter-kit": path.resolve(__dirname, "src/__mocks__/tiptap.ts"),
+      "@tiptap/extension-link": path.resolve(
+        __dirname,
+        "src/__mocks__/tiptap.ts",
+      ),
+      "@tiptap/extension-underline": path.resolve(
+        __dirname,
+        "src/__mocks__/tiptap.ts",
+      ),
+    },
     server: {
       deps: {
         // Workaround for React Admin ES module issues
@@ -61,10 +75,6 @@ export default defineConfig({
           "@mui/icons-material",
           "react-admin-color-picker",
           "react-color",
-          "@tiptap/react",
-          "@tiptap/starter-kit",
-          "@tiptap/extension-link",
-          "@tiptap/extension-underline",
         ],
       },
     },
