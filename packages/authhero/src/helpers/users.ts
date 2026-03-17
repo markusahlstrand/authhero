@@ -2,7 +2,6 @@ import { User, UserDataAdapter } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "./client";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { getDataAdapter } from "./data";
 import { userIdGenerate } from "../utils/user-id";
 
 export async function getUsersByEmail(
@@ -246,7 +245,7 @@ export async function getOrCreateUserByProvider(
       profileData: JSON.stringify(profileData),
     };
 
-    user = await getDataAdapter(ctx).users.create(client.tenant.id, userData);
+    user = await ctx.env.data.users.create(client.tenant.id, userData);
 
     ctx.set("user_id", user.user_id);
   } else if (effectiveMode === "on_each_login") {
@@ -259,7 +258,7 @@ export async function getOrCreateUserByProvider(
       Object.entries(updates).filter(([_, v]) => v !== undefined),
     );
     if (Object.keys(filteredUpdates).length > 0) {
-      await getDataAdapter(ctx).users.update(
+      await ctx.env.data.users.update(
         client.tenant.id,
         user.user_id,
         filteredUpdates,
