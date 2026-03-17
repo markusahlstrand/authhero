@@ -164,6 +164,10 @@ export const connectionOptionsSchema = z.object({
         .optional(),
     })
     .optional(),
+  // Controls when root user attributes are updated from external IdP
+  set_user_root_attributes: z
+    .enum(["on_each_login", "on_first_login", "never_on_login"])
+    .optional(),
 });
 
 export const connectionInsertSchema = z.object({

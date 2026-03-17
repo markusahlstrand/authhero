@@ -193,6 +193,7 @@ export async function connectionCallback(
     profileData,
     isSocial: true,
     ip: ctx.var.ip,
+    set_user_root_attributes: connection.options.set_user_root_attributes,
   });
 
   return createFrontChannelAuthResponse(ctx, {

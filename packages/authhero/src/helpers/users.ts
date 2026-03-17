@@ -134,6 +134,45 @@ export async function getPrimaryUserByProvider({
   return userAdapter.get(tenant_id, user.linked_to);
 }
 
+interface RootAttributes {
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  nickname?: string;
+  picture?: string;
+  email_verified?: boolean;
+  phone_number?: string;
+  phone_verified?: boolean;
+}
+
+function extractRootAttributesFromProfile(
+  profileData: Record<string, unknown>,
+): RootAttributes {
+  const attrs: RootAttributes = {};
+
+  if (typeof profileData.name === "string") attrs.name = profileData.name;
+  if (typeof profileData.given_name === "string")
+    attrs.given_name = profileData.given_name;
+  if (typeof profileData.family_name === "string")
+    attrs.family_name = profileData.family_name;
+  if (typeof profileData.nickname === "string")
+    attrs.nickname = profileData.nickname;
+  if (typeof profileData.picture === "string")
+    attrs.picture = profileData.picture;
+  if (typeof profileData.email_verified === "boolean")
+    attrs.email_verified = profileData.email_verified;
+  if (typeof profileData.phone_number === "string")
+    attrs.phone_number = profileData.phone_number;
+  // Vipps uses "phone_number_verified", OIDC standard uses "phone_verified"
+  if (typeof profileData.phone_number_verified === "boolean") {
+    attrs.phone_verified = profileData.phone_number_verified;
+  } else if (typeof profileData.phone_verified === "boolean") {
+    attrs.phone_verified = profileData.phone_verified;
+  }
+
+  return attrs;
+}
+
 interface GetOrCreateUserByProviderParams {
   client: EnrichedClient;
   username: string;
@@ -143,6 +182,10 @@ interface GetOrCreateUserByProviderParams {
   profileData?: Record<string, unknown>;
   ip?: string;
   isSocial: boolean;
+  set_user_root_attributes?:
+    | "on_each_login"
+    | "on_first_login"
+    | "never_on_login";
 }
 
 /**
@@ -163,7 +206,14 @@ export async function getOrCreateUserByProvider(
     isSocial,
     profileData = {},
     ip = "",
+    set_user_root_attributes,
   } = params;
+
+  const effectiveMode = set_user_root_attributes || "on_each_login";
+  const rootAttrs =
+    effectiveMode !== "never_on_login"
+      ? extractRootAttributesFromProfile(profileData)
+      : {};
 
   let user = await getPrimaryUserByProvider({
     userAdapter: ctx.env.data.users,
@@ -177,14 +227,19 @@ export async function getOrCreateUserByProvider(
       user_id: `${provider}|${userId || userIdGenerate()}`,
       email:
         connection !== "sms" && username.includes("@") ? username : undefined,
-      phone_number: connection === "sms" ? username : undefined,
+      phone_number:
+        connection === "sms" ? username : rootAttrs.phone_number,
       username:
         !username.includes("@") && connection !== "sms" ? username : undefined,
-      name: username,
+      name: rootAttrs.name || username,
+      given_name: rootAttrs.given_name,
+      family_name: rootAttrs.family_name,
+      nickname: rootAttrs.nickname,
+      picture: rootAttrs.picture,
+      phone_verified: rootAttrs.phone_verified,
       provider,
       connection,
-      // Assume all auth providers verify emails for now
-      email_verified: true,
+      email_verified: rootAttrs.email_verified ?? (isSocial ? true : false),
       last_ip: ip,
       is_social: isSocial,
       last_login: new Date().toISOString(),
@@ -194,6 +249,23 @@ export async function getOrCreateUserByProvider(
     user = await getDataAdapter(ctx).users.create(client.tenant.id, userData);
 
     ctx.set("user_id", user.user_id);
+  } else if (effectiveMode === "on_each_login") {
+    const updates: Record<string, unknown> = {
+      ...rootAttrs,
+      profileData: JSON.stringify(profileData),
+    };
+    // Filter out undefined values to avoid overwriting existing data
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, v]) => v !== undefined),
+    );
+    if (Object.keys(filteredUpdates).length > 0) {
+      await getDataAdapter(ctx).users.update(
+        client.tenant.id,
+        user.user_id,
+        filteredUpdates,
+      );
+      user = { ...user, ...filteredUpdates };
+    }
   }
 
   return user;

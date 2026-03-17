@@ -180,6 +180,20 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
+          {!isDbConnection(record?.strategy) && record?.strategy !== "sms" && (
+            <SelectInput
+              source="options.set_user_root_attributes"
+              label="Set User Root Attributes"
+              helperText="Controls when profile data from this connection updates user attributes"
+              choices={[
+                { id: "on_each_login", name: "On Each Login" },
+                { id: "on_first_login", name: "On First Login" },
+                { id: "never_on_login", name: "Never On Login" },
+              ]}
+              defaultValue="on_each_login"
+            />
+          )}
+
           {isDbConnection(record?.strategy) && (
             <>
               <BooleanInput
