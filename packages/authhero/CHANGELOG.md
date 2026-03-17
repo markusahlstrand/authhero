@@ -1,5 +1,12 @@
 # authhero
 
+## 4.65.0
+
+### Minor Changes
+
+- 809a9b1: Fix double wrapping of hooks
+- 2d69ec6: Fix email account linking
+
 ## 4.64.0
 
 ### Minor Changes
