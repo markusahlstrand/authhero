@@ -573,6 +573,109 @@ describe("callback", () => {
     expect(user!.email_verified).toEqual(true);
   });
 
+  it("should link social user to primary via setLinkedTo in pre-user-registration hook", async () => {
+    const { oauthApp, env } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: async (event, api) => {
+          // Look up an existing primary user and link the new social user to it
+          const primaryUser = await event.ctx.env.data.users.get(
+            event.ctx.var.tenant_id!,
+            "auth2|primary-user",
+          );
+          if (primaryUser) {
+            api.user.setLinkedTo(primaryUser.user_id);
+          }
+        },
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    // Create a primary user directly in the database
+    await env.data.users.create("tenantId", {
+      user_id: "auth2|primary-user",
+      email: "primary@example.com",
+      email_verified: true,
+      connection: "Username-Password-Authentication",
+      provider: "auth2",
+      is_social: false,
+    });
+
+    // Create a connection for social login
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    // Trigger social callback — mock strategy default returns sub:"123", email:"hello@example.com"
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "code",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+
+    // The primary user should now have the social identity linked
+    const primaryUser = await env.data.users.get(
+      "tenantId",
+      "auth2|primary-user",
+    );
+    expect(primaryUser).toBeTruthy();
+    expect(primaryUser!.identities).toHaveLength(2);
+    expect(primaryUser!.identities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: "auth2" }),
+        expect.objectContaining({ provider: "mock-strategy" }),
+      ]),
+    );
+
+    // The social user should be linked to the primary
+    const socialUser = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|123",
+    );
+    expect(socialUser).toBeTruthy();
+    expect(socialUser!.linked_to).toEqual("auth2|primary-user");
+
+    // The authorization code should reference the primary user, not the social user
+    const redirectUri = new URL(location!);
+    const authCode = redirectUri.searchParams.get("code");
+    expect(authCode).toBeTruthy();
+    const codeRecord = await env.data.codes.get(
+      "tenantId",
+      authCode!,
+      "authorization_code",
+    );
+    expect(codeRecord).toBeTruthy();
+    expect(codeRecord!.user_id).toEqual("auth2|primary-user");
+  });
+
   it("should redirect to the callback endpoint on the original domain when domain doesn't match the current request", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
