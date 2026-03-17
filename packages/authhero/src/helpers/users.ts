@@ -238,7 +238,8 @@ export async function getOrCreateUserByProvider(
       phone_verified: rootAttrs.phone_verified,
       provider,
       connection,
-      email_verified: rootAttrs.email_verified ?? (isSocial ? true : false),
+      email_verified:
+        rootAttrs.email_verified ?? (isSocial || connection === "email"),
       last_ip: ip,
       is_social: isSocial,
       last_login: new Date().toISOString(),

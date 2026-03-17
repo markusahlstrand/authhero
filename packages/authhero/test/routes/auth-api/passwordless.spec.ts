@@ -142,6 +142,111 @@ describe("passwordless", async () => {
     });
   });
 
+  describe("account linking", () => {
+    it("should link email OTP user to existing primary user with same email", async () => {
+      const { oauthApp, env, getSentEmails } = await getTestServer({
+        testTenantLanguage: "en",
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      // Create a password user as the primary account
+      const primaryUserId = "auth0|primary-user";
+      await env.data.users.create("tenantId", {
+        user_id: primaryUserId,
+        email: "linking-test@example.com",
+        email_verified: true,
+        provider: "auth0",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+        login_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      // Start passwordless flow with the same email
+      const startResponse = await oauthClient.passwordless.start.$post(
+        {
+          json: {
+            client_id: "clientId",
+            connection: "email",
+            email: "linking-test@example.com",
+            send: "code",
+            authParams: {},
+          },
+        },
+        {
+          headers: {
+            "x-real-ip": "1.2.3.4",
+            "user-agent": "Mozilla/5.0",
+          },
+        },
+      );
+      expect(startResponse.status).toBe(200);
+
+      const emails = await getSentEmails();
+      const code = emails[emails.length - 1]?.data.code;
+      if (!code) {
+        throw new Error("No code found in email");
+      }
+
+      // Verify the OTP code
+      const loginResponse =
+        await oauthClient.passwordless.verify_redirect.$get(
+          {
+            query: {
+              response_type: AuthorizationResponseType.CODE,
+              redirect_uri: "https://example.com/callback",
+              client_id: "clientId",
+              email: "linking-test@example.com",
+              verification_code: code,
+              connection: "email",
+              state: "state",
+              scope: "openid",
+              audience: "https://example.com",
+            },
+          },
+          {
+            headers: {
+              "x-real-ip": "1.2.3.4",
+            },
+          },
+        );
+
+      expect(loginResponse.status).toBe(302);
+      const location = loginResponse.headers.get("location");
+      if (!location) {
+        throw new Error("No location header found");
+      }
+
+      // Get the authorization code and look up which user it references
+      const redirectUrl = new URL(location);
+      const authCode = redirectUrl.searchParams.get("code");
+      expect(authCode).toBeTruthy();
+
+      const codeRecord = await env.data.codes.get(
+        "tenantId",
+        authCode!,
+        "authorization_code",
+      );
+      expect(codeRecord).toBeTruthy();
+
+      // The authorization code should reference the primary user (linked account)
+      expect(codeRecord!.user_id).toBe(primaryUserId);
+
+      // Verify the email OTP user was created and linked to the primary
+      const { users } = await env.data.users.list("tenantId", {
+        page: 0,
+        per_page: 10,
+        include_totals: false,
+        q: "email:linking-test@example.com provider:email",
+      });
+      const emailUser = users.find((u) => u.provider === "email");
+      expect(emailUser).toBeTruthy();
+      expect(emailUser!.linked_to).toBe(primaryUserId);
+      expect(emailUser!.email_verified).toBe(true);
+    });
+  });
+
   describe("sms", () => {
     it("should login using a passwordless code", async () => {
       const { oauthApp, managementApp, env, getSentSms } = await getTestServer({
