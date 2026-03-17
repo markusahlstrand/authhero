@@ -296,6 +296,283 @@ describe("callback", () => {
     expect(user?.identities?.length).toBe(2);
   });
 
+  it("should populate root attributes from social profile on user creation", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "vipps-user@example.com",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+
+    const user = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|vipps-456",
+    );
+    expect(user).toBeTruthy();
+    expect(user!.given_name).toEqual("Test");
+    expect(user!.family_name).toEqual("User");
+    expect(user!.name).toEqual("Test User");
+    expect(user!.phone_number).toEqual("+4712345678");
+    expect(user!.phone_verified).toEqual(true);
+    expect(user!.picture).toEqual("https://example.com/avatar.jpg");
+    expect(user!.nickname).toEqual("testuser");
+    expect(user!.email_verified).toEqual(true);
+  });
+
+  it("should update root attributes on each login by default", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    // First login - creates user
+    const loginSession1 = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state1 = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession1.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    await oauthClient.callback.$get({
+      query: {
+        state: state1.code_id,
+        code: "vipps-user@example.com",
+      },
+    });
+
+    // Second login - updates user with different profile data
+    const loginSession2 = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state2 = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession2.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    await oauthClient.callback.$get({
+      query: {
+        state: state2.code_id,
+        code: "vipps-user-updated@example.com",
+      },
+    });
+
+    const user = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|vipps-456",
+    );
+    expect(user).toBeTruthy();
+    expect(user!.given_name).toEqual("Updated");
+    expect(user!.family_name).toEqual("Name");
+    expect(user!.name).toEqual("Updated Name");
+    expect(user!.phone_number).toEqual("+4799999999");
+    expect(user!.picture).toEqual("https://example.com/new-avatar.jpg");
+    expect(user!.nickname).toEqual("updateduser");
+  });
+
+  it("should not update root attributes on subsequent login when set_user_root_attributes is on_first_login", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+        set_user_root_attributes: "on_first_login",
+      },
+    });
+
+    // First login - creates user with profile data
+    const loginSession1 = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state1 = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession1.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    await oauthClient.callback.$get({
+      query: {
+        state: state1.code_id,
+        code: "vipps-user@example.com",
+      },
+    });
+
+    // Verify first login populated attributes
+    let user = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|vipps-456",
+    );
+    expect(user!.given_name).toEqual("Test");
+
+    // Second login - should NOT update attributes
+    const loginSession2 = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state2 = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession2.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    await oauthClient.callback.$get({
+      query: {
+        state: state2.code_id,
+        code: "vipps-user-updated@example.com",
+      },
+    });
+
+    user = await env.data.users.get("tenantId", "mock-strategy|vipps-456");
+    // Should still have original values
+    expect(user!.given_name).toEqual("Test");
+    expect(user!.family_name).toEqual("User");
+    expect(user!.name).toEqual("Test User");
+    expect(user!.phone_number).toEqual("+4712345678");
+  });
+
+  it("should not populate root attributes from profile when set_user_root_attributes is never_on_login", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+        set_user_root_attributes: "never_on_login",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "vipps-user@example.com",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+
+    const user = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|vipps-456",
+    );
+    expect(user).toBeTruthy();
+    // Root attributes should NOT be populated from profile
+    expect(user!.given_name).toBeUndefined();
+    expect(user!.family_name).toBeUndefined();
+    expect(user!.phone_number).toBeUndefined();
+    expect(user!.phone_verified).toBeUndefined();
+    expect(user!.picture).toBeUndefined();
+    expect(user!.nickname).toBeUndefined();
+    // Name should fall back to username (email)
+    expect(user!.name).toEqual("vipps-user@example.com");
+    // email_verified defaults to true for social logins even with never_on_login
+    expect(user!.email_verified).toEqual(true);
+  });
+
   it("should redirect to the callback endpoint on the original domain when domain doesn't match the current request", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
