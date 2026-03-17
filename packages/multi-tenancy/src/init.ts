@@ -1,11 +1,20 @@
-import { init, AuthHeroConfig, fetchAll, DataAdapters, Tenant } from "authhero";
+import {
+  init,
+  AuthHeroConfig,
+  fetchAll,
+  DataAdapters,
+  Tenant,
+  CreateTenantParams,
+} from "authhero";
 import { createSyncHooks, EntitySyncConfig } from "./hooks/sync";
+import { createProvisioningHooks } from "./hooks";
 import { createTenantsOpenAPIRouter } from "./routes";
 import {
   createProtectSyncedMiddleware,
   createControlPlaneTenantMiddleware,
   withRuntimeFallback,
 } from "./middleware";
+import { TenantEntityHooks, TenantHookContext } from "./types";
 
 /**
  * Control plane configuration for multi-tenancy.
@@ -251,6 +260,42 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     rolePermissions: customEntityHooks?.rolePermissions ?? [],
   };
 
+  // Create provisioning hooks for organization creation on tenant creation
+  const provisioningHooks = createProvisioningHooks({
+    accessControl: {
+      controlPlaneTenantId,
+      requireOrganizationMatch,
+      defaultPermissions,
+    },
+  });
+
+  // Chain provisioning hooks (org creation) with sync hooks (entity syncing)
+  const combinedTenantHooks: TenantEntityHooks = {
+    async beforeCreate(
+      ctx: TenantHookContext,
+      params: CreateTenantParams,
+    ): Promise<CreateTenantParams> {
+      if (provisioningHooks.beforeCreate) {
+        params = await provisioningHooks.beforeCreate(ctx, params);
+      }
+      if (tenantHooks.beforeCreate) {
+        params = await tenantHooks.beforeCreate(ctx, params);
+      }
+      return params;
+    },
+    async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
+      await provisioningHooks.afterCreate?.(ctx, tenant);
+      await tenantHooks.afterCreate?.(ctx, tenant);
+    },
+    async beforeDelete(
+      ctx: TenantHookContext,
+      tenantId: string,
+    ): Promise<void> {
+      await provisioningHooks.beforeDelete?.(ctx, tenantId);
+      await tenantHooks.beforeDelete?.(ctx, tenantId);
+    },
+  };
+
   // Create tenants router
   const tenantsRouter = createTenantsOpenAPIRouter(
     {
@@ -260,7 +305,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
         defaultPermissions,
       },
     },
-    { tenants: tenantHooks },
+    { tenants: combinedTenantHooks },
   );
 
   // Initialize AuthHero
