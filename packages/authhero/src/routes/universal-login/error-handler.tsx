@@ -9,9 +9,11 @@ import { HTTPException } from "hono/http-exception";
 import { RedirectException } from "../../errors/redirect-exception";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { extractBrandingProps } from "./u2-widget-page";
+import type { DarkModePreference } from "./u2-widget-page";
 import { ErrorPage } from "./error-page";
 import type { Bindings, Variables } from "../../types";
 import type { Branding, Theme } from "@authhero/adapter-interfaces";
+import { getCookie } from "hono/cookie";
 
 /**
  * Map technical error messages to user-friendly ones.
@@ -86,12 +88,19 @@ export function createUniversalLoginErrorHandler() {
         }
       : null;
 
+    const darkModeCookie = getCookie(c, "ah-dark-mode");
+    const darkMode: DarkModePreference =
+      darkModeCookie === "dark" || darkModeCookie === "light"
+        ? darkModeCookie
+        : "auto";
+
     return c.html(
       <ErrorPage
         message={message}
         statusCode={status}
         branding={extractBrandingProps(brandingWithFavicon)}
         theme={resolvedTheme}
+        darkMode={darkMode}
       />,
       status,
     );
