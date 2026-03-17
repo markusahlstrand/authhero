@@ -284,7 +284,8 @@ export const identifierRoutes = new OpenAPIHono<{
         client,
         params.username,
         connectionType,
-        params.login_selection,
+        // Default the old /u/login/identifier route to code-based login
+        params.login_selection || "code",
       );
 
       if (loginStrategy === "password") {

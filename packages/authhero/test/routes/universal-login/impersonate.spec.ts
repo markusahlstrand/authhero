@@ -1405,7 +1405,7 @@ describe("impersonation routes", () => {
       const identifierPostResponse =
         await universalClient.login.identifier.$post({
           query: { state: state! },
-          form: { username: "admin-pwd@example.com" },
+          form: { username: "admin-pwd@example.com", login_selection: "password" },
         });
 
       if (identifierPostResponse.status !== 302) {

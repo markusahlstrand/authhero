@@ -342,7 +342,7 @@ describe("login identifier page", () => {
     expect(existingUserResponse.status).toBe(302);
   });
 
-  it("should redirect to enter-password page when user has password strategy (auth2 provider)", async () => {
+  it("should default to code-based login even when user has password strategy", async () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
     });
@@ -350,8 +350,6 @@ describe("login identifier page", () => {
     const universalClient = testClient(universalApp, env);
 
     // Create a user with password strategy (auth2 provider, not email provider)
-    // This tests the bug where getPrimaryUserByProvider couldn't find the user
-    // because it was looking for provider="email" but user had the username-password provider
     await env.data.users.create("tenantId", {
       user_id: `${USERNAME_PASSWORD_PROVIDER}|passworduser`,
       email: "password@example.com",
@@ -386,16 +384,66 @@ describe("login identifier page", () => {
     }
 
     // --------------------------------
-    // POST email to identifier page
+    // POST email to identifier page (no login_selection)
     // --------------------------------
     const passwordUserResponse = await universalClient.login.identifier.$post({
       query: { state },
       form: { username: "password@example.com" },
     });
 
-    // Should redirect to enter-password page
+    // Old /u/login/identifier should default to code, not password
     expect(passwordUserResponse.status).toBe(302);
     const redirectLocation = passwordUserResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u/login/email-otp-challenge");
+  });
+
+  it("should redirect to enter-password when login_selection is password", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Create a user with password strategy
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|passworduser2`,
+      email: "password2@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: "Username-Password-Authentication",
+      is_social: false,
+    });
+
+    // Start OAuth authorization flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // POST with explicit password selection
+    const passwordResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "password2@example.com", login_selection: "password" },
+    });
+
+    // Should redirect to enter-password when explicitly selected
+    expect(passwordResponse.status).toBe(302);
+    const redirectLocation = passwordResponse.headers.get("location");
     expect(redirectLocation).toContain("/u/enter-password");
   });
 });

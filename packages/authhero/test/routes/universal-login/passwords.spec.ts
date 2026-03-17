@@ -68,7 +68,7 @@ describe("passwords", () => {
     const enterEmailPostResponse = await universalClient.login.identifier.$post(
       {
         query: { state },
-        form: { username: "foo2@example.com" },
+        form: { username: "foo2@example.com", login_selection: "password" },
       },
     );
     expect(enterEmailPostResponse.status).toBe(302);
@@ -151,7 +151,7 @@ describe("passwords", () => {
 
     await universalClient.login.identifier.$post({
       query: { state: state2 },
-      form: { username: "foo2@example.com" },
+      form: { username: "foo2@example.com", login_selection: "password" },
     });
 
     const forgotPasswordResponse = await universalClient[
@@ -163,9 +163,9 @@ describe("passwords", () => {
     expect(forgotPasswordResponse.status).toBe(200);
 
     const sentEmails = getSentEmails();
-    expect(sentEmails.length).toBe(2);
+    expect(sentEmails.length).toBe(1);
 
-    const passwordResetEmail = sentEmails[1];
+    const passwordResetEmail = sentEmails[0];
 
     if (passwordResetEmail.data.passwordResetUrl === undefined) {
       throw new Error("No code found in email");
