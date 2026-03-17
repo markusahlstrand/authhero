@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.145.0
+
+### Minor Changes
+
+- 30b5be1: Add support for set_user_root_attributes
+
 ## 0.144.0
 
 ### Minor Changes

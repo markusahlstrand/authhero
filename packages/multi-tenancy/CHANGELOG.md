@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.14.0
+
+### Minor Changes
+
+- 7754a80: Create organization
+
+### Patch Changes
+
+- Updated dependencies [30b5be1]
+  - @authhero/adapter-interfaces@0.145.0
+  - authhero@4.63.0
+
 ## 14.13.0
 
 ### Minor Changes
