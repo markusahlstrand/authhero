@@ -489,8 +489,19 @@ export class AuthheroWidget {
   }
 
   private handlePopState = (event: PopStateEvent) => {
-    if (event.state?.screen && this.apiUrl) {
-      this.fetchScreen(event.state.screen);
+    if (!this.apiUrl) return;
+
+    // Restore the widget state token from history if present
+    if (event.state?.state) {
+      this.state = event.state.state;
+    }
+
+    // Derive screen from history state or from the current URL
+    const screen =
+      event.state?.screen ?? this.extractScreenIdFromHref(location.href);
+
+    if (screen) {
+      this.fetchScreen(screen);
     }
   };
 

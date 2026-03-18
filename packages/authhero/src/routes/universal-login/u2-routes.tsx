@@ -1439,6 +1439,14 @@ export const u2Routes = new OpenAPIHono<{
   )
   .openapi(
     createScreenPostRoute(
+      "login-passwordless-identifier",
+      "/login/login-passwordless-identifier",
+      "Process login-passwordless-identifier form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("login-passwordless-identifier"),
+  )
+  .openapi(
+    createScreenPostRoute(
       "email-otp-challenge",
       "/login/email-otp-challenge",
       "Process email-otp-challenge form submission (no-JS fallback)",

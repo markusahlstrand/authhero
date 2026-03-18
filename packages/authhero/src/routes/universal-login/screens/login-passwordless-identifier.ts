@@ -106,19 +106,22 @@ export async function loginPasswordlessIdentifierScreen(
       messages: errorMessages,
     });
   } else {
-    // Both email and SMS — show a text field that accepts either
+    // Both email and SMS — show a TEL field with allow_email so the country
+    // picker is available for phone numbers but emails are also accepted
     const errorMessages = errors?.username
       ? [{ text: errors.username, type: "error" as const }]
       : undefined;
 
     components.push({
       id: "username",
-      type: "TEXT",
+      type: "TEL",
       category: "FIELD",
       visible: true,
       label: m.email_or_phone_placeholder(),
       config: {
         placeholder: m.email_or_phone_placeholder(),
+        default_country: context.ctx.get("countryCode") || "US",
+        allow_email: true,
       },
       required: true,
       order: order++,
@@ -360,22 +363,37 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         ?.split(" ")
         ?.map((locale: string) => locale.split("-")[0])[0];
 
-      if (
-        connectionType === "email" &&
-        connection?.options?.authentication_method === "magic_link"
-      ) {
-        await sendLink(ctx, {
-          to: normalized,
-          code: code_id,
-          authParams: loginSession.authParams,
-          language,
-        });
-      } else {
-        await sendCode(ctx, {
-          to: normalized,
-          code: code_id,
-          language,
-        });
+      try {
+        if (
+          connectionType === "email" &&
+          connection?.options?.authentication_method === "magic_link"
+        ) {
+          await sendLink(ctx, {
+            to: normalized,
+            code: code_id,
+            authParams: loginSession.authParams,
+            language,
+          });
+        } else {
+          await sendCode(ctx, {
+            to: normalized,
+            code: code_id,
+            language,
+          });
+        }
+      } catch {
+        // Clean up the created code on delivery failure
+        await ctx.env.data.codes.remove(client.tenant.id, code_id);
+
+        const errorMsg = m.invalid_identifier();
+        return {
+          error: errorMsg,
+          screen: await loginPasswordlessIdentifierScreen({
+            ...context,
+            prefill: { username },
+            errors: { username: errorMsg },
+          }),
+        };
       }
 
       // Build context for next screen

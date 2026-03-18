@@ -318,7 +318,6 @@ input[type="date"].input-field+.input-label {
 .country-select {
   flex-shrink: 0;
   width: auto;
-  min-width: 100px;
   padding: 12px 8px;
   font-size: var(--ah-font-size-body, 16px);
   font-family: var(--ah-font-family, inherit);
@@ -347,10 +346,19 @@ input[type="date"].input-field+.input-label {
   cursor: not-allowed;
 }
 
-.phone-input-wrapper .input-field {
-  border-radius: 0 var(--ah-border-radius-input, 4px) var(--ah-border-radius-input, 4px) 0;
+.phone-input-wrapper .input-container {
   flex: 1;
   min-width: 0;
+}
+
+.phone-input-wrapper .input-field {
+  border-radius: 0 var(--ah-border-radius-input, 4px) var(--ah-border-radius-input, 4px) 0;
+}
+
+.phone-input-wrapper .input-label.floating,
+.phone-input-wrapper .input-field:focus+.input-label,
+.phone-input-wrapper .input-field:not(:placeholder-shown)+.input-label {
+  left: 8px;
 }
 
 /* Social buttons container */

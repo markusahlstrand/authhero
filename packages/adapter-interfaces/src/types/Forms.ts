@@ -334,6 +334,7 @@ const telField = fieldComponentBase.extend({
       placeholder: z.string().optional(),
       default_country: z.string().optional(),
       default_value: z.string().optional(),
+      allow_email: z.boolean().optional(),
     })
     .optional(),
 });

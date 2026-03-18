@@ -51,6 +51,12 @@ export class AuthheroNode {
   @State() countryDropdownOpen = false;
 
   /**
+   * Whether the TEL field is currently in email mode (allow_email config).
+   * When true, the value is emitted as-is without dial code prefix.
+   */
+  @State() telEmailMode = false;
+
+  /**
    * Emitted when a field value changes.
    */
   @Event() fieldChange!: EventEmitter<{ id: string; value: string }>;
@@ -67,10 +73,17 @@ export class AuthheroNode {
   @Watch("component")
   componentChanged() {
     this.initCountryFromConfig();
+    this.initTelValue();
+  }
+
+  @Watch("value")
+  valueChanged() {
+    this.initTelValue();
   }
 
   componentWillLoad() {
     this.initCountryFromConfig();
+    this.initTelValue();
   }
 
   private initCountryFromConfig() {
@@ -80,7 +93,44 @@ export class AuthheroNode {
       if (defaultCountry) {
         this.selectedCountry = getCountryByCode(defaultCountry);
       }
+      // For allow_email mode, start in email/text mode (no country picker)
+      // until the user starts typing digits
+      if (config?.allow_email === true) {
+        this.telEmailMode = true;
+      }
     }
+  }
+
+  /**
+   * Hydrate localPhoneNumber (and selectedCountry) from the effective value
+   * for TEL fields. The full value is stored as `{dialCode}{localNumber}`,
+   * e.g. "+15551234567".
+   */
+  private initTelValue() {
+    if (this.component?.type !== "TEL") return;
+
+    const fullValue = this.getEffectiveValue();
+    if (!fullValue) {
+      this.localPhoneNumber = "";
+      return;
+    }
+
+    // Try to match a country by dial code (longest match first)
+    if (fullValue.startsWith("+")) {
+      const sorted = [...countries].sort(
+        (a, b) => b.dialCode.length - a.dialCode.length,
+      );
+      for (const country of sorted) {
+        if (fullValue.startsWith(country.dialCode)) {
+          this.selectedCountry = country;
+          this.localPhoneNumber = fullValue.slice(country.dialCode.length);
+          return;
+        }
+      }
+    }
+
+    // No dial code match — treat entire value as local number
+    this.localPhoneNumber = fullValue;
   }
 
   private handleCountryChange = (e: Event) => {
@@ -93,11 +143,82 @@ export class AuthheroNode {
     this.fieldChange.emit({ id: this.component.id, value: fullNumber });
   };
 
+  /**
+   * Try to detect a dial code prefix in the raw input (e.g. "+46", "0046")
+   * and update selectedCountry accordingly. Returns the local number portion
+   * (after the dial code) if a match was found, or null if no match.
+   */
+  private detectDialCodeFromInput(raw: string): string | null {
+    // Normalise "00" international prefix to "+"
+    const normalized = raw.startsWith("00") ? "+" + raw.slice(2) : raw;
+    if (!normalized.startsWith("+")) return null;
+
+    // Match longest dial code first
+    const sorted = [...countries].sort(
+      (a, b) => b.dialCode.length - a.dialCode.length,
+    );
+    for (const country of sorted) {
+      if (normalized.startsWith(country.dialCode)) {
+        this.selectedCountry = country;
+        return normalized.slice(country.dialCode.length);
+      }
+    }
+    return null;
+  }
+
   private handlePhoneInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
-    this.localPhoneNumber = target.value;
-    const fullNumber = target.value
-      ? `${this.selectedCountry.dialCode}${target.value}`
+    const value = target.value;
+
+    const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+    const allowEmail = config?.allow_email === true;
+
+    if (allowEmail) {
+      // Detect phone mode: value starts with digit or '+', and no '@'.
+      // When the field is empty, revert to neutral (email) mode so the
+      // country picker disappears and the user can start fresh.
+      const looksLikePhone = value.length > 0 && /^[+\d]/.test(value) && !value.includes("@");
+      this.telEmailMode = !looksLikePhone;
+
+      if (!this.telEmailMode) {
+        // Phone mode — first try dial code detection before stripping '+'
+        // so that typing +46 or 0046 can match a country
+        const dialLocal = this.detectDialCodeFromInput(value);
+        if (dialLocal !== null) {
+          // Dial code matched — strip it from the input and show only local part
+          const cleanedLocal = dialLocal.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "");
+          target.value = cleanedLocal;
+          this.localPhoneNumber = cleanedLocal;
+          const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
+          this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+        } else {
+          // No dial code — strip non-phone chars and '+' (picker provides the prefix)
+          const cleaned = value.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "");
+          if (cleaned !== value) {
+            target.value = cleaned;
+          }
+          this.localPhoneNumber = cleaned;
+          const fullNumber = cleaned
+            ? `${this.selectedCountry.dialCode}${cleaned}`
+            : "";
+          this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+        }
+      } else {
+        // Email or text — emit as-is
+        this.localPhoneNumber = value;
+        this.fieldChange.emit({ id: this.component.id, value });
+      }
+      return;
+    }
+
+    // Standard phone-only mode — strip '+' since the picker provides the prefix
+    const cleaned = value.replace(/[^\d\s\-()]/g, "");
+    if (cleaned !== value) {
+      target.value = cleaned;
+    }
+    this.localPhoneNumber = cleaned;
+    const fullNumber = cleaned
+      ? `${this.selectedCountry.dialCode}${cleaned}`
       : "";
     this.fieldChange.emit({ id: this.component.id, value: fullNumber });
   };
@@ -111,6 +232,17 @@ export class AuthheroNode {
     if (e.key === "Enter") {
       e.preventDefault();
       this.buttonClick.emit({ id: "submit", type: "submit", value: "next" });
+    }
+
+    // In combined TEL+email mode, backspace on an empty field exits phone mode
+    if (e.key === "Backspace" && !this.telEmailMode) {
+      const target = e.target as HTMLInputElement;
+      const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+      if (config?.allow_email === true && target.value.length === 0) {
+        this.telEmailMode = true;
+        this.localPhoneNumber = "";
+        this.fieldChange.emit({ id: this.component.id, value: "" });
+      }
     }
   };
 
@@ -589,42 +721,67 @@ export class AuthheroNode {
   private renderTelField(component: FieldComponent & { type: "TEL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
+    const config = component.config as Record<string, unknown> | undefined;
+    const allowEmail = config?.allow_email === true;
+    const hasValue = this.localPhoneNumber.length > 0;
+
+    // In allow_email mode, show the country picker only when the user is typing a phone number
+    const showCountryPicker = allowEmail ? !this.telEmailMode : true;
+
+    // Calculate dynamic width: flag + space + dial code + small padding for dropdown arrow
+    const selectedText = `${this.selectedCountry.flag} ${this.selectedCountry.dialCode}`;
+    const selectWidth = `${selectedText.length + 1}ch`;
+
+    const countrySelect = showCountryPicker ? (
+      <select
+        class="country-select"
+        part="country-select"
+        style={{ width: selectWidth, minWidth: "0" }}
+        onChange={this.handleCountryChange}
+        disabled={this.disabled}
+        aria-label="Country code"
+      >
+        {countries.map((country) => (
+          <option
+            value={country.code}
+            selected={this.selectedCountry.code === country.code}
+            key={country.code}
+          >
+            {country.flag} {country.dialCode}
+          </option>
+        ))}
+      </select>
+    ) : null;
+
+    const inputType = allowEmail && this.telEmailMode ? "text" : "tel";
 
     return (
       <div class="input-wrapper" part="input-wrapper">
-        {this.renderLabel(component.label, inputId, component.required)}
-        <div class="phone-input-wrapper" part="phone-input-wrapper">
-          <select
-            class="country-select"
-            part="country-select"
-            onChange={this.handleCountryChange}
-            disabled={this.disabled}
-            aria-label="Country code"
-          >
-            {countries.map((country) => (
-              <option
-                value={country.code}
-                selected={this.selectedCountry.code === country.code}
-                key={country.code}
-              >
-                {country.flag} {country.dialCode}
-              </option>
-            ))}
-          </select>
-          <input
-            id={inputId}
-            class={this.getInputFieldClass(errors.length > 0)}
-            part="input"
-            type="tel"
-            name={component.id}
-            value={this.localPhoneNumber}
-            placeholder={component.config?.placeholder}
-            required={component.required}
-            disabled={this.disabled}
-            autocomplete="tel-national"
-            onInput={this.handlePhoneInput}
-            onKeyDown={this.handleKeyDown}
-          />
+        <div class={showCountryPicker ? "phone-input-wrapper" : ""} part="phone-input-wrapper">
+          {countrySelect}
+          <div class="input-container">
+            <input
+              id={inputId}
+              class={this.getInputFieldClass(errors.length > 0)}
+              part="input"
+              type={inputType}
+              name={component.id}
+              data-input-name={component.id}
+              value={this.localPhoneNumber}
+              placeholder=" "
+              required={component.required}
+              disabled={this.disabled}
+              autocomplete={allowEmail && this.telEmailMode ? "email" : "tel-national"}
+              onInput={this.handlePhoneInput}
+              onKeyDown={this.handleKeyDown}
+            />
+            {this.renderFloatingLabel(
+              component.label,
+              inputId,
+              component.required,
+              hasValue,
+            )}
+          </div>
         </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
