@@ -42,6 +42,9 @@ export default defineConfig({
     https: {},
     port: HTTPS_PORT,
   },
+  resolve: {
+    dedupe: ["react-router", "react-router-dom", "ra-core"],
+  },
   base: "./",
   test: {
     environment: "jsdom", // Set JSDOM as the default test environment

@@ -10,6 +10,7 @@ import type {
   User,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
 import { getUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
@@ -120,6 +121,9 @@ export async function signupScreen(
     }
   }
 
+  // Determine login link based on identifier_first setting
+  const loginPath = await getLoginPath(context);
+
   const screen: UiScreen = {
     name: "signup",
     // Action points to HTML endpoint for no-JS fallback
@@ -133,7 +137,7 @@ export async function signupScreen(
         id: "login",
         text: m.already_have_account(),
         linkText: m.log_in(),
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

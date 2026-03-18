@@ -423,9 +423,15 @@ export const clientRoutes = new OpenAPIHono<{
       }
 
       // Update the client with the new ordered connections array
-      await ctx.env.data.clients.update(tenant_id, id, {
-        connections: validConnectionIds,
-      });
+      // Use clientConnections.updateByClient which also invalidates the
+      // clientConnections cache (clients.update alone only invalidates the
+      // clients cache, not clientConnections — important on Cloudflare where
+      // deleteByPrefix is a no-op).
+      await ctx.env.data.clientConnections.updateByClient(
+        tenant_id,
+        id,
+        validConnectionIds,
+      );
 
       // Fetch and return the updated connections
       const enabledConnections = await Promise.all(

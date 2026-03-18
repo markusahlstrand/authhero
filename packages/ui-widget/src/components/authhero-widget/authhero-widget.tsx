@@ -488,6 +488,20 @@ export class AuthheroWidget {
     }
   }
 
+  private handlePopState = (event: PopStateEvent) => {
+    if (event.state?.screen && this.apiUrl) {
+      this.fetchScreen(event.state.screen);
+    }
+  };
+
+  connectedCallback() {
+    window.addEventListener("popstate", this.handlePopState);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("popstate", this.handlePopState);
+  }
+
   async componentWillLoad() {
     // Parse initial props - this prevents unnecessary state changes during hydration that cause flashes
     // Also check the element attribute as a fallback for hydration scenarios
@@ -800,6 +814,32 @@ export class AuthheroWidget {
     }
   }
 
+  /**
+   * Extract screen ID from a u2 link href.
+   * Handles patterns like /u2/login/{screenId}?state=... and /u2/{screenId}?state=...
+   * Returns the screen ID or null if the href doesn't match a known pattern.
+   */
+  private extractScreenIdFromHref(href: string): string | null {
+    try {
+      const url = new URL(href, window.location.origin);
+      const path = url.pathname;
+
+      // Match /u2/login/{screenId} (e.g., /u2/login/identifier)
+      const loginMatch = path.match(/\/u2\/login\/([^/]+)$/);
+      if (loginMatch) return loginMatch[1];
+
+      // Match /u2/{screenId} (e.g., /u2/signup, /u2/enter-password)
+      const u2Match = path.match(/\/u2\/([^/]+)$/);
+      if (u2Match && u2Match[1] !== "login" && u2Match[1] !== "screen") {
+        return u2Match[1];
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   private handleLinkClick = (
     e: MouseEvent,
     link: { id?: string; href: string; text: string },
@@ -811,12 +851,45 @@ export class AuthheroWidget {
       text: link.text,
     });
 
-    // If autoNavigate is enabled, let the browser handle the navigation
-    // Otherwise, prevent default and let the app decide
+    // If autoNavigate is not enabled, prevent default and let the app decide
     if (!this.shouldAutoNavigate) {
       e.preventDefault();
+      return;
     }
+
+    // Try client-side navigation: extract screen ID and fetch via API
+    const screenId = this.extractScreenIdFromHref(link.href);
+    if (screenId && this.apiUrl) {
+      e.preventDefault();
+      this.navigateToScreen(screenId, link.href);
+      return;
+    }
+
+    // Fall back to browser navigation for non-u2 links
   };
+
+  /**
+   * Navigate to a screen client-side by fetching it from the API.
+   * Updates the widget state and browser URL without a full page reload.
+   */
+  private async navigateToScreen(screenId: string, displayUrl: string) {
+    this.loading = true;
+    try {
+      await this.fetchScreen(screenId);
+
+      // Push browser history so back/forward works
+      window.history.pushState(
+        { screen: screenId, state: this.state },
+        "",
+        displayUrl,
+      );
+    } catch (err) {
+      // On failure, fall back to hard navigation
+      window.location.href = displayUrl;
+    } finally {
+      this.loading = false;
+    }
+  }
 
   /**
    * Check if a component is a social button.

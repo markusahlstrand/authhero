@@ -63,6 +63,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
   consent: "consent",
+  "login-passwordless-identifier": "login-passwordless",
   mfa: "mfa",
   "mfa-otp": "mfa-otp",
   "mfa-sms": "mfa-sms",
@@ -1328,6 +1329,17 @@ export const u2Routes = new OpenAPIHono<{
       "Identifier screen - collects email/username",
     ),
     createScreenRouteHandler("identifier"),
+  )
+  // --------------------------------
+  // GET /u2/login/login-passwordless-identifier - Passwordless identifier
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "login-passwordless-identifier",
+      "/login/login-passwordless-identifier",
+      "Login passwordless identifier - collects email/phone for code login",
+    ),
+    createScreenRouteHandler("login-passwordless-identifier"),
   )
   // --------------------------------
   // GET /u2/login/email-otp-challenge - Email OTP code verification

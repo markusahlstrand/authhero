@@ -208,6 +208,25 @@ export async function loginScreen(
     });
   }
 
+  // Add "Sign in with a code" link if passwordless connections are available
+  const hasPasswordlessConnection = context.connections.some(
+    (c) => c.strategy === "email" || c.strategy === "sms",
+  );
+
+  if (hasPasswordlessConnection) {
+    const passwordlessUrl = `${routePrefix}/login/login-passwordless-identifier?state=${encodeURIComponent(state)}`;
+    components.push({
+      id: "passwordless-link",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div class="passwordless-link"><a href="${passwordlessUrl}">${m.enter_a_code_btn()}</a></div>`,
+      },
+      order: components.length + 1,
+    });
+  }
+
   // Check if signups are disabled via client metadata
   const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
 

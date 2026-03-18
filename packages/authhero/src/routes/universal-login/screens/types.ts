@@ -9,6 +9,7 @@ import {
   Theme,
   Connection,
   CustomText,
+  promptSettingSchema,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../../../helpers/client";
 import { Bindings, Variables } from "../../../types";
@@ -123,4 +124,22 @@ export interface ScreenDefinition {
   description?: string;
   /** The screen handler */
   handler: ScreenHandler;
+}
+
+/**
+ * Get the correct login path based on the tenant's identifier_first setting.
+ * Returns "/u2/login" for password-first or "/u2/login/identifier" for identifier-first.
+ */
+export async function getLoginPath(context: ScreenContext): Promise<string> {
+  const { routePrefix = "/u2" } = context;
+  const promptSettings = await context.ctx.env.data.promptSettings.get(
+    context.tenant.id,
+  );
+  const settings = promptSettingSchema.parse(promptSettings || {});
+  const hasPasswordConnection = context.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  return settings.identifier_first === false && hasPasswordConnection
+    ? `${routePrefix}/login`
+    : `${routePrefix}/login/identifier`;
 }

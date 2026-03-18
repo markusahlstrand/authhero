@@ -7,6 +7,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
 import { HTTPException } from "hono/http-exception";
 import { RedirectException } from "../../../errors/redirect-exception";
@@ -34,6 +35,8 @@ export async function checkAccountScreen(
   const locale = context.language || "en";
   const { m } = createTranslation(locale, customText, "check-account", "check-account");
 
+  const loginPath = await getLoginPath(context);
+
   // Get login session
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
   if (!loginSession) {
@@ -46,10 +49,10 @@ export async function checkAccountScreen(
     ? await ctx.env.data.sessions.get(tenant.id, authCookie)
     : null;
 
-  // If no valid session, redirect to identifier
+  // If no valid session, redirect to login
   if (!session || session.revoked_at) {
     throw new RedirectException(
-      `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+      `${loginPath}?state=${encodeURIComponent(state)}`,
     );
   }
 
@@ -58,7 +61,7 @@ export async function checkAccountScreen(
 
   if (!user) {
     throw new RedirectException(
-      `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+      `${loginPath}?state=${encodeURIComponent(state)}`,
     );
   }
 
@@ -100,7 +103,7 @@ export async function checkAccountScreen(
       {
         id: "use-another-account",
         text: m.no_use_another(),
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
   };
@@ -137,13 +140,12 @@ async function handleCheckAccountSubmit(
     ? await ctx.env.data.sessions.get(tenant.id, authCookie)
     : null;
 
-  // Detect route prefix
-  const routePrefix = context.routePrefix || "/u2";
+  const loginPath = await getLoginPath(context);
 
-  // If no valid session, redirect to identifier
+  // If no valid session, redirect to login
   if (!session || session.revoked_at) {
     return {
-      redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+      redirect: `${loginPath}?state=${encodeURIComponent(state)}`,
     };
   }
 
@@ -152,7 +154,7 @@ async function handleCheckAccountSubmit(
 
   if (!user) {
     return {
-      redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+      redirect: `${loginPath}?state=${encodeURIComponent(state)}`,
     };
   }
 
@@ -180,7 +182,7 @@ async function handleCheckAccountSubmit(
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred";
 
-    // For session state errors, redirect to identifier to start fresh
+    // For session state errors, redirect to login to start fresh
     if (
       errorMessage.includes("session") ||
       errorMessage.includes("expired") ||
@@ -188,7 +190,7 @@ async function handleCheckAccountSubmit(
       errorMessage.includes("failed")
     ) {
       return {
-        redirect: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        redirect: `${loginPath}?state=${encodeURIComponent(state)}`,
       };
     }
 

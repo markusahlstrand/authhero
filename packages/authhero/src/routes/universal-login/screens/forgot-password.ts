@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 
 /**
  * Create the forgot-password screen
@@ -85,7 +86,7 @@ export async function forgotPasswordScreen(
         id: "back",
         text: "Remember your password?",
         linkText: "Log in",
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

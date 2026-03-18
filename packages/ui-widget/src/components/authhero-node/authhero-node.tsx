@@ -1,4 +1,4 @@
-import { Component, h, Prop, Event, EventEmitter, State } from "@stencil/core";
+import { Component, h, Prop, Event, EventEmitter, State, Watch } from "@stencil/core";
 import type {
   FormComponent,
   RuntimeComponent,
@@ -6,6 +6,7 @@ import type {
   BlockComponent,
   FieldComponent,
 } from "../../types/components";
+import { countries, getCountryByCode, type CountryData } from "../../utils/country-data";
 
 @Component({
   tag: "authhero-node",
@@ -35,6 +36,21 @@ export class AuthheroNode {
   @State() passwordVisible = false;
 
   /**
+   * Selected country for TEL input with country selector.
+   */
+  @State() selectedCountry: CountryData = getCountryByCode("US");
+
+  /**
+   * Local phone number (without dial code) for TEL input.
+   */
+  @State() localPhoneNumber = "";
+
+  /**
+   * Whether the country dropdown is open.
+   */
+  @State() countryDropdownOpen = false;
+
+  /**
    * Emitted when a field value changes.
    */
   @Event() fieldChange!: EventEmitter<{ id: string; value: string }>;
@@ -47,6 +63,44 @@ export class AuthheroNode {
     type: string;
     value?: string;
   }>;
+
+  @Watch("component")
+  componentChanged() {
+    this.initCountryFromConfig();
+  }
+
+  componentWillLoad() {
+    this.initCountryFromConfig();
+  }
+
+  private initCountryFromConfig() {
+    if (this.component?.type === "TEL") {
+      const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+      const defaultCountry = config?.default_country as string | undefined;
+      if (defaultCountry) {
+        this.selectedCountry = getCountryByCode(defaultCountry);
+      }
+    }
+  }
+
+  private handleCountryChange = (e: Event) => {
+    const target = e.target as HTMLSelectElement;
+    this.selectedCountry = getCountryByCode(target.value);
+    // Re-emit the full phone number with new dial code
+    const fullNumber = this.localPhoneNumber
+      ? `${this.selectedCountry.dialCode}${this.localPhoneNumber}`
+      : "";
+    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+  };
+
+  private handlePhoneInput = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    this.localPhoneNumber = target.value;
+    const fullNumber = target.value
+      ? `${this.selectedCountry.dialCode}${target.value}`
+      : "";
+    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+  };
 
   private handleInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -535,25 +589,43 @@ export class AuthheroNode {
   private renderTelField(component: FieldComponent & { type: "TEL" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const effectiveValue = this.getEffectiveValue();
 
     return (
       <div class="input-wrapper" part="input-wrapper">
         {this.renderLabel(component.label, inputId, component.required)}
-        <input
-          id={inputId}
-          class={this.getInputFieldClass(errors.length > 0)}
-          part="input"
-          type="tel"
-          name={component.id}
-          value={effectiveValue ?? ""}
-          placeholder={component.config?.placeholder}
-          required={component.required}
-          disabled={this.disabled}
-          autocomplete="tel"
-          onInput={this.handleInput}
-          onKeyDown={this.handleKeyDown}
-        />
+        <div class="phone-input-wrapper" part="phone-input-wrapper">
+          <select
+            class="country-select"
+            part="country-select"
+            onChange={this.handleCountryChange}
+            disabled={this.disabled}
+            aria-label="Country code"
+          >
+            {countries.map((country) => (
+              <option
+                value={country.code}
+                selected={this.selectedCountry.code === country.code}
+                key={country.code}
+              >
+                {country.flag} {country.dialCode}
+              </option>
+            ))}
+          </select>
+          <input
+            id={inputId}
+            class={this.getInputFieldClass(errors.length > 0)}
+            part="input"
+            type="tel"
+            name={component.id}
+            value={this.localPhoneNumber}
+            placeholder={component.config?.placeholder}
+            required={component.required}
+            disabled={this.disabled}
+            autocomplete="tel-national"
+            onInput={this.handlePhoneInput}
+            onKeyDown={this.handleKeyDown}
+          />
+        </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
       </div>

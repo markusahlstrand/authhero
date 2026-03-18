@@ -47,6 +47,7 @@ import {
  */
 const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   identifier: "login-id",
+  login: "login",
   "enter-password": "login-password",
   "email-otp-challenge": "email-otp-challenge",
   "sms-otp-challenge": "email-otp-challenge",
@@ -57,6 +58,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
   consent: "consent",
+  "login-passwordless-identifier": "login-passwordless",
 };
 
 /**
@@ -601,6 +603,7 @@ export const screenApiRoutes = new OpenAPIHono<{
           "identifier",
           "email-otp-challenge",
           "sms-otp-challenge",
+          "login-passwordless-identifier",
         ];
         const navigatePrefix = loginScreenIds.includes(nextScreenId)
           ? "/u2/login"
