@@ -1,5 +1,19 @@
 # @authhero/widget
 
+## 0.20.0
+
+### Minor Changes
+
+- 409aa18: Improve phone fields
+- 318fcf9: Update widget links
+- 318fcf9: Update widget links
+
+### Patch Changes
+
+- Updated dependencies [318fcf9]
+- Updated dependencies [318fcf9]
+  - @authhero/adapter-interfaces@0.146.0
+
 ## 0.19.2
 
 ### Patch Changes
