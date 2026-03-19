@@ -546,8 +546,11 @@ export class AuthheroWidget {
    * @param screenIdOverride Optional screen ID to fetch (overrides this.screenId)
    * @param nodeId Optional node ID for flow navigation
    */
-  async fetchScreen(screenIdOverride?: string, nodeId?: string) {
-    if (!this.apiUrl) return;
+  async fetchScreen(
+    screenIdOverride?: string,
+    nodeId?: string,
+  ): Promise<boolean> {
+    if (!this.apiUrl) return false;
 
     const currentScreenId = screenIdOverride || this.screenId;
 
@@ -611,6 +614,7 @@ export class AuthheroWidget {
           this.updateDataScreenAttribute();
           this.persistState();
           this.focusFirstInput();
+          return true;
         }
       } else {
         const error = await response
@@ -629,6 +633,7 @@ export class AuthheroWidget {
     } finally {
       this.loading = false;
     }
+    return false;
   }
 
   private handleInputChange = (name: string, value: string) => {
@@ -884,21 +889,18 @@ export class AuthheroWidget {
    * Updates the widget state and browser URL without a full page reload.
    */
   private async navigateToScreen(screenId: string, displayUrl: string) {
-    this.loading = true;
-    try {
-      await this.fetchScreen(screenId);
+    const success = await this.fetchScreen(screenId);
 
+    if (success) {
       // Push browser history so back/forward works
       window.history.pushState(
         { screen: screenId, state: this.state },
         "",
         displayUrl,
       );
-    } catch (err) {
+    } else {
       // On failure, fall back to hard navigation
       window.location.href = displayUrl;
-    } finally {
-      this.loading = false;
     }
   }
 

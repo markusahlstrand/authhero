@@ -20,6 +20,7 @@ import { sendCode, sendLink } from "../../../emails";
 import { OTP_EXPIRATION_TIME } from "../../../constants";
 import { emailOtpChallengeScreen } from "./email-otp-challenge";
 import { smsOtpChallengeScreen } from "./sms-otp-challenge";
+import { magicLinkSentScreen } from "./magic-link-sent";
 import { createTranslation } from "../../../i18n";
 
 /**
@@ -170,7 +171,7 @@ export async function loginPasswordlessIdentifierScreen(
       (c) => c.id === "username",
     );
     if (usernameComponent && "config" in usernameComponent) {
-      (usernameComponent.config as Record<string, unknown>).value =
+      (usernameComponent.config as Record<string, unknown>).default_value =
         prefill.username;
     }
   }
@@ -404,9 +405,12 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         errors: undefined,
       };
 
-      // Return OTP challenge screen based on connection type
+      // Return appropriate screen based on connection type and auth method
       if (connectionType === "sms") {
         return { screen: await smsOtpChallengeScreen(nextContext) };
+      }
+      if (connection?.options?.authentication_method === "magic_link") {
+        return { screen: await magicLinkSentScreen(nextContext) };
       }
       return { screen: await emailOtpChallengeScreen(nextContext) };
     },

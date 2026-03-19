@@ -117,7 +117,7 @@ export async function signupScreen(
   if (prefill?.email) {
     const emailComponent = components.find((c) => c.id === "email");
     if (emailComponent && "config" in emailComponent) {
-      (emailComponent.config as Record<string, unknown>).value = prefill.email;
+      (emailComponent.config as Record<string, unknown>).default_value = prefill.email;
     }
   }
 

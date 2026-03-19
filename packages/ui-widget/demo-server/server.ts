@@ -937,6 +937,45 @@ function handleLoginPasswordlessIdentifierPost(
   };
 }
 
+function handleLoginPasswordlessSmsPost(
+  data: Record<string, unknown>,
+  state: string,
+  baseUrl: string,
+): PostResponse {
+  const username = (data.username as string)?.trim();
+  const session = getSession(state);
+
+  if (!username) {
+    const screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+    return {
+      screen: screenWithError(screen, "username", "Phone number is required"),
+    };
+  }
+
+  session.username = username;
+
+  const isPhone =
+    /^\+?[\d\s\-()]+$/.test(username) &&
+    username.replace(/\D/g, "").length >= 7;
+
+  if (isPhone) {
+    session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`📱 Mock SMS code for ${username}: ${session.codeId}`);
+    return {
+      redirect: `${baseUrl}/u2/login/sms-otp-challenge?state=${state}`,
+    };
+  }
+
+  const screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+  return {
+    screen: screenWithError(
+      screen,
+      "username",
+      "Please enter a valid phone number",
+    ),
+  };
+}
+
 function handleSmsOtpChallengePost(
   data: Record<string, unknown>,
   state: string,
@@ -1024,6 +1063,15 @@ async function renderWidgetPage(options: {
         break;
       case "forgot-password":
         screen = createForgotPasswordScreen(state, baseUrl);
+        break;
+      case "login-passwordless-sms":
+        screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+        break;
+      case "login-passwordless-identifier":
+        screen = createLoginPasswordlessIdentifierScreen(state, baseUrl);
+        break;
+      case "sms-otp-challenge":
+        screen = createSmsOtpChallengeScreen(state, baseUrl);
         break;
       default:
         screen = createIdentifierScreen(state, baseUrl, settings);
@@ -2775,6 +2823,8 @@ app.post("/u2/screen/:screenId", async (c) => {
       result = handleForgotPasswordPost(data, state, baseUrl);
       break;
     case "login-passwordless-sms":
+      result = handleLoginPasswordlessSmsPost(data, state, baseUrl);
+      break;
     case "login-passwordless-identifier":
       result = handleLoginPasswordlessIdentifierPost(data, state, baseUrl);
       break;

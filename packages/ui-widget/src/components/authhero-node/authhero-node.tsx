@@ -109,9 +109,17 @@ export class AuthheroNode {
   private initTelValue() {
     if (this.component?.type !== "TEL") return;
 
+    const config = (this.component as FieldComponent).config as
+      | Record<string, unknown>
+      | undefined;
+    const allowEmail = config?.allow_email === true;
+
     const fullValue = this.getEffectiveValue();
     if (!fullValue) {
       this.localPhoneNumber = "";
+      if (allowEmail) {
+        this.telEmailMode = true;
+      }
       return;
     }
 
@@ -124,13 +132,20 @@ export class AuthheroNode {
         if (fullValue.startsWith(country.dialCode)) {
           this.selectedCountry = country;
           this.localPhoneNumber = fullValue.slice(country.dialCode.length);
+          if (allowEmail) {
+            this.telEmailMode = false;
+          }
           return;
         }
       }
     }
 
-    // No dial code match — treat entire value as local number
+    // No dial code match — check if it looks like an email or a phone number
     this.localPhoneNumber = fullValue;
+    if (allowEmail) {
+      const looksLikePhone = /^[+\d]/.test(fullValue);
+      this.telEmailMode = !looksLikePhone;
+    }
   }
 
   private handleCountryChange = (e: Event) => {

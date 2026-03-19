@@ -1419,9 +1419,28 @@ demoPages.get("/pattern7", (c) => {
         widget.screen = screens.combined;
 
         // Handle form submissions — detect email vs phone and show appropriate OTP screen
+        let pendingUsername = '';
         widget.addEventListener('formSubmit', (e) => {
           const username = e.detail.data?.username || '';
+          const code = e.detail.data?.code || '';
           log('event', 'formSubmit', e.detail.data);
+
+          // OTP code submission — verify the code
+          if (code && pendingUsername) {
+            log('response', 'OTP code submitted for: ' + pendingUsername, { code });
+            if (/^[0-9]{6}$/.test(code)) {
+              statusEl.textContent = 'Verification successful for ' + pendingUsername + ' (code: ' + code + ')';
+              statusEl.className = 'status success';
+              log('response', 'OTP verified successfully');
+              pendingUsername = '';
+              setMode(currentMode);
+            } else {
+              statusEl.textContent = 'Invalid code format — please enter a 6-digit code';
+              statusEl.className = 'status error';
+              log('error', 'Invalid OTP code format', code);
+            }
+            return;
+          }
 
           // Simple detection: if it contains @ it's email, if it starts with + or is all digits it's phone
           const isEmail = username.includes('@');
@@ -1431,6 +1450,7 @@ demoPages.get("/pattern7", (c) => {
             log('response', 'Detected email identifier, showing email OTP challenge');
             statusEl.textContent = 'Email detected — showing email OTP challenge for: ' + username;
             statusEl.className = 'status success';
+            pendingUsername = username;
 
             const screen = { ...otpScreens.email };
             screen.description = 'We sent a verification code to ' + username;
@@ -1439,6 +1459,7 @@ demoPages.get("/pattern7", (c) => {
             log('response', 'Detected phone identifier, showing SMS OTP challenge');
             statusEl.textContent = 'Phone detected — showing SMS OTP challenge for: ' + username;
             statusEl.className = 'status success';
+            pendingUsername = username;
 
             const screen = { ...otpScreens.sms };
             screen.description = 'We sent a verification code to ' + username;

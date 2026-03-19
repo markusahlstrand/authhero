@@ -266,7 +266,7 @@ export async function loginScreen(
       (c) => c.id === "username",
     );
     if (usernameComponent && "config" in usernameComponent) {
-      (usernameComponent.config as Record<string, unknown>).value =
+      (usernameComponent.config as Record<string, unknown>).default_value =
         prefill.username;
     }
   }
