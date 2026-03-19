@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { loginWithPassword } from "../../../authentication-flows/password";
@@ -76,6 +77,8 @@ export async function enterPasswordScreen(
     },
   ];
 
+  const loginPath = await getLoginPath(context);
+
   const screen: UiScreen = {
     name: "enter-password",
     // Action points to HTML endpoint for no-JS fallback
@@ -89,7 +92,7 @@ export async function enterPasswordScreen(
         id: "back",
         text: "",
         linkText: m.go_back(),
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

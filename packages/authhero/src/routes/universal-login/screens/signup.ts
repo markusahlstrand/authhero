@@ -10,6 +10,7 @@ import type {
   User,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
 import { getUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
@@ -116,9 +117,12 @@ export async function signupScreen(
   if (prefill?.email) {
     const emailComponent = components.find((c) => c.id === "email");
     if (emailComponent && "config" in emailComponent) {
-      (emailComponent.config as Record<string, unknown>).value = prefill.email;
+      (emailComponent.config as Record<string, unknown>).default_value = prefill.email;
     }
   }
+
+  // Determine login link based on identifier_first setting
+  const loginPath = await getLoginPath(context);
 
   const screen: UiScreen = {
     name: "signup",
@@ -133,7 +137,7 @@ export async function signupScreen(
         id: "login",
         text: m.already_have_account(),
         linkText: m.log_in(),
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

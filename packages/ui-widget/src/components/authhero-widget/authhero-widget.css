@@ -9,7 +9,7 @@
 :host {
   display: block;
   font-family: var(--ah-font-family, 'ulp-font', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, sans-serif);
-  font-size: var(--ah-font-size-base, 14px);
+  font-size: var(--ah-font-size-base, 16px);
   line-height: var(--ah-line-height-base, 1.5);
   color: var(--ah-color-text, #1e212a);
   -webkit-font-smoothing: antialiased;
@@ -83,7 +83,7 @@
 }
 
 .description {
-  font-size: var(--ah-font-size-description, 14px);
+  font-size: var(--ah-font-size-subtitle, 16px);
   text-align: var(--ah-title-align, center);
   margin: var(--ah-description-margin, 0 0 8px);
   color: var(--ah-color-text, #1e212a);

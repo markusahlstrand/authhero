@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 
 /**
  * Create the forgot-password screen
@@ -68,7 +69,7 @@ export async function forgotPasswordScreen(
   if (prefill?.email) {
     const emailComponent = components.find((c) => c.id === "email");
     if (emailComponent && "config" in emailComponent) {
-      (emailComponent.config as Record<string, unknown>).value = prefill.email;
+      (emailComponent.config as Record<string, unknown>).default_value = prefill.email;
     }
   }
 
@@ -85,7 +86,7 @@ export async function forgotPasswordScreen(
         id: "back",
         text: "Remember your password?",
         linkText: "Log in",
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

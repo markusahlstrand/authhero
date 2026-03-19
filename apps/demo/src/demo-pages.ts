@@ -152,6 +152,9 @@ const navigation = (active: string) => html`
     <a href="/demo/pattern6" class="${active === "pattern6" ? "active" : ""}"
       >6. Cross-Domain</a
     >
+    <a href="/demo/pattern7" class="${active === "pattern7" ? "active" : ""}"
+      >7. Email + SMS</a
+    >
   </nav>
 `;
 
@@ -189,6 +192,9 @@ demoPages.get("/", (c) => {
           
           <h3>6. Cross-Domain Embedded</h3>
           <p>Embed the widget on a different domain with session-based state persistence.</p>
+
+          <h3>7. Email + SMS Identifier</h3>
+          <p>Combined passwordless identifier field that accepts both email and phone number.</p>
         </div>
 
         <div class="widget-wrapper">
@@ -1137,6 +1143,344 @@ demoPages.get("/pattern6", (c) => {
         
         widget.addEventListener('formSubmit', (e) => {
           log('event', 'formSubmit (handled by widget)', e.detail);
+        });
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+// Pattern 7: Email + SMS Combined Identifier
+demoPages.get("/pattern7", (c) => {
+  return c.html(html`
+    ${htmlHead("Pattern 7: Email + SMS Identifier")}
+    <body>
+      <div class="demo-container">
+        ${navigation("pattern7")}
+        <h1>Pattern 7: Email + SMS Identifier</h1>
+        <p class="description">
+          Demonstrates the passwordless identifier screen with different connection
+          configurations. Switch between email-only, SMS-only, and combined mode to
+          see how the input field adapts.
+        </p>
+
+        <div style="margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="modeEmail" style="padding: 8px 16px; cursor: pointer; border: 2px solid #6366f1; border-radius: 6px; background: white;">Email Only</button>
+          <button id="modeSms" style="padding: 8px 16px; cursor: pointer; border: 2px solid #6366f1; border-radius: 6px; background: white;">SMS Only</button>
+          <button id="modeCombined" style="padding: 8px 16px; cursor: pointer; border: 2px solid #6366f1; border-radius: 6px; background: #6366f1; color: white;">Email + SMS</button>
+        </div>
+
+        <div id="status" class="status info">Mode: Email + SMS (combined identifier)</div>
+
+        <div class="widget-wrapper">
+          <authhero-widget id="widget"></authhero-widget>
+        </div>
+
+        <div class="debug-panel">
+          <h3>Event Log</h3>
+          <div id="log"></div>
+        </div>
+
+        <div class="widget-wrapper">
+          <h3>How It Works</h3>
+          <p>The passwordless identifier screen adapts based on available connections:</p>
+          <ul>
+            <li><strong>Email only</strong> — Shows an <code>EMAIL</code> input field</li>
+            <li><strong>SMS only</strong> — Shows a <code>TEL</code> input with country code selector</li>
+            <li><strong>Email + SMS</strong> — Shows a <code>TEXT</code> input that accepts either email or phone number</li>
+          </ul>
+          <p>After submitting, the server detects whether the input is an email or phone number and routes to the appropriate OTP challenge screen.</p>
+        </div>
+      </div>
+
+      <script type="module">
+        const widget = document.getElementById('widget');
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+
+        function log(type, message, data) {
+          const entry = document.createElement('div');
+          entry.className = 'debug-entry ' + type;
+          entry.textContent = new Date().toLocaleTimeString() + ' [' + type.toUpperCase() + '] ' + message;
+          if (data) {
+            entry.textContent += ': ' + JSON.stringify(data).substring(0, 200);
+          }
+          logEl.insertBefore(entry, logEl.firstChild);
+        }
+
+        // Screen definitions for each mode
+        const screens = {
+          emailOnly: {
+            name: 'login-passwordless-identifier',
+            action: '#',
+            method: 'POST',
+            title: 'Sign in with a code',
+            description: 'Enter your email address and we will send you a code to sign in.',
+            components: [
+              {
+                id: 'username',
+                type: 'EMAIL',
+                category: 'FIELD',
+                visible: true,
+                label: 'Email address',
+                config: { placeholder: 'you@example.com' },
+                required: true,
+                order: 0,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: { text: 'Continue' },
+                order: 1,
+              },
+              {
+                id: 'back-to-login',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: { content: '<div class="back-link"><a href="#">Back to login</a></div>' },
+                order: 2,
+              },
+            ],
+          },
+          smsOnly: {
+            name: 'login-passwordless-identifier',
+            action: '#',
+            method: 'POST',
+            title: 'Sign in with a code',
+            description: 'Enter your phone number and we will send you a code to sign in.',
+            components: [
+              {
+                id: 'username',
+                type: 'TEL',
+                category: 'FIELD',
+                visible: true,
+                label: 'Phone number',
+                config: { placeholder: 'Phone number', default_country: 'US' },
+                required: true,
+                order: 0,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: { text: 'Continue' },
+                order: 1,
+              },
+              {
+                id: 'back-to-login',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: { content: '<div class="back-link"><a href="#">Back to login</a></div>' },
+                order: 2,
+              },
+            ],
+          },
+          combined: {
+            name: 'login-passwordless-identifier',
+            action: '#',
+            method: 'POST',
+            title: 'Sign in with a code',
+            description: 'Enter your email address or phone number and we will send you a code to sign in.',
+            components: [
+              {
+                id: 'username',
+                type: 'TEXT',
+                category: 'FIELD',
+                visible: true,
+                label: 'Email or phone number',
+                config: { placeholder: 'Email or phone number' },
+                required: true,
+                order: 0,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: { text: 'Continue' },
+                order: 1,
+              },
+              {
+                id: 'back-to-login',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: { content: '<div class="back-link"><a href="#">Back to login</a></div>' },
+                order: 2,
+              },
+            ],
+          },
+        };
+
+        // OTP challenge screens shown after submission
+        const otpScreens = {
+          email: {
+            name: 'email-otp-challenge',
+            action: '#',
+            method: 'POST',
+            title: 'Check your email',
+            description: 'We sent a verification code to your email address.',
+            components: [
+              {
+                id: 'info',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: { content: '<p>Enter the 6-digit code we sent to your email.</p>' },
+                order: 0,
+              },
+              {
+                id: 'code',
+                type: 'TEXT',
+                category: 'FIELD',
+                visible: true,
+                label: 'Verification code',
+                config: { maxlength: '6', pattern: '[0-9]{6}', autocomplete: 'one-time-code', placeholder: '000000' },
+                required: true,
+                order: 1,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: { text: 'Verify' },
+                order: 2,
+              },
+            ],
+          },
+          sms: {
+            name: 'sms-otp-challenge',
+            action: '#',
+            method: 'POST',
+            title: 'Check your phone',
+            description: 'We sent a verification code via SMS.',
+            components: [
+              {
+                id: 'info',
+                type: 'RICH_TEXT',
+                category: 'BLOCK',
+                visible: true,
+                config: { content: '<p>Enter the 6-digit code we sent to your phone.</p>' },
+                order: 0,
+              },
+              {
+                id: 'code',
+                type: 'TEXT',
+                category: 'FIELD',
+                visible: true,
+                label: 'Verification code',
+                config: { maxlength: '6', pattern: '[0-9]{6}', autocomplete: 'one-time-code', placeholder: '000000' },
+                required: true,
+                order: 1,
+              },
+              {
+                id: 'submit',
+                type: 'NEXT_BUTTON',
+                category: 'BLOCK',
+                visible: true,
+                config: { text: 'Verify' },
+                order: 2,
+              },
+            ],
+          },
+        };
+
+        let currentMode = 'combined';
+
+        function setMode(mode) {
+          currentMode = mode;
+          widget.screen = screens[mode];
+
+          // Update button styles
+          document.getElementById('modeEmail').style.background = mode === 'emailOnly' ? '#6366f1' : 'white';
+          document.getElementById('modeEmail').style.color = mode === 'emailOnly' ? 'white' : '#333';
+          document.getElementById('modeSms').style.background = mode === 'smsOnly' ? '#6366f1' : 'white';
+          document.getElementById('modeSms').style.color = mode === 'smsOnly' ? 'white' : '#333';
+          document.getElementById('modeCombined').style.background = mode === 'combined' ? '#6366f1' : 'white';
+          document.getElementById('modeCombined').style.color = mode === 'combined' ? 'white' : '#333';
+
+          const labels = { emailOnly: 'Email Only', smsOnly: 'SMS Only', combined: 'Email + SMS (combined identifier)' };
+          statusEl.textContent = 'Mode: ' + labels[mode];
+          statusEl.className = 'status info';
+          log('event', 'Switched to mode: ' + labels[mode]);
+        }
+
+        document.getElementById('modeEmail').addEventListener('click', () => setMode('emailOnly'));
+        document.getElementById('modeSms').addEventListener('click', () => setMode('smsOnly'));
+        document.getElementById('modeCombined').addEventListener('click', () => setMode('combined'));
+
+        // Initialize with combined mode
+        widget.screen = screens.combined;
+
+        // Handle form submissions — detect email vs phone and show appropriate OTP screen
+        let pendingUsername = '';
+        widget.addEventListener('formSubmit', (e) => {
+          const username = e.detail.data?.username || '';
+          const code = e.detail.data?.code || '';
+          log('event', 'formSubmit', e.detail.data);
+
+          // OTP code submission — verify the code
+          if (code && pendingUsername) {
+            log('response', 'OTP code submitted for: ' + pendingUsername, { code });
+            if (/^[0-9]{6}$/.test(code)) {
+              statusEl.textContent = 'Verification successful for ' + pendingUsername + ' (code: ' + code + ')';
+              statusEl.className = 'status success';
+              log('response', 'OTP verified successfully');
+              pendingUsername = '';
+              setMode(currentMode);
+            } else {
+              statusEl.textContent = 'Invalid code format — please enter a 6-digit code';
+              statusEl.className = 'status error';
+              log('error', 'Invalid OTP code format', code);
+            }
+            return;
+          }
+
+          // Simple detection: if it contains @ it's email, if it starts with + or is all digits it's phone
+          const isEmail = username.includes('@');
+          const isPhone = /^\\+?[\\d\\s\\-()]+$/.test(username) && username.replace(/\\D/g, '').length >= 7;
+
+          if (isEmail) {
+            log('response', 'Detected email identifier, showing email OTP challenge');
+            statusEl.textContent = 'Email detected — showing email OTP challenge for: ' + username;
+            statusEl.className = 'status success';
+            pendingUsername = username;
+
+            const screen = { ...otpScreens.email };
+            screen.description = 'We sent a verification code to ' + username;
+            widget.screen = screen;
+          } else if (isPhone) {
+            log('response', 'Detected phone identifier, showing SMS OTP challenge');
+            statusEl.textContent = 'Phone detected — showing SMS OTP challenge for: ' + username;
+            statusEl.className = 'status success';
+            pendingUsername = username;
+
+            const screen = { ...otpScreens.sms };
+            screen.description = 'We sent a verification code to ' + username;
+            widget.screen = screen;
+          } else if (username) {
+            log('error', 'Could not determine identifier type', username);
+            statusEl.textContent = 'Could not determine if input is email or phone: ' + username;
+            statusEl.className = 'status error';
+          }
+        });
+
+        widget.addEventListener('linkClick', (e) => {
+          log('event', 'linkClick', e.detail);
+          // Back to login link — reset to current mode
+          if (e.detail.href === '#') {
+            setMode(currentMode);
+          }
+        });
+
+        widget.addEventListener('screenChange', (e) => {
+          log('event', 'screenChange', e.detail?.title);
         });
       </script>
     </body>

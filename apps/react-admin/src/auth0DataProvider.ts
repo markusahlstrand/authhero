@@ -1,5 +1,4 @@
-import { fetchUtils, DataProvider } from "ra-core";
-import { UpdateParams } from "react-admin";
+import { fetchUtils, DataProvider, UpdateParams } from "react-admin";
 import { createManagementClient } from "./authProvider";
 import { ManagementClient } from "auth0";
 import { unflattenDomainMetadata } from "./components/custom-domains/domainMetadataUtils";

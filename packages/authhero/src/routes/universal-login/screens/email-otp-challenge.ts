@@ -6,6 +6,7 @@
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
@@ -77,6 +78,15 @@ export async function emailOtpChallengeScreen(
     },
   ];
 
+  // Determine the back link: if there's no password connection, the user
+  // is in a passwordless flow and should go back to the passwordless identifier
+  const hasPasswordConnection = context.connections.some(
+    (c) => c.strategy === "Username-Password-Authentication",
+  );
+  const backPath = hasPasswordConnection
+    ? await getLoginPath(context)
+    : `${routePrefix}/login/login-passwordless-identifier`;
+
   const screen: UiScreen = {
     name: "email-otp-challenge",
     // Action points to HTML endpoint for no-JS fallback
@@ -91,7 +101,7 @@ export async function emailOtpChallengeScreen(
         id: "back",
         text: "",
         linkText: m.go_back(),
-        href: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+        href: `${backPath}?state=${encodeURIComponent(state)}`,
       },
     ],
   };

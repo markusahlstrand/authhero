@@ -13,6 +13,7 @@ import { forgotPasswordScreenDefinition } from "./forgot-password";
 import { resetPasswordScreenDefinition } from "./reset-password";
 import { impersonateScreenDefinition } from "./impersonate";
 import { checkAccountScreenDefinition } from "./check-account";
+import { loginPasswordlessIdentifierScreenDefinition } from "./login-passwordless-identifier";
 
 /**
  * Registry of all built-in screens
@@ -28,6 +29,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["reset-password", resetPasswordScreenDefinition],
   ["impersonate", impersonateScreenDefinition],
   ["check-account", checkAccountScreenDefinition],
+  ["login-passwordless-identifier", loginPasswordlessIdentifierScreenDefinition],
 ]);
 
 /**

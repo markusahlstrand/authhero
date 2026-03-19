@@ -107,7 +107,8 @@ export function addCaching(
           "delete",
           "set",
           "used",
-        ].includes(methodName);
+          "add",
+        ].some((prefix) => methodName.startsWith(prefix));
 
         // Wrap the method with caching logic
         wrappedAdapter[methodName] = async (...args: any[]) => {

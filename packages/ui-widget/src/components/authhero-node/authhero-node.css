@@ -303,6 +303,64 @@ input[type="date"].input-field+.input-label {
   text-decoration: underline;
 }
 
+/* ==========================================================================
+   Phone Input - Country Code Selector
+   Part: phone-input-wrapper, country-select
+   ========================================================================== */
+
+.phone-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+
+.country-select {
+  flex-shrink: 0;
+  width: auto;
+  padding: 12px 8px;
+  font-size: var(--ah-font-size-body, 16px);
+  font-family: var(--ah-font-family, inherit);
+  border: 1px solid var(--ah-color-border, #c9cace);
+  border-right: none;
+  border-radius: var(--ah-border-radius-input, 4px) 0 0 var(--ah-border-radius-input, 4px);
+  background-color: var(--ah-color-surface, #fff);
+  color: var(--ah-color-text, #1e212a);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 22px;
+}
+
+.country-select:focus {
+  outline: none;
+  border-color: var(--ah-color-primary, #635dff);
+  box-shadow: 0 0 0 1px var(--ah-color-primary, #635dff);
+}
+
+.country-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.phone-input-wrapper .input-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-input-wrapper .input-field {
+  border-radius: 0 var(--ah-border-radius-input, 4px) var(--ah-border-radius-input, 4px) 0;
+}
+
+.phone-input-wrapper .input-label.floating,
+.phone-input-wrapper .input-field:focus+.input-label,
+.phone-input-wrapper .input-field:not(:placeholder-shown)+.input-label {
+  left: 8px;
+}
+
 /* Social buttons container */
 .social-buttons {
   display: flex;
@@ -547,6 +605,22 @@ input[type="date"].input-field+.input-label {
 .rich-text .forgot-password-link a {
   font-size: 13px;
   color: var(--ah-color-link, #635dff);
+}
+
+/* Passwordless (login with code) link styling */
+.rich-text .passwordless-link {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.rich-text .passwordless-link a {
+  color: var(--ah-color-link, #635dff);
+  text-decoration: var(--ah-link-decoration, none);
+}
+
+.rich-text .passwordless-link a:hover {
+  text-decoration: underline;
 }
 
 /* Signup link styling */

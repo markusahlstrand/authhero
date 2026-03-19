@@ -416,6 +416,168 @@ function createForgotPasswordScreen(state: string, baseUrl: string): UiScreen {
   };
 }
 
+function createLoginPasswordlessSmsScreen(
+  state: string,
+  baseUrl: string,
+): UiScreen {
+  return {
+    action: `${baseUrl}/u2/screen/login-passwordless-sms?state=${state}`,
+    method: "POST",
+    title: "Sign in with a code",
+    description: "Enter your phone number and we will send you a code to sign in.",
+    components: [
+      {
+        id: "username",
+        type: "TEL",
+        category: "FIELD",
+        visible: true,
+        label: "Phone number",
+        config: {
+          placeholder: "Phone number",
+          default_country: "US",
+        },
+        required: true,
+        order: 0,
+      },
+      {
+        id: "submit",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: "Continue",
+        },
+        order: 1,
+      },
+    ],
+    links: [
+      {
+        id: "back",
+        text: "Sign in with password?",
+        linkText: "Go back",
+        href: `${baseUrl}/u2/login/identifier?state=${state}`,
+      },
+    ],
+  };
+}
+
+function createLoginPasswordlessIdentifierScreen(
+  state: string,
+  baseUrl: string,
+): UiScreen {
+  return {
+    action: `${baseUrl}/u2/screen/login-passwordless-identifier?state=${state}`,
+    method: "POST",
+    title: "Sign in with a code",
+    description:
+      "Enter your email address or phone number and we will send you a code to sign in.",
+    components: [
+      {
+        id: "username",
+        type: "TEL",
+        category: "FIELD",
+        visible: true,
+        label: "Email or phone number",
+        config: {
+          placeholder: "Email or phone number",
+          default_country: "US",
+          allow_email: true,
+        },
+        required: true,
+        order: 0,
+      },
+      {
+        id: "submit",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: "Continue",
+        },
+        order: 1,
+      },
+    ],
+    links: [
+      {
+        id: "back",
+        text: "Sign in with password?",
+        linkText: "Go back",
+        href: `${baseUrl}/u2/login/identifier?state=${state}`,
+      },
+    ],
+  };
+}
+
+function createSmsOtpChallengeScreen(
+  state: string,
+  baseUrl: string,
+  phone?: string,
+): UiScreen {
+  const maskedPhone = phone
+    ? phone.replace(/.(?=.{4})/g, "•")
+    : "your phone";
+
+  return {
+    action: `${baseUrl}/u2/screen/sms-otp-challenge?state=${state}`,
+    method: "POST",
+    title: "Check your phone",
+    description: "Enter the verification code",
+    components: [
+      {
+        id: "info",
+        type: "RICH_TEXT",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          content: `We sent a code to <strong>${maskedPhone}</strong>. Enter it below to continue.`,
+        },
+        order: 0,
+      },
+      {
+        id: "code",
+        type: "TEXT",
+        category: "FIELD",
+        visible: true,
+        label: "Verification code",
+        config: {
+          placeholder: "Enter 6-digit code",
+          max_length: 6,
+        },
+        required: true,
+        order: 1,
+      },
+      {
+        id: "submit",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: "Continue",
+        },
+        order: 2,
+      },
+      {
+        id: "resend",
+        type: "RESEND_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: "Resend code",
+        },
+        order: 3,
+      },
+    ],
+    links: [
+      {
+        id: "back",
+        text: "Not your phone?",
+        linkText: "Go back",
+        href: `${baseUrl}/u2/login/login-passwordless-identifier?state=${state}`,
+      },
+    ],
+  };
+}
+
 function createSuccessScreen(
   state: string,
   baseUrl: string,
@@ -525,6 +687,21 @@ function getScreen(
       return { screen: createSignupScreen(state, baseUrl, settings), branding };
     case "forgot-password":
       return { screen: createForgotPasswordScreen(state, baseUrl), branding };
+    case "login-passwordless-sms":
+      return {
+        screen: createLoginPasswordlessSmsScreen(state, baseUrl),
+        branding,
+      };
+    case "login-passwordless-identifier":
+      return {
+        screen: createLoginPasswordlessIdentifierScreen(state, baseUrl),
+        branding,
+      };
+    case "sms-otp-challenge":
+      return {
+        screen: createSmsOtpChallengeScreen(state, baseUrl, session.username),
+        branding,
+      };
     case "success":
       return {
         screen: createSuccessScreen(state, baseUrl, session.email),
@@ -707,6 +884,133 @@ function handleForgotPasswordPost(
   };
 }
 
+function handleLoginPasswordlessIdentifierPost(
+  data: Record<string, unknown>,
+  state: string,
+  baseUrl: string,
+): PostResponse {
+  const username = (data.username as string)?.trim();
+  const session = getSession(state);
+
+  if (!username) {
+    const screen = createLoginPasswordlessIdentifierScreen(state, baseUrl);
+    return {
+      screen: screenWithError(
+        screen,
+        "username",
+        "Email or phone number is required",
+      ),
+    };
+  }
+
+  session.username = username;
+
+  // Detect if input is email or phone
+  const isEmail = username.includes("@");
+  const isPhone =
+    /^\+?[\d\s\-()]+$/.test(username) &&
+    username.replace(/\D/g, "").length >= 7;
+
+  if (isEmail) {
+    session.email = username.toLowerCase();
+    session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`📧 Mock OTP code for ${username}: ${session.codeId}`);
+    return {
+      redirect: `${baseUrl}/u2/login/email-otp-challenge?state=${state}`,
+    };
+  } else if (isPhone) {
+    session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`📱 Mock SMS code for ${username}: ${session.codeId}`);
+    return {
+      redirect: `${baseUrl}/u2/login/sms-otp-challenge?state=${state}`,
+    };
+  }
+
+  // Invalid input
+  const screen = createLoginPasswordlessIdentifierScreen(state, baseUrl);
+  return {
+    screen: screenWithError(
+      screen,
+      "username",
+      "Please enter a valid email address or phone number",
+    ),
+  };
+}
+
+function handleLoginPasswordlessSmsPost(
+  data: Record<string, unknown>,
+  state: string,
+  baseUrl: string,
+): PostResponse {
+  const username = (data.username as string)?.trim();
+  const session = getSession(state);
+
+  if (!username) {
+    const screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+    return {
+      screen: screenWithError(screen, "username", "Phone number is required"),
+    };
+  }
+
+  session.username = username;
+
+  const isPhone =
+    /^\+?[\d\s\-()]+$/.test(username) &&
+    username.replace(/\D/g, "").length >= 7;
+
+  if (isPhone) {
+    session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`📱 Mock SMS code for ${username}: ${session.codeId}`);
+    return {
+      redirect: `${baseUrl}/u2/login/sms-otp-challenge?state=${state}`,
+    };
+  }
+
+  const screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+  return {
+    screen: screenWithError(
+      screen,
+      "username",
+      "Please enter a valid phone number",
+    ),
+  };
+}
+
+function handleSmsOtpChallengePost(
+  data: Record<string, unknown>,
+  state: string,
+  baseUrl: string,
+): PostResponse {
+  const code = (data.code as string)?.trim();
+  const session = getSession(state);
+
+  if (!code) {
+    const screen = createSmsOtpChallengeScreen(
+      state,
+      baseUrl,
+      session.username,
+    );
+    return {
+      screen: screenWithError(screen, "code", "Code is required"),
+    };
+  }
+
+  if (code.length !== 6) {
+    const screen = createSmsOtpChallengeScreen(
+      state,
+      baseUrl,
+      session.username,
+    );
+    return {
+      screen: screenWithError(screen, "code", "Please enter a 6-digit code"),
+    };
+  }
+
+  // For demo, accept any 6-digit code
+  session.authenticated = true;
+  return { redirect: `${baseUrl}/callback?code=demo_auth_code&state=${state}` };
+}
+
 // ============================================
 // Widget Page HTML
 // ============================================
@@ -759,6 +1063,15 @@ async function renderWidgetPage(options: {
         break;
       case "forgot-password":
         screen = createForgotPasswordScreen(state, baseUrl);
+        break;
+      case "login-passwordless-sms":
+        screen = createLoginPasswordlessSmsScreen(state, baseUrl);
+        break;
+      case "login-passwordless-identifier":
+        screen = createLoginPasswordlessIdentifierScreen(state, baseUrl);
+        break;
+      case "sms-otp-challenge":
+        screen = createSmsOtpChallengeScreen(state, baseUrl);
         break;
       default:
         screen = createIdentifierScreen(state, baseUrl, settings);
@@ -1166,6 +1479,9 @@ async function renderWidgetPage(options: {
             <option value="identifier-social">Identifier (3 Social Buttons)</option>
             <option value="enter-password">Enter Password</option>
             <option value="email-otp-challenge">Email OTP Challenge</option>
+            <option value="login-passwordless-sms">Passwordless Phone (SMS Only)</option>
+            <option value="login-passwordless-identifier">Passwordless Combined (Email + SMS)</option>
+            <option value="sms-otp-challenge">SMS OTP Challenge</option>
             <option value="signup">Sign Up</option>
             <option value="forgot-password">Forgot Password</option>
             <option value="success">Success</option>
@@ -1810,10 +2126,13 @@ async function renderWidgetPage(options: {
     function extractScreenFromPath(pathname) {
       // Map of path patterns to screen names
       const pathToScreen = {
+        '/u2/login/login-passwordless-sms': 'login-passwordless-sms',
+        '/u2/login/login-passwordless-identifier': 'login-passwordless-identifier',
         '/u2/login/identifier-social': 'identifier-social',
         '/u2/login/identifier': 'identifier',
         '/u2/enter-password': 'enter-password',
         '/u2/login/email-otp-challenge': 'email-otp-challenge',
+        '/u2/login/sms-otp-challenge': 'sms-otp-challenge',
         '/u2/signup': 'signup',
         '/u2/forgot-password': 'forgot-password',
         '/u2/success': 'success',
@@ -1834,6 +2153,9 @@ async function renderWidgetPage(options: {
           'identifier-social': '/u2/login/identifier-social',
           'enter-password': '/u2/enter-password',
           'email-otp-challenge': '/u2/login/email-otp-challenge',
+          'login-passwordless-sms': '/u2/login/login-passwordless-sms',
+          'login-passwordless-identifier': '/u2/login/login-passwordless-identifier',
+          'sms-otp-challenge': '/u2/login/sms-otp-challenge',
           'signup': '/u2/signup',
           'forgot-password': '/u2/forgot-password',
           'success': '/u2/success',
@@ -2500,6 +2822,15 @@ app.post("/u2/screen/:screenId", async (c) => {
     case "forgot-password":
       result = handleForgotPasswordPost(data, state, baseUrl);
       break;
+    case "login-passwordless-sms":
+      result = handleLoginPasswordlessSmsPost(data, state, baseUrl);
+      break;
+    case "login-passwordless-identifier":
+      result = handleLoginPasswordlessIdentifierPost(data, state, baseUrl);
+      break;
+    case "sms-otp-challenge":
+      result = handleSmsOtpChallengePost(data, state, baseUrl);
+      break;
     default:
       return c.json({ error: "Unknown screen" }, 404);
   }
@@ -2573,6 +2904,51 @@ app.get("/u2/login/email-otp-challenge", async (c) => {
   return c.html(
     await renderWidgetPage({
       screenId: "email-otp-challenge",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
+});
+
+app.get("/u2/login/login-passwordless-sms", async (c) => {
+  const state = c.req.query("state") || "demo";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
+  const baseUrl = new URL(c.req.url).origin;
+  return c.html(
+    await renderWidgetPage({
+      screenId: "login-passwordless-sms",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
+});
+
+app.get("/u2/login/login-passwordless-identifier", async (c) => {
+  const state = c.req.query("state") || "demo";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
+  const baseUrl = new URL(c.req.url).origin;
+  return c.html(
+    await renderWidgetPage({
+      screenId: "login-passwordless-identifier",
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+    }),
+  );
+});
+
+app.get("/u2/login/sms-otp-challenge", async (c) => {
+  const state = c.req.query("state") || "demo";
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
+  const baseUrl = new URL(c.req.url).origin;
+  return c.html(
+    await renderWidgetPage({
+      screenId: "sms-otp-challenge",
       state,
       baseUrl,
       urlMode: "path",
