@@ -3,6 +3,7 @@ import {
   LoginSession,
   Theme,
   Branding,
+  Strategy,
   getConnectionIdentifierConfig,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
@@ -43,22 +44,22 @@ const IdentifierPage: FC<Props> = ({
 
   // Determine which input fields to show based on available connections
   const showEmailInput =
-    connectionStrategies.includes("email") ||
-    connectionStrategies.includes("Username-Password-Authentication");
-  const showPhoneInput = connectionStrategies.includes("sms");
+    connectionStrategies.includes(Strategy.EMAIL) ||
+    connectionStrategies.includes(Strategy.USERNAME_PASSWORD);
+  const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
 
   // Check if the password connection has username identifier enabled
   const passwordConnection = client.connections.find(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   const requiresUsername =
     getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;
 
   // Strategies that are handled by form inputs, not social/enterprise buttons
   const formStrategies = new Set([
-    "email",
-    "sms",
-    "Username-Password-Authentication",
+    Strategy.EMAIL,
+    Strategy.SMS,
+    Strategy.USERNAME_PASSWORD,
     "auth0",
   ]);
 

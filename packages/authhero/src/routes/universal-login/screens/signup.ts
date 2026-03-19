@@ -9,6 +9,7 @@ import type {
   FormNodeComponent,
   User,
 } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
@@ -37,7 +38,7 @@ export async function signupScreen(
 
   // Check if we have password signup available
   const hasPasswordSignup = context.connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
   const components: FormNodeComponent[] = [];
@@ -117,7 +118,8 @@ export async function signupScreen(
   if (prefill?.email) {
     const emailComponent = components.find((c) => c.id === "email");
     if (emailComponent && "config" in emailComponent) {
-      (emailComponent.config as Record<string, unknown>).default_value = prefill.email;
+      (emailComponent.config as Record<string, unknown>).default_value =
+        prefill.email;
     }
   }
 
@@ -165,7 +167,12 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, undefined, "signup");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        undefined,
+        "signup",
+      );
 
       // Validate required fields
       if (!email) {
@@ -214,10 +221,9 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       // Find the password connection from the client's connections
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
-      const connection =
-        passwordConnection?.name || "Username-Password-Authentication";
+      const connection = passwordConnection?.name || Strategy.USERNAME_PASSWORD;
 
       // Validate password against connection policy
       const policy = await getPasswordPolicy(

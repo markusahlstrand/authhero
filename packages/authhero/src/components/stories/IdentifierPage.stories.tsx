@@ -14,6 +14,7 @@ import type { EnrichedClient } from "../../helpers/client";
 import {
   AuthorizationResponseType,
   LoginSessionState,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 
 // Mock data for stories
@@ -163,7 +164,7 @@ export const EmailOnly: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["email"]),
+    client: createMockClient([Strategy.EMAIL]),
   },
 };
 
@@ -176,7 +177,7 @@ export const EmailWithError: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["email"]),
+    client: createMockClient([Strategy.EMAIL]),
     error: "Invalid email address",
     email: "test@example.com",
   },
@@ -191,7 +192,7 @@ export const PhoneOnly: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["sms"]),
+    client: createMockClient([Strategy.SMS]),
   },
 };
 
@@ -204,7 +205,7 @@ export const EmailOrPhone: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["email", "sms"]),
+    client: createMockClient([Strategy.EMAIL, Strategy.SMS]),
   },
 };
 
@@ -217,7 +218,7 @@ export const EmailWithGoogle: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["email", "google-oauth2"]),
+    client: createMockClient([Strategy.EMAIL, "google-oauth2"]),
   },
 };
 
@@ -231,7 +232,7 @@ export const EmailWithAllSocial: Story = {
     branding: mockBranding,
     loginSession: mockLoginSession,
     client: createMockClient([
-      "email",
+      Strategy.EMAIL,
       "google-oauth2",
       "facebook",
       "apple",
@@ -262,7 +263,7 @@ export const UsernamePassword: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["Username-Password-Authentication"]),
+    client: createMockClient([Strategy.USERNAME_PASSWORD]),
   },
 };
 
@@ -275,7 +276,7 @@ export const NoTheming: Story = {
     theme: null,
     branding: null,
     loginSession: mockLoginSession,
-    client: createMockClient(["email", "google-oauth2"]),
+    client: createMockClient([Strategy.EMAIL, "google-oauth2"]),
   },
 };
 
@@ -305,6 +306,6 @@ export const CustomColors: Story = {
       },
     },
     loginSession: mockLoginSession,
-    client: createMockClient(["email", "google-oauth2", "apple"]),
+    client: createMockClient([Strategy.EMAIL, "google-oauth2", "apple"]),
   },
 };

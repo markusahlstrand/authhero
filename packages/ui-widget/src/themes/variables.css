@@ -26,6 +26,7 @@
   --ah-color-text-muted: #6b7280;
   --ah-color-text-label: #374151;
   --ah-color-text-on-primary: #ffffff;
+  --ah-color-text-on-primary-dark: #ffffff;
   
   /* Background colors */
   --ah-color-bg: #ffffff;
@@ -140,4 +141,10 @@
   /* Logo */
   --ah-logo-size: 48px;
   --ah-logo-radius: var(--ah-radius-lg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ah-color-text-on-primary: var(--ah-color-text-on-primary-dark);
+  }
 }

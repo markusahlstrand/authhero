@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("authenticate", () => {
   it("should return a token for a successful login", async () => {
@@ -15,7 +16,7 @@ describe("authenticate", () => {
       email_verified: true,
       name: "Test User",
       nickname: "Test User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
@@ -31,7 +32,7 @@ describe("authenticate", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "foo2@example.com",
       },
@@ -66,7 +67,7 @@ describe("authenticate", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "foo2@example.com",
       },
@@ -94,7 +95,7 @@ describe("authenticate", () => {
       email_verified: true,
       name: "Test User",
       nickname: "Test User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
@@ -110,7 +111,7 @@ describe("authenticate", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "IncorrectPassword",
         username: "foo2@example.com",
       },
@@ -137,7 +138,7 @@ describe("authenticate", () => {
       email_verified: true,
       name: "Test User",
       nickname: "Test User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
@@ -155,7 +156,7 @@ describe("authenticate", () => {
           json: {
             client_id: "clientId",
             credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-            realm: "Username-Password-Authentication",
+            realm: Strategy.USERNAME_PASSWORD,
             password: "IncorrectPassword",
             username: "foo2@example.com",
           },
@@ -169,7 +170,7 @@ describe("authenticate", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "foo2@example.com",
       },

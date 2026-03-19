@@ -4,6 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import {
   AuthorizationResponseType,
+  Strategy,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
 
@@ -156,7 +157,7 @@ describe("passwordless", async () => {
         email: "linking-test@example.com",
         email_verified: true,
         provider: "auth0",
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
         login_count: 0,
         created_at: new Date().toISOString(),
@@ -190,27 +191,26 @@ describe("passwordless", async () => {
       }
 
       // Verify the OTP code
-      const loginResponse =
-        await oauthClient.passwordless.verify_redirect.$get(
-          {
-            query: {
-              response_type: AuthorizationResponseType.CODE,
-              redirect_uri: "https://example.com/callback",
-              client_id: "clientId",
-              email: "linking-test@example.com",
-              verification_code: code,
-              connection: "email",
-              state: "state",
-              scope: "openid",
-              audience: "https://example.com",
-            },
+      const loginResponse = await oauthClient.passwordless.verify_redirect.$get(
+        {
+          query: {
+            response_type: AuthorizationResponseType.CODE,
+            redirect_uri: "https://example.com/callback",
+            client_id: "clientId",
+            email: "linking-test@example.com",
+            verification_code: code,
+            connection: "email",
+            state: "state",
+            scope: "openid",
+            audience: "https://example.com",
           },
-          {
-            headers: {
-              "x-real-ip": "1.2.3.4",
-            },
+        },
+        {
+          headers: {
+            "x-real-ip": "1.2.3.4",
           },
-        );
+        },
+      );
 
       expect(loginResponse.status).toBe(302);
       const location = loginResponse.headers.get("location");
@@ -265,7 +265,7 @@ describe("passwordless", async () => {
           },
           json: {
             name: "sms",
-            strategy: "sms",
+            strategy: Strategy.SMS,
             options: {
               provider: "twilio",
               from: "+1234567890",

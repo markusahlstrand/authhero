@@ -4,6 +4,7 @@ import {
   HonoJSXWrapper,
   renderHonoComponent,
 } from "../../storybook-utils/HonoJSXWrapper";
+import { Strategy } from "@authhero/adapter-interfaces";
 import ContinueForm from "../ContinueForm";
 
 const meta: Meta<typeof ContinueForm> = {
@@ -31,7 +32,7 @@ const mockUser = {
 } as any;
 
 const mockClient = {
-  connections: [{ name: "email", strategy: "email" }],
+  connections: [{ name: "email", strategy: Strategy.EMAIL }],
 } as any;
 
 export const Default: Story = {

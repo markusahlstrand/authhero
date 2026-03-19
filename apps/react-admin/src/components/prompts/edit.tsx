@@ -189,8 +189,7 @@ const DEFAULT_TEXT_KEYS: Record<
       "invalid-expired-code": "Invalid or expired user code",
       "custom-script-error-code":
         "Something went wrong, please try again later.",
-      "auth0-users-validation":
-        "Something went wrong, please try again later",
+      "auth0-users-validation": "Something went wrong, please try again later",
       "authentication-failure":
         "We are sorry, something went wrong when attempting to log in",
       "invalid-connection": "Invalid connection",
@@ -225,8 +224,7 @@ const DEFAULT_TEXT_KEYS: Record<
         "Phone number, username, or email address is required",
       "captcha-validation-failure":
         "We are sorry, something went wrong while validating the captcha response. Please try again.",
-      "invalid-recaptcha":
-        "Select the checkbox to verify you are not a robot.",
+      "invalid-recaptcha": "Select the checkbox to verify you are not a robot.",
       "invalid-captcha":
         "Solve the challenge question to verify you are not a robot.",
       "captcha-client-failure":
@@ -307,8 +305,7 @@ const DEFAULT_TEXT_KEYS: Record<
       hidePasswordText: "Hide password",
       "no-password": "Password is required",
       "password-too-weak": "Password is too weak",
-      "password-policy-not-met":
-        "Password does not meet the requirements",
+      "password-policy-not-met": "Password does not meet the requirements",
     },
   },
   "reset-password": {
@@ -390,8 +387,7 @@ const DEFAULT_TEXT_KEYS: Record<
     "mfa-webauthn": {
       pageTitle: "Security Key | ${clientName}",
       title: "Use your security key",
-      description:
-        "Insert your security key and follow the instructions",
+      description: "Insert your security key and follow the instructions",
       buttonText: "Try again",
     },
   },
@@ -409,8 +405,7 @@ const DEFAULT_TEXT_KEYS: Record<
     "mfa-phone": {
       pageTitle: "Phone Verification | ${clientName}",
       title: "Verify your phone",
-      description:
-        "Enter your phone number to receive a verification code",
+      description: "Enter your phone number to receive a verification code",
       buttonText: "Continue",
       phonePlaceholder: "Phone number",
       smsOptionText: "Text me",
@@ -688,10 +683,7 @@ function CustomTextTab() {
 
   // Get default texts for a prompt, merged with existing values (per-screen)
   const getTextsWithDefaults = useCallback(
-    (
-      prompt: string,
-      existingTexts: Record<string, Record<string, string>>,
-    ) => {
+    (prompt: string, existingTexts: Record<string, Record<string, string>>) => {
       const screens = getScreensForPrompt(prompt);
       const result: Record<string, Record<string, string>> = {};
 
@@ -925,9 +917,7 @@ function CustomTextTab() {
         typeof parsed !== "object" ||
         Array.isArray(parsed)
       ) {
-        setJsonError(
-          "JSON must be an object with nested screen objects",
-        );
+        setJsonError("JSON must be an object with nested screen objects");
         return;
       }
       // Validate nested structure: { screenName: { key: string } }
@@ -947,9 +937,7 @@ function CustomTextTab() {
           screenTexts as Record<string, unknown>,
         ).some((v) => v !== null && typeof v !== "string");
         if (hasInvalidValues) {
-          setJsonError(
-            `All values in "${screenName}" must be strings`,
-          );
+          setJsonError(`All values in "${screenName}" must be strings`);
           return;
         }
         const screenResult: Record<string, string> = {};
@@ -989,9 +977,7 @@ function CustomTextTab() {
             ) {
               // Convert nested structure to form state
               const result: Record<string, Record<string, string>> = {};
-              for (const [screenName, screenTexts] of Object.entries(
-                parsed,
-              )) {
+              for (const [screenName, screenTexts] of Object.entries(parsed)) {
                 if (
                   screenTexts &&
                   typeof screenTexts === "object" &&
@@ -1033,16 +1019,13 @@ function CustomTextTab() {
     [editingTexts],
   );
 
-  const handleRemoveTextKey = useCallback(
-    (screenName: string, key: string) => {
-      setEditingTexts((prev) => {
-        const screenTexts = { ...prev[screenName] };
-        delete screenTexts[key];
-        return { ...prev, [screenName]: screenTexts };
-      });
-    },
-    [],
-  );
+  const handleRemoveTextKey = useCallback((screenName: string, key: string) => {
+    setEditingTexts((prev) => {
+      const screenTexts = { ...prev[screenName] };
+      delete screenTexts[key];
+      return { ...prev, [screenName]: screenTexts };
+    });
+  }, []);
 
   const getScreenName = (prompt: string) => {
     return PROMPT_SCREENS.find((s) => s.id === prompt)?.name || prompt;
@@ -1214,16 +1197,12 @@ function CustomTextTab() {
                 {selectedEntry &&
                   getScreensForPrompt(selectedEntry.prompt).map(
                     (screenName) => {
-                      const screenTexts =
-                        editingTexts[screenName] || {};
+                      const screenTexts = editingTexts[screenName] || {};
                       const screenDefaults =
-                        DEFAULT_TEXT_KEYS[selectedEntry.prompt]?.[
-                          screenName
-                        ] || {};
+                        DEFAULT_TEXT_KEYS[selectedEntry.prompt]?.[screenName] ||
+                        {};
                       const entries = Object.entries(screenTexts);
-                      const screens = getScreensForPrompt(
-                        selectedEntry.prompt,
-                      );
+                      const screens = getScreensForPrompt(selectedEntry.prompt);
                       const showScreenHeader = screens.length > 1;
 
                       // Categorize fields
@@ -1269,10 +1248,7 @@ function CustomTextTab() {
                               key.includes("forgot") ||
                               key.includes("back")))
                         ) {
-                          categories["Buttons & Actions"].push([
-                            key,
-                            value,
-                          ]);
+                          categories["Buttons & Actions"].push([key, value]);
                         } else if (
                           key.includes("Placeholder") ||
                           key.includes("placeholder") ||
@@ -1283,26 +1259,17 @@ function CustomTextTab() {
                         } else if (!(key in screenDefaults)) {
                           categories["Custom Fields"].push([key, value]);
                         } else {
-                          categories["Messages & Labels"].push([
-                            key,
-                            value,
-                          ]);
+                          categories["Messages & Labels"].push([key, value]);
                         }
                       });
 
                       const content = (
                         <>
-                          <Box
-                            display="flex"
-                            justifyContent="flex-end"
-                            mb={1}
-                          >
+                          <Box display="flex" justifyContent="flex-end" mb={1}>
                             <Button
                               size="small"
                               startIcon={<AddIcon />}
-                              onClick={() =>
-                                handleAddTextKey(screenName)
-                              }
+                              onClick={() => handleAddTextKey(screenName)}
                             >
                               Add Custom Key
                             </Button>
@@ -1310,10 +1277,7 @@ function CustomTextTab() {
                           {Object.entries(categories)
                             .filter(([_, items]) => items.length > 0)
                             .map(([category, items]) => (
-                              <Accordion
-                                key={category}
-                                defaultExpanded
-                              >
+                              <Accordion key={category} defaultExpanded>
                                 <AccordionSummary
                                   expandIcon={<ExpandMoreIcon />}
                                 >
@@ -1331,9 +1295,7 @@ function CustomTextTab() {
                                     {items.map(([key, value]) => {
                                       const defaultValue =
                                         screenDefaults[key] || "";
-                                      const isCustom = !(
-                                        key in screenDefaults
-                                      );
+                                      const isCustom = !(key in screenDefaults);
                                       return (
                                         <Box
                                           key={key}
@@ -1389,8 +1351,8 @@ function CustomTextTab() {
                             ))}
                           {entries.length === 0 && (
                             <Typography color="textSecondary">
-                              No text keys configured. Click "Add Custom
-                              Key" to add customizations.
+                              No text keys configured. Click "Add Custom Key" to
+                              add customizations.
                             </Typography>
                           )}
                         </>
@@ -1398,27 +1360,16 @@ function CustomTextTab() {
 
                       if (showScreenHeader) {
                         return (
-                          <Accordion
-                            key={screenName}
-                            defaultExpanded
-                          >
-                            <AccordionSummary
-                              expandIcon={<ExpandMoreIcon />}
-                            >
-                              <Typography variant="h6">
-                                {screenName}
-                              </Typography>
+                          <Accordion key={screenName} defaultExpanded>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography variant="h6">{screenName}</Typography>
                             </AccordionSummary>
-                            <AccordionDetails>
-                              {content}
-                            </AccordionDetails>
+                            <AccordionDetails>{content}</AccordionDetails>
                           </Accordion>
                         );
                       }
 
-                      return (
-                        <Box key={screenName}>{content}</Box>
-                      );
+                      return <Box key={screenName}>{content}</Box>;
                     },
                   )}
               </>

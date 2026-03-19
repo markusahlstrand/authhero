@@ -3,7 +3,7 @@ import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import { EntityHooksConfig, WebhookInvoker } from "./AuthHeroConfig";
 import { EmailService } from "./EmailService";
-import { Strategy } from "../strategies";
+import { StrategyHandler } from "../strategies";
 import { smsService } from "./SMSService";
 
 declare type Fetcher = {
@@ -33,7 +33,7 @@ export type Bindings = {
   smsProviders?: { [key: string]: smsService };
 
   // Add additional strategies
-  STRATEGIES?: { [strategy: string]: Strategy };
+  STRATEGIES?: { [strategy: string]: StrategyHandler };
 
   // Constants
   JWKS_CACHE_TIMEOUT_IN_SECONDS: number;

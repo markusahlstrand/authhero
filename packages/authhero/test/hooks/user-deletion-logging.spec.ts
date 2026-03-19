@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("user deletion - Management API logging", () => {
   it("should log user deletion with both sapi and sdu types", async () => {
@@ -18,7 +19,7 @@ describe("user deletion - Management API logging", () => {
           email_verified: false,
           name: "Delete Test User",
           nickname: "deletetest",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -121,7 +122,7 @@ describe("user deletion - Management API logging", () => {
           email_verified: false,
           name: "Delete Test User",
           nickname: "deletetest",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -199,7 +200,7 @@ describe("user deletion - Management API logging", () => {
         json: {
           email: "database-user@example.com",
           name: "Database User",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -248,7 +249,7 @@ describe("user deletion - Management API logging", () => {
     expect(deletionLog).toBeDefined();
     expect(deletionLog?.user_id).toBe(createdUser.user_id);
     expect(deletionLog?.strategy_type).toBe("database");
-    expect(deletionLog?.connection).toBe("Username-Password-Authentication");
+    expect(deletionLog?.connection).toBe(Strategy.USERNAME_PASSWORD);
   });
 
   it("should include timestamp in deletion log", async () => {
@@ -263,7 +264,7 @@ describe("user deletion - Management API logging", () => {
         json: {
           email: "timestamp-delete@example.com",
           name: "Timestamp Delete Test",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -387,7 +388,7 @@ describe("user deletion - Management API logging", () => {
           email_verified: false,
           name: "Primary User",
           nickname: "primary",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

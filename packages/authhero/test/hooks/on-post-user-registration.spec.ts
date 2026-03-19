@@ -3,6 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { HookEvent } from "../../src/types/Hooks";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("on-post-user-registration-hook", () => {
   it("should trigger an event", async () => {
@@ -25,7 +26,7 @@ describe("on-post-user-registration-hook", () => {
       {
         json: {
           email: "foo2@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

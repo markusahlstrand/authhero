@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { Meta, StoryObj } from "@storybook/react";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 import {
   HonoJSXWrapper,
   renderHonoComponent,
@@ -25,7 +26,7 @@ const mockUser = {
   updated_at: new Date().toISOString(),
   user_id: `${USERNAME_PASSWORD_PROVIDER}|user_123`,
   provider: USERNAME_PASSWORD_PROVIDER,
-  connection: "Username-Password-Authentication",
+  connection: Strategy.USERNAME_PASSWORD,
   is_social: false,
   email_verified: true,
   login_count: 15,
@@ -33,7 +34,7 @@ const mockUser = {
 
 const mockClient = {
   client_id: "client_123",
-  connections: [{ name: "email", strategy: "email" }],
+  connections: [{ name: "email", strategy: Strategy.EMAIL }],
 } as any;
 
 export const Default: Story = {

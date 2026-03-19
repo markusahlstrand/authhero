@@ -11,6 +11,7 @@ import { getPrimaryUserByEmail } from "../../src/helpers/users";
 import {
   AuthorizationResponseType,
   AuthorizationResponseMode,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { parseJWT } from "oslo/jwt";
 import { getEnrichedClient } from "../../src/helpers/client";
@@ -1253,7 +1254,7 @@ describe("common", () => {
 
       // Verify user doesn't have the strategy set initially
       expect(userBefore.app_metadata?.strategy).not.toBe(
-        "Username-Password-Authentication",
+        Strategy.USERNAME_PASSWORD,
       );
 
       const client = await getEnrichedClient(env, "clientId");
@@ -1286,7 +1287,7 @@ describe("common", () => {
         user: userBefore,
         loginSession,
         authStrategy: {
-          strategy: "Username-Password-Authentication",
+          strategy: Strategy.USERNAME_PASSWORD,
           strategy_type: "database",
         },
       });
@@ -1304,9 +1305,7 @@ describe("common", () => {
         throw new Error("User not found after authentication");
       }
 
-      expect(userAfter.app_metadata?.strategy).toBe(
-        "Username-Password-Authentication",
-      );
+      expect(userAfter.app_metadata?.strategy).toBe(Strategy.USERNAME_PASSWORD);
     });
 
     it("should persist the email strategy to user app_metadata when logging in with passwordless", async () => {
@@ -1361,7 +1360,7 @@ describe("common", () => {
         user,
         loginSession,
         authStrategy: {
-          strategy: "email",
+          strategy: Strategy.EMAIL,
           strategy_type: "passwordless",
         },
       });
@@ -1379,7 +1378,7 @@ describe("common", () => {
         throw new Error("User not found after authentication");
       }
 
-      expect(userAfter.app_metadata?.strategy).toBe("email");
+      expect(userAfter.app_metadata?.strategy).toBe(Strategy.EMAIL);
     });
 
     it("should overwrite app_metadata strategy when user logs in with a different strategy", async () => {
@@ -1413,7 +1412,7 @@ describe("common", () => {
       await env.data.users.update("tenantId", user.user_id, {
         app_metadata: {
           ...(user.app_metadata || {}),
-          strategy: "email",
+          strategy: Strategy.EMAIL,
         },
       });
 
@@ -1442,7 +1441,7 @@ describe("common", () => {
       }
 
       // Verify the user initially has email strategy
-      expect(updatedUser.app_metadata?.strategy).toBe("email");
+      expect(updatedUser.app_metadata?.strategy).toBe(Strategy.EMAIL);
 
       // Authenticate with password strategy (different from the stored strategy)
       const authResponse = await createFrontChannelAuthResponse(ctx, {
@@ -1456,7 +1455,7 @@ describe("common", () => {
         user: updatedUser,
         loginSession,
         authStrategy: {
-          strategy: "Username-Password-Authentication",
+          strategy: Strategy.USERNAME_PASSWORD,
           strategy_type: "database",
         },
       });
@@ -1474,9 +1473,7 @@ describe("common", () => {
         throw new Error("User not found after authentication");
       }
 
-      expect(userAfter.app_metadata?.strategy).toBe(
-        "Username-Password-Authentication",
-      );
+      expect(userAfter.app_metadata?.strategy).toBe(Strategy.USERNAME_PASSWORD);
     });
   });
 

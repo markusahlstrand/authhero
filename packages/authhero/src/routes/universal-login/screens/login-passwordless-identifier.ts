@@ -8,6 +8,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
@@ -49,10 +50,10 @@ export async function loginPasswordlessIdentifierScreen(
   );
 
   const hasEmailConnection = context.connections.some(
-    (c) => c.strategy === "email",
+    (c) => c.strategy === Strategy.EMAIL,
   );
   const hasSmsConnection = context.connections.some(
-    (c) => c.strategy === "sms",
+    (c) => c.strategy === Strategy.SMS,
   );
 
   // Determine the auth method description
@@ -188,8 +189,7 @@ export async function loginPasswordlessIdentifierScreen(
 export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
   id: "login-passwordless-identifier",
   name: "Login Passwordless Identifier",
-  description:
-    "Collects email or phone for passwordless code-based login",
+  description: "Collects email or phone for passwordless code-based login",
   handler: {
     get: loginPasswordlessIdentifierScreen,
     post: async (context, data) => {
@@ -207,8 +207,8 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
       // Validate input is provided
       if (!username) {
         const hasSmsOnly =
-          context.connections.some((c) => c.strategy === "sms") &&
-          !context.connections.some((c) => c.strategy === "email");
+          context.connections.some((c) => c.strategy === Strategy.SMS) &&
+          !context.connections.some((c) => c.strategy === Strategy.EMAIL);
 
         const errorMsg = hasSmsOnly ? m.no_phone() : m.no_email();
         return {
@@ -296,8 +296,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const errorMsg =
-            validation.reason || m.user_account_does_not_exist();
+          const errorMsg = validation.reason || m.user_account_does_not_exist();
           return {
             error: errorMsg,
             screen: await loginPasswordlessIdentifierScreen({

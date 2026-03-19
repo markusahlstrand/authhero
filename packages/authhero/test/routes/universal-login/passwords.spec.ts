@@ -4,6 +4,7 @@ import bcryptjs from "bcryptjs";
 import {
   LogTypes,
   AuthorizationResponseType,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
@@ -24,7 +25,7 @@ describe("passwords", () => {
       name: "Test User",
       nickname: "Test User",
       picture: "https://example.com/test.png",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
@@ -123,7 +124,7 @@ describe("passwords", () => {
     if (!user) {
       throw new Error("User not found");
     }
-    expect(user.app_metadata.strategy).toBe("Username-Password-Authentication");
+    expect(user.app_metadata.strategy).toBe(Strategy.USERNAME_PASSWORD);
 
     // --------------------------------
     // request password reset
@@ -207,7 +208,7 @@ describe("passwords", () => {
       email_verified: true,
       name: "Reset Log User",
       nickname: "resetlog",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|resetLog123`,
@@ -282,7 +283,7 @@ describe("passwords", () => {
       email_verified: true,
       name: "Reset Complete User",
       nickname: "resetcomplete",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|resetComplete456`,
@@ -387,7 +388,7 @@ describe("passwords", () => {
       email_verified: true,
       name: "Change Password User",
       nickname: "changepass",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|changePass789`,
@@ -564,7 +565,7 @@ describe("passwords", () => {
       email_verified: true,
       name: "Weak Password User",
       nickname: "weakpass",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|weakPass123`,
@@ -652,8 +653,8 @@ describe("passwords", () => {
     // password policy instead of the actual connection's policy.
     //
     // The bug occurred because:
-    // 1. Users are created with connection: "Username-Password-Authentication" (hardcoded)
-    // 2. But the actual connection might have name: USERNAME_PASSWORD_PROVIDER with strategy: "Username-Password-Authentication"
+    // 1. Users are created with connection: Strategy.USERNAME_PASSWORD (hardcoded)
+    // 2. But the actual connection might have name: USERNAME_PASSWORD_PROVIDER with strategy: Strategy.USERNAME_PASSWORD
     // 3. getPasswordPolicy looked up by connection NAME, not finding the connection
     // 4. This caused default policy (8 chars, uppercase, etc.) to be applied instead
     //
@@ -667,16 +668,13 @@ describe("passwords", () => {
     const universalClient = testClient(universalApp, env);
 
     // Delete the default Username-Password-Authentication connection
-    await env.data.connections.remove(
-      "tenantId",
-      "Username-Password-Authentication",
-    );
+    await env.data.connections.remove("tenantId", Strategy.USERNAME_PASSWORD);
 
     // Create a connection with a DIFFERENT name but same strategy, with lenient password policy
     await env.data.connections.create("tenantId", {
       id: "custom-pwd-conn",
-      name: USERNAME_PASSWORD_PROVIDER, // Different name than "Username-Password-Authentication"
-      strategy: "Username-Password-Authentication", // But same strategy
+      name: USERNAME_PASSWORD_PROVIDER, // Different name than Strategy.USERNAME_PASSWORD
+      strategy: Strategy.USERNAME_PASSWORD, // But same strategy
       options: {
         passwordPolicy: "none", // No complexity requirements
         password_complexity_options: {
@@ -685,14 +683,14 @@ describe("passwords", () => {
       },
     });
 
-    // Create a user with connection "Username-Password-Authentication" (mimicking the bug scenario)
+    // Create a user with connection Strategy.USERNAME_PASSWORD (mimicking the bug scenario)
     // In real code, users often get created with this hardcoded value
     await env.data.users.create("tenantId", {
       email: "policy-test@example.com",
       email_verified: true,
       name: "Policy Test User",
       nickname: "policytest",
-      connection: "Username-Password-Authentication", // This doesn't match connection name (username-password)
+      connection: Strategy.USERNAME_PASSWORD, // This doesn't match connection name (username-password)
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|policyTest123`,

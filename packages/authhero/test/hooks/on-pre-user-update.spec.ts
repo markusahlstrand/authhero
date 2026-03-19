@@ -3,7 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { HookEvent, OnExecutePreUserUpdateAPI } from "../../src/types/Hooks";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
-import { User } from "@authhero/adapter-interfaces";
+import { User, Strategy } from "@authhero/adapter-interfaces";
 
 describe("on-pre-user-update-hook", () => {
   it("should update user metadata", async () => {
@@ -26,7 +26,7 @@ describe("on-pre-user-update-hook", () => {
       {
         json: {
           email: "test-update@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -90,7 +90,7 @@ describe("on-pre-user-update-hook", () => {
         json: {
           email: "test-cancel@example.com",
           name: "Original Name",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

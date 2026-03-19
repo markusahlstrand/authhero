@@ -3,6 +3,7 @@ import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../constants";
 import {
   AuthParams,
   Session,
+  Strategy,
   promptSettingSchema,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
@@ -105,7 +106,7 @@ export async function universalAuth({
   }
 
   // If there's an email connection and a login_hint we redirect to the check-account page. This feels like code that will be duplicated
-  if (connection === "email" && login_hint) {
+  if (connection === Strategy.EMAIL && login_hint) {
     const otp = generateOTP();
     await ctx.env.data.codes.create(client.tenant.id, {
       code_id: otp,
@@ -122,7 +123,9 @@ export async function universalAuth({
       authParams,
     });
 
-    return ctx.redirect(`${routePrefix}/login/email-otp-challenge?state=${loginSession.id}`);
+    return ctx.redirect(
+      `${routePrefix}/login/email-otp-challenge?state=${loginSession.id}`,
+    );
   }
 
   // If there is a session we redirect to the check-account page
@@ -143,7 +146,7 @@ export async function universalAuth({
 
     // Check if password connection is available
     const hasPasswordConnection = client.connections.some(
-      (c) => c.strategy === "Username-Password-Authentication",
+      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
     );
 
     // If identifier_first is explicitly false and password auth is available,

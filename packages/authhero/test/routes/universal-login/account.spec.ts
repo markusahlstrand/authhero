@@ -6,6 +6,7 @@ import {
   LogTypes,
   AuthorizationResponseType,
   AuthorizationResponseMode,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -239,7 +240,7 @@ describe("account", () => {
       name: "Linked Password User",
       nickname: "passworduser",
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       is_social: false,
       linked_to: primaryUser.user_id,
     });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 // Basic CRUD tests for passwords
@@ -21,7 +22,7 @@ describe("passwords", () => {
       name: "User One",
       email_verified: true,
       is_social: false,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "authhero",
     });
 

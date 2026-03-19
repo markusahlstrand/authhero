@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
-import { Log } from "@authhero/adapter-interfaces";
+import { Log, Strategy } from "@authhero/adapter-interfaces";
 
 describe("logs", () => {
   it("should return an empty list of logs for a tenant", async () => {
@@ -40,7 +40,7 @@ describe("logs", () => {
       {
         json: {
           email: "test@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

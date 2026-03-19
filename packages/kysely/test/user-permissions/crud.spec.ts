@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 describe("user permissions adapter", () => {
@@ -39,7 +40,7 @@ describe("user permissions adapter", () => {
     const user = await adapters.users.create(tenant, {
       user_id: "test-user",
       email: "test@example.com",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth0",
     });
 
@@ -194,7 +195,7 @@ describe("user permissions adapter", () => {
     await adapters.users.create(tenant, {
       user_id: "empty-test-user",
       email: "empty-test@example.com",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth0",
     });
 
@@ -237,7 +238,7 @@ describe("user permissions adapter", () => {
     await adapters.users.create(tenant, {
       user_id: "multi-api-user",
       email: "multi-api@example.com",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth0",
     });
 
@@ -296,14 +297,14 @@ describe("user permissions adapter", () => {
     await adapters.users.create(tenant, {
       user_id: "user1",
       email: "user1@example.com",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth0",
     });
 
     await adapters.users.create(tenant, {
       user_id: "user2",
       email: "user2@example.com",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth0",
     });
 

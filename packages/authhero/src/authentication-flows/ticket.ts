@@ -1,4 +1,8 @@
-import { AuthParams } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  Strategy,
+  StrategyType,
+} from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
@@ -8,12 +12,12 @@ import { getEnrichedClient } from "../helpers/client";
 import { USERNAME_PASSWORD_PROVIDER } from "../constants";
 
 function getProviderFromRealm(realm: string) {
-  if (realm === "Username-Password-Authentication") {
+  if (realm === Strategy.USERNAME_PASSWORD) {
     return USERNAME_PASSWORD_PROVIDER;
   }
 
-  if (realm === "email") {
-    return "email";
+  if (realm === Strategy.EMAIL) {
+    return Strategy.EMAIL;
   }
 
   throw new JSONHTTPException(403, { message: "Invalid realm" });
@@ -59,12 +63,12 @@ export async function ticketAuth(
   const strategy =
     connection?.strategy ||
     (provider === USERNAME_PASSWORD_PROVIDER
-      ? "Username-Password-Authentication"
-      : "email");
+      ? Strategy.USERNAME_PASSWORD
+      : Strategy.EMAIL);
   const strategy_type =
-    strategy === "Username-Password-Authentication"
-      ? "database"
-      : "passwordless";
+    strategy === Strategy.USERNAME_PASSWORD
+      ? StrategyType.DATABASE
+      : StrategyType.PASSWORDLESS;
 
   let user = await getOrCreateUserByProvider(ctx, {
     username: loginSession.authParams.username,

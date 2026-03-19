@@ -139,7 +139,9 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
     // Enter the verification code
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });
@@ -477,7 +479,9 @@ describe("forms - FLOW node with REDIRECT after STEP", () => {
 
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });

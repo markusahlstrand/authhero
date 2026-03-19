@@ -10,6 +10,7 @@ import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
 import {
   LogTypes,
+  Strategy,
   getConnectionIdentifierConfig,
 } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
@@ -165,7 +166,7 @@ export const identifierRoutes = new OpenAPIHono<{
 
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const identifierConfig =
         getConnectionIdentifierConfig(passwordConnection);
@@ -353,9 +354,7 @@ export const identifierRoutes = new OpenAPIHono<{
       }
 
       const otpScreen =
-        connectionType === "sms"
-          ? "sms-otp-challenge"
-          : "email-otp-challenge";
+        connectionType === "sms" ? "sms-otp-challenge" : "email-otp-challenge";
       return ctx.redirect(`/u/login/${otpScreen}?state=${state}`);
     },
   );

@@ -7,6 +7,7 @@ import {
 import type { HookEvent, OnExecutePostLoginAPI } from "../../src/types/Hooks";
 import { HTTPException } from "hono/http-exception";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -141,7 +142,7 @@ function createMockEvent(
     user: {
       login_count: 0,
       is_social: false,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       email_verified: false,
       ...user,
     },
@@ -197,7 +198,7 @@ describe("ensureUsername", () => {
         identities: [
           {
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             user_id: `${USERNAME_PASSWORD_PROVIDER}|456`,
             isSocial: false,
             profileData: { username: "john" },
@@ -256,7 +257,7 @@ describe("ensureUsername", () => {
       expect.objectContaining({
         username: "jane",
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         linked_to: "email|123",
       }),
     );

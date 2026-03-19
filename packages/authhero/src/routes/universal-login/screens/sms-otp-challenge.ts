@@ -24,7 +24,12 @@ export async function smsOtpChallengeScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "sms-otp-challenge");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    undefined,
+    "sms-otp-challenge",
+  );
 
   const phone = data?.phone as string | undefined;
   const email = data?.email as string | undefined;
@@ -139,7 +144,12 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, undefined, "sms-otp-challenge");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        undefined,
+        "sms-otp-challenge",
+      );
 
       // Validate code is provided
       if (!code) {

@@ -110,11 +110,67 @@ const DARK_MODE_CSS_VARS: Record<string, string> = {
   "--ah-color-link": "#60a5fa",
 };
 
+// Inline contrast helpers for dark mode CSS generation
+function parseDarkHex(hex: string): [number, number, number] {
+  const c = hex.replace("#", "");
+  const n = parseInt(c, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function darkLuminance(hex: string): number {
+  const [r, g, b] = parseDarkHex(hex).map((c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+function darkContrastRatio(h1: string, h2: string): number {
+  const l1 = darkLuminance(h1);
+  const l2 = darkLuminance(h2);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+function lightenHexDark(hex: string, pct: number): string {
+  const [r, g, b] = parseDarkHex(hex);
+  const f = (v: number) =>
+    Math.min(255, Math.round(v + (255 - v) * pct))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${f(r)}${f(g)}${f(b)}`;
+}
+
 /**
  * Generate CSS rules for dark mode variables on a selector.
+ * When a primaryColor is provided, ensures the primary button has
+ * adequate contrast against the dark widget background.
  */
-function darkModeCssVarRules(selector: string): string {
-  const props = Object.entries(DARK_MODE_CSS_VARS)
+function darkModeCssVarRules(selector: string, primaryColor?: string): string {
+  const vars: Record<string, string> = { ...DARK_MODE_CSS_VARS };
+
+  if (primaryColor) {
+    const darkBg = DARK_MODE_CSS_VARS["--ah-color-bg"] || "#1f2937";
+
+    // If primary button is too dark for the dark background, lighten it
+    if (darkContrastRatio(primaryColor, darkBg) < 3) {
+      let adjusted = primaryColor;
+      for (let i = 1; i <= 10; i++) {
+        adjusted = lightenHexDark(primaryColor, i * 0.1);
+        if (darkContrastRatio(adjusted, darkBg) >= 3) break;
+      }
+      vars["--ah-color-primary"] = adjusted;
+      vars["--ah-color-primary-hover"] = adjusted;
+    }
+
+    // Auto-compute text-on-primary for dark mode
+    const btnBg = vars["--ah-color-primary"] || primaryColor;
+    const whiteContrast = darkContrastRatio(btnBg, "#ffffff");
+    const blackContrast = darkContrastRatio(btnBg, "#000000");
+    vars["--ah-color-text-on-primary"] =
+      blackContrast > whiteContrast ? "#000000" : "#ffffff";
+  }
+
+  const props = Object.entries(vars)
     .map(([k, v]) => `${k}: ${v}`)
     .join("; ");
   return `${selector} { ${props}; }`;
@@ -237,7 +293,7 @@ export function WidgetPage({
               html.ah-dark-mode .terms-link:hover { color: rgba(255,255,255,0.7); }
               html.ah-dark-mode .page-footer .language-picker, html.ah-dark-mode .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
               html.ah-dark-mode .page-footer .language-picker:hover, html.ah-dark-mode .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
-              ${darkModeCssVarRules("html.ah-dark-mode authhero-widget")}
+              ${darkModeCssVarRules("html.ah-dark-mode authhero-widget", primaryColor || sanitizeCssColor(theme?.colors?.primary_button))}
 
               /* Auto mode: follow system preference, unless explicitly set to light */
               @media (prefers-color-scheme: dark) {
@@ -249,7 +305,7 @@ export function WidgetPage({
                 html:not(.ah-light-mode) .terms-link:hover { color: rgba(255,255,255,0.7); }
                 html:not(.ah-light-mode) .page-footer .language-picker, html:not(.ah-light-mode) .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
                 html:not(.ah-light-mode) .page-footer .language-picker:hover, html:not(.ah-light-mode) .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
-                ${darkModeCssVarRules("html:not(.ah-light-mode) authhero-widget")}
+                ${darkModeCssVarRules("html:not(.ah-light-mode) authhero-widget", primaryColor || sanitizeCssColor(theme?.colors?.primary_button))}
               }
 
               @media (max-width: 560px) {

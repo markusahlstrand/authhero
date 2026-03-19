@@ -6,6 +6,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
@@ -62,7 +63,7 @@ export async function magicLinkSentScreen(
 
   // Back link
   const hasPasswordConnection = context.connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   const backPath = hasPasswordConnection
     ? `${routePrefix}/login/identifier`

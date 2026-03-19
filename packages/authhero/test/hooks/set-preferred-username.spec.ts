@@ -4,6 +4,7 @@ import type {
   HookEvent,
   OnExecuteCredentialsExchangeAPI,
 } from "../../src/types/Hooks";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 function createMockApi() {
   return {
@@ -114,7 +115,7 @@ describe("setPreferredUsername", () => {
           isSocial: false,
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           provider: "auth2",
           user_id: "456",
           isSocial: false,
@@ -152,7 +153,7 @@ describe("setPreferredUsername", () => {
           isSocial: false,
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           provider: "auth2",
           user_id: "456",
           isSocial: false,
@@ -183,14 +184,14 @@ describe("setPreferredUsername", () => {
           isSocial: false,
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           provider: "auth2",
           user_id: "456",
           isSocial: false,
           username: "first-username",
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           provider: "auth2",
           user_id: "789",
           isSocial: false,

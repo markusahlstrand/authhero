@@ -5,6 +5,7 @@ import {
   TextInput,
   required,
 } from "react-admin";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 export function ConnectionCreate() {
   return (
@@ -15,18 +16,18 @@ export function ConnectionCreate() {
           source="strategy"
           label="Strategy"
           choices={[
-            { id: "email", name: "Email" },
-            { id: "google-oauth2", name: "Google" },
-            { id: "facebook", name: "Facebook" },
-            { id: "apple", name: "Apple" },
-            { id: "github", name: "GitHub" },
-            { id: "microsoft", name: "Microsoft" },
-            { id: "vipps", name: "Vipps" },
-            { id: "oauth2", name: "OAuth2" },
-            { id: "oidc", name: "OpenID Connect" },
-            { id: "Username-Password-Authentication", name: "Password" },
-            { id: "sms", name: "SMS" },
-            { id: "samlp", name: "SAML" },
+            { id: Strategy.EMAIL, name: "Email" },
+            { id: Strategy.GOOGLE_OAUTH2, name: "Google" },
+            { id: Strategy.FACEBOOK, name: "Facebook" },
+            { id: Strategy.APPLE, name: "Apple" },
+            { id: Strategy.GITHUB, name: "GitHub" },
+            { id: Strategy.MICROSOFT, name: "Microsoft" },
+            { id: Strategy.VIPPS, name: "Vipps" },
+            { id: Strategy.OAUTH2, name: "OAuth2" },
+            { id: Strategy.OIDC, name: "OpenID Connect" },
+            { id: Strategy.USERNAME_PASSWORD, name: "Password" },
+            { id: Strategy.SMS, name: "SMS" },
+            { id: Strategy.SAMLP, name: "SAML" },
           ]}
         />
       </SimpleForm>

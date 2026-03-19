@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "./helpers/test-server";
 
 describe("ClientConnectionsAdapter", () => {
@@ -114,7 +115,7 @@ describe("ClientConnectionsAdapter", () => {
         id: "conn-2",
         tenant_id: tenantId,
         name: "Google",
-        strategy: "google-oauth2",
+        strategy: Strategy.GOOGLE_OAUTH2,
         options: '{"client_id":"google-client-id"}',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -127,7 +128,7 @@ describe("ClientConnectionsAdapter", () => {
         id: "conn-3",
         tenant_id: tenantId,
         name: "GitHub",
-        strategy: "github",
+        strategy: Strategy.GITHUB,
         options: '{"client_id":"github-client-id"}',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("dbconnections", () => {
   describe("signup", () => {
@@ -16,7 +17,7 @@ describe("dbconnections", () => {
           json: {
             email: "email-user@example.com",
             password: "fG%D0MV4bjb%xI",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -54,7 +55,7 @@ describe("dbconnections", () => {
           json: {
             email: "email-user@example.com",
             password: "pass",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -81,7 +82,7 @@ describe("dbconnections", () => {
           json: {
             email: "email-user@example.com",
             password: "Password1!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -98,7 +99,7 @@ describe("dbconnections", () => {
           json: {
             email: "email-user@example.com",
             password: "Password1!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -151,7 +152,7 @@ describe("dbconnections", () => {
           json: {
             email: "email-user@example.com",
             password: "fG%D0MV4bjb%xI",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -168,7 +169,7 @@ describe("dbconnections", () => {
         {
           json: {
             email: "email-user@example.com",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -220,7 +221,7 @@ describe("dbconnections", () => {
         {
           json: {
             email: "email-user@example.com",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },

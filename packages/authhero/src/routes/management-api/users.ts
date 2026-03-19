@@ -10,6 +10,7 @@ import { hashPassword } from "../../helpers/password-policy";
 import {
   Identity,
   LogTypes,
+  Strategy,
   auth0UserResponseSchema,
   identitySchema,
   sessionSchema,
@@ -531,7 +532,7 @@ export const userRoutes = new OpenAPIHono<{
 
         if (connection) {
           // If connection is specified and it's a password connection, use the target user
-          if (connection === "Username-Password-Authentication") {
+          if (connection === Strategy.USERNAME_PASSWORD) {
             passwordIdentity = {
               provider: targetUser.provider,
               user_id: userIdParse(targetUserId)!,
@@ -544,7 +545,7 @@ export const userRoutes = new OpenAPIHono<{
         } else {
           // Original behavior: find password identity in the primary user
           passwordIdentity = userToPatch.identities?.find(
-            (i) => i.connection === "Username-Password-Authentication",
+            (i) => i.connection === Strategy.USERNAME_PASSWORD,
           );
 
           if (!passwordIdentity) {

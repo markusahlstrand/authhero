@@ -57,6 +57,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 const EditFieldModal = ({
   open,
@@ -377,9 +378,9 @@ const PasswordChangeSection = () => {
 
   // Check if the user has a password identity (Username-Password-Authentication connection)
   const hasPasswordIdentity =
-    record?.connection === "Username-Password-Authentication" ||
+    record?.connection === Strategy.USERNAME_PASSWORD ||
     record?.identities?.some(
-      (i: any) => i.connection === "Username-Password-Authentication",
+      (i: any) => i.connection === Strategy.USERNAME_PASSWORD,
     );
 
   if (!hasPasswordIdentity || !record) {
@@ -415,7 +416,7 @@ const PasswordChangeSection = () => {
         id: record.id,
         data: {
           password: newPassword,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         previousData: record,
       });

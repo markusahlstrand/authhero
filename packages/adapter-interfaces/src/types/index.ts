@@ -83,3 +83,4 @@ export * from "./UserOrganization";
 export * from "./TenantSettings";
 export * from "./Stats";
 export * from "./CustomText";
+export * from "./Strategy";

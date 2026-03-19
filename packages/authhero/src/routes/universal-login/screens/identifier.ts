@@ -5,7 +5,10 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { getConnectionIdentifierConfig } from "@authhero/adapter-interfaces";
+import {
+  getConnectionIdentifierConfig,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
@@ -35,9 +38,9 @@ function buildSocialButtons(
 
   const socialConnections = connections.filter(
     (c) =>
-      c.strategy !== "email" &&
-      c.strategy !== "sms" &&
-      c.strategy !== "Username-Password-Authentication",
+      c.strategy !== Strategy.EMAIL &&
+      c.strategy !== Strategy.SMS &&
+      c.strategy !== Strategy.USERNAME_PASSWORD,
   );
 
   if (socialConnections.length === 0) {
@@ -75,9 +78,9 @@ function buildSocialButtons(
   // Add divider if we have social buttons and password/email/sms login
   const hasPasswordOrEmailOrSms = connections.some(
     (c) =>
-      c.strategy === "email" ||
-      c.strategy === "sms" ||
-      c.strategy === "Username-Password-Authentication",
+      c.strategy === Strategy.EMAIL ||
+      c.strategy === Strategy.SMS ||
+      c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
   if (hasPasswordOrEmailOrSms) {
@@ -130,14 +133,14 @@ export async function identifierScreen(
   // Check if we have email/sms/password connections that need the identifier input
   const hasEmailOrPasswordConnection = context.connections.some(
     (c) =>
-      c.strategy === "email" ||
-      c.strategy === "sms" ||
-      c.strategy === "Username-Password-Authentication",
+      c.strategy === Strategy.EMAIL ||
+      c.strategy === Strategy.SMS ||
+      c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
   // Check if the password connection has username identifier enabled
   const passwordConnection = context.connections.find(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
   const requiresUsername = identifierConfig.usernameIdentifierActive;
@@ -193,7 +196,7 @@ export async function identifierScreen(
 
   // Check if password signup is available
   const hasPasswordConnection = context.connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
   // Check if signups are disabled via client metadata
@@ -262,7 +265,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
 
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const identifierConfig =
         getConnectionIdentifierConfig(passwordConnection);
@@ -270,7 +273,12 @@ export const identifierScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n once for all error branches
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, undefined, "identifier");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        undefined,
+        "identifier",
+      );
 
       // Validate username is provided
       if (!username) {

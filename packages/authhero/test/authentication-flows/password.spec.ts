@@ -3,6 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("password authentication - failed login tracking", () => {
   it("should reject a login after three failed attempts and record in app_metadata", async () => {
@@ -15,7 +16,7 @@ describe("password authentication - failed login tracking", () => {
       email_verified: true,
       name: "Test User",
       nickname: "Test User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
@@ -34,7 +35,7 @@ describe("password authentication - failed login tracking", () => {
           json: {
             client_id: "clientId",
             credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-            realm: "Username-Password-Authentication",
+            realm: Strategy.USERNAME_PASSWORD,
             password: "IncorrectPassword",
             username: "testuser@example.com",
           },
@@ -49,7 +50,7 @@ describe("password authentication - failed login tracking", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "CorrectPassword123!",
         username: "testuser@example.com",
       },
@@ -82,7 +83,7 @@ describe("password authentication - failed login tracking", () => {
       email_verified: true,
       name: "Test User 2",
       nickname: "Test User 2",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId2`,
@@ -99,7 +100,7 @@ describe("password authentication - failed login tracking", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "IncorrectPassword",
         username: "testuser2@example.com",
       },
@@ -121,7 +122,7 @@ describe("password authentication - failed login tracking", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "CorrectPassword123!",
         username: "testuser2@example.com",
       },
@@ -150,7 +151,7 @@ describe("password authentication - failed login tracking", () => {
       email_verified: true,
       name: "Test User 3",
       nickname: "Test User 3",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|userId3`,
@@ -202,7 +203,7 @@ describe("password authentication - failed login tracking", () => {
       email_verified: true,
       name: "Primary User",
       nickname: "Primary User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|primary`,
@@ -214,7 +215,7 @@ describe("password authentication - failed login tracking", () => {
       email_verified: true,
       name: "Linked User",
       nickname: "Linked User",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|linked`,
@@ -233,7 +234,7 @@ describe("password authentication - failed login tracking", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "IncorrectPassword",
         username: "linked@example.com",
       },
