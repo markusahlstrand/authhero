@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Bindings, Variables } from "../../types";
@@ -146,7 +146,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
       // This is needed because user.connection may contain "Username-Password-Authentication"
       // (a hardcoded fallback) instead of the actual connection name
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const connectionName = passwordConnection?.name || user.connection;
 

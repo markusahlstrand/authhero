@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 // Basic CRUD tests for users
@@ -25,7 +26,7 @@ describe("users", () => {
       is_social: false,
       app_metadata: { foo: "bar" },
       user_metadata: { hello: "world" },
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "authhero",
     });
 

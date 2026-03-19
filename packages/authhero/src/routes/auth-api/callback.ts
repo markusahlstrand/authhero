@@ -1,6 +1,10 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { LogTypes, promptSettingSchema } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  Strategy,
+  promptSettingSchema,
+} from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
 import { Bindings, Variables } from "../../types";
@@ -78,7 +82,7 @@ async function returnError(
         );
         const settings = promptSettingSchema.parse(promptSettings || {});
         const hasPasswordConnection = client.connections.some(
-          (c) => c.strategy === "Username-Password-Authentication",
+          (c) => c.strategy === Strategy.USERNAME_PASSWORD,
         );
         if (settings.identifier_first === false && hasPasswordConnection) {
           loginPath = "/login";

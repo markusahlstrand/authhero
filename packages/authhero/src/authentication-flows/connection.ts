@@ -1,5 +1,9 @@
 import { Context } from "hono";
-import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LogTypes,
+  StrategyType,
+} from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { logMessage } from "../helpers/logging";
@@ -204,7 +208,7 @@ export async function connectionCallback(
     authConnection: connection.name,
     authStrategy: {
       strategy: connection.strategy,
-      strategy_type: "social",
+      strategy_type: StrategyType.SOCIAL,
     },
   });
 }

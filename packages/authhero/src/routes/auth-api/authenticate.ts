@@ -5,7 +5,7 @@ import { loginWithPassword } from "../../authentication-flows/password";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { nanoid } from "nanoid";
-import { TokenResponse } from "@authhero/adapter-interfaces";
+import { Strategy, TokenResponse } from "@authhero/adapter-interfaces";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
@@ -34,7 +34,7 @@ export const authenticateRoutes = new OpenAPIHono<{
                   otp: z.string(),
                   client_id: z.string(),
                   username: z.string().transform((v) => v.toLowerCase()),
-                  realm: z.enum(["email"]),
+                  realm: z.enum([Strategy.EMAIL]),
                   scope: z.string().optional(),
                 }),
                 z.object({
@@ -44,7 +44,7 @@ export const authenticateRoutes = new OpenAPIHono<{
                   client_id: z.string(),
                   username: z.string().transform((v) => v.toLowerCase()),
                   password: z.string(),
-                  realm: z.enum(["Username-Password-Authentication"]),
+                  realm: z.enum([Strategy.USERNAME_PASSWORD]),
                   scope: z.string().optional(),
                 }),
               ]),

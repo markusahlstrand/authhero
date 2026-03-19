@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
+import { AuthParams, LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
@@ -39,7 +39,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
             "application/json": {
               schema: z.object({
                 client_id: z.string(),
-                connection: z.literal("Username-Password-Authentication"),
+                connection: z.literal(Strategy.USERNAME_PASSWORD),
                 email: z.string().transform((u) => u.toLowerCase()),
                 password: z.string(),
               }),
@@ -73,10 +73,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
 
       // Find the password connection from the client's connections to get the correct password policy
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const connectionName =
-        passwordConnection?.name || "Username-Password-Authentication";
+        passwordConnection?.name || Strategy.USERNAME_PASSWORD;
 
       // Validate password against connection policy
       const policy = await getPasswordPolicy(
@@ -120,7 +120,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         email,
         email_verified: false,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
         password: { hash, algorithm },
       });
@@ -165,7 +165,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
             "application/json": {
               schema: z.object({
                 client_id: z.string(),
-                connection: z.literal("Username-Password-Authentication"),
+                connection: z.literal(Strategy.USERNAME_PASSWORD),
                 email: z.string().transform((u) => u.toLowerCase()),
               }),
             },

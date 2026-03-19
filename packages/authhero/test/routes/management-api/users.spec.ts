@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
-import { User } from "@authhero/adapter-interfaces";
+import { User, Strategy } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("users management API endpoint", () => {
@@ -163,7 +163,7 @@ describe("users management API endpoint", () => {
             user_id: `${USERNAME_PASSWORD_PROVIDER}|myCustomId`,
             email: "prefixed@example.com",
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
           },
           header: {
             "tenant-id": "tenantId",
@@ -248,7 +248,7 @@ describe("users management API endpoint", () => {
           user_id: `${USERNAME_PASSWORD_PROVIDER}|primaryId`,
           provider: USERNAME_PASSWORD_PROVIDER,
           email_verified: true,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
         });
 
@@ -283,7 +283,7 @@ describe("users management API endpoint", () => {
         const primaryUser = await primaryUserRes.json();
         expect(primaryUser.identities).toEqual([
           {
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             provider: USERNAME_PASSWORD_PROVIDER,
             user_id: "primaryId",
             isSocial: false,
@@ -473,7 +473,7 @@ describe("users management API endpoint", () => {
         email: "foo@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -482,7 +482,7 @@ describe("users management API endpoint", () => {
         email: "foo2@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -647,7 +647,7 @@ describe("users management API endpoint", () => {
           email: "primary@example.com",
           email_verified: true,
           provider: USERNAME_PASSWORD_PROVIDER,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
         });
 
@@ -714,7 +714,7 @@ describe("users management API endpoint", () => {
           email: "secondary@example.com",
           email_verified: false,
           provider: USERNAME_PASSWORD_PROVIDER,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
           linked_to: "email|primary-user",
           app_metadata: { role: "user" },
@@ -728,7 +728,7 @@ describe("users management API endpoint", () => {
             },
             json: {
               app_metadata: { role: "admin", department: "engineering" },
-              connection: "Username-Password-Authentication",
+              connection: Strategy.USERNAME_PASSWORD,
             },
             header: {
               "tenant-id": "tenantId",
@@ -765,7 +765,7 @@ describe("users management API endpoint", () => {
           email: "primary@example.com",
           email_verified: true,
           provider: USERNAME_PASSWORD_PROVIDER,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
         });
 
@@ -836,7 +836,7 @@ describe("users management API endpoint", () => {
           email: "secondary@example.com",
           email_verified: true,
           provider: USERNAME_PASSWORD_PROVIDER,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
           linked_to: "email|primary-user",
         });
@@ -858,7 +858,7 @@ describe("users management API endpoint", () => {
             },
             json: {
               password: "newPassword456",
-              connection: "Username-Password-Authentication",
+              connection: Strategy.USERNAME_PASSWORD,
             },
             header: {
               "tenant-id": "tenantId",
@@ -1354,7 +1354,7 @@ describe("users management API endpoint", () => {
         email: "base-user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
       // create new code user WITH DIFFERENT EMAIL ADDRESS and link this to the password user
@@ -1388,7 +1388,7 @@ describe("users management API endpoint", () => {
       const baseUser = await baseUserRes.json();
       expect(baseUser.identities).toEqual([
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           isSocial: false,
           provider: USERNAME_PASSWORD_PROVIDER,
           user_id: "base-user",
@@ -1438,7 +1438,7 @@ describe("users management API endpoint", () => {
       // assert that we get the primary user back
       expect(body[0]?.identities).toEqual([
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           isSocial: false,
           provider: USERNAME_PASSWORD_PROVIDER,
           user_id: "base-user",
@@ -1615,7 +1615,7 @@ describe("users management API endpoint", () => {
         email: "foo1@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1624,7 +1624,7 @@ describe("users management API endpoint", () => {
         email: "foo2@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1679,7 +1679,7 @@ describe("users management API endpoint", () => {
       expect(newUser).toBeDefined();
       expect(newUser?.identities).toEqual([
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           user_id: "userId2",
           provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
@@ -1687,7 +1687,7 @@ describe("users management API endpoint", () => {
           email_verified: true,
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           user_id: "userId1",
           provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
@@ -1753,7 +1753,7 @@ describe("users management API endpoint", () => {
 
       expect(user2.identities).toEqual([
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           user_id: "userId2",
           provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
@@ -1776,7 +1776,7 @@ describe("users management API endpoint", () => {
         email: "foo1@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1785,7 +1785,7 @@ describe("users management API endpoint", () => {
         email: "foo2@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1835,7 +1835,7 @@ describe("users management API endpoint", () => {
       expect(body.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|userId2`);
       expect(body.identities).toEqual([
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           user_id: "userId2",
           provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
@@ -1843,7 +1843,7 @@ describe("users management API endpoint", () => {
           email_verified: true,
         },
         {
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           user_id: "userId1",
           provider: USERNAME_PASSWORD_PROVIDER,
           isSocial: false,
@@ -2300,7 +2300,7 @@ describe("users management API endpoint", () => {
           json: {
             email: testEmail,
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
           },
           header: {
             "tenant-id": "tenantId",
@@ -2410,7 +2410,7 @@ describe("users management API endpoint", () => {
       expect(updatedPrimaryUser.identities).toContainEqual(
         expect.objectContaining({
           provider: USERNAME_PASSWORD_PROVIDER,
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           email: testEmail,
           email_verified: false,
         }),
@@ -2422,7 +2422,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: testPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });
@@ -2447,7 +2447,7 @@ describe("users management API endpoint", () => {
       // The log should show the primary user
       expect(successLog!.user_id).toBe(primaryUser.user_id);
       // But it should log the database connection that was actually used
-      expect(successLog!.connection).toBe("Username-Password-Authentication");
+      expect(successLog!.connection).toBe(Strategy.USERNAME_PASSWORD);
     });
 
     it("should create a password user without password, then set password later", async () => {
@@ -2466,7 +2466,7 @@ describe("users management API endpoint", () => {
           json: {
             email: testEmail,
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
           },
           header: {
             "tenant-id": "tenantId",
@@ -2531,7 +2531,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: testPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });
@@ -2552,7 +2552,7 @@ describe("users management API endpoint", () => {
       const successLog = logs.find((log) => log.type === "s");
       expect(successLog).toBeDefined();
       expect(successLog!.user_id).toBe(user.user_id);
-      expect(successLog!.connection).toBe("Username-Password-Authentication");
+      expect(successLog!.connection).toBe(Strategy.USERNAME_PASSWORD);
     });
 
     it("should update an existing password when setting password twice", async () => {
@@ -2572,7 +2572,7 @@ describe("users management API endpoint", () => {
           json: {
             email: testEmail,
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             password: firstPassword,
           },
           header: {
@@ -2606,7 +2606,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: firstPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });
@@ -2651,7 +2651,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: firstPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });
@@ -2664,7 +2664,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: secondPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });
@@ -2718,7 +2718,7 @@ describe("users management API endpoint", () => {
             email_verified: true, // This should trigger automatic linking
             password: testPassword,
             provider: USERNAME_PASSWORD_PROVIDER,
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
           },
           header: {
             "tenant-id": "tenantId",
@@ -2746,8 +2746,7 @@ describe("users management API endpoint", () => {
       });
       const secondaryUser = allUsers.users.find(
         (u) =>
-          u.connection === "Username-Password-Authentication" &&
-          u.email === testEmail,
+          u.connection === Strategy.USERNAME_PASSWORD && u.email === testEmail,
       );
 
       expect(secondaryUser).toBeDefined();
@@ -2773,7 +2772,7 @@ describe("users management API endpoint", () => {
           credential_type: "http://auth0.com/oauth/grant-type/password-realm",
           username: testEmail,
           password: testPassword,
-          realm: "Username-Password-Authentication",
+          realm: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       });

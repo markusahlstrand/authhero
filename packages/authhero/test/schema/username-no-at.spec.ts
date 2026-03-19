@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { baseUserSchema, userInsertSchema } from "@authhero/adapter-interfaces";
+import {
+  baseUserSchema,
+  userInsertSchema,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 
 /**
  * INVARIANT: plain usernames must not contain "@".
@@ -37,7 +41,7 @@ describe("username must not contain @", () => {
   it("userInsertSchema rejects username with @", () => {
     const result = userInsertSchema.safeParse({
       username: "bad@user",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
     expect(result.success).toBe(false);
   });

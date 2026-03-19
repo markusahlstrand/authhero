@@ -8,7 +8,10 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { getConnectionIdentifierConfig } from "@authhero/adapter-interfaces";
+import {
+  getConnectionIdentifierConfig,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
@@ -31,18 +34,25 @@ function buildSocialButtons(
   const { connections } = context;
 
   const socialConnections = connections.filter(
-    (c) =>
-      c.strategy !== "email" &&
-      c.strategy !== "sms" &&
-      c.strategy !== "Username-Password-Authentication",
+    (c) => c.strategy !== Strategy.USERNAME_PASSWORD,
   );
 
   if (socialConnections.length === 0) {
     return [];
   }
 
+  const passwordlessUrl = `${context.routePrefix}/login/login-passwordless-identifier?state=${encodeURIComponent(context.state)}`;
+
+  // Separate passwordless and social connections to dedupe passwordless into a single entry
+  const passwordlessConnections = socialConnections.filter(
+    (c) => c.strategy === Strategy.EMAIL || c.strategy === Strategy.SMS,
+  );
+  const nonPasswordlessConnections = socialConnections.filter(
+    (c) => c.strategy !== Strategy.EMAIL && c.strategy !== Strategy.SMS,
+  );
+
   // Create provider details with icon URLs and display names
-  const providerDetails = socialConnections.map((conn) => {
+  const providerDetails = nonPasswordlessConnections.map((conn) => {
     const displayName = conn.display_name || conn.name;
     return {
       name: conn.name,
@@ -54,8 +64,23 @@ function buildSocialButtons(
     };
   });
 
+  // Add a single passwordless entry if any passwordless connections exist
+  const firstPasswordless = passwordlessConnections[0];
+  if (firstPasswordless) {
+    providerDetails.push({
+      name: firstPasswordless.name,
+      strategy: firstPasswordless.strategy,
+      display_name: m.enter_a_code_btn(),
+      icon_url: getConnectionIconUrl(firstPasswordless),
+      href: passwordlessUrl,
+    } as (typeof providerDetails)[number] & { href: string });
+  }
+
   // Create a single SOCIAL component with all providers
-  const providers = socialConnections.map((conn) => conn.name);
+  const providers = [
+    ...nonPasswordlessConnections.map((conn) => conn.name),
+    ...(firstPasswordless ? [firstPasswordless.name] : []),
+  ];
 
   const socialButton: FormNodeComponent = {
     id: "social-buttons",
@@ -69,15 +94,12 @@ function buildSocialButtons(
     order: 0,
   };
 
-  // Add divider if we have social buttons and password/email/sms login
-  const hasPasswordOrEmailOrSms = connections.some(
-    (c) =>
-      c.strategy === "email" ||
-      c.strategy === "sms" ||
-      c.strategy === "Username-Password-Authentication",
+  // Add divider if we have social buttons and a password connection
+  const hasPasswordConnection = connections.some(
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
-  if (hasPasswordOrEmailOrSms) {
+  if (hasPasswordConnection) {
     const divider: FormNodeComponent = {
       id: "divider",
       type: "DIVIDER",
@@ -114,14 +136,19 @@ export async function loginScreen(
 
   // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, promptScreen || "login", "login");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    promptScreen || "login",
+    "login",
+  );
 
   const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;
 
   // Check if we have a password connection
   const passwordConnection = context.connections.find(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   const hasPasswordConnection = !!passwordConnection;
   const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
@@ -208,25 +235,6 @@ export async function loginScreen(
     });
   }
 
-  // Add "Sign in with a code" link if passwordless connections are available
-  const hasPasswordlessConnection = context.connections.some(
-    (c) => c.strategy === "email" || c.strategy === "sms",
-  );
-
-  if (hasPasswordlessConnection) {
-    const passwordlessUrl = `${routePrefix}/login/login-passwordless-identifier?state=${encodeURIComponent(state)}`;
-    components.push({
-      id: "passwordless-link",
-      type: "RICH_TEXT",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        content: `<div class="passwordless-link"><a href="${passwordlessUrl}">${m.enter_a_code_btn()}</a></div>`,
-      },
-      order: components.length + 1,
-    });
-  }
-
   // Check if signups are disabled via client metadata
   const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
 
@@ -293,11 +301,16 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, "login", "login");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        "login",
+        "login",
+      );
 
       // Check if the password connection has username identifier enabled
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const identifierConfig =
         getConnectionIdentifierConfig(passwordConnection);

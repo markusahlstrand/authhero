@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import i18next from "i18next";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { initJSXRoute } from "./common";
@@ -150,10 +151,10 @@ export const signupRoutes = new OpenAPIHono<{
 
         // Find the password connection from the client's connections
         const passwordConnection = client.connections.find(
-          (c) => c.strategy === "Username-Password-Authentication",
+          (c) => c.strategy === Strategy.USERNAME_PASSWORD,
         );
         const connection =
-          passwordConnection?.name || "Username-Password-Authentication";
+          passwordConnection?.name || Strategy.USERNAME_PASSWORD;
         ctx.set("connection", connection);
 
         if (loginParams.password !== loginParams["re-enter-password"]) {

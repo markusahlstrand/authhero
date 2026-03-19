@@ -33,7 +33,12 @@ export async function checkAccountScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, "check-account", "check-account");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    "check-account",
+    "check-account",
+  );
 
   const loginPath = await getLoginPath(context);
 

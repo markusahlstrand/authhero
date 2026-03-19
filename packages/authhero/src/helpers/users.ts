@@ -226,8 +226,7 @@ export async function getOrCreateUserByProvider(
       user_id: `${provider}|${userId || userIdGenerate()}`,
       email:
         connection !== "sms" && username.includes("@") ? username : undefined,
-      phone_number:
-        connection === "sms" ? username : rootAttrs.phone_number,
+      phone_number: connection === "sms" ? username : rootAttrs.phone_number,
       username:
         !username.includes("@") && connection !== "sms" ? username : undefined,
       name: rootAttrs.name || username,

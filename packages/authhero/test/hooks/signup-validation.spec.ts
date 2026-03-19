@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import { nanoid } from "nanoid";
-import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 
 describe("signup validation hooks", () => {
   describe("validateRegistrationUsername", () => {
@@ -17,7 +20,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "newuser@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -51,7 +54,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "blocked@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -100,7 +103,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "existing@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -135,7 +138,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "password@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -159,7 +162,7 @@ describe("signup validation hooks", () => {
       await env.data.users.create("tenantId", {
         email: "user@example.com",
         email_verified: true,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         provider: "auth0",
         is_social: false,
         user_id: "auth0|user",
@@ -185,7 +188,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "user@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },
@@ -220,7 +223,7 @@ describe("signup validation hooks", () => {
           json: {
             email: "blocked@example.com",
             password: "Test12345!",
-            connection: "Username-Password-Authentication",
+            connection: Strategy.USERNAME_PASSWORD,
             client_id: "clientId",
           },
         },

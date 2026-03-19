@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 
 describe("identifier screen - social buttons with provider details", () => {
   it("should include provider_details with strategy for OIDC connections", async () => {
@@ -124,7 +127,7 @@ describe("identifier screen - social buttons with provider details", () => {
     // Update client to have this connection AND the default username-password connection
     await env.data.clientConnections.updateByClient("tenantId", "clientId", [
       "vipps-oidc-no-icon",
-      "Username-Password-Authentication", // Keep the default connection so the form can work
+      Strategy.USERNAME_PASSWORD, // Keep the default connection so the form can work
     ]);
 
     const oauthClient = testClient(oauthApp, env);
@@ -222,7 +225,7 @@ describe("identifier screen - social buttons with provider details", () => {
       "conn-first",
       "conn-second",
       "conn-third",
-      "Username-Password-Authentication",
+      Strategy.USERNAME_PASSWORD,
     ]);
 
     const oauthClient = testClient(oauthApp, env);

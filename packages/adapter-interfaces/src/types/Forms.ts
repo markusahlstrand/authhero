@@ -320,6 +320,7 @@ const socialField = fieldComponentBase.extend({
             strategy: z.string().optional(),
             display_name: z.string().optional(),
             icon_url: z.string().optional(),
+            href: z.string().optional(),
           }),
         )
         .optional(),

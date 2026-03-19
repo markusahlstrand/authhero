@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("user update - Management API logging", () => {
   it("should log user updates with sapi type and full request/response details", async () => {
@@ -18,7 +19,7 @@ describe("user update - Management API logging", () => {
           email_verified: false,
           name: "Test User",
           nickname: "test",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -108,7 +109,7 @@ describe("user update - Management API logging", () => {
           email: "old@example.com",
           email_verified: false,
           name: "Test User",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -182,7 +183,7 @@ describe("user update - Management API logging", () => {
         json: {
           email: "timestamp-test@example.com",
           name: "Timestamp Test",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -262,7 +263,7 @@ describe("user update - Management API logging", () => {
         json: {
           email: "metadata-test@example.com",
           name: "Metadata Test",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

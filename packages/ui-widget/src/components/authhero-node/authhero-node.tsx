@@ -1,4 +1,12 @@
-import { Component, h, Prop, Event, EventEmitter, State, Watch } from "@stencil/core";
+import {
+  Component,
+  h,
+  Prop,
+  Event,
+  EventEmitter,
+  State,
+  Watch,
+} from "@stencil/core";
 import type {
   FormComponent,
   RuntimeComponent,
@@ -6,7 +14,11 @@ import type {
   BlockComponent,
   FieldComponent,
 } from "../../types/components";
-import { countries, getCountryByCode, type CountryData } from "../../utils/country-data";
+import {
+  countries,
+  getCountryByCode,
+  type CountryData,
+} from "../../utils/country-data";
 
 @Component({
   tag: "authhero-node",
@@ -88,7 +100,9 @@ export class AuthheroNode {
 
   private initCountryFromConfig() {
     if (this.component?.type === "TEL") {
-      const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+      const config = (this.component as FieldComponent).config as
+        | Record<string, unknown>
+        | undefined;
       const defaultCountry = config?.default_country as string | undefined;
       if (defaultCountry) {
         this.selectedCountry = getCountryByCode(defaultCountry);
@@ -185,14 +199,17 @@ export class AuthheroNode {
     const target = e.target as HTMLInputElement;
     const value = target.value;
 
-    const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+    const config = (this.component as FieldComponent).config as
+      | Record<string, unknown>
+      | undefined;
     const allowEmail = config?.allow_email === true;
 
     if (allowEmail) {
       // Detect phone mode: value starts with digit or '+', and no '@'.
       // When the field is empty, revert to neutral (email) mode so the
       // country picker disappears and the user can start fresh.
-      const looksLikePhone = value.length > 0 && /^[+\d]/.test(value) && !value.includes("@");
+      const looksLikePhone =
+        value.length > 0 && /^[+\d]/.test(value) && !value.includes("@");
       this.telEmailMode = !looksLikePhone;
 
       if (!this.telEmailMode) {
@@ -201,7 +218,9 @@ export class AuthheroNode {
         const dialLocal = this.detectDialCodeFromInput(value);
         if (dialLocal !== null) {
           // Dial code matched — strip it from the input and show only local part
-          const cleanedLocal = dialLocal.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "");
+          const cleanedLocal = dialLocal
+            .replace(/[^+\d\s\-()]/g, "")
+            .replace(/\+/g, "");
           target.value = cleanedLocal;
           this.localPhoneNumber = cleanedLocal;
           const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
@@ -252,7 +271,9 @@ export class AuthheroNode {
     // In combined TEL+email mode, backspace on an empty field exits phone mode
     if (e.key === "Backspace" && !this.telEmailMode) {
       const target = e.target as HTMLInputElement;
-      const config = (this.component as FieldComponent).config as Record<string, unknown> | undefined;
+      const config = (this.component as FieldComponent).config as
+        | Record<string, unknown>
+        | undefined;
       if (config?.allow_email === true && target.value.length === 0) {
         this.telEmailMode = true;
         this.localPhoneNumber = "";
@@ -762,7 +783,7 @@ export class AuthheroNode {
             selected={this.selectedCountry.code === country.code}
             key={country.code}
           >
-            {country.flag} {country.dialCode}
+            {`${country.flag} ${country.dialCode}`}
           </option>
         ))}
       </select>
@@ -772,7 +793,10 @@ export class AuthheroNode {
 
     return (
       <div class="input-wrapper" part="input-wrapper">
-        <div class={showCountryPicker ? "phone-input-wrapper" : ""} part="phone-input-wrapper">
+        <div
+          class={showCountryPicker ? "phone-input-wrapper" : ""}
+          part="phone-input-wrapper"
+        >
           {countrySelect}
           <div class="input-container">
             <input
@@ -786,7 +810,9 @@ export class AuthheroNode {
               placeholder=" "
               required={component.required}
               disabled={this.disabled}
-              autocomplete={allowEmail && this.telEmailMode ? "email" : "tel-national"}
+              autocomplete={
+                allowEmail && this.telEmailMode ? "email" : "tel-national"
+              }
               onInput={this.handlePhoneInput}
               onKeyDown={this.handleKeyDown}
             />
@@ -1015,6 +1041,7 @@ export class AuthheroNode {
           strategy?: string;
           display_name?: string;
           icon_url?: string;
+          href?: string;
         }[];
       }
     )?.provider_details;
@@ -1065,33 +1092,61 @@ export class AuthheroNode {
           const safeProvider = this.sanitizeForCssToken(provider);
           const strategy = getProviderStrategy(provider);
           const icon = getProviderIcon(provider);
+          const details = detailsMap.get(provider);
+          const btnClass = `btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`;
+          const btnPart = `button button-secondary button-social button-social-${safeProvider}`;
+          const content = [
+            icon,
+            <span
+              class="btn-social-content"
+              part={`button-social-content button-social-content-${safeProvider}`}
+            >
+              <span
+                part={`button-social-text button-social-text-${safeProvider}`}
+              >
+                {getButtonText(provider)}
+              </span>
+              <span
+                class="btn-social-subtitle"
+                part={`button-social-subtitle button-social-subtitle-${safeProvider}`}
+              ></span>
+            </span>,
+          ];
+
+          if (details?.href) {
+            return (
+              <a
+                href={this.disabled ? undefined : details.href}
+                class={btnClass}
+                part={btnPart}
+                data-connection-name={provider}
+                data-strategy={strategy}
+                key={provider}
+                aria-disabled={this.disabled ? "true" : undefined}
+                tabindex={this.disabled ? -1 : undefined}
+                onClick={(e: Event) => {
+                  if (this.disabled) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {content}
+              </a>
+            );
+          }
+
           return (
             <button
               type="button"
-              class={`btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`}
-              part={`button button-secondary button-social button-social-${safeProvider}`}
+              class={btnClass}
+              part={btnPart}
               data-connection-name={provider}
               data-strategy={strategy}
               disabled={this.disabled}
               onClick={(e) => this.handleButtonClick(e, "SOCIAL", provider)}
               key={provider}
             >
-              {icon}
-              <span
-                class="btn-social-content"
-                part={`button-social-content button-social-content-${safeProvider}`}
-              >
-                <span
-                  part={`button-social-text button-social-text-${safeProvider}`}
-                >
-                  {getButtonText(provider)}
-                </span>
-                {/* Empty subtitle span - style via ::part(button-social-subtitle-{provider})::before { content: "..."; } */}
-                <span
-                  class="btn-social-subtitle"
-                  part={`button-social-subtitle button-social-subtitle-${safeProvider}`}
-                ></span>
-              </span>
+              {content}
             </button>
           );
         })}

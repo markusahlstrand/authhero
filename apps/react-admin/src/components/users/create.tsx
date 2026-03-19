@@ -9,6 +9,7 @@ import {
   BooleanInput,
 } from "react-admin";
 import { useState } from "react";
+import { Strategy } from "../../utils/Strategy";
 
 // Matches the USERNAME_PASSWORD_PROVIDER constant in the authhero package
 const USERNAME_PASSWORD_PROVIDER = "auth2";
@@ -30,7 +31,7 @@ export function UserCreate() {
       );
       if (connectionData) {
         // For Username-Password-Authentication connections, use the username-password provider
-        if (connectionData.strategy === "Username-Password-Authentication") {
+        if (connectionData.strategy === Strategy.USERNAME_PASSWORD) {
           data.provider = USERNAME_PASSWORD_PROVIDER;
         } else {
           data.provider = connectionData.strategy || "database";
@@ -84,13 +85,11 @@ export function UserCreate() {
 
             // Show email input for email-based connections
             if (
-              connectionData.strategy === "email" ||
-              connectionData.strategy === "Username-Password-Authentication"
+              connectionData.strategy === Strategy.EMAIL ||
+              connectionData.strategy === Strategy.USERNAME_PASSWORD
             ) {
               // For password connections, also show password field
-              if (
-                connectionData.strategy === "Username-Password-Authentication"
-              ) {
+              if (connectionData.strategy === Strategy.USERNAME_PASSWORD) {
                 return (
                   <>
                     <TextInput
@@ -122,7 +121,7 @@ export function UserCreate() {
             }
 
             // Show phone input for SMS-based connections
-            if (connectionData.strategy === "sms") {
+            if (connectionData.strategy === Strategy.SMS) {
               return (
                 <TextInput
                   source="phone_number"

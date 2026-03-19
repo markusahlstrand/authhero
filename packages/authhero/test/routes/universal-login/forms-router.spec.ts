@@ -163,7 +163,9 @@ describe("forms - router node with user context", () => {
     // Enter code
     const email1 = getSentEmails()[0];
     const { code: code1 } = email1.data;
-    const enterCodePostResponse1 = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse1 = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state: state1 },
       form: { code: code1 },
     });
@@ -329,7 +331,9 @@ describe("forms - router node with user context", () => {
     // Enter code
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });
@@ -486,7 +490,9 @@ describe("forms - router node with user context", () => {
 
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });
@@ -644,7 +650,9 @@ describe("forms - router node with user context", () => {
 
     const email = getSentEmails()[0];
     const { code } = email.data;
-    const enterCodePostResponse = await universalClient.login["email-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });

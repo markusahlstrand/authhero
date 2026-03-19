@@ -10,7 +10,7 @@ import {
 import MessagePage from "../../components/MessagePage";
 import { logMessage } from "../../helpers/logging";
 
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, StrategyType } from "@authhero/adapter-interfaces";
 
 export const impersonateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -314,7 +314,9 @@ export const impersonateRoutes = new OpenAPIHono<{
         userId: targetUser.user_id,
         connection: targetUser.connection,
         strategy: targetUser.connection,
-        strategy_type: targetUser.is_social ? "social" : "database",
+        strategy_type: targetUser.is_social
+          ? StrategyType.SOCIAL
+          : StrategyType.DATABASE,
       });
 
       // Complete the hook state transition before creating the auth response

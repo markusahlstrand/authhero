@@ -3,6 +3,7 @@ import { getTestServer } from "../helpers/test-server";
 import { linkUsersHook } from "../../src/hooks/link-users";
 import { addDataHooks } from "../../src/hooks";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("account-linking-hook", () => {
   it("should link an account to a matching existing verified account", async () => {
@@ -59,7 +60,7 @@ describe("account-linking-hook", () => {
       email: "original-test2@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create a separate Google user with different email
@@ -143,7 +144,7 @@ describe("account-linking-hook", () => {
       email: "user-test3@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create a Google user with same email but unverified
@@ -198,7 +199,7 @@ describe("account-linking-hook", () => {
       email: "unverified-test@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create a Google user with same email but UNVERIFIED
@@ -250,7 +251,7 @@ describe("account-linking-hook", () => {
       email: "cross-tenant@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create user with same email in tenant B - should NOT link to tenantId user
@@ -283,7 +284,7 @@ describe("account-linking-hook", () => {
       email: "case.test@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create user with same email in different case - should link
@@ -328,7 +329,7 @@ describe("account-linking-hook", () => {
       email: "chain-test@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create a secondary user already linked to primary
@@ -381,7 +382,7 @@ describe("account-linking-hook", () => {
       email: "no-email-test@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create user without email - should NOT link
@@ -413,7 +414,7 @@ describe("account-linking-hook", () => {
       email: "hook-primary@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create secondary user with linked_to already set (simulating setLinkedTo from hook)
@@ -447,7 +448,7 @@ describe("account-linking-hook", () => {
       email: "priority-test@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     const manualPrimary = await env.data.users.create("tenantId", {
@@ -455,7 +456,7 @@ describe("account-linking-hook", () => {
       email: "different-priority@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create user with email matching first user, but linked_to set to second user

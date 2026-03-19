@@ -1,5 +1,10 @@
 import type { FC } from "hono/jsx";
-import { LoginSession, Theme, Branding } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  Theme,
+  Branding,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
 import cn from "classnames";
@@ -45,15 +50,15 @@ const IdentifierForm: FC<Props> = ({
 
   // Determine which input fields to show based on available connections
   const showEmailInput =
-    connectionStrategies.includes("email") ||
-    connectionStrategies.includes("Username-Password-Authentication");
-  const showPhoneInput = connectionStrategies.includes("sms");
+    connectionStrategies.includes(Strategy.EMAIL) ||
+    connectionStrategies.includes(Strategy.USERNAME_PASSWORD);
+  const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
 
   // Strategies that are handled by form inputs, not social/enterprise buttons
   const formStrategies = new Set([
-    "email",
-    "sms",
-    "Username-Password-Authentication",
+    Strategy.EMAIL,
+    Strategy.SMS,
+    Strategy.USERNAME_PASSWORD,
     "auth0",
   ]);
 

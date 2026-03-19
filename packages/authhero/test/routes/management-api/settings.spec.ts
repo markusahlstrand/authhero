@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("settings", () => {
   it("should return tenant when settings endpoint is called", async () => {
@@ -284,7 +285,7 @@ describe("settings", () => {
       session_lifetime: 168,
       default_redirection_uri: "https://example.com/callback",
       enabled_locales: ["en", "es"],
-      default_directory: "Username-Password-Authentication",
+      default_directory: Strategy.USERNAME_PASSWORD,
       default_audience: "https://api.example.com",
       default_organization: "org_123",
       flags: {
@@ -329,7 +330,7 @@ describe("settings", () => {
       "https://example.com/callback",
     );
     expect(updated.enabled_locales).toEqual(["en", "es"]);
-    expect(updated.default_directory).toBe("Username-Password-Authentication");
+    expect(updated.default_directory).toBe(Strategy.USERNAME_PASSWORD);
     expect(updated.default_audience).toBe("https://api.example.com");
     expect(updated.default_organization).toBe("org_123");
     expect(updated.flags).toEqual({

@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { Meta, StoryObj } from "@storybook/react";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 import {
   HonoJSXWrapper,
   renderHonoComponent,
@@ -21,10 +22,10 @@ type Story = StoryObj<typeof meta>;
 
 const mockClient = {
   connections: [
-    { name: "email", strategy: "email" },
+    { name: "email", strategy: Strategy.EMAIL },
     {
       name: USERNAME_PASSWORD_PROVIDER,
-      strategy: "Username-Password-Authentication",
+      strategy: Strategy.USERNAME_PASSWORD,
     },
   ],
 } as any;

@@ -19,6 +19,7 @@ import {
 } from "react-admin";
 import { Typography, Box, Divider } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
+import { Strategy } from "../../utils/Strategy";
 
 /**
  * Recursively strip null values from an object so react-admin's
@@ -47,7 +48,7 @@ export function ConnectionEdit(props: any) {
 }
 
 const isDbConnection = (strategy?: string) =>
-  strategy === "Username-Password-Authentication";
+  strategy === Strategy.USERNAME_PASSWORD;
 
 function ConnectionTabbedFrom() {
   const record = useRecordContext();
@@ -169,7 +170,7 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
-          {record?.strategy === "sms" && (
+          {record?.strategy === Strategy.SMS && (
             <>
               <TextInput
                 source="options.twilio_sid"
@@ -180,19 +181,20 @@ function ConnectionTabbedFrom() {
             </>
           )}
 
-          {!isDbConnection(record?.strategy) && record?.strategy !== "sms" && (
-            <SelectInput
-              source="options.set_user_root_attributes"
-              label="Set User Root Attributes"
-              helperText="Controls when profile data from this connection updates user attributes"
-              choices={[
-                { id: "on_each_login", name: "On Each Login" },
-                { id: "on_first_login", name: "On First Login" },
-                { id: "never_on_login", name: "Never On Login" },
-              ]}
-              defaultValue="on_each_login"
-            />
-          )}
+          {!isDbConnection(record?.strategy) &&
+            record?.strategy !== Strategy.SMS && (
+              <SelectInput
+                source="options.set_user_root_attributes"
+                label="Set User Root Attributes"
+                helperText="Controls when profile data from this connection updates user attributes"
+                choices={[
+                  { id: "on_each_login", name: "On Each Login" },
+                  { id: "on_first_login", name: "On First Login" },
+                  { id: "never_on_login", name: "Never On Login" },
+                ]}
+                defaultValue="on_each_login"
+              />
+            )}
 
           {isDbConnection(record?.strategy) && (
             <>

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import {
@@ -115,7 +116,7 @@ describe("client-credentials-hooks", () => {
     expect(capturedEvent!.connection).toMatchObject({
       id: "email",
       name: "Email",
-      strategy: "email",
+      strategy: Strategy.EMAIL,
     });
   });
 });

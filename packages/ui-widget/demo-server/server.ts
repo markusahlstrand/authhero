@@ -424,7 +424,8 @@ function createLoginPasswordlessSmsScreen(
     action: `${baseUrl}/u2/screen/login-passwordless-sms?state=${state}`,
     method: "POST",
     title: "Sign in with a code",
-    description: "Enter your phone number and we will send you a code to sign in.",
+    description:
+      "Enter your phone number and we will send you a code to sign in.",
     components: [
       {
         id: "username",
@@ -513,9 +514,7 @@ function createSmsOtpChallengeScreen(
   baseUrl: string,
   phone?: string,
 ): UiScreen {
-  const maskedPhone = phone
-    ? phone.replace(/.(?=.{4})/g, "•")
-    : "your phone";
+  const maskedPhone = phone ? phone.replace(/.(?=.{4})/g, "•") : "your phone";
 
   return {
     action: `${baseUrl}/u2/screen/sms-otp-challenge?state=${state}`,

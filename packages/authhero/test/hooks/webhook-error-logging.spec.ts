@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { getTestServer } from "../helpers/test-server";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import http from "node:http";
 
@@ -60,7 +61,7 @@ describe("webhook error logging", () => {
         json: {
           email: "webhook-test@example.com",
           password: "Test12345!",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       },
@@ -112,7 +113,7 @@ describe("webhook error logging", () => {
     // Essential user fields should be included (not full payload)
     expect(details.user_id).toBeTruthy();
     expect(details.user_name).toBe("webhook-test@example.com");
-    expect(details.connection).toBe("Username-Password-Authentication");
+    expect(details.connection).toBe(Strategy.USERNAME_PASSWORD);
 
     // Response details should be captured
     expect(details.response).toBeDefined();
@@ -138,7 +139,7 @@ describe("webhook error logging", () => {
         json: {
           email: "webhook-unreachable@example.com",
           password: "Test12345!",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       },
@@ -203,7 +204,7 @@ describe("webhook error logging", () => {
         json: {
           email: "webhook-user-info@example.com",
           password: "Test12345!",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
         },
       },
@@ -232,7 +233,7 @@ describe("webhook error logging", () => {
     expect(failedHookLog!.user_id).toContain("|");
 
     // connection should be populated from user.connection
-    expect(failedHookLog!.connection).toBe("Username-Password-Authentication");
+    expect(failedHookLog!.connection).toBe(Strategy.USERNAME_PASSWORD);
 
     // Description should mention 403
     expect(failedHookLog!.description).toContain("403");

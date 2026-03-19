@@ -3,7 +3,7 @@ import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 import { UserResponse } from "../../../src/types/auth0";
-import { Identity } from "@authhero/adapter-interfaces";
+import { Identity, Strategy } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("users by email", () => {
@@ -102,7 +102,7 @@ describe("users by email", () => {
         json: {
           name: "Test User with password",
           email: "foo@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
           provider: USERNAME_PASSWORD_PROVIDER,
           email_verified: false,
           // seems odd that this isn't allowed... I think this endpoint needs looking at
@@ -170,7 +170,7 @@ describe("users by email", () => {
       tenant_id: "tenantId",
       name: "Test User with password",
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       email_verified: false,
       is_social: false,
     });

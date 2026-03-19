@@ -4,6 +4,8 @@ import {
   LogTypes,
   User,
   LoginSession,
+  Strategy,
+  StrategyType,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { linkUsersHook } from "./link-users";
@@ -520,7 +522,9 @@ function createUserDeletionHooks(
         description: `Deleted user: ${userToDelete.email || user_id}`,
         userId: user_id,
         strategy: userToDelete.provider || "auth0",
-        strategy_type: userToDelete.is_social ? "social" : "database",
+        strategy_type: userToDelete.is_social
+          ? StrategyType.SOCIAL
+          : StrategyType.DATABASE,
         connection: userToDelete.connection || "",
         body: {
           tenant: tenant_id,
@@ -731,8 +735,8 @@ async function buildEnhancedEventObject(
       Object.keys(connectionInfo).length > 0
         ? connectionInfo
         : {
-            id: user.connection || "Username-Password-Authentication",
-            name: user.connection || "Username-Password-Authentication",
+            id: user.connection || Strategy.USERNAME_PASSWORD,
+            name: user.connection || Strategy.USERNAME_PASSWORD,
             strategy: user.provider || "auth0",
           },
     organization: organizationInfo,
@@ -783,8 +787,8 @@ export async function postUserLoginHook(
   const strategy_type = params?.authStrategy?.strategy_type
     ? params.authStrategy.strategy_type
     : user.is_social
-      ? "social"
-      : "database";
+      ? StrategyType.SOCIAL
+      : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
 
   // Log successful login

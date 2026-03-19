@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -30,7 +33,7 @@ async function startAuthorizeFlow(oauthClient: ReturnType<typeof testClient>) {
 
 /**
  * Helper to set up the password connection with username identifier enabled
- * and the correct strategy ("Username-Password-Authentication") that the
+ * and the correct strategy (Strategy.USERNAME_PASSWORD) that the
  * screen code expects.
  */
 async function setupUsernameConnection(
@@ -41,27 +44,23 @@ async function setupUsernameConnection(
   } = {},
 ) {
   // The test server creates the connection with the username-password strategy,
-  // but the screen code checks for strategy === "Username-Password-Authentication".
+  // but the screen code checks for strategy === Strategy.USERNAME_PASSWORD.
   // Update both strategy and options.
   const usernameActive = options.usernameIdentifierActive ?? true;
-  await env.data.connections.update(
-    "tenantId",
-    "Username-Password-Authentication",
-    {
-      strategy: "Username-Password-Authentication",
-      options: {
-        attributes: {
-          email: {
-            identifier: { active: true },
-          },
-          username: {
-            identifier: { active: usernameActive },
-            ...(options.validation ? { validation: options.validation } : {}),
-          },
+  await env.data.connections.update("tenantId", Strategy.USERNAME_PASSWORD, {
+    strategy: Strategy.USERNAME_PASSWORD,
+    options: {
+      attributes: {
+        email: {
+          identifier: { active: true },
+        },
+        username: {
+          identifier: { active: usernameActive },
+          ...(options.validation ? { validation: options.validation } : {}),
         },
       },
     },
-  );
+  });
 }
 
 describe("username login - identifier-first flow (u/login/identifier)", () => {
@@ -110,7 +109,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
       nickname: "usernameuser",
       username: "johndoe",
       picture: "https://example.com/test.png",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|usernameUserId`,
@@ -157,11 +156,9 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
     });
 
     // Update strategy to match screen code expectations, but keep username identifier inactive
-    await env.data.connections.update(
-      "tenantId",
-      "Username-Password-Authentication",
-      { strategy: "Username-Password-Authentication" },
-    );
+    await env.data.connections.update("tenantId", Strategy.USERNAME_PASSWORD, {
+      strategy: Strategy.USERNAME_PASSWORD,
+    });
 
     const oauthClient = testClient(oauthApp, env);
     const universalClient = testClient(universalApp, env);
@@ -255,7 +252,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
       name: "Email User",
       nickname: "emailuser",
       picture: "https://example.com/test.png",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|emailUserId`,
@@ -331,7 +328,7 @@ describe("username login - combined login flow (u2/login)", () => {
       nickname: "u2user",
       username: "janedoe",
       picture: "https://example.com/test.png",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|u2UserId`,
@@ -368,11 +365,9 @@ describe("username login - combined login flow (u2/login)", () => {
     });
 
     // Update strategy to match screen code but keep username identifier inactive
-    await env.data.connections.update(
-      "tenantId",
-      "Username-Password-Authentication",
-      { strategy: "Username-Password-Authentication" },
-    );
+    await env.data.connections.update("tenantId", Strategy.USERNAME_PASSWORD, {
+      strategy: Strategy.USERNAME_PASSWORD,
+    });
 
     const oauthClient = testClient(oauthApp, env);
     const u2Client = testClient(u2App, env);

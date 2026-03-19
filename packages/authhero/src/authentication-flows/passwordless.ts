@@ -1,6 +1,10 @@
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import { authParamsSchema } from "@authhero/adapter-interfaces";
+import {
+  authParamsSchema,
+  Strategy,
+  StrategyType,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { getOrCreateUserByProvider } from "../helpers/users";
@@ -135,8 +139,9 @@ export async function passwordlessGrant(
     loginSession: result.loginSession,
     authConnection: result.connectionType,
     authStrategy: {
-      strategy: "email",
-      strategy_type: "passwordless",
+      strategy:
+        result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
+      strategy_type: StrategyType.PASSWORDLESS,
     },
   });
 }

@@ -8,6 +8,7 @@ import {
   getPrimaryUserByProvider,
 } from "../../helpers/users";
 import { RedirectException } from "../../errors/redirect-exception";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -210,9 +211,9 @@ export async function initJSXRouteWithSession(
 export type LoginStrategy = "password" | "email" | "sms";
 
 const STRATEGY_MAP: Record<string, LoginStrategy> = {
-  "Username-Password-Authentication": "password",
-  email: "email",
-  sms: "sms",
+  [Strategy.USERNAME_PASSWORD]: "password",
+  [Strategy.EMAIL]: "email",
+  [Strategy.SMS]: "sms",
 };
 
 export async function getLoginStrategy(

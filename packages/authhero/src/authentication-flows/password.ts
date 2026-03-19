@@ -7,6 +7,8 @@ import {
   AuthParams,
   LoginSession,
   LogTypes,
+  Strategy,
+  StrategyType,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { Bindings, GrantFlowUserResult, Variables } from "../types";
@@ -213,10 +215,10 @@ export async function loginWithPassword(
   return createFrontChannelAuthResponse(ctx, {
     ...result,
     ticketAuth,
-    authConnection: ctx.get("connection") || "Username-Password-Authentication",
+    authConnection: ctx.get("connection") || Strategy.USERNAME_PASSWORD,
     authStrategy: {
-      strategy: "Username-Password-Authentication",
-      strategy_type: "database",
+      strategy: Strategy.USERNAME_PASSWORD,
+      strategy_type: StrategyType.DATABASE,
     },
   });
 }
@@ -287,7 +289,7 @@ export async function requestPasswordReset(
     client,
     username: email,
     provider: USERNAME_PASSWORD_PROVIDER,
-    connection: "Username-Password-Authentication",
+    connection: Strategy.USERNAME_PASSWORD,
     isSocial: false,
     ip: ctx.var.ip,
   });

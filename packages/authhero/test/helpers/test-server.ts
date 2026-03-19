@@ -1,6 +1,6 @@
 import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { DataAdapters, Strategy } from "@authhero/adapter-interfaces";
 import createAdapters, {
   Database,
   migrateToLatest,
@@ -104,7 +104,7 @@ export async function getTestServer(
   await data.connections.create("tenantId", {
     id: "email",
     name: "Email",
-    strategy: "email",
+    strategy: Strategy.EMAIL,
     options: {
       authentication_method: "magic_link",
     },

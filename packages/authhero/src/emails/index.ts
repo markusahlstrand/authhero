@@ -1,7 +1,12 @@
 import { Context } from "hono";
 import { t } from "i18next";
 import { Bindings, Variables } from "../types";
-import { AuthParams, LogTypes, User } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LogTypes,
+  Strategy,
+  User,
+} from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../helpers/logging";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
@@ -58,7 +63,9 @@ export async function sendSms(
 
   const client = await getEnrichedClient(ctx.env, ctx.var.client_id);
 
-  const smsProvider = client.connections.find((c) => c.strategy === "sms");
+  const smsProvider = client.connections.find(
+    (c) => c.strategy === Strategy.SMS,
+  );
   if (!smsProvider) {
     throw new HTTPException(500, { message: "SMS provider not found" });
   }

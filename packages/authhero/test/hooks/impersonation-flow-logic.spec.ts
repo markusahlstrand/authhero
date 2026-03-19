@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { OnExecutePostLoginAPI, HookEvent } from "../../src/types/Hooks";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("Impersonation Flow - Logic Validation", () => {
   it("should implement complete impersonation hook logic with Auth0 compatibility", async () => {
@@ -80,7 +81,7 @@ describe("Impersonation Flow - Logic Validation", () => {
         email_verified: true,
         created_at: "2023-01-01",
         updated_at: "2023-01-01",
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         provider: "auth0",
         is_social: false,
         login_count: 5,

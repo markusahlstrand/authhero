@@ -10,6 +10,7 @@ import {
   Connection,
   CustomText,
   promptSettingSchema,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../../../helpers/client";
 import { Bindings, Variables } from "../../../types";
@@ -137,7 +138,7 @@ export async function getLoginPath(context: ScreenContext): Promise<string> {
   );
   const settings = promptSettingSchema.parse(promptSettings || {});
   const hasPasswordConnection = context.connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   return settings.identifier_first === false && hasPasswordConnection
     ? `${routePrefix}/login`

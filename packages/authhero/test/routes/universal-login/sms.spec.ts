@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -26,7 +29,7 @@ describe("sms", () => {
         },
         json: {
           name: "sms",
-          strategy: "sms",
+          strategy: Strategy.SMS,
           options: {
             provider: "twilio",
             from: "+1234567890",
@@ -118,7 +121,9 @@ describe("sms", () => {
     // --------------------------------
     const { code } = codeSms.data;
 
-    const enterCodePostResponse = await universalClient.login["sms-otp-challenge"].$post({
+    const enterCodePostResponse = await universalClient.login[
+      "sms-otp-challenge"
+    ].$post({
       query: { state },
       form: { code },
     });

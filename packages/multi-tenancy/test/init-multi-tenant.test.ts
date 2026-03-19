@@ -111,10 +111,7 @@ describe("initMultiTenant hook chaining - organization creation", () => {
         }
         return params;
       },
-      async afterCreate(
-        ctx: TenantHookContext,
-        tenant: Tenant,
-      ): Promise<void> {
+      async afterCreate(ctx: TenantHookContext, tenant: Tenant): Promise<void> {
         await provisioningHooks.afterCreate?.(ctx, tenant);
         await tenantHooks.afterCreate?.(ctx, tenant);
       },
@@ -212,11 +209,10 @@ describe("initMultiTenant hook chaining - organization creation", () => {
     expect(newTenantOrg).toBeDefined();
 
     // Verify the creator user was added to the organization
-    const userOrgs =
-      await adapters.userOrganizations.listUserOrganizations(
-        controlPlaneTenantId,
-        testUserId,
-      );
+    const userOrgs = await adapters.userOrganizations.listUserOrganizations(
+      controlPlaneTenantId,
+      testUserId,
+    );
     const isMember = userOrgs.organizations.some(
       (o) => o.id === newTenantOrg!.id,
     );
@@ -255,9 +251,7 @@ describe("initMultiTenant hook chaining - organization creation", () => {
 
     // Verify organization was created (provisioning hooks ran)
     const orgs = await adapters.organizations.list(controlPlaneTenantId);
-    const org = orgs.organizations.find(
-      (org) => org.name === "synced-tenant",
-    );
+    const org = orgs.organizations.find((org) => org.name === "synced-tenant");
     expect(org).toBeDefined();
 
     // Verify resource servers were synced (sync hooks also ran)

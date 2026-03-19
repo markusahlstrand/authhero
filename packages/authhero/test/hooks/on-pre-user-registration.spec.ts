@@ -6,7 +6,7 @@ import {
 } from "../../src/types/Hooks";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
-import { UserResponse } from "@authhero/adapter-interfaces";
+import { UserResponse, Strategy } from "@authhero/adapter-interfaces";
 
 describe("on-pre-user-registration-hook", () => {
   it("should link user to primary via setLinkedTo", async () => {
@@ -34,7 +34,7 @@ describe("on-pre-user-registration-hook", () => {
       {
         json: {
           email: "primary@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",
@@ -97,7 +97,7 @@ describe("on-pre-user-registration-hook", () => {
       {
         json: {
           email: "foo2@example.com",
-          connection: "Username-Password-Authentication",
+          connection: Strategy.USERNAME_PASSWORD,
         },
         header: {
           "tenant-id": "tenantId",

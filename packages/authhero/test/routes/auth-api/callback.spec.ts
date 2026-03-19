@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { nanoid } from "nanoid";
-import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 
 describe("callback", () => {
   it("should redirect to /u/error if the state isn't found", async () => {
@@ -473,10 +476,7 @@ describe("callback", () => {
     });
 
     // Verify first login populated attributes
-    let user = await env.data.users.get(
-      "tenantId",
-      "mock-strategy|vipps-456",
-    );
+    let user = await env.data.users.get("tenantId", "mock-strategy|vipps-456");
     expect(user!.given_name).toEqual("Test");
 
     // Second login - should NOT update attributes
@@ -595,7 +595,7 @@ describe("callback", () => {
       user_id: "auth2|primary-user",
       email: "primary@example.com",
       email_verified: true,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: "auth2",
       is_social: false,
     });

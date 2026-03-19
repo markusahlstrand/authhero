@@ -40,10 +40,7 @@ import {
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
 import { redactUrlForLogging } from "../utils/url";
-import {
-  HookEvent,
-  OnExecuteCredentialsExchangeAPI,
-} from "../types/Hooks";
+import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 
 /**
  * Minimal client properties actually used by createAuthTokens.
@@ -326,13 +323,15 @@ export async function createAuthTokens(
         },
         scope: authParams.scope || "",
         grant_type: "",
-        connection: connectionInfo || (connectionName
-          ? {
-              id: connectionName,
-              name: connectionName,
-              strategy: user?.provider || "auth0",
-            }
-          : undefined),
+        connection:
+          connectionInfo ||
+          (connectionName
+            ? {
+                id: connectionName,
+                name: connectionName,
+                strategy: user?.provider || "auth0",
+              }
+            : undefined),
       },
       buildCredentialsExchangeApi(ctx, accessTokenPayload, idTokenPayload),
     );

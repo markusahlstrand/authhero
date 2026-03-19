@@ -5,7 +5,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUserByProvider } from "../../../helpers/users";
@@ -109,7 +109,12 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, undefined, "reset-password");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        undefined,
+        "reset-password",
+      );
 
       // Validate password is provided
       if (!password) {
@@ -172,7 +177,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       // This is needed because user.connection may contain "Username-Password-Authentication"
       // (a hardcoded fallback) instead of the actual connection name
       const passwordConnection = client.connections.find(
-        (c) => c.strategy === "Username-Password-Authentication",
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const connectionName = passwordConnection?.name || user.connection;
 

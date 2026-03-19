@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { OnExecutePostLogin } from "../../types/Hooks";
 import { userIdGenerate } from "../../utils/user-id";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 /**
  * Check whether an error is a unique-constraint violation (HTTP 409).
@@ -13,7 +14,7 @@ function isUniqueConstraintError(err: unknown): boolean {
 export interface EnsureUsernameOptions {
   /**
    * The connection name used for username accounts.
-   * @default "Username-Password-Authentication"
+   * @default Strategy.USERNAME_PASSWORD
    */
   connection?: string;
 
@@ -221,7 +222,7 @@ function userHasUsername(
 export function ensureUsername(
   options?: EnsureUsernameOptions,
 ): OnExecutePostLogin {
-  const connection = options?.connection ?? "Username-Password-Authentication";
+  const connection = options?.connection ?? Strategy.USERNAME_PASSWORD;
   const provider = options?.provider ?? USERNAME_PASSWORD_PROVIDER;
   const maxRetries = Math.max(0, Math.floor(options?.maxRetries ?? 10));
 

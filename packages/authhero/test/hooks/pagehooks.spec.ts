@@ -6,6 +6,7 @@ import {
   LoginSession,
   User,
   LoginSessionState,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
@@ -81,7 +82,7 @@ describe("pagehooks", () => {
       updated_at: "2023-01-01T00:00:00Z",
       login_count: 1,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       is_social: false,
     };
   });

@@ -1,4 +1,4 @@
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { DataAdapters, Strategy } from "@authhero/adapter-interfaces";
 import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
 import { nanoid } from "nanoid";
@@ -734,7 +734,7 @@ export async function seed(
       user_id: userId,
       username: adminUsername,
       email_verified: false,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       password: { hash, algorithm },
     });
@@ -753,7 +753,7 @@ export async function seed(
   // Create Username-Password-Authentication connection
   const existingConnections = await adapters.connections.list(tenantId);
   const hasPasswordConnection = existingConnections.connections.some(
-    (c) => c.name === "Username-Password-Authentication",
+    (c) => c.name === Strategy.USERNAME_PASSWORD,
   );
 
   if (!hasPasswordConnection) {
@@ -761,8 +761,8 @@ export async function seed(
       console.log("Creating password connection...");
     }
     await adapters.connections.create(tenantId, {
-      name: "Username-Password-Authentication",
-      strategy: "Username-Password-Authentication",
+      name: Strategy.USERNAME_PASSWORD,
+      strategy: Strategy.USERNAME_PASSWORD,
       options: {
         attributes: {
           username: {
@@ -798,7 +798,7 @@ export async function seed(
       name: "Default Application",
       callbacks,
       allowed_logout_urls: allowedLogoutUrls,
-      connections: ["Username-Password-Authentication"],
+      connections: [Strategy.USERNAME_PASSWORD],
       client_metadata: {
         universal_login_version: "2",
       },

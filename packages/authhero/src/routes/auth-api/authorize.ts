@@ -7,6 +7,7 @@ import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
   CodeChallengeMethod,
+  Strategy,
   tokenResponseSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
@@ -20,7 +21,11 @@ import { getEnrichedClient } from "../../helpers/client";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { setTenantId } from "../../helpers/set-tenant-id";
 
-const UI_STRATEGIES = ["email", "sms", "Username-Password-Authentication"];
+const UI_STRATEGIES: string[] = [
+  Strategy.EMAIL,
+  Strategy.SMS,
+  Strategy.USERNAME_PASSWORD,
+];
 
 // Schema for the authorize query parameters (shared between query and request JWT)
 const authorizeParamsSchema = z.object({
@@ -342,7 +347,7 @@ export const authorizeRoutes = new OpenAPIHono<{
       }
 
       // Connection auth flow
-      if (connection && connection !== "email") {
+      if (connection && connection !== Strategy.EMAIL) {
         // connectionAuth returns Promise<Response>, which is fine directly.
         return connectionAuth(ctx, client, connection, authParams);
       } else if (login_ticket) {

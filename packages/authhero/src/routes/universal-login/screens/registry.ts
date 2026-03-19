@@ -29,7 +29,10 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["reset-password", resetPasswordScreenDefinition],
   ["impersonate", impersonateScreenDefinition],
   ["check-account", checkAccountScreenDefinition],
-  ["login-passwordless-identifier", loginPasswordlessIdentifierScreenDefinition],
+  [
+    "login-passwordless-identifier",
+    loginPasswordlessIdentifierScreenDefinition,
+  ],
 ]);
 
 /**

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getTestServer } from "../../helpers/test-server";
 import { testClient } from "hono/testing";
 import { nanoid } from "nanoid";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import bcryptjs from "bcryptjs";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -61,7 +61,7 @@ describe("linked user login logging", () => {
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
         username: "test@example.com",
         password: "Test1234!",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         client_id: "clientId",
       },
     });
@@ -85,7 +85,7 @@ describe("linked user login logging", () => {
     expect(successLog!.strategy_type).toBe("database");
 
     // Should log the actual connection used for login
-    expect(successLog!.connection).toBe("Username-Password-Authentication");
+    expect(successLog!.connection).toBe(Strategy.USERNAME_PASSWORD);
   });
 
   // TODO: Add test for social login with linked accounts

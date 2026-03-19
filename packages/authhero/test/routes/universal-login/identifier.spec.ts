@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("login identifier page", () => {
@@ -357,10 +360,10 @@ describe("login identifier page", () => {
       email: "password@example.com",
       email_verified: true,
       provider: USERNAME_PASSWORD_PROVIDER,
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       is_social: false,
       app_metadata: {
-        strategy: "Username-Password-Authentication",
+        strategy: Strategy.USERNAME_PASSWORD,
       },
     });
 

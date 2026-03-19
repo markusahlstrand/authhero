@@ -761,6 +761,17 @@ export class AuthheroWidget {
 
     // Handle social login if autoNavigate is enabled
     if (detail.type === "SOCIAL" && detail.value && this.shouldAutoNavigate) {
+      // Check if this provider has an href (e.g. passwordless connections)
+      const providerHref = this.getProviderHref(detail.value);
+      if (providerHref) {
+        const screenId = this.extractScreenIdFromHref(providerHref);
+        if (screenId && this.apiUrl) {
+          this.navigateToScreen(screenId, providerHref);
+        } else {
+          window.location.href = providerHref;
+        }
+        return;
+      }
       this.handleSocialLogin(detail.value);
       return;
     }
@@ -902,6 +913,22 @@ export class AuthheroWidget {
       // On failure, fall back to hard navigation
       window.location.href = displayUrl;
     }
+  }
+
+  /**
+   * Look up the href for a social provider from the current screen's SOCIAL components.
+   * Returns the href if found (e.g. for passwordless connections), or null.
+   */
+  private getProviderHref(connectionName: string): string | null {
+    if (!this._screen) return null;
+    for (const comp of this._screen.components) {
+      const c = comp as { type: string; config?: { provider_details?: { name: string; href?: string }[] } };
+      if (c.type === "SOCIAL" && c.config?.provider_details) {
+        const match = c.config.provider_details.find((d) => d.name === connectionName);
+        if (match?.href) return match.href;
+      }
+    }
+    return null;
   }
 
   /**

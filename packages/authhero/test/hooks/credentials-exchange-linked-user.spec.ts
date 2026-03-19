@@ -7,6 +7,7 @@ import {
 } from "../../src/types/Hooks";
 import { nanoid } from "nanoid";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 import { computeCodeChallenge } from "../../src/utils/crypto";
 import { generateCodeVerifier } from "oslo/oauth2";
 
@@ -75,7 +76,7 @@ describe("credentials-exchange hook with linked users", () => {
         scope: "openid",
       },
       user_id: primaryUserId,
-      auth_connection: "Username-Password-Authentication",
+      auth_connection: Strategy.USERNAME_PASSWORD,
     });
 
     // Create a PKCE code verifier and challenge
@@ -123,9 +124,7 @@ describe("credentials-exchange hook with linked users", () => {
     // CRITICAL: The connection should reflect the actual authentication method
     // (Username-Password-Authentication), not the primary user's connection (google-oauth2)
     expect(capturedEvent!.connection).toBeDefined();
-    expect(capturedEvent!.connection!.name).toBe(
-      "Username-Password-Authentication",
-    );
+    expect(capturedEvent!.connection!.name).toBe(Strategy.USERNAME_PASSWORD);
     expect(capturedEvent!.connection!.strategy).not.toBe("google-oauth2");
   });
 });

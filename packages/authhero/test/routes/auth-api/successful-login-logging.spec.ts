@@ -3,6 +3,7 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
+import { Strategy } from "@authhero/adapter-interfaces";
 
 describe("successful login - logging", () => {
   it("should log successful login with type 's' and comprehensive details", async () => {
@@ -15,7 +16,7 @@ describe("successful login - logging", () => {
       email_verified: true,
       name: "Test User",
       nickname: "testuser",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|test123`,
@@ -35,7 +36,7 @@ describe("successful login - logging", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "test-login@example.com",
       },
@@ -72,9 +73,7 @@ describe("successful login - logging", () => {
     expect(successLoginLog?.user_name).toBeDefined();
 
     // Verify connection details
-    expect(successLoginLog?.connection).toBe(
-      "Username-Password-Authentication",
-    );
+    expect(successLoginLog?.connection).toBe(Strategy.USERNAME_PASSWORD);
     expect(successLoginLog?.strategy).toBeDefined();
     expect(successLoginLog?.strategy_type).toBe("database");
 
@@ -131,7 +130,7 @@ describe("successful login - logging", () => {
       email_verified: true,
       name: "Count Test User",
       nickname: "counttest",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|count123`,
@@ -148,7 +147,7 @@ describe("successful login - logging", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "count-test@example.com",
       },
@@ -178,7 +177,7 @@ describe("successful login - logging", () => {
       email_verified: true,
       name: "Hostname Test User",
       nickname: "hostnametest",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|hostname123`,
@@ -195,7 +194,7 @@ describe("successful login - logging", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "hostname-test@example.com",
       },
@@ -226,7 +225,7 @@ describe("successful login - logging", () => {
       email_verified: true,
       name: "Connection Test User",
       nickname: "connectiontest",
-      connection: "Username-Password-Authentication",
+      connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
       user_id: `${USERNAME_PASSWORD_PROVIDER}|conn123`,
@@ -243,7 +242,7 @@ describe("successful login - logging", () => {
       json: {
         client_id: "clientId",
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
+        realm: Strategy.USERNAME_PASSWORD,
         password: "Test1234!",
         username: "connection-test@example.com",
       },

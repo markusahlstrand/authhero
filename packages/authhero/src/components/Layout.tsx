@@ -4,7 +4,7 @@ import AppLogo from "./AppLogo";
 import Footer from "./Footer";
 import Icon from "./Icon";
 import { PropsWithChildren } from "hono/jsx";
-import { lighten } from "../utils/color";
+import { lighten, getContrastTextColor, contrastRatio } from "../utils/color";
 import i18next from "i18next";
 import { buildHash } from "../build-hash";
 
@@ -25,14 +25,32 @@ const globalDocStyle = (theme: Theme | null, branding: Branding | null) => {
   const hoverColor =
     theme?.colors?.base_hover_color || lighten(primaryColor, 0.2);
 
-  const textOnPrimary = theme?.colors?.primary_button_label || "#ffffff";
+  // Auto-compute text color for contrast; honor explicit label only if it has good contrast
+  const explicitLabel = theme?.colors?.primary_button_label;
+  const hasGoodExplicit =
+    explicitLabel && contrastRatio(explicitLabel, primaryColor) >= 4.5;
+
+  const textOnPrimaryLight = hasGoodExplicit
+    ? explicitLabel
+    : getContrastTextColor(primaryColor, "light");
+  const textOnPrimaryDark = hasGoodExplicit
+    ? explicitLabel
+    : getContrastTextColor(primaryColor, "dark");
+
+  const darkOverride =
+    textOnPrimaryLight !== textOnPrimaryDark
+      ? `
+    @media (prefers-color-scheme: dark) {
+      body { --text-on-primary: ${textOnPrimaryDark}; }
+    }`
+      : "";
 
   return `
     body {
       --primary-color: ${primaryColor};
       --primary-hover: ${hoverColor};
-      --text-on-primary: ${textOnPrimary};
-    }
+      --text-on-primary: ${textOnPrimaryLight};
+    }${darkOverride}
   `;
 };
 

@@ -7,6 +7,7 @@ import {
   LogTypes,
   AuthorizationResponseType,
   LoginSessionState,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
@@ -23,7 +24,7 @@ describe("impersonation routes", () => {
         email: "user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -134,7 +135,7 @@ describe("impersonation routes", () => {
         email: "user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -198,7 +199,7 @@ describe("impersonation routes", () => {
         email: "user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -257,7 +258,7 @@ describe("impersonation routes", () => {
         email: "user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -325,7 +326,7 @@ describe("impersonation routes", () => {
         email: "user-hook@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -406,7 +407,7 @@ describe("impersonation routes", () => {
         email: "admin@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -416,7 +417,7 @@ describe("impersonation routes", () => {
         email: "target@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -485,7 +486,7 @@ describe("impersonation routes", () => {
         email: "user@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -495,7 +496,7 @@ describe("impersonation routes", () => {
         email: "target@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -553,7 +554,7 @@ describe("impersonation routes", () => {
         email: "admin@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -811,7 +812,7 @@ describe("impersonation routes", () => {
         email: "admin@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -918,7 +919,7 @@ describe("impersonation routes", () => {
         email: "admin@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -928,7 +929,7 @@ describe("impersonation routes", () => {
         email: "target@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1021,7 +1022,7 @@ describe("impersonation routes", () => {
         email: "admin456@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1031,7 +1032,7 @@ describe("impersonation routes", () => {
         email: "target456@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1126,7 +1127,7 @@ describe("impersonation routes", () => {
         email: "admin-code@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1146,7 +1147,7 @@ describe("impersonation routes", () => {
         email: "target-code@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1220,7 +1221,7 @@ describe("impersonation routes", () => {
         email: "admin-implicit@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1240,7 +1241,7 @@ describe("impersonation routes", () => {
         email: "target-implicit@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1333,7 +1334,7 @@ describe("impersonation routes", () => {
         email: "admin-pwd@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 
@@ -1362,7 +1363,7 @@ describe("impersonation routes", () => {
         email: "target-pwd@example.com",
         email_verified: true,
         provider: USERNAME_PASSWORD_PROVIDER,
-        connection: "Username-Password-Authentication",
+        connection: Strategy.USERNAME_PASSWORD,
         is_social: false,
       });
 

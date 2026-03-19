@@ -5,6 +5,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
@@ -25,7 +26,12 @@ export async function emailOtpChallengeScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "email-otp-challenge");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    undefined,
+    "email-otp-challenge",
+  );
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
@@ -81,7 +87,7 @@ export async function emailOtpChallengeScreen(
   // Determine the back link: if there's no password connection, the user
   // is in a passwordless flow and should go back to the passwordless identifier
   const hasPasswordConnection = context.connections.some(
-    (c) => c.strategy === "Username-Password-Authentication",
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
   const backPath = hasPasswordConnection
     ? await getLoginPath(context)
@@ -127,7 +133,12 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(locale, context.customText, undefined, "email-otp-challenge");
+      const { m } = createTranslation(
+        locale,
+        context.customText,
+        undefined,
+        "email-otp-challenge",
+      );
 
       // Validate code is provided
       if (!code) {

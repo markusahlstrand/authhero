@@ -22,7 +22,12 @@ export async function enterPasswordScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "enter-password");
+  const { m } = createTranslation(
+    locale,
+    customText,
+    undefined,
+    "enter-password",
+  );
 
   const email = data?.email as string | undefined;
 
@@ -33,8 +38,8 @@ export async function enterPasswordScreen(
   // Build description with email display (like email-otp-challenge screen)
   const description = email
     ? m.enter_password_signing_in_as({
-      email: `<strong>${escapeHtml(email)}</strong>`,
-    })
+        email: `<strong>${escapeHtml(email)}</strong>`,
+      })
     : undefined;
 
   const components: FormNodeComponent[] = [
@@ -167,7 +172,12 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         const authError = e as AuthError;
         // Initialize i18n for error messages
         const locale = context.language || "en";
-        const { m } = createTranslation(locale, context.customText, undefined, "enter-password");
+        const { m } = createTranslation(
+          locale,
+          context.customText,
+          undefined,
+          "enter-password",
+        );
 
         let errorMessage = authError.message || m.invalid_password();
 
