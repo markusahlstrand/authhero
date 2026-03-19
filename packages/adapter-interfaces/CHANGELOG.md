@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.146.0
+
+### Minor Changes
+
+- 318fcf9: Update widget links
+- 318fcf9: Update widget links
+
 ## 0.145.0
 
 ### Minor Changes

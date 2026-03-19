@@ -1,5 +1,20 @@
 # @authhero/react-admin
 
+## 0.49.0
+
+### Minor Changes
+
+- 318fcf9: Update widget links
+- 318fcf9: Update widget links
+
+### Patch Changes
+
+- Updated dependencies [409aa18]
+- Updated dependencies [318fcf9]
+- Updated dependencies [318fcf9]
+  - @authhero/widget@0.20.0
+  - @authhero/adapter-interfaces@0.146.0
+
 ## 0.48.0
 
 ### Minor Changes
