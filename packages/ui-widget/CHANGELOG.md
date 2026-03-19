@@ -1,5 +1,19 @@
 # @authhero/widget
 
+## 0.21.0
+
+### Minor Changes
+
+- 5e73f56: Remove magic strings
+- 5e73f56: Replace magic strings
+- 5e73f56: Handle text colors better
+
+### Patch Changes
+
+- Updated dependencies [5e73f56]
+- Updated dependencies [5e73f56]
+  - @authhero/adapter-interfaces@0.147.0
+
 ## 0.20.0
 
 ### Minor Changes
