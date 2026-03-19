@@ -1,5 +1,20 @@
 # @authhero/react-admin
 
+## 0.50.0
+
+### Minor Changes
+
+- 5e73f56: Remove magic strings
+- 5e73f56: Replace magic strings
+
+### Patch Changes
+
+- Updated dependencies [5e73f56]
+- Updated dependencies [5e73f56]
+- Updated dependencies [5e73f56]
+  - @authhero/adapter-interfaces@0.147.0
+  - @authhero/widget@0.21.0
+
 ## 0.49.0
 
 ### Minor Changes

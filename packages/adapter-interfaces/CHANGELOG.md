@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.147.0
+
+### Minor Changes
+
+- 5e73f56: Remove magic strings
+- 5e73f56: Replace magic strings
+
 ## 0.146.0
 
 ### Minor Changes
