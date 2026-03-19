@@ -83,8 +83,9 @@ export function ensureContrast(
     return foregroundHex;
   }
 
-  const bgLuminance = relativeLuminance(backgroundHex);
-  const shouldDarken = bgLuminance > 0.5;
+  const blackContrast = contrastRatio("#000000", backgroundHex);
+  const whiteContrast = contrastRatio("#ffffff", backgroundHex);
+  const shouldDarken = blackContrast > whiteContrast;
   let adjusted = foregroundHex;
 
   for (let i = 1; i <= 10; i++) {
@@ -96,6 +97,6 @@ export function ensureContrast(
     }
   }
 
-  // Fallback to black or white
-  return shouldDarken ? "#000000" : "#ffffff";
+  // Fallback to whichever of black/white has higher contrast
+  return blackContrast > whiteContrast ? "#000000" : "#ffffff";
 }

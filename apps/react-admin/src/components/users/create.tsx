@@ -9,7 +9,7 @@ import {
   BooleanInput,
 } from "react-admin";
 import { useState } from "react";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy } from "../../utils/Strategy";
 
 // Matches the USERNAME_PASSWORD_PROVIDER constant in the authhero package
 const USERNAME_PASSWORD_PROVIDER = "auth2";

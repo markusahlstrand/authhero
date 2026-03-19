@@ -1116,12 +1116,19 @@ export class AuthheroNode {
           if (details?.href) {
             return (
               <a
-                href={details.href}
+                href={this.disabled ? undefined : details.href}
                 class={btnClass}
                 part={btnPart}
                 data-connection-name={provider}
                 data-strategy={strategy}
                 key={provider}
+                aria-disabled={this.disabled ? "true" : undefined}
+                tabindex={this.disabled ? -1 : undefined}
+                onClick={(e: Event) => {
+                  if (this.disabled) {
+                    e.preventDefault();
+                  }
+                }}
               >
                 {content}
               </a>

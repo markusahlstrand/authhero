@@ -139,7 +139,8 @@ export async function passwordlessGrant(
     loginSession: result.loginSession,
     authConnection: result.connectionType,
     authStrategy: {
-      strategy: Strategy.EMAIL,
+      strategy:
+        result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
       strategy_type: StrategyType.PASSWORDLESS,
     },
   });

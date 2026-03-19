@@ -57,7 +57,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy } from "../../utils/Strategy";
 
 const EditFieldModal = ({
   open,

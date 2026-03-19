@@ -19,7 +19,7 @@ import {
 } from "react-admin";
 import { Typography, Box, Divider } from "@mui/material";
 import { JsonOutput } from "../common/JsonOutput";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy } from "../../utils/Strategy";
 
 /**
  * Recursively strip null values from an object so react-admin's

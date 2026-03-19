@@ -6,14 +6,21 @@
 
 // --- Inline WCAG contrast utilities (small footprint, no external deps) ---
 
-function parseHexColor(hex: string): [number, number, number] {
-  const clean = hex.replace("#", "");
+function parseHexColor(hex: string): [number, number, number] | null {
+  const match = hex.match(/^#([0-9a-f]{3})$/i) || hex.match(/^#([0-9a-f]{6})$/i);
+  if (!match) return null;
+  let clean = match[1]!;
+  if (clean.length === 3) {
+    clean = clean[0]! + clean[0]! + clean[1]! + clean[1]! + clean[2]! + clean[2]!;
+  }
   const num = parseInt(clean, 16);
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
 function srgbLuminance(hex: string): number {
-  const [r, g, b] = parseHexColor(hex).map((c) => {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return NaN;
+  const [r, g, b] = rgb.map((c) => {
     const s = c / 255;
     return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   });
@@ -23,6 +30,7 @@ function srgbLuminance(hex: string): number {
 function wcagContrastRatio(hex1: string, hex2: string): number {
   const l1 = srgbLuminance(hex1);
   const l2 = srgbLuminance(hex2);
+  if (isNaN(l1) || isNaN(l2)) return NaN;
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
@@ -40,7 +48,9 @@ function autoTextColor(
 }
 
 function darkenHex(hex: string, percent: number): string {
-  const [r, g, b] = parseHexColor(hex);
+  const rgb = parseHexColor(hex);
+  if (!rgb) return hex;
+  const [r, g, b] = rgb;
   const toHex = (v: number) =>
     Math.max(0, Math.round(v * (1 - percent)))
       .toString(16)
@@ -49,7 +59,9 @@ function darkenHex(hex: string, percent: number): string {
 }
 
 function lightenHex(hex: string, percent: number): string {
-  const [r, g, b] = parseHexColor(hex);
+  const rgb = parseHexColor(hex);
+  if (!rgb) return hex;
+  const [r, g, b] = rgb;
   const toHex = (v: number) =>
     Math.min(255, Math.round(v + (255 - v) * percent))
       .toString(16)

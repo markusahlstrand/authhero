@@ -43,26 +43,44 @@ function buildSocialButtons(
 
   const passwordlessUrl = `${context.routePrefix}/login/login-passwordless-identifier?state=${encodeURIComponent(context.state)}`;
 
+  // Separate passwordless and social connections to dedupe passwordless into a single entry
+  const passwordlessConnections = socialConnections.filter(
+    (c) => c.strategy === Strategy.EMAIL || c.strategy === Strategy.SMS,
+  );
+  const nonPasswordlessConnections = socialConnections.filter(
+    (c) => c.strategy !== Strategy.EMAIL && c.strategy !== Strategy.SMS,
+  );
+
   // Create provider details with icon URLs and display names
-  const providerDetails = socialConnections.map((conn) => {
-    const isPasswordless =
-      conn.strategy === Strategy.EMAIL || conn.strategy === Strategy.SMS;
+  const providerDetails = nonPasswordlessConnections.map((conn) => {
     const displayName = conn.display_name || conn.name;
     return {
       name: conn.name,
       strategy: conn.strategy,
-      display_name: isPasswordless
-        ? m.enter_a_code_btn()
-        : m.login_id_federated_connection_button_text({
-            connectionName: displayName,
-          }),
+      display_name: m.login_id_federated_connection_button_text({
+        connectionName: displayName,
+      }),
       icon_url: getConnectionIconUrl(conn),
-      ...(isPasswordless ? { href: passwordlessUrl } : {}),
     };
   });
 
+  // Add a single passwordless entry if any passwordless connections exist
+  const firstPasswordless = passwordlessConnections[0];
+  if (firstPasswordless) {
+    providerDetails.push({
+      name: firstPasswordless.name,
+      strategy: firstPasswordless.strategy,
+      display_name: m.enter_a_code_btn(),
+      icon_url: getConnectionIconUrl(firstPasswordless),
+      href: passwordlessUrl,
+    } as (typeof providerDetails)[number] & { href: string });
+  }
+
   // Create a single SOCIAL component with all providers
-  const providers = socialConnections.map((conn) => conn.name);
+  const providers = [
+    ...nonPasswordlessConnections.map((conn) => conn.name),
+    ...(firstPasswordless ? [firstPasswordless.name] : []),
+  ];
 
   const socialButton: FormNodeComponent = {
     id: "social-buttons",

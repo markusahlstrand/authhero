@@ -5,7 +5,7 @@ import {
   TextInput,
   required,
 } from "react-admin";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy } from "../../utils/Strategy";
 
 export function ConnectionCreate() {
   return (
