@@ -519,6 +519,28 @@ export const userRoutes = new OpenAPIHono<{
         }
       }
 
+      // Check if the phone_number is being changed to an existing phone_number of another user
+      if (
+        userFields.phone_number &&
+        userFields.phone_number !== targetUser.phone_number
+      ) {
+        const { users: existingUsers } = await data.users.list(
+          ctx.var.tenant_id,
+          {
+            page: 0,
+            per_page: 10,
+            include_totals: false,
+            q: `phone_number:${userFields.phone_number}`,
+          },
+        );
+
+        if (existingUsers.some((u) => u.user_id !== targetUserId)) {
+          throw new HTTPException(409, {
+            message: "Another user with the same phone number already exists.",
+          });
+        }
+      }
+
       await ctx.env.data.users.update(
         ctx.var.tenant_id,
         targetUserId,

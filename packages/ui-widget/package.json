@@ -46,7 +46,8 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "@authhero/adapter-interfaces": "workspace:*"
+    "@authhero/adapter-interfaces": "workspace:*",
+    "country-list": "^2.4.1"
   },
   "devDependencies": {
     "@hono/node-server": "^1.14.1",

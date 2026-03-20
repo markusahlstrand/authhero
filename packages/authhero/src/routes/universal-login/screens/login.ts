@@ -210,7 +210,7 @@ export async function loginScreen(
     );
 
     // Forgot password link (between password and submit)
-    const forgotPasswordUrl = `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`;
+    const forgotPasswordUrl = `${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}`;
     components.push({
       id: "forgot-password-link",
       type: "RICH_TEXT",

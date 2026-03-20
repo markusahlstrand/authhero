@@ -1,11 +1,21 @@
 import type { FC } from "hono/jsx";
 import sanitizeHtmlLib from "sanitize-html";
+import { getData as getCountryData } from "country-list";
 import Layout from "./Layout";
 import { Theme, Branding } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import type { FormNodeComponent } from "@authhero/adapter-interfaces";
 import Button from "./Button";
 import Icon from "./Icon";
+
+function flagEmoji(code: string): string {
+  return String.fromCodePoint(
+    ...code
+      .toUpperCase()
+      .split("")
+      .map((c) => 0x1f1e6 - 65 + c.charCodeAt(0)),
+  );
+}
 
 /**
  * Sanitize HTML content to prevent XSS attacks.
@@ -167,6 +177,42 @@ const DateComponent = (comp: DateComponentProps) => {
   );
 };
 
+type CountryComponentProps = Extract<FormNodeComponent, { type: "COUNTRY" }>;
+const CountryComponent = (comp: CountryComponentProps) => {
+  const countries = getCountryData();
+  const defaultValue = comp.config?.default_value;
+  return (
+    <div key={comp.id} className="mb-4">
+      {comp.label && (
+        <label htmlFor={comp.id} className="block text-sm font-medium mb-1">
+          {comp.label}
+        </label>
+      )}
+      <select
+        name={comp.id}
+        required={!!comp.required}
+        className="w-full rounded-lg border bg-gray-100 px-4 py-5 text-base dark:bg-gray-600 border-gray-100 dark:border-gray-500"
+        id={comp.id}
+      >
+        {comp.config?.placeholder && (
+          <option value="" disabled selected={!defaultValue}>
+            {comp.config.placeholder}
+          </option>
+        )}
+        {countries.map((c) => (
+          <option
+            key={c.code}
+            value={c.code}
+            selected={defaultValue === c.code}
+          >
+            {flagEmoji(c.code)} {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 type DropdownComponentProps = Extract<FormNodeComponent, { type: "DROPDOWN" }>;
 const DropdownComponent = (comp: DropdownComponentProps) => {
   const options = comp.config?.options || [];
@@ -207,6 +253,8 @@ function renderFormComponent(comp: FormNodeComponent) {
       return LegalComponent(comp);
     case "TEXT":
       return TextComponent(comp);
+    case "COUNTRY":
+      return CountryComponent(comp);
     case "DATE":
       return DateComponent(comp);
     case "DROPDOWN":

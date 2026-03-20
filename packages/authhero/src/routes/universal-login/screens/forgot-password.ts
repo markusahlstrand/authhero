@@ -1,12 +1,13 @@
 /**
  * Forgot Password screen - initiate password reset
  *
- * Corresponds to: /u/forgot-password
+ * Corresponds to: /u2/reset-password/request
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
+import { createTranslation } from "../../../i18n";
 
 /**
  * Create the forgot-password screen
@@ -20,8 +21,18 @@ export async function forgotPasswordScreen(
     prefill,
     errors,
     messages,
+    customText,
     routePrefix = "/u2",
   } = context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(
+    locale,
+    customText,
+    undefined,
+    "forgot-password",
+  );
 
   const components: FormNodeComponent[] = [
     // Info text
@@ -31,8 +42,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content:
-          "Enter your email address and we'll send you a link to reset your password.",
+        content: m.forgot_password_description(),
       },
       order: 0,
     },
@@ -42,9 +52,9 @@ export async function forgotPasswordScreen(
       type: "EMAIL",
       category: "FIELD",
       visible: true,
-      label: "Email address",
+      label: m.email(),
       config: {
-        placeholder: "name@example.com",
+        placeholder: m.email_placeholder(),
       },
       required: true,
       order: 1,
@@ -59,7 +69,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Send reset link",
+        text: m.forgot_password_cta(),
       },
       order: 2,
     },
@@ -77,16 +87,16 @@ export async function forgotPasswordScreen(
   const screen: UiScreen = {
     name: "forgot-password",
     // Action points to HTML endpoint for no-JS fallback
-    action: `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`,
+    action: `${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Reset your password",
+    title: m.forgot_password_title(),
     components,
-    messages: messages?.map((m) => ({ text: m.text, type: m.type })),
+    messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
     links: [
       {
         id: "back",
-        text: "Remember your password?",
-        linkText: "Log in",
+        text: m.go_back(),
+        linkText: m.log_in(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],

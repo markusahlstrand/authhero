@@ -31,7 +31,8 @@
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "pnpm build:i18n && pnpm build:tailwind && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets",
+    "build": "pnpm build:i18n && pnpm build:tailwind && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets && pnpm build:auth0-locales",
+    "build:auth0-locales": "node scripts/generate-auth0-locales.js",
     "build:i18n": "npx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
     "build:tailwind": "node build-tailwind.js",
     "build:client": "vite build --mode client && node build-client.js",
@@ -85,6 +86,7 @@
     "bcryptjs": "^3.0.3",
     "classnames": "^2.5.1",
     "cookie": "^1.1.1",
+    "country-list": "^2.4.1",
     "i18next": "^25.6.0",
     "libphonenumber-js": "^1.12.25",
     "nanoid": "^5.1.6",

@@ -1,0 +1,375 @@
+{
+  "login": {
+    "login": {
+      "pageTitle": "Log in | ${clientName}",
+      "title": "Vítejte",
+      "description": "Přihlaste se k ${companyName} a pokračujte na ${clientName}.",
+      "separatorText": "nebo",
+      "buttonText": "Pokračovat",
+      "federatedConnectionButtonText": "Pokračovat s ${connectionName}",
+      "footerLinkText": "Zaregistrujte se",
+      "signupActionLinkText": "Zaregistrujte se",
+      "footerText": "Nemáte účet?",
+      "signupActionText": "Nemáte účet?",
+      "forgotPasswordText": "Zapomněli jste heslo?",
+      "passwordPlaceholder": "Heslo",
+      "usernamePlaceholder": "Username or email address",
+      "emailPlaceholder": "E-mailová adresa",
+      "phonePlaceholder": "Phone number",
+      "editEmailText": "Edit",
+      "alertListTitle": "Alerts",
+      "invitationTitle": "You've Been Invited!",
+      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+      "logoAltText": "${companyName}",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "no-email": "Zadejte prosím e-mailovou adresu",
+      "no-password": "Heslo je povinné"
+    }
+  },
+  "login-id": {
+    "login-id": {
+      "pageTitle": "Log in | ${clientName}",
+      "title": "Vítejte",
+      "description": "Přihlaste se k ${companyName} a pokračujte na ${clientName}.",
+      "separatorText": "nebo",
+      "buttonText": "Pokračovat",
+      "federatedConnectionButtonText": "Pokračovat s ${connectionName}",
+      "footerLinkText": "Zaregistrujte se",
+      "signupActionLinkText": "Zaregistrujte se",
+      "footerText": "Nemáte účet?",
+      "signupActionText": "Nemáte účet?",
+      "forgotPasswordText": "Zapomněli jste heslo?",
+      "passwordPlaceholder": "Password",
+      "usernamePlaceholder": "Uživatelské jméno",
+      "emailPlaceholder": "E-mailová adresa",
+      "phonePlaceholder": "Telefonní číslo",
+      "usernameOnlyPlaceholder": "Username",
+      "phoneOrUsernameOrEmailPlaceholder": "Phone or Username or Email",
+      "phoneOrEmailPlaceholder": "E-mail nebo telefonní číslo",
+      "phoneOrUsernamePlaceholder": "Phone Number or Username",
+      "usernameOrEmailPlaceholder": "Username or Email address",
+      "editEmailText": "Upravit",
+      "alertListTitle": "Alerts",
+      "invitationTitle": "You've Been Invited!",
+      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+      "termsAndConditionsTemplate": "Pokračováním souhlasíte s našimi <a href=\"${termsAndConditionsUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Podmínkami a pravidly</a>.",
+      "captchaCodePlaceholder": "Enter the code shown above",
+      "logoAltText": "${companyName}",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "selectCountryCode": "Select country code, currently set to ${countryName}, ${countryCode}, +${countryPrefix}",
+      "wrong-credentials": "Wrong username or password",
+      "wrong-email-credentials": "Wrong email or password",
+      "wrong-username-credentials": "Incorrect username or password",
+      "wrong-phone-credentials": "Incorrect phone number or password",
+      "wrong-email-username-credentials": "Incorrect email address, username, or password",
+      "wrong-email-phone-username-credentials": "Incorrect email address, phone number, username, or password. Phone numbers must include the country code.",
+      "wrong-email-phone-credentials": "Incorrect email address, phone number, or password. Phone numbers must include the country code.",
+      "wrong-phone-username-credentials": "Incorrect phone number, username or password. Phone numbers must include the country code.",
+      "invalid-code": "Neplatný kód",
+      "invalid-expired-code": "Invalid or expired user code",
+      "custom-script-error-code": "Something went wrong, please try again later.",
+      "auth0-users-validation": "Something went wrong, please try again later",
+      "authentication-failure": "We are sorry, something went wrong when attempting to log in",
+      "invalid-connection": "Invalid connection",
+      "ip-blocked": "We have detected suspicious login behavior and further attempts will be blocked. Please contact the administrator.",
+      "no-db-connection": "Invalid connection",
+      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
+      "same-user-login": "Too many login attempts for this user. Please wait, and try again later.",
+      "invalid-email-format": "Neplatný e-mail",
+      "invalid-username": "Username can only contain alphanumeric characters or: '${characters}'. Username should have between ${min} and ${max} characters.",
+      "invalid-login-id": "Invalid Login ID entered",
+      "invalid-email-phone": "Enter a valid email address or phone number. Phone numbers must include the country code.",
+      "invalid-email-username": "Enter a valid email address or username",
+      "invalid-phone-username": "Enter a valid phone number or username. Phone numbers must include the country code.",
+      "invalid-email-phone-username": "Enter a valid email address, phone number or username. Phone numbers must include the country code.",
+      "no-email": "Zadejte prosím e-mailovou adresu",
+      "no-password": "Heslo je povinné",
+      "no-username": "Uživatelské jméno je povinné",
+      "no-phone": "Please enter a phone number",
+      "no-email-username": "Email address or username is required",
+      "no-email-phone": "Email address or phone number is required",
+      "no-phone-username": "Phone number or username is required",
+      "no-email-phone-username": "Phone number, username, or email address is required",
+      "captcha-validation-failure": "We are sorry, something went wrong while validating the captcha response. Please try again.",
+      "invalid-recaptcha": "Select the checkbox to verify you are not a robot.",
+      "invalid-captcha": "Solve the challenge question to verify you are not a robot.",
+      "captcha-client-failure": "We couldn't load the security challenge. Please try again. (Error code: #{errorCode})"
+    }
+  },
+  "login-password": {
+    "login-password": {
+      "pageTitle": "Log in | ${clientName}",
+      "title": "Zadejte heslo",
+      "description": "Pro přihlášení zadejte svou e-mailovou adresu a heslo.",
+      "buttonText": "Přihlásit se",
+      "forgotPasswordText": "Zapomněli jste heslo?",
+      "passwordPlaceholder": "Heslo",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "wrong-credentials": "Wrong password",
+      "no-password": "Heslo je povinné",
+      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
+      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed."
+    }
+  },
+  "signup": {
+    "signup": {
+      "pageTitle": "Sign up | ${clientName}",
+      "title": "Zvolte heslo",
+      "description": "Zvolte heslo složené z velkých a malých písmen, číslic a symbolů.",
+      "buttonText": "Registrace",
+      "loginActionLinkText": "Přihlásit se",
+      "loginActionText": "Už máte účet?",
+      "separatorText": "nebo",
+      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "emailPlaceholder": "E-mailová adresa",
+      "passwordPlaceholder": "Heslo",
+      "usernamePlaceholder": "Uživatelské jméno",
+      "phonePlaceholder": "Telefonní číslo",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "termsText": "By signing up, you agree to our",
+      "termsOfServiceLinkText": "Terms of Service",
+      "privacyPolicyLinkText": "Privacy Policy",
+      "invalid-email-format": "Neplatný e-mail",
+      "no-email": "Zadejte prosím e-mailovou adresu",
+      "no-password": "Heslo je povinné",
+      "no-username": "Uživatelské jméno je povinné",
+      "email-already-exists": "E-mail je již obsazen",
+      "username-already-exists": "This username is already taken"
+    }
+  },
+  "signup-id": {
+    "signup-id": {
+      "pageTitle": "Sign up | ${clientName}",
+      "title": "Zvolte heslo",
+      "description": "Zvolte heslo složené z velkých a malých písmen, číslic a symbolů.",
+      "buttonText": "Pokračovat",
+      "loginActionLinkText": "Přihlásit se",
+      "loginActionText": "Už máte účet?",
+      "separatorText": "nebo",
+      "federatedConnectionButtonText": "Pokračovat s ${connectionName}",
+      "emailPlaceholder": "E-mailová adresa",
+      "usernamePlaceholder": "Uživatelské jméno",
+      "phonePlaceholder": "Telefonní číslo",
+      "invalid-email-format": "Neplatný e-mail",
+      "no-email": "Zadejte prosím e-mailovou adresu",
+      "email-already-exists": "E-mail je již obsazen"
+    }
+  },
+  "signup-password": {
+    "signup-password": {
+      "pageTitle": "Sign up | ${clientName}",
+      "title": "Zvolte heslo",
+      "description": "Zvolte heslo složené z velkých a malých písmen, číslic a symbolů.",
+      "buttonText": "Pokračovat",
+      "passwordPlaceholder": "Heslo",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "no-password": "Heslo je povinné",
+      "password-too-weak": "Password is too weak",
+      "password-policy-not-met": "Password does not meet the requirements"
+    }
+  },
+  "reset-password": {
+    "reset-password": {
+      "pageTitle": "Reset Password | ${clientName}",
+      "title": "Zapomněli jste heslo?",
+      "description": "Klikněte na tlačítko níže a my vám zašleme pokyny k obnovení hesla.",
+      "buttonText": "Odeslání e-mailu pro obnovení hesla",
+      "backToLoginText": "Vrátit se zpět",
+      "emailPlaceholder": "E-mailová adresa",
+      "successTitle": "Odeslání e-mailu s žádostí o obnovení hesla",
+      "successDescription": "We have sent a password reset link to your email address.",
+      "invalid-email-format": "Neplatný e-mail",
+      "no-email": "Zadejte prosím e-mailovou adresu",
+      "user-not-found": "User not found"
+    }
+  },
+  "consent": {
+    "consent": {
+      "pageTitle": "Authorize | ${clientName}",
+      "title": "Authorize ${clientName}",
+      "description": "${clientName} is requesting access to your account",
+      "buttonText": "Accept",
+      "cancelButtonText": "Deny",
+      "scopesTitle": "This will allow ${clientName} to:"
+    }
+  },
+  "mfa": {
+    "mfa": {
+      "pageTitle": "Multi-Factor Authentication | ${clientName}",
+      "title": "Verify your identity",
+      "description": "Choose a verification method",
+      "backupCodeText": "Use backup code"
+    }
+  },
+  "mfa-otp": {
+    "mfa-otp": {
+      "pageTitle": "Enter Code | ${clientName}",
+      "title": "Enter your code",
+      "description": "Enter the 6-digit code from your authenticator app",
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "invalid-code": "The code you entered is invalid"
+    }
+  },
+  "mfa-sms": {
+    "mfa-sms": {
+      "pageTitle": "SMS Verification | ${clientName}",
+      "title": "Check your phone",
+      "description": "We sent a code to ${phoneNumber}",
+      "buttonText": "Continue",
+      "resendText": "Resend code",
+      "codePlaceholder": "Enter code",
+      "invalid-code": "The code you entered is invalid"
+    }
+  },
+  "mfa-email": {
+    "mfa-email": {
+      "pageTitle": "Email Verification | ${clientName}",
+      "title": "Check your email",
+      "description": "We sent a code to ${email}",
+      "buttonText": "Continue",
+      "resendText": "Resend code",
+      "codePlaceholder": "Enter code",
+      "invalid-code": "The code you entered is invalid"
+    }
+  },
+  "mfa-push": {
+    "mfa-push": {
+      "pageTitle": "Push Notification | ${clientName}",
+      "title": "Approve the request",
+      "description": "We sent a notification to your device",
+      "resendText": "Resend notification",
+      "useCodeText": "Enter code manually"
+    }
+  },
+  "mfa-webauthn": {
+    "mfa-webauthn": {
+      "pageTitle": "Security Key | ${clientName}",
+      "title": "Use your security key",
+      "description": "Insert your security key and follow the instructions",
+      "buttonText": "Try again"
+    }
+  },
+  "mfa-voice": {
+    "mfa-voice": {
+      "pageTitle": "Voice Call | ${clientName}",
+      "title": "Receive a phone call",
+      "description": "We will call ${phoneNumber} with your code",
+      "buttonText": "Call me",
+      "codePlaceholder": "Enter code",
+      "invalid-code": "The code you entered is invalid"
+    }
+  },
+  "mfa-phone": {
+    "mfa-phone": {
+      "pageTitle": "Phone Verification | ${clientName}",
+      "title": "Verify your phone",
+      "description": "Enter your phone number to receive a verification code",
+      "buttonText": "Continue",
+      "phonePlaceholder": "Phone number",
+      "smsOptionText": "Text me",
+      "voiceOptionText": "Call me"
+    }
+  },
+  "mfa-recovery-code": {
+    "mfa-recovery-code": {
+      "pageTitle": "Recovery Code | ${clientName}",
+      "title": "Enter recovery code",
+      "description": "Enter one of your recovery codes",
+      "buttonText": "Continue",
+      "codePlaceholder": "Recovery code",
+      "invalid-code": "The recovery code you entered is invalid"
+    }
+  },
+  "status": {
+    "status": {
+      "pageTitle": "Status | ${clientName}",
+      "title": "Status",
+      "successTitle": "Success",
+      "errorTitle": "Error",
+      "continueButtonText": "Continue"
+    }
+  },
+  "device-flow": {
+    "device-flow": {
+      "pageTitle": "Device Activation | ${clientName}",
+      "title": "Activate your device",
+      "description": "Enter the code shown on your device",
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "invalid-code": "The code you entered is invalid",
+      "expired-code": "The code has expired"
+    }
+  },
+  "email-verification": {
+    "email-verification": {
+      "pageTitle": "Verify Email | ${clientName}",
+      "title": "Ověření e-mailu",
+      "description": "We sent an email to ${email}",
+      "resendText": "Opětovné odeslání kódu",
+      "successTitle": "Email verified",
+      "successDescription": "Your email has been verified successfully."
+    }
+  },
+  "email-otp-challenge": {
+    "email-otp-challenge": {
+      "pageTitle": "Enter Code | ${clientName}",
+      "title": "Zkontrolujte svůj e-mail",
+      "description": "We sent a code to ${email}",
+      "buttonText": "Přihlásit se",
+      "resendText": "Opětovné odeslání kódu",
+      "codePlaceholder": "Zadejte kód",
+      "invalid-code": "Neplatný kód"
+    },
+    "sms-otp-challenge": {
+      "pageTitle": "Enter Code | ${clientName}",
+      "title": "Zkontrolujte svůj e-mail",
+      "description": "We sent a code to ${phoneNumber}",
+      "buttonText": "Přihlásit se",
+      "resendText": "Opětovné odeslání kódu",
+      "codePlaceholder": "Zadejte kód",
+      "invalid-code": "Neplatný kód"
+    }
+  },
+  "organizations": {
+    "organizations": {
+      "pageTitle": "Select Organization | ${clientName}",
+      "title": "Select your organization",
+      "description": "Choose which organization to log in to",
+      "searchPlaceholder": "Search organizations"
+    }
+  },
+  "invitation": {
+    "invitation": {
+      "pageTitle": "Invitation | ${clientName}",
+      "title": "You've been invited",
+      "description": "${inviterName} has invited you to join ${organizationName} on ${clientName}",
+      "acceptButtonText": "Accept invitation"
+    }
+  },
+  "common": {
+    "common": {
+      "alertListTitle": "Alerts",
+      "showPasswordText": "Zobrazit heslo",
+      "hidePasswordText": "Skrýt heslo",
+      "continueText": "Pokračovat",
+      "orText": "nebo",
+      "termsOfServiceText": "Terms of Service",
+      "privacyPolicyText": "Privacy Policy",
+      "contactSupportText": "Potřebujete pomoc?",
+      "copyrightText": "© ${currentYear} ${companyName}",
+      "backText": "Vrátit se zpět",
+      "cancelText": "Vrátit se zpět",
+      "closeText": "Close",
+      "loadingText": "Loading...",
+      "errorText": "Něco se pokazilo. Zkuste to prosím znovu.",
+      "tryAgainText": "Try again"
+    }
+  }
+}

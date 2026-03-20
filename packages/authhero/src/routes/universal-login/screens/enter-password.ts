@@ -65,7 +65,7 @@ export async function enterPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="forgot-password-link"><a href="${routePrefix}/forgot-password?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
+        content: `<div class="forgot-password-link"><a href="${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
       },
       order: 1,
     } as FormNodeComponent,

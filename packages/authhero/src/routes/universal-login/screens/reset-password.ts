@@ -23,7 +23,17 @@ import { createTranslation } from "../../../i18n";
 export async function resetPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, errors, messages, routePrefix } = context;
+  const { branding, state, errors, messages, customText, routePrefix } =
+    context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(
+    locale,
+    customText,
+    undefined,
+    "reset-password",
+  );
 
   const components: FormNodeComponent[] = [
     // New password input
@@ -32,9 +42,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: "New password",
+      label: m.password(),
       config: {
-        placeholder: "Enter new password",
+        placeholder: m.enter_new_password_placeholder(),
         show_toggle: true,
       },
       required: true,
@@ -50,9 +60,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: "Confirm new password",
+      label: m.confirm_password(),
       config: {
-        placeholder: "Confirm new password",
+        placeholder: m.reenter_new_password_placeholder(),
       },
       required: true,
       sensitive: true,
@@ -68,7 +78,7 @@ export async function resetPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Reset password",
+        text: m.reset_password_cta(),
       },
       order: 2,
     },
@@ -79,10 +89,10 @@ export async function resetPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Set your new password",
-    description: "Choose a strong password for your account",
+    title: m.reset_password_title(),
+    description: m.reset_password_description(),
     components,
-    messages: messages?.map((m) => ({ text: m.text, type: m.type })),
+    messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
   };
 
   return {

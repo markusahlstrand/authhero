@@ -143,18 +143,7 @@ export async function loginPasswordlessIdentifierScreen(
     order: order++,
   });
 
-  // Back to login link
   const loginUrl = `${routePrefix}/login?state=${encodeURIComponent(state)}`;
-  components.push({
-    id: "back-to-login",
-    type: "RICH_TEXT",
-    category: "BLOCK",
-    visible: true,
-    config: {
-      content: `<div class="back-link"><a href="${loginUrl}">${m.go_back()}</a></div>`,
-    },
-    order: order++,
-  });
 
   const screen: UiScreen = {
     name: "login-passwordless-identifier",
@@ -164,6 +153,14 @@ export async function loginPasswordlessIdentifierScreen(
     description: m.login_passwordless_description({ authMethod }),
     components,
     messages,
+    links: [
+      {
+        id: "back",
+        text: "",
+        linkText: m.go_back(),
+        href: loginUrl,
+      },
+    ],
   };
 
   // Pre-fill username if provided
