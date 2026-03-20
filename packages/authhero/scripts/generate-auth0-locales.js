@@ -89,26 +89,35 @@ function generate() {
       fs.readFileSync(path.join(LOCALES_DIR, file), "utf-8"),
     );
 
-    // Generate flat Paraglide messages
-    const messages = {};
+    // Load existing messages to preserve keys added directly to messages/
+    const messagesPath = path.join(MESSAGES_DIR, `${locale}.json`);
+    let existing = {};
+    if (fs.existsSync(messagesPath)) {
+      existing = JSON.parse(fs.readFileSync(messagesPath, "utf-8"));
+    }
+
+    // Generate flat Paraglide messages from Auth0 locale data
+    const generated = {};
 
     for (const [prompt, screens] of Object.entries(auth0Data)) {
       for (const [screen, keys] of Object.entries(screens)) {
         for (const [key, value] of Object.entries(keys)) {
           const paraglideKey = toParaglideKey(prompt, screen, key);
-          messages[paraglideKey] = convertPlaceholdersToParaGlide(value);
+          generated[paraglideKey] = convertPlaceholdersToParaGlide(value);
         }
       }
     }
 
+    // Merge: generated keys overwrite existing, but existing-only keys are preserved
+    const merged = { ...existing, ...generated };
+
     // Sort keys for consistent output
     const sorted = {};
-    for (const key of Object.keys(messages).sort()) {
-      sorted[key] = messages[key];
+    for (const key of Object.keys(merged).sort()) {
+      sorted[key] = merged[key];
     }
 
     // Write Paraglide messages
-    const messagesPath = path.join(MESSAGES_DIR, `${locale}.json`);
     fs.writeFileSync(messagesPath, JSON.stringify(sorted, null, 2) + "\n");
 
     // Copy Auth0-format file to dist

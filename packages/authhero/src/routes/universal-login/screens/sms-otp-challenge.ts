@@ -57,10 +57,10 @@ export async function smsOtpChallengeScreen(
   }
 
   const description = maskedDestination
-    ? m.code_sent_template({
+    ? m.sms_otp_challenge__description({
         username: `<strong>${escapeHtml(maskedDestination)}</strong>`,
       })
-    : m.enter_code_description();
+    : m.sms_otp_challenge__default_description();
 
   const components: FormNodeComponent[] = [
     // Code input
@@ -69,9 +69,9 @@ export async function smsOtpChallengeScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: m.enter_code_label(),
+      label: m.sms_otp_challenge__code_label(),
       config: {
-        placeholder: m.enter_code_placeholder(),
+        placeholder: m.sms_otp_challenge__code_placeholder(),
         max_length: 6,
       },
       required: true,
@@ -87,7 +87,7 @@ export async function smsOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.sms_otp_challenge__button_text(),
       },
       order: 1,
     },
@@ -98,7 +98,7 @@ export async function smsOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.resend_code(),
+        text: m.sms_otp_challenge__resend_text(),
       },
       order: 2,
     },
@@ -109,7 +109,7 @@ export async function smsOtpChallengeScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/login/sms-otp-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_code_title(),
+    title: m.sms_otp_challenge__title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -117,7 +117,7 @@ export async function smsOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: m.common__back_text(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -153,7 +153,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m.no_code();
+        const errorMessage = m.sms_otp_challenge__no_code();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -170,7 +170,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
-        const errorMessage = m.session_expired();
+        const errorMessage = m.sms_otp_challenge__session_expired();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -201,7 +201,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
-        const errorMessage = m.unexpected_error_try_again();
+        const errorMessage = m.sms_otp_challenge__unexpected_error();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -224,7 +224,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        let errorMessage: string = m.unexpected_error_try_again() as string;
+        let errorMessage: string = m.sms_otp_challenge__unexpected_error() as string;
         const rawMessage = (e as Error).message;
         if (rawMessage) {
           try {

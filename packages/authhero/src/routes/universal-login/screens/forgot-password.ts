@@ -42,7 +42,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: m.forgot_password_description(),
+        content: m.reset_password__description(),
       },
       order: 0,
     },
@@ -52,9 +52,9 @@ export async function forgotPasswordScreen(
       type: "EMAIL",
       category: "FIELD",
       visible: true,
-      label: m.email(),
+      label: m.reset_password__email_placeholder(),
       config: {
-        placeholder: m.email_placeholder(),
+        placeholder: m.reset_password__email_placeholder(),
       },
       required: true,
       order: 1,
@@ -69,7 +69,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.forgot_password_cta(),
+        text: m.reset_password__button_text(),
       },
       order: 2,
     },
@@ -89,14 +89,14 @@ export async function forgotPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.forgot_password_title(),
+    title: m.reset_password__title(),
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
     links: [
       {
         id: "back",
-        text: m.go_back(),
-        linkText: m.log_in(),
+        text: m.reset_password__back_to_login_text(),
+        linkText: m.login__button_text(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],

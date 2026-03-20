@@ -42,9 +42,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: m.password(),
+      label: m.reset_password__password_label(),
       config: {
-        placeholder: m.enter_new_password_placeholder(),
+        placeholder: m.reset_password__password_placeholder(),
         show_toggle: true,
       },
       required: true,
@@ -60,9 +60,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: m.confirm_password(),
+      label: m.reset_password__confirm_password_label(),
       config: {
-        placeholder: m.reenter_new_password_placeholder(),
+        placeholder: m.reset_password__confirm_password_placeholder(),
       },
       required: true,
       sensitive: true,
@@ -78,7 +78,7 @@ export async function resetPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.reset_password_cta(),
+        text: m.reset_password__button_text(),
       },
       order: 2,
     },
@@ -89,8 +89,8 @@ export async function resetPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.reset_password_title(),
-    description: m.reset_password_description(),
+    title: m.reset_password__title(),
+    description: m.reset_password__description(),
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
   };
@@ -139,7 +139,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
 
       // Validate passwords match
       if (password !== confirmPassword) {
-        const errorMessage = m.create_account_passwords_didnt_match();
+        const errorMessage = m.reset_password__passwords_didnt_match();
         return {
           error: errorMessage,
           screen: await resetPasswordScreen({
@@ -210,7 +210,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         const errorMessage =
           policyError instanceof Error
             ? policyError.message
-            : m.create_account_weak_password();
+            : m.reset_password__password_too_weak();
 
         return {
           error: errorMessage,
@@ -240,7 +240,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       );
 
       if (!foundCode) {
-        const errorMessage = m.code_expired();
+        const errorMessage = m.reset_password__code_expired();
         return {
           error: errorMessage,
           screen: await resetPasswordScreen({
@@ -305,7 +305,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         });
 
         const resetErrorMessage =
-          err instanceof Error ? err.message : m.password_reset_failed();
+          err instanceof Error ? err.message : m.reset_password__failed();
 
         return {
           error: resetErrorMessage,

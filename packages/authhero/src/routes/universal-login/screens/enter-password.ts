@@ -37,7 +37,7 @@ export async function enterPasswordScreen(
 
   // Build description with email display (like email-otp-challenge screen)
   const description = email
-    ? m.enter_password_signing_in_as({
+    ? m.login_password__signing_in_as({
         email: `<strong>${escapeHtml(email)}</strong>`,
       })
     : undefined;
@@ -49,9 +49,9 @@ export async function enterPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: m.password(),
+      label: m.login_password__password_placeholder(),
       config: {
-        placeholder: m.enter_password(),
+        placeholder: m.login_password__password_placeholder(),
       },
       required: true,
       sensitive: true,
@@ -65,7 +65,7 @@ export async function enterPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="forgot-password-link"><a href="${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
+        content: `<div class="forgot-password-link"><a href="${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}">${m.login_password__forgot_password_text()}</a></div>`,
       },
       order: 1,
     } as FormNodeComponent,
@@ -76,7 +76,7 @@ export async function enterPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.login_password__button_text(),
       },
       order: 2,
     },
@@ -89,14 +89,14 @@ export async function enterPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_password(),
+    title: m.login_password__title(),
     description,
     components,
     links: [
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: m.common__back_text(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -179,17 +179,17 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
           "enter-password",
         );
 
-        let errorMessage = authError.message || m.invalid_password();
+        let errorMessage = authError.message || m.login_password__wrong_credentials();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
           authError.code === "USER_NOT_FOUND"
         ) {
-          errorMessage = m.invalid_password();
+          errorMessage = m.login_password__wrong_credentials();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = m.unverified_email();
+          errorMessage = m.login_password__unverified_email();
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
-          errorMessage = m.too_many_failed_logins();
+          errorMessage = m.login_password__user_blocked();
         }
 
         return {

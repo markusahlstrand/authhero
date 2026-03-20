@@ -78,7 +78,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>${m.check_account_logged_in_as({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.check_account_continue_question()}</p>`,
+        content: `<p>${m.check_account__logged_in_as({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.check_account__continue_question()}</p>`,
       },
       order: 0,
     },
@@ -89,7 +89,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.yes_continue_with_existing_account(),
+        text: m.check_account__yes_continue(),
       },
       order: 1,
     },
@@ -99,15 +99,15 @@ export async function checkAccountScreen(
     name: "check-account",
     action: `${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.check_account_title(),
+    title: m.check_account__title(),
     description: client.name
-      ? m.check_account_description({ clientName: escapeHtml(client.name) })
-      : m.check_account_description_fallback(),
+      ? m.check_account__description({ clientName: escapeHtml(client.name) })
+      : m.check_account__description_fallback(),
     components,
     links: [
       {
         id: "use-another-account",
-        text: m.no_use_another(),
+        text: m.check_account__no_use_another(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -209,7 +209,7 @@ async function handleCheckAccountSubmit(
       "check-account",
     );
     return {
-      error: m.check_account_error(),
+      error: m.check_account__error(),
       screen: await checkAccountScreen(context),
     };
   }

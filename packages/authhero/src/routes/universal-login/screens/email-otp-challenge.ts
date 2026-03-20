@@ -37,10 +37,10 @@ export async function emailOtpChallengeScreen(
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
   const description = maskedEmail
-    ? m.code_sent_template({
-        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+    ? m.email_otp_challenge__description({
+        email: `<strong>${escapeHtml(maskedEmail)}</strong>`,
       })
-    : m.enter_code_description();
+    : m.email_otp_challenge__default_description();
 
   const components: FormNodeComponent[] = [
     // Code input
@@ -49,9 +49,9 @@ export async function emailOtpChallengeScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: m.enter_code_label(),
+      label: m.email_otp_challenge__code_label(),
       config: {
-        placeholder: m.enter_code_placeholder(),
+        placeholder: m.email_otp_challenge__code_placeholder(),
         max_length: 6,
       },
       required: true,
@@ -67,7 +67,7 @@ export async function emailOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.email_otp_challenge__button_text(),
       },
       order: 1,
     },
@@ -78,7 +78,7 @@ export async function emailOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.resend_code(),
+        text: m.email_otp_challenge__resend_text(),
       },
       order: 2,
     },
@@ -98,7 +98,7 @@ export async function emailOtpChallengeScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/login/email-otp-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_code_title(),
+    title: m.email_otp_challenge__title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -106,7 +106,7 @@ export async function emailOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: m.common__back_text(),
         href: `${backPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -142,7 +142,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m.no_code();
+        const errorMessage = m.email_otp_challenge__no_code();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -159,7 +159,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
-        const errorMessage = m.session_expired();
+        const errorMessage = m.email_otp_challenge__session_expired();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -190,7 +190,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
-        const errorMessage = m.unexpected_error_try_again();
+        const errorMessage = m.email_otp_challenge__unexpected_error();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -213,7 +213,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        let errorMessage: string = m.unexpected_error_try_again() as string;
+        let errorMessage: string = m.email_otp_challenge__unexpected_error() as string;
         if (e instanceof JSONHTTPException) {
           try {
             const parsed = JSON.parse((e as Error).message);
