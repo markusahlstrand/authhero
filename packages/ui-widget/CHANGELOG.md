@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.22.0
+
+### Minor Changes
+
+- 469c395: Language refactor
+
+### Patch Changes
+
+- Updated dependencies [469c395]
+  - @authhero/adapter-interfaces@0.148.0
+
 ## 0.21.0
 
 ### Minor Changes

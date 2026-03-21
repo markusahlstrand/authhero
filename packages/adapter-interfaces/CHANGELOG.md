@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.148.0
+
+### Minor Changes
+
+- 469c395: Language refactor
+
 ## 0.147.0
 
 ### Minor Changes
