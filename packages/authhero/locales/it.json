@@ -65,15 +65,6 @@
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Controlla la tua email",
       "unexpectedError": "An unexpected error occurred"
-    },
-    "sms-otp-challenge": {
-      "buttonText": "Accedi",
-      "codePlaceholder": "Inserisci codice",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "Codice non valido",
-      "pageTitle": "Enter Code | ${clientName}",
-      "resendText": "Reinvio del codice",
-      "title": "Controlla la tua email"
     }
   },
   "email-verification": {
@@ -444,7 +435,9 @@
       "codePlaceholder": "Enter code",
       "defaultDescription": "Enter the verification code sent to your phone",
       "description": "We sent a code to ${username}",
+      "invalid-code": "Codice non valido",
       "noCode": "Please enter the verification code",
+      "pageTitle": "Enter Code | ${clientName}",
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your phone",

@@ -26,7 +26,7 @@ export type TranslationMap = Record<
   (variables?: Record<string, unknown>) => string
 >;
 
-export const locales = ["da", "en", "fi", "it", "nb", "pl", "sv"] as const;
+export const locales = ["cs", "da", "en", "fi", "it", "nb", "pl", "sv"] as const;
 export const baseLocale = "en" as const;
 
 // Load Auth0-format locale files at build time via Vite's import.meta.glob

@@ -65,15 +65,6 @@
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Kolla din e-post",
       "unexpectedError": "An unexpected error occurred"
-    },
-    "sms-otp-challenge": {
-      "buttonText": "Logga in",
-      "codePlaceholder": "Ange kod",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "Ogiltig kod",
-      "pageTitle": "Enter Code | ${clientName}",
-      "resendText": "Skicka koden igen",
-      "title": "Kolla din e-post"
     }
   },
   "email-verification": {
@@ -444,7 +435,9 @@
       "codePlaceholder": "Enter code",
       "defaultDescription": "Enter the verification code sent to your phone",
       "description": "We sent a code to ${username}",
+      "invalid-code": "Ogiltig kod",
       "noCode": "Please enter the verification code",
+      "pageTitle": "Enter Code | ${clientName}",
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your phone",

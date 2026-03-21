@@ -65,15 +65,6 @@
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your email",
       "unexpectedError": "An unexpected error occurred"
-    },
-    "sms-otp-challenge": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "Enter Code | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "email-verification": {
@@ -121,8 +112,8 @@
       "separatorText": "Or",
       "sessionExpired": "Your session has expired. Please try again.",
       "showPasswordText": "Show password",
-      "signupActionLinkText": "${footerLinkText}",
-      "signupActionText": "${footerText}",
+      "signupActionLinkText": "Sign up",
+      "signupActionText": "Don't have an account?",
       "title": "Welcome",
       "tooManyFailedLogins": "Too many failed login attempts. Please try again later.",
       "unverifiedEmail": "Please verify your email address before logging in",
@@ -188,8 +179,8 @@
       "separatorText": "Or",
       "sessionExpired": "Your session has expired. Please try again.",
       "showPasswordText": "Show password",
-      "signupActionLinkText": "${footerLinkText}",
-      "signupActionText": "${footerText}",
+      "signupActionLinkText": "Sign up",
+      "signupActionText": "Don't have an account?",
       "termsAndConditionsTemplate": "By continuing, you agree to our <a href=\"${termsAndConditionsUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Terms and Conditions</a>.",
       "title": "Welcome",
       "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
@@ -444,7 +435,9 @@
       "codePlaceholder": "Enter code",
       "defaultDescription": "Enter the verification code sent to your phone",
       "description": "We sent a code to ${username}",
+      "invalid-code": "The code you entered is invalid",
       "noCode": "Please enter the verification code",
+      "pageTitle": "Enter Code | ${clientName}",
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your phone",

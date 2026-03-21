@@ -65,15 +65,6 @@
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Tjek din e-mail",
       "unexpectedError": "An unexpected error occurred"
-    },
-    "sms-otp-challenge": {
-      "buttonText": "Log ind",
-      "codePlaceholder": "Indtast kode",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "Ugyldig kode",
-      "pageTitle": "Enter Code | ${clientName}",
-      "resendText": "Send koden igen",
-      "title": "Tjek din e-mail"
     }
   },
   "email-verification": {
@@ -439,15 +430,17 @@
   },
   "sms-otp-challenge": {
     "sms-otp-challenge": {
-      "buttonText": "Continue",
+      "buttonText": "Log ind",
       "codeLabel": "Verification Code",
-      "codePlaceholder": "Enter code",
+      "codePlaceholder": "Indtast kode",
       "defaultDescription": "Enter the verification code sent to your phone",
       "description": "We sent a code to ${username}",
+      "invalid-code": "Ugyldig kode",
       "noCode": "Please enter the verification code",
-      "resendText": "Resend code",
+      "pageTitle": "Enter Code | ${clientName}",
+      "resendText": "Send koden igen",
       "sessionExpired": "Your session has expired. Please try again.",
-      "title": "Check your phone",
+      "title": "Tjek din telefon",
       "unexpectedError": "An unexpected error occurred"
     }
   },
