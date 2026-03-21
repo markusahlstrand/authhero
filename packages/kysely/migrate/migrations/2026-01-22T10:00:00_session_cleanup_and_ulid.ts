@@ -37,7 +37,6 @@ async function safeDropColumn(
 ): Promise<void> {
   try {
     await db.schema.alterTable(tableName).dropColumn(columnName).execute();
-    console.log(`  Dropped column ${tableName}.${columnName}`);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     // Ignore "column doesn't exist" errors (errno 1091 for MySQL, "no such column" for SQLite)

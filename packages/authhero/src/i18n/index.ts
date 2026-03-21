@@ -1,41 +1,73 @@
 /**
- * Paraglide i18n with custom text override support
+ * i18n with custom text override support
  *
- * This module provides:
- * 1. Type-safe access to Paraglide messages via `m`
- * 2. Runtime overrides from the database (custom text)
- * 3. Request-scoped locale context (no global mutable state)
+ * Loads Auth0-format locale JSON files at build time and provides
+ * screen-scoped translation functions.
  *
  * Usage:
  * ```typescript
  * import { createTranslation } from '../i18n';
  *
- * // Create request-scoped translation at start of request
- * const { m, locale } = createTranslation('nb', customTextFromDb);
- *
- * // Use translations - fully typed!
- * m.welcome()  // "Velkommen" (or custom override if set)
- * m.continue_with({ provider: 'Google' })  // "Fortsett med Google"
+ * const { m } = createTranslation('login-id', 'login-id', 'nb', customTextFromDb);
+ * m.title()  // "Velkommen" (or custom override if set)
+ * m.description({ companyName: 'Acme', clientName: 'App' })
  * ```
  */
 
-import * as originalMessages from "../paraglide/messages.js";
-import {
-  overwriteGetLocale,
-  locales,
-  baseLocale,
-} from "../paraglide/runtime.js";
+import { z } from "@hono/zod-openapi";
 import type { CustomText } from "@authhero/adapter-interfaces";
+import type { ScreenMap } from "../generated/locale-types";
 
-// Re-export Locale type
-export type Locale = (typeof locales)[number];
+export type { ScreenMap } from "../generated/locale-types";
+export type { Locale } from "../generated/locale-types";
 
-// Type for the messages object
-export type Messages = typeof originalMessages;
+export type TranslationMap = Record<
+  string,
+  (variables?: Record<string, unknown>) => string
+>;
+
+export const locales = ["da", "en", "fi", "it", "nb", "pl", "sv"] as const;
+export const baseLocale = "en" as const;
+
+// Load Auth0-format locale files at build time via Vite's import.meta.glob
+const localeModules = import.meta.glob("../../locales/*.json", {
+  eager: true,
+}) as Record<
+  string,
+  { default: Record<string, Record<string, Record<string, string>>> }
+>;
+
+// Build a map of locale → full Auth0-format data
+const LOCALE_DATA: Record<
+  string,
+  Record<string, Record<string, Record<string, string>>>
+> = {};
+
+for (const [path, mod] of Object.entries(localeModules)) {
+  const locale = path.match(/\/(\w+)\.json$/)?.[1];
+  if (locale) {
+    LOCALE_DATA[locale] = mod.default || (mod as any);
+  }
+}
+
+// Build Zod schemas from English locale (source of truth) per prompt/screen
+const screenSchemas: Record<string, z.ZodObject<z.ZodRawShape>> = {};
+const enData = LOCALE_DATA[baseLocale];
+if (enData) {
+  for (const [prompt, screens] of Object.entries(enData)) {
+    for (const [screen, translations] of Object.entries(screens)) {
+      const shape: z.ZodRawShape = {};
+      for (const key of Object.keys(translations)) {
+        shape[key] = z.string();
+      }
+      screenSchemas[`${prompt}.${screen}`] = z.object(shape);
+    }
+  }
+}
 
 /**
- * Substitute variables in a string
- * Supports ${var}, #{var}, and {var} syntax
+ * Substitute variables in a string.
+ * Supports ${var}, #{var}, and {var} syntax.
  */
 function substituteVariables(
   text: string,
@@ -46,9 +78,7 @@ function substituteVariables(
   let result = text;
   for (const [varName, varValue] of Object.entries(variables)) {
     if (varValue !== undefined) {
-      // Escape regex special chars in variable name
       const escapedVarName = varName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      // Support ${var}, #{var}, and {var} syntax
       result = result
         .replace(
           new RegExp(`\\$\\{${escapedVarName}\\}`, "g"),
@@ -62,146 +92,111 @@ function substituteVariables(
 }
 
 /**
- * Normalize a locale string to a supported locale
+ * Normalize a locale string to a supported locale.
  */
-function normalizeLocale(locale: string): Locale {
+function normalizeLocale(locale: string): (typeof locales)[number] {
   const normalized = locale.split("-")[0]?.toLowerCase() || baseLocale;
-  return locales.includes(normalized as Locale)
-    ? (normalized as Locale)
+  return locales.includes(normalized as (typeof locales)[number])
+    ? (normalized as (typeof locales)[number])
     : baseLocale;
 }
 
 /**
- * Convert custom text to overrides map
+ * Create a screen-scoped translation object.
  *
- * CustomText is nested: { "screen-name": { "key": "value" } }
- * The screenName parameter selects which nested object to use.
+ * Returns a typed object matching the generated ScreenMap when prompt/screen
+ * are known string literals, or a generic TranslationMap for dynamic keys.
+ *
+ * @param prompt - The prompt ID (e.g., 'login-id', 'signup')
+ * @param screen - The screen ID (e.g., 'login-id', 'signup')
+ * @param locale - The locale code (e.g., 'nb', 'en', 'sv')
+ * @param customText - Optional custom text overrides from database
  */
-function buildOverrides(
+export function createTranslation<
+  P extends string,
+  S extends string,
+>(
+  prompt: P,
+  screen: S,
+  locale: string,
   customText?: CustomText,
-  promptScreen?: string,
-  screenName?: string,
-): Record<string, string> {
-  const overrides: Record<string, string> = {};
-  if (!customText) return overrides;
+): {
+  m: `${P}.${S}` extends keyof ScreenMap
+    ? ScreenMap[`${P}.${S}`]
+    : TranslationMap;
+  locale: (typeof locales)[number];
+} {
+  const validLocale = normalizeLocale(locale);
 
-  // Extract screen-specific text from nested structure
-  const screenText = screenName ? customText[screenName] : undefined;
-  if (!screenText) return overrides;
+  // Get defaults: try requested locale, fall back to English
+  const defaults =
+    LOCALE_DATA[validLocale]?.[prompt]?.[screen] ??
+    LOCALE_DATA[baseLocale]?.[prompt]?.[screen] ??
+    {};
 
-  // Normalize prompt screen to snake_case for key prefix
-  const promptPrefix = promptScreen
-    ? promptScreen.replace(/-/g, "_").toLowerCase() + "_"
-    : "";
+  // Get custom text overrides for this screen
+  const overrides = customText?.[screen] ?? {};
 
-  for (const [key, value] of Object.entries(screenText)) {
-    if (typeof value === "string") {
-      // Convert camelCase/kebab-case to snake_case to match Paraglide keys
-      const snakeKey = key
-        .replace(/([A-Z])/g, "_$1")
-        .replace(/-/g, "_")
-        .toLowerCase()
-        .replace(/^_/, "");
+  // Merge: custom text overrides take precedence over defaults
+  const merged = { ...defaults, ...overrides };
 
-      // Store with prompt prefix (e.g., "login_id_title")
-      const prefixedKey = promptPrefix + snakeKey;
-      overrides[prefixedKey] = value;
-
-      // Also store without prefix as fallback for generic keys
-      overrides[snakeKey] = value;
+  // Validate merged translations against the English schema
+  const schema = screenSchemas[`${prompt}.${screen}`];
+  if (schema) {
+    const result = schema.safeParse(merged);
+    if (!result.success) {
+      console.warn(
+        `[i18n] Missing translations for ${prompt}.${screen} (${validLocale}):`,
+        result.error.issues.map((i) => i.path.join(".")).join(", "),
+      );
     }
   }
 
-  return overrides;
-}
-
-/**
- * Create wrapper functions for messages that check for custom text overrides
- * Returns a request-scoped messages object
- */
-function createMessageWrappers(
-  locale: Locale,
-  overrides: Record<string, string>,
-): Messages {
-  // Set the Paraglide locale for this context
-  overwriteGetLocale(() => locale);
-
+  // Create wrapper functions for each key
   const wrappers: Record<
     string,
     (variables?: Record<string, unknown>) => string
   > = {};
 
-  for (const [key, originalFn] of Object.entries(originalMessages)) {
-    if (typeof originalFn === "function") {
-      wrappers[key] = (variables?: Record<string, unknown>) => {
-        // Check for custom override first
-        const override = overrides[key];
-        if (override !== undefined) {
-          return substituteVariables(override, variables);
-        }
-
-        // Call the original Paraglide function
-        return (originalFn as (vars?: Record<string, unknown>) => string)(
-          variables,
-        );
-      };
-    } else {
-      // Non-function properties (if any) are passed through
-      wrappers[key] = originalFn as unknown as (
-        variables?: Record<string, unknown>,
-      ) => string;
-    }
+  for (const [key, value] of Object.entries(merged)) {
+    wrappers[key] = (variables?: Record<string, unknown>) => {
+      return substituteVariables(value, variables);
+    };
   }
 
-  return wrappers as unknown as Messages;
+  // Proxy returns the key name for missing translations instead of crashing
+  const m = new Proxy(wrappers, {
+    get: (target, prop: string) => target[prop] ?? (() => prop),
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { m, locale: validLocale } as any;
 }
 
 /**
- * Translation context returned by createTranslation
- */
-export interface TranslationContext {
-  /** The resolved locale */
-  locale: Locale;
-  /** Type-safe message functions with custom text override support */
-  m: Messages;
-}
-
-/**
- * Create a request-scoped translation context
- *
- * This function creates a new translation context for each request,
- * avoiding global mutable state that would cause race conditions
- * in concurrent serverless environments.
- *
- * @param locale - The locale code (e.g., 'nb', 'en', 'sv')
- * @param customText - Optional custom text overrides from database (nested by screen name)
- * @param promptScreen - Optional prompt screen ID for namespacing (e.g., 'login-id', 'signup')
- * @param screenName - Optional screen name to extract from nested custom text
- * @returns TranslationContext with locale and typed message functions
- */
-export function createTranslation(
-  locale: string,
-  customText?: CustomText,
-  promptScreen?: string,
-  screenName?: string,
-): TranslationContext {
-  const validLocale = normalizeLocale(locale);
-  const overrides = buildOverrides(customText, promptScreen, screenName);
-  const m = createMessageWrappers(validLocale, overrides);
-
-  return {
-    locale: validLocale,
-    m,
-  };
-}
-
-/**
- * Check if a locale is supported
+ * Check if a locale is supported.
  */
 export function isLocaleSupported(locale: string): boolean {
   const normalized = locale.split("-")[0]?.toLowerCase();
-  return locales.includes(normalized as Locale);
+  return locales.includes(normalized as (typeof locales)[number]);
 }
 
-// Re-export for convenience
-export { locales, baseLocale } from "../paraglide/runtime.js";
+/**
+ * Get locale defaults for a specific prompt and language.
+ * Used by the management API prompts endpoint.
+ *
+ * Returns the nested screen → key → value structure for the given prompt,
+ * falling back to English if the requested language isn't available.
+ */
+export function getLocaleDefaults(
+  prompt: string,
+  language: string,
+): Record<string, Record<string, string>> {
+  const baseLang = language.split("-")[0] || "en";
+
+  return (
+    LOCALE_DATA[baseLang]?.[prompt] ??
+    LOCALE_DATA["en"]?.[prompt] ??
+    {}
+  );
+}

@@ -35,6 +35,7 @@ export { getScreen, screenRegistry } from "./registry";
 // Export i18n utilities
 export {
   createTranslation,
-  type Messages,
-  type TranslationContext,
+  type TranslationMap,
+  type ScreenMap,
+  type Locale,
 } from "../../../i18n";

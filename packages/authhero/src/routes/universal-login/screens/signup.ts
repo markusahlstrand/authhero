@@ -34,7 +34,7 @@ export async function signupScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "signup");
+  const { m } = createTranslation("signup", "signup", locale, customText);
 
   // Check if we have password signup available
   const hasPasswordSignup = context.connections.some(
@@ -54,9 +54,9 @@ export async function signupScreen(
         type: "EMAIL",
         category: "FIELD",
         visible: true,
-        label: m.signup__email_placeholder(),
+        label: m.emailPlaceholder(),
         config: {
-          placeholder: m.signup__email_placeholder(),
+          placeholder: m.emailPlaceholder(),
         },
         required: true,
         order: order++,
@@ -70,9 +70,9 @@ export async function signupScreen(
         type: "PASSWORD",
         category: "FIELD",
         visible: true,
-        label: m.signup__password_placeholder(),
+        label: m.passwordPlaceholder(),
         config: {
-          placeholder: m.signup__password_placeholder(),
+          placeholder: m.passwordPlaceholder(),
           show_toggle: true,
         },
         required: true,
@@ -88,9 +88,9 @@ export async function signupScreen(
         type: "PASSWORD",
         category: "FIELD",
         visible: true,
-        label: m.signup__confirm_password_placeholder(),
+        label: m.confirmPasswordPlaceholder(),
         config: {
-          placeholder: m.signup__confirm_password_placeholder(),
+          placeholder: m.confirmPasswordPlaceholder(),
           show_toggle: true,
         },
         required: true,
@@ -107,7 +107,7 @@ export async function signupScreen(
         category: "BLOCK",
         visible: true,
         config: {
-          text: m.signup__button_text(),
+          text: m.buttonText(),
         },
         order: order++,
       },
@@ -131,14 +131,14 @@ export async function signupScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/signup?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.signup__title(),
-    description: m.signup__description(),
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "login",
-        text: m.signup__login_action_text(),
-        linkText: m.signup__login_action_link_text(),
+        text: m.loginActionText(),
+        linkText: m.loginActionLinkText(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -167,12 +167,8 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for error messages
       const locale = context.language || "en";
-      const { m } = createTranslation(
-        locale,
-        context.customText,
-        undefined,
-        "signup",
-      );
+      const { m } = createTranslation("signup", "signup", locale, context.customText);
+      const { m: passwordM } = createTranslation("signup-password", "signup-password", locale, context.customText);
 
       // Validate required fields
       if (!email) {
@@ -180,7 +176,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           error: "Email is required",
           screen: await signupScreen({
             ...context,
-            errors: { email: m.signup__invalid_email_format() },
+            errors: { email: m["invalid-email-format"]() },
           }),
         };
       }
@@ -191,7 +187,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { password: m.signup__no_password() },
+            errors: { password: m["no-password"]() },
           }),
         };
       }
@@ -202,7 +198,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { re_password: m.signup__confirm_password_placeholder() },
+            errors: { re_password: m.confirmPasswordPlaceholder() },
           }),
         };
       }
@@ -214,7 +210,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { re_password: m.signup__passwords_didnt_match() },
+            errors: { re_password: m.passwordsDidntMatch() },
           }),
         };
       }
@@ -243,7 +239,7 @@ export const signupScreenDefinition: ScreenDefinition = {
         const errorMessage =
           policyError instanceof Error
             ? policyError.message
-            : m.signup_password__password_too_weak();
+            : passwordM["password-too-weak"]();
 
         return {
           error: errorMessage,
@@ -269,7 +265,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: m.signup__email_already_exists() },
+            errors: { email: m["email-already-exists"]() },
           }),
         };
       }
@@ -286,7 +282,7 @@ export const signupScreenDefinition: ScreenDefinition = {
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: m.signup__session_expired() },
+            errors: { email: m.sessionExpired() },
           }),
         };
       }
@@ -370,7 +366,7 @@ export const signupScreenDefinition: ScreenDefinition = {
         return {
           screen: await signupScreen({
             ...context,
-            messages: [{ text: m.signup__verify_email_text(), type: "success" }],
+            messages: [{ text: m.verifyEmailText(), type: "success" }],
           }),
         };
       }

@@ -64,7 +64,7 @@ async function setupUsernameConnection(
 }
 
 describe("username login - identifier-first flow (u/login/identifier)", () => {
-  it("should show 'Email address or Username' placeholder when username identifier is active", async () => {
+  it("should show 'Username or email address' placeholder when username identifier is active", async () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,
       testTenantLanguage: "en",
@@ -174,7 +174,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
     // Should be rejected with 400
     expect(identifierResponse.status).toBe(400);
     const html = await identifierResponse.text();
-    expect(html).toContain("Invalid identifier");
+    expect(html).toContain("Email is not valid.");
   });
 
   it("should validate username min length", async () => {
@@ -230,7 +230,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
 
     expect(identifierResponse.status).toBe(400);
     const html = await identifierResponse.text();
-    expect(html).toContain("at most 10 characters");
+    expect(html).toContain("10 characters or less");
   });
 
   it("should still allow email login when username identifier is active", async () => {
@@ -283,7 +283,7 @@ describe("username login - identifier-first flow (u/login/identifier)", () => {
 });
 
 describe("username login - combined login flow (u2/login)", () => {
-  it("should show 'Email address or Username' placeholder in u2 login screen", async () => {
+  it("should show 'Username or email address' placeholder in u2 login screen", async () => {
     const { u2App, oauthApp, env } = await getTestServer({
       mockEmail: true,
       testTenantLanguage: "en",
@@ -306,7 +306,7 @@ describe("username login - combined login flow (u2/login)", () => {
 
     const html = await loginPage.text();
     // Should contain the email or username placeholder (HTML-encoded)
-    expect(html).toContain("Email address or Username");
+    expect(html).toContain("Username or email address");
   });
 
   it("should allow login with username + password on u2 combined login screen", async () => {

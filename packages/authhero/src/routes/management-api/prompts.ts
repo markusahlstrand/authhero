@@ -5,7 +5,7 @@ import {
   promptScreenSchema,
   customTextSchema,
 } from "@authhero/adapter-interfaces";
-import { getLocaleDefaults } from "../../utils/locale-defaults";
+import { getLocaleDefaults } from "../../i18n";
 
 export const promptsRoutes = new OpenAPIHono<{
   Bindings: Bindings;

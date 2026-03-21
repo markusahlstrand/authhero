@@ -24,7 +24,8 @@ import { emailOtpChallengeScreen } from "./email-otp-challenge";
 import { smsOtpChallengeScreen } from "./sms-otp-challenge";
 import { magicLinkSentScreen } from "./magic-link-sent";
 import { enterPasswordScreen } from "./enter-password";
-import { createTranslation, type Messages } from "../../../i18n";
+import { createTranslation } from "../../../i18n";
+import type { LoginIdScreen } from "../../../generated/locale-types";
 import { getConnectionIconUrl } from "../../../strategies";
 
 /**
@@ -32,7 +33,7 @@ import { getConnectionIconUrl } from "../../../strategies";
  */
 function buildSocialButtons(
   context: ScreenContext,
-  m: Messages,
+  m: LoginIdScreen,
 ): FormNodeComponent[] {
   const { connections } = context;
 
@@ -53,7 +54,7 @@ function buildSocialButtons(
     return {
       name: conn.name,
       strategy: conn.strategy,
-      display_name: m.login_id__federated_connection_button_text({
+      display_name: m.federatedConnectionButtonText({
         connectionName: displayName,
       }),
       icon_url: getConnectionIconUrl(conn),
@@ -91,7 +92,7 @@ function buildSocialButtons(
       visible: true,
       order: 1,
       config: {
-        text: m.login_id__separator_text(),
+        text: m.separatorText(),
       },
     };
     return [socialButton, divider];
@@ -114,17 +115,16 @@ export async function identifierScreen(
     errors,
     messages,
     customText,
-    promptScreen,
     routePrefix,
   } = context;
 
-  // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
+  // Initialize i18n with locale, custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "login-id",
+    "login-id",
     locale,
     customText,
-    promptScreen || "login-id",
-    "identifier",
   );
 
   const socialButtons = buildSocialButtons(context, m);
@@ -149,10 +149,10 @@ export async function identifierScreen(
   // Determine the appropriate label/placeholder based on connection config
   const identifierLabel =
     requiresUsername && requiresEmail
-      ? m.login_id__username_or_email_placeholder()
+      ? m.usernameOrEmailPlaceholder()
       : requiresUsername
-        ? m.login_id__username_placeholder()
-        : m.login_id__email_placeholder();
+        ? m.usernamePlaceholder()
+        : m.emailPlaceholder();
 
   const components: FormNodeComponent[] = [
     // Social login buttons (if any)
@@ -187,7 +187,7 @@ export async function identifierScreen(
         category: "BLOCK",
         visible: true,
         config: {
-          text: m.login_id__button_text(),
+          text: m.buttonText(),
         },
         order: socialButtonCount + 2,
       },
@@ -211,7 +211,7 @@ export async function identifierScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="signup-link">${m.login_id__footer_text()} <a href="${signupUrl}">${m.login_id__footer_link_text()}</a></div>`,
+        content: `<div class="signup-link">${m.footerText()} <a href="${signupUrl}">${m.footerLinkText()}</a></div>`,
       },
       order: components.length + 1,
     });
@@ -223,8 +223,8 @@ export async function identifierScreen(
     // Widget overrides this to POST JSON to screen API when hydrated
     action: `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.login_id__title(),
-    description: m.login_id__description({
+    title: m.title(),
+    description: m.description({
       companyName:
         client.tenant.friendly_name || client.tenant.id || "AuthHero",
       clientName: client.name || "the application",
@@ -274,17 +274,17 @@ export const identifierScreenDefinition: ScreenDefinition = {
       // Initialize i18n once for all error branches
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "login-id",
+        "login-id",
         locale,
         context.customText,
-        undefined,
-        "identifier",
       );
 
       // Validate username is provided
       if (!username) {
         const fieldLabel = requiresUsername
-          ? m.login_id__no_email_username()
-          : m.login_id__no_email();
+          ? m["no-email-username"]()
+          : m["no-email"]();
         return {
           error: fieldLabel,
           screen: await identifierScreen({
@@ -300,7 +300,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
-        const errorMsg = m.login_id__invalid_email_format();
+        const errorMsg = m["invalid-email-format"]();
         return {
           error: errorMsg,
           screen: await identifierScreen({
@@ -317,7 +317,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         const maxLength = identifierConfig.usernameMaxLength;
 
         if (normalized.length < minLength) {
-          const errorMsg = m.login_id__username_too_short({ min: String(minLength) });
+          const errorMsg = m.usernameTooShort({ min: String(minLength) });
           return {
             error: errorMsg,
             screen: await identifierScreen({
@@ -329,7 +329,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         }
 
         if (normalized.length > maxLength) {
-          const errorMsg = m.login_id__username_too_long({ max: String(maxLength) });
+          const errorMsg = m.usernameTooLong({ max: String(maxLength) });
           return {
             error: errorMsg,
             screen: await identifierScreen({
@@ -364,7 +364,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         user;
 
       if (!hasValidConnection) {
-        const errorMsg = m.login_id__invalid_email_format();
+        const errorMsg = m["invalid-email-format"]();
         return {
           error: errorMsg,
           screen: await identifierScreen({
@@ -386,13 +386,13 @@ export const identifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const errorMsg = validation.reason || m.login_id__user_account_does_not_exist();
+          const errorMsg = validation.reason || m.userAccountDoesNotExist();
           return {
             error: errorMsg,
             screen: await identifierScreen({
               ...context,
               prefill: { username },
-              errors: { username: m.login_id__user_account_does_not_exist() },
+              errors: { username: m.userAccountDoesNotExist() },
             }),
           };
         }
@@ -405,7 +405,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
-        const errorMsg = m.login_id__session_expired();
+        const errorMsg = m.sessionExpired();
         return {
           error: errorMsg,
           screen: await identifierScreen({

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
-import { getLocaleDefaults } from "../../../src/utils/locale-defaults";
+import { getLocaleDefaults } from "../../../src/i18n";
 
 describe("prompts", () => {
   it("should set and get prompts", async () => {

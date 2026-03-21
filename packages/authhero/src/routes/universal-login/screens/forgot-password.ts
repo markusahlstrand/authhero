@@ -28,11 +28,12 @@ export async function forgotPasswordScreen(
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "reset-password",
+    "reset-password",
     locale,
     customText,
-    undefined,
-    "forgot-password",
   );
+  const { m: loginM } = createTranslation("login", "login", locale, customText);
 
   const components: FormNodeComponent[] = [
     // Info text
@@ -42,7 +43,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: m.reset_password__description(),
+        content: m.description(),
       },
       order: 0,
     },
@@ -52,9 +53,9 @@ export async function forgotPasswordScreen(
       type: "EMAIL",
       category: "FIELD",
       visible: true,
-      label: m.reset_password__email_placeholder(),
+      label: m.emailPlaceholder(),
       config: {
-        placeholder: m.reset_password__email_placeholder(),
+        placeholder: m.emailPlaceholder(),
       },
       required: true,
       order: 1,
@@ -69,7 +70,7 @@ export async function forgotPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.reset_password__button_text(),
+        text: m.buttonText(),
       },
       order: 2,
     },
@@ -89,14 +90,14 @@ export async function forgotPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.reset_password__title(),
+    title: m.title(),
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
     links: [
       {
         id: "back",
-        text: m.reset_password__back_to_login_text(),
-        linkText: m.login__button_text(),
+        text: m.backToLoginText(),
+        linkText: loginM.buttonText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
