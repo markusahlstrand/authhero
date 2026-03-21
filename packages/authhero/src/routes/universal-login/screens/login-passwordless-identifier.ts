@@ -299,7 +299,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
             screen: await loginPasswordlessIdentifierScreen({
               ...context,
               prefill: { username },
-              errors: { username: m.userAccountDoesNotExist() },
+              errors: { username: errorMsg },
             }),
           };
         }

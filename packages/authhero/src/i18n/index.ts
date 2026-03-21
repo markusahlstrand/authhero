@@ -128,11 +128,10 @@ export function createTranslation<
 } {
   const validLocale = normalizeLocale(locale);
 
-  // Get defaults: try requested locale, fall back to English
-  const defaults =
-    LOCALE_DATA[validLocale]?.[prompt]?.[screen] ??
-    LOCALE_DATA[baseLocale]?.[prompt]?.[screen] ??
-    {};
+  // Build defaults: start with base locale (English), overlay requested locale
+  const baseDefaults = LOCALE_DATA[baseLocale]?.[prompt]?.[screen] ?? {};
+  const localeDefaults = LOCALE_DATA[validLocale]?.[prompt]?.[screen] ?? {};
+  const defaults = { ...baseDefaults, ...localeDefaults };
 
   // Get custom text overrides for this screen
   const overrides = customText?.[screen] ?? {};
