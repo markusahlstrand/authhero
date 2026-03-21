@@ -162,16 +162,17 @@ function darkModeCssVarRules(selector: string, primaryColor?: string): string {
       vars["--ah-color-primary-hover"] = adjusted;
     }
 
-    // Auto-compute text-on-primary for dark mode
+    // Auto-compute text-on-primary for dark mode (BIAS matches SSR block)
+    const BIAS = 1.35;
     const btnBg = vars["--ah-color-primary"] || primaryColor;
     const whiteContrast = darkContrastRatio(btnBg, "#ffffff");
     const blackContrast = darkContrastRatio(btnBg, "#000000");
     vars["--ah-color-text-on-primary"] =
-      blackContrast > whiteContrast ? "#000000" : "#ffffff";
+      blackContrast > whiteContrast * BIAS ? "#000000" : "#ffffff";
   }
 
   const props = Object.entries(vars)
-    .map(([k, v]) => `${k}: ${v}`)
+    .map(([k, v]) => `${k}: ${v} !important`)
     .join("; ");
   return `${selector} { ${props}; }`;
 }
@@ -197,6 +198,20 @@ export function WidgetPage({
   const primaryColor = sanitizeCssColor(branding?.colors?.primary);
   if (primaryColor) {
     cssVariables.push(`--ah-color-primary: ${primaryColor}`);
+  }
+
+  // Compute text-on-primary for SSR (the widget computes this client-side,
+  // but before hydration the CSS variable is missing and the button inherits
+  // the dark body text color instead of using the fallback).
+  const effectivePrimaryBtn =
+    sanitizeCssColor(theme?.colors?.primary_button) || primaryColor;
+  if (effectivePrimaryBtn) {
+    const BIAS = 1.35;
+    const whiteContrast = darkContrastRatio(effectivePrimaryBtn, "#ffffff");
+    const blackContrast = darkContrastRatio(effectivePrimaryBtn, "#000000");
+    const textOnPrimary =
+      blackContrast > whiteContrast * BIAS ? "#000000" : "#ffffff";
+    cssVariables.push(`--ah-color-text-on-primary: ${textOnPrimary}`);
   }
 
   const pageBackground = buildThemePageBackground(
@@ -258,8 +273,35 @@ export function WidgetPage({
         ? "ah-light-mode"
         : undefined;
 
+  // Build dark mode CSS vars JSON for the client-side toggle script.
+  // This includes any primary color contrast adjustments.
+  const darkVarsForScript: Record<string, string> = {
+    ...DARK_MODE_CSS_VARS,
+  };
+  const effectivePrimary =
+    sanitizeCssColor(theme?.colors?.primary_button) || primaryColor;
+  if (effectivePrimary) {
+    const darkBg = DARK_MODE_CSS_VARS["--ah-color-bg"] || "#1f2937";
+    if (darkContrastRatio(effectivePrimary, darkBg) < 3) {
+      let adjusted = effectivePrimary;
+      for (let i = 1; i <= 10; i++) {
+        adjusted = lightenHexDark(effectivePrimary, i * 0.1);
+        if (darkContrastRatio(adjusted, darkBg) >= 3) break;
+      }
+      darkVarsForScript["--ah-color-primary"] = adjusted;
+      darkVarsForScript["--ah-color-primary-hover"] = adjusted;
+    }
+    const BIAS = 1.35;
+    const btnBg = darkVarsForScript["--ah-color-primary"] || effectivePrimary;
+    const wc = darkContrastRatio(btnBg, "#ffffff");
+    const bc = darkContrastRatio(btnBg, "#000000");
+    darkVarsForScript["--ah-color-text-on-primary"] =
+      bc > wc * BIAS ? "#000000" : "#ffffff";
+  }
+  const darkVarsJson = JSON.stringify(darkVarsForScript);
+
   return (
-    <html lang="en" class={htmlClass}>
+    <html lang={language || "en"} class={htmlClass}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -380,7 +422,7 @@ export function WidgetPage({
               class="dark-mode-toggle"
               type="button"
               aria-label="Toggle dark mode"
-              onclick={`(function(btn){var h=document.documentElement;var cur=h.classList.contains('ah-dark-mode')?'dark':h.classList.contains('ah-light-mode')?'light':'auto';var next=cur==='auto'?'dark':cur==='dark'?'light':'auto';h.classList.remove('ah-dark-mode','ah-light-mode');if(next==='dark')h.classList.add('ah-dark-mode');else if(next==='light')h.classList.add('ah-light-mode');btn.querySelector('.icon-sun').style.display=next==='light'?'block':'none';btn.querySelector('.icon-moon').style.display=next==='dark'?'block':'none';btn.querySelector('.icon-auto').style.display=next==='auto'?'block':'none';document.cookie='ah-dark-mode='+next+';path=/;max-age=31536000;SameSite=Lax'})(this)`}
+              onclick={`(function(btn){var h=document.documentElement;var cur=h.classList.contains('ah-dark-mode')?'dark':h.classList.contains('ah-light-mode')?'light':'auto';var next=cur==='auto'?'dark':cur==='dark'?'light':'auto';h.classList.remove('ah-dark-mode','ah-light-mode');if(next==='dark')h.classList.add('ah-dark-mode');else if(next==='light')h.classList.add('ah-light-mode');btn.querySelector('.icon-sun').style.display=next==='light'?'block':'none';btn.querySelector('.icon-moon').style.display=next==='dark'?'block':'none';btn.querySelector('.icon-auto').style.display=next==='auto'?'block':'none';document.cookie='ah-dark-mode='+next+';path=/;max-age=31536000;SameSite=Lax';if(window.__ahDarkMode){window.__ahDarkMode(next)}})(this)`}
             >
               {/* Auto icon (half circle - system preference) */}
               <svg
@@ -474,7 +516,24 @@ export function WidgetPage({
         </footer>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem('ah-dark-mode');if(p!==null&&!document.cookie.match(/ah-dark-mode=/)){var v=p==='1'?'dark':'light';document.cookie='ah-dark-mode='+v+';path=/;max-age=31536000;SameSite=Lax';localStorage.removeItem('ah-dark-mode')}}catch(e){}})()`,
+            __html: `(function(){
+try{var p=localStorage.getItem('ah-dark-mode');if(p!==null&&!document.cookie.match(/ah-dark-mode=/)){var v=p==='1'?'dark':'light';document.cookie='ah-dark-mode='+v+';path=/;max-age=31536000;SameSite=Lax';localStorage.removeItem('ah-dark-mode')}}catch(e){}
+var dv=${darkVarsJson};
+function apply(w){for(var k in dv)w.style.setProperty(k,dv[k])}
+function remove(w){for(var k in dv)w.style.removeProperty(k)}
+window.__ahDarkMode=function(mode){
+var w=document.querySelector('authhero-widget');if(!w)return;
+if(mode==='dark'){apply(w)}
+else if(mode==='light'){remove(w)}
+else{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches){apply(w)}else{remove(w)}}
+};
+var h=document.documentElement;
+var cur=h.classList.contains('ah-dark-mode')?'dark':h.classList.contains('ah-light-mode')?'light':'auto';
+window.__ahDarkMode(cur);
+if(window.matchMedia){window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(){
+var h2=document.documentElement;if(!h2.classList.contains('ah-dark-mode')&&!h2.classList.contains('ah-light-mode')){window.__ahDarkMode('auto')}
+})}
+})()`,
           }}
         />
       </body>

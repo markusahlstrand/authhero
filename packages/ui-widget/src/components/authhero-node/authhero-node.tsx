@@ -944,6 +944,55 @@ export class AuthheroNode {
     );
   }
 
+  private renderCountryField(
+    component: FieldComponent & { type: "COUNTRY" },
+  ) {
+    const inputId = `input-${component.id}`;
+    const errors = this.getErrors();
+    const { placeholder } = component.config ?? {};
+    const hasValue = true;
+    const effectiveValue = this.getEffectiveValue();
+
+    return (
+      <div class="input-wrapper" part="input-wrapper">
+        <div class="input-container">
+          <select
+            id={inputId}
+            class={this.getInputFieldClass(errors.length > 0)}
+            part="input select"
+            name={component.id}
+            required={component.required}
+            disabled={this.disabled}
+            onChange={this.handleInput}
+          >
+            {placeholder && (
+              <option value="" disabled selected={!effectiveValue}>
+                {placeholder}
+              </option>
+            )}
+            {countries.map((c) => (
+              <option
+                value={c.code}
+                selected={effectiveValue === c.code}
+                key={c.code}
+              >
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          {this.renderFloatingLabel(
+            component.label,
+            inputId,
+            component.required,
+            hasValue,
+          )}
+        </div>
+        {this.renderErrors()}
+        {errors.length === 0 && this.renderHint(component.hint)}
+      </div>
+    );
+  }
+
   private renderDropdownField(
     component: FieldComponent & { type: "DROPDOWN" },
   ) {
@@ -1237,6 +1286,10 @@ export class AuthheroNode {
       case "LEGAL":
         return this.renderLegalField(
           this.component as FieldComponent & { type: "LEGAL" },
+        );
+      case "COUNTRY":
+        return this.renderCountryField(
+          this.component as FieldComponent & { type: "COUNTRY" },
         );
       case "DROPDOWN":
         return this.renderDropdownField(

@@ -605,12 +605,17 @@ export const screenApiRoutes = new OpenAPIHono<{
           "sms-otp-challenge",
           "login-passwordless-identifier",
         ];
+        // Screen IDs that map to non-standard URL paths
+        const screenIdToPath: Record<string, string> = {
+          "forgot-password": "reset-password/request",
+        };
         const navigatePrefix = loginScreenIds.includes(nextScreenId)
           ? "/u2/login"
           : "/u2";
+        const screenPath = screenIdToPath[nextScreenId] || nextScreenId;
         const navigateUrl =
           nextScreenId !== screenId
-            ? `${navigatePrefix}/${nextScreenId}?state=${encodeURIComponent(state)}`
+            ? `${navigatePrefix}/${screenPath}?state=${encodeURIComponent(state)}`
             : undefined;
 
         return ctx.json(

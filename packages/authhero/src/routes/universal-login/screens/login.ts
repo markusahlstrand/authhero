@@ -19,7 +19,8 @@ import {
 } from "../../../helpers/users";
 import { validateSignupEmail } from "../../../hooks";
 import { getConnectionFromIdentifier } from "../../../utils/username";
-import { createTranslation, type Messages } from "../../../i18n";
+import { createTranslation } from "../../../i18n";
+import type { LoginScreen } from "../../../generated/locale-types";
 import { getConnectionIconUrl } from "../../../strategies";
 import { loginWithPassword } from "../../../authentication-flows/password";
 import { AuthError } from "../../../types/AuthError";
@@ -29,7 +30,7 @@ import { AuthError } from "../../../types/AuthError";
  */
 function buildSocialButtons(
   context: ScreenContext,
-  m: Messages,
+  m: LoginScreen,
 ): FormNodeComponent[] {
   const { connections } = context;
 
@@ -57,7 +58,7 @@ function buildSocialButtons(
     return {
       name: conn.name,
       strategy: conn.strategy,
-      display_name: m.login_id_federated_connection_button_text({
+      display_name: m.federatedConnectionButtonText({
         connectionName: displayName,
       }),
       icon_url: getConnectionIconUrl(conn),
@@ -70,7 +71,7 @@ function buildSocialButtons(
     providerDetails.push({
       name: firstPasswordless.name,
       strategy: firstPasswordless.strategy,
-      display_name: m.enter_a_code_btn(),
+      display_name: m.enterACodeBtn(),
       icon_url: getConnectionIconUrl(firstPasswordless),
       href: passwordlessUrl,
     } as (typeof providerDetails)[number] & { href: string });
@@ -107,7 +108,7 @@ function buildSocialButtons(
       visible: true,
       order: 1,
       config: {
-        text: m.or(),
+        text: m.separatorText(),
       },
     };
     return [socialButton, divider];
@@ -130,17 +131,16 @@ export async function loginScreen(
     errors,
     messages,
     customText,
-    promptScreen,
     routePrefix,
   } = context;
 
-  // Initialize i18n with locale, custom text overrides, and prompt screen for namespacing
+  // Initialize i18n with locale, custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "login",
+    "login",
     locale,
     customText,
-    promptScreen || "login",
-    "login",
   );
 
   const socialButtons = buildSocialButtons(context, m);
@@ -158,10 +158,10 @@ export async function loginScreen(
   // Determine the appropriate label/placeholder based on connection config
   const identifierLabel =
     requiresUsername && requiresEmail
-      ? m.email_or_username_placeholder()
+      ? m.usernamePlaceholder()
       : requiresUsername
-        ? m.username_placeholder()
-        : m.email_placeholder();
+        ? m.usernamePlaceholder()
+        : m.emailPlaceholder();
 
   const components: FormNodeComponent[] = [
     // Social login buttons (if any)
@@ -198,9 +198,9 @@ export async function loginScreen(
         type: "PASSWORD",
         category: "FIELD",
         visible: true,
-        label: m.password(),
+        label: m.passwordPlaceholder(),
         config: {
-          placeholder: m.enter_password(),
+          placeholder: m.passwordPlaceholder(),
         },
         required: true,
         sensitive: true,
@@ -210,14 +210,14 @@ export async function loginScreen(
     );
 
     // Forgot password link (between password and submit)
-    const forgotPasswordUrl = `${routePrefix}/forgot-password?state=${encodeURIComponent(state)}`;
+    const forgotPasswordUrl = `${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}`;
     components.push({
       id: "forgot-password-link",
       type: "RICH_TEXT",
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="forgot-password-link"><a href="${forgotPasswordUrl}">${m.forgot_password_link()}</a></div>`,
+        content: `<div class="forgot-password-link"><a href="${forgotPasswordUrl}">${m.forgotPasswordText()}</a></div>`,
       },
       order: socialButtonCount + 3,
     });
@@ -229,7 +229,7 @@ export async function loginScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.continue(),
+        text: m.buttonText(),
       },
       order: socialButtonCount + 4,
     });
@@ -247,7 +247,7 @@ export async function loginScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="signup-link">${m.dont_have_account()} <a href="${signupUrl}">${m.create_new_account_link()}</a></div>`,
+        content: `<div class="signup-link">${m.footerText()} <a href="${signupUrl}">${m.footerLinkText()}</a></div>`,
       },
       order: components.length + 1,
     });
@@ -258,8 +258,8 @@ export async function loginScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/login?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.login_id_title(),
-    description: m.login_id_description({
+    title: m.title(),
+    description: m.description({
       companyName:
         client.tenant.friendly_name || client.tenant.id || "AuthHero",
       clientName: client.name || "the application",
@@ -302,10 +302,10 @@ export const loginScreenDefinition: ScreenDefinition = {
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "login",
+        "login",
         locale,
         context.customText,
-        "login",
-        "login",
       );
 
       // Check if the password connection has username identifier enabled
@@ -319,8 +319,8 @@ export const loginScreenDefinition: ScreenDefinition = {
       // Validate username is provided
       if (!username) {
         const fieldLabel = requiresUsername
-          ? m.no_email_or_username()
-          : m.no_email();
+          ? m["no-email"]()
+          : m["no-email"]();
         return {
           error: fieldLabel,
           screen: await loginScreen({
@@ -332,7 +332,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Validate password is provided
       if (!password) {
-        const errorMessage = m.no_password();
+        const errorMessage = m["no-password"]();
         return {
           error: errorMessage,
           screen: await loginScreen({
@@ -349,7 +349,7 @@ export const loginScreenDefinition: ScreenDefinition = {
         getConnectionFromIdentifier(username, countryCode);
 
       if (!normalized) {
-        const errorMsg = m.invalid_identifier();
+        const errorMsg = m.invalidIdentifier();
         return {
           error: errorMsg,
           screen: await loginScreen({
@@ -366,7 +366,7 @@ export const loginScreenDefinition: ScreenDefinition = {
         const maxLength = identifierConfig.usernameMaxLength;
 
         if (normalized.length < minLength) {
-          const errorMsg = m.username_too_short({ min: String(minLength) });
+          const errorMsg = m.usernameTooShort({ min: String(minLength) });
           return {
             error: errorMsg,
             screen: await loginScreen({
@@ -378,7 +378,7 @@ export const loginScreenDefinition: ScreenDefinition = {
         }
 
         if (normalized.length > maxLength) {
-          const errorMsg = m.username_too_long({ max: String(maxLength) });
+          const errorMsg = m.usernameTooLong({ max: String(maxLength) });
           return {
             error: errorMsg,
             screen: await loginScreen({
@@ -392,7 +392,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // If connectionType is "username" but username identifier is not active, reject
       if (connectionType === "username" && !requiresUsername) {
-        const errorMsg = m.invalid_email();
+        const errorMsg = m.invalidEmail();
         return {
           error: errorMsg,
           screen: await loginScreen({
@@ -420,7 +420,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Check if password connection is allowed
       if (!passwordConnection) {
-        const errorMsg = m.password_login_not_available();
+        const errorMsg = m.passwordLoginNotAvailable();
         return {
           error: errorMsg,
           screen: await loginScreen({
@@ -442,7 +442,7 @@ export const loginScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const errorMsg = m.user_account_does_not_exist();
+          const errorMsg = m.userAccountDoesNotExist();
           return {
             error: errorMsg,
             screen: await loginScreen({
@@ -461,7 +461,7 @@ export const loginScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
-        const errorMsg = m.session_expired();
+        const errorMsg = m.sessionExpired();
         return {
           error: errorMsg,
           screen: await loginScreen({
@@ -503,17 +503,17 @@ export const loginScreenDefinition: ScreenDefinition = {
       } catch (e: unknown) {
         const authError = e as AuthError;
 
-        let errorMessage = authError.message || m.invalid_password();
+        let errorMessage = authError.message || m["wrong-credentials"]();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
           authError.code === "USER_NOT_FOUND"
         ) {
-          errorMessage = m.invalid_password();
+          errorMessage = m["wrong-credentials"]();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = m.unverified_email();
+          errorMessage = m.unverifiedEmail();
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
-          errorMessage = m.too_many_failed_logins();
+          errorMessage = m.tooManyFailedLogins();
         }
 
         return {

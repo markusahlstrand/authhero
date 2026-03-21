@@ -22,12 +22,8 @@ export async function enterPasswordScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(
-    locale,
-    customText,
-    undefined,
-    "enter-password",
-  );
+  const { m } = createTranslation("login-password", "login-password", locale, customText);
+  const { m: common } = createTranslation("common", "common", locale, customText);
 
   const email = data?.email as string | undefined;
 
@@ -37,7 +33,7 @@ export async function enterPasswordScreen(
 
   // Build description with email display (like email-otp-challenge screen)
   const description = email
-    ? m.enter_password_signing_in_as({
+    ? m.signingInAs({
         email: `<strong>${escapeHtml(email)}</strong>`,
       })
     : undefined;
@@ -49,9 +45,9 @@ export async function enterPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: m.password(),
+      label: m.passwordPlaceholder(),
       config: {
-        placeholder: m.enter_password(),
+        placeholder: m.passwordPlaceholder(),
       },
       required: true,
       sensitive: true,
@@ -65,7 +61,7 @@ export async function enterPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div class="forgot-password-link"><a href="${routePrefix}/forgot-password?state=${encodeURIComponent(state)}">${m.forgot_password_link()}</a></div>`,
+        content: `<div class="forgot-password-link"><a href="${routePrefix}/reset-password/request?state=${encodeURIComponent(state)}">${m.forgotPasswordText()}</a></div>`,
       },
       order: 1,
     } as FormNodeComponent,
@@ -76,7 +72,7 @@ export async function enterPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.buttonText(),
       },
       order: 2,
     },
@@ -89,14 +85,14 @@ export async function enterPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/enter-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_password(),
+    title: m.title(),
     description,
     components,
     links: [
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: common.backText(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -172,24 +168,19 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         const authError = e as AuthError;
         // Initialize i18n for error messages
         const locale = context.language || "en";
-        const { m } = createTranslation(
-          locale,
-          context.customText,
-          undefined,
-          "enter-password",
-        );
+        const { m } = createTranslation("login-password", "login-password", locale, context.customText);
 
-        let errorMessage = authError.message || m.invalid_password();
+        let errorMessage = authError.message || m["wrong-credentials"]();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
           authError.code === "USER_NOT_FOUND"
         ) {
-          errorMessage = m.invalid_password();
+          errorMessage = m["wrong-credentials"]();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = m.unverified_email();
+          errorMessage = m.unverifiedEmail();
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
-          errorMessage = m.too_many_failed_logins();
+          errorMessage = m["user-blocked"]();
         }
 
         return {

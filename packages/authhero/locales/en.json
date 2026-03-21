@@ -1,0 +1,456 @@
+{
+  "check-account": {
+    "check-account": {
+      "continueQuestion": "Continue with this account?",
+      "description": "${clientName} is requesting access to your account",
+      "descriptionFallback": "An application is requesting access to your account",
+      "error": "An error occurred. Please try again.",
+      "loggedInAs": "You are logged in as ${email}",
+      "noUseAnother": "Use a different account",
+      "title": "Confirm Account",
+      "yesContinue": "Continue"
+    }
+  },
+  "common": {
+    "common": {
+      "alertListTitle": "Alerts",
+      "backText": "Back",
+      "cancelText": "Cancel",
+      "closeText": "Close",
+      "contactSupportText": "Contact Support",
+      "continueText": "Continue",
+      "copyrightText": "© ${currentYear} ${companyName}",
+      "errorText": "An error occurred",
+      "hidePasswordText": "Hide password",
+      "loadingText": "Loading...",
+      "orText": "or",
+      "privacyPolicyText": "Privacy Policy",
+      "showPasswordText": "Show password",
+      "termsOfServiceText": "Terms of Service",
+      "tryAgainText": "Try again"
+    }
+  },
+  "consent": {
+    "consent": {
+      "buttonText": "Accept",
+      "cancelButtonText": "Deny",
+      "description": "${clientName} is requesting access to your account",
+      "pageTitle": "Authorize | ${clientName}",
+      "scopesTitle": "This will allow ${clientName} to:",
+      "title": "Authorize ${clientName}"
+    }
+  },
+  "device-flow": {
+    "device-flow": {
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "description": "Enter the code shown on your device",
+      "expired-code": "The code has expired",
+      "invalid-code": "The code you entered is invalid",
+      "pageTitle": "Device Activation | ${clientName}",
+      "title": "Activate your device"
+    }
+  },
+  "email-otp-challenge": {
+    "email-otp-challenge": {
+      "buttonText": "Continue",
+      "codeLabel": "Verification Code",
+      "codePlaceholder": "Enter code",
+      "defaultDescription": "Enter the verification code sent to your email",
+      "description": "We sent a code to ${email}",
+      "invalid-code": "The code you entered is invalid",
+      "noCode": "Please enter the verification code",
+      "pageTitle": "Enter Code | ${clientName}",
+      "resendText": "Resend code",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "title": "Check your email",
+      "unexpectedError": "An unexpected error occurred"
+    }
+  },
+  "email-verification": {
+    "email-verification": {
+      "description": "We sent an email to ${email}",
+      "pageTitle": "Verify Email | ${clientName}",
+      "resendText": "Resend email",
+      "successDescription": "Your email has been verified successfully.",
+      "successTitle": "Email verified",
+      "title": "Verify your email"
+    }
+  },
+  "invitation": {
+    "invitation": {
+      "acceptButtonText": "Accept invitation",
+      "description": "${inviterName} has invited you to join ${organizationName} on ${clientName}",
+      "pageTitle": "Invitation | ${clientName}",
+      "title": "You've been invited"
+    }
+  },
+  "login": {
+    "login": {
+      "alertListTitle": "Alerts",
+      "buttonText": "Continue",
+      "description": "Log in to ${companyName} to continue to ${clientName}.",
+      "editEmailText": "Edit",
+      "emailPlaceholder": "Email address",
+      "enterACodeBtn": "Sign in with a code",
+      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "footerLinkText": "Sign up",
+      "footerText": "Don't have an account?",
+      "forgotPasswordText": "Forgot password?",
+      "hidePasswordText": "Hide password",
+      "invalidEmail": "Invalid email",
+      "invalidIdentifier": "Invalid email or username",
+      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+      "invitationTitle": "You've Been Invited!",
+      "logoAltText": "${companyName}",
+      "no-email": "Please enter an email address",
+      "no-password": "Password is required",
+      "pageTitle": "Log in | ${clientName}",
+      "passwordLoginNotAvailable": "Password authentication is not available",
+      "passwordPlaceholder": "Password",
+      "phonePlaceholder": "Phone number",
+      "separatorText": "Or",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "showPasswordText": "Show password",
+      "signupActionLinkText": "Sign up",
+      "signupActionText": "Don't have an account?",
+      "title": "Welcome",
+      "tooManyFailedLogins": "Too many failed login attempts. Please try again later.",
+      "unverifiedEmail": "Please verify your email address before logging in",
+      "userAccountDoesNotExist": "User account does not exist",
+      "usernamePlaceholder": "Username or email address",
+      "usernameTooLong": "Username must be ${max} characters or less",
+      "usernameTooShort": "Username must be at least ${min} characters",
+      "wrongCredentials": "Wrong username or password"
+    }
+  },
+  "login-id": {
+    "login-id": {
+      "alertListTitle": "Alerts",
+      "auth0-users-validation": "Something went wrong, please try again later",
+      "authentication-failure": "We are sorry, something went wrong when attempting to log in",
+      "buttonText": "Continue",
+      "captcha-client-failure": "We couldn't load the security challenge. Please try again. (Error code: #{errorCode})",
+      "captcha-validation-failure": "We are sorry, something went wrong while validating the captcha response. Please try again.",
+      "captchaCodePlaceholder": "Enter the code shown above",
+      "custom-script-error-code": "Something went wrong, please try again later.",
+      "description": "Log in to ${companyName} to continue to ${clientName}.",
+      "editEmailText": "Edit",
+      "emailPlaceholder": "Email address",
+      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "footerLinkText": "Sign up",
+      "footerText": "Don't have an account?",
+      "forgotPasswordText": "Forgot password?",
+      "hidePasswordText": "Hide password",
+      "invalid-captcha": "Solve the challenge question to verify you are not a robot.",
+      "invalid-code": "The code you entered is invalid",
+      "invalid-connection": "Invalid connection",
+      "invalid-email-format": "Email is not valid.",
+      "invalid-email-phone": "Enter a valid email address or phone number. Phone numbers must include the country code.",
+      "invalid-email-phone-username": "Enter a valid email address, phone number or username. Phone numbers must include the country code.",
+      "invalid-email-username": "Enter a valid email address or username",
+      "invalid-expired-code": "Invalid or expired user code",
+      "invalid-login-id": "Invalid Login ID entered",
+      "invalid-phone-username": "Enter a valid phone number or username. Phone numbers must include the country code.",
+      "invalid-recaptcha": "Select the checkbox to verify you are not a robot.",
+      "invalid-username": "Username can only contain alphanumeric characters or: '${characters}'. Username should have between ${min} and ${max} characters.",
+      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
+      "invitationTitle": "You've Been Invited!",
+      "ip-blocked": "We have detected suspicious login behavior and further attempts will be blocked. Please contact the administrator.",
+      "logoAltText": "${companyName}",
+      "no-db-connection": "Invalid connection",
+      "no-email": "Please enter an email address",
+      "no-email-phone": "Email address or phone number is required",
+      "no-email-phone-username": "Phone number, username, or email address is required",
+      "no-email-username": "Email address or username is required",
+      "no-password": "Password is required",
+      "no-phone": "Please enter a phone number",
+      "no-phone-username": "Phone number or username is required",
+      "no-username": "Username is required",
+      "pageTitle": "Log in | ${clientName}",
+      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+      "passwordPlaceholder": "Password",
+      "phoneOrEmailPlaceholder": "Phone number or Email address",
+      "phoneOrUsernameOrEmailPlaceholder": "Phone or Username or Email",
+      "phoneOrUsernamePlaceholder": "Phone Number or Username",
+      "phonePlaceholder": "Phone number",
+      "same-user-login": "Too many login attempts for this user. Please wait, and try again later.",
+      "selectCountryCode": "Select country code, currently set to ${countryName}, ${countryCode}, +${countryPrefix}",
+      "separatorText": "Or",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "showPasswordText": "Show password",
+      "signupActionLinkText": "Sign up",
+      "signupActionText": "Don't have an account?",
+      "termsAndConditionsTemplate": "By continuing, you agree to our <a href=\"${termsAndConditionsUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Terms and Conditions</a>.",
+      "title": "Welcome",
+      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
+      "userAccountDoesNotExist": "User account does not exist",
+      "usernameOnlyPlaceholder": "Username",
+      "usernameOrEmailPlaceholder": "Username or Email address",
+      "usernamePlaceholder": "Username or email address",
+      "usernameTooLong": "Username must be ${max} characters or less",
+      "usernameTooShort": "Username must be at least ${min} characters",
+      "wrong-credentials": "Wrong username or password",
+      "wrong-email-credentials": "Wrong email or password",
+      "wrong-email-phone-credentials": "Incorrect email address, phone number, or password. Phone numbers must include the country code.",
+      "wrong-email-phone-username-credentials": "Incorrect email address, phone number, username, or password. Phone numbers must include the country code.",
+      "wrong-email-username-credentials": "Incorrect email address, username, or password",
+      "wrong-phone-credentials": "Incorrect phone number or password",
+      "wrong-phone-username-credentials": "Incorrect phone number, username or password. Phone numbers must include the country code.",
+      "wrong-username-credentials": "Incorrect username or password"
+    }
+  },
+  "login-password": {
+    "login-password": {
+      "buttonText": "Continue",
+      "description": "Log in to ${clientName}",
+      "forgotPasswordText": "Forgot password?",
+      "hidePasswordText": "Hide password",
+      "no-password": "Password is required",
+      "pageTitle": "Log in | ${clientName}",
+      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+      "passwordPlaceholder": "Password",
+      "showPasswordText": "Show password",
+      "signingInAs": "Signing in as ${email}",
+      "title": "Enter your password",
+      "unverifiedEmail": "Please verify your email address before logging in",
+      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
+      "wrong-credentials": "Wrong password"
+    }
+  },
+  "login-passwordless": {
+    "login-passwordless": {
+      "authMethodEmail": "email",
+      "authMethodEmailOrPhone": "email or phone number",
+      "authMethodPhone": "phone number",
+      "description": "Sign in using your ${authMethod}",
+      "emailOrPhonePlaceholder": "Email address or phone number",
+      "emailPlaceholder": "Email address",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidIdentifier": "Please enter a valid email address or phone number",
+      "invalidPhone": "Please enter a valid phone number with country code",
+      "noEmail": "Please enter your email address",
+      "noPhone": "Please enter your phone number",
+      "phonePlaceholder": "Phone number",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "title": "Sign in with a code",
+      "userAccountDoesNotExist": "User account does not exist"
+    }
+  },
+  "magic-link-sent": {
+    "magic-link-sent": {
+      "defaultDescription": "Click the link in your email to sign in",
+      "description": "We sent a link to ${username}. Click it to sign in.",
+      "resendText": "Resend link",
+      "spamText": "Didn't receive the email? Check your spam folder.",
+      "title": "Check your email"
+    }
+  },
+  "mfa": {
+    "mfa": {
+      "backupCodeText": "Use backup code",
+      "description": "Choose a verification method",
+      "pageTitle": "Multi-Factor Authentication | ${clientName}",
+      "title": "Verify your identity"
+    }
+  },
+  "mfa-email": {
+    "mfa-email": {
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "description": "We sent a code to ${email}",
+      "invalid-code": "The code you entered is invalid",
+      "pageTitle": "Email Verification | ${clientName}",
+      "resendText": "Resend code",
+      "title": "Check your email"
+    }
+  },
+  "mfa-otp": {
+    "mfa-otp": {
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "description": "Enter the 6-digit code from your authenticator app",
+      "invalid-code": "The code you entered is invalid",
+      "pageTitle": "Enter Code | ${clientName}",
+      "title": "Enter your code"
+    }
+  },
+  "mfa-phone": {
+    "mfa-phone": {
+      "buttonText": "Continue",
+      "description": "Enter your phone number to receive a verification code",
+      "pageTitle": "Phone Verification | ${clientName}",
+      "phonePlaceholder": "Phone number",
+      "smsOptionText": "Text me",
+      "title": "Verify your phone",
+      "voiceOptionText": "Call me"
+    }
+  },
+  "mfa-push": {
+    "mfa-push": {
+      "description": "We sent a notification to your device",
+      "pageTitle": "Push Notification | ${clientName}",
+      "resendText": "Resend notification",
+      "title": "Approve the request",
+      "useCodeText": "Enter code manually"
+    }
+  },
+  "mfa-recovery-code": {
+    "mfa-recovery-code": {
+      "buttonText": "Continue",
+      "codePlaceholder": "Recovery code",
+      "description": "Enter one of your recovery codes",
+      "invalid-code": "The recovery code you entered is invalid",
+      "pageTitle": "Recovery Code | ${clientName}",
+      "title": "Enter recovery code"
+    }
+  },
+  "mfa-sms": {
+    "mfa-sms": {
+      "buttonText": "Continue",
+      "codePlaceholder": "Enter code",
+      "description": "We sent a code to ${phoneNumber}",
+      "invalid-code": "The code you entered is invalid",
+      "pageTitle": "SMS Verification | ${clientName}",
+      "resendText": "Resend code",
+      "title": "Check your phone"
+    }
+  },
+  "mfa-voice": {
+    "mfa-voice": {
+      "buttonText": "Call me",
+      "codePlaceholder": "Enter code",
+      "description": "We will call ${phoneNumber} with your code",
+      "invalid-code": "The code you entered is invalid",
+      "pageTitle": "Voice Call | ${clientName}",
+      "title": "Receive a phone call"
+    }
+  },
+  "mfa-webauthn": {
+    "mfa-webauthn": {
+      "buttonText": "Try again",
+      "description": "Insert your security key and follow the instructions",
+      "pageTitle": "Security Key | ${clientName}",
+      "title": "Use your security key"
+    }
+  },
+  "organizations": {
+    "organizations": {
+      "description": "Choose which organization to log in to",
+      "pageTitle": "Select Organization | ${clientName}",
+      "searchPlaceholder": "Search organizations",
+      "title": "Select your organization"
+    }
+  },
+  "reset-password": {
+    "reset-password": {
+      "backToLoginText": "Back to login",
+      "buttonText": "Continue",
+      "codeExpired": "Your password reset code has expired. Please request a new one.",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "description": "Enter your email to reset your password",
+      "emailPlaceholder": "Email address",
+      "failed": "Password reset failed. Please try again.",
+      "invalid-email-format": "Email is not valid.",
+      "no-email": "Please enter an email address",
+      "pageTitle": "Reset Password | ${clientName}",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "New password",
+      "passwordTooWeak": "Password is too weak",
+      "passwordsDidntMatch": "Passwords don't match",
+      "successDescription": "We have sent a password reset link to your email address.",
+      "successTitle": "Check your email",
+      "title": "Forgot your password?",
+      "user-not-found": "User not found"
+    }
+  },
+  "signup": {
+    "signup": {
+      "buttonText": "Continue",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "description": "Sign up to continue",
+      "email-already-exists": "This email is already registered",
+      "emailPlaceholder": "Email address",
+      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "hidePasswordText": "Hide password",
+      "invalid-email-format": "Email is not valid.",
+      "loginActionLinkText": "Log in",
+      "loginActionText": "Already have an account?",
+      "no-email": "Please enter an email address",
+      "no-password": "Password is required",
+      "no-username": "Username is required",
+      "pageTitle": "Sign up | ${clientName}",
+      "passwordPlaceholder": "Password",
+      "passwordsDidntMatch": "Passwords don't match",
+      "phonePlaceholder": "Phone number",
+      "privacyPolicyLinkText": "Privacy Policy",
+      "separatorText": "Or",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "showPasswordText": "Show password",
+      "termsOfServiceLinkText": "Terms of Service",
+      "termsText": "By signing up, you agree to our",
+      "title": "Create your account",
+      "username-already-exists": "This username is already taken",
+      "usernamePlaceholder": "Username",
+      "verifyEmailText": "Please check your email to verify your account"
+    }
+  },
+  "signup-id": {
+    "signup-id": {
+      "buttonText": "Continue",
+      "description": "Sign up to continue",
+      "email-already-exists": "This email is already registered",
+      "emailPlaceholder": "Email address",
+      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "invalid-email-format": "Email is not valid.",
+      "loginActionLinkText": "Log in",
+      "loginActionText": "Already have an account?",
+      "no-email": "Please enter an email address",
+      "pageTitle": "Sign up | ${clientName}",
+      "phonePlaceholder": "Phone number",
+      "separatorText": "Or",
+      "title": "Create your account",
+      "usernamePlaceholder": "Username"
+    }
+  },
+  "signup-password": {
+    "signup-password": {
+      "buttonText": "Continue",
+      "description": "Sign up to continue",
+      "hidePasswordText": "Hide password",
+      "no-password": "Password is required",
+      "pageTitle": "Sign up | ${clientName}",
+      "password-policy-not-met": "Password does not meet the requirements",
+      "password-too-weak": "Password is too weak",
+      "passwordPlaceholder": "Password",
+      "showPasswordText": "Show password",
+      "title": "Create your password"
+    }
+  },
+  "sms-otp-challenge": {
+    "sms-otp-challenge": {
+      "buttonText": "Continue",
+      "codeLabel": "Verification Code",
+      "codePlaceholder": "Enter code",
+      "defaultDescription": "Enter the verification code sent to your phone",
+      "description": "We sent a code to ${username}",
+      "invalid-code": "The code you entered is invalid",
+      "noCode": "Please enter the verification code",
+      "pageTitle": "Enter Code | ${clientName}",
+      "resendText": "Resend code",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "title": "Check your phone",
+      "unexpectedError": "An unexpected error occurred"
+    }
+  },
+  "status": {
+    "status": {
+      "continueButtonText": "Continue",
+      "errorTitle": "Error",
+      "pageTitle": "Status | ${clientName}",
+      "successTitle": "Success",
+      "title": "Status"
+    }
+  }
+}

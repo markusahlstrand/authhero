@@ -1536,9 +1536,13 @@ async function renderWidgetPage(options: {
           <input type="checkbox" id="allow-signup" checked>
           <label for="allow-signup">Allow Sign Up</label>
         </div>
+        <div class="setting-row checkbox-row">
+          <input type="checkbox" id="dark-mode">
+          <label for="dark-mode">Dark Mode</label>
+        </div>
       </div>
     </div>
-    
+
     <!-- Colors Section -->
     <div class="settings-section collapsed" data-section="colors">
       <h3>Colors</h3>
@@ -1995,6 +1999,7 @@ async function renderWidgetPage(options: {
           loginStrategy,
           showSocial,
           allowSignup,
+          darkMode,
           branding,
           theme,
           collapsedSections: getCollapsedSections(),
@@ -2025,7 +2030,44 @@ async function renderWidgetPage(options: {
     let showSocial = savedSettings?.showSocial ?? true;
     let allowSignup = savedSettings?.allowSignup ?? true;
     let socialProviders = '${providers || "google-oauth2"}';
-    
+    let darkMode = savedSettings?.darkMode ?? false;
+
+    // Dark mode CSS vars to apply as inline styles on the widget
+    const DARK_MODE_CSS_VARS = {
+      '--ah-color-text': '#f9fafb',
+      '--ah-color-text-muted': '#9ca3af',
+      '--ah-color-text-label': '#d1d5db',
+      '--ah-color-header': '#f9fafb',
+      '--ah-color-bg': '#1f2937',
+      '--ah-color-bg-hover': '#374151',
+      '--ah-color-bg-muted': '#374151',
+      '--ah-color-bg-disabled': '#4b5563',
+      '--ah-color-input-bg': '#374151',
+      '--ah-color-border': '#4b5563',
+      '--ah-color-border-hover': '#6b7280',
+      '--ah-color-border-muted': '#374151',
+      '--ah-color-error-bg': 'rgba(220,38,38,0.2)',
+      '--ah-color-success-bg': 'rgba(22,163,74,0.2)',
+      '--ah-color-link': '#60a5fa',
+    };
+
+    function applyDarkMode(enabled) {
+      const w = document.getElementById('widget');
+      if (!w) return;
+      if (enabled) {
+        for (const [k, v] of Object.entries(DARK_MODE_CSS_VARS)) {
+          w.style.setProperty(k, v);
+        }
+        previewArea.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+      } else {
+        for (const k of Object.keys(DARK_MODE_CSS_VARS)) {
+          w.style.removeProperty(k);
+        }
+        // Re-apply the current theme background
+        applyBranding();
+      }
+    }
+
     // Branding state - now includes full theme options
     let branding = savedSettings?.branding || getDefaultBranding();
     let theme = savedSettings?.theme || getDefaultTheme();
@@ -2334,6 +2376,7 @@ async function renderWidgetPage(options: {
       document.getElementById('login-strategy').value = loginStrategy;
       document.getElementById('show-social').checked = showSocial;
       document.getElementById('allow-signup').checked = allowSignup;
+      document.getElementById('dark-mode').checked = darkMode;
       
       // Colors
       syncColorInput('primary-button', theme.colors?.primary_button || '${defaultSettings.brandColor}');
@@ -2584,7 +2627,15 @@ async function renderWidgetPage(options: {
       saveSettings();
       fetchScreen(currentScreen, false);
     });
-    
+
+    // Dark mode toggle
+    document.getElementById('dark-mode').addEventListener('change', (e) => {
+      darkMode = e.target.checked;
+      applyDarkMode(darkMode);
+      log('Dark mode → ' + (darkMode ? 'on' : 'off'));
+      saveSettings();
+    });
+
     // =========================================
     // Collapsible Sections
     // =========================================
@@ -2697,6 +2748,8 @@ async function renderWidgetPage(options: {
     document.getElementById('reset-theme').addEventListener('click', () => {
       branding = getDefaultBranding();
       theme = getDefaultTheme();
+      darkMode = false;
+      applyDarkMode(false);
       syncUIWithSettings();
       applyBranding();
       log('Theme reset to defaults');
@@ -2707,6 +2760,7 @@ async function renderWidgetPage(options: {
     // =========================================
     syncUIWithSettings();
     applyBranding();
+    if (darkMode) applyDarkMode(true);
     fetchScreen('${screenId}', false);
     log('Initialized' + (savedSettings ? ' (settings restored)' : ''));
   </script>

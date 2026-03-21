@@ -10,7 +10,7 @@
  * - GET /u2/login/sms-otp-challenge - SMS OTP code verification
  * - GET /u2/enter-password - Password authentication
  * - GET /u2/signup - New user registration
- * - GET /u2/forgot-password - Password reset request
+ * - GET /u2/reset-password/request - Password reset request
  * - GET /u2/reset-password - Set new password
  * - GET /u2/impersonate - User impersonation
  *
@@ -1386,12 +1386,12 @@ export const u2Routes = new OpenAPIHono<{
     createScreenRouteHandler("signup"),
   )
   // --------------------------------
-  // GET /u2/forgot-password - Password reset request
+  // GET /u2/reset-password/request - Password reset request
   // --------------------------------
   .openapi(
     createScreenRoute(
       "forgot-password",
-      "/forgot-password",
+      "/reset-password/request",
       "Forgot password screen",
     ),
     createScreenRouteHandler("forgot-password"),
@@ -1480,7 +1480,7 @@ export const u2Routes = new OpenAPIHono<{
   .openapi(
     createScreenPostRoute(
       "forgot-password",
-      "/forgot-password",
+      "/reset-password/request",
       "Process forgot-password form submission (no-JS fallback)",
     ),
     createScreenPostHandler("forgot-password"),

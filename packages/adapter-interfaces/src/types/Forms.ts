@@ -352,6 +352,16 @@ const textField = fieldComponentBase.extend({
     .optional(),
 });
 
+const countryField = fieldComponentBase.extend({
+  type: z.literal("COUNTRY"),
+  config: z
+    .object({
+      placeholder: z.string().optional(),
+      default_value: z.string().optional(),
+    })
+    .optional(),
+});
+
 const urlField = fieldComponentBase.extend({
   type: z.literal("URL"),
   config: z
@@ -396,6 +406,7 @@ export const fieldComponentSchema = z.discriminatedUnion("type", [
   booleanField,
   cardsField,
   choiceField,
+  countryField,
   customField,
   dateField,
   dropdownField,
@@ -434,6 +445,7 @@ export const FORM_FIELD_TYPES = new Set<string>([
   "BOOLEAN",
   "CARDS",
   "CHOICE",
+  "COUNTRY",
   "DATE",
   "DROPDOWN",
   "EMAIL",
@@ -466,6 +478,7 @@ export type RecaptchaWidget = z.infer<typeof recaptchaWidget>;
 export type BooleanField = z.infer<typeof booleanField>;
 export type CardsField = z.infer<typeof cardsField>;
 export type ChoiceField = z.infer<typeof choiceField>;
+export type CountryField = z.infer<typeof countryField>;
 export type CustomField = z.infer<typeof customField>;
 export type DateField = z.infer<typeof dateField>;
 export type DropdownField = z.infer<typeof dropdownField>;

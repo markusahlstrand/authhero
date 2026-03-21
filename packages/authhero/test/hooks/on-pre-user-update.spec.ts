@@ -4,6 +4,7 @@ import { HookEvent, OnExecutePreUserUpdateAPI } from "../../src/types/Hooks";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
 import { User, Strategy } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 describe("on-pre-user-update-hook", () => {
   it("should update user metadata", async () => {
@@ -154,5 +155,99 @@ describe("on-pre-user-update-hook", () => {
 
     // User should still have original values
     expect(unchangedUser.name).toBe("Original Name");
+  });
+
+  it("should NOT call pre-user-update hook when email conflict returns 409", async () => {
+    let hookCalled = false;
+    const { env, managementApp } = await getTestServer({
+      hooks: {
+        onExecutePreUserUpdate: async () => {
+          hookCalled = true;
+        },
+      },
+    });
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    // Create two users with different emails
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|user1`,
+      email: "user1@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+    });
+
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|user2`,
+      email: "user2@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+    });
+
+    // Try to update user1's email to user2's email — should fail before hooks fire
+    const updateResponse = await client.users[":user_id"].$patch(
+      {
+        param: { user_id: `${USERNAME_PASSWORD_PROVIDER}|user1` },
+        json: { email: "user2@example.com" },
+        header: { "tenant-id": "tenantId" },
+      },
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
+
+    expect(updateResponse.status).toBe(409);
+    expect(hookCalled).toBe(false);
+  });
+
+  it("should NOT call pre-user-update hook when phone_number conflict returns 409", async () => {
+    let hookCalled = false;
+    const { env, managementApp } = await getTestServer({
+      hooks: {
+        onExecutePreUserUpdate: async () => {
+          hookCalled = true;
+        },
+      },
+    });
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    // Create two users with different phone numbers
+    await env.data.users.create("tenantId", {
+      user_id: "sms|user1",
+      phone_number: "+1234567890",
+      provider: "sms",
+      connection: "sms",
+      is_social: false,
+    });
+
+    await env.data.users.create("tenantId", {
+      user_id: "sms|user2",
+      phone_number: "+0987654321",
+      provider: "sms",
+      connection: "sms",
+      is_social: false,
+    });
+
+    // Try to update user1's phone to user2's phone — should fail before hooks fire
+    const updateResponse = await client.users[":user_id"].$patch(
+      {
+        param: { user_id: "sms|user1" },
+        json: { phone_number: "+0987654321" },
+        header: { "tenant-id": "tenantId" },
+      },
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
+
+    expect(updateResponse.status).toBe(409);
+    expect(hookCalled).toBe(false);
   });
 });

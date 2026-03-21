@@ -1,0 +1,456 @@
+{
+  "check-account": {
+    "check-account": {
+      "continueQuestion": "Jatketaanko tällä tilillä?",
+      "description": "${clientName} pyytää pääsyä tilillesi",
+      "descriptionFallback": "Sovellus pyytää pääsyä tilillesi",
+      "error": "Tapahtui virhe. Yritä uudelleen.",
+      "loggedInAs": "Olet kirjautunut sisään käyttäjänä ${email}",
+      "noUseAnother": "Käytä toista tiliä",
+      "title": "Vahvista tili",
+      "yesContinue": "Jatka"
+    }
+  },
+  "common": {
+    "common": {
+      "alertListTitle": "Alerts",
+      "backText": "Palaa takaisin",
+      "cancelText": "Palaa takaisin",
+      "closeText": "Sulje",
+      "contactSupportText": "Tarvitsetko apua?",
+      "continueText": "Jatka",
+      "copyrightText": "© ${currentYear} ${companyName}",
+      "errorText": "Jokin meni pieleen. Yritä uudelleen.",
+      "hidePasswordText": "Piilota salasana",
+      "loadingText": "Ladataan...",
+      "orText": "tai",
+      "privacyPolicyText": "Tietosuojakäytäntö",
+      "showPasswordText": "Näytä salasana",
+      "termsOfServiceText": "Käyttöehdot",
+      "tryAgainText": "Yritä uudelleen"
+    }
+  },
+  "consent": {
+    "consent": {
+      "buttonText": "Hyväksy",
+      "cancelButtonText": "Hylkää",
+      "description": "${clientName} pyytää pääsyä tilillesi",
+      "pageTitle": "Valtuuta | ${clientName}",
+      "scopesTitle": "Tämä sallii sovelluksen ${clientName}:",
+      "title": "Valtuuta ${clientName}"
+    }
+  },
+  "device-flow": {
+    "device-flow": {
+      "buttonText": "Jatka",
+      "codePlaceholder": "Syötä koodi",
+      "description": "Syötä laitteessasi näkyvä koodi",
+      "expired-code": "Koodi on vanhentunut",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "pageTitle": "Laitteen aktivointi | ${clientName}",
+      "title": "Aktivoi laitteesi"
+    }
+  },
+  "email-otp-challenge": {
+    "email-otp-challenge": {
+      "buttonText": "Kirjaudu sisään",
+      "codeLabel": "Vahvistuskoodi",
+      "codePlaceholder": "Syötä koodi",
+      "defaultDescription": "Syötä sähköpostiisi lähetetty vahvistuskoodi",
+      "description": "Lähetimme koodin osoitteeseen ${email}",
+      "invalid-code": "Virheellinen koodi",
+      "noCode": "Syötä vahvistuskoodi",
+      "pageTitle": "Syötä koodi | ${clientName}",
+      "resendText": "Lähetä koodi uudelleen",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "title": "Tarkista sähköpostisi",
+      "unexpectedError": "Odottamaton virhe tapahtui"
+    }
+  },
+  "email-verification": {
+    "email-verification": {
+      "description": "Lähetimme sähköpostin osoitteeseen ${email}",
+      "pageTitle": "Vahvista sähköposti | ${clientName}",
+      "resendText": "Lähetä koodi uudelleen",
+      "successDescription": "Sähköpostiosoitteesi on vahvistettu onnistuneesti.",
+      "successTitle": "Sähköposti vahvistettu",
+      "title": "Vahvista sähköpostiosoitteesi"
+    }
+  },
+  "invitation": {
+    "invitation": {
+      "acceptButtonText": "Hyväksy kutsu",
+      "description": "${inviterName} on kutsunut sinut liittymään organisaatioon ${organizationName} palvelussa ${clientName}",
+      "pageTitle": "Kutsu | ${clientName}",
+      "title": "Sinut on kutsuttu"
+    }
+  },
+  "login": {
+    "login": {
+      "alertListTitle": "Alerts",
+      "buttonText": "Jatka",
+      "description": "Kirjaudu sisään ${companyName} jatkaaksesi ${clientName}.",
+      "editEmailText": "Muokkaa",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "enterACodeBtn": "Kirjaudu koodilla",
+      "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",
+      "footerLinkText": "Rekisteröidy",
+      "footerText": "Eikö sinulla ole tiliä?",
+      "forgotPasswordText": "Unohditko salasanan?",
+      "hidePasswordText": "Piilota salasana",
+      "invalidEmail": "Virheellinen sähköpostiosoite",
+      "invalidIdentifier": "Virheellinen sähköpostiosoite tai käyttäjänimi",
+      "invitationDescription": "Kirjaudu sisään hyväksyäksesi käyttäjän ${inviterName} kutsun liittyä palveluun ${companyName} sovelluksessa ${clientName}.",
+      "invitationTitle": "Sinut on kutsuttu!",
+      "logoAltText": "${companyName}",
+      "no-email": "Sähköpostiosoite vaaditaan",
+      "no-password": "Salasana vaaditaan",
+      "pageTitle": "Kirjaudu sisään | ${clientName}",
+      "passwordLoginNotAvailable": "Salasanakirjautuminen ei ole käytettävissä",
+      "passwordPlaceholder": "Salasana",
+      "phonePlaceholder": "Puhelinnumero",
+      "separatorText": "tai",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "showPasswordText": "Näytä salasana",
+      "signupActionLinkText": "Rekisteröidy",
+      "signupActionText": "Eikö sinulla ole tiliä?",
+      "title": "Tervetuloa",
+      "tooManyFailedLogins": "Liian monta epäonnistunutta kirjautumisyritystä. Yritä myöhemmin uudelleen.",
+      "unverifiedEmail": "Vahvista sähköpostiosoitteesi ennen kirjautumista",
+      "userAccountDoesNotExist": "Käyttäjätiliä ei ole olemassa",
+      "usernamePlaceholder": "Käyttäjänimi tai sähköpostiosoite",
+      "usernameTooLong": "Käyttäjänimen on oltava enintään ${max} merkkiä",
+      "usernameTooShort": "Käyttäjänimen on oltava vähintään ${min} merkkiä",
+      "wrongCredentials": "Väärä käyttäjänimi tai salasana"
+    }
+  },
+  "login-id": {
+    "login-id": {
+      "alertListTitle": "Alerts",
+      "auth0-users-validation": "Jokin meni pieleen, yritä myöhemmin uudelleen",
+      "authentication-failure": "Valitettavasti jokin meni pieleen kirjautumisyrityksen aikana",
+      "buttonText": "Jatka",
+      "captcha-client-failure": "Turvatarkistuksen lataaminen epäonnistui. Yritä uudelleen. (Virhekoodi: #{errorCode})",
+      "captcha-validation-failure": "Valitettavasti jokin meni pieleen captcha-vastauksen tarkistuksessa. Yritä uudelleen.",
+      "captchaCodePlaceholder": "Syötä yllä näkyvä koodi",
+      "custom-script-error-code": "Jokin meni pieleen, yritä myöhemmin uudelleen.",
+      "description": "Kirjaudu sisään ${companyName} jatkaaksesi ${clientName}.",
+      "editEmailText": "Muokkaa",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",
+      "footerLinkText": "Rekisteröidy",
+      "footerText": "Eikö sinulla ole tiliä?",
+      "forgotPasswordText": "Unohditko salasanan?",
+      "hidePasswordText": "Piilota salasana",
+      "invalid-captcha": "Ratkaise haaste varmistaaksesi, ettet ole robotti.",
+      "invalid-code": "Virheellinen koodi",
+      "invalid-connection": "Virheellinen yhteys",
+      "invalid-email-format": "Virheellinen sähköpostiosoite",
+      "invalid-email-phone": "Syötä kelvollinen sähköpostiosoite tai puhelinnumero. Puhelinnumeron tulee sisältää maatunnus.",
+      "invalid-email-phone-username": "Syötä kelvollinen sähköpostiosoite, puhelinnumero tai käyttäjänimi. Puhelinnumeron tulee sisältää maatunnus.",
+      "invalid-email-username": "Syötä kelvollinen sähköpostiosoite tai käyttäjänimi",
+      "invalid-expired-code": "Virheellinen tai vanhentunut käyttäjäkoodi",
+      "invalid-login-id": "Virheellinen kirjautumistunnus",
+      "invalid-phone-username": "Syötä kelvollinen puhelinnumero tai käyttäjänimi. Puhelinnumeron tulee sisältää maatunnus.",
+      "invalid-recaptcha": "Valitse valintaruutu varmistaaksesi, ettet ole robotti.",
+      "invalid-username": "Käyttäjänimi voi sisältää vain aakkosnumeerisia merkkejä tai: '${characters}'. Käyttäjänimen tulee olla ${min}–${max} merkkiä.",
+      "invitationDescription": "Kirjaudu sisään hyväksyäksesi käyttäjän ${inviterName} kutsun liittyä palveluun ${companyName} sovelluksessa ${clientName}.",
+      "invitationTitle": "Sinut on kutsuttu!",
+      "ip-blocked": "Olemme havainneet epäilyttävää kirjautumiskäyttäytymistä ja lisäyritykset estetään. Ota yhteyttä ylläpitäjään.",
+      "logoAltText": "${companyName}",
+      "no-db-connection": "Virheellinen yhteys",
+      "no-email": "Sähköpostiosoite vaaditaan",
+      "no-email-phone": "Sähköpostiosoite tai puhelinnumero vaaditaan",
+      "no-email-phone-username": "Puhelinnumero, käyttäjänimi tai sähköpostiosoite vaaditaan",
+      "no-email-username": "Sähköpostiosoite tai käyttäjänimi vaaditaan",
+      "no-password": "Salasana vaaditaan",
+      "no-phone": "Syötä puhelinnumero",
+      "no-phone-username": "Puhelinnumero tai käyttäjänimi vaaditaan",
+      "no-username": "Käyttäjänimi vaaditaan",
+      "pageTitle": "Kirjaudu sisään | ${clientName}",
+      "password-breached": "Olemme havainneet mahdollisen tietoturvaongelman tässä tilissä. Tilisi suojaamiseksi olemme estäneet tämän kirjautumisen. Vaihda salasanasi jatkaaksesi.",
+      "passwordPlaceholder": "Salasana",
+      "phoneOrEmailPlaceholder": "Sähköposti tai puhelinnumero",
+      "phoneOrUsernameOrEmailPlaceholder": "Puhelin, käyttäjänimi tai sähköposti",
+      "phoneOrUsernamePlaceholder": "Puhelinnumero tai käyttäjänimi",
+      "phonePlaceholder": "Puhelinnumero",
+      "same-user-login": "Liian monta kirjautumisyritystä tälle käyttäjälle. Odota hetki ja yritä myöhemmin uudelleen.",
+      "selectCountryCode": "Valitse maakoodi, tällä hetkellä ${countryName}, ${countryCode}, +${countryPrefix}",
+      "separatorText": "tai",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "showPasswordText": "Näytä salasana",
+      "signupActionLinkText": "Rekisteröidy",
+      "signupActionText": "Eikö sinulla ole tiliä?",
+      "termsAndConditionsTemplate": "Jatkamalla hyväksyt <a href=\"${termsAndConditionsUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Käyttöehdot</a>.",
+      "title": "Tervetuloa",
+      "user-blocked": "Tilisi on estetty useiden peräkkäisten kirjautumisyritysten jälkeen.",
+      "userAccountDoesNotExist": "Käyttäjätiliä ei ole olemassa",
+      "usernameOnlyPlaceholder": "Käyttäjänimi",
+      "usernameOrEmailPlaceholder": "Käyttäjänimi tai sähköpostiosoite",
+      "usernamePlaceholder": "Käyttäjänimi",
+      "usernameTooLong": "Käyttäjänimen on oltava enintään ${max} merkkiä",
+      "usernameTooShort": "Käyttäjänimen on oltava vähintään ${min} merkkiä",
+      "wrong-credentials": "Väärä käyttäjänimi tai salasana",
+      "wrong-email-credentials": "Väärä sähköpostiosoite tai salasana",
+      "wrong-email-phone-credentials": "Virheellinen sähköpostiosoite, puhelinnumero tai salasana. Puhelinnumeron tulee sisältää maatunnus.",
+      "wrong-email-phone-username-credentials": "Virheellinen sähköpostiosoite, puhelinnumero, käyttäjänimi tai salasana. Puhelinnumeron tulee sisältää maatunnus.",
+      "wrong-email-username-credentials": "Virheellinen sähköpostiosoite, käyttäjänimi tai salasana",
+      "wrong-phone-credentials": "Virheellinen puhelinnumero tai salasana",
+      "wrong-phone-username-credentials": "Virheellinen puhelinnumero, käyttäjänimi tai salasana. Puhelinnumeron tulee sisältää maatunnus.",
+      "wrong-username-credentials": "Virheellinen käyttäjänimi tai salasana"
+    }
+  },
+  "login-password": {
+    "login-password": {
+      "buttonText": "Kirjaudu sisään",
+      "description": "Anna sähköpostiosoitteesi ja salasanasi kirjautuaksesi sisään.",
+      "forgotPasswordText": "Unohditko salasanan?",
+      "hidePasswordText": "Piilota salasana",
+      "no-password": "Salasana vaaditaan",
+      "pageTitle": "Kirjaudu sisään | ${clientName}",
+      "password-breached": "Olemme havainneet mahdollisen tietoturvaongelman tässä tilissä. Tilisi suojaamiseksi olemme estäneet tämän kirjautumisen. Vaihda salasanasi jatkaaksesi.",
+      "passwordPlaceholder": "Salasana",
+      "showPasswordText": "Näytä salasana",
+      "signingInAs": "Kirjaudutaan käyttäjänä ${email}",
+      "title": "Anna salasana",
+      "unverifiedEmail": "Vahvista sähköpostiosoitteesi ennen kirjautumista",
+      "user-blocked": "Tilisi on estetty useiden peräkkäisten kirjautumisyritysten jälkeen.",
+      "wrong-credentials": "Väärä salasana"
+    }
+  },
+  "login-passwordless": {
+    "login-passwordless": {
+      "authMethodEmail": "sähköposti",
+      "authMethodEmailOrPhone": "sähköposti tai puhelinnumero",
+      "authMethodPhone": "puhelinnumero",
+      "description": "Kirjaudu sisään käyttämällä ${authMethod}",
+      "emailOrPhonePlaceholder": "Sähköpostiosoite tai puhelinnumero",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "invalidEmail": "Syötä kelvollinen sähköpostiosoite",
+      "invalidIdentifier": "Syötä kelvollinen sähköpostiosoite tai puhelinnumero",
+      "invalidPhone": "Syötä kelvollinen puhelinnumero maatunnuksella",
+      "noEmail": "Syötä sähköpostiosoitteesi",
+      "noPhone": "Syötä puhelinnumerosi",
+      "phonePlaceholder": "Puhelinnumero",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "title": "Kirjaudu koodilla",
+      "userAccountDoesNotExist": "Käyttäjätiliä ei ole olemassa"
+    }
+  },
+  "magic-link-sent": {
+    "magic-link-sent": {
+      "defaultDescription": "Napsauta sähköpostissasi olevaa linkkiä kirjautuaksesi sisään",
+      "description": "Lähetimme linkin osoitteeseen ${username}. Napsauta sitä kirjautuaksesi.",
+      "resendText": "Lähetä linkki uudelleen",
+      "spamText": "Etkö saanut sähköpostia? Tarkista roskapostikansiosi.",
+      "title": "Tarkista sähköpostisi"
+    }
+  },
+  "mfa": {
+    "mfa": {
+      "backupCodeText": "Käytä varakoodia",
+      "description": "Valitse vahvistusmenetelmä",
+      "pageTitle": "Monivaiheinen tunnistautuminen | ${clientName}",
+      "title": "Vahvista henkilöllisyytesi"
+    }
+  },
+  "mfa-email": {
+    "mfa-email": {
+      "buttonText": "Jatka",
+      "codePlaceholder": "Syötä koodi",
+      "description": "Lähetimme koodin osoitteeseen ${email}",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "pageTitle": "Sähköpostivahvistus | ${clientName}",
+      "resendText": "Lähetä koodi uudelleen",
+      "title": "Tarkista sähköpostisi"
+    }
+  },
+  "mfa-otp": {
+    "mfa-otp": {
+      "buttonText": "Jatka",
+      "codePlaceholder": "Syötä koodi",
+      "description": "Syötä 6-numeroinen koodi todentajasovelluksestasi",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "pageTitle": "Syötä koodi | ${clientName}",
+      "title": "Syötä koodisi"
+    }
+  },
+  "mfa-phone": {
+    "mfa-phone": {
+      "buttonText": "Jatka",
+      "description": "Syötä puhelinnumerosi saadaksesi vahvistuskoodin",
+      "pageTitle": "Puhelinvahvistus | ${clientName}",
+      "phonePlaceholder": "Puhelinnumero",
+      "smsOptionText": "Lähetä tekstiviesti",
+      "title": "Vahvista puhelimesi",
+      "voiceOptionText": "Soita minulle"
+    }
+  },
+  "mfa-push": {
+    "mfa-push": {
+      "description": "Lähetimme ilmoituksen laitteellesi",
+      "pageTitle": "Push-ilmoitus | ${clientName}",
+      "resendText": "Lähetä ilmoitus uudelleen",
+      "title": "Hyväksy pyyntö",
+      "useCodeText": "Syötä koodi manuaalisesti"
+    }
+  },
+  "mfa-recovery-code": {
+    "mfa-recovery-code": {
+      "buttonText": "Jatka",
+      "codePlaceholder": "Palautuskoodi",
+      "description": "Syötä yksi palautuskoodeistasi",
+      "invalid-code": "Syöttämäsi palautuskoodi on virheellinen",
+      "pageTitle": "Palautuskoodi | ${clientName}",
+      "title": "Syötä palautuskoodi"
+    }
+  },
+  "mfa-sms": {
+    "mfa-sms": {
+      "buttonText": "Jatka",
+      "codePlaceholder": "Syötä koodi",
+      "description": "Lähetimme koodin numeroon ${phoneNumber}",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "pageTitle": "Tekstiviestivahvistus | ${clientName}",
+      "resendText": "Lähetä koodi uudelleen",
+      "title": "Tarkista puhelimesi"
+    }
+  },
+  "mfa-voice": {
+    "mfa-voice": {
+      "buttonText": "Soita minulle",
+      "codePlaceholder": "Syötä koodi",
+      "description": "Soitamme numeroon ${phoneNumber} ja kerromme koodisi",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "pageTitle": "Äänipuhelu | ${clientName}",
+      "title": "Vastaanota puhelu"
+    }
+  },
+  "mfa-webauthn": {
+    "mfa-webauthn": {
+      "buttonText": "Yritä uudelleen",
+      "description": "Aseta turva-avaimesi ja seuraa ohjeita",
+      "pageTitle": "Turva-avain | ${clientName}",
+      "title": "Käytä turva-avaintasi"
+    }
+  },
+  "organizations": {
+    "organizations": {
+      "description": "Valitse organisaatio, johon haluat kirjautua",
+      "pageTitle": "Valitse organisaatio | ${clientName}",
+      "searchPlaceholder": "Hae organisaatioita",
+      "title": "Valitse organisaatiosi"
+    }
+  },
+  "reset-password": {
+    "reset-password": {
+      "backToLoginText": "Palaa takaisin",
+      "buttonText": "Lähetä salasanan palautussähköposti",
+      "codeExpired": "Salasanan palautuskoodisi on vanhentunut. Pyydä uusi koodi.",
+      "confirmPasswordLabel": "Vahvista salasana",
+      "confirmPasswordPlaceholder": "Vahvista salasana",
+      "description": "Napsauta alla olevaa painiketta, niin lähetämme ohjeet salasanasi palauttamiseen.",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "failed": "Salasanan vaihto epäonnistui. Yritä uudelleen.",
+      "invalid-email-format": "Virheellinen sähköpostiosoite",
+      "no-email": "Sähköpostiosoite vaaditaan",
+      "pageTitle": "Vaihda salasana | ${clientName}",
+      "passwordLabel": "Uusi salasana",
+      "passwordPlaceholder": "Uusi salasana",
+      "passwordTooWeak": "Salasana on liian heikko",
+      "passwordsDidntMatch": "Salasanat eivät täsmää",
+      "successDescription": "Olemme lähettäneet salasanan palautuslinkin sähköpostiosoitteeseesi.",
+      "successTitle": "Salasanan palautussähköposti lähetetty",
+      "title": "Unohditko salasanan?",
+      "user-not-found": "Käyttäjää ei löytynyt"
+    }
+  },
+  "signup": {
+    "signup": {
+      "buttonText": "Rekisteröityminen",
+      "confirmPasswordPlaceholder": "Vahvista salasana",
+      "description": "Valitse salasana, jossa on isoja ja pieniä kirjaimia, numeroita ja symboleja.",
+      "email-already-exists": "Sähköposti on jo varattu",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",
+      "hidePasswordText": "Piilota salasana",
+      "invalid-email-format": "Virheellinen sähköpostiosoite",
+      "loginActionLinkText": "Kirjaudu sisään",
+      "loginActionText": "Onko sinulla jo tili?",
+      "no-email": "Sähköpostiosoite vaaditaan",
+      "no-password": "Salasana vaaditaan",
+      "no-username": "Käyttäjänimi vaaditaan",
+      "pageTitle": "Rekisteröidy | ${clientName}",
+      "passwordPlaceholder": "Salasana",
+      "passwordsDidntMatch": "Salasanat eivät täsmää",
+      "phonePlaceholder": "Puhelinnumero",
+      "privacyPolicyLinkText": "Tietosuojakäytäntö",
+      "separatorText": "tai",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "showPasswordText": "Näytä salasana",
+      "termsOfServiceLinkText": "Käyttöehdot",
+      "termsText": "Rekisteröitymällä hyväksyt",
+      "title": "Valitse salasana",
+      "username-already-exists": "Tämä käyttäjänimi on jo varattu",
+      "usernamePlaceholder": "Käyttäjänimi",
+      "verifyEmailText": "Tarkista sähköpostisi vahvistaaksesi tilisi"
+    }
+  },
+  "signup-id": {
+    "signup-id": {
+      "buttonText": "Jatka",
+      "description": "Valitse salasana, jossa on isoja ja pieniä kirjaimia, numeroita ja symboleja.",
+      "email-already-exists": "Sähköposti on jo varattu",
+      "emailPlaceholder": "Sähköpostiosoite",
+      "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",
+      "invalid-email-format": "Virheellinen sähköpostiosoite",
+      "loginActionLinkText": "Kirjaudu sisään",
+      "loginActionText": "Onko sinulla jo tili?",
+      "no-email": "Sähköpostiosoite vaaditaan",
+      "pageTitle": "Rekisteröidy | ${clientName}",
+      "phonePlaceholder": "Puhelinnumero",
+      "separatorText": "tai",
+      "title": "Valitse salasana",
+      "usernamePlaceholder": "Käyttäjänimi"
+    }
+  },
+  "signup-password": {
+    "signup-password": {
+      "buttonText": "Jatka",
+      "description": "Valitse salasana, jossa on isoja ja pieniä kirjaimia, numeroita ja symboleja.",
+      "hidePasswordText": "Piilota salasana",
+      "no-password": "Salasana vaaditaan",
+      "pageTitle": "Rekisteröidy | ${clientName}",
+      "password-policy-not-met": "Salasana ei täytä vaatimuksia",
+      "password-too-weak": "Salasana on liian heikko",
+      "passwordPlaceholder": "Salasana",
+      "showPasswordText": "Näytä salasana",
+      "title": "Valitse salasana"
+    }
+  },
+  "sms-otp-challenge": {
+    "sms-otp-challenge": {
+      "buttonText": "Jatka",
+      "codeLabel": "Vahvistuskoodi",
+      "codePlaceholder": "Syötä koodi",
+      "defaultDescription": "Syötä puhelimeesi lähetetty vahvistuskoodi",
+      "description": "Lähetimme koodin käyttäjälle ${username}",
+      "invalid-code": "Virheellinen koodi",
+      "noCode": "Syötä vahvistuskoodi",
+      "pageTitle": "Syötä koodi | ${clientName}",
+      "resendText": "Lähetä koodi uudelleen",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "title": "Tarkista puhelimesi",
+      "unexpectedError": "Odottamaton virhe tapahtui"
+    }
+  },
+  "status": {
+    "status": {
+      "continueButtonText": "Jatka",
+      "errorTitle": "Virhe",
+      "pageTitle": "Tila | ${clientName}",
+      "successTitle": "Onnistui",
+      "title": "Tila"
+    }
+  }
+}

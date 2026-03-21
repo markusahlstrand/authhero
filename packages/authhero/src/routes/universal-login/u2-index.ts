@@ -12,7 +12,7 @@
  * - /u2/login/sms-otp-challenge - SMS OTP code verification
  * - /u2/enter-password - Password authentication
  * - /u2/signup - New user registration
- * - /u2/forgot-password - Password reset request
+ * - /u2/reset-password/request - Password reset request
  * - /u2/reset-password - Set new password
  */
 

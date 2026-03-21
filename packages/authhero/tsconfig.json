@@ -7,7 +7,8 @@
     "rootDir": "./src",
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "lib": ["ESNext", "DOM"]
+    "lib": ["ESNext", "DOM"],
+    "types": ["vite/client", "node"]
   },
   "include": [
     "src",

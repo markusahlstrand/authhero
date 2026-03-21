@@ -5,6 +5,7 @@ import {
   promptScreenSchema,
   customTextSchema,
 } from "@authhero/adapter-interfaces";
+import { getLocaleDefaults } from "../../i18n";
 
 export const promptsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -183,7 +184,30 @@ export const promptsRoutes = new OpenAPIHono<{
         language,
       );
 
-      return ctx.json(customText || {});
+      // Get locale defaults and deep merge with custom text overrides
+      const defaults = getLocaleDefaults(prompt, language);
+      const merged: Record<string, Record<string, string>> = {};
+
+      // Start with defaults
+      for (const [screen, keys] of Object.entries(defaults)) {
+        merged[screen] = { ...keys };
+      }
+
+      // Overlay custom text overrides
+      if (customText) {
+        for (const [screen, keys] of Object.entries(customText)) {
+          if (!merged[screen]) {
+            merged[screen] = {};
+          }
+          for (const [key, value] of Object.entries(keys)) {
+            if (value) {
+              merged[screen][key] = value;
+            }
+          }
+        }
+      }
+
+      return ctx.json(merged);
     },
   )
   // --------------------------------

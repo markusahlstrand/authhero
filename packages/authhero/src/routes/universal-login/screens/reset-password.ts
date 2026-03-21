@@ -23,7 +23,17 @@ import { createTranslation } from "../../../i18n";
 export async function resetPasswordScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, errors, messages, routePrefix } = context;
+  const { branding, state, errors, messages, customText, routePrefix } =
+    context;
+
+  // Initialize i18n with locale and custom text overrides
+  const locale = context.language || "en";
+  const { m } = createTranslation(
+    "reset-password",
+    "reset-password",
+    locale,
+    customText,
+  );
 
   const components: FormNodeComponent[] = [
     // New password input
@@ -32,9 +42,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: "New password",
+      label: m.passwordLabel(),
       config: {
-        placeholder: "Enter new password",
+        placeholder: m.passwordPlaceholder(),
         show_toggle: true,
       },
       required: true,
@@ -50,9 +60,9 @@ export async function resetPasswordScreen(
       type: "PASSWORD",
       category: "FIELD",
       visible: true,
-      label: "Confirm new password",
+      label: m.confirmPasswordLabel(),
       config: {
-        placeholder: "Confirm new password",
+        placeholder: m.confirmPasswordPlaceholder(),
       },
       required: true,
       sensitive: true,
@@ -68,7 +78,7 @@ export async function resetPasswordScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Reset password",
+        text: m.buttonText(),
       },
       order: 2,
     },
@@ -79,10 +89,10 @@ export async function resetPasswordScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/reset-password?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: "Set your new password",
-    description: "Choose a strong password for your account",
+    title: m.title(),
+    description: m.description(),
     components,
-    messages: messages?.map((m) => ({ text: m.text, type: m.type })),
+    messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
   };
 
   return {
@@ -110,10 +120,10 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       // Initialize i18n for messages
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "reset-password",
+        "reset-password",
         locale,
         context.customText,
-        undefined,
-        "reset-password",
       );
 
       // Validate password is provided
@@ -129,7 +139,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
 
       // Validate passwords match
       if (password !== confirmPassword) {
-        const errorMessage = m.create_account_passwords_didnt_match();
+        const errorMessage = m.passwordsDidntMatch();
         return {
           error: errorMessage,
           screen: await resetPasswordScreen({
@@ -200,7 +210,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         const errorMessage =
           policyError instanceof Error
             ? policyError.message
-            : m.create_account_weak_password();
+            : m.passwordTooWeak();
 
         return {
           error: errorMessage,
@@ -230,7 +240,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       );
 
       if (!foundCode) {
-        const errorMessage = m.code_expired();
+        const errorMessage = m.codeExpired();
         return {
           error: errorMessage,
           screen: await resetPasswordScreen({
@@ -295,7 +305,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         });
 
         const resetErrorMessage =
-          err instanceof Error ? err.message : m.password_reset_failed();
+          err instanceof Error ? err.message : m.failed();
 
         return {
           error: resetErrorMessage,
