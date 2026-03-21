@@ -1522,6 +1522,50 @@ export const u2Routes = new OpenAPIHono<{
       "Process check-account form submission (no-JS fallback)",
     ),
     createScreenPostHandler("check-account"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/phone - MFA phone enrollment
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-phone",
+      "/mfa/phone",
+      "MFA phone enrollment screen - enter phone number for SMS MFA",
+    ),
+    createScreenRouteHandler("mfa-phone"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/phone
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-phone",
+      "/mfa/phone",
+      "Process MFA phone enrollment form submission",
+    ),
+    createScreenPostHandler("mfa-phone"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/sms - MFA SMS verification
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-sms",
+      "/mfa/sms",
+      "MFA SMS verification screen - enter SMS code",
+    ),
+    createScreenRouteHandler("mfa-sms"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/sms
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-sms",
+      "/mfa/sms",
+      "Process MFA SMS verification form submission",
+    ),
+    createScreenPostHandler("mfa-sms"),
   );
 
 // OpenAPI documentation

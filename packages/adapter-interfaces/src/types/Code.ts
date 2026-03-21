@@ -4,6 +4,7 @@ export const codeTypeSchema = z.enum([
   "password_reset",
   "email_verification",
   "otp",
+  "mfa_otp",
   "authorization_code",
   "oauth2_state",
   "ticket",

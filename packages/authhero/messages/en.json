@@ -203,5 +203,15 @@
   "we_sent_a_code_to": "Please check your email at <0>{email}</0> and enter the six-digit code that we've sent you.",
   "yes_continue": "Continue with this account",
   "yes_continue_with": "Yes, continue with {text}",
-  "yes_continue_with_existing_account": "Yes, continue with existing account"
+  "yes_continue_with_existing_account": "Yes, continue with existing account",
+  "mfa_phone__title": "Verify your phone",
+  "mfa_phone__description": "Enter your phone number to receive a verification code",
+  "mfa_phone__phone_placeholder": "Phone number",
+  "mfa_phone__button_text": "Continue",
+  "mfa_sms__title": "Check your phone",
+  "mfa_sms__description": "We sent a code to {phoneNumber}",
+  "mfa_sms__code_placeholder": "Enter code",
+  "mfa_sms__button_text": "Continue",
+  "mfa_sms__resend_text": "Resend code",
+  "mfa_sms__invalid_code": "The code you entered is invalid"
 }

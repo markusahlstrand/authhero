@@ -6,6 +6,7 @@ import {
   NumberInput,
   ArrayInput,
   SimpleFormIterator,
+  SelectInput,
 } from "react-admin";
 import { Stack } from "@mui/material";
 import { SecretInput } from "../common/SecretInput";
@@ -152,6 +153,20 @@ export function SettingsEdit() {
 
         <TabbedForm.Tab label="MFA Factors">
           <Stack spacing={2}>
+            <SelectInput
+              source="mfa.policy"
+              label="MFA Policy"
+              choices={[
+                { id: "never", name: "Never" },
+                {
+                  id: "always",
+                  name: "Always (require for all logins)",
+                },
+              ]}
+              defaultValue="never"
+              helperText="Controls when users are required to use multi-factor authentication"
+              fullWidth
+            />
             <BooleanInput source="mfa.factors.sms" label="SMS" />
             <BooleanInput
               source="mfa.factors.otp"
