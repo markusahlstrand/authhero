@@ -162,12 +162,13 @@ function darkModeCssVarRules(selector: string, primaryColor?: string): string {
       vars["--ah-color-primary-hover"] = adjusted;
     }
 
-    // Auto-compute text-on-primary for dark mode
+    // Auto-compute text-on-primary for dark mode (BIAS matches SSR block)
+    const BIAS = 1.35;
     const btnBg = vars["--ah-color-primary"] || primaryColor;
     const whiteContrast = darkContrastRatio(btnBg, "#ffffff");
     const blackContrast = darkContrastRatio(btnBg, "#000000");
     vars["--ah-color-text-on-primary"] =
-      blackContrast > whiteContrast ? "#000000" : "#ffffff";
+      blackContrast > whiteContrast * BIAS ? "#000000" : "#ffffff";
   }
 
   const props = Object.entries(vars)
@@ -278,7 +279,7 @@ export function WidgetPage({
     ...DARK_MODE_CSS_VARS,
   };
   const effectivePrimary =
-    primaryColor || sanitizeCssColor(theme?.colors?.primary_button);
+    sanitizeCssColor(theme?.colors?.primary_button) || primaryColor;
   if (effectivePrimary) {
     const darkBg = DARK_MODE_CSS_VARS["--ah-color-bg"] || "#1f2937";
     if (darkContrastRatio(effectivePrimary, darkBg) < 3) {
@@ -290,11 +291,12 @@ export function WidgetPage({
       darkVarsForScript["--ah-color-primary"] = adjusted;
       darkVarsForScript["--ah-color-primary-hover"] = adjusted;
     }
+    const BIAS = 1.35;
     const btnBg = darkVarsForScript["--ah-color-primary"] || effectivePrimary;
     const wc = darkContrastRatio(btnBg, "#ffffff");
     const bc = darkContrastRatio(btnBg, "#000000");
     darkVarsForScript["--ah-color-text-on-primary"] =
-      bc > wc ? "#000000" : "#ffffff";
+      bc > wc * BIAS ? "#000000" : "#ffffff";
   }
   const darkVarsJson = JSON.stringify(darkVarsForScript);
 

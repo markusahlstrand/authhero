@@ -37,17 +37,17 @@ export async function loginPasswordlessIdentifierScreen(
     errors,
     messages,
     customText,
-    promptScreen,
     routePrefix,
   } = context;
 
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "login-passwordless",
+    "login-passwordless",
     locale,
     customText,
-    promptScreen || "login-passwordless",
-    "login-passwordless-identifier",
   );
+  const { m: common } = createTranslation("common", "common", locale, customText);
 
   const hasEmailConnection = context.connections.some(
     (c) => c.strategy === Strategy.EMAIL,
@@ -59,10 +59,10 @@ export async function loginPasswordlessIdentifierScreen(
   // Determine the auth method description
   const authMethod =
     hasEmailConnection && hasSmsConnection
-      ? m.auth_method_email_or_phone()
+      ? m.authMethodEmailOrPhone()
       : hasSmsConnection
-        ? m.auth_method_phone()
-        : m.auth_method_email();
+        ? m.authMethodPhone()
+        : m.authMethodEmail();
 
   const components: FormNodeComponent[] = [];
   let order = 0;
@@ -79,9 +79,9 @@ export async function loginPasswordlessIdentifierScreen(
       type: "TEL",
       category: "FIELD",
       visible: true,
-      label: m.phone_placeholder(),
+      label: m.phonePlaceholder(),
       config: {
-        placeholder: m.phone_placeholder(),
+        placeholder: m.phonePlaceholder(),
         default_country: context.ctx.get("countryCode") || "US",
       },
       required: true,
@@ -99,9 +99,9 @@ export async function loginPasswordlessIdentifierScreen(
       type: "EMAIL",
       category: "FIELD",
       visible: true,
-      label: m.email_placeholder(),
+      label: m.emailPlaceholder(),
       config: {
-        placeholder: m.email_placeholder(),
+        placeholder: m.emailPlaceholder(),
       },
       required: true,
       order: order++,
@@ -119,9 +119,9 @@ export async function loginPasswordlessIdentifierScreen(
       type: "TEL",
       category: "FIELD",
       visible: true,
-      label: m.email_or_phone_placeholder(),
+      label: m.emailOrPhonePlaceholder(),
       config: {
-        placeholder: m.email_or_phone_placeholder(),
+        placeholder: m.emailOrPhonePlaceholder(),
         default_country: context.ctx.get("countryCode") || "US",
         allow_email: true,
       },
@@ -138,7 +138,7 @@ export async function loginPasswordlessIdentifierScreen(
     category: "BLOCK",
     visible: true,
     config: {
-      text: m.continue(),
+      text: common.continueText(),
     },
     order: order++,
   });
@@ -149,15 +149,15 @@ export async function loginPasswordlessIdentifierScreen(
     name: "login-passwordless-identifier",
     action: `${routePrefix}/login/login-passwordless-identifier?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.login_passwordless_title(),
-    description: m.login_passwordless_description({ authMethod }),
+    title: m.title(),
+    description: m.description({ authMethod }),
     components,
     messages,
     links: [
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: common.backText(),
         href: loginUrl,
       },
     ],
@@ -195,10 +195,10 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
 
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "login-passwordless",
+        "login-passwordless",
         locale,
         context.customText,
-        "login-passwordless",
-        "login-passwordless-identifier",
       );
 
       // Validate input is provided
@@ -207,7 +207,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
           context.connections.some((c) => c.strategy === Strategy.SMS) &&
           !context.connections.some((c) => c.strategy === Strategy.EMAIL);
 
-        const errorMsg = hasSmsOnly ? m.no_phone() : m.no_email();
+        const errorMsg = hasSmsOnly ? m.noPhone() : m.noEmail();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({
@@ -225,7 +225,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!normalized) {
-        const errorMsg = m.invalid_identifier();
+        const errorMsg = m.invalidIdentifier();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({
@@ -239,7 +239,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
       // Validate the connection type is available for passwordless
       if (connectionType === "username") {
         // Usernames can't be used for passwordless login
-        const errorMsg = m.invalid_identifier();
+        const errorMsg = m.invalidIdentifier();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({
@@ -256,7 +256,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
 
       if (!connection) {
         const errorMsg =
-          connectionType === "sms" ? m.invalid_phone() : m.invalid_email();
+          connectionType === "sms" ? m.invalidPhone() : m.invalidEmail();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({
@@ -293,13 +293,13 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         );
 
         if (!validation.allowed) {
-          const errorMsg = validation.reason || m.user_account_does_not_exist();
+          const errorMsg = validation.reason || m.userAccountDoesNotExist();
           return {
             error: errorMsg,
             screen: await loginPasswordlessIdentifierScreen({
               ...context,
               prefill: { username },
-              errors: { username: m.user_account_does_not_exist() },
+              errors: { username: errorMsg },
             }),
           };
         }
@@ -312,7 +312,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
-        const errorMsg = m.session_expired();
+        const errorMsg = m.sessionExpired();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({
@@ -382,7 +382,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         // Clean up the created code on delivery failure
         await ctx.env.data.codes.remove(client.tenant.id, code_id);
 
-        const errorMsg = m.invalid_identifier();
+        const errorMsg = m.invalidIdentifier();
         return {
           error: errorMsg,
           screen: await loginPasswordlessIdentifierScreen({

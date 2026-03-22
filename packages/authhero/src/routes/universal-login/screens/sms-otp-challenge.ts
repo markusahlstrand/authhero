@@ -25,11 +25,12 @@ export async function smsOtpChallengeScreen(
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "sms-otp-challenge",
+    "sms-otp-challenge",
     locale,
     customText,
-    undefined,
-    "sms-otp-challenge",
   );
+  const { m: common } = createTranslation("common", "common", locale, customText);
 
   const phone = data?.phone as string | undefined;
   const email = data?.email as string | undefined;
@@ -57,10 +58,10 @@ export async function smsOtpChallengeScreen(
   }
 
   const description = maskedDestination
-    ? m.code_sent_template({
+    ? m.description({
         username: `<strong>${escapeHtml(maskedDestination)}</strong>`,
       })
-    : m.enter_code_description();
+    : m.defaultDescription();
 
   const components: FormNodeComponent[] = [
     // Code input
@@ -69,9 +70,9 @@ export async function smsOtpChallengeScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: m.enter_code_label(),
+      label: m.codeLabel(),
       config: {
-        placeholder: m.enter_code_placeholder(),
+        placeholder: m.codePlaceholder(),
         max_length: 6,
       },
       required: true,
@@ -87,7 +88,7 @@ export async function smsOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.buttonText(),
       },
       order: 1,
     },
@@ -98,7 +99,7 @@ export async function smsOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.resend_code(),
+        text: m.resendText(),
       },
       order: 2,
     },
@@ -109,7 +110,7 @@ export async function smsOtpChallengeScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/login/sms-otp-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_code_title(),
+    title: m.title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -117,7 +118,7 @@ export async function smsOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: common.backText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -145,15 +146,15 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "sms-otp-challenge",
+        "sms-otp-challenge",
         locale,
         context.customText,
-        undefined,
-        "sms-otp-challenge",
       );
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m.no_code();
+        const errorMessage = m.noCode();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -170,7 +171,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
-        const errorMessage = m.session_expired();
+        const errorMessage = m.sessionExpired();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -201,7 +202,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
-        const errorMessage = m.unexpected_error_try_again();
+        const errorMessage = m.unexpectedError();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -224,7 +225,7 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        let errorMessage: string = m.unexpected_error_try_again() as string;
+        let errorMessage: string = m.unexpectedError() as string;
         const rawMessage = (e as Error).message;
         if (rawMessage) {
           try {

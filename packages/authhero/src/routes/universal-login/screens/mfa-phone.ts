@@ -18,17 +18,17 @@ export async function mfaPhoneScreen(
   const { branding, state, errors, customText, routePrefix } = context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "mfa-phone");
+  const { m } = createTranslation("mfa-phone", "mfa-phone", locale, customText);
 
   const components: FormNodeComponent[] = [
     {
       id: "phone_number",
-      type: "TEXT",
+      type: "TEL",
       category: "FIELD",
       visible: true,
-      label: m.mfa_phone__phone_placeholder(),
+      label: m.phonePlaceholder(),
       config: {
-        placeholder: m.mfa_phone__phone_placeholder(),
+        placeholder: m.phonePlaceholder(),
       },
       required: true,
       order: 0,
@@ -42,7 +42,7 @@ export async function mfaPhoneScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.mfa_phone__button_text(),
+        text: m.buttonText(),
       },
       order: 1,
     },
@@ -52,8 +52,8 @@ export async function mfaPhoneScreen(
     name: "mfa-phone",
     action: `${routePrefix}/mfa/phone?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.mfa_phone__title(),
-    description: m.mfa_phone__description(),
+    title: m.title(),
+    description: m.description(),
     components,
   };
 
@@ -76,17 +76,9 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
       const { ctx, client, state } = context;
       const phoneNumber = (data.phone_number as string)?.trim();
 
-      const locale = context.language || "en";
-      const { m } = createTranslation(
-        locale,
-        context.customText,
-        undefined,
-        "mfa-phone",
-      );
-
       // Validate phone number
       if (!phoneNumber) {
-        const errorMessage = m.no_phone();
+        const errorMessage = "Please enter a phone number";
         return {
           error: errorMessage,
           screen: await mfaPhoneScreen({
@@ -98,7 +90,7 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
 
       // Basic phone number validation
       if (!/^\+?\d[\d\s\-()]{6,}$/.test(phoneNumber)) {
-        const errorMessage = m.invalid_phone();
+        const errorMessage = "Invalid phone number";
         return {
           error: errorMessage,
           screen: await mfaPhoneScreen({
@@ -115,7 +107,7 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.user_id) {
-        const errorMessage = m.session_expired();
+        const errorMessage = "Session expired. Please try again.";
         return {
           error: errorMessage,
           screen: await mfaPhoneScreen({
@@ -156,8 +148,9 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
         return {
           redirect: `${routePrefix}/mfa/sms?state=${encodeURIComponent(state)}`,
         };
-      } catch {
-        const errorMessage = m.unexpected_error_try_again();
+      } catch (err) {
+        console.error("[mfa-phone] Error during phone enrollment:", err);
+        const errorMessage = "Something went wrong. Please try again.";
         return {
           error: errorMessage,
           screen: await mfaPhoneScreen({

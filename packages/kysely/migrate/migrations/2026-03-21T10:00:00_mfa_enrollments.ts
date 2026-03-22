@@ -4,8 +4,8 @@ import { Database } from "../../src/db";
 export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createTable("mfa_enrollments")
-    .addColumn("id", "varchar(255)", (col) => col.primaryKey())
-    .addColumn("tenant_id", "varchar(255)", (col) =>
+    .addColumn("id", "varchar(26)", (col) => col.primaryKey())
+    .addColumn("tenant_id", "varchar(191)", (col) =>
       col.references("tenants.id").onDelete("cascade").notNull(),
     )
     .addColumn("user_id", "varchar(255)", (col) => col.notNull())

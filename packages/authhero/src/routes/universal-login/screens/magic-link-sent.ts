@@ -21,20 +21,21 @@ export async function magicLinkSentScreen(
 
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "magic-link-sent",
+    "magic-link-sent",
     locale,
     customText,
-    undefined,
-    "magic-link-sent",
   );
+  const { m: common } = createTranslation("common", "common", locale, customText);
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
   const description = maskedEmail
-    ? m.code_sent_template({
+    ? m.description({
         username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
       })
-    : m.link_email_click_to_login();
+    : m.defaultDescription();
 
   const components: FormNodeComponent[] = [
     // Spam reminder
@@ -44,7 +45,7 @@ export async function magicLinkSentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>${m.sent_code_spam()}</p>`,
+        content: `<p>${m.spamText()}</p>`,
       },
       order: 0,
     },
@@ -55,7 +56,7 @@ export async function magicLinkSentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.send_me_a_new_magic_link(),
+        text: m.resendText(),
       },
       order: 1,
     },
@@ -73,7 +74,7 @@ export async function magicLinkSentScreen(
     name: "magic-link-sent",
     action: `${routePrefix}/login/magic-link-sent?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.check_email_title(),
+    title: m.title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -81,7 +82,7 @@ export async function magicLinkSentScreen(
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: common.backText(),
         href: `${backPath}?state=${encodeURIComponent(state)}`,
       },
     ],

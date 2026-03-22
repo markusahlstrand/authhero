@@ -263,6 +263,17 @@ export const clientConnectionKeys = {
   gsi1sk: (clientId: string) => `CLIENT_CONNECTION#${clientId}`,
 };
 
+// MFA enrollment keys
+export const mfaEnrollmentKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: (enrollmentId: string) => `MFA_ENROLLMENT#${enrollmentId}`,
+  // GSI1 for user lookup
+  gsi1pk: (tenantId: string, userId: string) =>
+    `TENANT#${tenantId}#USER#${userId}`,
+  gsi1sk: (enrollmentId: string) => `MFA_ENROLLMENT#${enrollmentId}`,
+  gsi1skPrefix: () => "MFA_ENROLLMENT#",
+};
+
 // Custom text keys
 export const customTextKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,

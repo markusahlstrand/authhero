@@ -69,6 +69,18 @@ const server = {
     return app.fetch(request, {
       env: {
         ...env,
+        smsProviders: {
+          twilio: async (params) => {
+            console.log("------- SMS -------");
+            console.log(`To: ${params.to}`);
+            console.log(`Message: ${params.text}`);
+            if (params.data?.code) {
+              console.log(`Code: ${params.data.code}`);
+            }
+            console.log("-------------------");
+            return {};
+          },
+        },
         hooks: {
           onExecutePostLogin: async (
             event: HookEvent,

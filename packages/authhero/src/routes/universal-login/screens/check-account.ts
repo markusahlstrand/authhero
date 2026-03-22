@@ -33,12 +33,7 @@ export async function checkAccountScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(
-    locale,
-    customText,
-    "check-account",
-    "check-account",
-  );
+  const { m } = createTranslation("check-account", "check-account", locale, customText);
 
   const loginPath = await getLoginPath(context);
 
@@ -78,7 +73,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>${m.check_account_logged_in_as({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.check_account_continue_question()}</p>`,
+        content: `<p>${m.loggedInAs({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.continueQuestion()}</p>`,
       },
       order: 0,
     },
@@ -89,7 +84,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.yes_continue_with_existing_account(),
+        text: m.yesContinue(),
       },
       order: 1,
     },
@@ -99,15 +94,15 @@ export async function checkAccountScreen(
     name: "check-account",
     action: `${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.check_account_title(),
+    title: m.title(),
     description: client.name
-      ? m.check_account_description({ clientName: escapeHtml(client.name) })
-      : m.check_account_description_fallback(),
+      ? m.description({ clientName: escapeHtml(client.name) })
+      : m.descriptionFallback(),
     components,
     links: [
       {
         id: "use-another-account",
-        text: m.no_use_another(),
+        text: m.noUseAnother(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -202,14 +197,9 @@ async function handleCheckAccountSubmit(
     // For other errors, show a user-friendly error on the check-account screen
     // Note: We create a fresh translation context here since we're in the error handler
     const locale = context.language || "en";
-    const { m } = createTranslation(
-      locale,
-      context.customText,
-      "check-account",
-      "check-account",
-    );
+    const { m } = createTranslation("check-account", "check-account", locale, context.customText);
     return {
-      error: m.check_account_error(),
+      error: m.error(),
       screen: await checkAccountScreen(context),
     };
   }

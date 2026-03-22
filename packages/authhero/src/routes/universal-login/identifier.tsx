@@ -181,7 +181,7 @@ export const identifierRoutes = new OpenAPIHono<{
           const errorMsg =
             username.length < minLength
               ? `Username must be at least ${minLength} characters`
-              : `Username must be at most ${maxLength} characters`;
+              : `Username must be ${maxLength} characters or less`;
           return ctx.html(
             <IdentifierPage
               theme={theme}
@@ -230,7 +230,7 @@ export const identifierRoutes = new OpenAPIHono<{
             theme={theme}
             branding={branding}
             loginSession={loginSession}
-            error={i18next.t("invalid_identifier")}
+            error="Email is not valid."
             email={params.username}
             client={client}
           />,

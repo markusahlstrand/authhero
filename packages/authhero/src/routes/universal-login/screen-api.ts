@@ -299,6 +299,31 @@ async function buildScreenContext(
     }
   }
 
+  // For mfa-sms screen, load the phone number from the MFA enrollment
+  if (screenId === "mfa-sms" && loginSession) {
+    const stateData = loginSession.state_data
+      ? JSON.parse(loginSession.state_data)
+      : {};
+    if (stateData.mfaEnrollmentId) {
+      const enrollment = await ctx.env.data.mfaEnrollments.get(
+        client.tenant.id,
+        stateData.mfaEnrollmentId,
+      );
+      if (enrollment?.phone_number) {
+        data.phone = enrollment.phone_number;
+      }
+    } else if (loginSession.user_id) {
+      const enrollments = await ctx.env.data.mfaEnrollments.list(
+        client.tenant.id,
+        loginSession.user_id,
+      );
+      const phoneEnrollment = enrollments.find((e) => e.type === "phone");
+      if (phoneEnrollment?.phone_number) {
+        data.phone = phoneEnrollment.phone_number;
+      }
+    }
+  }
+
   return {
     ctx,
     tenant: client.tenant,

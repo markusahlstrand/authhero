@@ -840,6 +840,37 @@ function createScreenRouteHandler(screenId: string) {
     // Determine route prefix based on client metadata
     const routePrefix =
       client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
+
+    // Build screen-specific data
+    const screenData: Record<string, unknown> = {
+      email: loginSession.authParams.username,
+    };
+
+    // For mfa-sms screen, load the phone number from the MFA enrollment
+    if (screenId === "mfa-sms" && loginSession) {
+      const stateData = loginSession.state_data
+        ? JSON.parse(loginSession.state_data)
+        : {};
+      if (stateData.mfaEnrollmentId) {
+        const enrollment = await ctx.env.data.mfaEnrollments.get(
+          client.tenant.id,
+          stateData.mfaEnrollmentId,
+        );
+        if (enrollment?.phone_number) {
+          screenData.phone = enrollment.phone_number;
+        }
+      } else if (loginSession.user_id) {
+        const enrollments = await ctx.env.data.mfaEnrollments.list(
+          client.tenant.id,
+          loginSession.user_id,
+        );
+        const phoneEnrollment = enrollments.find((e) => e.type === "phone");
+        if (phoneEnrollment?.phone_number) {
+          screenData.phone = phoneEnrollment.phone_number;
+        }
+      }
+    }
+
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
@@ -851,9 +882,7 @@ function createScreenRouteHandler(screenId: string) {
         username: loginSession.authParams.username,
         email: loginSession.authParams.username,
       },
-      data: {
-        email: loginSession.authParams.username,
-      },
+      data: screenData,
       customText,
       language,
       promptScreen,

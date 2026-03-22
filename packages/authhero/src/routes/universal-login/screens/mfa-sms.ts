@@ -31,7 +31,7 @@ export async function mfaSmsScreen(
     context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation(locale, customText, undefined, "mfa-sms");
+  const { m } = createTranslation("mfa-sms", "mfa-sms", locale, customText);
 
   const phone = data?.phone as string | undefined;
 
@@ -49,10 +49,10 @@ export async function mfaSmsScreen(
   }
 
   const description = maskedPhone
-    ? m.mfa_sms__description({
+    ? m.description({
         phoneNumber: `<strong>${escapeHtml(maskedPhone)}</strong>`,
       })
-    : m.enter_code_description();
+    : m.description({ phoneNumber: "" });
 
   const components: FormNodeComponent[] = [
     {
@@ -60,9 +60,9 @@ export async function mfaSmsScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: m.mfa_sms__code_placeholder(),
+      label: m.codePlaceholder(),
       config: {
-        placeholder: m.mfa_sms__code_placeholder(),
+        placeholder: m.codePlaceholder(),
         max_length: 6,
       },
       required: true,
@@ -77,7 +77,7 @@ export async function mfaSmsScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.mfa_sms__button_text(),
+        text: m.buttonText(),
       },
       order: 1,
     },
@@ -87,7 +87,7 @@ export async function mfaSmsScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.mfa_sms__resend_text(),
+        text: m.resendText(),
       },
       order: 2,
     },
@@ -97,7 +97,7 @@ export async function mfaSmsScreen(
     name: "mfa-sms",
     action: `${routePrefix}/mfa/sms?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.mfa_sms__title(),
+    title: m.title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -117,7 +117,6 @@ async function getEnrollmentPhone(
   tenantId: string,
   loginSession: { state_data?: string | null; user_id?: string | null },
 ): Promise<string | undefined> {
-  // Try to get from enrollment ID in state_data
   const stateData = loginSession.state_data
     ? JSON.parse(loginSession.state_data)
     : {};
@@ -132,7 +131,6 @@ async function getEnrollmentPhone(
     }
   }
 
-  // Fall back to looking up the user's confirmed phone enrollment
   if (loginSession.user_id) {
     const enrollments = await ctx.env.data.mfaEnrollments.list(
       tenantId,
@@ -162,10 +160,10 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
 
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "mfa-sms",
+        "mfa-sms",
         locale,
         context.customText,
-        undefined,
-        "mfa-sms",
       );
 
       // Handle resend action
@@ -194,14 +192,14 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           screen: await mfaSmsScreen({
             ...context,
             data: { ...context.data, phone },
-            messages: [{ text: m.mfa_sms__resend_text(), type: "success" }],
+            messages: [{ text: m.resendText(), type: "success" }],
           }),
         };
       }
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m.no_code();
+        const errorMessage = "Verification code is required";
         return {
           error: errorMessage,
           screen: await mfaSmsScreen({
@@ -218,7 +216,7 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.user_id) {
-        const errorMessage = m.session_expired();
+        const errorMessage = "Session expired. Please try again.";
         return {
           error: errorMessage,
           screen: await mfaSmsScreen({
@@ -242,7 +240,7 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = m.mfa_sms__invalid_code();
+        const errorMessage = m["invalid-code"]();
         return {
           error: errorMessage,
           screen: await mfaSmsScreen({
@@ -254,7 +252,6 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
       }
 
       try {
-        // Parse state_data to check enrollment
         const stateData = loginSession.state_data
           ? JSON.parse(loginSession.state_data)
           : {};
@@ -311,7 +308,6 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           authConnection: loginSession.auth_connection,
         });
 
-        // Get the redirect URL from the response
         const location = result.headers.get("location");
         const cookies = result.headers.getSetCookie?.() || [];
         if (location) {
@@ -324,7 +320,7 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = m.unexpected_error_try_again();
+        const errorMessage = "Something went wrong. Please try again.";
         return {
           error: errorMessage,
           screen: await mfaSmsScreen({

@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.51.0
+
+### Minor Changes
+
+- 469c395: Language refactor
+
+### Patch Changes
+
+- Updated dependencies [469c395]
+  - @authhero/adapter-interfaces@0.148.0
+  - @authhero/widget@0.22.0
+
 ## 0.50.0
 
 ### Minor Changes

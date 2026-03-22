@@ -57,7 +57,7 @@ describe("login identifier page", () => {
     const invalidEmailBody = await invalidEmailResponse.text();
 
     // Check that the error message is displayed in the HTML
-    expect(invalidEmailBody).toContain("Invalid identifier");
+    expect(invalidEmailBody).toContain("Email is not valid.");
 
     // Verify that it's still the identifier page (contains the form)
     expect(invalidEmailBody).toContain("username");
@@ -120,7 +120,7 @@ describe("login identifier page", () => {
       const invalidEmailBody = await invalidEmailResponse.text();
 
       // Check that the error message is displayed in the HTML
-      expect(invalidEmailBody).toContain("Invalid identifier");
+      expect(invalidEmailBody).toContain("Email is not valid.");
 
       // Verify that it's still the identifier page (contains the form)
       expect(invalidEmailBody).toContain("username");

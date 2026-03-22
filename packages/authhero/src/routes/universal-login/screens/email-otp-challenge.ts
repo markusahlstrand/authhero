@@ -27,20 +27,21 @@ export async function emailOtpChallengeScreen(
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
   const { m } = createTranslation(
+    "email-otp-challenge",
+    "email-otp-challenge",
     locale,
     customText,
-    undefined,
-    "email-otp-challenge",
   );
+  const { m: common } = createTranslation("common", "common", locale, customText);
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
   const description = maskedEmail
-    ? m.code_sent_template({
-        username: `<strong>${escapeHtml(maskedEmail)}</strong>`,
+    ? m.description({
+        email: `<strong>${escapeHtml(maskedEmail)}</strong>`,
       })
-    : m.enter_code_description();
+    : m.defaultDescription();
 
   const components: FormNodeComponent[] = [
     // Code input
@@ -49,9 +50,9 @@ export async function emailOtpChallengeScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: m.enter_code_label(),
+      label: m.codeLabel(),
       config: {
-        placeholder: m.enter_code_placeholder(),
+        placeholder: m.codePlaceholder(),
         max_length: 6,
       },
       required: true,
@@ -67,7 +68,7 @@ export async function emailOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.log_in(),
+        text: m.buttonText(),
       },
       order: 1,
     },
@@ -78,7 +79,7 @@ export async function emailOtpChallengeScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.resend_code(),
+        text: m.resendText(),
       },
       order: 2,
     },
@@ -98,7 +99,7 @@ export async function emailOtpChallengeScreen(
     // Action points to HTML endpoint for no-JS fallback
     action: `${routePrefix}/login/email-otp-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: m.enter_code_title(),
+    title: m.title(),
     description,
     components,
     messages: messages?.map((msg) => ({ text: msg.text, type: msg.type })),
@@ -106,7 +107,7 @@ export async function emailOtpChallengeScreen(
       {
         id: "back",
         text: "",
-        linkText: m.go_back(),
+        linkText: common.backText(),
         href: `${backPath}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -134,15 +135,15 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
       // Initialize i18n for validation/error messages
       const locale = context.language || "en";
       const { m } = createTranslation(
+        "email-otp-challenge",
+        "email-otp-challenge",
         locale,
         context.customText,
-        undefined,
-        "email-otp-challenge",
       );
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m.no_code();
+        const errorMessage = m.noCode();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -159,7 +160,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
-        const errorMessage = m.session_expired();
+        const errorMessage = m.sessionExpired();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -190,7 +191,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         }
 
         // If we got here (result is not a Response), something went wrong
-        const errorMessage = m.unexpected_error_try_again();
+        const errorMessage = m.unexpectedError();
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
@@ -213,7 +214,7 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           // Ignore errors
         }
 
-        let errorMessage: string = m.unexpected_error_try_again() as string;
+        let errorMessage: string = m.unexpectedError() as string;
         if (e instanceof JSONHTTPException) {
           try {
             const parsed = JSON.parse((e as Error).message);
