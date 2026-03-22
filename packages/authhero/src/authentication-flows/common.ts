@@ -1169,7 +1169,7 @@ export async function createFrontChannelAuthResponse(
           user.user_id,
         );
         const hasPhoneEnrollment = enrollments.some(
-          (e) => e.type === "phone",
+          (e) => e.type === "phone" && e.confirmed === true,
         );
         const targetPath = hasPhoneEnrollment ? "/u2/mfa/phone-challenge" : "/u2/mfa/phone-enrollment";
         return new Response(null, {
@@ -1229,11 +1229,17 @@ export async function createFrontChannelAuthResponse(
               },
             );
 
+            if (!mfaCheck.enrollment.phone_number) {
+              throw new Error(
+                "MFA enrollment is missing phone_number",
+              );
+            }
+
             await sendMfaOtp(
               ctx,
               client,
               params.loginSession,
-              mfaCheck.enrollment.phone_number!,
+              mfaCheck.enrollment.phone_number,
             );
 
             return new Response(null, {

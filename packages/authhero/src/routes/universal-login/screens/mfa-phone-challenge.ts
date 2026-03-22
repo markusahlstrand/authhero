@@ -172,26 +172,40 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           state,
         );
 
-        if (loginSession) {
-          const phone = await getEnrollmentPhone(
-            ctx,
-            client.tenant.id,
-            loginSession,
-          );
-          if (phone) {
-            await sendMfaOtp(ctx, client, loginSession, phone);
-          }
+        if (!loginSession) {
+          return {
+            screen: await mfaPhoneChallengeScreen(context),
+          };
         }
 
-        const phone = loginSession
-          ? await getEnrollmentPhone(ctx, client.tenant.id, loginSession)
-          : undefined;
+        const phone = await getEnrollmentPhone(
+          ctx,
+          client.tenant.id,
+          loginSession,
+        );
+
+        if (!phone) {
+          return {
+            screen: await mfaPhoneChallengeScreen({
+              ...context,
+              data: { ...context.data, phone },
+            }),
+          };
+        }
+
+        const messages: { text: string; type: "success" | "error" }[] = [];
+        try {
+          await sendMfaOtp(ctx, client, loginSession, phone);
+          messages.push({ text: m.resendSuccess(), type: "success" });
+        } catch {
+          messages.push({ text: m["send-sms-failed"](), type: "error" });
+        }
 
         return {
           screen: await mfaPhoneChallengeScreen({
             ...context,
             data: { ...context.data, phone },
-            messages: [{ text: m.smsButtonText(), type: "success" }],
+            messages,
           }),
         };
       }
@@ -297,15 +311,6 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           { type: LoginSessionEventType.COMPLETE_MFA },
         );
 
-        // Update state and mark MFA as verified in state_data
-        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
-          state: newState,
-          state_data: JSON.stringify({
-            ...stateData,
-            mfa_verified: true,
-          }),
-        });
-
         logMessage(ctx, client.tenant.id, {
           type: LogTypes.MFA_AUTH_SUCCESS,
           description: "MFA verification succeeded",
@@ -329,6 +334,15 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           client,
           loginSession,
           authConnection: loginSession.auth_connection,
+        });
+
+        // Only mark MFA as verified after successfully producing the auth response
+        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+          state: newState,
+          state_data: JSON.stringify({
+            ...stateData,
+            mfa_verified: true,
+          }),
         });
 
         const location = result.headers.get("location");

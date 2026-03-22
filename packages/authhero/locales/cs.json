@@ -295,7 +295,8 @@
       "too-many-sms": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
       "too-many-voice": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
       "transaction-not-found": "Vaše registrační transakce vypršela, budete muset začít znovu.",
-      "no-phone": "Zadejte telefonní číslo"
+      "no-phone": "Zadejte telefonní číslo",
+      "resendSuccess": "Odeslali jsme nový kód na váš telefon"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Zadejte své telefonní číslo pro přihlášení pomocí telefonního kódu | ${clientName}",

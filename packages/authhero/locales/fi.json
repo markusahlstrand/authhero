@@ -295,7 +295,8 @@
       "too-many-sms": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
       "too-many-voice": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
       "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
-      "no-phone": "Syötä puhelinnumero"
+      "no-phone": "Syötä puhelinnumero",
+      "resendSuccess": "Lähetimme uuden koodin puhelimeesi"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Syötä puhelinnumerosi kirjautuaksesi puhelinkoodilla | ${clientName}",

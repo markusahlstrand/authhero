@@ -295,7 +295,8 @@
       "too-many-sms": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
       "too-many-voice": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
       "transaction-not-found": "Din registreringstransaktion er udløbet, du skal starte forfra.",
-      "no-phone": "Indtast et telefonnummer"
+      "no-phone": "Indtast et telefonnummer",
+      "resendSuccess": "Vi sendte en ny kode til din telefon"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Indtast dit telefonnummer for at logge ind med en telefonkode | ${clientName}",

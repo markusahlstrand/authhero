@@ -145,10 +145,8 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           },
         );
 
-        // Send OTP SMS
-        await sendMfaOtp(ctx, client, loginSession, phoneNumber);
-
-        // Store the enrollment ID in state_data so the challenge screen knows
+        // Store the enrollment ID in state_data before sending OTP,
+        // so the session is linked to the enrollment before any OTP is sent
         const existingStateData = loginSession.state_data
           ? JSON.parse(loginSession.state_data)
           : {};
@@ -158,6 +156,18 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             mfaEnrollmentId: enrollment.id,
           }),
         });
+
+        // Send OTP SMS only after the session is updated
+        try {
+          await sendMfaOtp(ctx, client, loginSession, phoneNumber);
+        } catch (otpErr) {
+          // Roll back: delete the enrollment since OTP delivery failed
+          await ctx.env.data.mfaEnrollments.remove(
+            client.tenant.id,
+            enrollment.id,
+          );
+          throw otpErr;
+        }
 
         // Redirect to phone challenge screen
         const routePrefix = context.routePrefix || "/u2";

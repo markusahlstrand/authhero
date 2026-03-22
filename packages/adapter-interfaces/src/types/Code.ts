@@ -35,6 +35,9 @@ export const codeInsertSchema = z.object({
   redirect_uri: z.string().optional().openapi({
     description: "The redirect URI associated with the code",
   }),
+  otp: z.string().optional().openapi({
+    description: "The one-time password value for OTP-based flows",
+  }),
   nonce: z.string().optional().openapi({
     description: "The nonce value used for security in OIDC flows",
   }),

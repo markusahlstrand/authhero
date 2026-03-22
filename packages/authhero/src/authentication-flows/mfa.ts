@@ -37,9 +37,15 @@ export async function checkMfaRequired(
     return { required: false };
   }
 
-  // Check if SMS factor is enabled
-  if (!tenant.mfa?.factors?.sms) {
-    return { required: false };
+  // Validate that at least one supported factor is enabled
+  // Currently only SMS is implemented as a factor
+  const hasSupportedFactor = tenant.mfa?.factors?.sms === true;
+
+  if (!hasSupportedFactor) {
+    throw new HTTPException(500, {
+      message:
+        "MFA policy requires MFA but no supported factors are enabled. Enable at least one factor (e.g. SMS) in the tenant MFA configuration.",
+    });
   }
 
   // Look up user's confirmed MFA enrollments
@@ -66,12 +72,17 @@ export async function sendMfaOtp(
 ): Promise<void> {
   const tenant = client.tenant;
   const code = generateOTP();
+  const codeId = `mfa:${loginSession.id}`;
 
-  // Store the OTP code
+  // Remove any existing MFA OTP code for this session before creating a new one
+  await ctx.env.data.codes.remove(tenant.id, codeId);
+
+  // Store the OTP code with a deterministic code_id, keeping the OTP in a separate field
   await ctx.env.data.codes.create(tenant.id, {
-    code_id: code,
+    code_id: codeId,
     code_type: "mfa_otp",
     login_id: loginSession.id,
+    otp: code,
     expires_at: new Date(Date.now() + MFA_OTP_EXPIRATION_MS).toISOString(),
   });
 
@@ -132,11 +143,8 @@ export async function verifyMfaOtp(
   loginSessionId: string,
   submittedCode: string,
 ): Promise<boolean> {
-  const storedCode = await ctx.env.data.codes.get(
-    tenantId,
-    submittedCode,
-    "mfa_otp",
-  );
+  const codeId = `mfa:${loginSessionId}`;
+  const storedCode = await ctx.env.data.codes.get(tenantId, codeId, "mfa_otp");
 
   if (!storedCode) {
     return false;
@@ -152,13 +160,13 @@ export async function verifyMfaOtp(
     return false;
   }
 
-  // Check if code belongs to the correct login session
-  if (storedCode.login_id !== loginSessionId) {
+  // Compare the submitted OTP against the stored value
+  if (storedCode.otp !== submittedCode) {
     return false;
   }
 
   // Mark as used
-  await ctx.env.data.codes.used(tenantId, submittedCode);
+  await ctx.env.data.codes.used(tenantId, codeId);
 
   return true;
 }

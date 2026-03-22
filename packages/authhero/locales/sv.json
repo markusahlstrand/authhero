@@ -295,7 +295,8 @@
       "too-many-sms": "Du har överskridit det maximala antalet telefonmeddelanden per timme. Vänta några minuter och försök igen.",
       "too-many-voice": "Du har överskridit det maximala antalet telefonmeddelanden per timme. Vänta några minuter och försök igen.",
       "transaction-not-found": "Din registreringstransaktion har gått ut, du behöver börja om.",
-      "no-phone": "Ange ett telefonnummer"
+      "no-phone": "Ange ett telefonnummer",
+      "resendSuccess": "Vi skickade en ny kod till din telefon"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Ange ditt telefonnummer för att logga in med en telefonkod | ${clientName}",

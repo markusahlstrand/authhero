@@ -295,7 +295,8 @@
       "too-many-sms": "Przekroczono maksymalną liczbę wiadomości telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
       "too-many-voice": "Przekroczono maksymalną liczbę wiadomości telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
       "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
-      "no-phone": "Wpisz numer telefonu"
+      "no-phone": "Wpisz numer telefonu",
+      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Wpisz swój numer telefonu, aby zalogować się kodem telefonicznym | ${clientName}",

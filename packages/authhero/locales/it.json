@@ -295,7 +295,8 @@
       "too-many-sms": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
       "too-many-voice": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
       "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
-      "no-phone": "Inserisci un numero di telefono"
+      "no-phone": "Inserisci un numero di telefono",
+      "resendSuccess": "Abbiamo inviato un nuovo codice al tuo telefono"
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Inserisci il tuo numero di telefono per accedere con un codice telefonico | ${clientName}",

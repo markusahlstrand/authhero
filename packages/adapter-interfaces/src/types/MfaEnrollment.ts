@@ -10,7 +10,7 @@ export const mfaEnrollmentTypeSchema = z.enum([
 
 export type MfaEnrollmentType = z.infer<typeof mfaEnrollmentTypeSchema>;
 
-export const mfaEnrollmentInsertSchema = z.object({
+const mfaEnrollmentBaseSchema = z.object({
   user_id: z.string(),
   type: mfaEnrollmentTypeSchema,
   phone_number: z.string().optional(),
@@ -18,13 +18,38 @@ export const mfaEnrollmentInsertSchema = z.object({
   confirmed: z.boolean().default(false),
 });
 
+function refineMfaEnrollment(
+  data: z.infer<typeof mfaEnrollmentBaseSchema>,
+  ctx: z.RefinementCtx,
+) {
+  if (data.type === "phone" && !data.phone_number) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "phone_number is required when type is 'phone'",
+      path: ["phone_number"],
+    });
+  }
+  if (data.type === "totp" && !data.totp_secret) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "totp_secret is required when type is 'totp'",
+      path: ["totp_secret"],
+    });
+  }
+}
+
+export const mfaEnrollmentInsertSchema =
+  mfaEnrollmentBaseSchema.superRefine(refineMfaEnrollment);
+
 export type MfaEnrollmentInsert = z.infer<typeof mfaEnrollmentInsertSchema>;
 
-export const mfaEnrollmentSchema = z.object({
-  ...mfaEnrollmentInsertSchema.shape,
-  id: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
-});
+export const mfaEnrollmentSchema = z
+  .object({
+    ...mfaEnrollmentBaseSchema.shape,
+    id: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .superRefine(refineMfaEnrollment);
 
 export type MfaEnrollment = z.infer<typeof mfaEnrollmentSchema>;

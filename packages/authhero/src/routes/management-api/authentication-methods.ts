@@ -176,13 +176,14 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { method_id } = ctx.req.valid("param");
+      const userId = ctx.req.param("user_id");
 
       const enrollment = await ctx.env.data.mfaEnrollments.get(
         ctx.var.tenant_id,
         method_id,
       );
 
-      if (!enrollment) {
+      if (!enrollment || enrollment.user_id !== userId) {
         throw new HTTPException(404, {
           message: "Authentication method not found",
         });
@@ -226,6 +227,18 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { method_id } = ctx.req.valid("param");
+      const userId = ctx.req.param("user_id");
+
+      const enrollment = await ctx.env.data.mfaEnrollments.get(
+        ctx.var.tenant_id,
+        method_id,
+      );
+
+      if (!enrollment || enrollment.user_id !== userId) {
+        throw new HTTPException(404, {
+          message: "Authentication method not found",
+        });
+      }
 
       const deleted = await ctx.env.data.mfaEnrollments.remove(
         ctx.var.tenant_id,
