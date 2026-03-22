@@ -296,6 +296,9 @@
       "too-many-voice": "Du har overskredet maksimalt antall telefonmeldinger per time. Vent noen minutter og prøv igjen.",
       "transaction-not-found": "Registreringstransaksjonen din har utløpt, du må starte på nytt.",
       "no-phone": "Skriv inn et telefonnummer",
+      "noCode": "Vennligst skriv inn bekreftelseskoden",
+      "invalidCode": "Koden du skrev inn er ugyldig. Prøv igjen.",
+      "unexpectedError": "Noe gikk galt. Prøv igjen.",
       "resendSuccess": "Vi sendte en ny kode til telefonen din"
     },
     "mfa-phone-enrollment": {

@@ -212,7 +212,7 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = m["no-phone"]();
+        const errorMessage = m.noCode();
         return {
           error: errorMessage,
           screen: await mfaPhoneChallengeScreen({
@@ -246,12 +246,36 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
       });
 
       // Verify the OTP code
-      const valid = await verifyMfaOtp(
-        ctx,
-        client.tenant.id,
-        loginSession.id,
-        code,
-      );
+      let valid: boolean;
+      try {
+        valid = await verifyMfaOtp(
+          ctx,
+          client.tenant.id,
+          loginSession.id,
+          code,
+        );
+      } catch (err) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_AUTH_FAILED,
+          description: `MFA verification error: ${err instanceof Error ? err.message : "unknown error"}`,
+          userId: loginSession.user_id,
+        });
+
+        const phone = await getEnrollmentPhone(
+          ctx,
+          client.tenant.id,
+          loginSession,
+        );
+        const errorMessage = m.unexpectedError();
+        return {
+          error: errorMessage,
+          screen: await mfaPhoneChallengeScreen({
+            ...context,
+            data: { ...context.data, phone },
+            errors: { code: errorMessage },
+          }),
+        };
+      }
 
       if (!valid) {
         logMessage(ctx, client.tenant.id, {
@@ -265,7 +289,7 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = m["invalid-phone"]();
+        const errorMessage = m.invalidCode();
         return {
           error: errorMessage,
           screen: await mfaPhoneChallengeScreen({
@@ -357,7 +381,7 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = m["send-sms-failed"]();
+        const errorMessage = m.unexpectedError();
         return {
           error: errorMessage,
           screen: await mfaPhoneChallengeScreen({

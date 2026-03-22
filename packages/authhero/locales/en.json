@@ -296,6 +296,9 @@
       "too-many-voice": "You have exceeded the maximum number of phone messages per hour. Wait a few minutes and try again.",
       "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
       "no-phone": "Please enter a phone number",
+      "noCode": "Please enter the verification code",
+      "invalidCode": "The code you entered is invalid. Please try again.",
+      "unexpectedError": "Something went wrong. Please try again.",
       "resendSuccess": "We sent a new code to your phone"
     },
     "mfa-phone-enrollment": {

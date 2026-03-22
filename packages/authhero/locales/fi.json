@@ -296,6 +296,9 @@
       "too-many-voice": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
       "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
       "no-phone": "Syötä puhelinnumero",
+      "noCode": "Syötä vahvistuskoodi",
+      "invalidCode": "Antamasi koodi on virheellinen. Yritä uudelleen.",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
       "resendSuccess": "Lähetimme uuden koodin puhelimeesi"
     },
     "mfa-phone-enrollment": {

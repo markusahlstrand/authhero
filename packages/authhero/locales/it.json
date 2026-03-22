@@ -296,6 +296,9 @@
       "too-many-voice": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
       "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
       "no-phone": "Inserisci un numero di telefono",
+      "noCode": "Inserisci il codice di verifica",
+      "invalidCode": "Il codice inserito non è valido. Riprova.",
+      "unexpectedError": "Qualcosa è andato storto. Riprova.",
       "resendSuccess": "Abbiamo inviato un nuovo codice al tuo telefono"
     },
     "mfa-phone-enrollment": {

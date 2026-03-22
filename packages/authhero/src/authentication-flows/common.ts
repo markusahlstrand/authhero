@@ -1158,20 +1158,30 @@ export async function createFrontChannelAuthResponse(
     if (currentLoginSession) {
       const currentState =
         currentLoginSession.state || LoginSessionState.PENDING;
-      const stateData = currentLoginSession.state_data
-        ? JSON.parse(currentLoginSession.state_data)
-        : {};
+      let stateData: Record<string, unknown> = {};
+      if (currentLoginSession.state_data) {
+        try {
+          stateData = JSON.parse(currentLoginSession.state_data);
+        } catch {
+          console.error("Failed to parse state_data for login session", currentLoginSession.id);
+        }
+      }
 
       // If state is AWAITING_MFA, user needs to complete MFA
       if (currentState === LoginSessionState.AWAITING_MFA) {
-        const enrollments = await ctx.env.data.mfaEnrollments.list(
-          client.tenant.id,
-          user.user_id,
-        );
-        const hasPhoneEnrollment = enrollments.some(
-          (e) => e.type === "phone" && e.confirmed === true,
-        );
-        const targetPath = hasPhoneEnrollment ? "/u2/mfa/phone-challenge" : "/u2/mfa/phone-enrollment";
+        let targetPath = "/u2/mfa/phone-enrollment";
+        if (stateData.mfaEnrollmentId) {
+          const enrollments = await ctx.env.data.mfaEnrollments.list(
+            client.tenant.id,
+            user.user_id,
+          );
+          const enrollment = enrollments.find(
+            (e) => e.id === stateData.mfaEnrollmentId && e.type === "phone" && e.confirmed === true,
+          );
+          if (enrollment) {
+            targetPath = "/u2/mfa/phone-challenge";
+          }
+        }
         return new Response(null, {
           status: 302,
           headers: {

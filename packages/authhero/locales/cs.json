@@ -296,6 +296,9 @@
       "too-many-voice": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
       "transaction-not-found": "Vaše registrační transakce vypršela, budete muset začít znovu.",
       "no-phone": "Zadejte telefonní číslo",
+      "noCode": "Zadejte ověřovací kód",
+      "invalidCode": "Zadaný kód je neplatný. Zkuste to znovu.",
+      "unexpectedError": "Něco se pokazilo. Zkuste to znovu.",
       "resendSuccess": "Odeslali jsme nový kód na váš telefon"
     },
     "mfa-phone-enrollment": {
