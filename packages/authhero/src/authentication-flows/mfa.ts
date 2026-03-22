@@ -2,12 +2,14 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
   LoginSession,
+  LogTypes,
   MfaEnrollment,
   Strategy,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import generateOTP from "../utils/otp";
+import { logMessage } from "../helpers/logging";
 
 const MFA_OTP_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -93,18 +95,31 @@ export async function sendMfaOtp(
   // Use connection options if available, otherwise use tenant MFA config
   const options = smsConnection?.options || tenant.mfa?.twilio || {};
 
-  await smsService({
-    options,
-    to: phoneNumber,
-    from: tenant.friendly_name,
-    text: `Your verification code is: ${code}`,
-    template: "mfa-code",
-    data: {
-      code,
-      tenantName: tenant.friendly_name || "",
-      tenantId: tenant.id,
-    },
-  });
+  try {
+    await smsService({
+      options,
+      to: phoneNumber,
+      from: tenant.friendly_name,
+      text: `Your verification code is: ${code}`,
+      template: "mfa-code",
+      data: {
+        code,
+        tenantName: tenant.friendly_name || "",
+        tenantId: tenant.id,
+      },
+    });
+
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.MFA_SMS_SENT,
+      description: "MFA SMS sent",
+    });
+  } catch (err) {
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.ERROR_SENDING_MFA_SMS,
+      description: `Failed to send MFA SMS: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    throw err;
+  }
 }
 
 /**

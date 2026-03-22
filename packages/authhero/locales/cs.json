@@ -276,14 +276,50 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Pokračovat",
-      "description": "Zadejte své telefonní číslo pro obdržení ověřovacího kódu",
-      "pageTitle": "Ověření telefonem | ${clientName}",
-      "phonePlaceholder": "Telefonní číslo",
-      "smsOptionText": "Zaslat SMS",
-      "title": "Ověřte svůj telefon",
-      "voiceOptionText": "Zavolat mi"
+    "mfa-phone-challenge": {
+      "pageTitle": "Použijte své telefonní číslo pro přihlášení | ${clientName}",
+      "title": "Ověřte svou identitu",
+      "description": "Odeslali jsme kód na ${phoneNumber}",
+      "continueButtonText": "Pokračovat",
+      "changePhoneText": "Zvolte jiné telefonní číslo.",
+      "smsButtonText": "Textová zpráva",
+      "voiceButtonText": "Hlasový hovor",
+      "chooseMessageTypeText": "Jak chcete kód přijmout?",
+      "pickAuthenticatorText": "Zkusit jinou metodu",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Zadejte kód",
+      "send-sms-failed": "Při odesílání SMS došlo k problému",
+      "send-voice-failed": "Při uskutečnění hlasového hovoru došlo k problému",
+      "invalid-phone-format": "Telefonní číslo může obsahovat pouze číslice.",
+      "invalid-phone": "Zdá se, že vaše telefonní číslo není platné. Zkontrolujte a zkuste to znovu.",
+      "too-many-sms": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
+      "too-many-voice": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
+      "transaction-not-found": "Vaše registrační transakce vypršela, budete muset začít znovu.",
+      "no-phone": "Zadejte telefonní číslo"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Zadejte své telefonní číslo pro přihlášení pomocí telefonního kódu | ${clientName}",
+      "title": "Zabezpečte svůj účet",
+      "description": "Zadejte kód země a telefonní číslo, na které můžeme odeslat 6místný kód:",
+      "continueButtonText": "Pokračovat",
+      "smsButtonText": "Textová zpráva",
+      "voiceButtonText": "Hlasový hovor",
+      "chooseMessageTypeText": "Jak chcete kód přijmout?",
+      "pickAuthenticatorText": "Zkusit jinou metodu",
+      "placeholder": "Zadejte své telefonní číslo",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Vyberte kód země, aktuálně nastaveno na ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Při odesílání SMS došlo k problému",
+      "send-voice-failed": "Při uskutečnění hlasového hovoru došlo k problému",
+      "sms-authenticator-error": "Nepodařilo se odeslat SMS. Zkuste to prosím později.",
+      "invalid-phone-format": "Telefonní číslo může obsahovat pouze číslice.",
+      "invalid-phone": "Zdá se, že vaše telefonní číslo není platné. Zkontrolujte a zkuste to znovu.",
+      "too-many-sms": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
+      "too-many-voice": "Překročili jste maximální počet telefonních zpráv za hodinu. Počkejte pár minut a zkuste to znovu.",
+      "transaction-not-found": "Vaše registrační transakce vypršela, budete muset začít znovu.",
+      "no-phone": "Zadejte telefonní číslo",
+      "phone-is-too-short": "Telefonní číslo je příliš krátké",
+      "phone-is-too-long": "Telefonní číslo je příliš dlouhé"
     }
   },
   "mfa-push": {
@@ -303,17 +339,6 @@
       "invalid-code": "Zadaný záložní kód je neplatný",
       "pageTitle": "Záložní kód | ${clientName}",
       "title": "Zadejte záložní kód"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Pokračovat",
-      "codePlaceholder": "Zadejte kód",
-      "description": "Odeslali jsme kód na ${phoneNumber}",
-      "invalid-code": "Zadaný kód je neplatný",
-      "pageTitle": "SMS ověření | ${clientName}",
-      "resendText": "Opětovné odeslání kódu",
-      "title": "Zkontrolujte svůj telefon"
     }
   },
   "mfa-voice": {

@@ -1,24 +1,26 @@
 /**
  * MFA Phone Enrollment screen - for setting up SMS MFA
  *
- * Corresponds to: /u2/mfa/phone
+ * Corresponds to: /u2/mfa/phone-enrollment
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
 import { sendMfaOtp } from "../../../authentication-flows/mfa";
+import { logMessage } from "../../../helpers/logging";
 
 /**
- * Create the mfa-phone screen
+ * Create the mfa-phone-enrollment screen
  */
-export async function mfaPhoneScreen(
+export async function mfaPhoneEnrollmentScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
   const { branding, state, errors, customText, routePrefix } = context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation("mfa-phone", "mfa-phone", locale, customText);
+  const { m } = createTranslation("mfa-phone", "mfa-phone-enrollment", locale, customText);
 
   const components: FormNodeComponent[] = [
     {
@@ -26,9 +28,9 @@ export async function mfaPhoneScreen(
       type: "TEL",
       category: "FIELD",
       visible: true,
-      label: m.phonePlaceholder(),
+      label: m.placeholder(),
       config: {
-        placeholder: m.phonePlaceholder(),
+        placeholder: m.placeholder(),
       },
       required: true,
       order: 0,
@@ -42,15 +44,15 @@ export async function mfaPhoneScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.buttonText(),
+        text: m.continueButtonText(),
       },
       order: 1,
     },
   ];
 
   const screen: UiScreen = {
-    name: "mfa-phone",
-    action: `${routePrefix}/mfa/phone?state=${encodeURIComponent(state)}`,
+    name: "mfa-phone-enrollment",
+    action: `${routePrefix}/mfa/phone-enrollment?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.title(),
     description: m.description(),
@@ -64,24 +66,32 @@ export async function mfaPhoneScreen(
 }
 
 /**
- * Screen definition for the mfa-phone screen
+ * Screen definition for the mfa-phone-enrollment screen
  */
-export const mfaPhoneScreenDefinition: ScreenDefinition = {
-  id: "mfa-phone",
+export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
+  id: "mfa-phone-enrollment",
   name: "MFA Phone Enrollment",
   description: "Phone number enrollment screen for SMS MFA",
   handler: {
-    get: mfaPhoneScreen,
+    get: mfaPhoneEnrollmentScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
       const phoneNumber = (data.phone_number as string)?.trim();
 
+      const locale = context.language || "en";
+      const { m } = createTranslation(
+        "mfa-phone",
+        "mfa-phone-enrollment",
+        locale,
+        context.customText,
+      );
+
       // Validate phone number
       if (!phoneNumber) {
-        const errorMessage = "Please enter a phone number";
+        const errorMessage = m["no-phone"]();
         return {
           error: errorMessage,
-          screen: await mfaPhoneScreen({
+          screen: await mfaPhoneEnrollmentScreen({
             ...context,
             errors: { phone_number: errorMessage },
           }),
@@ -90,10 +100,10 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
 
       // Basic phone number validation
       if (!/^\+?\d[\d\s\-()]{6,}$/.test(phoneNumber)) {
-        const errorMessage = "Invalid phone number";
+        const errorMessage = m["invalid-phone"]();
         return {
           error: errorMessage,
-          screen: await mfaPhoneScreen({
+          screen: await mfaPhoneEnrollmentScreen({
             ...context,
             errors: { phone_number: errorMessage },
           }),
@@ -107,10 +117,10 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.user_id) {
-        const errorMessage = "Session expired. Please try again.";
+        const errorMessage = m["transaction-not-found"]();
         return {
           error: errorMessage,
-          screen: await mfaPhoneScreen({
+          screen: await mfaPhoneEnrollmentScreen({
             ...context,
             errors: { phone_number: errorMessage },
           }),
@@ -118,6 +128,12 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
       }
 
       try {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_ENROLL_STARTED,
+          description: "MFA phone enrollment started",
+          userId: loginSession.user_id,
+        });
+
         // Create an unconfirmed MFA enrollment
         const enrollment = await ctx.env.data.mfaEnrollments.create(
           client.tenant.id,
@@ -132,7 +148,7 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
         // Send OTP SMS
         await sendMfaOtp(ctx, client, loginSession, phoneNumber);
 
-        // Store the enrollment ID in state_data so the MFA SMS screen knows
+        // Store the enrollment ID in state_data so the challenge screen knows
         const existingStateData = loginSession.state_data
           ? JSON.parse(loginSession.state_data)
           : {};
@@ -143,17 +159,22 @@ export const mfaPhoneScreenDefinition: ScreenDefinition = {
           }),
         });
 
-        // Redirect to SMS verification screen
+        // Redirect to phone challenge screen
         const routePrefix = context.routePrefix || "/u2";
         return {
-          redirect: `${routePrefix}/mfa/sms?state=${encodeURIComponent(state)}`,
+          redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
         };
       } catch (err) {
-        console.error("[mfa-phone] Error during phone enrollment:", err);
-        const errorMessage = "Something went wrong. Please try again.";
+        console.error("[mfa-phone-enrollment] Error during phone enrollment:", err);
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: `MFA phone enrollment failed: ${err instanceof Error ? err.message : String(err)}`,
+          userId: loginSession.user_id,
+        });
+        const errorMessage = m["sms-authenticator-error"]();
         return {
           error: errorMessage,
-          screen: await mfaPhoneScreen({
+          screen: await mfaPhoneEnrollmentScreen({
             ...context,
             errors: { phone_number: errorMessage },
           }),

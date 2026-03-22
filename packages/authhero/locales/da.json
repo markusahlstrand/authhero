@@ -276,14 +276,50 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Continue",
-      "description": "Enter your phone number to receive a verification code",
-      "pageTitle": "Phone Verification | ${clientName}",
-      "phonePlaceholder": "Phone number",
-      "smsOptionText": "Text me",
-      "title": "Verify your phone",
-      "voiceOptionText": "Call me"
+    "mfa-phone-challenge": {
+      "pageTitle": "Brug dit telefonnummer til at logge ind | ${clientName}",
+      "title": "Bekræft din identitet",
+      "description": "Vi sendte en kode til ${phoneNumber}",
+      "continueButtonText": "Fortsæt",
+      "changePhoneText": "Vælg et andet telefonnummer.",
+      "smsButtonText": "SMS",
+      "voiceButtonText": "Taleopkald",
+      "chooseMessageTypeText": "Hvordan vil du modtage koden?",
+      "pickAuthenticatorText": "Prøv en anden metode",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Indtast kode",
+      "send-sms-failed": "Der opstod et problem med at sende SMS'en",
+      "send-voice-failed": "Der opstod et problem med at foretage taleopkaldet",
+      "invalid-phone-format": "Telefonnummeret kan kun indeholde cifre.",
+      "invalid-phone": "Det ser ud til, at dit telefonnummer ikke er gyldigt. Kontrollér og prøv igen.",
+      "too-many-sms": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
+      "too-many-voice": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
+      "transaction-not-found": "Din registreringstransaktion er udløbet, du skal starte forfra.",
+      "no-phone": "Indtast et telefonnummer"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Indtast dit telefonnummer for at logge ind med en telefonkode | ${clientName}",
+      "title": "Sikre din konto",
+      "description": "Indtast din landekode og telefonnummer, som vi kan sende en 6-cifret kode til:",
+      "continueButtonText": "Fortsæt",
+      "smsButtonText": "SMS",
+      "voiceButtonText": "Taleopkald",
+      "chooseMessageTypeText": "Hvordan vil du modtage koden?",
+      "pickAuthenticatorText": "Prøv en anden metode",
+      "placeholder": "Indtast dit telefonnummer",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Vælg landekode, i øjeblikket sat til ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Der opstod et problem med at sende SMS'en",
+      "send-voice-failed": "Der opstod et problem med at foretage taleopkaldet",
+      "sms-authenticator-error": "Vi kunne ikke sende SMS'en. Prøv igen senere.",
+      "invalid-phone-format": "Telefonnummeret kan kun indeholde cifre.",
+      "invalid-phone": "Det ser ud til, at dit telefonnummer ikke er gyldigt. Kontrollér og prøv igen.",
+      "too-many-sms": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
+      "too-many-voice": "Du har overskredet det maksimale antal telefonbeskeder pr. time. Vent et par minutter og prøv igen.",
+      "transaction-not-found": "Din registreringstransaktion er udløbet, du skal starte forfra.",
+      "no-phone": "Indtast et telefonnummer",
+      "phone-is-too-short": "Telefonnummeret er for kort",
+      "phone-is-too-long": "Telefonnummeret er for langt"
     }
   },
   "mfa-push": {
@@ -303,17 +339,6 @@
       "invalid-code": "The recovery code you entered is invalid",
       "pageTitle": "Recovery Code | ${clientName}",
       "title": "Enter recovery code"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "SMS Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "mfa-voice": {

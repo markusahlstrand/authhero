@@ -299,8 +299,8 @@ async function buildScreenContext(
     }
   }
 
-  // For mfa-sms screen, load the phone number from the MFA enrollment
-  if (screenId === "mfa-sms" && loginSession) {
+  // For mfa-phone-challenge screen, load the phone number from the MFA enrollment
+  if (screenId === "mfa-phone-challenge" && loginSession) {
     const stateData = loginSession.state_data
       ? JSON.parse(loginSession.state_data)
       : {};

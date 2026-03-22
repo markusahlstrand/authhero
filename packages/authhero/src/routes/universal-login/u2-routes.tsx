@@ -66,12 +66,12 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "login-passwordless-identifier": "login-passwordless",
   mfa: "mfa",
   "mfa-otp": "mfa-otp",
-  "mfa-sms": "mfa-sms",
+  "mfa-phone-challenge": "mfa-phone",
   "mfa-email": "mfa-email",
   "mfa-push": "mfa-push",
   "mfa-webauthn": "mfa-webauthn",
   "mfa-voice": "mfa-voice",
-  "mfa-phone": "mfa-phone",
+  "mfa-phone-enrollment": "mfa-phone",
   "mfa-recovery-code": "mfa-recovery-code",
   status: "status",
   "device-flow": "device-flow",
@@ -846,8 +846,8 @@ function createScreenRouteHandler(screenId: string) {
       email: loginSession.authParams.username,
     };
 
-    // For mfa-sms screen, load the phone number from the MFA enrollment
-    if (screenId === "mfa-sms" && loginSession) {
+    // For mfa-phone-challenge screen, load the phone number from the MFA enrollment
+    if (screenId === "mfa-phone-challenge" && loginSession) {
       const stateData = loginSession.state_data
         ? JSON.parse(loginSession.state_data)
         : {};
@@ -1553,48 +1553,48 @@ export const u2Routes = new OpenAPIHono<{
     createScreenPostHandler("check-account"),
   )
   // --------------------------------
-  // GET /u2/mfa/phone - MFA phone enrollment
+  // GET /u2/mfa/phone-enrollment - MFA phone enrollment
   // --------------------------------
   .openapi(
     createScreenRoute(
-      "mfa-phone",
-      "/mfa/phone",
+      "mfa-phone-enrollment",
+      "/mfa/phone-enrollment",
       "MFA phone enrollment screen - enter phone number for SMS MFA",
     ),
-    createScreenRouteHandler("mfa-phone"),
+    createScreenRouteHandler("mfa-phone-enrollment"),
   )
   // --------------------------------
-  // POST /u2/mfa/phone
+  // POST /u2/mfa/phone-enrollment
   // --------------------------------
   .openapi(
     createScreenPostRoute(
-      "mfa-phone",
-      "/mfa/phone",
+      "mfa-phone-enrollment",
+      "/mfa/phone-enrollment",
       "Process MFA phone enrollment form submission",
     ),
-    createScreenPostHandler("mfa-phone"),
+    createScreenPostHandler("mfa-phone-enrollment"),
   )
   // --------------------------------
-  // GET /u2/mfa/sms - MFA SMS verification
+  // GET /u2/mfa/phone-challenge - MFA phone challenge
   // --------------------------------
   .openapi(
     createScreenRoute(
-      "mfa-sms",
-      "/mfa/sms",
-      "MFA SMS verification screen - enter SMS code",
+      "mfa-phone-challenge",
+      "/mfa/phone-challenge",
+      "MFA phone challenge screen - enter verification code",
     ),
-    createScreenRouteHandler("mfa-sms"),
+    createScreenRouteHandler("mfa-phone-challenge"),
   )
   // --------------------------------
-  // POST /u2/mfa/sms
+  // POST /u2/mfa/phone-challenge
   // --------------------------------
   .openapi(
     createScreenPostRoute(
-      "mfa-sms",
-      "/mfa/sms",
-      "Process MFA SMS verification form submission",
+      "mfa-phone-challenge",
+      "/mfa/phone-challenge",
+      "Process MFA phone challenge form submission",
     ),
-    createScreenPostHandler("mfa-sms"),
+    createScreenPostHandler("mfa-phone-challenge"),
   );
 
 // OpenAPI documentation

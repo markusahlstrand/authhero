@@ -276,14 +276,50 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Continue",
-      "description": "Enter your phone number to receive a verification code",
-      "pageTitle": "Phone Verification | ${clientName}",
-      "phonePlaceholder": "Phone number",
-      "smsOptionText": "Text me",
-      "title": "Verify your phone",
-      "voiceOptionText": "Call me"
+    "mfa-phone-challenge": {
+      "pageTitle": "Use your phone number to log in | ${clientName}",
+      "title": "Verify Your Identity",
+      "description": "We sent a code to ${phoneNumber}",
+      "continueButtonText": "Continue",
+      "changePhoneText": "Choose another phone number.",
+      "smsButtonText": "Text message",
+      "voiceButtonText": "Voice call",
+      "chooseMessageTypeText": "How do you want to receive the code?",
+      "pickAuthenticatorText": "Try another method",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Enter code",
+      "send-sms-failed": "There was a problem sending the SMS",
+      "send-voice-failed": "There was a problem making the voice call",
+      "invalid-phone-format": "Phone number can only include digits.",
+      "invalid-phone": "It seems that your phone number is not valid. Please check and retry.",
+      "too-many-sms": "You have exceeded the maximum number of phone messages per hour. Wait a few minutes and try again.",
+      "too-many-voice": "You have exceeded the maximum number of phone messages per hour. Wait a few minutes and try again.",
+      "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
+      "no-phone": "Please enter a phone number"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Enter your phone number to log in using a phone code | ${clientName}",
+      "title": "Secure Your Account",
+      "description": "Enter your country code and phone number to which we can send a 6-digit code:",
+      "continueButtonText": "Continue",
+      "smsButtonText": "Text message",
+      "voiceButtonText": "Voice call",
+      "chooseMessageTypeText": "How do you want to receive the code?",
+      "pickAuthenticatorText": "Try another method",
+      "placeholder": "Enter your phone number",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Select country code, currently set to ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "There was a problem sending the SMS",
+      "send-voice-failed": "There was a problem making the voice call",
+      "sms-authenticator-error": "We couldn't send the SMS. Please try again later.",
+      "invalid-phone-format": "Phone number can only include digits.",
+      "invalid-phone": "It seems that your phone number is not valid. Please check and retry.",
+      "too-many-sms": "You have exceeded the maximum number of phone messages per hour. Wait a few minutes and try again.",
+      "too-many-voice": "You have exceeded the maximum number of phone messages per hour. Wait a few minutes and try again.",
+      "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
+      "no-phone": "Please enter a phone number",
+      "phone-is-too-short": "Phone number is too short",
+      "phone-is-too-long": "Phone number is too long"
     }
   },
   "mfa-push": {
@@ -303,17 +339,6 @@
       "invalid-code": "The recovery code you entered is invalid",
       "pageTitle": "Recovery Code | ${clientName}",
       "title": "Enter recovery code"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "SMS Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "mfa-voice": {

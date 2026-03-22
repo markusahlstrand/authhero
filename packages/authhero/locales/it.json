@@ -276,14 +276,50 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Continue",
-      "description": "Enter your phone number to receive a verification code",
-      "pageTitle": "Phone Verification | ${clientName}",
-      "phonePlaceholder": "Phone number",
-      "smsOptionText": "Text me",
-      "title": "Verify your phone",
-      "voiceOptionText": "Call me"
+    "mfa-phone-challenge": {
+      "pageTitle": "Usa il tuo numero di telefono per accedere | ${clientName}",
+      "title": "Verifica la tua identità",
+      "description": "Abbiamo inviato un codice a ${phoneNumber}",
+      "continueButtonText": "Continua",
+      "changePhoneText": "Scegli un altro numero di telefono.",
+      "smsButtonText": "Messaggio di testo",
+      "voiceButtonText": "Chiamata vocale",
+      "chooseMessageTypeText": "Come vuoi ricevere il codice?",
+      "pickAuthenticatorText": "Prova un altro metodo",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Inserisci il codice",
+      "send-sms-failed": "Si è verificato un problema nell'invio dell'SMS",
+      "send-voice-failed": "Si è verificato un problema nell'effettuare la chiamata vocale",
+      "invalid-phone-format": "Il numero di telefono può contenere solo cifre.",
+      "invalid-phone": "Sembra che il tuo numero di telefono non sia valido. Controlla e riprova.",
+      "too-many-sms": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
+      "too-many-voice": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
+      "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
+      "no-phone": "Inserisci un numero di telefono"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Inserisci il tuo numero di telefono per accedere con un codice telefonico | ${clientName}",
+      "title": "Proteggi il tuo account",
+      "description": "Inserisci il prefisso del paese e il numero di telefono a cui possiamo inviare un codice a 6 cifre:",
+      "continueButtonText": "Continua",
+      "smsButtonText": "Messaggio di testo",
+      "voiceButtonText": "Chiamata vocale",
+      "chooseMessageTypeText": "Come vuoi ricevere il codice?",
+      "pickAuthenticatorText": "Prova un altro metodo",
+      "placeholder": "Inserisci il tuo numero di telefono",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Seleziona prefisso paese, attualmente impostato su ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Si è verificato un problema nell'invio dell'SMS",
+      "send-voice-failed": "Si è verificato un problema nell'effettuare la chiamata vocale",
+      "sms-authenticator-error": "Non siamo riusciti a inviare l'SMS. Riprova più tardi.",
+      "invalid-phone-format": "Il numero di telefono può contenere solo cifre.",
+      "invalid-phone": "Sembra che il tuo numero di telefono non sia valido. Controlla e riprova.",
+      "too-many-sms": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
+      "too-many-voice": "Hai superato il numero massimo di messaggi telefonici all'ora. Attendi qualche minuto e riprova.",
+      "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
+      "no-phone": "Inserisci un numero di telefono",
+      "phone-is-too-short": "Il numero di telefono è troppo corto",
+      "phone-is-too-long": "Il numero di telefono è troppo lungo"
     }
   },
   "mfa-push": {
@@ -303,17 +339,6 @@
       "invalid-code": "The recovery code you entered is invalid",
       "pageTitle": "Recovery Code | ${clientName}",
       "title": "Enter recovery code"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "SMS Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "mfa-voice": {

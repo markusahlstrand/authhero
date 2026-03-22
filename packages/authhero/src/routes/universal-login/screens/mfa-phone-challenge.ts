@@ -1,10 +1,11 @@
 /**
- * MFA SMS Verification screen - for verifying SMS MFA code
+ * MFA Phone Challenge screen - for verifying SMS MFA code
  *
- * Corresponds to: /u2/mfa/sms
+ * Corresponds to: /u2/mfa/phone-challenge
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { LoginSessionState, LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
@@ -16,22 +17,20 @@ import {
   transitionLoginSession,
   LoginSessionEventType,
 } from "../../../state-machines/login-session";
-import {
-  LoginSessionState,
-} from "@authhero/adapter-interfaces";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
+import { logMessage } from "../../../helpers/logging";
 
 /**
- * Create the mfa-sms screen
+ * Create the mfa-phone-challenge screen
  */
-export async function mfaSmsScreen(
+export async function mfaPhoneChallengeScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
   const { branding, state, errors, messages, data, customText, routePrefix } =
     context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation("mfa-sms", "mfa-sms", locale, customText);
+  const { m } = createTranslation("mfa-phone", "mfa-phone-challenge", locale, customText);
 
   const phone = data?.phone as string | undefined;
 
@@ -77,7 +76,7 @@ export async function mfaSmsScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.buttonText(),
+        text: m.continueButtonText(),
       },
       order: 1,
     },
@@ -87,15 +86,15 @@ export async function mfaSmsScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: m.resendText(),
+        text: m.smsButtonText(),
       },
       order: 2,
     },
   ];
 
   const screen: UiScreen = {
-    name: "mfa-sms",
-    action: `${routePrefix}/mfa/sms?state=${encodeURIComponent(state)}`,
+    name: "mfa-phone-challenge",
+    action: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.title(),
     description,
@@ -146,22 +145,22 @@ async function getEnrollmentPhone(
 }
 
 /**
- * Screen definition for the mfa-sms screen
+ * Screen definition for the mfa-phone-challenge screen
  */
-export const mfaSmsScreenDefinition: ScreenDefinition = {
-  id: "mfa-sms",
-  name: "MFA SMS Verification",
-  description: "SMS code verification screen for MFA",
+export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
+  id: "mfa-phone-challenge",
+  name: "MFA Phone Challenge",
+  description: "Phone code verification screen for MFA",
   handler: {
-    get: mfaSmsScreen,
+    get: mfaPhoneChallengeScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
       const code = (data.code as string)?.trim();
 
       const locale = context.language || "en";
       const { m } = createTranslation(
-        "mfa-sms",
-        "mfa-sms",
+        "mfa-phone",
+        "mfa-phone-challenge",
         locale,
         context.customText,
       );
@@ -189,20 +188,20 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           : undefined;
 
         return {
-          screen: await mfaSmsScreen({
+          screen: await mfaPhoneChallengeScreen({
             ...context,
             data: { ...context.data, phone },
-            messages: [{ text: m.resendText(), type: "success" }],
+            messages: [{ text: m.smsButtonText(), type: "success" }],
           }),
         };
       }
 
       // Validate code is provided
       if (!code) {
-        const errorMessage = "Verification code is required";
+        const errorMessage = m["no-phone"]();
         return {
           error: errorMessage,
-          screen: await mfaSmsScreen({
+          screen: await mfaPhoneChallengeScreen({
             ...context,
             errors: { code: errorMessage },
           }),
@@ -216,15 +215,21 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.user_id) {
-        const errorMessage = "Session expired. Please try again.";
+        const errorMessage = m["transaction-not-found"]();
         return {
           error: errorMessage,
-          screen: await mfaSmsScreen({
+          screen: await mfaPhoneChallengeScreen({
             ...context,
             errors: { code: errorMessage },
           }),
         };
       }
+
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SECOND_FACTOR_STARTED,
+        description: "MFA verification started",
+        userId: loginSession.user_id,
+      });
 
       // Verify the OTP code
       const valid = await verifyMfaOtp(
@@ -235,15 +240,21 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
       );
 
       if (!valid) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_AUTH_FAILED,
+          description: "MFA verification failed - invalid code",
+          userId: loginSession.user_id,
+        });
+
         const phone = await getEnrollmentPhone(
           ctx,
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = m["invalid-code"]();
+        const errorMessage = m["invalid-phone"]();
         return {
           error: errorMessage,
-          screen: await mfaSmsScreen({
+          screen: await mfaPhoneChallengeScreen({
             ...context,
             data: { ...context.data, phone },
             errors: { code: errorMessage },
@@ -269,6 +280,12 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
               enrollment.id,
               { confirmed: true },
             );
+
+            logMessage(ctx, client.tenant.id, {
+              type: LogTypes.MFA_ENROLLMENT_COMPLETE,
+              description: "MFA phone enrollment completed",
+              userId: loginSession.user_id,
+            });
           }
         }
 
@@ -287,6 +304,12 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
             ...stateData,
             mfa_verified: true,
           }),
+        });
+
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_AUTH_SUCCESS,
+          description: "MFA verification succeeded",
+          userId: loginSession.user_id,
         });
 
         // Get user to continue the auth flow
@@ -320,10 +343,10 @@ export const mfaSmsScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession,
         );
-        const errorMessage = "Something went wrong. Please try again.";
+        const errorMessage = m["send-sms-failed"]();
         return {
           error: errorMessage,
-          screen: await mfaSmsScreen({
+          screen: await mfaPhoneChallengeScreen({
             ...context,
             data: { ...context.data, phone },
             errors: { code: errorMessage },

@@ -1171,7 +1171,7 @@ export async function createFrontChannelAuthResponse(
         const hasPhoneEnrollment = enrollments.some(
           (e) => e.type === "phone",
         );
-        const targetPath = hasPhoneEnrollment ? "/u2/mfa/sms" : "/u2/mfa/phone";
+        const targetPath = hasPhoneEnrollment ? "/u2/mfa/phone-challenge" : "/u2/mfa/phone-enrollment";
         return new Response(null, {
           status: 302,
           headers: {
@@ -1212,7 +1212,7 @@ export async function createFrontChannelAuthResponse(
             return new Response(null, {
               status: 302,
               headers: {
-                location: `/u2/mfa/phone?state=${encodeURIComponent(params.loginSession.id)}`,
+                location: `/u2/mfa/phone-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
               },
             });
           } else {
@@ -1239,7 +1239,7 @@ export async function createFrontChannelAuthResponse(
             return new Response(null, {
               status: 302,
               headers: {
-                location: `/u2/mfa/sms?state=${encodeURIComponent(params.loginSession.id)}`,
+                location: `/u2/mfa/phone-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
               },
             });
           }
