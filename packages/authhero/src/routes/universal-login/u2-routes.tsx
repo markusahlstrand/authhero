@@ -66,12 +66,12 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "login-passwordless-identifier": "login-passwordless",
   mfa: "mfa",
   "mfa-otp": "mfa-otp",
-  "mfa-sms": "mfa-sms",
+  "mfa-phone-challenge": "mfa-phone",
   "mfa-email": "mfa-email",
   "mfa-push": "mfa-push",
   "mfa-webauthn": "mfa-webauthn",
   "mfa-voice": "mfa-voice",
-  "mfa-phone": "mfa-phone",
+  "mfa-phone-enrollment": "mfa-phone",
   "mfa-recovery-code": "mfa-recovery-code",
   status: "status",
   "device-flow": "device-flow",
@@ -840,6 +840,37 @@ function createScreenRouteHandler(screenId: string) {
     // Determine route prefix based on client metadata
     const routePrefix =
       client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
+
+    // Build screen-specific data
+    const screenData: Record<string, unknown> = {
+      email: loginSession.authParams.username,
+    };
+
+    // For mfa-phone-challenge screen, load the phone number from the MFA enrollment
+    if (screenId === "mfa-phone-challenge" && loginSession) {
+      const stateData = loginSession.state_data
+        ? JSON.parse(loginSession.state_data)
+        : {};
+      if (stateData.mfaEnrollmentId) {
+        const enrollment = await ctx.env.data.mfaEnrollments.get(
+          client.tenant.id,
+          stateData.mfaEnrollmentId,
+        );
+        if (enrollment?.phone_number) {
+          screenData.phone = enrollment.phone_number;
+        }
+      } else if (loginSession.user_id) {
+        const enrollments = await ctx.env.data.mfaEnrollments.list(
+          client.tenant.id,
+          loginSession.user_id,
+        );
+        const phoneEnrollment = enrollments.find((e) => e.type === "phone");
+        if (phoneEnrollment?.phone_number) {
+          screenData.phone = phoneEnrollment.phone_number;
+        }
+      }
+    }
+
     const screenContext: ScreenContext = {
       ctx,
       tenant: client.tenant,
@@ -851,9 +882,7 @@ function createScreenRouteHandler(screenId: string) {
         username: loginSession.authParams.username,
         email: loginSession.authParams.username,
       },
-      data: {
-        email: loginSession.authParams.username,
-      },
+      data: screenData,
       customText,
       language,
       promptScreen,
@@ -1522,6 +1551,50 @@ export const u2Routes = new OpenAPIHono<{
       "Process check-account form submission (no-JS fallback)",
     ),
     createScreenPostHandler("check-account"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/phone-enrollment - MFA phone enrollment
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-phone-enrollment",
+      "/mfa/phone-enrollment",
+      "MFA phone enrollment screen - enter phone number for SMS MFA",
+    ),
+    createScreenRouteHandler("mfa-phone-enrollment"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/phone-enrollment
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-phone-enrollment",
+      "/mfa/phone-enrollment",
+      "Process MFA phone enrollment form submission",
+    ),
+    createScreenPostHandler("mfa-phone-enrollment"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/phone-challenge - MFA phone challenge
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-phone-challenge",
+      "/mfa/phone-challenge",
+      "MFA phone challenge screen - enter verification code",
+    ),
+    createScreenRouteHandler("mfa-phone-challenge"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/phone-challenge
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-phone-challenge",
+      "/mfa/phone-challenge",
+      "Process MFA phone challenge form submission",
+    ),
+    createScreenPostHandler("mfa-phone-challenge"),
   );
 
 // OpenAPI documentation

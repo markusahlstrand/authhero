@@ -11,7 +11,7 @@ import loginWithSocialScreen from "./screens/login-with-social.json";
 import loginErrorScreen from "./screens/login-error.json";
 import signupScreen from "./screens/signup.json";
 import mfaTotpScreen from "./screens/mfa-totp.json";
-import mfaSmsScreen from "./screens/mfa-sms.json";
+import mfaPhoneChallengeScreen from "./screens/mfa-phone-challenge.json";
 import forgotPasswordScreen from "./screens/forgot-password.json";
 import resetPasswordScreen from "./screens/reset-password.json";
 import successScreen from "./screens/success.json";
@@ -33,7 +33,7 @@ export const screens = {
   loginError: loginErrorScreen,
   signup: signupScreen,
   mfaTotp: mfaTotpScreen,
-  mfaSms: mfaSmsScreen,
+  mfaPhoneChallenge: mfaPhoneChallengeScreen,
   forgotPassword: forgotPasswordScreen,
   resetPassword: resetPasswordScreen,
   success: successScreen,

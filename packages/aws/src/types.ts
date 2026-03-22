@@ -44,7 +44,8 @@ export type EntityType =
   | "LEGACY_CLIENT"
   | "CLIENT_CONNECTION"
   | "UNIVERSAL_LOGIN_TEMPLATE"
-  | "CUSTOM_TEXT";
+  | "CUSTOM_TEXT"
+  | "MFA_ENROLLMENT";
 
 /**
  * Base DynamoDB item structure for single-table design

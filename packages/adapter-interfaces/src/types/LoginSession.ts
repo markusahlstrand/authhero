@@ -9,6 +9,8 @@ export enum LoginSessionState {
   AUTHENTICATED = "authenticated",
   /** Waiting for email verification */
   AWAITING_EMAIL_VERIFICATION = "awaiting_email_verification",
+  /** Waiting for MFA verification */
+  AWAITING_MFA = "awaiting_mfa",
   /** Waiting for hook/flow completion (form, page redirect) */
   AWAITING_HOOK = "awaiting_hook",
   /** Waiting for user to complete action on continuation page (change-email, account, etc.) */

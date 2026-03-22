@@ -11,6 +11,12 @@ export function remove(db: Kysely<Database>) {
       .where("users.linked_to", "=", user_id)
       .execute();
 
+    await db
+      .deleteFrom("mfa_enrollments")
+      .where("mfa_enrollments.tenant_id", "=", tenant_id)
+      .where("mfa_enrollments.user_id", "=", user_id)
+      .execute();
+
     const results = await db
       .deleteFrom("users")
       .where("users.tenant_id", "=", tenant_id)

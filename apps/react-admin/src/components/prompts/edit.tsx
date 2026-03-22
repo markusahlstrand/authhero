@@ -62,7 +62,6 @@ const PROMPT_SCREENS = [
   { id: "mfa-voice", name: "MFA - Voice" },
   { id: "mfa-phone", name: "MFA - Phone" },
   { id: "mfa-webauthn", name: "MFA - WebAuthn" },
-  { id: "mfa-sms", name: "MFA - SMS" },
   { id: "mfa-email", name: "MFA - Email" },
   { id: "mfa-recovery-code", name: "MFA - Recovery Code" },
   { id: "status", name: "Status" },

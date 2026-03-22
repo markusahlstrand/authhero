@@ -132,6 +132,8 @@ import * as o033_add_login_id_to_refresh_tokens from "./2026-03-04T10:00:00_add_
 import * as o034_refresh_tokens_replace_session_id_with_login_id from "./2026-03-11T10:00:00_refresh_tokens_replace_session_id_with_login_id";
 import * as o035_idle_expires_at_ts_indexes from "./2026-03-12T10:00:00_idle_expires_at_ts_indexes";
 import * as o036_add_connection_to_login_sessions from "./2026-03-15T10:00:00_add_connection_to_login_sessions";
+import * as o037_mfa_enrollments from "./2026-03-21T10:00:00_mfa_enrollments";
+import * as o038_add_otp_to_codes from "./2026-03-22T10:00:00_add_otp_to_codes";
 
 // These need to be in alphabetic order
 export default {
@@ -269,4 +271,6 @@ export default {
   o034_refresh_tokens_replace_session_id_with_login_id,
   o035_idle_expires_at_ts_indexes,
   o036_add_connection_to_login_sessions,
+  o037_mfa_enrollments,
+  o038_add_otp_to_codes,
 };

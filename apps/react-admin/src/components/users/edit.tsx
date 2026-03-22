@@ -1890,6 +1890,90 @@ const IdentityCard = () => {
   );
 };
 
+const MfaEnrollmentsTab = () => {
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const { id: userId } = useParams();
+
+  const loadEnrollments = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const res = await dataProvider.getList(
+        `users/${userId}/authentication-methods`,
+        {
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: "created_at", order: "DESC" },
+          filter: {},
+        },
+      );
+      setEnrollments(res?.data ?? []);
+    } catch {
+      setEnrollments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEnrollments();
+  }, [userId]);
+
+  const handleDelete = async (enrollmentId: string) => {
+    if (!userId) return;
+    try {
+      await dataProvider.delete(
+        `users/${userId}/authentication-methods`,
+        { id: enrollmentId },
+      );
+      notify("MFA enrollment deleted", { type: "success" });
+      loadEnrollments();
+    } catch {
+      notify("Failed to delete MFA enrollment", { type: "error" });
+    }
+  };
+
+  if (loading) {
+    return <CircularProgress size={24} />;
+  }
+
+  if (enrollments.length === 0) {
+    return (
+      <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
+        No MFA enrollments found for this user.
+      </Typography>
+    );
+  }
+
+  return (
+    <List>
+      {enrollments.map((enrollment) => (
+        <ListItem
+          key={enrollment.id}
+          secondaryAction={
+            <Tooltip title="Delete enrollment">
+              <IconButton
+                edge="end"
+                aria-label="delete"
+                onClick={() => handleDelete(enrollment.id)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          }
+        >
+          <ListItemText
+            primary={`${enrollment.type === "phone" ? "SMS" : enrollment.type.toUpperCase()} — ${enrollment.phone_number || "N/A"}`}
+            secondary={`${enrollment.confirmed ? "Confirmed" : "Pending"} · Created ${new Date(enrollment.created_at).toLocaleDateString()}`}
+          />
+        </ListItem>
+      ))}
+    </List>
+  );
+};
+
 export function UserEdit() {
   return (
     <Edit>
@@ -2152,6 +2236,9 @@ export function UserEdit() {
               }),
             )}
           </ReferenceManyField>
+        </TabbedForm.Tab>
+        <TabbedForm.Tab label="MFA">
+          <MfaEnrollmentsTab />
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField

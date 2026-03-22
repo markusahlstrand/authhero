@@ -276,14 +276,54 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Jatka",
-      "description": "Syötä puhelinnumerosi saadaksesi vahvistuskoodin",
-      "pageTitle": "Puhelinvahvistus | ${clientName}",
-      "phonePlaceholder": "Puhelinnumero",
-      "smsOptionText": "Lähetä tekstiviesti",
-      "title": "Vahvista puhelimesi",
-      "voiceOptionText": "Soita minulle"
+    "mfa-phone-challenge": {
+      "pageTitle": "Käytä puhelinnumeroasi kirjautumiseen | ${clientName}",
+      "title": "Vahvista henkilöllisyytesi",
+      "description": "Lähetimme koodin numeroon ${phoneNumber}",
+      "continueButtonText": "Jatka",
+      "changePhoneText": "Valitse toinen puhelinnumero.",
+      "smsButtonText": "Tekstiviesti",
+      "voiceButtonText": "Äänipuhelu",
+      "chooseMessageTypeText": "Miten haluat vastaanottaa koodin?",
+      "pickAuthenticatorText": "Kokeile toista menetelmää",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Syötä koodi",
+      "send-sms-failed": "Tekstiviestin lähettämisessä oli ongelma",
+      "send-voice-failed": "Äänipuhelun soittamisessa oli ongelma",
+      "invalid-phone-format": "Puhelinnumero voi sisältää vain numeroita.",
+      "invalid-phone": "Puhelinnumerosi ei vaikuta olevan kelvollinen. Tarkista ja yritä uudelleen.",
+      "too-many-sms": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
+      "too-many-voice": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
+      "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
+      "no-phone": "Syötä puhelinnumero",
+      "noCode": "Syötä vahvistuskoodi",
+      "invalidCode": "Antamasi koodi on virheellinen. Yritä uudelleen.",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
+      "resendSuccess": "Lähetimme uuden koodin puhelimeesi"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Syötä puhelinnumerosi kirjautuaksesi puhelinkoodilla | ${clientName}",
+      "title": "Suojaa tilisi",
+      "description": "Syötä maakoodisi ja puhelinnumero, johon voimme lähettää 6-numeroisen koodin:",
+      "continueButtonText": "Jatka",
+      "smsButtonText": "Tekstiviesti",
+      "voiceButtonText": "Äänipuhelu",
+      "chooseMessageTypeText": "Miten haluat vastaanottaa koodin?",
+      "pickAuthenticatorText": "Kokeile toista menetelmää",
+      "placeholder": "Syötä puhelinnumerosi",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Valitse maakoodi, tällä hetkellä asetettu ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Tekstiviestin lähettämisessä oli ongelma",
+      "send-voice-failed": "Äänipuhelun soittamisessa oli ongelma",
+      "sms-authenticator-error": "Emme pystyneet lähettämään tekstiviestiä. Yritä myöhemmin uudelleen.",
+      "invalid-phone-format": "Puhelinnumero voi sisältää vain numeroita.",
+      "invalid-phone": "Puhelinnumerosi ei vaikuta olevan kelvollinen. Tarkista ja yritä uudelleen.",
+      "too-many-sms": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
+      "too-many-voice": "Olet ylittänyt tunnin enimmäismäärän puhelinviestejä. Odota muutama minuutti ja yritä uudelleen.",
+      "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
+      "no-phone": "Syötä puhelinnumero",
+      "phone-is-too-short": "Puhelinnumero on liian lyhyt",
+      "phone-is-too-long": "Puhelinnumero on liian pitkä"
     }
   },
   "mfa-push": {
@@ -303,17 +343,6 @@
       "invalid-code": "Syöttämäsi palautuskoodi on virheellinen",
       "pageTitle": "Palautuskoodi | ${clientName}",
       "title": "Syötä palautuskoodi"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Jatka",
-      "codePlaceholder": "Syötä koodi",
-      "description": "Lähetimme koodin numeroon ${phoneNumber}",
-      "invalid-code": "Syöttämäsi koodi on virheellinen",
-      "pageTitle": "Tekstiviestivahvistus | ${clientName}",
-      "resendText": "Lähetä koodi uudelleen",
-      "title": "Tarkista puhelimesi"
     }
   },
   "mfa-voice": {
