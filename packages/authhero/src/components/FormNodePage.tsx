@@ -66,9 +66,9 @@ function sanitizeHtml(html: string): string {
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "width", "height"],
-      "*": ["class", "id"],
+      "*": ["class", "id", "style"],
     },
-    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemes: ["http", "https", "mailto", "data"],
     allowedSchemesAppliedToAttributes: ["href", "src"],
     // Restrict image sources to https and data URIs (for inline images)
     // This prevents tracking pixels from arbitrary http domains

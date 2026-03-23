@@ -17,9 +17,6 @@ export const mfaEnrollments = sqliteTable(
     updated_at_ts: integer("updated_at_ts").notNull(),
   },
   (table) => [
-    index("mfa_enrollments_tenant_user_idx").on(
-      table.tenant_id,
-      table.user_id,
-    ),
+    index("mfa_enrollments_tenant_user_idx").on(table.tenant_id, table.user_id),
   ],
 );

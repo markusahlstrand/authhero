@@ -26,7 +26,12 @@ export async function magicLinkSentScreen(
     locale,
     customText,
   );
-  const { m: common } = createTranslation("common", "common", locale, customText);
+  const { m: common } = createTranslation(
+    "common",
+    "common",
+    locale,
+    customText,
+  );
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";

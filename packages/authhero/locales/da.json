@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Fortsæt med denne konto?",
-      "description": "${clientName} anmoder om adgang til din konto",
-      "descriptionFallback": "En applikation anmoder om adgang til din konto",
+      "description": "Vil du fortsætte med din eksisterende konto?",
+      "descriptionFallback": "Vil du fortsætte med din eksisterende konto?",
       "error": "Der opstod en fejl. Prøv venligst igen.",
-      "loggedInAs": "Du er logget ind som ${email}",
-      "noUseAnother": "Brug en anden konto",
-      "title": "Bekræft konto",
-      "yesContinue": "Fortsæt"
+      "loggedInAs": "Du er i øjeblikket logget ind som ${email}",
+      "noUseAnother": "Nej, jeg vil bruge en anden konto",
+      "title": "Fortsæt med bruger",
+      "yesContinue": "Ja, fortsæt med eksisterende konto"
     }
   },
   "common": {
@@ -345,6 +345,17 @@
       "no-phone": "Indtast et telefonnummer",
       "phone-is-too-short": "Telefonnummeret er for kort",
       "phone-is-too-long": "Telefonnummeret er for langt"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Vælg bekræftelsesmetode | ${clientName}",
+      "title": "Vælg din bekræftelsesmetode",
+      "description": "Vælg hvordan du vil bekræfte din identitet",
+      "authenticatorAppLabel": "Godkendelsesapp",
+      "authenticatorAppDescription": "Brug din godkendelsesapp til at få en bekræftelseskode",
+      "smsLabel": "Sms-besked",
+      "smsDescription": "Få en bekræftelseskode sendt til din telefon"
     }
   },
   "mfa-push": {

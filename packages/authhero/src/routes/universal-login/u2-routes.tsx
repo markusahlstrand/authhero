@@ -74,7 +74,13 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "mfa-webauthn": "mfa-webauthn",
   "mfa-voice": "mfa-voice",
   "mfa-phone-enrollment": "mfa-phone",
+  "mfa-login-options": "mfa-login-options",
   "mfa-recovery-code": "mfa-recovery-code",
+  account: "common",
+  "account-profile": "common",
+  "account-security": "common",
+  "account-linked": "common",
+  "account-delete": "common",
   status: "status",
   "device-flow": "device-flow",
   "email-verification": "email-verification",
@@ -273,8 +279,7 @@ function HeadContent({
     .widget-container {
       display: flex;
       flex-direction: column;
-      max-width: 400px;
-      width: 100%;
+      width: 400px;
     }
     
     authhero-widget {
@@ -452,7 +457,7 @@ function HeadContent({
       }
 
       .widget-container {
-        max-width: none;
+        width: 100%;
       }
     }
 
@@ -1641,6 +1646,206 @@ export const u2Routes = new OpenAPIHono<{
       "Process MFA TOTP challenge form submission",
     ),
     createScreenPostHandler("mfa-totp-challenge"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/login-options - MFA factor selection
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-login-options",
+      "/mfa/login-options",
+      "MFA factor selection screen - choose verification method",
+    ),
+    createScreenRouteHandler("mfa-login-options"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/login-options
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-login-options",
+      "/mfa/login-options",
+      "Process MFA factor selection",
+    ),
+    createScreenPostHandler("mfa-login-options"),
+  )
+  // --------------------------------
+  // GET /u2/account - Account management hub
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account",
+      "/account",
+      "Account management hub - view profile and settings",
+    ),
+    createScreenRouteHandler("account"),
+  )
+  // --------------------------------
+  // GET /u2/account/profile - Edit profile
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-profile",
+      "/account/profile",
+      "Edit personal information",
+    ),
+    createScreenRouteHandler("account-profile"),
+  )
+  // --------------------------------
+  // POST /u2/account/profile
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-profile",
+      "/account/profile",
+      "Process profile update form submission",
+    ),
+    createScreenPostHandler("account-profile"),
+  )
+  // --------------------------------
+  // GET /u2/account/security - MFA management
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-security",
+      "/account/security",
+      "Security settings - manage two-factor authentication",
+    ),
+    createScreenRouteHandler("account-security"),
+  )
+  // --------------------------------
+  // POST /u2/account/security
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-security",
+      "/account/security",
+      "Process security settings form submission",
+    ),
+    createScreenPostHandler("account-security"),
+  )
+  // --------------------------------
+  // GET /u2/account/linked - Linked accounts
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-linked",
+      "/account/linked",
+      "Linked accounts management",
+    ),
+    createScreenRouteHandler("account-linked"),
+  )
+  // --------------------------------
+  // POST /u2/account/linked
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-linked",
+      "/account/linked",
+      "Process linked accounts form submission",
+    ),
+    createScreenPostHandler("account-linked"),
+  )
+  // --------------------------------
+  // GET /u2/account/delete - Delete account
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-delete",
+      "/account/delete",
+      "Delete account confirmation",
+    ),
+    createScreenRouteHandler("account-delete"),
+  )
+  // --------------------------------
+  // POST /u2/account/delete
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-delete",
+      "/account/delete",
+      "Process account deletion",
+    ),
+    createScreenPostHandler("account-delete"),
+  )
+  // --------------------------------
+  // GET /u2/guardian/enroll - Guardian enrollment ticket redemption
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["u2"],
+      method: "get",
+      path: "/guardian/enroll",
+      request: {
+        query: z.object({
+          ticket: z.string(),
+        }),
+      },
+      responses: {
+        302: {
+          description: "Redirect to MFA enrollment screen",
+        },
+        403: {
+          description: "Invalid or expired ticket",
+          content: {
+            "text/html": {
+              schema: z.string(),
+            },
+          },
+        },
+      },
+    }),
+    async (ctx) => {
+      const { ticket } = ctx.req.valid("query");
+      const tenantId = ctx.var.tenant_id;
+
+      // Validate the ticket
+      const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
+      if (!code || code.used_at) {
+        throw new HTTPException(403, {
+          message: "Invalid or expired enrollment ticket",
+        });
+      }
+
+      if (new Date(code.expires_at) < new Date()) {
+        throw new HTTPException(403, {
+          message: "Enrollment ticket has expired",
+        });
+      }
+
+      // Get the login session
+      const loginSession = await ctx.env.data.loginSessions.get(
+        tenantId,
+        code.login_id,
+      );
+      if (!loginSession || !loginSession.user_id) {
+        throw new HTTPException(403, {
+          message: "Invalid enrollment session",
+        });
+      }
+
+      // Mark ticket as used
+      await ctx.env.data.codes.used(tenantId, ticket);
+
+      // Determine which MFA factor to enroll based on tenant config
+      const tenant = await ctx.env.data.tenants.get(tenantId);
+      const factors = tenant?.mfa?.factors;
+
+      const state = encodeURIComponent(loginSession.id);
+
+      if (factors?.otp && factors?.sms) {
+        // Both factors enabled - let user choose
+        return ctx.redirect(`/u2/mfa/login-options?state=${state}`);
+      } else if (factors?.otp) {
+        return ctx.redirect(`/u2/mfa/totp-enrollment?state=${state}`);
+      } else if (factors?.sms) {
+        return ctx.redirect(`/u2/mfa/phone-enrollment?state=${state}`);
+      }
+
+      throw new HTTPException(400, {
+        message: "No MFA factors enabled for this tenant",
+      });
+    },
   );
 
 // OpenAPI documentation

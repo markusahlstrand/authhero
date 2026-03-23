@@ -18,6 +18,12 @@ import { mfaPhoneEnrollmentScreenDefinition } from "./mfa-phone-enrollment";
 import { mfaPhoneChallengeScreenDefinition } from "./mfa-phone-challenge";
 import { mfaTotpEnrollmentScreenDefinition } from "./mfa-totp-enrollment";
 import { mfaTotpChallengeScreenDefinition } from "./mfa-totp-challenge";
+import { mfaLoginOptionsScreenDefinition } from "./mfa-login-options";
+import { accountScreenDefinition } from "./account";
+import { accountProfileScreenDefinition } from "./account-profile";
+import { accountSecurityScreenDefinition } from "./account-security";
+import { accountLinkedScreenDefinition } from "./account-linked";
+import { accountDeleteScreenDefinition } from "./account-delete";
 
 /**
  * Registry of all built-in screens
@@ -41,6 +47,12 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["mfa-phone-challenge", mfaPhoneChallengeScreenDefinition],
   ["mfa-totp-enrollment", mfaTotpEnrollmentScreenDefinition],
   ["mfa-totp-challenge", mfaTotpChallengeScreenDefinition],
+  ["mfa-login-options", mfaLoginOptionsScreenDefinition],
+  ["account", accountScreenDefinition],
+  ["account-profile", accountProfileScreenDefinition],
+  ["account-security", accountSecurityScreenDefinition],
+  ["account-linked", accountLinkedScreenDefinition],
+  ["account-delete", accountDeleteScreenDefinition],
 ]);
 
 /**

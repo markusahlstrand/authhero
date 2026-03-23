@@ -151,7 +151,8 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
               SK: codeKeys.sk(codeId, code.code_type),
             },
             UpdateExpression: "SET #used_at = :now",
-            ConditionExpression: "attribute_not_exists(#used_at) OR #used_at = :null",
+            ConditionExpression:
+              "attribute_not_exists(#used_at) OR #used_at = :null",
             ExpressionAttributeNames: { "#used_at": "used_at" },
             ExpressionAttributeValues: {
               ":now": new Date().toISOString(),

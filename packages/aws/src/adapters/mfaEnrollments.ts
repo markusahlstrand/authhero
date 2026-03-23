@@ -80,10 +80,7 @@ export function createMfaEnrollmentsAdapter(
       return toMfaEnrollment(item);
     },
 
-    async list(
-      tenantId: string,
-      userId: string,
-    ): Promise<MfaEnrollment[]> {
+    async list(tenantId: string, userId: string): Promise<MfaEnrollment[]> {
       const result = await queryItems<MfaEnrollmentItem>(
         ctx,
         mfaEnrollmentKeys.gsi1pk(tenantId, userId),
@@ -125,10 +122,7 @@ export function createMfaEnrollmentsAdapter(
       return updated;
     },
 
-    async remove(
-      tenantId: string,
-      enrollmentId: string,
-    ): Promise<boolean> {
+    async remove(tenantId: string, enrollmentId: string): Promise<boolean> {
       return deleteItem(
         ctx,
         mfaEnrollmentKeys.pk(tenantId),

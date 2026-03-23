@@ -47,7 +47,12 @@ export async function loginPasswordlessIdentifierScreen(
     locale,
     customText,
   );
-  const { m: common } = createTranslation("common", "common", locale, customText);
+  const { m: common } = createTranslation(
+    "common",
+    "common",
+    locale,
+    customText,
+  );
 
   const hasEmailConnection = context.connections.some(
     (c) => c.strategy === Strategy.EMAIL,

@@ -326,36 +326,70 @@ gtag('config', 'G-DNZWG3PF2L');`,
           text: "Guides",
           items: [
             {
-              text: "Authentication Flow",
-              link: "/guides/authentication-flow",
+              text: "Authentication",
+              collapsed: false,
+              items: [
+                {
+                  text: "Authentication Flow",
+                  link: "/guides/authentication-flow",
+                },
+                {
+                  text: "SPA Authentication",
+                  link: "/guides/spa-authentication",
+                },
+                { text: "MFA Setup", link: "/guides/mfa-setup" },
+                {
+                  text: "Account Management",
+                  link: "/guides/account-management",
+                },
+                { text: "Impersonation", link: "/guides/impersonation" },
+              ],
             },
             {
-              text: "Custom Authorization Middleware",
-              link: "/guides/custom-authorization-middleware",
+              text: "Authorization",
+              collapsed: false,
+              items: [
+                {
+                  text: "RBAC and Scopes",
+                  link: "/guides/rbac-and-scopes",
+                },
+                {
+                  text: "Custom Authorization Middleware",
+                  link: "/guides/custom-authorization-middleware",
+                },
+              ],
             },
             {
-              text: "Custom Domain Setup",
-              link: "/guides/custom-domain-setup",
+              text: "Infrastructure",
+              collapsed: false,
+              items: [
+                {
+                  text: "Custom Domain Setup",
+                  link: "/guides/custom-domain-setup",
+                },
+                {
+                  text: "Database Integration",
+                  link: "/guides/database-integration",
+                },
+                {
+                  text: "Multi-Tenant SaaS Setup",
+                  link: "/guides/multi-tenant-saas-setup",
+                },
+              ],
             },
             {
-              text: "Database Integration",
-              link: "/guides/database-integration",
-            },
-            {
-              text: "Database Migration",
-              link: "/guides/database-migration",
-            },
-            { text: "Impersonation", link: "/guides/impersonation" },
-            { text: "MFA Setup", link: "/guides/mfa-setup" },
-            {
-              text: "Multi-Tenant SaaS Setup",
-              link: "/guides/multi-tenant-saas-setup",
-            },
-            { text: "RBAC and Scopes", link: "/guides/rbac-and-scopes" },
-            { text: "SAML Migration", link: "/guides/saml-migration" },
-            {
-              text: "SPA Authentication",
-              link: "/guides/spa-authentication",
+              text: "Migration",
+              collapsed: false,
+              items: [
+                {
+                  text: "Database Migration",
+                  link: "/guides/database-migration",
+                },
+                {
+                  text: "SAML Migration",
+                  link: "/guides/saml-migration",
+                },
+              ],
             },
             { text: "Troubleshooting", link: "/guides/troubleshooting" },
           ],

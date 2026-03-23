@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Fortsätt med detta konto?",
-      "description": "${clientName} begär åtkomst till ditt konto",
-      "descriptionFallback": "En applikation begär åtkomst till ditt konto",
+      "description": "Vill du fortsätta med ditt befintliga konto?",
+      "descriptionFallback": "Vill du fortsätta med ditt befintliga konto?",
       "error": "Ett fel uppstod. Försök igen.",
-      "loggedInAs": "Du är inloggad som ${email}",
-      "noUseAnother": "Använd ett annat konto",
-      "title": "Bekräfta konto",
-      "yesContinue": "Fortsätt"
+      "loggedInAs": "Du är för närvarande inloggad som ${email}",
+      "noUseAnother": "Nej, jag vill använda ett annat konto",
+      "title": "Fortsätt med användare",
+      "yesContinue": "Ja, fortsätt med befintligt konto"
     }
   },
   "common": {
@@ -345,6 +345,17 @@
       "no-phone": "Ange ett telefonnummer",
       "phone-is-too-short": "Telefonnumret är för kort",
       "phone-is-too-long": "Telefonnumret är för långt"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Välj verifieringsmetod | ${clientName}",
+      "title": "Välj din verifieringsmetod",
+      "description": "Välj hur du vill verifiera din identitet",
+      "authenticatorAppLabel": "Autentiseringsapp",
+      "authenticatorAppDescription": "Använd din autentiseringsapp för att få en verifieringskod",
+      "smsLabel": "Sms",
+      "smsDescription": "Få en verifieringskod skickad till din telefon"
     }
   },
   "mfa-push": {

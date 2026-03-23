@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Fortsette med denne kontoen?",
-      "description": "${clientName} ber om tilgang til kontoen din",
-      "descriptionFallback": "En applikasjon ber om tilgang til kontoen din",
+      "description": "Vil du fortsette med din eksisterende konto?",
+      "descriptionFallback": "Vil du fortsette med din eksisterende konto?",
       "error": "Det oppstod en feil. Vennligst prøv igjen.",
-      "loggedInAs": "Du er logget inn som ${email}",
-      "noUseAnother": "Bruk en annen konto",
-      "title": "Bekreft konto",
-      "yesContinue": "Fortsett"
+      "loggedInAs": "Du er for øyeblikket logget inn som ${email}",
+      "noUseAnother": "Nei, jeg vil bruke en annen konto",
+      "title": "Fortsett med bruker",
+      "yesContinue": "Ja, fortsett med eksisterende konto"
     }
   },
   "common": {
@@ -345,6 +345,17 @@
       "no-phone": "Skriv inn et telefonnummer",
       "phone-is-too-short": "Telefonnummeret er for kort",
       "phone-is-too-long": "Telefonnummeret er for langt"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Velg bekreftelsesmetode | ${clientName}",
+      "title": "Velg bekreftelsesmetode",
+      "description": "Velg hvordan du vil bekrefte identiteten din",
+      "authenticatorAppLabel": "Autentiseringsapp",
+      "authenticatorAppDescription": "Bruk autentiseringsappen din for å få en bekreftelseskode",
+      "smsLabel": "Tekstmelding",
+      "smsDescription": "Få en bekreftelseskode sendt til telefonen din"
     }
   },
   "mfa-push": {

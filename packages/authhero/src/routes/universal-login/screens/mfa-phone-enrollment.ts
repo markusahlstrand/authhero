@@ -20,7 +20,12 @@ export async function mfaPhoneEnrollmentScreen(
   const { branding, state, errors, customText, routePrefix } = context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation("mfa-phone", "mfa-phone-enrollment", locale, customText);
+  const { m } = createTranslation(
+    "mfa-phone",
+    "mfa-phone-enrollment",
+    locale,
+    customText,
+  );
 
   const components: FormNodeComponent[] = [
     {
@@ -175,7 +180,10 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
         };
       } catch (err) {
-        console.error("[mfa-phone-enrollment] Error during phone enrollment:", err);
+        console.error(
+          "[mfa-phone-enrollment] Error during phone enrollment:",
+          err,
+        );
         logMessage(ctx, client.tenant.id, {
           type: LogTypes.MFA_ENROLLMENT_FAILED,
           description: `MFA phone enrollment failed: ${err instanceof Error ? err.message : String(err)}`,

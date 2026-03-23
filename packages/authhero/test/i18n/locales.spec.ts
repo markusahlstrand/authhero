@@ -38,64 +38,61 @@ const enKeys = getKeys(en);
 describe("locale completeness", () => {
   const otherLocales = localeFiles.filter((l) => l !== "en");
 
-  it.each(otherLocales)(
-    "%s has all keys from en.json",
-    (locale) => {
-      const data = loadLocale(locale);
-      const localeKeys = new Set(getKeys(data));
+  it.each(otherLocales)("%s has all keys from en.json", (locale) => {
+    const data = loadLocale(locale);
+    const localeKeys = new Set(getKeys(data));
 
-      const missing = enKeys.filter((key) => !localeKeys.has(key));
+    const missing = enKeys.filter((key) => !localeKeys.has(key));
 
-      expect(missing, `Missing keys in ${locale}.json`).toEqual([]);
-    },
-  );
+    expect(missing, `Missing keys in ${locale}.json`).toEqual([]);
+  });
 
-  it.each(otherLocales)(
-    "%s has no extra keys not in en.json",
-    (locale) => {
-      const data = loadLocale(locale);
-      const localeKeys = getKeys(data);
-      const enKeySet = new Set(enKeys);
+  it.each(otherLocales)("%s has no extra keys not in en.json", (locale) => {
+    const data = loadLocale(locale);
+    const localeKeys = getKeys(data);
+    const enKeySet = new Set(enKeys);
 
-      const extra = localeKeys.filter((key) => !enKeySet.has(key));
+    const extra = localeKeys.filter((key) => !enKeySet.has(key));
 
-      expect(extra, `Extra keys in ${locale}.json not in en.json`).toEqual([]);
-    },
-  );
+    expect(extra, `Extra keys in ${locale}.json not in en.json`).toEqual([]);
+  });
 
-  it.each(otherLocales)(
-    "%s has all keys translated",
-    (locale) => {
-      const data = loadLocale(locale);
-      const enEntries = getEntries(en);
-      const localeEntries = new Map(getEntries(data));
+  it.each(otherLocales)("%s has all keys translated", (locale) => {
+    const data = loadLocale(locale);
+    const enEntries = getEntries(en);
+    const localeEntries = new Map(getEntries(data));
 
-      // Skip values where all non-template, non-punctuation words are common
-      // loanwords used identically across languages (e.g. "Status | ${clientName}")
-      const loanwords = new Set(["email", "status", "password", "ok", "invitation"]);
-      const canBeIdentical = (value: string) => {
-        const words = value
-          .replace(/\$\{[^}]+\}/g, "")
-          .replace(/[©|]/g, "")
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean);
-        return words.every((w) => loanwords.has(w.toLowerCase()));
-      };
+    // Skip values where all non-template, non-punctuation words are common
+    // loanwords used identically across languages (e.g. "Status | ${clientName}")
+    const loanwords = new Set([
+      "email",
+      "status",
+      "password",
+      "ok",
+      "invitation",
+    ]);
+    const canBeIdentical = (value: string) => {
+      const words = value
+        .replace(/\$\{[^}]+\}/g, "")
+        .replace(/[©|]/g, "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      return words.every((w) => loanwords.has(w.toLowerCase()));
+    };
 
-      const untranslated = enEntries
-        .filter(
-          ([key, enValue]) =>
-            !canBeIdentical(enValue) && localeEntries.get(key) === enValue,
-        )
-        .map(([key]) => key);
+    const untranslated = enEntries
+      .filter(
+        ([key, enValue]) =>
+          !canBeIdentical(enValue) && localeEntries.get(key) === enValue,
+      )
+      .map(([key]) => key);
 
-      expect(
-        untranslated,
-        `Untranslated keys in ${locale}.json (identical to en.json)`,
-      ).toEqual([]);
-    },
-  );
+    expect(
+      untranslated,
+      `Untranslated keys in ${locale}.json (identical to en.json)`,
+    ).toEqual([]);
+  });
 
   it("all locale values are non-empty strings", () => {
     for (const locale of localeFiles) {

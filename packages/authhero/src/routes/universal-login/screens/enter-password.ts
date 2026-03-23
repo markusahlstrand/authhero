@@ -22,8 +22,18 @@ export async function enterPasswordScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation("login-password", "login-password", locale, customText);
-  const { m: common } = createTranslation("common", "common", locale, customText);
+  const { m } = createTranslation(
+    "login-password",
+    "login-password",
+    locale,
+    customText,
+  );
+  const { m: common } = createTranslation(
+    "common",
+    "common",
+    locale,
+    customText,
+  );
 
   const email = data?.email as string | undefined;
 
@@ -168,7 +178,12 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         const authError = e as AuthError;
         // Initialize i18n for error messages
         const locale = context.language || "en";
-        const { m } = createTranslation("login-password", "login-password", locale, context.customText);
+        const { m } = createTranslation(
+          "login-password",
+          "login-password",
+          locale,
+          context.customText,
+        );
 
         let errorMessage = authError.message || m["wrong-credentials"]();
 

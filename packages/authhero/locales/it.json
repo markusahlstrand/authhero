@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Continuare con questo account?",
-      "description": "${clientName} richiede l'accesso al tuo account",
-      "descriptionFallback": "Un'applicazione richiede l'accesso al tuo account",
+      "description": "Desideri continuare con il tuo account esistente?",
+      "descriptionFallback": "Desideri continuare con il tuo account esistente?",
       "error": "Si è verificato un errore. Riprova.",
-      "loggedInAs": "Hai effettuato l'accesso come ${email}",
-      "noUseAnother": "Usa un altro account",
-      "title": "Conferma account",
-      "yesContinue": "Continua"
+      "loggedInAs": "Sei attualmente connesso come ${email}",
+      "noUseAnother": "No, voglio usare un altro account",
+      "title": "Continua con l'utente",
+      "yesContinue": "Sì, continua con l'account esistente"
     }
   },
   "common": {
@@ -345,6 +345,17 @@
       "no-phone": "Inserisci un numero di telefono",
       "phone-is-too-short": "Il numero di telefono è troppo corto",
       "phone-is-too-long": "Il numero di telefono è troppo lungo"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Scegli il metodo di verifica | ${clientName}",
+      "title": "Scegli il metodo di verifica",
+      "description": "Seleziona come vuoi verificare la tua identità",
+      "authenticatorAppLabel": "App di autenticazione",
+      "authenticatorAppDescription": "Usa la tua app di autenticazione per ottenere un codice di verifica",
+      "smsLabel": "Messaggio di testo",
+      "smsDescription": "Ricevi un codice di verifica inviato al tuo telefono"
     }
   },
   "mfa-push": {

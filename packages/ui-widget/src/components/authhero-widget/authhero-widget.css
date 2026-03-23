@@ -22,8 +22,7 @@
    ========================================================================== */
 
 .widget-container {
-  max-width: var(--ah-widget-max-width, 400px);
-  width: 100%;
+  width: var(--ah-widget-max-width, 400px);
   margin: 0 auto;
   background-color: var(--ah-color-bg, #ffffff);
   border-radius: var(--ah-widget-radius, 5px);
@@ -292,7 +291,6 @@ form {
   .widget-container {
     box-shadow: none;
     border-radius: 0;
-    max-width: none;
     width: 100%;
     margin: 0;
   }

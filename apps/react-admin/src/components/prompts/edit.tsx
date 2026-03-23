@@ -727,171 +727,165 @@ function CustomTextTab() {
                   color="textSecondary"
                   sx={{ mb: 2 }}
                 >
-                  Edit the values you want to customize. Clear a field to
-                  revert to the default value. Variables like ${"{"}{" "}
-                  clientName{"}"} will be replaced at runtime.
+                  Edit the values you want to customize. Clear a field to revert
+                  to the default value. Variables like ${"{"} clientName{"}"}{" "}
+                  will be replaced at runtime.
                 </Typography>
 
                 {/* Render per-screen sections */}
                 {selectedEntry &&
                   Object.keys(editingTexts).map((screenName) => {
-                      const screenTexts = editingTexts[screenName] || {};
-                      const entries = Object.entries(screenTexts);
-                      const screenNames = Object.keys(editingTexts);
-                      const showScreenHeader = screenNames.length > 1;
+                    const screenTexts = editingTexts[screenName] || {};
+                    const entries = Object.entries(screenTexts);
+                    const screenNames = Object.keys(editingTexts);
+                    const showScreenHeader = screenNames.length > 1;
 
-                      // Categorize fields
-                      const categories = {
-                        "Page & Titles": [] as [string, string][],
-                        "Buttons & Actions": [] as [string, string][],
-                        "Input Fields": [] as [string, string][],
-                        "Messages & Labels": [] as [string, string][],
-                        "Error Messages": [] as [string, string][],
-                      };
+                    // Categorize fields
+                    const categories = {
+                      "Page & Titles": [] as [string, string][],
+                      "Buttons & Actions": [] as [string, string][],
+                      "Input Fields": [] as [string, string][],
+                      "Messages & Labels": [] as [string, string][],
+                      "Error Messages": [] as [string, string][],
+                    };
 
-                      entries.forEach(([key, value]) => {
-                        if (
-                          key.includes("error") ||
-                          key.includes("Error") ||
-                          key.startsWith("wrong-") ||
-                          key.startsWith("invalid-") ||
-                          key.startsWith("no-") ||
-                          key.includes("blocked") ||
-                          key.includes("breached") ||
-                          key.includes("failure") ||
-                          key.includes("captcha")
-                        ) {
-                          categories["Error Messages"].push([key, value]);
-                        } else if (
-                          key.includes("Title") ||
-                          key.includes("title") ||
-                          key.includes("pageTitle") ||
-                          key.includes("description") ||
-                          key.includes("Description")
-                        ) {
-                          categories["Page & Titles"].push([key, value]);
-                        } else if (
-                          key.includes("button") ||
-                          key.includes("Button") ||
-                          key.includes("Action") ||
-                          key.includes("Link") ||
-                          (key.includes("Text") &&
-                            (key.includes("footer") ||
-                              key.includes("signup") ||
-                              key.includes("login") ||
-                              key.includes("forgot") ||
-                              key.includes("back")))
-                        ) {
-                          categories["Buttons & Actions"].push([key, value]);
-                        } else if (
-                          key.includes("Placeholder") ||
-                          key.includes("placeholder") ||
-                          key.includes("Label") ||
-                          key.includes("select")
-                        ) {
-                          categories["Input Fields"].push([key, value]);
-                        } else {
-                          categories["Messages & Labels"].push([key, value]);
-                        }
-                      });
-
-                      const content = (
-                        <>
-                          <Box display="flex" justifyContent="flex-end" mb={1}>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleAddTextKey(screenName)}
-                            >
-                              Add Custom Key
-                            </Button>
-                          </Box>
-                          {Object.entries(categories)
-                            .filter(([_, items]) => items.length > 0)
-                            .map(([category, items]) => (
-                              <Accordion key={category} defaultExpanded>
-                                <AccordionSummary
-                                  expandIcon={<ExpandMoreIcon />}
-                                >
-                                  <Typography variant="subtitle1">
-                                    {category}
-                                    <Chip
-                                      size="small"
-                                      label={items.length}
-                                      sx={{ ml: 1 }}
-                                    />
-                                  </Typography>
-                                </AccordionSummary>
-                                <AccordionDetails>
-                                  <Stack spacing={2}>
-                                    {items.map(([key, value]) => (
-                                      <Box
-                                        key={key}
-                                        display="flex"
-                                        alignItems="flex-start"
-                                        gap={1}
-                                      >
-                                        <TextField
-                                          label={key}
-                                          value={value}
-                                          onChange={(e) =>
-                                            handleTextChange(
-                                              screenName,
-                                              key,
-                                              e.target.value,
-                                            )
-                                          }
-                                          fullWidth
-                                          multiline
-                                          minRows={1}
-                                          maxRows={4}
-                                          helperText="Clear to use default value"
-                                          InputLabelProps={{
-                                            shrink: true,
-                                          }}
-                                        />
-                                        <IconButton
-                                          onClick={() =>
-                                            handleRemoveTextKey(
-                                              screenName,
-                                              key,
-                                            )
-                                          }
-                                          size="small"
-                                          color="error"
-                                          title="Remove field"
-                                        >
-                                          <DeleteIcon />
-                                        </IconButton>
-                                      </Box>
-                                    ))}
-                                  </Stack>
-                                </AccordionDetails>
-                              </Accordion>
-                            ))}
-                          {entries.length === 0 && (
-                            <Typography color="textSecondary">
-                              No text keys configured. Click "Add Custom Key" to
-                              add customizations.
-                            </Typography>
-                          )}
-                        </>
-                      );
-
-                      if (showScreenHeader) {
-                        return (
-                          <Accordion key={screenName} defaultExpanded>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography variant="h6">{screenName}</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>{content}</AccordionDetails>
-                          </Accordion>
-                        );
+                    entries.forEach(([key, value]) => {
+                      if (
+                        key.includes("error") ||
+                        key.includes("Error") ||
+                        key.startsWith("wrong-") ||
+                        key.startsWith("invalid-") ||
+                        key.startsWith("no-") ||
+                        key.includes("blocked") ||
+                        key.includes("breached") ||
+                        key.includes("failure") ||
+                        key.includes("captcha")
+                      ) {
+                        categories["Error Messages"].push([key, value]);
+                      } else if (
+                        key.includes("Title") ||
+                        key.includes("title") ||
+                        key.includes("pageTitle") ||
+                        key.includes("description") ||
+                        key.includes("Description")
+                      ) {
+                        categories["Page & Titles"].push([key, value]);
+                      } else if (
+                        key.includes("button") ||
+                        key.includes("Button") ||
+                        key.includes("Action") ||
+                        key.includes("Link") ||
+                        (key.includes("Text") &&
+                          (key.includes("footer") ||
+                            key.includes("signup") ||
+                            key.includes("login") ||
+                            key.includes("forgot") ||
+                            key.includes("back")))
+                      ) {
+                        categories["Buttons & Actions"].push([key, value]);
+                      } else if (
+                        key.includes("Placeholder") ||
+                        key.includes("placeholder") ||
+                        key.includes("Label") ||
+                        key.includes("select")
+                      ) {
+                        categories["Input Fields"].push([key, value]);
+                      } else {
+                        categories["Messages & Labels"].push([key, value]);
                       }
+                    });
 
-                      return <Box key={screenName}>{content}</Box>;
-                    },
-                  )}
+                    const content = (
+                      <>
+                        <Box display="flex" justifyContent="flex-end" mb={1}>
+                          <Button
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={() => handleAddTextKey(screenName)}
+                          >
+                            Add Custom Key
+                          </Button>
+                        </Box>
+                        {Object.entries(categories)
+                          .filter(([_, items]) => items.length > 0)
+                          .map(([category, items]) => (
+                            <Accordion key={category} defaultExpanded>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="subtitle1">
+                                  {category}
+                                  <Chip
+                                    size="small"
+                                    label={items.length}
+                                    sx={{ ml: 1 }}
+                                  />
+                                </Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                <Stack spacing={2}>
+                                  {items.map(([key, value]) => (
+                                    <Box
+                                      key={key}
+                                      display="flex"
+                                      alignItems="flex-start"
+                                      gap={1}
+                                    >
+                                      <TextField
+                                        label={key}
+                                        value={value}
+                                        onChange={(e) =>
+                                          handleTextChange(
+                                            screenName,
+                                            key,
+                                            e.target.value,
+                                          )
+                                        }
+                                        fullWidth
+                                        multiline
+                                        minRows={1}
+                                        maxRows={4}
+                                        helperText="Clear to use default value"
+                                        InputLabelProps={{
+                                          shrink: true,
+                                        }}
+                                      />
+                                      <IconButton
+                                        onClick={() =>
+                                          handleRemoveTextKey(screenName, key)
+                                        }
+                                        size="small"
+                                        color="error"
+                                        title="Remove field"
+                                      >
+                                        <DeleteIcon />
+                                      </IconButton>
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              </AccordionDetails>
+                            </Accordion>
+                          ))}
+                        {entries.length === 0 && (
+                          <Typography color="textSecondary">
+                            No text keys configured. Click "Add Custom Key" to
+                            add customizations.
+                          </Typography>
+                        )}
+                      </>
+                    );
+
+                    if (showScreenHeader) {
+                      return (
+                        <Accordion key={screenName} defaultExpanded>
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="h6">{screenName}</Typography>
+                          </AccordionSummary>
+                          <AccordionDetails>{content}</AccordionDetails>
+                        </Accordion>
+                      );
+                    }
+
+                    return <Box key={screenName}>{content}</Box>;
+                  })}
               </>
             ) : (
               <>
