@@ -1,5 +1,11 @@
 # authhero
 
+## 4.70.0
+
+### Minor Changes
+
+- 6e6b8cb: Add totp for 2fa
+
 ## 4.69.0
 
 ### Minor Changes

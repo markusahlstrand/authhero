@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.51.0
+
+### Minor Changes
+
+- 6e6b8cb: Add totp for 2fa
+
 ## 1.50.0
 
 ### Minor Changes
