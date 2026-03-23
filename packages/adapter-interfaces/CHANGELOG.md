@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.149.0
+
+### Minor Changes
+
+- 64e858a: Add mfa with logging
+
 ## 0.148.0
 
 ### Minor Changes
