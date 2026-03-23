@@ -341,6 +341,16 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           userId: loginSession.user_id,
         });
 
+        // Persist the MFA completion before calling createFrontChannelAuthResponse,
+        // which re-reads the session and would redirect back to MFA if still AWAITING_MFA
+        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+          state: newState,
+          state_data: JSON.stringify({
+            ...stateData,
+            mfa_verified: true,
+          }),
+        });
+
         // Get user to continue the auth flow
         const user = await ctx.env.data.users.get(
           client.tenant.id,
@@ -358,15 +368,6 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           client,
           loginSession,
           authConnection: loginSession.auth_connection,
-        });
-
-        // Only mark MFA as verified after successfully producing the auth response
-        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
-          state: newState,
-          state_data: JSON.stringify({
-            ...stateData,
-            mfa_verified: true,
-          }),
         });
 
         const location = result.headers.get("location");
