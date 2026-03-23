@@ -111,6 +111,12 @@ export function init(config: AuthHeroConfig) {
     });
   });
 
+  app.get("/robots.txt", (ctx: Context) => {
+    return ctx.text("User-agent: *\nDisallow: /", 200, {
+      "content-type": "text/plain; charset=utf-8",
+    });
+  });
+
   const managementApp = createManagementApi(config);
   app.route("/api/v2", managementApp);
 
