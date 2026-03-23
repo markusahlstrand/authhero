@@ -67,6 +67,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   mfa: "mfa",
   "mfa-otp": "mfa-otp",
   "mfa-phone-challenge": "mfa-phone",
+  "mfa-totp-enrollment": "mfa-otp",
+  "mfa-totp-challenge": "mfa-otp",
   "mfa-email": "mfa-email",
   "mfa-push": "mfa-push",
   "mfa-webauthn": "mfa-webauthn",
@@ -1595,6 +1597,50 @@ export const u2Routes = new OpenAPIHono<{
       "Process MFA phone challenge form submission",
     ),
     createScreenPostHandler("mfa-phone-challenge"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/totp-enrollment - MFA TOTP enrollment
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-totp-enrollment",
+      "/mfa/totp-enrollment",
+      "MFA TOTP enrollment screen - set up authenticator app",
+    ),
+    createScreenRouteHandler("mfa-totp-enrollment"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/totp-enrollment
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-totp-enrollment",
+      "/mfa/totp-enrollment",
+      "Process MFA TOTP enrollment form submission",
+    ),
+    createScreenPostHandler("mfa-totp-enrollment"),
+  )
+  // --------------------------------
+  // GET /u2/mfa/totp-challenge - MFA TOTP challenge
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "mfa-totp-challenge",
+      "/mfa/totp-challenge",
+      "MFA TOTP challenge screen - enter authenticator app code",
+    ),
+    createScreenRouteHandler("mfa-totp-challenge"),
+  )
+  // --------------------------------
+  // POST /u2/mfa/totp-challenge
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "mfa-totp-challenge",
+      "/mfa/totp-challenge",
+      "Process MFA TOTP challenge form submission",
+    ),
+    createScreenPostHandler("mfa-totp-challenge"),
   );
 
 // OpenAPI documentation

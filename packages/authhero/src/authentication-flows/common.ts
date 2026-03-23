@@ -1176,10 +1176,14 @@ export async function createFrontChannelAuthResponse(
             user.user_id,
           );
           const enrollment = enrollments.find(
-            (e) => e.id === stateData.mfaEnrollmentId && e.type === "phone" && e.confirmed === true,
+            (e) => e.id === stateData.mfaEnrollmentId,
           );
-          if (enrollment) {
+          if (enrollment?.confirmed && enrollment.type === "phone") {
             targetPath = "/u2/mfa/phone-challenge";
+          } else if (enrollment?.confirmed && enrollment.type === "totp") {
+            targetPath = "/u2/mfa/totp-challenge";
+          } else if (enrollment?.type === "totp") {
+            targetPath = "/u2/mfa/totp-enrollment";
           }
         }
         return new Response(null, {
@@ -1210,7 +1214,10 @@ export async function createFrontChannelAuthResponse(
           );
 
           if (!mfaCheck.enrolled) {
-            // User needs to enroll - redirect to phone enrollment
+            // User needs to enroll - determine which factor to use
+            const tenant = client.tenant;
+            const useTotp = tenant.mfa?.factors?.otp === true;
+
             await ctx.env.data.loginSessions.update(
               client.tenant.id,
               params.loginSession.id,
@@ -1219,6 +1226,17 @@ export async function createFrontChannelAuthResponse(
               },
             );
 
+            if (useTotp) {
+              // Redirect to TOTP enrollment
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/mfa/totp-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            // Default to phone enrollment
             return new Response(null, {
               status: 302,
               headers: {
@@ -1226,7 +1244,7 @@ export async function createFrontChannelAuthResponse(
               },
             });
           } else {
-            // User is enrolled - send OTP and redirect to verification
+            // User is enrolled - redirect to the appropriate challenge screen
             await ctx.env.data.loginSessions.update(
               client.tenant.id,
               params.loginSession.id,
@@ -1239,6 +1257,17 @@ export async function createFrontChannelAuthResponse(
               },
             );
 
+            if (mfaCheck.enrollment.type === "totp") {
+              // Redirect to TOTP challenge
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/mfa/totp-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            // Phone enrollment - send OTP and redirect
             if (!mfaCheck.enrollment.phone_number) {
               throw new Error(
                 "MFA enrollment is missing phone_number",

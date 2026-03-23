@@ -10,6 +10,9 @@ import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import generateOTP from "../utils/otp";
 import { logMessage } from "../helpers/logging";
+import { TOTPController } from "oslo/otp";
+import { createTOTPKeyURI } from "oslo/otp";
+import { base32 } from "oslo/encoding";
 
 const MFA_OTP_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -38,24 +41,24 @@ export async function checkMfaRequired(
   }
 
   // Validate that at least one supported factor is enabled
-  // Currently only SMS is implemented as a factor
-  const hasSupportedFactor = tenant.mfa?.factors?.sms === true;
+  const hasSupportedFactor =
+    tenant.mfa?.factors?.sms === true || tenant.mfa?.factors?.otp === true;
 
   if (!hasSupportedFactor) {
     throw new HTTPException(500, {
       message:
-        "MFA policy requires MFA but no supported factors are enabled. Enable at least one factor (e.g. SMS) in the tenant MFA configuration.",
+        "MFA policy requires MFA but no supported factors are enabled. Enable at least one factor (e.g. SMS or OTP) in the tenant MFA configuration.",
     });
   }
 
   // Look up user's confirmed MFA enrollments
   const enrollments = await ctx.env.data.mfaEnrollments.list(tenantId, userId);
-  const confirmedPhoneEnrollment = enrollments.find(
-    (e) => e.type === "phone" && e.confirmed,
+  const confirmedEnrollment = enrollments.find(
+    (e) => (e.type === "phone" || e.type === "totp") && e.confirmed,
   );
 
-  if (confirmedPhoneEnrollment) {
-    return { required: true, enrolled: true, enrollment: confirmedPhoneEnrollment };
+  if (confirmedEnrollment) {
+    return { required: true, enrolled: true, enrollment: confirmedEnrollment };
   }
 
   return { required: true, enrolled: false };
@@ -164,4 +167,39 @@ export async function verifyMfaOtp(
   const consumed = await ctx.env.data.codes.consume(tenantId, codeId);
 
   return consumed;
+}
+
+const TOTP_SECRET_BYTES = 20;
+const totpController = new TOTPController();
+
+/**
+ * Generate a random TOTP secret and return it as a base32-encoded string.
+ */
+export function generateTotpSecret(): string {
+  const secret = new Uint8Array(TOTP_SECRET_BYTES);
+  crypto.getRandomValues(secret);
+  return base32.encode(secret, { includePadding: false });
+}
+
+/**
+ * Create an otpauth:// URI for enrolling in TOTP (used for QR code generation).
+ */
+export function createTotpUri(
+  issuer: string,
+  accountName: string,
+  secretBase32: string,
+): string {
+  const secretBytes = base32.decode(secretBase32, { strict: false });
+  return createTOTPKeyURI(issuer, accountName, secretBytes);
+}
+
+/**
+ * Verify a TOTP code against a base32-encoded secret.
+ */
+export async function verifyTotpCode(
+  secretBase32: string,
+  code: string,
+): Promise<boolean> {
+  const secretBytes = base32.decode(secretBase32, { strict: false });
+  return totpController.verify(code, secretBytes);
 }
