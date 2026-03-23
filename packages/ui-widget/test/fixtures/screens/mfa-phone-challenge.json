@@ -1,5 +1,5 @@
 {
-  "screen": "mfa-sms",
+  "screen": "mfa-phone-challenge",
   "title": "Verify your phone",
   "action": "/api/auth/mfa/sms/verify",
   "method": "POST",

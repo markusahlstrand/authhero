@@ -34,6 +34,7 @@ import { createOrganizationsAdapter } from "./adapters/organizations";
 import { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 import { createInvitesAdapter } from "./adapters/invites";
 import { createCustomTextAdapter } from "./adapters/customText";
+import { createMfaEnrollmentsAdapter } from "./adapters/mfaEnrollments";
 
 export type { DynamoDBConfig, DynamoDBContext } from "./types";
 
@@ -83,6 +84,7 @@ export default function createAdapters(
     keys: createKeysAdapter(ctx),
     loginSessions: createLoginSessionsAdapter(ctx),
     logs: createLogsAdapter(ctx),
+    mfaEnrollments: createMfaEnrollmentsAdapter(ctx),
     organizations: createOrganizationsAdapter(ctx),
     passwords: createPasswordsAdapter(ctx),
     promptSettings: createPromptSettingsAdapter(ctx),
@@ -132,6 +134,7 @@ export { createOrganizationsAdapter } from "./adapters/organizations";
 export { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 export { createInvitesAdapter } from "./adapters/invites";
 export { createFlowsAdapter } from "./adapters/flows";
+export { createMfaEnrollmentsAdapter } from "./adapters/mfaEnrollments";
 
 // Re-export utilities for custom implementations
 export * from "./keys";

@@ -276,14 +276,54 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Continue",
-      "description": "Enter your phone number to receive a verification code",
-      "pageTitle": "Phone Verification | ${clientName}",
-      "phonePlaceholder": "Phone number",
-      "smsOptionText": "Text me",
-      "title": "Verify your phone",
-      "voiceOptionText": "Call me"
+    "mfa-phone-challenge": {
+      "pageTitle": "Bruk telefonnummeret ditt for å logge inn | ${clientName}",
+      "title": "Bekreft identiteten din",
+      "description": "Vi sendte en kode til ${phoneNumber}",
+      "continueButtonText": "Fortsett",
+      "changePhoneText": "Velg et annet telefonnummer.",
+      "smsButtonText": "Tekstmelding",
+      "voiceButtonText": "Taleanrop",
+      "chooseMessageTypeText": "Hvordan vil du motta koden?",
+      "pickAuthenticatorText": "Prøv en annen metode",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Skriv inn kode",
+      "send-sms-failed": "Det oppstod et problem med å sende SMS-en",
+      "send-voice-failed": "Det oppstod et problem med å ringe taleanropet",
+      "invalid-phone-format": "Telefonnummeret kan bare inneholde sifre.",
+      "invalid-phone": "Det ser ut som telefonnummeret ditt ikke er gyldig. Sjekk og prøv igjen.",
+      "too-many-sms": "Du har overskredet maksimalt antall telefonmeldinger per time. Vent noen minutter og prøv igjen.",
+      "too-many-voice": "Du har overskredet maksimalt antall telefonmeldinger per time. Vent noen minutter og prøv igjen.",
+      "transaction-not-found": "Registreringstransaksjonen din har utløpt, du må starte på nytt.",
+      "no-phone": "Skriv inn et telefonnummer",
+      "noCode": "Vennligst skriv inn bekreftelseskoden",
+      "invalidCode": "Koden du skrev inn er ugyldig. Prøv igjen.",
+      "unexpectedError": "Noe gikk galt. Prøv igjen.",
+      "resendSuccess": "Vi sendte en ny kode til telefonen din"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Skriv inn telefonnummeret ditt for å logge inn med en telefonkode | ${clientName}",
+      "title": "Sikre kontoen din",
+      "description": "Skriv inn landskoden og telefonnummeret vi kan sende en 6-sifret kode til:",
+      "continueButtonText": "Fortsett",
+      "smsButtonText": "Tekstmelding",
+      "voiceButtonText": "Taleanrop",
+      "chooseMessageTypeText": "Hvordan vil du motta koden?",
+      "pickAuthenticatorText": "Prøv en annen metode",
+      "placeholder": "Skriv inn telefonnummeret ditt",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Velg landskode, for øyeblikket satt til ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Det oppstod et problem med å sende SMS-en",
+      "send-voice-failed": "Det oppstod et problem med å ringe taleanropet",
+      "sms-authenticator-error": "Vi kunne ikke sende SMS-en. Prøv igjen senere.",
+      "invalid-phone-format": "Telefonnummeret kan bare inneholde sifre.",
+      "invalid-phone": "Det ser ut som telefonnummeret ditt ikke er gyldig. Sjekk og prøv igjen.",
+      "too-many-sms": "Du har overskredet maksimalt antall telefonmeldinger per time. Vent noen minutter og prøv igjen.",
+      "too-many-voice": "Du har overskredet maksimalt antall telefonmeldinger per time. Vent noen minutter og prøv igjen.",
+      "transaction-not-found": "Registreringstransaksjonen din har utløpt, du må starte på nytt.",
+      "no-phone": "Skriv inn et telefonnummer",
+      "phone-is-too-short": "Telefonnummeret er for kort",
+      "phone-is-too-long": "Telefonnummeret er for langt"
     }
   },
   "mfa-push": {
@@ -303,17 +343,6 @@
       "invalid-code": "The recovery code you entered is invalid",
       "pageTitle": "Recovery Code | ${clientName}",
       "title": "Enter recovery code"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "SMS Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "mfa-voice": {

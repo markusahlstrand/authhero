@@ -352,6 +352,105 @@ export const guardianRoutes = new OpenAPIHono<{
     },
   )
   // --------------------------------
+  // GET /api/v2/guardian/policies
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["guardian"],
+      method: "get",
+      path: "/policies",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["read:guardian_factors", "auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.array(z.string()),
+            },
+          },
+          description: "Current MFA policies",
+        },
+      },
+    }),
+    async (ctx) => {
+      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      const policy = tenant?.mfa?.policy;
+
+      // Auth0 format: ["all-applications"] for "always", [] for "never"
+      if (policy === "always") {
+        return ctx.json(["all-applications"]);
+      }
+      return ctx.json([]);
+    },
+  )
+  // --------------------------------
+  // PUT /api/v2/guardian/policies
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["guardian"],
+      method: "put",
+      path: "/policies",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.array(z.string()),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["update:guardian_factors", "auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.array(z.string()),
+            },
+          },
+          description: "Updated MFA policies",
+        },
+      },
+    }),
+    async (ctx) => {
+      const policies = ctx.req.valid("json");
+
+      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      if (!tenant) {
+        throw new HTTPException(404, { message: "Tenant not found" });
+      }
+
+      // Map Auth0 format to internal: ["all-applications"] = "always", [] = "never"
+      const policy = policies.includes("all-applications")
+        ? "always"
+        : "never";
+
+      await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+        mfa: {
+          ...tenant.mfa,
+          policy,
+        },
+      });
+
+      return ctx.json(policy === "always" ? ["all-applications"] : []);
+    },
+  )
+  // --------------------------------
   // PARAMETERIZED ROUTES MUST COME LAST
   // --------------------------------
   // GET /api/v2/guardian/factors/:factor_name

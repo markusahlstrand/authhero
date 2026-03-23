@@ -175,6 +175,8 @@ export const tenantInsertSchema = z.object({
   // Guardian MFA Factors configuration (internal storage, exposed via /guardian API)
   mfa: z
     .object({
+      // MFA policy: "never" = MFA disabled, "always" = MFA required for all logins
+      policy: z.enum(["never", "always"]).default("never").optional(),
       // Factor states
       factors: z
         .object({

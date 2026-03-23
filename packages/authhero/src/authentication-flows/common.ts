@@ -1143,6 +1143,127 @@ export async function createFrontChannelAuthResponse(
     });
   }
 
+  // ============================================================================
+  // MFA CHECK
+  // ============================================================================
+  // After authentication, check if the tenant requires MFA.
+  // If MFA is required and user hasn't completed it yet, redirect to MFA flow.
+  // ============================================================================
+  if (params.loginSession && user) {
+    const currentLoginSession = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      params.loginSession.id,
+    );
+
+    if (currentLoginSession) {
+      const currentState =
+        currentLoginSession.state || LoginSessionState.PENDING;
+      let stateData: Record<string, unknown> = {};
+      if (currentLoginSession.state_data) {
+        try {
+          stateData = JSON.parse(currentLoginSession.state_data);
+        } catch {
+          console.error("Failed to parse state_data for login session", currentLoginSession.id);
+        }
+      }
+
+      // If state is AWAITING_MFA, user needs to complete MFA
+      if (currentState === LoginSessionState.AWAITING_MFA) {
+        let targetPath = "/u2/mfa/phone-enrollment";
+        if (stateData.mfaEnrollmentId) {
+          const enrollments = await ctx.env.data.mfaEnrollments.list(
+            client.tenant.id,
+            user.user_id,
+          );
+          const enrollment = enrollments.find(
+            (e) => e.id === stateData.mfaEnrollmentId && e.type === "phone" && e.confirmed === true,
+          );
+          if (enrollment) {
+            targetPath = "/u2/mfa/phone-challenge";
+          }
+        }
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: `${targetPath}?state=${encodeURIComponent(params.loginSession.id)}`,
+          },
+        });
+      }
+
+      // If state is AUTHENTICATED and MFA hasn't been verified yet, check if MFA is required
+      if (
+        currentState === LoginSessionState.AUTHENTICATED &&
+        !stateData.mfa_verified
+      ) {
+        const { checkMfaRequired, sendMfaOtp } = await import("./mfa");
+        const mfaCheck = await checkMfaRequired(
+          ctx,
+          client.tenant.id,
+          user.user_id,
+        );
+
+        if (mfaCheck.required) {
+          // Transition to AWAITING_MFA
+          const { state: newState } = transitionLoginSession(
+            LoginSessionState.AUTHENTICATED,
+            { type: LoginSessionEventType.REQUIRE_MFA },
+          );
+
+          if (!mfaCheck.enrolled) {
+            // User needs to enroll - redirect to phone enrollment
+            await ctx.env.data.loginSessions.update(
+              client.tenant.id,
+              params.loginSession.id,
+              {
+                state: newState,
+              },
+            );
+
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/mfa/phone-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          } else {
+            // User is enrolled - send OTP and redirect to verification
+            await ctx.env.data.loginSessions.update(
+              client.tenant.id,
+              params.loginSession.id,
+              {
+                state: newState,
+                state_data: JSON.stringify({
+                  ...stateData,
+                  mfaEnrollmentId: mfaCheck.enrollment.id,
+                }),
+              },
+            );
+
+            if (!mfaCheck.enrollment.phone_number) {
+              throw new Error(
+                "MFA enrollment is missing phone_number",
+              );
+            }
+
+            await sendMfaOtp(
+              ctx,
+              client,
+              params.loginSession,
+              mfaCheck.enrollment.phone_number,
+            );
+
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/mfa/phone-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
   // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
   // Don't create refresh tokens for impersonated users for security reasons.
   if (

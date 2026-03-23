@@ -23,6 +23,8 @@ export interface LoginSessionContext {
 export enum LoginSessionEventType {
   AUTHENTICATE = "AUTHENTICATE",
   REQUIRE_EMAIL_VERIFICATION = "REQUIRE_EMAIL_VERIFICATION",
+  REQUIRE_MFA = "REQUIRE_MFA",
+  COMPLETE_MFA = "COMPLETE_MFA",
   START_HOOK = "START_HOOK",
   COMPLETE_HOOK = "COMPLETE_HOOK",
   START_CONTINUATION = "START_CONTINUATION",
@@ -38,6 +40,8 @@ export enum LoginSessionEventType {
 export type LoginSessionEvent =
   | { type: LoginSessionEventType.AUTHENTICATE; userId: string }
   | { type: LoginSessionEventType.REQUIRE_EMAIL_VERIFICATION }
+  | { type: LoginSessionEventType.REQUIRE_MFA }
+  | { type: LoginSessionEventType.COMPLETE_MFA }
   | { type: LoginSessionEventType.START_HOOK; hookId?: string }
   | { type: LoginSessionEventType.COMPLETE_HOOK }
   | { type: LoginSessionEventType.START_CONTINUATION; scope: string[] }
@@ -56,6 +60,7 @@ export type LoginSessionEvent =
  * Flow examples:
  *   pending → authenticated → completed (simple login)
  *   pending → authenticated → awaiting_email_verification → authenticated → completed
+ *   pending → authenticated → awaiting_mfa → authenticated → completed
  *   pending → authenticated → awaiting_hook → authenticated → awaiting_continuation → authenticated → completed
  *
  * Any non-final state can transition to failed or expired.
@@ -64,6 +69,7 @@ export type LoginSessionEvent =
  * - pending: Initial state, awaiting user authentication
  * - authenticated: Credentials validated - hub state that decides next steps
  * - awaiting_email_verification: Blocked on email verification
+ * - awaiting_mfa: Waiting for MFA verification (SMS, TOTP, etc.)
  * - awaiting_hook: Waiting for hook/flow completion (form, page, impersonate)
  * - awaiting_continuation: Waiting for user to complete action on account page
  * - completed: Tokens issued successfully (final)
@@ -137,6 +143,9 @@ export const loginSessionMachine = setup({
         REQUIRE_EMAIL_VERIFICATION: {
           target: "awaiting_email_verification",
         },
+        REQUIRE_MFA: {
+          target: "awaiting_mfa",
+        },
         START_HOOK: {
           target: "awaiting_hook",
           actions: "setHookId",
@@ -162,6 +171,21 @@ export const loginSessionMachine = setup({
         // Return to AUTHENTICATED hub to check if more steps are needed
         // Also support COMPLETE for backward compatibility (direct completion)
         COMPLETE: {
+          target: "authenticated",
+        },
+        FAIL: {
+          target: "failed",
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: "expired",
+        },
+      },
+    },
+    awaiting_mfa: {
+      on: {
+        // Return to AUTHENTICATED hub after MFA verification
+        COMPLETE_MFA: {
           target: "authenticated",
         },
         FAIL: {

@@ -19,7 +19,6 @@ export const promptScreenSchema = z.enum([
   "mfa-voice",
   "mfa-phone",
   "mfa-webauthn",
-  "mfa-sms",
   "mfa-email",
   "mfa-recovery-code",
   "status",

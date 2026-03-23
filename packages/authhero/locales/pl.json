@@ -276,14 +276,54 @@
     }
   },
   "mfa-phone": {
-    "mfa-phone": {
-      "buttonText": "Continue",
-      "description": "Enter your phone number to receive a verification code",
-      "pageTitle": "Phone Verification | ${clientName}",
-      "phonePlaceholder": "Phone number",
-      "smsOptionText": "Text me",
-      "title": "Verify your phone",
-      "voiceOptionText": "Call me"
+    "mfa-phone-challenge": {
+      "pageTitle": "Użyj swojego numeru telefonu, aby się zalogować | ${clientName}",
+      "title": "Zweryfikuj swoją tożsamość",
+      "description": "Wysłaliśmy kod na ${phoneNumber}",
+      "continueButtonText": "Kontynuuj",
+      "changePhoneText": "Wybierz inny numer telefonu.",
+      "smsButtonText": "Wiadomość tekstowa",
+      "voiceButtonText": "Połączenie głosowe",
+      "chooseMessageTypeText": "Jak chcesz otrzymać kod?",
+      "pickAuthenticatorText": "Wypróbuj inną metodę",
+      "logoAltText": "${companyName}",
+      "codePlaceholder": "Wpisz kod",
+      "send-sms-failed": "Wystąpił problem z wysłaniem SMS-a",
+      "send-voice-failed": "Wystąpił problem z wykonaniem połączenia głosowego",
+      "invalid-phone-format": "Numer telefonu może zawierać tylko cyfry.",
+      "invalid-phone": "Wygląda na to, że Twój numer telefonu jest nieprawidłowy. Sprawdź i spróbuj ponownie.",
+      "too-many-sms": "Przekroczono maksymalną liczbę wiadomości telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
+      "too-many-voice": "Przekroczono maksymalną liczbę połączeń telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
+      "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
+      "no-phone": "Wpisz numer telefonu",
+      "noCode": "Wprowadź kod weryfikacyjny",
+      "invalidCode": "Wprowadzony kod jest nieprawidłowy. Spróbuj ponownie.",
+      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
+      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon"
+    },
+    "mfa-phone-enrollment": {
+      "pageTitle": "Wpisz swój numer telefonu, aby zalogować się kodem telefonicznym | ${clientName}",
+      "title": "Zabezpiecz swoje konto",
+      "description": "Wpisz kod kraju i numer telefonu, na który możemy wysłać 6-cyfrowy kod:",
+      "continueButtonText": "Kontynuuj",
+      "smsButtonText": "Wiadomość tekstowa",
+      "voiceButtonText": "Połączenie głosowe",
+      "chooseMessageTypeText": "Jak chcesz otrzymać kod?",
+      "pickAuthenticatorText": "Wypróbuj inną metodę",
+      "placeholder": "Wpisz swój numer telefonu",
+      "logoAltText": "${companyName}",
+      "selectCountryCode": "Wybierz kod kraju, aktualnie ustawiony na ${countryName}, ${countryCode}, +${countryPrefix}",
+      "send-sms-failed": "Wystąpił problem z wysłaniem SMS-a",
+      "send-voice-failed": "Wystąpił problem z wykonaniem połączenia głosowego",
+      "sms-authenticator-error": "Nie udało się wysłać SMS-a. Spróbuj ponownie później.",
+      "invalid-phone-format": "Numer telefonu może zawierać tylko cyfry.",
+      "invalid-phone": "Wygląda na to, że Twój numer telefonu jest nieprawidłowy. Sprawdź i spróbuj ponownie.",
+      "too-many-sms": "Przekroczono maksymalną liczbę wiadomości telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
+      "too-many-voice": "Przekroczono maksymalną liczbę połączeń telefonicznych na godzinę. Poczekaj kilka minut i spróbuj ponownie.",
+      "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
+      "no-phone": "Wpisz numer telefonu",
+      "phone-is-too-short": "Numer telefonu jest za krótki",
+      "phone-is-too-long": "Numer telefonu jest za długi"
     }
   },
   "mfa-push": {
@@ -303,17 +343,6 @@
       "invalid-code": "The recovery code you entered is invalid",
       "pageTitle": "Recovery Code | ${clientName}",
       "title": "Enter recovery code"
-    }
-  },
-  "mfa-sms": {
-    "mfa-sms": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${phoneNumber}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "SMS Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your phone"
     }
   },
   "mfa-voice": {
