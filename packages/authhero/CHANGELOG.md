@@ -1,5 +1,11 @@
 # authhero
 
+## 4.71.0
+
+### Minor Changes
+
+- db01903: Add a robots.txt file
+
 ## 4.70.0
 
 ### Minor Changes
