@@ -1,5 +1,17 @@
 # authhero
 
+## 4.69.0
+
+### Minor Changes
+
+- 64e858a: Add mfa with logging
+
+### Patch Changes
+
+- Updated dependencies [64e858a]
+  - @authhero/adapter-interfaces@0.149.0
+  - @authhero/widget@0.23.0
+
 ## 4.68.0
 
 ### Minor Changes

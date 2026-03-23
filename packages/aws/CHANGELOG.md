@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.22.0
+
+### Minor Changes
+
+- 64e858a: Add mfa with logging
+
+### Patch Changes
+
+- Updated dependencies [64e858a]
+  - @authhero/adapter-interfaces@0.149.0
+
 ## 0.21.6
 
 ### Patch Changes

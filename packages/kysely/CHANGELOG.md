@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.108.0
+
+### Minor Changes
+
+- 64e858a: Add mfa with logging
+
+### Patch Changes
+
+- Updated dependencies [64e858a]
+  - @authhero/adapter-interfaces@0.149.0
+
 ## 10.107.1
 
 ### Patch Changes

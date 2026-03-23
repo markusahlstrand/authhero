@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.50.0
+
+### Minor Changes
+
+- 64e858a: Add mfa with logging
+
 ## 1.49.0
 
 ### Minor Changes
