@@ -282,6 +282,7 @@
       "continueButtonText": "Verify & Activate",
       "invalid-code": "The code you entered is invalid. Please try again.",
       "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
+      "unexpectedError": "Something went wrong. Please try again.",
       "pageTitle": "Set up Authenticator | ${clientName}"
     },
     "mfa-totp-challenge": {

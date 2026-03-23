@@ -260,7 +260,25 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       }
 
       // Verify the TOTP code
-      const valid = await verifyTotpCode(secretBase32, code);
+      let valid: boolean;
+      try {
+        valid = await verifyTotpCode(secretBase32, code);
+      } catch (err) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.MFA_AUTH_FAILED,
+          description: `MFA TOTP enrollment verification error: ${err instanceof Error ? err.message : "unknown error"}`,
+          userId: loginSession.user_id,
+        });
+
+        const errorMessage = m.unexpectedError();
+        return {
+          error: errorMessage,
+          screen: await mfaTotpEnrollmentScreen({
+            ...context,
+            errors: { code: errorMessage },
+          }),
+        };
+      }
 
       if (!valid) {
         logMessage(ctx, client.tenant.id, {

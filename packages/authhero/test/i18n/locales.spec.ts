@@ -11,16 +11,20 @@ function loadLocale(locale: string): LocaleData {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
-function getKeys(data: LocaleData): string[] {
-  const keys: string[] = [];
+function getEntries(data: LocaleData): [string, string][] {
+  const entries: [string, string][] = [];
   for (const [prompt, screens] of Object.entries(data)) {
     for (const [screen, translations] of Object.entries(screens)) {
-      for (const key of Object.keys(translations)) {
-        keys.push(`${prompt}.${screen}.${key}`);
+      for (const [key, value] of Object.entries(translations)) {
+        entries.push([`${prompt}.${screen}.${key}`, value]);
       }
     }
   }
-  return keys.sort();
+  return entries.sort(([a], [b]) => a.localeCompare(b));
+}
+
+function getKeys(data: LocaleData): string[] {
+  return getEntries(data).map(([key]) => key);
 }
 
 const localeFiles = fs
@@ -56,6 +60,40 @@ describe("locale completeness", () => {
       const extra = localeKeys.filter((key) => !enKeySet.has(key));
 
       expect(extra, `Extra keys in ${locale}.json not in en.json`).toEqual([]);
+    },
+  );
+
+  it.each(otherLocales)(
+    "%s has all keys translated",
+    (locale) => {
+      const data = loadLocale(locale);
+      const enEntries = getEntries(en);
+      const localeEntries = new Map(getEntries(data));
+
+      // Skip values where all non-template, non-punctuation words are common
+      // loanwords used identically across languages (e.g. "Status | ${clientName}")
+      const loanwords = new Set(["email", "status", "password", "ok", "invitation"]);
+      const canBeIdentical = (value: string) => {
+        const words = value
+          .replace(/\$\{[^}]+\}/g, "")
+          .replace(/[©|]/g, "")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        return words.every((w) => loanwords.has(w.toLowerCase()));
+      };
+
+      const untranslated = enEntries
+        .filter(
+          ([key, enValue]) =>
+            !canBeIdentical(enValue) && localeEntries.get(key) === enValue,
+        )
+        .map(([key]) => key);
+
+      expect(
+        untranslated,
+        `Untranslated keys in ${locale}.json (identical to en.json)`,
+      ).toEqual([]);
     },
   );
 

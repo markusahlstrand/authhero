@@ -275,24 +275,25 @@
       "title": "Zadejte svůj kód"
     },
     "mfa-totp-enrollment": {
-      "title": "Set up authenticator",
-      "description": "Scan the QR code below with your authenticator app, then enter the 6-digit code to verify",
-      "secretLabel": "Or enter this code manually:",
-      "codePlaceholder": "Enter code",
-      "continueButtonText": "Verify & Activate",
-      "invalid-code": "The code you entered is invalid. Please try again.",
-      "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
-      "pageTitle": "Set up Authenticator | ${clientName}"
+      "title": "Nastavit ověřovací aplikaci",
+      "description": "Naskenujte QR kód níže pomocí ověřovací aplikace a poté zadejte šestimístný kód pro ověření",
+      "secretLabel": "Nebo zadejte tento kód ručně:",
+      "codePlaceholder": "Zadejte kód",
+      "continueButtonText": "Ověřit a aktivovat",
+      "invalid-code": "Zadaný kód je neplatný. Zkuste to prosím znovu.",
+      "transaction-not-found": "Platnost vaší registrace vypršela, budete muset začít znovu.",
+      "pageTitle": "Nastavení ověřovací aplikace | ${clientName}",
+      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu."
     },
     "mfa-totp-challenge": {
-      "title": "Verify your identity",
-      "description": "Enter the 6-digit code from your authenticator app",
-      "codePlaceholder": "Enter code",
-      "continueButtonText": "Continue",
-      "invalid-code": "The code you entered is invalid",
-      "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
-      "unexpectedError": "Something went wrong. Please try again.",
-      "pageTitle": "Verify Identity | ${clientName}"
+      "title": "Ověřte svou identitu",
+      "description": "Zadejte šestimístný kód z vaší ověřovací aplikace",
+      "codePlaceholder": "Zadejte kód",
+      "continueButtonText": "Pokračovat",
+      "invalid-code": "Zadaný kód je neplatný",
+      "transaction-not-found": "Platnost vaší registrace vypršela, budete muset začít znovu.",
+      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu.",
+      "pageTitle": "Ověření identity | ${clientName}"
     }
   },
   "mfa-phone": {
