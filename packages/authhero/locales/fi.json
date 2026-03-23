@@ -13,7 +13,7 @@
   },
   "common": {
     "common": {
-      "alertListTitle": "Alerts",
+      "alertListTitle": "Ilmoitukset",
       "backText": "Palaa takaisin",
       "cancelText": "Palaa takaisin",
       "closeText": "Sulje",
@@ -87,7 +87,7 @@
   },
   "login": {
     "login": {
-      "alertListTitle": "Alerts",
+      "alertListTitle": "Ilmoitukset",
       "buttonText": "Jatka",
       "description": "Kirjaudu sisään ${companyName} jatkaaksesi ${clientName}.",
       "editEmailText": "Muokkaa",
@@ -126,7 +126,7 @@
   },
   "login-id": {
     "login-id": {
-      "alertListTitle": "Alerts",
+      "alertListTitle": "Ilmoitukset",
       "auth0-users-validation": "Jokin meni pieleen, yritä myöhemmin uudelleen",
       "authentication-failure": "Valitettavasti jokin meni pieleen kirjautumisyrityksen aikana",
       "buttonText": "Jatka",
@@ -273,6 +273,27 @@
       "invalid-code": "Syöttämäsi koodi on virheellinen",
       "pageTitle": "Syötä koodi | ${clientName}",
       "title": "Syötä koodisi"
+    },
+    "mfa-totp-enrollment": {
+      "title": "Ota todentajasovellus käyttöön",
+      "description": "Skannaa alla oleva QR-koodi todentajasovelluksellasi ja syötä sitten 6-numeroinen koodi vahvistaaksesi",
+      "secretLabel": "Tai syötä tämä koodi manuaalisesti:",
+      "codePlaceholder": "Syötä koodi",
+      "continueButtonText": "Vahvista ja aktivoi",
+      "invalid-code": "Syöttämäsi koodi on virheellinen. Yritä uudelleen.",
+      "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
+      "pageTitle": "Ota todentaja käyttöön | ${clientName}",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen."
+    },
+    "mfa-totp-challenge": {
+      "title": "Vahvista henkilöllisyytesi",
+      "description": "Syötä 6-numeroinen koodi todentajasovelluksestasi",
+      "codePlaceholder": "Syötä koodi",
+      "continueButtonText": "Jatka",
+      "invalid-code": "Syöttämäsi koodi on virheellinen",
+      "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
+      "pageTitle": "Vahvista henkilöllisyys | ${clientName}"
     }
   },
   "mfa-phone": {

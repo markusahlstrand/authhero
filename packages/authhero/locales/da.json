@@ -1,139 +1,139 @@
 {
   "check-account": {
     "check-account": {
-      "continueQuestion": "Continue with this account?",
-      "description": "${clientName} is requesting access to your account",
-      "descriptionFallback": "An application is requesting access to your account",
-      "error": "An error occurred. Please try again.",
-      "loggedInAs": "You are logged in as ${email}",
-      "noUseAnother": "Use a different account",
-      "title": "Confirm Account",
-      "yesContinue": "Continue"
+      "continueQuestion": "Fortsæt med denne konto?",
+      "description": "${clientName} anmoder om adgang til din konto",
+      "descriptionFallback": "En applikation anmoder om adgang til din konto",
+      "error": "Der opstod en fejl. Prøv venligst igen.",
+      "loggedInAs": "Du er logget ind som ${email}",
+      "noUseAnother": "Brug en anden konto",
+      "title": "Bekræft konto",
+      "yesContinue": "Fortsæt"
     }
   },
   "common": {
     "common": {
-      "alertListTitle": "Alerts",
+      "alertListTitle": "Advarsler",
       "backText": "Gå tilbage",
       "cancelText": "Gå tilbage",
-      "closeText": "Close",
+      "closeText": "Luk",
       "contactSupportText": "Har du brug for hjælp?",
       "continueText": "Fortsæt",
       "copyrightText": "© ${currentYear} ${companyName}",
       "errorText": "Noget gik galt. Prøv venligst igen.",
       "hidePasswordText": "Skjul adgangskode",
-      "loadingText": "Loading...",
+      "loadingText": "Indlæser...",
       "orText": "eller",
-      "privacyPolicyText": "Privacy Policy",
+      "privacyPolicyText": "Privatlivspolitik",
       "showPasswordText": "Vis adgangskode",
-      "termsOfServiceText": "Terms of Service",
-      "tryAgainText": "Try again"
+      "termsOfServiceText": "Servicevilkår",
+      "tryAgainText": "Prøv igen"
     }
   },
   "consent": {
     "consent": {
-      "buttonText": "Accept",
-      "cancelButtonText": "Deny",
-      "description": "${clientName} is requesting access to your account",
-      "pageTitle": "Authorize | ${clientName}",
-      "scopesTitle": "This will allow ${clientName} to:",
-      "title": "Authorize ${clientName}"
+      "buttonText": "Acceptér",
+      "cancelButtonText": "Afvis",
+      "description": "${clientName} anmoder om adgang til din konto",
+      "pageTitle": "Godkend | ${clientName}",
+      "scopesTitle": "Dette vil give ${clientName} tilladelse til at:",
+      "title": "Godkend ${clientName}"
     }
   },
   "device-flow": {
     "device-flow": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "Enter the code shown on your device",
-      "expired-code": "The code has expired",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "Device Activation | ${clientName}",
-      "title": "Activate your device"
+      "buttonText": "Fortsæt",
+      "codePlaceholder": "Indtast kode",
+      "description": "Indtast koden, der vises på din enhed",
+      "expired-code": "Koden er udløbet",
+      "invalid-code": "Den indtastede kode er ugyldig",
+      "pageTitle": "Enhedsaktivering | ${clientName}",
+      "title": "Aktivér din enhed"
     }
   },
   "email-otp-challenge": {
     "email-otp-challenge": {
       "buttonText": "Log ind",
-      "codeLabel": "Verification Code",
+      "codeLabel": "Bekræftelseskode",
       "codePlaceholder": "Indtast kode",
-      "defaultDescription": "Enter the verification code sent to your email",
-      "description": "We sent a code to ${email}",
+      "defaultDescription": "Indtast bekræftelseskoden, der blev sendt til din e-mail",
+      "description": "Vi sendte en kode til ${email}",
       "invalid-code": "Ugyldig kode",
-      "noCode": "Please enter the verification code",
-      "pageTitle": "Enter Code | ${clientName}",
+      "noCode": "Indtast venligst bekræftelseskoden",
+      "pageTitle": "Indtast kode | ${clientName}",
       "resendText": "Send koden igen",
-      "sessionExpired": "Your session has expired. Please try again.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "title": "Tjek din e-mail",
-      "unexpectedError": "An unexpected error occurred"
+      "unexpectedError": "Der opstod en uventet fejl"
     }
   },
   "email-verification": {
     "email-verification": {
-      "description": "We sent an email to ${email}",
-      "pageTitle": "Verify Email | ${clientName}",
+      "description": "Vi sendte en e-mail til ${email}",
+      "pageTitle": "Bekræft e-mail | ${clientName}",
       "resendText": "Send koden igen",
-      "successDescription": "Your email has been verified successfully.",
-      "successTitle": "Email verified",
+      "successDescription": "Din e-mail er blevet bekræftet.",
+      "successTitle": "E-mail bekræftet",
       "title": "Bekræft din e-mail"
     }
   },
   "invitation": {
     "invitation": {
-      "acceptButtonText": "Accept invitation",
-      "description": "${inviterName} has invited you to join ${organizationName} on ${clientName}",
+      "acceptButtonText": "Acceptér invitation",
+      "description": "${inviterName} har inviteret dig til at deltage i ${organizationName} på ${clientName}",
       "pageTitle": "Invitation | ${clientName}",
-      "title": "You've been invited"
+      "title": "Du er blevet inviteret"
     }
   },
   "login": {
     "login": {
-      "alertListTitle": "Alerts",
+      "alertListTitle": "Advarsler",
       "buttonText": "Fortsæt",
       "description": "Log ind på ${companyName} for at fortsætte til ${clientName}.",
-      "editEmailText": "Edit",
+      "editEmailText": "Rediger",
       "emailPlaceholder": "E-mail-adresse",
-      "enterACodeBtn": "Sign in with a code",
+      "enterACodeBtn": "Log ind med en kode",
       "federatedConnectionButtonText": "Fortsæt med ${connectionName}",
       "footerLinkText": "Tilmeld dig",
       "footerText": "Har du ikke en konto?",
       "forgotPasswordText": "Har du glemt din adgangskode?",
       "hidePasswordText": "Skjul adgangskode",
-      "invalidEmail": "Invalid email",
-      "invalidIdentifier": "Invalid email or username",
-      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
-      "invitationTitle": "You've Been Invited!",
+      "invalidEmail": "Ugyldig e-mail",
+      "invalidIdentifier": "Ugyldig e-mail eller brugernavn",
+      "invitationDescription": "Log ind for at acceptere ${inviterName}s invitation til at deltage i ${companyName} på ${clientName}.",
+      "invitationTitle": "Du er blevet inviteret!",
       "logoAltText": "${companyName}",
       "no-email": "Indtast venligst en e-mailadresse",
       "no-password": "Adgangskode er påkrævet",
-      "pageTitle": "Log in | ${clientName}",
-      "passwordLoginNotAvailable": "Password authentication is not available",
+      "pageTitle": "Log ind | ${clientName}",
+      "passwordLoginNotAvailable": "Adgangskodegodkendelse er ikke tilgængelig",
       "passwordPlaceholder": "Adgangskode",
-      "phonePlaceholder": "Phone number",
+      "phonePlaceholder": "Telefonnummer",
       "separatorText": "eller",
-      "sessionExpired": "Your session has expired. Please try again.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "showPasswordText": "Vis adgangskode",
       "signupActionLinkText": "Tilmeld dig",
       "signupActionText": "Har du ikke en konto?",
       "title": "Velkommen",
-      "tooManyFailedLogins": "Too many failed login attempts. Please try again later.",
-      "unverifiedEmail": "Please verify your email address before logging in",
-      "userAccountDoesNotExist": "User account does not exist",
-      "usernamePlaceholder": "Username or email address",
-      "usernameTooLong": "Username must be ${max} characters or less",
-      "usernameTooShort": "Username must be at least ${min} characters",
-      "wrongCredentials": "Wrong username or password"
+      "tooManyFailedLogins": "For mange mislykkede loginforsøg. Prøv venligst igen senere.",
+      "unverifiedEmail": "Bekræft venligst din e-mailadresse, før du logger ind",
+      "userAccountDoesNotExist": "Brugerkontoen findes ikke",
+      "usernamePlaceholder": "Brugernavn eller e-mailadresse",
+      "usernameTooLong": "Brugernavnet må højst være ${max} tegn",
+      "usernameTooShort": "Brugernavnet skal være mindst ${min} tegn",
+      "wrongCredentials": "Forkert brugernavn eller adgangskode"
     }
   },
   "login-id": {
     "login-id": {
-      "alertListTitle": "Alerts",
-      "auth0-users-validation": "Something went wrong, please try again later",
-      "authentication-failure": "We are sorry, something went wrong when attempting to log in",
+      "alertListTitle": "Advarsler",
+      "auth0-users-validation": "Noget gik galt, prøv venligst igen senere",
+      "authentication-failure": "Vi beklager, noget gik galt under loginforsøget",
       "buttonText": "Fortsæt",
-      "captcha-client-failure": "We couldn't load the security challenge. Please try again. (Error code: #{errorCode})",
-      "captcha-validation-failure": "We are sorry, something went wrong while validating the captcha response. Please try again.",
-      "captchaCodePlaceholder": "Enter the code shown above",
-      "custom-script-error-code": "Something went wrong, please try again later.",
+      "captcha-client-failure": "Vi kunne ikke indlæse sikkerhedsudfordringen. Prøv venligst igen. (Fejlkode: #{errorCode})",
+      "captcha-validation-failure": "Vi beklager, noget gik galt under validering af captcha-svaret. Prøv venligst igen.",
+      "captchaCodePlaceholder": "Indtast koden vist ovenfor",
+      "custom-script-error-code": "Noget gik galt, prøv venligst igen senere.",
       "description": "Log ind på ${companyName} for at fortsætte til ${clientName}.",
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-mail-adresse",
@@ -142,62 +142,62 @@
       "footerText": "Har du ikke en konto?",
       "forgotPasswordText": "Har du glemt din adgangskode?",
       "hidePasswordText": "Skjul adgangskode",
-      "invalid-captcha": "Solve the challenge question to verify you are not a robot.",
+      "invalid-captcha": "Løs sikkerhedsspørgsmålet for at bekræfte, at du ikke er en robot.",
       "invalid-code": "Ugyldig kode",
-      "invalid-connection": "Invalid connection",
+      "invalid-connection": "Ugyldig forbindelse",
       "invalid-email-format": "Ugyldig e-mail",
-      "invalid-email-phone": "Enter a valid email address or phone number. Phone numbers must include the country code.",
-      "invalid-email-phone-username": "Enter a valid email address, phone number or username. Phone numbers must include the country code.",
-      "invalid-email-username": "Enter a valid email address or username",
-      "invalid-expired-code": "Invalid or expired user code",
-      "invalid-login-id": "Invalid Login ID entered",
-      "invalid-phone-username": "Enter a valid phone number or username. Phone numbers must include the country code.",
-      "invalid-recaptcha": "Select the checkbox to verify you are not a robot.",
-      "invalid-username": "Username can only contain alphanumeric characters or: '${characters}'. Username should have between ${min} and ${max} characters.",
-      "invitationDescription": "Log in to accept ${inviterName}'s invitation to join ${companyName} on ${clientName}.",
-      "invitationTitle": "You've Been Invited!",
-      "ip-blocked": "We have detected suspicious login behavior and further attempts will be blocked. Please contact the administrator.",
+      "invalid-email-phone": "Indtast en gyldig e-mailadresse eller telefonnummer. Telefonnumre skal inkludere landekoden.",
+      "invalid-email-phone-username": "Indtast en gyldig e-mailadresse, telefonnummer eller brugernavn. Telefonnumre skal inkludere landekoden.",
+      "invalid-email-username": "Indtast en gyldig e-mailadresse eller brugernavn",
+      "invalid-expired-code": "Ugyldig eller udløbet brugerkode",
+      "invalid-login-id": "Ugyldigt login-ID indtastet",
+      "invalid-phone-username": "Indtast et gyldigt telefonnummer eller brugernavn. Telefonnumre skal inkludere landekoden.",
+      "invalid-recaptcha": "Markér afkrydsningsfeltet for at bekræfte, at du ikke er en robot.",
+      "invalid-username": "Brugernavnet kan kun indeholde alfanumeriske tegn eller: '${characters}'. Brugernavnet skal være mellem ${min} og ${max} tegn.",
+      "invitationDescription": "Log ind for at acceptere ${inviterName}s invitation til at deltage i ${companyName} på ${clientName}.",
+      "invitationTitle": "Du er blevet inviteret!",
+      "ip-blocked": "Vi har registreret mistænkelig loginadfærd, og yderligere forsøg vil blive blokeret. Kontakt venligst administratoren.",
       "logoAltText": "${companyName}",
-      "no-db-connection": "Invalid connection",
+      "no-db-connection": "Ugyldig forbindelse",
       "no-email": "Indtast venligst en e-mailadresse",
-      "no-email-phone": "Email address or phone number is required",
-      "no-email-phone-username": "Phone number, username, or email address is required",
-      "no-email-username": "Email address or username is required",
+      "no-email-phone": "E-mailadresse eller telefonnummer er påkrævet",
+      "no-email-phone-username": "Telefonnummer, brugernavn eller e-mailadresse er påkrævet",
+      "no-email-username": "E-mailadresse eller brugernavn er påkrævet",
       "no-password": "Adgangskode er påkrævet",
-      "no-phone": "Please enter a phone number",
-      "no-phone-username": "Phone number or username is required",
+      "no-phone": "Indtast venligst et telefonnummer",
+      "no-phone-username": "Telefonnummer eller brugernavn er påkrævet",
       "no-username": "Brugernavn er påkrævet",
-      "pageTitle": "Log in | ${clientName}",
-      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
-      "passwordPlaceholder": "Password",
+      "pageTitle": "Log ind | ${clientName}",
+      "password-breached": "Vi har registreret et potentielt sikkerhedsproblem med denne konto. For at beskytte din konto har vi forhindret dette login. Nulstil venligst din adgangskode for at fortsætte.",
+      "passwordPlaceholder": "Adgangskode",
       "phoneOrEmailPlaceholder": "E-mail eller telefonnummer",
-      "phoneOrUsernameOrEmailPlaceholder": "Phone or Username or Email",
-      "phoneOrUsernamePlaceholder": "Phone Number or Username",
+      "phoneOrUsernameOrEmailPlaceholder": "Telefon, brugernavn eller e-mail",
+      "phoneOrUsernamePlaceholder": "Telefonnummer eller brugernavn",
       "phonePlaceholder": "Telefonnummer",
-      "same-user-login": "Too many login attempts for this user. Please wait, and try again later.",
-      "selectCountryCode": "Select country code, currently set to ${countryName}, ${countryCode}, +${countryPrefix}",
+      "same-user-login": "For mange loginforsøg for denne bruger. Vent venligst, og prøv igen senere.",
+      "selectCountryCode": "Vælg landekode, i øjeblikket sat til ${countryName}, ${countryCode}, +${countryPrefix}",
       "separatorText": "eller",
-      "sessionExpired": "Your session has expired. Please try again.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "showPasswordText": "Vis adgangskode",
       "signupActionLinkText": "Tilmeld dig",
       "signupActionText": "Har du ikke en konto?",
       "termsAndConditionsTemplate": "Ved at fortsætte accepterer du vores <a href=\"${termsAndConditionsUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Vilkår og betingelser</a>.",
       "title": "Velkommen",
-      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
-      "userAccountDoesNotExist": "User account does not exist",
-      "usernameOnlyPlaceholder": "Username",
-      "usernameOrEmailPlaceholder": "Username or Email address",
+      "user-blocked": "Din konto er blevet blokeret efter flere på hinanden følgende loginforsøg.",
+      "userAccountDoesNotExist": "Brugerkontoen findes ikke",
+      "usernameOnlyPlaceholder": "Brugernavn",
+      "usernameOrEmailPlaceholder": "Brugernavn eller e-mailadresse",
       "usernamePlaceholder": "Brugernavn",
-      "usernameTooLong": "Username must be ${max} characters or less",
-      "usernameTooShort": "Username must be at least ${min} characters",
-      "wrong-credentials": "Wrong username or password",
-      "wrong-email-credentials": "Wrong email or password",
-      "wrong-email-phone-credentials": "Incorrect email address, phone number, or password. Phone numbers must include the country code.",
-      "wrong-email-phone-username-credentials": "Incorrect email address, phone number, username, or password. Phone numbers must include the country code.",
-      "wrong-email-username-credentials": "Incorrect email address, username, or password",
-      "wrong-phone-credentials": "Incorrect phone number or password",
-      "wrong-phone-username-credentials": "Incorrect phone number, username or password. Phone numbers must include the country code.",
-      "wrong-username-credentials": "Incorrect username or password"
+      "usernameTooLong": "Brugernavnet må højst være ${max} tegn",
+      "usernameTooShort": "Brugernavnet skal være mindst ${min} tegn",
+      "wrong-credentials": "Forkert brugernavn eller adgangskode",
+      "wrong-email-credentials": "Forkert e-mail eller adgangskode",
+      "wrong-email-phone-credentials": "Forkert e-mailadresse, telefonnummer eller adgangskode. Telefonnumre skal inkludere landekoden.",
+      "wrong-email-phone-username-credentials": "Forkert e-mailadresse, telefonnummer, brugernavn eller adgangskode. Telefonnumre skal inkludere landekoden.",
+      "wrong-email-username-credentials": "Forkert e-mailadresse, brugernavn eller adgangskode",
+      "wrong-phone-credentials": "Forkert telefonnummer eller adgangskode",
+      "wrong-phone-username-credentials": "Forkert telefonnummer, brugernavn eller adgangskode. Telefonnumre skal inkludere landekoden.",
+      "wrong-username-credentials": "Forkert brugernavn eller adgangskode"
     }
   },
   "login-password": {
@@ -207,72 +207,93 @@
       "forgotPasswordText": "Har du glemt din adgangskode?",
       "hidePasswordText": "Skjul adgangskode",
       "no-password": "Adgangskode er påkrævet",
-      "pageTitle": "Log in | ${clientName}",
-      "password-breached": "We have detected a potential security issue with this account. To protect your account, we have prevented this login. Please reset your password to proceed.",
+      "pageTitle": "Log ind | ${clientName}",
+      "password-breached": "Vi har registreret et potentielt sikkerhedsproblem med denne konto. For at beskytte din konto har vi forhindret dette login. Nulstil venligst din adgangskode for at fortsætte.",
       "passwordPlaceholder": "Adgangskode",
       "showPasswordText": "Vis adgangskode",
-      "signingInAs": "Signing in as ${email}",
+      "signingInAs": "Logger ind som ${email}",
       "title": "Indtast adgangskode",
-      "unverifiedEmail": "Please verify your email address before logging in",
-      "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
-      "wrong-credentials": "Wrong password"
+      "unverifiedEmail": "Bekræft venligst din e-mailadresse, før du logger ind",
+      "user-blocked": "Din konto er blevet blokeret efter flere på hinanden følgende loginforsøg.",
+      "wrong-credentials": "Forkert adgangskode"
     }
   },
   "login-passwordless": {
     "login-passwordless": {
-      "authMethodEmail": "email",
-      "authMethodEmailOrPhone": "email or phone number",
-      "authMethodPhone": "phone number",
-      "description": "Sign in using your ${authMethod}",
-      "emailOrPhonePlaceholder": "Email address or phone number",
-      "emailPlaceholder": "Email address",
-      "invalidEmail": "Please enter a valid email address",
-      "invalidIdentifier": "Please enter a valid email address or phone number",
-      "invalidPhone": "Please enter a valid phone number with country code",
-      "noEmail": "Please enter your email address",
-      "noPhone": "Please enter your phone number",
-      "phonePlaceholder": "Phone number",
-      "sessionExpired": "Your session has expired. Please try again.",
-      "title": "Sign in with a code",
-      "userAccountDoesNotExist": "User account does not exist"
+      "authMethodEmail": "e-mail",
+      "authMethodEmailOrPhone": "e-mail eller telefonnummer",
+      "authMethodPhone": "telefonnummer",
+      "description": "Log ind med din ${authMethod}",
+      "emailOrPhonePlaceholder": "E-mailadresse eller telefonnummer",
+      "emailPlaceholder": "E-mail-adresse",
+      "invalidEmail": "Indtast venligst en gyldig e-mailadresse",
+      "invalidIdentifier": "Indtast venligst en gyldig e-mailadresse eller telefonnummer",
+      "invalidPhone": "Indtast venligst et gyldigt telefonnummer med landekode",
+      "noEmail": "Indtast venligst din e-mailadresse",
+      "noPhone": "Indtast venligst dit telefonnummer",
+      "phonePlaceholder": "Telefonnummer",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "title": "Log ind med en kode",
+      "userAccountDoesNotExist": "Brugerkontoen findes ikke"
     }
   },
   "magic-link-sent": {
     "magic-link-sent": {
-      "defaultDescription": "Click the link in your email to sign in",
-      "description": "We sent a link to ${username}. Click it to sign in.",
-      "resendText": "Resend link",
-      "spamText": "Didn't receive the email? Check your spam folder.",
-      "title": "Check your email"
+      "defaultDescription": "Klik på linket i din e-mail for at logge ind",
+      "description": "Vi sendte et link til ${username}. Klik på det for at logge ind.",
+      "resendText": "Send link igen",
+      "spamText": "Har du ikke modtaget e-mailen? Tjek din spam-mappe.",
+      "title": "Tjek din e-mail"
     }
   },
   "mfa": {
     "mfa": {
-      "backupCodeText": "Use backup code",
-      "description": "Choose a verification method",
-      "pageTitle": "Multi-Factor Authentication | ${clientName}",
-      "title": "Verify your identity"
+      "backupCodeText": "Brug backupkode",
+      "description": "Vælg en bekræftelsesmetode",
+      "pageTitle": "Multifaktorgodkendelse | ${clientName}",
+      "title": "Bekræft din identitet"
     }
   },
   "mfa-email": {
     "mfa-email": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "We sent a code to ${email}",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "Email Verification | ${clientName}",
-      "resendText": "Resend code",
-      "title": "Check your email"
+      "buttonText": "Fortsæt",
+      "codePlaceholder": "Indtast kode",
+      "description": "Vi sendte en kode til ${email}",
+      "invalid-code": "Den indtastede kode er ugyldig",
+      "pageTitle": "E-mailbekræftelse | ${clientName}",
+      "resendText": "Send kode igen",
+      "title": "Tjek din e-mail"
     }
   },
   "mfa-otp": {
     "mfa-otp": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Enter code",
-      "description": "Enter the 6-digit code from your authenticator app",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "Enter Code | ${clientName}",
-      "title": "Enter your code"
+      "buttonText": "Fortsæt",
+      "codePlaceholder": "Indtast kode",
+      "description": "Indtast den 6-cifrede kode fra din autentificeringsapp",
+      "invalid-code": "Den indtastede kode er ugyldig",
+      "pageTitle": "Indtast kode | ${clientName}",
+      "title": "Indtast din kode"
+    },
+    "mfa-totp-enrollment": {
+      "title": "Opsæt autentificeringsapp",
+      "description": "Scan QR-koden nedenfor med din autentificeringsapp, og indtast derefter den 6-cifrede kode for at bekræfte",
+      "secretLabel": "Eller indtast denne kode manuelt:",
+      "codePlaceholder": "Indtast kode",
+      "continueButtonText": "Bekræft og aktiver",
+      "invalid-code": "Den indtastede kode er ugyldig. Prøv venligst igen.",
+      "transaction-not-found": "Din tilmeldingssession er udløbet. Du skal starte forfra.",
+      "pageTitle": "Opsæt autentificeringsapp | ${clientName}",
+      "unexpectedError": "Noget gik galt. Prøv venligst igen."
+    },
+    "mfa-totp-challenge": {
+      "title": "Bekræft din identitet",
+      "description": "Indtast den 6-cifrede kode fra din autentificeringsapp",
+      "codePlaceholder": "Indtast kode",
+      "continueButtonText": "Fortsæt",
+      "invalid-code": "Den indtastede kode er ugyldig",
+      "transaction-not-found": "Din session er udløbet. Du skal starte forfra.",
+      "unexpectedError": "Noget gik galt. Prøv venligst igen.",
+      "pageTitle": "Bekræft identitet | ${clientName}"
     }
   },
   "mfa-phone": {
@@ -328,80 +349,80 @@
   },
   "mfa-push": {
     "mfa-push": {
-      "description": "We sent a notification to your device",
-      "pageTitle": "Push Notification | ${clientName}",
-      "resendText": "Resend notification",
-      "title": "Approve the request",
-      "useCodeText": "Enter code manually"
+      "description": "Vi sendte en notifikation til din enhed",
+      "pageTitle": "Push-notifikation | ${clientName}",
+      "resendText": "Send notifikation igen",
+      "title": "Godkend anmodningen",
+      "useCodeText": "Indtast kode manuelt"
     }
   },
   "mfa-recovery-code": {
     "mfa-recovery-code": {
-      "buttonText": "Continue",
-      "codePlaceholder": "Recovery code",
-      "description": "Enter one of your recovery codes",
-      "invalid-code": "The recovery code you entered is invalid",
-      "pageTitle": "Recovery Code | ${clientName}",
-      "title": "Enter recovery code"
+      "buttonText": "Fortsæt",
+      "codePlaceholder": "Gendannelseskode",
+      "description": "Indtast en af dine gendannelseskoder",
+      "invalid-code": "Den indtastede gendannelseskode er ugyldig",
+      "pageTitle": "Gendannelseskode | ${clientName}",
+      "title": "Indtast gendannelseskode"
     }
   },
   "mfa-voice": {
     "mfa-voice": {
-      "buttonText": "Call me",
-      "codePlaceholder": "Enter code",
-      "description": "We will call ${phoneNumber} with your code",
-      "invalid-code": "The code you entered is invalid",
-      "pageTitle": "Voice Call | ${clientName}",
-      "title": "Receive a phone call"
+      "buttonText": "Ring til mig",
+      "codePlaceholder": "Indtast kode",
+      "description": "Vi ringer til ${phoneNumber} med din kode",
+      "invalid-code": "Den indtastede kode er ugyldig",
+      "pageTitle": "Taleopkald | ${clientName}",
+      "title": "Modtag et telefonopkald"
     }
   },
   "mfa-webauthn": {
     "mfa-webauthn": {
-      "buttonText": "Try again",
-      "description": "Insert your security key and follow the instructions",
-      "pageTitle": "Security Key | ${clientName}",
-      "title": "Use your security key"
+      "buttonText": "Prøv igen",
+      "description": "Indsæt din sikkerhedsnøgle og følg instruktionerne",
+      "pageTitle": "Sikkerhedsnøgle | ${clientName}",
+      "title": "Brug din sikkerhedsnøgle"
     }
   },
   "organizations": {
     "organizations": {
-      "description": "Choose which organization to log in to",
-      "pageTitle": "Select Organization | ${clientName}",
-      "searchPlaceholder": "Search organizations",
-      "title": "Select your organization"
+      "description": "Vælg hvilken organisation du vil logge ind på",
+      "pageTitle": "Vælg organisation | ${clientName}",
+      "searchPlaceholder": "Søg organisationer",
+      "title": "Vælg din organisation"
     }
   },
   "reset-password": {
     "reset-password": {
       "backToLoginText": "Gå tilbage",
       "buttonText": "Send e-mail til nulstilling af adgangskode",
-      "codeExpired": "Your password reset code has expired. Please request a new one.",
-      "confirmPasswordLabel": "Confirm Password",
-      "confirmPasswordPlaceholder": "Confirm password",
+      "codeExpired": "Din kode til nulstilling af adgangskode er udløbet. Anmod venligst om en ny.",
+      "confirmPasswordLabel": "Bekræft adgangskode",
+      "confirmPasswordPlaceholder": "Bekræft adgangskode",
       "description": "Klik på knappen nedenfor, så sender vi instruktioner om, hvordan du nulstiller din adgangskode.",
       "emailPlaceholder": "E-mail-adresse",
-      "failed": "Password reset failed. Please try again.",
+      "failed": "Nulstilling af adgangskode mislykkedes. Prøv venligst igen.",
       "invalid-email-format": "Ugyldig e-mail",
       "no-email": "Indtast venligst en e-mailadresse",
-      "pageTitle": "Reset Password | ${clientName}",
-      "passwordLabel": "New Password",
-      "passwordPlaceholder": "New password",
-      "passwordTooWeak": "Password is too weak",
-      "passwordsDidntMatch": "Passwords don't match",
-      "successDescription": "We have sent a password reset link to your email address.",
+      "pageTitle": "Nulstil adgangskode | ${clientName}",
+      "passwordLabel": "Ny adgangskode",
+      "passwordPlaceholder": "Ny adgangskode",
+      "passwordTooWeak": "Adgangskoden er for svag",
+      "passwordsDidntMatch": "Adgangskoderne matcher ikke",
+      "successDescription": "Vi har sendt et link til nulstilling af adgangskode til din e-mailadresse.",
       "successTitle": "E-mail til nulstilling af adgangskode sendt",
       "title": "Har du glemt din adgangskode?",
-      "user-not-found": "User not found"
+      "user-not-found": "Bruger ikke fundet"
     }
   },
   "signup": {
     "signup": {
       "buttonText": "Tilmelding",
-      "confirmPasswordPlaceholder": "Confirm password",
+      "confirmPasswordPlaceholder": "Bekræft adgangskode",
       "description": "Vælg en adgangskode med en blanding af store og små bogstaver, tal og symboler.",
       "email-already-exists": "E-mailen er allerede optaget",
       "emailPlaceholder": "E-mail-adresse",
-      "federatedConnectionButtonText": "Continue with ${connectionName}",
+      "federatedConnectionButtonText": "Fortsæt med ${connectionName}",
       "hidePasswordText": "Skjul adgangskode",
       "invalid-email-format": "Ugyldig e-mail",
       "loginActionLinkText": "Log ind",
@@ -409,20 +430,20 @@
       "no-email": "Indtast venligst en e-mailadresse",
       "no-password": "Adgangskode er påkrævet",
       "no-username": "Brugernavn er påkrævet",
-      "pageTitle": "Sign up | ${clientName}",
+      "pageTitle": "Tilmeld dig | ${clientName}",
       "passwordPlaceholder": "Adgangskode",
-      "passwordsDidntMatch": "Passwords don't match",
+      "passwordsDidntMatch": "Adgangskoderne matcher ikke",
       "phonePlaceholder": "Telefonnummer",
-      "privacyPolicyLinkText": "Privacy Policy",
+      "privacyPolicyLinkText": "Privatlivspolitik",
       "separatorText": "eller",
-      "sessionExpired": "Your session has expired. Please try again.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "showPasswordText": "Vis adgangskode",
-      "termsOfServiceLinkText": "Terms of Service",
-      "termsText": "By signing up, you agree to our",
+      "termsOfServiceLinkText": "Servicevilkår",
+      "termsText": "Ved at tilmelde dig accepterer du vores",
       "title": "Vælg adgangskode",
-      "username-already-exists": "This username is already taken",
+      "username-already-exists": "Dette brugernavn er allerede taget",
       "usernamePlaceholder": "Brugernavn",
-      "verifyEmailText": "Please check your email to verify your account"
+      "verifyEmailText": "Tjek venligst din e-mail for at bekræfte din konto"
     }
   },
   "signup-id": {
@@ -436,7 +457,7 @@
       "loginActionLinkText": "Log ind",
       "loginActionText": "Har du allerede en konto?",
       "no-email": "Indtast venligst en e-mailadresse",
-      "pageTitle": "Sign up | ${clientName}",
+      "pageTitle": "Tilmeld dig | ${clientName}",
       "phonePlaceholder": "Telefonnummer",
       "separatorText": "eller",
       "title": "Vælg adgangskode",
@@ -449,9 +470,9 @@
       "description": "Vælg en adgangskode med en blanding af store og små bogstaver, tal og symboler.",
       "hidePasswordText": "Skjul adgangskode",
       "no-password": "Adgangskode er påkrævet",
-      "pageTitle": "Sign up | ${clientName}",
-      "password-policy-not-met": "Password does not meet the requirements",
-      "password-too-weak": "Password is too weak",
+      "pageTitle": "Tilmeld dig | ${clientName}",
+      "password-policy-not-met": "Adgangskoden opfylder ikke kravene",
+      "password-too-weak": "Adgangskoden er for svag",
       "passwordPlaceholder": "Adgangskode",
       "showPasswordText": "Vis adgangskode",
       "title": "Vælg adgangskode"
@@ -460,25 +481,25 @@
   "sms-otp-challenge": {
     "sms-otp-challenge": {
       "buttonText": "Log ind",
-      "codeLabel": "Verification Code",
+      "codeLabel": "Bekræftelseskode",
       "codePlaceholder": "Indtast kode",
-      "defaultDescription": "Enter the verification code sent to your phone",
-      "description": "We sent a code to ${username}",
+      "defaultDescription": "Indtast bekræftelseskoden, der blev sendt til din telefon",
+      "description": "Vi sendte en kode til ${username}",
       "invalid-code": "Ugyldig kode",
-      "noCode": "Please enter the verification code",
-      "pageTitle": "Enter Code | ${clientName}",
+      "noCode": "Indtast venligst bekræftelseskoden",
+      "pageTitle": "Indtast kode | ${clientName}",
       "resendText": "Send koden igen",
-      "sessionExpired": "Your session has expired. Please try again.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "title": "Tjek din telefon",
-      "unexpectedError": "An unexpected error occurred"
+      "unexpectedError": "Der opstod en uventet fejl"
     }
   },
   "status": {
     "status": {
-      "continueButtonText": "Continue",
-      "errorTitle": "Error",
+      "continueButtonText": "Fortsæt",
+      "errorTitle": "Fejl",
       "pageTitle": "Status | ${clientName}",
-      "successTitle": "Success",
+      "successTitle": "Succes",
       "title": "Status"
     }
   }

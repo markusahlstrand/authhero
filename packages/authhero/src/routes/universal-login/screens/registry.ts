@@ -16,6 +16,8 @@ import { checkAccountScreenDefinition } from "./check-account";
 import { loginPasswordlessIdentifierScreenDefinition } from "./login-passwordless-identifier";
 import { mfaPhoneEnrollmentScreenDefinition } from "./mfa-phone-enrollment";
 import { mfaPhoneChallengeScreenDefinition } from "./mfa-phone-challenge";
+import { mfaTotpEnrollmentScreenDefinition } from "./mfa-totp-enrollment";
+import { mfaTotpChallengeScreenDefinition } from "./mfa-totp-challenge";
 
 /**
  * Registry of all built-in screens
@@ -37,6 +39,8 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ],
   ["mfa-phone-enrollment", mfaPhoneEnrollmentScreenDefinition],
   ["mfa-phone-challenge", mfaPhoneChallengeScreenDefinition],
+  ["mfa-totp-enrollment", mfaTotpEnrollmentScreenDefinition],
+  ["mfa-totp-challenge", mfaTotpChallengeScreenDefinition],
 ]);
 
 /**
