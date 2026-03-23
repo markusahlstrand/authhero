@@ -6,6 +6,7 @@ import { create } from "./create";
 import { remove } from "./remove";
 import { get } from "./get";
 import { used } from "./used";
+import { consume } from "./consume";
 
 export function createCodesAdapter(db: Kysely<Database>): CodesAdapter {
   return {
@@ -13,6 +14,7 @@ export function createCodesAdapter(db: Kysely<Database>): CodesAdapter {
     list: list(db),
     remove: remove(db),
     used: used(db),
+    consume: consume(db),
     get: get(db),
   };
 }

@@ -172,9 +172,17 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           state,
         );
 
-        if (!loginSession) {
+        if (
+          !loginSession ||
+          loginSession.state !== LoginSessionState.AWAITING_MFA
+        ) {
+          const errorMessage = m["transaction-not-found"]();
           return {
-            screen: await mfaPhoneChallengeScreen(context),
+            error: errorMessage,
+            screen: await mfaPhoneChallengeScreen({
+              ...context,
+              errors: { code: errorMessage },
+            }),
           };
         }
 
@@ -228,7 +236,11 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
         state,
       );
 
-      if (!loginSession || !loginSession.user_id) {
+      if (
+        !loginSession ||
+        !loginSession.user_id ||
+        loginSession.state !== LoginSessionState.AWAITING_MFA
+      ) {
         const errorMessage = m["transaction-not-found"]();
         return {
           error: errorMessage,

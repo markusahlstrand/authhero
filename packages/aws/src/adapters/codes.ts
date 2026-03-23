@@ -9,6 +9,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { codeKeys } from "../keys";
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import {
   getItem,
   putItem,
@@ -130,6 +131,41 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
         codeKeys.sk(codeId, code.code_type),
         { used_at: new Date().toISOString() },
       );
+    },
+
+    async consume(tenantId: string, codeId: string): Promise<boolean> {
+      const { items } = await queryItems<CodeItem>(ctx, codeKeys.pk(tenantId), {
+        skPrefix: codeKeys.skPrefixByCodeId(codeId),
+        limit: 1,
+      });
+
+      const code = items[0];
+      if (!code) return false;
+
+      try {
+        await ctx.client.send(
+          new UpdateCommand({
+            TableName: ctx.tableName,
+            Key: {
+              PK: codeKeys.pk(tenantId),
+              SK: codeKeys.sk(codeId, code.code_type),
+            },
+            UpdateExpression: "SET #used_at = :now",
+            ConditionExpression: "attribute_not_exists(#used_at) OR #used_at = :null",
+            ExpressionAttributeNames: { "#used_at": "used_at" },
+            ExpressionAttributeValues: {
+              ":now": new Date().toISOString(),
+              ":null": null,
+            },
+          }),
+        );
+        return true;
+      } catch (err: any) {
+        if (err.name === "ConditionalCheckFailedException") {
+          return false;
+        }
+        throw err;
+      }
     },
 
     async remove(tenantId: string, codeId: string): Promise<boolean> {

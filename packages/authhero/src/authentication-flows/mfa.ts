@@ -155,18 +155,13 @@ export async function verifyMfaOtp(
     return false;
   }
 
-  // Check if code was already used
-  if (storedCode.used_at) {
-    return false;
-  }
-
   // Compare the submitted OTP against the stored value
   if (storedCode.otp !== submittedCode) {
     return false;
   }
 
-  // Mark as used
-  await ctx.env.data.codes.used(tenantId, codeId);
+  // Atomically mark as used only if not already consumed (prevents race conditions)
+  const consumed = await ctx.env.data.codes.consume(tenantId, codeId);
 
-  return true;
+  return consumed;
 }
