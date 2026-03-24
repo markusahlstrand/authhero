@@ -1,5 +1,17 @@
 # authhero
 
+## 4.72.0
+
+### Minor Changes
+
+- d9c2ad1: Fixes to mfa-signup and new account screens
+- bd094f0: Add vary header for origin
+
+### Patch Changes
+
+- Updated dependencies [d9c2ad1]
+  - @authhero/widget@0.24.0
+
 ## 4.71.0
 
 ### Minor Changes
