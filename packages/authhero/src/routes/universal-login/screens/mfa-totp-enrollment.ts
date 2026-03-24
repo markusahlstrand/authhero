@@ -14,13 +14,14 @@ import {
   verifyTotpCode,
 } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
+import QRCode from "qrcode";
 
 /**
  * Create the mfa-totp-enrollment screen
  */
 export async function mfaTotpEnrollmentScreen(
   context: ScreenContext,
-  extraData?: { totpUri?: string; secretBase32?: string },
+  extraData?: { qrCodeSvg?: string; secretBase32?: string },
 ): Promise<ScreenResult> {
   const { branding, state, errors, customText, routePrefix } = context;
 
@@ -34,14 +35,14 @@ export async function mfaTotpEnrollmentScreen(
 
   const components: FormNodeComponent[] = [];
 
-  if (extraData?.totpUri) {
+  if (extraData?.qrCodeSvg) {
     components.push({
       id: "qr_code",
       type: "RICH_TEXT",
       category: "BLOCK",
       visible: true,
       config: {
-        content: extraData.totpUri,
+        content: `<div style="display:flex;justify-content:center">${extraData.qrCodeSvg}</div>`,
       },
       order: 0,
     });
@@ -102,6 +103,16 @@ export async function mfaTotpEnrollmentScreen(
     screen,
     branding,
   };
+}
+
+async function generateQrCodeHtml(totpUri: string): Promise<string> {
+  const svg = await QRCode.toString(totpUri, {
+    type: "svg",
+    margin: 2,
+    width: 200,
+  });
+  const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
+  return `<img src="${dataUrl}" alt="QR Code" width="200" height="200" />`;
 }
 
 /**
@@ -171,9 +182,10 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       const issuer = client.tenant.friendly_name || client.tenant.id;
 
       const totpUri = createTotpUri(issuer, accountName, secretBase32);
+      const qrCodeSvg = await generateQrCodeHtml(totpUri);
 
       return mfaTotpEnrollmentScreen(context, {
-        totpUri,
+        qrCodeSvg,
         secretBase32,
       });
     },
@@ -203,14 +215,16 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         const secretBase32 = stateData.totpSecret as string | undefined;
 
         const user = loginSession?.user_id
-          ? await ctx.env.data.users.get(
-              client.tenant.id,
-              loginSession.user_id,
-            )
+          ? await ctx.env.data.users.get(client.tenant.id, loginSession.user_id)
           : null;
-        const accountName =
-          user?.email || loginSession?.user_id || "";
+        const accountName = user?.email || loginSession?.user_id || "";
         const issuer = client.tenant.friendly_name || client.tenant.id;
+
+        let qrCodeSvg: string | undefined;
+        if (secretBase32) {
+          const totpUri = createTotpUri(issuer, accountName, secretBase32);
+          qrCodeSvg = await generateQrCodeHtml(totpUri);
+        }
 
         return {
           error: errorMessage,
@@ -218,7 +232,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
             { ...context, errors: { code: errorMessage } },
             secretBase32
               ? {
-                  totpUri: createTotpUri(issuer, accountName, secretBase32),
+                  qrCodeSvg,
                   secretBase32,
                 }
               : undefined,
@@ -295,12 +309,14 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         const issuer = client.tenant.friendly_name || client.tenant.id;
 
         const errorMessage = m["invalid-code"]();
+        const totpUri = createTotpUri(issuer, accountName, secretBase32);
+        const qrCodeSvg = await generateQrCodeHtml(totpUri);
         return {
           error: errorMessage,
           screen: await mfaTotpEnrollmentScreen(
             { ...context, errors: { code: errorMessage } },
             {
-              totpUri: createTotpUri(issuer, accountName, secretBase32),
+              qrCodeSvg,
               secretBase32,
             },
           ),
@@ -320,6 +336,24 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
           description: "MFA TOTP enrollment completed",
           userId: loginSession.user_id,
         });
+      }
+
+      // For ticket-based guardian enrollment, show success instead of challenge
+      if (stateData.guardian_enrollment) {
+        const successScreen: UiScreen = {
+          name: "mfa-totp-enrollment",
+          action: "",
+          method: "GET",
+          title: m.title(),
+          description: m.enrollmentComplete(),
+          components: [],
+        };
+        return {
+          screen: {
+            screen: successScreen,
+            branding: context.branding,
+          },
+        };
       }
 
       // Redirect to the TOTP challenge screen to complete MFA

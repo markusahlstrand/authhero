@@ -120,12 +120,7 @@ export async function identifierScreen(
 
   // Initialize i18n with locale, custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(
-    "login-id",
-    "login-id",
-    locale,
-    customText,
-  );
+  const { m } = createTranslation("login-id", "login-id", locale, customText);
 
   const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;

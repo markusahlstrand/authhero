@@ -922,9 +922,14 @@ export class AuthheroWidget {
   private getProviderHref(connectionName: string): string | null {
     if (!this._screen) return null;
     for (const comp of this._screen.components) {
-      const c = comp as { type: string; config?: { provider_details?: { name: string; href?: string }[] } };
+      const c = comp as {
+        type: string;
+        config?: { provider_details?: { name: string; href?: string }[] };
+      };
       if (c.type === "SOCIAL" && c.config?.provider_details) {
-        const match = c.config.provider_details.find((d) => d.name === connectionName);
+        const match = c.config.provider_details.find(
+          (d) => d.name === connectionName,
+        );
         if (match?.href) return match.href;
       }
     }

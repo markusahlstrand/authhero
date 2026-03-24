@@ -1,6 +1,9 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
+import { nanoid } from "nanoid";
+import { LoginSessionState } from "@authhero/adapter-interfaces";
+import { getIssuer } from "../../variables";
 
 // Auth0-compatible Guardian MFA factor types
 const factorNames = [
@@ -436,9 +439,7 @@ export const guardianRoutes = new OpenAPIHono<{
       }
 
       // Map Auth0 format to internal: ["all-applications"] = "always", [] = "never"
-      const policy = policies.includes("all-applications")
-        ? "always"
-        : "never";
+      const policy = policies.includes("all-applications") ? "always" : "never";
 
       await ctx.env.data.tenants.update(ctx.var.tenant_id, {
         mfa: {
@@ -448,6 +449,125 @@ export const guardianRoutes = new OpenAPIHono<{
       });
 
       return ctx.json(policy === "always" ? ["all-applications"] : []);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/guardian/enrollments/ticket
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["guardian"],
+      method: "post",
+      path: "/enrollments/ticket",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                user_id: z.string(),
+                send_mail: z.boolean().optional(),
+                email: z.string().email().optional(),
+              }),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["create:guardian_enrollment_tickets", "auth:write"],
+        },
+      ],
+      responses: {
+        201: {
+          content: {
+            "application/json": {
+              schema: z.object({
+                ticket_id: z.string(),
+                ticket_url: z.string(),
+              }),
+            },
+          },
+          description: "Enrollment ticket created",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id, email } = ctx.req.valid("json");
+      const tenantId = ctx.var.tenant_id;
+
+      // Validate the tenant exists and has MFA factors enabled
+      const tenant = await ctx.env.data.tenants.get(tenantId);
+      if (!tenant) {
+        throw new HTTPException(404, { message: "Tenant not found" });
+      }
+
+      const hasSupportedFactor =
+        tenant.mfa?.factors?.sms === true ||
+        tenant.mfa?.factors?.otp === true;
+
+      if (!hasSupportedFactor) {
+        throw new HTTPException(400, {
+          message:
+            "At least one MFA factor (SMS or OTP) must be enabled before creating enrollment tickets.",
+        });
+      }
+
+      // Validate the user exists
+      const user = await ctx.env.data.users.get(tenantId, user_id);
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
+      }
+
+      // Get a client for the login session (use the first available client)
+      const { clients } = await ctx.env.data.clients.list(tenantId);
+      if (!clients.length) {
+        throw new HTTPException(400, {
+          message: "No clients configured for this tenant",
+        });
+      }
+      const clientId = clients[0]!.client_id;
+
+      const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+      const expiresAt = new Date(Date.now() + FIVE_DAYS_MS).toISOString();
+
+      // Create a login session for the enrollment flow
+      // Set state to AWAITING_MFA so MFA screens accept the session
+      const loginSession = await ctx.env.data.loginSessions.create(tenantId, {
+        expires_at: expiresAt,
+        authParams: {
+          client_id: clientId,
+          username: email || user.email,
+        },
+        csrf_token: nanoid(),
+        user_id,
+        state: LoginSessionState.AWAITING_MFA,
+        state_data: JSON.stringify({ guardian_enrollment: true }),
+      });
+
+      // Create the ticket code
+      const ticketId = nanoid();
+      await ctx.env.data.codes.create(tenantId, {
+        code_id: ticketId,
+        code_type: "ticket",
+        login_id: loginSession.id,
+        user_id,
+        expires_at: expiresAt,
+      });
+
+      // Build the ticket URL using the trusted issuer, not the request host header
+      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+      const ticketUrl = `${issuer}u2/guardian/enroll?ticket=${ticketId}`;
+
+      return ctx.json(
+        {
+          ticket_id: ticketId,
+          ticket_url: ticketUrl,
+        },
+        201,
+      );
     },
   )
   // --------------------------------

@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Jatketaanko tällä tilillä?",
-      "description": "${clientName} pyytää pääsyä tilillesi",
-      "descriptionFallback": "Sovellus pyytää pääsyä tilillesi",
+      "description": "Haluatko jatkaa olemassa olevalla tililläsi?",
+      "descriptionFallback": "Haluatko jatkaa olemassa olevalla tililläsi?",
       "error": "Tapahtui virhe. Yritä uudelleen.",
-      "loggedInAs": "Olet kirjautunut sisään käyttäjänä ${email}",
-      "noUseAnother": "Käytä toista tiliä",
-      "title": "Vahvista tili",
-      "yesContinue": "Jatka"
+      "loggedInAs": "Olet tällä hetkellä kirjautuneena sisään käyttäjänä ${email}",
+      "noUseAnother": "Ei, haluan käyttää toista tiliä",
+      "title": "Jatka käyttäjän kanssa",
+      "yesContinue": "Kyllä, jatka olemassa olevalla tilillä"
     }
   },
   "common": {
@@ -283,7 +283,8 @@
       "invalid-code": "Syöttämäsi koodi on virheellinen. Yritä uudelleen.",
       "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
       "pageTitle": "Ota todentaja käyttöön | ${clientName}",
-      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen."
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
+      "enrollmentComplete": "MFA-rekisteröinti on valmis. Voit sulkea tämän sivun."
     },
     "mfa-totp-challenge": {
       "title": "Vahvista henkilöllisyytesi",
@@ -320,7 +321,8 @@
       "noCode": "Syötä vahvistuskoodi",
       "invalidCode": "Antamasi koodi on virheellinen. Yritä uudelleen.",
       "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
-      "resendSuccess": "Lähetimme uuden koodin puhelimeesi"
+      "resendSuccess": "Lähetimme uuden koodin puhelimeesi",
+      "enrollmentComplete": "MFA-rekisteröinti on valmis. Voit sulkea tämän sivun."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Syötä puhelinnumerosi kirjautuaksesi puhelinkoodilla | ${clientName}",
@@ -345,6 +347,17 @@
       "no-phone": "Syötä puhelinnumero",
       "phone-is-too-short": "Puhelinnumero on liian lyhyt",
       "phone-is-too-long": "Puhelinnumero on liian pitkä"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Valitse vahvistusmenetelmä | ${clientName}",
+      "title": "Valitse vahvistusmenetelmä",
+      "description": "Valitse, miten haluat vahvistaa henkilöllisyytesi",
+      "authenticatorAppLabel": "Todennussovellus",
+      "authenticatorAppDescription": "Käytä todennussovellusta vahvistuskoodin saamiseksi",
+      "smsLabel": "Tekstiviesti",
+      "smsDescription": "Saat vahvistuskoodin puhelimeesi tekstiviestillä"
     }
   },
   "mfa-push": {

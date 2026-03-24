@@ -5,273 +5,393 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
-import { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
+import {
+  FormNodeComponent as FormComponent,
+  RuntimeComponent,
+  UiScreen,
+} from "./types/components";
+import {
+  AuthParams,
+  ButtonClickEventDetail,
+  CompleteEventDetail,
+  ErrorEventDetail,
+  LinkClickEventDetail,
+  NavigateEventDetail,
+  StatePersistence,
+  SubmitEventDetail,
+} from "./components/authhero-widget/authhero-widget";
 import { WidgetBranding, WidgetTheme } from "./utils/branding";
-export { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
-export { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
+export {
+  FormNodeComponent as FormComponent,
+  RuntimeComponent,
+  UiScreen,
+} from "./types/components";
+export {
+  AuthParams,
+  ButtonClickEventDetail,
+  CompleteEventDetail,
+  ErrorEventDetail,
+  LinkClickEventDetail,
+  NavigateEventDetail,
+  StatePersistence,
+  SubmitEventDetail,
+} from "./components/authhero-widget/authhero-widget";
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
 export namespace Components {
-    interface AuthheroNode {
-        /**
-          * The component configuration to render. Follows Auth0 Forms component schema.
-         */
-        "component": FormComponent | RuntimeComponent;
-        /**
-          * Whether the component is disabled.
-          * @default false
-         */
-        "disabled": boolean;
-        /**
-          * Current value for field components.
-         */
-        "value"?: string;
-    }
-    interface AuthheroWidget {
-        /**
-          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
-         */
-        "apiUrl"?: string;
-        /**
-          * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
-         */
-        "authParams"?: AuthParams | string;
-        /**
-          * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
-          * @default false (same as autoSubmit when not specified)
-         */
-        "autoNavigate"?: boolean;
-        /**
-          * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
-          * @default false
-         */
-        "autoSubmit": boolean;
-        /**
-          * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
-         */
-        "baseUrl"?: string;
-        /**
-          * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
-         */
-        "branding"?: WidgetBranding | string;
-        /**
-          * Whether the widget is in a loading state.
-          * @default false
-         */
-        "loading": boolean;
-        /**
-          * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
-         */
-        "screen"?: UiScreen | string;
-        /**
-          * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
-         */
-        "screenId"?: string;
-        /**
-          * Login session state token. Required for social login and maintaining session.
-         */
-        "state"?: string;
-        /**
-          * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
-          * @default 'memory'
-         */
-        "statePersistence": StatePersistence;
-        /**
-          * Storage key prefix for session/local storage persistence.
-          * @default 'authhero_widget'
-         */
-        "storageKey": string;
-        /**
-          * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
-         */
-        "theme"?: WidgetTheme | string;
-    }
+  interface AuthheroNode {
+    /**
+     * The component configuration to render. Follows Auth0 Forms component schema.
+     */
+    component: FormComponent | RuntimeComponent;
+    /**
+     * Whether the component is disabled.
+     * @default false
+     */
+    disabled: boolean;
+    /**
+     * Current value for field components.
+     */
+    value?: string;
+  }
+  interface AuthheroWidget {
+    /**
+     * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
+     */
+    apiUrl?: string;
+    /**
+     * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
+     */
+    authParams?: AuthParams | string;
+    /**
+     * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
+     * @default false (same as autoSubmit when not specified)
+     */
+    autoNavigate?: boolean;
+    /**
+     * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
+     * @default false
+     */
+    autoSubmit: boolean;
+    /**
+     * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
+     */
+    baseUrl?: string;
+    /**
+     * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
+     */
+    branding?: WidgetBranding | string;
+    /**
+     * Whether the widget is in a loading state.
+     * @default false
+     */
+    loading: boolean;
+    /**
+     * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
+     */
+    screen?: UiScreen | string;
+    /**
+     * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
+     */
+    screenId?: string;
+    /**
+     * Login session state token. Required for social login and maintaining session.
+     */
+    state?: string;
+    /**
+     * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
+     * @default 'memory'
+     */
+    statePersistence: StatePersistence;
+    /**
+     * Storage key prefix for session/local storage persistence.
+     * @default 'authhero_widget'
+     */
+    storageKey: string;
+    /**
+     * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
+     */
+    theme?: WidgetTheme | string;
+  }
 }
 export interface AuthheroNodeCustomEvent<T> extends CustomEvent<T> {
-    detail: T;
-    target: HTMLAuthheroNodeElement;
+  detail: T;
+  target: HTMLAuthheroNodeElement;
 }
 export interface AuthheroWidgetCustomEvent<T> extends CustomEvent<T> {
-    detail: T;
-    target: HTMLAuthheroWidgetElement;
+  detail: T;
+  target: HTMLAuthheroWidgetElement;
 }
 declare global {
-    interface HTMLAuthheroNodeElementEventMap {
-        "fieldChange": { id: string; value: string };
-        "buttonClick": {
-    id: string;
-    type: string;
-    value?: string;
+  interface HTMLAuthheroNodeElementEventMap {
+    fieldChange: { id: string; value: string };
+    buttonClick: {
+      id: string;
+      type: string;
+      value?: string;
+    };
+  }
+  interface HTMLAuthheroNodeElement
+    extends Components.AuthheroNode, HTMLStencilElement {
+    addEventListener<K extends keyof HTMLAuthheroNodeElementEventMap>(
+      type: K,
+      listener: (
+        this: HTMLAuthheroNodeElement,
+        ev: AuthheroNodeCustomEvent<HTMLAuthheroNodeElementEventMap[K]>,
+      ) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener<K extends keyof DocumentEventMap>(
+      type: K,
+      listener: (this: Document, ev: DocumentEventMap[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener<K extends keyof HTMLElementEventMap>(
+      type: K,
+      listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof HTMLAuthheroNodeElementEventMap>(
+      type: K,
+      listener: (
+        this: HTMLAuthheroNodeElement,
+        ev: AuthheroNodeCustomEvent<HTMLAuthheroNodeElementEventMap[K]>,
+      ) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof DocumentEventMap>(
+      type: K,
+      listener: (this: Document, ev: DocumentEventMap[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof HTMLElementEventMap>(
+      type: K,
+      listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ): void;
+  }
+  var HTMLAuthheroNodeElement: {
+    prototype: HTMLAuthheroNodeElement;
+    new (): HTMLAuthheroNodeElement;
   };
-    }
-    interface HTMLAuthheroNodeElement extends Components.AuthheroNode, HTMLStencilElement {
-        addEventListener<K extends keyof HTMLAuthheroNodeElementEventMap>(type: K, listener: (this: HTMLAuthheroNodeElement, ev: AuthheroNodeCustomEvent<HTMLAuthheroNodeElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLAuthheroNodeElementEventMap>(type: K, listener: (this: HTMLAuthheroNodeElement, ev: AuthheroNodeCustomEvent<HTMLAuthheroNodeElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-    }
-    var HTMLAuthheroNodeElement: {
-        prototype: HTMLAuthheroNodeElement;
-        new (): HTMLAuthheroNodeElement;
-    };
-    interface HTMLAuthheroWidgetElementEventMap {
-        "formSubmit": SubmitEventDetail;
-        "buttonClick": ButtonClickEventDetail;
-        "linkClick": LinkClickEventDetail;
-        "navigate": NavigateEventDetail;
-        "flowComplete": CompleteEventDetail;
-        "flowError": ErrorEventDetail;
-        "screenChange": UiScreen;
-    }
-    interface HTMLAuthheroWidgetElement extends Components.AuthheroWidget, HTMLStencilElement {
-        addEventListener<K extends keyof HTMLAuthheroWidgetElementEventMap>(type: K, listener: (this: HTMLAuthheroWidgetElement, ev: AuthheroWidgetCustomEvent<HTMLAuthheroWidgetElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLAuthheroWidgetElementEventMap>(type: K, listener: (this: HTMLAuthheroWidgetElement, ev: AuthheroWidgetCustomEvent<HTMLAuthheroWidgetElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-    }
-    var HTMLAuthheroWidgetElement: {
-        prototype: HTMLAuthheroWidgetElement;
-        new (): HTMLAuthheroWidgetElement;
-    };
-    interface HTMLElementTagNameMap {
-        "authhero-node": HTMLAuthheroNodeElement;
-        "authhero-widget": HTMLAuthheroWidgetElement;
-    }
+  interface HTMLAuthheroWidgetElementEventMap {
+    formSubmit: SubmitEventDetail;
+    buttonClick: ButtonClickEventDetail;
+    linkClick: LinkClickEventDetail;
+    navigate: NavigateEventDetail;
+    flowComplete: CompleteEventDetail;
+    flowError: ErrorEventDetail;
+    screenChange: UiScreen;
+  }
+  interface HTMLAuthheroWidgetElement
+    extends Components.AuthheroWidget, HTMLStencilElement {
+    addEventListener<K extends keyof HTMLAuthheroWidgetElementEventMap>(
+      type: K,
+      listener: (
+        this: HTMLAuthheroWidgetElement,
+        ev: AuthheroWidgetCustomEvent<HTMLAuthheroWidgetElementEventMap[K]>,
+      ) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener<K extends keyof DocumentEventMap>(
+      type: K,
+      listener: (this: Document, ev: DocumentEventMap[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener<K extends keyof HTMLElementEventMap>(
+      type: K,
+      listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    addEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof HTMLAuthheroWidgetElementEventMap>(
+      type: K,
+      listener: (
+        this: HTMLAuthheroWidgetElement,
+        ev: AuthheroWidgetCustomEvent<HTMLAuthheroWidgetElementEventMap[K]>,
+      ) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof DocumentEventMap>(
+      type: K,
+      listener: (this: Document, ev: DocumentEventMap[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener<K extends keyof HTMLElementEventMap>(
+      type: K,
+      listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ): void;
+    removeEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ): void;
+  }
+  var HTMLAuthheroWidgetElement: {
+    prototype: HTMLAuthheroWidgetElement;
+    new (): HTMLAuthheroWidgetElement;
+  };
+  interface HTMLElementTagNameMap {
+    "authhero-node": HTMLAuthheroNodeElement;
+    "authhero-widget": HTMLAuthheroWidgetElement;
+  }
 }
 declare namespace LocalJSX {
-    interface AuthheroNode {
-        /**
-          * The component configuration to render. Follows Auth0 Forms component schema.
-         */
-        "component": FormComponent | RuntimeComponent;
-        /**
-          * Whether the component is disabled.
-          * @default false
-         */
-        "disabled"?: boolean;
-        /**
-          * Emitted when a button is clicked.
-         */
-        "onButtonClick"?: (event: AuthheroNodeCustomEvent<{
-    id: string;
-    type: string;
+  interface AuthheroNode {
+    /**
+     * The component configuration to render. Follows Auth0 Forms component schema.
+     */
+    component: FormComponent | RuntimeComponent;
+    /**
+     * Whether the component is disabled.
+     * @default false
+     */
+    disabled?: boolean;
+    /**
+     * Emitted when a button is clicked.
+     */
+    onButtonClick?: (
+      event: AuthheroNodeCustomEvent<{
+        id: string;
+        type: string;
+        value?: string;
+      }>,
+    ) => void;
+    /**
+     * Emitted when a field value changes.
+     */
+    onFieldChange?: (
+      event: AuthheroNodeCustomEvent<{ id: string; value: string }>,
+    ) => void;
+    /**
+     * Current value for field components.
+     */
     value?: string;
-  }>) => void;
-        /**
-          * Emitted when a field value changes.
-         */
-        "onFieldChange"?: (event: AuthheroNodeCustomEvent<{ id: string; value: string }>) => void;
-        /**
-          * Current value for field components.
-         */
-        "value"?: string;
-    }
-    interface AuthheroWidget {
-        /**
-          * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
-         */
-        "apiUrl"?: string;
-        /**
-          * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
-         */
-        "authParams"?: AuthParams | string;
-        /**
-          * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
-          * @default false (same as autoSubmit when not specified)
-         */
-        "autoNavigate"?: boolean;
-        /**
-          * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
-          * @default false
-         */
-        "autoSubmit"?: boolean;
-        /**
-          * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
-         */
-        "baseUrl"?: string;
-        /**
-          * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
-         */
-        "branding"?: WidgetBranding | string;
-        /**
-          * Whether the widget is in a loading state.
-          * @default false
-         */
-        "loading"?: boolean;
-        /**
-          * Emitted when a non-submit button is clicked (social login, back, etc.). The consuming application decides what to do based on id/type/value.
-         */
-        "onButtonClick"?: (event: AuthheroWidgetCustomEvent<ButtonClickEventDetail>) => void;
-        /**
-          * Emitted when auth flow completes with a redirect URL. The consuming application can redirect or extract the code.
-         */
-        "onFlowComplete"?: (event: AuthheroWidgetCustomEvent<CompleteEventDetail>) => void;
-        /**
-          * Emitted when an error occurs.
-         */
-        "onFlowError"?: (event: AuthheroWidgetCustomEvent<ErrorEventDetail>) => void;
-        /**
-          * Emitted when the form is submitted. The consuming application should handle the submission unless autoSubmit is true.
-         */
-        "onFormSubmit"?: (event: AuthheroWidgetCustomEvent<SubmitEventDetail>) => void;
-        /**
-          * Emitted when a link is clicked. The consuming application decides how to handle navigation.
-         */
-        "onLinkClick"?: (event: AuthheroWidgetCustomEvent<LinkClickEventDetail>) => void;
-        /**
-          * Emitted when the widget wants to navigate (e.g., after successful auth). The consuming application decides how to handle navigation.
-         */
-        "onNavigate"?: (event: AuthheroWidgetCustomEvent<NavigateEventDetail>) => void;
-        /**
-          * Emitted when the screen changes.
-         */
-        "onScreenChange"?: (event: AuthheroWidgetCustomEvent<UiScreen>) => void;
-        /**
-          * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
-         */
-        "screen"?: UiScreen | string;
-        /**
-          * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
-         */
-        "screenId"?: string;
-        /**
-          * Login session state token. Required for social login and maintaining session.
-         */
-        "state"?: string;
-        /**
-          * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
-          * @default 'memory'
-         */
-        "statePersistence"?: StatePersistence;
-        /**
-          * Storage key prefix for session/local storage persistence.
-          * @default 'authhero_widget'
-         */
-        "storageKey"?: string;
-        /**
-          * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
-         */
-        "theme"?: WidgetTheme | string;
-    }
-    interface IntrinsicElements {
-        "authhero-node": AuthheroNode;
-        "authhero-widget": AuthheroWidget;
-    }
+  }
+  interface AuthheroWidget {
+    /**
+     * API endpoint to fetch the initial screen from. If provided, the widget will fetch the screen on load. Can include {screenId} placeholder which will be replaced with the current screen. Example: "/u2/screen/{screenId}" or "https://auth.example.com/u2/screen/{screenId}"
+     */
+    apiUrl?: string;
+    /**
+     * OAuth/OIDC parameters for social login redirects. Can be passed as a JSON string or object.
+     */
+    authParams?: AuthParams | string;
+    /**
+     * Whether the widget should handle navigation automatically. When true, social login buttons redirect, links navigate, etc. When false, only events are emitted.
+     * @default false (same as autoSubmit when not specified)
+     */
+    autoNavigate?: boolean;
+    /**
+     * Whether the widget should automatically submit forms to the action URL. When false (default), the widget only emits events and the consuming application handles all HTTP requests. When true, the widget handles form submission and screen updates.
+     * @default false
+     */
+    autoSubmit?: boolean;
+    /**
+     * Base URL for all API calls. Used when widget is embedded on a different domain. If not provided, relative URLs are used. Example: "https://auth.example.com"
+     */
+    baseUrl?: string;
+    /**
+     * Branding configuration from AuthHero API. Controls logo, primary color, and page background. Can be passed as a JSON string or object.
+     */
+    branding?: WidgetBranding | string;
+    /**
+     * Whether the widget is in a loading state.
+     * @default false
+     */
+    loading?: boolean;
+    /**
+     * Emitted when a non-submit button is clicked (social login, back, etc.). The consuming application decides what to do based on id/type/value.
+     */
+    onButtonClick?: (
+      event: AuthheroWidgetCustomEvent<ButtonClickEventDetail>,
+    ) => void;
+    /**
+     * Emitted when auth flow completes with a redirect URL. The consuming application can redirect or extract the code.
+     */
+    onFlowComplete?: (
+      event: AuthheroWidgetCustomEvent<CompleteEventDetail>,
+    ) => void;
+    /**
+     * Emitted when an error occurs.
+     */
+    onFlowError?: (event: AuthheroWidgetCustomEvent<ErrorEventDetail>) => void;
+    /**
+     * Emitted when the form is submitted. The consuming application should handle the submission unless autoSubmit is true.
+     */
+    onFormSubmit?: (
+      event: AuthheroWidgetCustomEvent<SubmitEventDetail>,
+    ) => void;
+    /**
+     * Emitted when a link is clicked. The consuming application decides how to handle navigation.
+     */
+    onLinkClick?: (
+      event: AuthheroWidgetCustomEvent<LinkClickEventDetail>,
+    ) => void;
+    /**
+     * Emitted when the widget wants to navigate (e.g., after successful auth). The consuming application decides how to handle navigation.
+     */
+    onNavigate?: (
+      event: AuthheroWidgetCustomEvent<NavigateEventDetail>,
+    ) => void;
+    /**
+     * Emitted when the screen changes.
+     */
+    onScreenChange?: (event: AuthheroWidgetCustomEvent<UiScreen>) => void;
+    /**
+     * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
+     */
+    screen?: UiScreen | string;
+    /**
+     * Current screen ID. Used with apiUrl to fetch screen configuration. When statePersistence is 'url', this is synced with the URL.
+     */
+    screenId?: string;
+    /**
+     * Login session state token. Required for social login and maintaining session.
+     */
+    state?: string;
+    /**
+     * Where to persist state and screen ID. - 'url': Updates URL path/query (default for standalone pages) - 'session': Uses sessionStorage (for embedded widgets) - 'memory': No persistence, state only in memory
+     * @default 'memory'
+     */
+    statePersistence?: StatePersistence;
+    /**
+     * Storage key prefix for session/local storage persistence.
+     * @default 'authhero_widget'
+     */
+    storageKey?: string;
+    /**
+     * Theme configuration from AuthHero API. Controls colors, borders, fonts, and layout. Can be passed as a JSON string or object.
+     */
+    theme?: WidgetTheme | string;
+  }
+  interface IntrinsicElements {
+    "authhero-node": AuthheroNode;
+    "authhero-widget": AuthheroWidget;
+  }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
-    export namespace JSX {
-        interface IntrinsicElements {
-            "authhero-node": LocalJSX.AuthheroNode & JSXBase.HTMLAttributes<HTMLAuthheroNodeElement>;
-            "authhero-widget": LocalJSX.AuthheroWidget & JSXBase.HTMLAttributes<HTMLAuthheroWidgetElement>;
-        }
+  export namespace JSX {
+    interface IntrinsicElements {
+      "authhero-node": LocalJSX.AuthheroNode &
+        JSXBase.HTMLAttributes<HTMLAuthheroNodeElement>;
+      "authhero-widget": LocalJSX.AuthheroWidget &
+        JSXBase.HTMLAttributes<HTMLAuthheroWidgetElement>;
     }
+  }
 }

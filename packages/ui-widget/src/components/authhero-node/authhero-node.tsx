@@ -944,9 +944,7 @@ export class AuthheroNode {
     );
   }
 
-  private renderCountryField(
-    component: FieldComponent & { type: "COUNTRY" },
-  ) {
+  private renderCountryField(component: FieldComponent & { type: "COUNTRY" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
     const { placeholder } = component.config ?? {};

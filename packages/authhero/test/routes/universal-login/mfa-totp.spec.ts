@@ -12,11 +12,7 @@ import { base32 } from "oslo/encoding";
 /**
  * Helper to enable OTP factor and set MFA policy to "always" on the test tenant.
  */
-async function enableTotpMfa(
-  managementApp: any,
-  env: any,
-  token: string,
-) {
+async function enableTotpMfa(managementApp: any, env: any, token: string) {
   // Enable OTP factor
   await managementApp.request(
     "/guardian/factors/otp",
@@ -316,16 +312,11 @@ describe("MFA TOTP (authenticator app)", () => {
 
   describe("TOTP challenge flow", () => {
     it("should verify a valid TOTP code and complete MFA", async () => {
-      const {
-        u2App,
-        oauthApp,
-        universalApp,
-        managementApp,
-        env,
-      } = await getTestServer({
-        mockEmail: true,
-        testTenantLanguage: "en",
-      });
+      const { u2App, oauthApp, universalApp, managementApp, env } =
+        await getTestServer({
+          mockEmail: true,
+          testTenantLanguage: "en",
+        });
 
       const token = await getAdminToken();
       await enableTotpMfa(managementApp, env, token);
@@ -587,9 +578,8 @@ describe("MFA TOTP (authenticator app)", () => {
 
   describe("TOTP helper functions", () => {
     it("should generate a valid TOTP secret", async () => {
-      const { generateTotpSecret } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { generateTotpSecret } =
+        await import("../../../src/authentication-flows/mfa");
 
       const secret = generateTotpSecret();
 
@@ -603,9 +593,8 @@ describe("MFA TOTP (authenticator app)", () => {
     });
 
     it("should create a valid TOTP URI", async () => {
-      const { createTotpUri } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { createTotpUri } =
+        await import("../../../src/authentication-flows/mfa");
 
       const uri = createTotpUri(
         "TestApp",
@@ -619,9 +608,8 @@ describe("MFA TOTP (authenticator app)", () => {
     });
 
     it("should verify a valid TOTP code", async () => {
-      const { verifyTotpCode, generateTotpSecret } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { verifyTotpCode, generateTotpSecret } =
+        await import("../../../src/authentication-flows/mfa");
 
       const secret = generateTotpSecret();
 
@@ -636,9 +624,8 @@ describe("MFA TOTP (authenticator app)", () => {
     });
 
     it("should reject an invalid TOTP code", async () => {
-      const { verifyTotpCode, generateTotpSecret } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { verifyTotpCode, generateTotpSecret } =
+        await import("../../../src/authentication-flows/mfa");
 
       const secret = generateTotpSecret();
       const result = await verifyTotpCode(secret, "000000");

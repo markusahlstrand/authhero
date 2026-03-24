@@ -30,7 +30,12 @@ export async function smsOtpChallengeScreen(
     locale,
     customText,
   );
-  const { m: common } = createTranslation("common", "common", locale, customText);
+  const { m: common } = createTranslation(
+    "common",
+    "common",
+    locale,
+    customText,
+  );
 
   const phone = data?.phone as string | undefined;
   const email = data?.email as string | undefined;

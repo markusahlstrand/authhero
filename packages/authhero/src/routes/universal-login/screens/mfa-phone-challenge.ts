@@ -9,10 +9,7 @@ import { LoginSessionState, LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
-import {
-  verifyMfaOtp,
-  sendMfaOtp,
-} from "../../../authentication-flows/mfa";
+import { verifyMfaOtp, sendMfaOtp } from "../../../authentication-flows/mfa";
 import {
   transitionLoginSession,
   LoginSessionEventType,
@@ -30,7 +27,12 @@ export async function mfaPhoneChallengeScreen(
     context;
 
   const locale = context.language || "en";
-  const { m } = createTranslation("mfa-phone", "mfa-phone-challenge", locale, customText);
+  const { m } = createTranslation(
+    "mfa-phone",
+    "mfa-phone-challenge",
+    locale,
+    customText,
+  );
 
   const phone = data?.phone as string | undefined;
 
@@ -337,6 +339,30 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
               userId: loginSession.user_id,
             });
           }
+        }
+
+        // For ticket-based guardian enrollment, show success instead of continuing auth flow
+        if (stateData.guardian_enrollment) {
+          logMessage(ctx, client.tenant.id, {
+            type: LogTypes.MFA_AUTH_SUCCESS,
+            description: "MFA phone verification succeeded (guardian enrollment)",
+            userId: loginSession.user_id,
+          });
+
+          const successScreen: UiScreen = {
+            name: "mfa-phone-challenge",
+            action: "",
+            method: "GET",
+            title: m.title(),
+            description: m.enrollmentComplete(),
+            components: [],
+          };
+          return {
+            screen: {
+              screen: successScreen,
+              branding: context.branding,
+            },
+          };
         }
 
         // Transition from AWAITING_MFA back to AUTHENTICATED

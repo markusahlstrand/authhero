@@ -167,8 +167,18 @@ export const signupScreenDefinition: ScreenDefinition = {
 
       // Initialize i18n for error messages
       const locale = context.language || "en";
-      const { m } = createTranslation("signup", "signup", locale, context.customText);
-      const { m: passwordM } = createTranslation("signup-password", "signup-password", locale, context.customText);
+      const { m } = createTranslation(
+        "signup",
+        "signup",
+        locale,
+        context.customText,
+      );
+      const { m: passwordM } = createTranslation(
+        "signup-password",
+        "signup-password",
+        locale,
+        context.customText,
+      );
 
       // Validate required fields
       if (!email) {

@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Kontynuować z tym kontem?",
-      "description": "${clientName} prosi o dostęp do Twojego konta",
-      "descriptionFallback": "Aplikacja prosi o dostęp do Twojego konta",
+      "description": "Czy chcesz kontynuować z istniejącym kontem?",
+      "descriptionFallback": "Czy chcesz kontynuować z istniejącym kontem?",
       "error": "Wystąpił błąd. Spróbuj ponownie.",
-      "loggedInAs": "Jesteś zalogowany jako ${email}",
-      "noUseAnother": "Użyj innego konta",
-      "title": "Potwierdź konto",
-      "yesContinue": "Kontynuuj"
+      "loggedInAs": "Jesteś obecnie zalogowany jako ${email}",
+      "noUseAnother": "Nie, chcę użyć innego konta",
+      "title": "Kontynuuj z użytkownikiem",
+      "yesContinue": "Tak, kontynuuj z istniejącym kontem"
     }
   },
   "common": {
@@ -283,7 +283,8 @@
       "invalid-code": "Wprowadzony kod jest nieprawidłowy. Spróbuj ponownie.",
       "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
       "pageTitle": "Konfiguracja uwierzytelniania | ${clientName}",
-      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie."
+      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
+      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę."
     },
     "mfa-totp-challenge": {
       "title": "Zweryfikuj swoją tożsamość",
@@ -320,7 +321,8 @@
       "noCode": "Wprowadź kod weryfikacyjny",
       "invalidCode": "Wprowadzony kod jest nieprawidłowy. Spróbuj ponownie.",
       "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
-      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon"
+      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon",
+      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Wpisz swój numer telefonu, aby zalogować się kodem telefonicznym | ${clientName}",
@@ -345,6 +347,17 @@
       "no-phone": "Wpisz numer telefonu",
       "phone-is-too-short": "Numer telefonu jest za krótki",
       "phone-is-too-long": "Numer telefonu jest za długi"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Wybierz metodę weryfikacji | ${clientName}",
+      "title": "Wybierz metodę weryfikacji",
+      "description": "Wybierz, w jaki sposób chcesz zweryfikować swoją tożsamość",
+      "authenticatorAppLabel": "Aplikacja uwierzytelniająca",
+      "authenticatorAppDescription": "Użyj aplikacji uwierzytelniającej, aby uzyskać kod weryfikacyjny",
+      "smsLabel": "Wiadomość tekstowa",
+      "smsDescription": "Otrzymaj kod weryfikacyjny wysłany na swój telefon"
     }
   },
   "mfa-push": {

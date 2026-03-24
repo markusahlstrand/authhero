@@ -263,8 +263,8 @@ export function WidgetPage({
 
   const widgetContainerStyle =
     cssVariables.length > 0
-      ? cssVariables.join("; ") + "; max-width: 400px; width: 100%;"
-      : "max-width: 400px; width: 100%;";
+      ? cssVariables.join("; ") + "; width: clamp(320px, 100%, 400px);"
+      : "width: clamp(320px, 100%, 400px);";
 
   const htmlClass =
     darkMode === "dark"
@@ -356,7 +356,7 @@ export function WidgetPage({
               @media (max-width: 480px) {
                 body { background: ${widgetBackground} !important; padding: 0 !important; }
                 html.ah-dark-mode body { background: #111827 !important; }
-                .widget-container { max-width: none; }
+                .widget-container { width: 100%; }
               }
               @media (max-width: 480px) and (prefers-color-scheme: dark) {
                 html:not(.ah-light-mode) body { background: #111827 !important; }

@@ -94,8 +94,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
     
     authhero-widget {
       ${cssVariables.join(";\n      ")};
-      max-width: 400px;
-      width: 100%;
+      width: 400px;
     }
     
     .loading {

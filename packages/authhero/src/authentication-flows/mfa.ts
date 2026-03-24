@@ -19,7 +19,12 @@ const MFA_OTP_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 export type MfaCheckResult =
   | { required: false }
   | { required: true; enrolled: false }
-  | { required: true; enrolled: true; enrollment: MfaEnrollment };
+  | {
+      required: true;
+      enrolled: true;
+      enrollment: MfaEnrollment;
+      allEnrollments: MfaEnrollment[];
+    };
 
 /**
  * Check if MFA is required for a user based on tenant policy and enrollment status.
@@ -51,14 +56,23 @@ export async function checkMfaRequired(
     });
   }
 
-  // Look up user's confirmed MFA enrollments
+  // Look up user's confirmed MFA enrollments, filtered to enabled factors
+  const enabledFactors = tenant.mfa?.factors;
   const enrollments = await ctx.env.data.mfaEnrollments.list(tenantId, userId);
-  const confirmedEnrollment = enrollments.find(
-    (e) => (e.type === "phone" || e.type === "totp") && e.confirmed,
+  const confirmedEnrollments = enrollments.filter(
+    (e) =>
+      e.confirmed &&
+      ((e.type === "phone" && enabledFactors?.sms === true) ||
+        (e.type === "totp" && enabledFactors?.otp === true)),
   );
 
-  if (confirmedEnrollment) {
-    return { required: true, enrolled: true, enrollment: confirmedEnrollment };
+  if (confirmedEnrollments.length > 0) {
+    return {
+      required: true,
+      enrolled: true,
+      enrollment: confirmedEnrollments[0]!,
+      allEnrollments: confirmedEnrollments,
+    };
   }
 
   return { required: true, enrolled: false };

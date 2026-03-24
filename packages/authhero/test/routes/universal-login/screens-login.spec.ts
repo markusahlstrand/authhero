@@ -114,8 +114,9 @@ describe("login screen - passwordless button", () => {
     );
 
     if (socialButtons) {
-      const passwordlessProvider =
-        socialButtons.config?.provider_details?.find((p: any) => p.href);
+      const passwordlessProvider = socialButtons.config?.provider_details?.find(
+        (p: any) => p.href,
+      );
       expect(passwordlessProvider).toBeUndefined();
     }
   });
@@ -154,8 +155,9 @@ describe("login screen - passwordless button", () => {
 
     expect(socialButtons).toBeDefined();
 
-    const passwordlessProvider =
-      socialButtons.config.provider_details.find((p: any) => p.href);
+    const passwordlessProvider = socialButtons.config.provider_details.find(
+      (p: any) => p.href,
+    );
     expect(passwordlessProvider).toBeDefined();
   });
 

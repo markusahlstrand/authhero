@@ -7,11 +7,13 @@
 // --- Inline WCAG contrast utilities (small footprint, no external deps) ---
 
 function parseHexColor(hex: string): [number, number, number] | null {
-  const match = hex.match(/^#([0-9a-f]{3})$/i) || hex.match(/^#([0-9a-f]{6})$/i);
+  const match =
+    hex.match(/^#([0-9a-f]{3})$/i) || hex.match(/^#([0-9a-f]{6})$/i);
   if (!match) return null;
   let clean = match[1]!;
   if (clean.length === 3) {
-    clean = clean[0]! + clean[0]! + clean[1]! + clean[1]! + clean[2]! + clean[2]!;
+    clean =
+      clean[0]! + clean[0]! + clean[1]! + clean[1]! + clean[2]! + clean[2]!;
   }
   const num = parseInt(clean, 16);
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
@@ -69,11 +71,7 @@ function lightenHex(hex: string, percent: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function ensureContrastColor(
-  fg: string,
-  bg: string,
-  minRatio = 4.5,
-): string {
+function ensureContrastColor(fg: string, bg: string, minRatio = 4.5): string {
   if (wcagContrastRatio(fg, bg) >= minRatio) return fg;
   const shouldDarken = srgbLuminance(bg) > 0.5;
   let adjusted = fg;

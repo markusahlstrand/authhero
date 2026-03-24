@@ -1893,9 +1893,13 @@ const IdentityCard = () => {
 const MfaEnrollmentsTab = () => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [ticketUrl, setTicketUrl] = useState<string | null>(null);
+  const [sendingTicket, setSendingTicket] = useState(false);
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const { id: userId } = useParams();
+  const record = useRecordContext();
 
   const loadEnrollments = async () => {
     if (!userId) return;
@@ -1924,10 +1928,9 @@ const MfaEnrollmentsTab = () => {
   const handleDelete = async (enrollmentId: string) => {
     if (!userId) return;
     try {
-      await dataProvider.delete(
-        `users/${userId}/authentication-methods`,
-        { id: enrollmentId },
-      );
+      await dataProvider.delete(`users/${userId}/authentication-methods`, {
+        id: enrollmentId,
+      });
       notify("MFA enrollment deleted", { type: "success" });
       loadEnrollments();
     } catch {
@@ -1935,42 +1938,117 @@ const MfaEnrollmentsTab = () => {
     }
   };
 
+  const handleSendEnrollmentTicket = async () => {
+    if (!userId) return;
+    setSendingTicket(true);
+    try {
+      const response = await dataProvider.create(
+        "guardian/enrollments/ticket",
+        {
+          data: {
+            user_id: userId,
+            email: record?.email,
+          },
+        },
+      );
+      setTicketUrl(response.data.ticket_url);
+      setTicketDialogOpen(true);
+    } catch {
+      notify("Failed to create enrollment ticket", { type: "error" });
+    } finally {
+      setSendingTicket(false);
+    }
+  };
+
   if (loading) {
     return <CircularProgress size={24} />;
   }
 
-  if (enrollments.length === 0) {
-    return (
-      <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
-        No MFA enrollments found for this user.
-      </Typography>
-    );
-  }
-
   return (
-    <List>
-      {enrollments.map((enrollment) => (
-        <ListItem
-          key={enrollment.id}
-          secondaryAction={
-            <Tooltip title="Delete enrollment">
-              <IconButton
-                edge="end"
-                aria-label="delete"
-                onClick={() => handleDelete(enrollment.id)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
+    <>
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleSendEnrollmentTicket}
+          disabled={sendingTicket}
+          startIcon={
+            sendingTicket ? <CircularProgress size={16} /> : <AddIcon />
           }
         >
-          <ListItemText
-            primary={`${enrollment.type === "phone" ? "SMS" : enrollment.type.toUpperCase()} — ${enrollment.phone_number || "N/A"}`}
-            secondary={`${enrollment.confirmed ? "Confirmed" : "Pending"} · Created ${new Date(enrollment.created_at).toLocaleDateString()}`}
+          Create Enrollment Ticket
+        </Button>
+      </Box>
+
+      {enrollments.length === 0 ? (
+        <Typography variant="body2" color="textSecondary" sx={{ py: 2 }}>
+          No MFA enrollments found for this user.
+        </Typography>
+      ) : (
+        <List>
+          {enrollments.map((enrollment) => (
+            <ListItem
+              key={enrollment.id}
+              secondaryAction={
+                <Tooltip title="Delete enrollment">
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleDelete(enrollment.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              }
+            >
+              <ListItemText
+                primary={`${enrollment.type === "phone" ? "SMS" : enrollment.type.toUpperCase()} — ${enrollment.phone_number || "N/A"}`}
+                secondary={`${enrollment.confirmed ? "Confirmed" : "Pending"} · Created ${new Date(enrollment.created_at).toLocaleDateString()}`}
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
+
+      <Dialog
+        open={ticketDialogOpen}
+        onClose={() => setTicketDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>MFA Enrollment Ticket</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Share this URL with the user to enroll in MFA:
+          </DialogContentText>
+          <MuiTextField
+            fullWidth
+            value={ticketUrl || ""}
+            slotProps={{ input: { readOnly: true } }}
+            size="small"
           />
-        </ListItem>
-      ))}
-    </List>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              navigator.clipboard
+                .writeText(ticketUrl || "")
+                .then(() => {
+                  notify("Copied to clipboard", { type: "success" });
+                })
+                .catch(() => {
+                  notify("Failed to copy to clipboard", {
+                    type: "warning",
+                  });
+                });
+            }}
+          >
+            Copy URL
+          </Button>
+          <Button onClick={() => setTicketDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

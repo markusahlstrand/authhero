@@ -1163,13 +1163,16 @@ export async function createFrontChannelAuthResponse(
         try {
           stateData = JSON.parse(currentLoginSession.state_data);
         } catch {
-          console.error("Failed to parse state_data for login session", currentLoginSession.id);
+          console.error(
+            "Failed to parse state_data for login session",
+            currentLoginSession.id,
+          );
         }
       }
 
       // If state is AWAITING_MFA, user needs to complete MFA
       if (currentState === LoginSessionState.AWAITING_MFA) {
-        let targetPath = "/u2/mfa/phone-enrollment";
+        let targetPath = "/u2/mfa/login-options";
         if (stateData.mfaEnrollmentId) {
           const enrollments = await ctx.env.data.mfaEnrollments.list(
             client.tenant.id,
@@ -1184,6 +1187,8 @@ export async function createFrontChannelAuthResponse(
             targetPath = "/u2/mfa/totp-challenge";
           } else if (enrollment?.type === "totp") {
             targetPath = "/u2/mfa/totp-enrollment";
+          } else if (enrollment?.type === "phone") {
+            targetPath = "/u2/mfa/phone-enrollment";
           }
         }
         return new Response(null, {
@@ -1216,7 +1221,8 @@ export async function createFrontChannelAuthResponse(
           if (!mfaCheck.enrolled) {
             // User needs to enroll - determine which factor to use
             const tenant = client.tenant;
-            const useTotp = tenant.mfa?.factors?.otp === true;
+            const hasOtp = tenant.mfa?.factors?.otp === true;
+            const hasSms = tenant.mfa?.factors?.sms === true;
 
             await ctx.env.data.loginSessions.update(
               client.tenant.id,
@@ -1226,7 +1232,17 @@ export async function createFrontChannelAuthResponse(
               },
             );
 
-            if (useTotp) {
+            // If both factors available, show selection screen
+            if (hasOtp && hasSms) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            if (hasOtp) {
               // Redirect to TOTP enrollment
               return new Response(null, {
                 status: 302,
@@ -1244,7 +1260,26 @@ export async function createFrontChannelAuthResponse(
               },
             });
           } else {
-            // User is enrolled - redirect to the appropriate challenge screen
+            // User is enrolled - check if multiple factors exist
+            if (mfaCheck.allEnrollments.length > 1) {
+              // Multiple enrollments - show selection screen
+              await ctx.env.data.loginSessions.update(
+                client.tenant.id,
+                params.loginSession.id,
+                {
+                  state: newState,
+                },
+              );
+
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            // Single enrollment - redirect directly to challenge
             await ctx.env.data.loginSessions.update(
               client.tenant.id,
               params.loginSession.id,
@@ -1269,9 +1304,7 @@ export async function createFrontChannelAuthResponse(
 
             // Phone enrollment - send OTP and redirect
             if (!mfaCheck.enrollment.phone_number) {
-              throw new Error(
-                "MFA enrollment is missing phone_number",
-              );
+              throw new Error("MFA enrollment is missing phone_number");
             }
 
             await sendMfaOtp(

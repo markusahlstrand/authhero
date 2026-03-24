@@ -69,11 +69,28 @@ MFA integrates with the login session state machine. After the user authenticate
 pending → authenticated → awaiting_mfa → authenticated → completed
 ```
 
+## Enrollment Tickets
+
+Enrollment tickets let an admin invite a specific user to set up MFA without enforcing it for all users. This is useful for gradual MFA rollouts:
+
+1. **Admin creates a ticket** via `POST /api/v2/guardian/enrollments/ticket` with the user's `user_id`.
+2. **API returns a `ticket_url`** — a single-use link valid for 5 days.
+3. **Admin shares the link** with the user (email, chat, etc.).
+4. **User opens the link** and is redirected to the MFA enrollment screen (TOTP or SMS, depending on enabled factors).
+5. **User completes enrollment** — the enrollment is confirmed and the link is consumed.
+
+Enrollment tickets work whenever MFA factors are enabled, regardless of the MFA policy. This lets you enable factors first, pre-enroll users via tickets, and then set the policy to `always` once your users are ready.
+
+::: tip Gradual Rollout
+Enable MFA factors with the policy set to `never`. Send enrollment tickets to users so they can set up MFA at their own pace. Once enough users have enrolled, switch the policy to `always`.
+:::
+
 ## Management API
 
-MFA is managed through two sets of API endpoints:
+MFA is managed through three sets of API endpoints:
 
 - **Guardian API** (`/api/v2/guardian/`) — Configure MFA factors, policies, and SMS providers at the tenant level.
+- **Guardian Enrollment Tickets** (`POST /api/v2/guardian/enrollments/ticket`) — Create enrollment invitation links for specific users.
 - **Authentication Methods API** (`/api/v2/users/{user_id}/authentication-methods`) — Manage per-user MFA enrollments (list, create, delete).
 
 See the [MFA Setup Guide](/guides/mfa-setup) for detailed configuration steps.

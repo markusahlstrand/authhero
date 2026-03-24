@@ -26,7 +26,16 @@ export type TranslationMap = Record<
   (variables?: Record<string, unknown>) => string
 >;
 
-export const locales = ["cs", "da", "en", "fi", "it", "nb", "pl", "sv"] as const;
+export const locales = [
+  "cs",
+  "da",
+  "en",
+  "fi",
+  "it",
+  "nb",
+  "pl",
+  "sv",
+] as const;
 export const baseLocale = "en" as const;
 
 // Load Auth0-format locale files at build time via Vite's import.meta.glob
@@ -112,10 +121,7 @@ function normalizeLocale(locale: string): (typeof locales)[number] {
  * @param locale - The locale code (e.g., 'nb', 'en', 'sv')
  * @param customText - Optional custom text overrides from database
  */
-export function createTranslation<
-  P extends string,
-  S extends string,
->(
+export function createTranslation<P extends string, S extends string>(
   prompt: P,
   screen: S,
   locale: string,
@@ -193,9 +199,5 @@ export function getLocaleDefaults(
 ): Record<string, Record<string, string>> {
   const baseLang = language.split("-")[0] || "en";
 
-  return (
-    LOCALE_DATA[baseLang]?.[prompt] ??
-    LOCALE_DATA["en"]?.[prompt] ??
-    {}
-  );
+  return LOCALE_DATA[baseLang]?.[prompt] ?? LOCALE_DATA["en"]?.[prompt] ?? {};
 }

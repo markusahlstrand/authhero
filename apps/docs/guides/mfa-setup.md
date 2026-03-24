@@ -106,6 +106,59 @@ When a user without an enrollment logs in:
 
 On subsequent logins, the user skips enrollment and goes directly to SMS verification.
 
+## Enrollment Tickets
+
+Enrollment tickets let you invite individual users to set up MFA without enforcing it for all logins. This is useful for gradual rollouts or when you want specific users to enroll before enabling the policy globally.
+
+### Prerequisites
+
+- At least one MFA factor (OTP or SMS) must be enabled on the tenant.
+- The MFA policy does **not** need to be set to `always` — tickets work regardless of the policy setting.
+
+### Create a Ticket via API
+
+```bash
+curl -X POST /api/v2/guardian/enrollments/ticket \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "auth0|671234567890",
+    "send_mail": false
+  }'
+```
+
+Response:
+
+```json
+{
+  "ticket_id": "abc123...",
+  "ticket_url": "https://your-domain.com/u2/guardian/enroll?ticket=abc123..."
+}
+```
+
+Share the `ticket_url` with the user. When they open it, they are redirected to the appropriate enrollment screen (TOTP or SMS) based on the enabled factors.
+
+### Ticket Behavior
+
+- **Single-use** — A ticket can only be redeemed once.
+- **Expires after 5 days** — Expired tickets return a 403 error.
+- **Factor selection** — If both OTP and SMS factors are enabled, the user is shown a factor selection screen. If only one factor is enabled, they go directly to that enrollment.
+- **No login required** — The ticket creates its own session; the user does not need to authenticate first.
+
+### Create a Ticket via React Admin
+
+1. Navigate to a user's detail page
+2. Go to the **MFA** tab
+3. Click **Create Enrollment Ticket**
+4. Copy the generated URL from the dialog and share it with the user
+
+### Gradual Rollout Workflow
+
+1. Enable MFA factors (OTP, SMS, or both) — leave the policy set to `never`
+2. Send enrollment tickets to users so they can set up MFA at their own pace
+3. Monitor enrollments via the Authentication Methods API or the user MFA tab in React Admin
+4. Once enough users are enrolled, set the policy to `always` to enforce MFA for all logins
+
 ## Disabling MFA
 
 To disable MFA:
@@ -204,6 +257,7 @@ AuthHero's MFA implementation is compatible with Auth0's Guardian API:
 | `GET/PUT /api/v2/guardian/policies` | Supported |
 | `GET/PUT /api/v2/guardian/factors/sms/selected-provider` | Supported |
 | `GET/PUT /api/v2/guardian/factors/sms/providers/twilio` | Supported |
+| `POST /api/v2/guardian/enrollments/ticket` | Supported |
 | `GET/POST/DELETE /api/v2/users/{id}/authentication-methods` | Supported |
 
 ## Troubleshooting

@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Continue with this account?",
-      "description": "${clientName} is requesting access to your account",
-      "descriptionFallback": "An application is requesting access to your account",
+      "description": "Would you like to continue with your existing account?",
+      "descriptionFallback": "Would you like to continue with your existing account?",
       "error": "An error occurred. Please try again.",
-      "loggedInAs": "You are logged in as ${email}",
-      "noUseAnother": "Use a different account",
-      "title": "Confirm Account",
-      "yesContinue": "Continue"
+      "loggedInAs": "You are currently logged in as ${email}",
+      "noUseAnother": "No, I want to use another account",
+      "title": "Continue with user",
+      "yesContinue": "Yes, continue with existing account"
     }
   },
   "common": {
@@ -283,7 +283,8 @@
       "invalid-code": "The code you entered is invalid. Please try again.",
       "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
       "unexpectedError": "Something went wrong. Please try again.",
-      "pageTitle": "Set up Authenticator | ${clientName}"
+      "pageTitle": "Set up Authenticator | ${clientName}",
+      "enrollmentComplete": "MFA enrollment is complete. You can close this page."
     },
     "mfa-totp-challenge": {
       "title": "Verify your identity",
@@ -320,7 +321,8 @@
       "noCode": "Please enter the verification code",
       "invalidCode": "The code you entered is invalid. Please try again.",
       "unexpectedError": "Something went wrong. Please try again.",
-      "resendSuccess": "We sent a new code to your phone"
+      "resendSuccess": "We sent a new code to your phone",
+      "enrollmentComplete": "MFA enrollment is complete. You can close this page."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Enter your phone number to log in using a phone code | ${clientName}",
@@ -345,6 +347,17 @@
       "no-phone": "Please enter a phone number",
       "phone-is-too-short": "Phone number is too short",
       "phone-is-too-long": "Phone number is too long"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Choose Verification Method | ${clientName}",
+      "title": "Choose your verification method",
+      "description": "Select how you'd like to verify your identity",
+      "authenticatorAppLabel": "Authenticator App",
+      "authenticatorAppDescription": "Use your authenticator app to get a verification code",
+      "smsLabel": "Text Message",
+      "smsDescription": "Get a verification code sent to your phone"
     }
   },
   "mfa-push": {

@@ -2,13 +2,13 @@
   "check-account": {
     "check-account": {
       "continueQuestion": "Pokračovat s tímto účtem?",
-      "description": "${clientName} žádá o přístup k vašemu účtu",
-      "descriptionFallback": "Aplikace žádá o přístup k vašemu účtu",
+      "description": "Chcete pokračovat se svým stávajícím účtem?",
+      "descriptionFallback": "Chcete pokračovat se svým stávajícím účtem?",
       "error": "Došlo k chybě. Zkuste to prosím znovu.",
-      "loggedInAs": "Jste přihlášeni jako ${email}",
-      "noUseAnother": "Použít jiný účet",
-      "title": "Potvrdit účet",
-      "yesContinue": "Pokračovat"
+      "loggedInAs": "Jste nyní přihlášeni jako ${email}",
+      "noUseAnother": "Ne, chci použít jiný účet",
+      "title": "Pokračovat s uživatelem",
+      "yesContinue": "Ano, pokračovat se stávajícím účtem"
     }
   },
   "common": {
@@ -283,7 +283,8 @@
       "invalid-code": "Zadaný kód je neplatný. Zkuste to prosím znovu.",
       "transaction-not-found": "Platnost vaší registrace vypršela, budete muset začít znovu.",
       "pageTitle": "Nastavení ověřovací aplikace | ${clientName}",
-      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu."
+      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu.",
+      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít."
     },
     "mfa-totp-challenge": {
       "title": "Ověřte svou identitu",
@@ -320,7 +321,8 @@
       "noCode": "Zadejte ověřovací kód",
       "invalidCode": "Zadaný kód je neplatný. Zkuste to znovu.",
       "unexpectedError": "Něco se pokazilo. Zkuste to znovu.",
-      "resendSuccess": "Odeslali jsme nový kód na váš telefon"
+      "resendSuccess": "Odeslali jsme nový kód na váš telefon",
+      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Zadejte své telefonní číslo pro přihlášení pomocí telefonního kódu | ${clientName}",
@@ -345,6 +347,17 @@
       "no-phone": "Zadejte telefonní číslo",
       "phone-is-too-short": "Telefonní číslo je příliš krátké",
       "phone-is-too-long": "Telefonní číslo je příliš dlouhé"
+    }
+  },
+  "mfa-login-options": {
+    "mfa-login-options": {
+      "pageTitle": "Vyberte metodu ověření | ${clientName}",
+      "title": "Vyberte způsob ověření",
+      "description": "Zvolte, jak chcete ověřit svou identitu",
+      "authenticatorAppLabel": "Autentizační aplikace",
+      "authenticatorAppDescription": "Použijte autentizační aplikaci k získání ověřovacího kódu",
+      "smsLabel": "Textová zpráva",
+      "smsDescription": "Nechte si zaslat ověřovací kód na telefon"
     }
   },
   "mfa-push": {

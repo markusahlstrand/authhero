@@ -14,10 +14,7 @@ const fs = require("fs");
 const path = require("path");
 
 const LOCALE_DIR = path.resolve(__dirname, "../locales");
-const OUTPUT_FILE = path.resolve(
-  __dirname,
-  "../src/generated/locale-types.ts",
-);
+const OUTPUT_FILE = path.resolve(__dirname, "../src/generated/locale-types.ts");
 
 // Read English locale as source of truth
 const enPath = path.join(LOCALE_DIR, "en.json");
@@ -91,12 +88,8 @@ for (const [prompt, screens] of Object.entries(enData)) {
       const quotedKey = isValidIdentifier(key) ? key : `"${key}"`;
 
       if (vars.length > 0) {
-        const varType = vars
-          .map((v) => `${v}: string`)
-          .join("; ");
-        methods.push(
-          `  ${quotedKey}: (vars: { ${varType} }) => string;`,
-        );
+        const varType = vars.map((v) => `${v}: string`).join("; ");
+        methods.push(`  ${quotedKey}: (vars: { ${varType} }) => string;`);
       } else {
         methods.push(`  ${quotedKey}: () => string;`);
       }
@@ -106,9 +99,7 @@ for (const [prompt, screens] of Object.entries(enData)) {
       `export interface ${interfaceName} {\n${methods.join("\n")}\n}`,
     );
 
-    screenMapEntries.push(
-      `  "${prompt}.${screen}": ${interfaceName};`,
-    );
+    screenMapEntries.push(`  "${prompt}.${screen}": ${interfaceName};`);
   }
 }
 

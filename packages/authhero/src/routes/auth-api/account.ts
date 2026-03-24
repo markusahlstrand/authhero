@@ -167,16 +167,13 @@ export const accountRoutes = new OpenAPIHono<{
 
         // Redirect based on screen_hint
         if (screen_hint === "change-email") {
-          const changeEmailUrl = new URL(
-            "/u/account/change-email",
-            ctx.req.url,
-          );
+          const changeEmailUrl = new URL("/u2/account/profile", ctx.req.url);
           changeEmailUrl.searchParams.set("state", loginSession.id);
           return ctx.redirect(changeEmailUrl.toString());
         }
 
         // Redirect to the account page with the login session state
-        const accountUrl = new URL("/u/account", ctx.req.url);
+        const accountUrl = new URL("/u2/account", ctx.req.url);
         accountUrl.searchParams.set("state", loginSession.id);
 
         return ctx.redirect(accountUrl.toString());

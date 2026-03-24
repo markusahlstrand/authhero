@@ -24,7 +24,6 @@ export async function checkAccountScreen(
   const {
     ctx,
     tenant,
-    client,
     branding,
     state,
     routePrefix = "/u2",
@@ -33,7 +32,12 @@ export async function checkAccountScreen(
 
   // Initialize i18n with locale and custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation("check-account", "check-account", locale, customText);
+  const { m } = createTranslation(
+    "check-account",
+    "check-account",
+    locale,
+    customText,
+  );
 
   const loginPath = await getLoginPath(context);
 
@@ -73,7 +77,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>${m.loggedInAs({ email: escapeHtml(user.email || user.user_id) })}</p><p>${m.continueQuestion()}</p>`,
+        content: `<p>${m.loggedInAs({ email: escapeHtml(user.email || user.user_id) })}</p>`,
       },
       order: 0,
     },
@@ -95,9 +99,7 @@ export async function checkAccountScreen(
     action: `${routePrefix}/check-account?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.title(),
-    description: client.name
-      ? m.description({ clientName: escapeHtml(client.name) })
-      : m.descriptionFallback(),
+    description: m.description(),
     components,
     links: [
       {
@@ -197,7 +199,12 @@ async function handleCheckAccountSubmit(
     // For other errors, show a user-friendly error on the check-account screen
     // Note: We create a fresh translation context here since we're in the error handler
     const locale = context.language || "en";
-    const { m } = createTranslation("check-account", "check-account", locale, context.customText);
+    const { m } = createTranslation(
+      "check-account",
+      "check-account",
+      locale,
+      context.customText,
+    );
     return {
       error: m.error(),
       screen: await checkAccountScreen(context),

@@ -1,4 +1,7 @@
-import { MfaEnrollment, MfaEnrollmentInsert } from "@authhero/adapter-interfaces";
+import {
+  MfaEnrollment,
+  MfaEnrollmentInsert,
+} from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { get } from "./get";

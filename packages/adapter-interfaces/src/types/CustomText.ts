@@ -32,6 +32,7 @@ export const promptScreenSchema = z.enum([
   "captcha",
   "custom-form",
   "login-passwordless",
+  "mfa-login-options",
 ]);
 
 export type PromptScreen = z.infer<typeof promptScreenSchema>;

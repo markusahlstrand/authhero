@@ -75,8 +75,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
   if (nullCreated > 0 || nullUpdated > 0) {
     throw new Error(
       `Preflight check failed: ${nullCreated} row(s) with NULL created_at_ts, ` +
-      `${nullUpdated} row(s) with NULL updated_at_ts. ` +
-      `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
+        `${nullUpdated} row(s) with NULL updated_at_ts. ` +
+        `All timestamp data must be migrated to _ts columns before dropping legacy columns.`,
     );
   }
 
@@ -120,7 +120,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     if (violations.length > 0) {
       throw new Error(
         `Preflight length check failed: ${violations.join("; ")}. ` +
-        `Truncate or fix oversized values before running this migration.`,
+          `Truncate or fix oversized values before running this migration.`,
       );
     }
 

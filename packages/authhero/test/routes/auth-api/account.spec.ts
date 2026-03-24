@@ -85,7 +85,7 @@ describe("account", () => {
     expect(response.status).toEqual(403);
   });
 
-  it("should redirect to /u/account when valid session exists", async () => {
+  it("should redirect to /u2/account when valid session exists", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
@@ -140,7 +140,7 @@ describe("account", () => {
 
     expect(response.status).toEqual(302);
     const location = response.headers.get("location");
-    expect(location).toContain("/u/account?state=");
+    expect(location).toContain("/u2/account?state=");
   });
 
   it("should redirect to login when session is revoked", async () => {
@@ -202,7 +202,7 @@ describe("account", () => {
     expect(location).toContain("/u/login/identifier?state=");
   });
 
-  it("should redirect to /u/account/change-email with screen_hint when provided", async () => {
+  it("should redirect to /u2/account/profile with screen_hint when provided", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
@@ -257,7 +257,7 @@ describe("account", () => {
 
     expect(response.status).toEqual(302);
     const location = response.headers.get("location");
-    expect(location).toContain("/u/account/change-email?state=");
+    expect(location).toContain("/u2/account/profile?state=");
   });
 
   it("should default to 'account' screen_hint when not provided", async () => {
@@ -314,7 +314,7 @@ describe("account", () => {
 
     expect(response.status).toEqual(302);
     const location = response.headers.get("location");
-    expect(location).toContain("/u/account?state=");
+    expect(location).toContain("/u2/account?state=");
     // Should not contain screen_hint since default "account" redirects to regular account page
     expect(location).not.toContain("screen_hint=");
   });

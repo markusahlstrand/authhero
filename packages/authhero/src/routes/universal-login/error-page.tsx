@@ -83,8 +83,7 @@ export function ErrorPage({
                 padding: 20px;
               }
               .error-card {
-                max-width: 400px;
-                width: 100%;
+                width: 400px;
                 background: ${widgetBackground};
                 border-radius: ${widgetCornerRadius}px;
                 padding: 40px 32px;

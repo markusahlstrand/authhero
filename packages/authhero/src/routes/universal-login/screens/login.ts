@@ -136,12 +136,7 @@ export async function loginScreen(
 
   // Initialize i18n with locale, custom text overrides
   const locale = context.language || "en";
-  const { m } = createTranslation(
-    "login",
-    "login",
-    locale,
-    customText,
-  );
+  const { m } = createTranslation("login", "login", locale, customText);
 
   const socialButtons = buildSocialButtons(context, m);
   const socialButtonCount = socialButtons.length;
@@ -318,9 +313,7 @@ export const loginScreenDefinition: ScreenDefinition = {
 
       // Validate username is provided
       if (!username) {
-        const fieldLabel = requiresUsername
-          ? m["no-email"]()
-          : m["no-email"]();
+        const fieldLabel = requiresUsername ? m["no-email"]() : m["no-email"]();
         return {
           error: fieldLabel,
           screen: await loginScreen({
