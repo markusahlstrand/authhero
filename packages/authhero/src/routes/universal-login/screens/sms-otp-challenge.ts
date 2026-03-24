@@ -5,11 +5,13 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { LoginSessionState } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
+import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
 
@@ -157,9 +159,14 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         context.customText,
       );
 
-      // Validate code is provided
-      if (!code) {
-        const errorMessage = m.noCode();
+      // Get the login session to find the username
+      const loginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      if (!loginSession || !loginSession.authParams?.username) {
+        const errorMessage = m.sessionExpired();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({
@@ -169,14 +176,55 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Get the login session to find the username
-      const loginSession = await ctx.env.data.loginSessions.get(
-        client.tenant.id,
-        state,
-      );
+      // If the session is already past OTP verification (e.g. awaiting MFA from
+      // a previous successful OTP submission), skip OTP validation and resume
+      // the auth flow. This handles the case where the user navigates back to
+      // this screen after being redirected to MFA.
+      const sessionState = loginSession.state || LoginSessionState.PENDING;
+      if (
+        sessionState === LoginSessionState.AWAITING_MFA ||
+        sessionState === LoginSessionState.AUTHENTICATED
+      ) {
+        try {
+          const session = loginSession.session_id
+            ? await ctx.env.data.sessions.get(
+                client.tenant.id,
+                loginSession.session_id,
+              )
+            : null;
 
-      if (!loginSession || !loginSession.authParams?.username) {
-        const errorMessage = m.sessionExpired();
+          if (session?.user_id) {
+            const user = await ctx.env.data.users.get(
+              client.tenant.id,
+              session.user_id,
+            );
+
+            if (user) {
+              const result = await createFrontChannelAuthResponse(ctx, {
+                authParams: loginSession.authParams,
+                client,
+                user,
+                loginSession,
+              });
+
+              if (result instanceof Response) {
+                const location = result.headers.get("location");
+                const cookies = result.headers.getSetCookie?.() || [];
+                if (location) {
+                  return { redirect: location, cookies };
+                }
+                return { response: result };
+              }
+            }
+          }
+        } catch {
+          // If resuming fails, fall through to normal OTP validation
+        }
+      }
+
+      // Validate code is provided
+      if (!code) {
+        const errorMessage = m.noCode();
         return {
           error: errorMessage,
           screen: await smsOtpChallengeScreen({

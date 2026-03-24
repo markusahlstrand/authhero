@@ -5,12 +5,14 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { LoginSessionState, Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
+import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
+import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../../../errors/json-http-exception";
 import { getPrimaryUserByProvider } from "../../../helpers/users";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../constants";
@@ -175,6 +177,53 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         };
       }
 
+      // If the session is already past OTP verification (e.g. awaiting MFA from
+      // a previous successful OTP submission), skip OTP validation and resume
+      // the auth flow. This handles the case where the user navigates back to
+      // this screen after being redirected to MFA.
+      const sessionState = loginSession.state || LoginSessionState.PENDING;
+      if (
+        sessionState === LoginSessionState.AWAITING_MFA ||
+        sessionState === LoginSessionState.AUTHENTICATED
+      ) {
+        try {
+          // Look up the user from the session
+          const session = loginSession.session_id
+            ? await ctx.env.data.sessions.get(
+                client.tenant.id,
+                loginSession.session_id,
+              )
+            : null;
+
+          if (session?.user_id) {
+            const user = await ctx.env.data.users.get(
+              client.tenant.id,
+              session.user_id,
+            );
+
+            if (user) {
+              const result = await createFrontChannelAuthResponse(ctx, {
+                authParams: loginSession.authParams,
+                client,
+                user,
+                loginSession,
+              });
+
+              if (result instanceof Response) {
+                const location = result.headers.get("location");
+                const cookies = result.headers.getSetCookie?.() || [];
+                if (location) {
+                  return { redirect: location, cookies };
+                }
+                return { response: result };
+              }
+            }
+          }
+        } catch {
+          // If resuming fails, fall through to normal OTP validation
+        }
+      }
+
       try {
         const result = await passwordlessGrant(ctx, {
           client_id: client.client_id,
@@ -205,6 +254,11 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           }),
         };
       } catch (e: unknown) {
+        console.error(
+          "[email-otp-challenge] Error:",
+          e instanceof Error ? e.stack || e.message : e,
+        );
+
         // Check if user has password login available
         let hasPasswordLogin = false;
         try {
@@ -229,6 +283,8 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           } catch {
             // Keep the generic error message for non-JSON errors
           }
+        } else if (e instanceof HTTPException) {
+          errorMessage = e.message;
         }
 
         return {

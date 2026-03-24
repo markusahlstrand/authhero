@@ -6,6 +6,7 @@ AuthHero is designed to run on multiple platforms. This guide covers deployment 
 
 AuthHero can be deployed to:
 
+- **[Docker](./docker)** - Self-contained container with SQLite
 - **[Local Development](./local)** - Node.js, Bun, or Deno
 - **[Cloudflare Workers](./cloudflare)** - Edge computing platform
 - **[AWS](./aws)** - Lambda, ECS, or EC2
@@ -16,7 +17,7 @@ AuthHero can be deployed to:
 Documentation for additional platforms:
 
 - Google Cloud Platform (GCP)
-- Docker/Kubernetes
+- Kubernetes
 - Azure
 - Railway, Render, Fly.io
   :::
@@ -27,12 +28,13 @@ All deployment targets must serve the AuthHero widget assets. Learn more about [
 
 ## Quick Comparison
 
-| Platform                         | Startup Time | Scaling     | Cost Model  | Best For         |
-| -------------------------------- | ------------ | ----------- | ----------- | ---------------- |
-| [Local/Node](./local)            | Instant      | Manual      | Fixed       | Development, VPS |
-| [Cloudflare](./cloudflare)       | ~0ms (warm)  | Automatic   | Pay-per-use | Global edge      |
-| [AWS Lambda + SST](./aws#lambda) | 100-500ms    | Automatic   | Pay-per-use | Serverless       |
-| [AWS ECS](./aws#ecs)             | Instant      | Manual/Auto | Fixed       | Long-running     |
+| Platform                         | Startup Time | Scaling     | Cost Model  | Best For             |
+| -------------------------------- | ------------ | ----------- | ----------- | -------------------- |
+| [Docker](./docker)               | Instant      | Manual/Auto | Fixed       | Self-hosted, VPS     |
+| [Local/Node](./local)            | Instant      | Manual      | Fixed       | Development          |
+| [Cloudflare](./cloudflare)       | ~0ms (warm)  | Automatic   | Pay-per-use | Global edge          |
+| [AWS Lambda + SST](./aws#lambda) | 100-500ms    | Automatic   | Pay-per-use | Serverless           |
+| [AWS ECS](./aws#ecs)             | Instant      | Manual/Auto | Fixed       | Long-running         |
 
 ## Quick Start with `create-authhero`
 
@@ -49,6 +51,13 @@ Then select your deployment target:
 - **AWS SST (Lambda + DynamoDB)** - Serverless AWS deployment
 
 ## Choosing a Deployment Target
+
+**Choose Docker if:**
+
+- Self-hosted deployment on any infrastructure
+- No external database dependency needed (SQLite included)
+- Consistent, reproducible deployments
+- Running on VPS, bare metal, or container orchestrators
 
 **Choose Cloudflare Workers if:**
 

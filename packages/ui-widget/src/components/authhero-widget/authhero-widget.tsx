@@ -643,15 +643,20 @@ export class AuthheroWidget {
     };
   };
 
-  private handleSubmit = async (e: Event) => {
+  private handleSubmit = async (
+    e: Event,
+    overrideData?: Record<string, string>,
+  ) => {
     e.preventDefault();
 
-    if (!this._screen) return;
+    if (!this._screen || this.loading) return;
+
+    const submitData = overrideData || this.formData;
 
     // Always emit the submit event
     this.formSubmit.emit({
       screen: this._screen,
-      data: this.formData,
+      data: submitData,
     });
 
     // If autoSubmit is disabled, let the consuming app handle it
@@ -669,7 +674,7 @@ export class AuthheroWidget {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ data: this.formData }),
+        body: JSON.stringify({ data: submitData }),
       });
 
       const contentType = response.headers.get("content-type");
@@ -735,6 +740,19 @@ export class AuthheroWidget {
         } else if (result.complete) {
           // Flow complete without redirect
           this.flowComplete.emit({});
+        } else if (!response.ok && result.error) {
+          // Server returned an error without a screen (e.g. 500)
+          // Show the error on the current screen
+          if (this._screen) {
+            this._screen = {
+              ...this._screen,
+              messages: [
+                ...(this._screen.messages || []),
+                { text: result.error, type: "error" as const },
+              ],
+            };
+          }
+          this.flowError.emit({ message: result.error });
         }
       }
     } catch (err) {
@@ -750,9 +768,15 @@ export class AuthheroWidget {
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
+      // Include the clicked button's ID in form data so the server
+      // can identify which button was clicked (e.g. for multi-button screens
+      // like mfa-login-options where each factor has its own submit button)
+      const submitData = { ...this.formData, [detail.id]: "true" };
+      this.formData = submitData;
       // Create a synthetic submit event and call handleSubmit
+      // Pass submitData directly to avoid @State() timing issues
       const syntheticEvent = { preventDefault: () => {} } as Event;
-      this.handleSubmit(syntheticEvent);
+      this.handleSubmit(syntheticEvent, submitData);
       return;
     }
 

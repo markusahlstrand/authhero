@@ -184,6 +184,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
           collapsed: false,
           items: [
             { text: "Overview", link: "/deployment-targets/" },
+            { text: "Docker", link: "/deployment-targets/docker" },
             { text: "Local Development", link: "/deployment-targets/local" },
             {
               text: "Cloudflare Workers",

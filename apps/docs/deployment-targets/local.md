@@ -150,61 +150,7 @@ deno run --allow-net --allow-read src/index.ts
 
 ## Docker
 
-Containerize AuthHero for consistent deployments.
-
-### Dockerfile
-
-```dockerfile
-FROM node:20-slim
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy application
-COPY . .
-
-# Widget assets are in node_modules - no copy needed
-EXPOSE 3000
-
-CMD ["node", "dist/index.js"]
-```
-
-### Docker Compose
-
-```yaml
-version: "3.8"
-
-services:
-  authhero:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/authhero
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=authhero
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-### Running
-
-```bash
-docker-compose up -d
-```
+For Docker deployments, see the dedicated [Docker deployment guide](./docker). The AuthHero repository includes a ready-to-use `Dockerfile` with SQLite, auto-migrations, and seeding built in.
 
 ## Environment Variables
 

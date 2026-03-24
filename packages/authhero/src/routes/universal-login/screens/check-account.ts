@@ -77,7 +77,7 @@ export async function checkAccountScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p>${m.loggedInAs({ email: escapeHtml(user.email || user.user_id) })}</p>`,
+        content: `<p style="text-align: center;">${m.loggedInAs({ email: `<strong>${escapeHtml(user.email || user.user_id)}</strong>` })}</p>`,
       },
       order: 0,
     },
