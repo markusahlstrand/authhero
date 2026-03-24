@@ -66,7 +66,7 @@ function sanitizeHtml(html: string): string {
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "width", "height"],
-      "*": ["class", "id", "style"],
+      "*": ["class", "id"],
     },
     allowedSchemes: ["http", "https", "mailto", "data"],
     allowedSchemesAppliedToAttributes: ["href", "src"],

@@ -283,7 +283,8 @@
       "invalid-code": "Den indtastede kode er ugyldig. Prøv venligst igen.",
       "transaction-not-found": "Din tilmeldingssession er udløbet. Du skal starte forfra.",
       "pageTitle": "Opsæt autentificeringsapp | ${clientName}",
-      "unexpectedError": "Noget gik galt. Prøv venligst igen."
+      "unexpectedError": "Noget gik galt. Prøv venligst igen.",
+      "enrollmentComplete": "MFA-tilmeldingen er fuldført. Du kan lukke denne side."
     },
     "mfa-totp-challenge": {
       "title": "Bekræft din identitet",
@@ -320,7 +321,8 @@
       "noCode": "Indtast bekræftelseskoden",
       "invalidCode": "Den indtastede kode er ugyldig. Prøv igen.",
       "unexpectedError": "Noget gik galt. Prøv igen.",
-      "resendSuccess": "Vi sendte en ny kode til din telefon"
+      "resendSuccess": "Vi sendte en ny kode til din telefon",
+      "enrollmentComplete": "MFA-tilmeldingen er fuldført. Du kan lukke denne side."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Indtast dit telefonnummer for at logge ind med en telefonkode | ${clientName}",

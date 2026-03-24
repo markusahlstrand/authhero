@@ -205,6 +205,12 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         throw new HTTPException(400, { message: "Invalid factor selected" });
       }
 
+      if (!selectedEnrollment.confirmed) {
+        throw new HTTPException(403, {
+          message: "Enrollment is not confirmed",
+        });
+      }
+
       // Store the selected enrollment ID in state_data
       await ctx.env.data.loginSessions.update(client.tenant.id, state, {
         state_data: JSON.stringify({

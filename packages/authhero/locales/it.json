@@ -283,7 +283,8 @@
       "invalid-code": "Il codice inserito non è valido. Riprova.",
       "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
       "pageTitle": "Configura autenticatore | ${clientName}",
-      "unexpectedError": "Qualcosa è andato storto. Riprova."
+      "unexpectedError": "Qualcosa è andato storto. Riprova.",
+      "enrollmentComplete": "La registrazione MFA è completata. Puoi chiudere questa pagina."
     },
     "mfa-totp-challenge": {
       "title": "Verifica la tua identità",
@@ -320,7 +321,8 @@
       "noCode": "Inserisci il codice di verifica",
       "invalidCode": "Il codice inserito non è valido. Riprova.",
       "unexpectedError": "Qualcosa è andato storto. Riprova.",
-      "resendSuccess": "Abbiamo inviato un nuovo codice al tuo telefono"
+      "resendSuccess": "Abbiamo inviato un nuovo codice al tuo telefono",
+      "enrollmentComplete": "La registrazione MFA è completata. Puoi chiudere questa pagina."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Inserisci il tuo numero di telefono per accedere con un codice telefonico | ${clientName}",

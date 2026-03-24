@@ -1813,6 +1813,14 @@ export const u2Routes = new OpenAPIHono<{
         });
       }
 
+      // Atomically consume the ticket (prevents race conditions)
+      const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+      if (!consumed) {
+        throw new HTTPException(403, {
+          message: "Invalid or expired enrollment ticket",
+        });
+      }
+
       // Get the login session
       const loginSession = await ctx.env.data.loginSessions.get(
         tenantId,
@@ -1823,9 +1831,6 @@ export const u2Routes = new OpenAPIHono<{
           message: "Invalid enrollment session",
         });
       }
-
-      // Mark ticket as used
-      await ctx.env.data.codes.used(tenantId, ticket);
 
       // Determine which MFA factor to enroll based on tenant config
       const tenant = await ctx.env.data.tenants.get(tenantId);

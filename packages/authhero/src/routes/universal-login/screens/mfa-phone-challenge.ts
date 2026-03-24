@@ -354,8 +354,7 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
             action: "",
             method: "GET",
             title: m.title(),
-            description:
-              "MFA enrollment is complete. You can close this page.",
+            description: m.enrollmentComplete(),
             components: [],
           };
           return {

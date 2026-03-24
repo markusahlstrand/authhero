@@ -283,7 +283,8 @@
       "invalid-code": "Zadaný kód je neplatný. Zkuste to prosím znovu.",
       "transaction-not-found": "Platnost vaší registrace vypršela, budete muset začít znovu.",
       "pageTitle": "Nastavení ověřovací aplikace | ${clientName}",
-      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu."
+      "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu.",
+      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít."
     },
     "mfa-totp-challenge": {
       "title": "Ověřte svou identitu",
@@ -320,7 +321,8 @@
       "noCode": "Zadejte ověřovací kód",
       "invalidCode": "Zadaný kód je neplatný. Zkuste to znovu.",
       "unexpectedError": "Něco se pokazilo. Zkuste to znovu.",
-      "resendSuccess": "Odeslali jsme nový kód na váš telefon"
+      "resendSuccess": "Odeslali jsme nový kód na váš telefon",
+      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Zadejte své telefonní číslo pro přihlášení pomocí telefonního kódu | ${clientName}",

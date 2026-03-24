@@ -2031,8 +2031,16 @@ const MfaEnrollmentsTab = () => {
         <DialogActions>
           <Button
             onClick={() => {
-              navigator.clipboard.writeText(ticketUrl || "");
-              notify("Copied to clipboard", { type: "success" });
+              navigator.clipboard
+                .writeText(ticketUrl || "")
+                .then(() => {
+                  notify("Copied to clipboard", { type: "success" });
+                })
+                .catch(() => {
+                  notify("Failed to copy to clipboard", {
+                    type: "warning",
+                  });
+                });
             }}
           >
             Copy URL

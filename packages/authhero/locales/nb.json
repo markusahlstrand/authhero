@@ -283,7 +283,8 @@
       "invalid-code": "Koden du skrev inn er ugyldig. Vennligst prøv igjen.",
       "transaction-not-found": "Registreringsøkten din har utløpt, du må starte på nytt.",
       "pageTitle": "Sett opp autentisering | ${clientName}",
-      "unexpectedError": "Noe gikk galt. Vennligst prøv igjen."
+      "unexpectedError": "Noe gikk galt. Vennligst prøv igjen.",
+      "enrollmentComplete": "MFA-registreringen er fullført. Du kan lukke denne siden."
     },
     "mfa-totp-challenge": {
       "title": "Bekreft identiteten din",
@@ -320,7 +321,8 @@
       "noCode": "Vennligst skriv inn bekreftelseskoden",
       "invalidCode": "Koden du skrev inn er ugyldig. Prøv igjen.",
       "unexpectedError": "Noe gikk galt. Prøv igjen.",
-      "resendSuccess": "Vi sendte en ny kode til telefonen din"
+      "resendSuccess": "Vi sendte en ny kode til telefonen din",
+      "enrollmentComplete": "MFA-registreringen er fullført. Du kan lukke denne siden."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Skriv inn telefonnummeret ditt for å logge inn med en telefonkode | ${clientName}",

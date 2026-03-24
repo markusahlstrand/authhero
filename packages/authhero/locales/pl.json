@@ -283,7 +283,8 @@
       "invalid-code": "Wprowadzony kod jest nieprawidłowy. Spróbuj ponownie.",
       "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
       "pageTitle": "Konfiguracja uwierzytelniania | ${clientName}",
-      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie."
+      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
+      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę."
     },
     "mfa-totp-challenge": {
       "title": "Zweryfikuj swoją tożsamość",
@@ -320,7 +321,8 @@
       "noCode": "Wprowadź kod weryfikacyjny",
       "invalidCode": "Wprowadzony kod jest nieprawidłowy. Spróbuj ponownie.",
       "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
-      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon"
+      "resendSuccess": "Wysłaliśmy nowy kod na Twój telefon",
+      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę."
     },
     "mfa-phone-enrollment": {
       "pageTitle": "Wpisz swój numer telefonu, aby zalogować się kodem telefonicznym | ${clientName}",

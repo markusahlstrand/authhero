@@ -56,10 +56,14 @@ export async function checkMfaRequired(
     });
   }
 
-  // Look up user's confirmed MFA enrollments
+  // Look up user's confirmed MFA enrollments, filtered to enabled factors
+  const enabledFactors = tenant.mfa?.factors;
   const enrollments = await ctx.env.data.mfaEnrollments.list(tenantId, userId);
   const confirmedEnrollments = enrollments.filter(
-    (e) => (e.type === "phone" || e.type === "totp") && e.confirmed,
+    (e) =>
+      e.confirmed &&
+      ((e.type === "phone" && enabledFactors?.sms === true) ||
+        (e.type === "totp" && enabledFactors?.otp === true)),
   );
 
   if (confirmedEnrollments.length > 0) {

@@ -3,6 +3,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
 import { LoginSessionState } from "@authhero/adapter-interfaces";
+import { getIssuer } from "../../variables";
 
 // Auth0-compatible Guardian MFA factor types
 const factorNames = [
@@ -556,10 +557,9 @@ export const guardianRoutes = new OpenAPIHono<{
         expires_at: expiresAt,
       });
 
-      // Build the ticket URL using the request host
-      const host = ctx.req.header("host") || tenant.audience;
-      const protocol = ctx.req.header("x-forwarded-proto") || "https";
-      const ticketUrl = `${protocol}://${host}/u2/guardian/enroll?ticket=${ticketId}`;
+      // Build the ticket URL using the trusted issuer, not the request host header
+      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+      const ticketUrl = `${issuer}u2/guardian/enroll?ticket=${ticketId}`;
 
       return ctx.json(
         {
