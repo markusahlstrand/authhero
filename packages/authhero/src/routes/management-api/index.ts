@@ -63,6 +63,7 @@ export default function create(config: AuthHeroConfig) {
       );
       ctx.res.headers.set("Access-Control-Max-Age", "600");
       ctx.res.headers.set("Access-Control-Allow-Credentials", "true");
+      ctx.res.headers.append("Vary", "Origin");
     };
 
     // Handle preflight requests
@@ -70,9 +71,9 @@ export default function create(config: AuthHeroConfig) {
       const response = new Response(null, { status: 204 });
 
       if (origin) {
-        // For preflight, check static allowedOrigins first
-        if (config.allowedOrigins?.includes(origin)) {
-          response.headers.set("Access-Control-Allow-Origin", origin);
+        // Helper to set preflight CORS headers
+        const setPreflightCors = (allowedOrigin: string) => {
+          response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
           response.headers.set(
             "Access-Control-Allow-Headers",
             "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
@@ -87,6 +88,11 @@ export default function create(config: AuthHeroConfig) {
           );
           response.headers.set("Access-Control-Max-Age", "600");
           response.headers.set("Access-Control-Allow-Credentials", "true");
+          response.headers.append("Vary", "Origin");
+        };
+
+        if (config.allowedOrigins?.includes(origin)) {
+          setPreflightCors(origin);
           return response;
         }
 
@@ -98,31 +104,22 @@ export default function create(config: AuthHeroConfig) {
             (client) => client.web_origins || [],
           );
           if (allWebOrigins.includes(origin)) {
-            response.headers.set("Access-Control-Allow-Origin", origin);
-            response.headers.set(
-              "Access-Control-Allow-Headers",
-              "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
-            );
-            response.headers.set(
-              "Access-Control-Allow-Methods",
-              "POST, PUT, GET, DELETE, PATCH, OPTIONS",
-            );
-            response.headers.set(
-              "Access-Control-Expose-Headers",
-              "Content-Length, Content-Range",
-            );
-            response.headers.set("Access-Control-Max-Age", "600");
-            response.headers.set("Access-Control-Allow-Credentials", "true");
+            setPreflightCors(origin);
             return response;
           }
         }
       }
       // Return 204 without CORS headers if origin not allowed
+      // Still set Vary so caches don't serve this to an allowed origin
+      response.headers.append("Vary", "Origin");
       return response;
     }
 
     // For actual requests, process the request first then set headers
     await next();
+
+    // Always append Vary: Origin so caches differentiate responses by origin
+    ctx.res.headers.append("Vary", "Origin");
 
     if (origin) {
       // Check static allowedOrigins first

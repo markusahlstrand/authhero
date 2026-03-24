@@ -23,9 +23,10 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
       "https://example.com",
     );
+    expect(response.headers.get("Vary")).toContain("Origin");
   });
 
-  it("should not set CORS headers for unknown origin", async () => {
+  it("should not set CORS headers for unknown origin but still set Vary", async () => {
     const { managementApp, env } = await getTestServer();
 
     const response = await managementApp.request(
@@ -43,6 +44,8 @@ describe("management-api CORS", () => {
 
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    // Vary: Origin must still be set so caches don't serve this denial to allowed origins
+    expect(response.headers.get("Vary")).toContain("Origin");
   });
 
   it("should allow origin after adding it to client web_origins", async () => {
@@ -114,5 +117,54 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
       "true",
     );
+    expect(response.headers.get("Vary")).toContain("Origin");
+  });
+
+  it("should allow multiple origins from different clients simultaneously", async () => {
+    const { managementApp, env } = await getTestServer();
+
+    // Add a second origin to the client
+    await env.data.clients.update("tenantId", "clientId", {
+      web_origins: ["https://example.com", "https://other-app.example.com"],
+    });
+
+    // Request from first origin
+    const response1 = await managementApp.request(
+      "/clients",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://example.com",
+          "tenant-id": "tenantId",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+
+    // Request from second origin
+    const response2 = await managementApp.request(
+      "/clients",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://other-app.example.com",
+          "tenant-id": "tenantId",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+
+    // Both should be allowed with their respective origins
+    expect(response1.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://example.com",
+    );
+    expect(response2.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://other-app.example.com",
+    );
+    // Both must have Vary: Origin for proper cache behavior
+    expect(response1.headers.get("Vary")).toContain("Origin");
+    expect(response2.headers.get("Vary")).toContain("Origin");
   });
 });
