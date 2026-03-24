@@ -63,7 +63,7 @@ export default function create(config: AuthHeroConfig) {
       );
       ctx.res.headers.set("Access-Control-Max-Age", "600");
       ctx.res.headers.set("Access-Control-Allow-Credentials", "true");
-      ctx.res.headers.set("Vary", "Origin");
+      ctx.res.headers.append("Vary", "Origin");
     };
 
     // Handle preflight requests
@@ -88,7 +88,7 @@ export default function create(config: AuthHeroConfig) {
           );
           response.headers.set("Access-Control-Max-Age", "600");
           response.headers.set("Access-Control-Allow-Credentials", "true");
-          response.headers.set("Vary", "Origin");
+          response.headers.append("Vary", "Origin");
         };
 
         if (config.allowedOrigins?.includes(origin)) {
@@ -111,15 +111,15 @@ export default function create(config: AuthHeroConfig) {
       }
       // Return 204 without CORS headers if origin not allowed
       // Still set Vary so caches don't serve this to an allowed origin
-      response.headers.set("Vary", "Origin");
+      response.headers.append("Vary", "Origin");
       return response;
     }
 
     // For actual requests, process the request first then set headers
     await next();
 
-    // Always set Vary: Origin so caches differentiate responses by origin
-    ctx.res.headers.set("Vary", "Origin");
+    // Always append Vary: Origin so caches differentiate responses by origin
+    ctx.res.headers.append("Vary", "Origin");
 
     if (origin) {
       // Check static allowedOrigins first
