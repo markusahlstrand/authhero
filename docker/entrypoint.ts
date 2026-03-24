@@ -20,9 +20,10 @@ const port = Number(process.env.PORT) || 3000;
 const databasePath = process.env.DATABASE_PATH || "/data/db.sqlite";
 const httpsEnabled = process.env.HTTPS_ENABLED === "true";
 const shouldSeed = process.env.SEED === "true";
-const adminUsername = process.env.ADMIN_USERNAME || "admin";
-const adminPassword = process.env.ADMIN_PASSWORD || "admin";
 const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || "";
+const environment = process.env.ENVIRONMENT || "production";
+const jwksCacheTimeout = Number(process.env.JWKS_CACHE_TIMEOUT_IN_SECONDS) || 600;
+const organizationName = process.env.ORGANIZATION_NAME || "AuthHero";
 
 const defaultIssuer = httpsEnabled
   ? `https://localhost:${port}/`
@@ -64,6 +65,16 @@ const dataAdapter = createAdapters(db);
 
 // Seed if requested
 if (shouldSeed) {
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminUsername || !adminPassword) {
+    console.error(
+      "SEED=true requires ADMIN_USERNAME and ADMIN_PASSWORD environment variables to be set.",
+    );
+    process.exit(1);
+  }
+
   try {
     const result = await seed(dataAdapter, {
       adminUsername,
@@ -146,7 +157,14 @@ if (httpsEnabled) {
 
   serve({
     fetch: (request) =>
-      app.fetch(request, { ISSUER: issuer, data: dataAdapter }),
+      app.fetch(request, {
+          ISSUER: issuer,
+          AUTH_URL: issuer,
+          ENVIRONMENT: environment,
+          JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
+          ORGANIZATION_NAME: organizationName,
+          data: dataAdapter,
+        }),
     port,
     createServer: https.createServer,
     serverOptions: { key, cert },
@@ -157,7 +175,14 @@ if (httpsEnabled) {
 
   serve({
     fetch: (request) =>
-      app.fetch(request, { ISSUER: issuer, data: dataAdapter }),
+      app.fetch(request, {
+          ISSUER: issuer,
+          AUTH_URL: issuer,
+          ENVIRONMENT: environment,
+          JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
+          ORGANIZATION_NAME: organizationName,
+          data: dataAdapter,
+        }),
     port,
   });
 }

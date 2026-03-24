@@ -35,14 +35,18 @@ RUN pnpm --filter @authhero/adapter-interfaces build
 RUN pnpm --filter @authhero/kysely-adapter build
 RUN pnpm --filter authhero build
 
-# Runtime
+# Create non-root user and prepare runtime directories
+RUN groupadd --system authhero && useradd --system --gid authhero authhero
+RUN mkdir -p /data && chown authhero:authhero /data /app
+
 VOLUME /data
 EXPOSE 3000
 
 ENV PORT=3000
 ENV DATABASE_PATH=/data/db.sqlite
 ENV SEED=true
-ENV ADMIN_USERNAME=admin
-ENV ADMIN_PASSWORD=admin
+# ADMIN_USERNAME and ADMIN_PASSWORD must be provided at runtime when SEED=true
+
+USER authhero
 
 CMD ["pnpm", "--filter", "@authhero/docker", "start"]

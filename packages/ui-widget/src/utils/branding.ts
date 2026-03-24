@@ -375,13 +375,13 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
     const contrastVsWidget = wcagContrastRatio(inputBorder, widgetBg);
     const contrastVsInput = wcagContrastRatio(inputBorder, inputBg);
     const worstContrast = Math.min(contrastVsWidget, contrastVsInput);
-    if (worstContrast < 1.5) {
+    if (worstContrast < 3.0) {
       const bgToCheck =
         contrastVsWidget < contrastVsInput ? widgetBg : inputBg;
       vars["--ah-color-border"] = ensureContrastColor(
         inputBorder,
         bgToCheck,
-        1.5,
+        3.0,
       );
     }
   }

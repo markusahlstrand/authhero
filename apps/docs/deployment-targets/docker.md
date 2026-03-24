@@ -121,7 +121,7 @@ volumes:
 
 With a `Caddyfile`:
 
-```
+```text
 auth.example.com {
     reverse_proxy authhero:3000
 }

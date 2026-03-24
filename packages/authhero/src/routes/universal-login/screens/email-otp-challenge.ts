@@ -285,8 +285,6 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           }
         } else if (e instanceof HTTPException) {
           errorMessage = e.message;
-        } else if (e instanceof Error) {
-          errorMessage = e.message;
         }
 
         return {

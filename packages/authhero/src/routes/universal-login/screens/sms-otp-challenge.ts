@@ -159,18 +159,6 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         context.customText,
       );
 
-      // Validate code is provided
-      if (!code) {
-        const errorMessage = m.noCode();
-        return {
-          error: errorMessage,
-          screen: await smsOtpChallengeScreen({
-            ...context,
-            errors: { code: errorMessage },
-          }),
-        };
-      }
-
       // Get the login session to find the username
       const loginSession = await ctx.env.data.loginSessions.get(
         client.tenant.id,
@@ -232,6 +220,18 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
         } catch {
           // If resuming fails, fall through to normal OTP validation
         }
+      }
+
+      // Validate code is provided
+      if (!code) {
+        const errorMessage = m.noCode();
+        return {
+          error: errorMessage,
+          screen: await smsOtpChallengeScreen({
+            ...context,
+            errors: { code: errorMessage },
+          }),
+        };
       }
 
       try {

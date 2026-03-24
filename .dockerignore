@@ -14,6 +14,6 @@ coverage
 .parcel-cache
 .next
 .nuxt
-auth-server
+/auth-server
 apps/docs/.vitepress/cache
 apps/docs/.vitepress/dist
