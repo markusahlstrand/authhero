@@ -145,4 +145,5 @@ apps/docs/.vitepress/cache
 apps/docs/.vitepress/dist
 
 # Claude Code
-.claude/
+.claude/settings.json
+.claude/settings.local.json

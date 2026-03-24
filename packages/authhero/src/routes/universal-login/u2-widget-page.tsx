@@ -263,8 +263,8 @@ export function WidgetPage({
 
   const widgetContainerStyle =
     cssVariables.length > 0
-      ? cssVariables.join("; ") + "; width: 400px;"
-      : "width: 400px;";
+      ? cssVariables.join("; ") + "; width: clamp(320px, 100%, 400px);"
+      : "width: clamp(320px, 100%, 400px);";
 
   const htmlClass =
     darkMode === "dark"
