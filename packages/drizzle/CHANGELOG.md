@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.29.0
+
+### Minor Changes
+
+- d9c2ad1: Fixes to mfa-signup and new account screens
+
 ## 0.28.0
 
 ### Minor Changes

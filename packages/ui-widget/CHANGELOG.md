@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.24.0
+
+### Minor Changes
+
+- d9c2ad1: Fixes to mfa-signup and new account screens
+
 ## 0.23.0
 
 ### Minor Changes

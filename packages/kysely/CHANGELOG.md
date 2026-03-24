@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.109.0
+
+### Minor Changes
+
+- d9c2ad1: Fixes to mfa-signup and new account screens
+
 ## 10.108.0
 
 ### Minor Changes

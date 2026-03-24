@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.53.0
+
+### Minor Changes
+
+- d9c2ad1: Fixes to mfa-signup and new account screens
+
+### Patch Changes
+
+- Updated dependencies [d9c2ad1]
+  - @authhero/widget@0.24.0
+
 ## 0.52.0
 
 ### Minor Changes
