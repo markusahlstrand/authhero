@@ -13,12 +13,9 @@ type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 interface CliOptions {
   template?: SetupType;
-  email?: string;
-  password?: string;
   packageManager?: PackageManager;
   skipInstall?: boolean;
   skipMigrate?: boolean;
-  skipSeed?: boolean;
   skipStart?: boolean;
   yes?: boolean;
   githubCi?: boolean;
@@ -39,11 +36,6 @@ interface SetupConfig {
     workspace?: boolean,
   ) => object;
   seedFile?: string;
-}
-
-interface AdminCredentials {
-  username: string;
-  password: string;
 }
 
 const setupConfigs: Record<SetupType, SetupConfig> = {
@@ -800,16 +792,14 @@ function generateAwsSstFiles(projectPath: string, multiTenant: boolean): void {
   );
 }
 
-function printAwsSstSuccessMessage(multiTenant: boolean): void {
+function printAwsSstSuccessMessage(): void {
   console.log("\\n" + "─".repeat(50));
   console.log("🔐 AuthHero deployed to AWS!");
   console.log("📚 Check SST output for your API URL");
+  console.log(
+    "🚀 Open your server URL /setup to complete initial setup",
+  );
   console.log("🌐 Portal available at https://local.authhero.net");
-  if (multiTenant) {
-    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
-  } else {
-    console.log("🏠 Single-tenant mode with 'main' tenant");
-  }
   console.log("─".repeat(50) + "\\n");
 }
 
@@ -973,31 +963,6 @@ function runCommand(command: string, cwd: string): Promise<void> {
   });
 }
 
-function runCommandWithEnv(
-  command: string,
-  cwd: string,
-  env: Record<string, string>,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, [], {
-      cwd,
-      shell: true,
-      stdio: "inherit",
-      env: { ...process.env, ...env },
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Command failed with exit code ${code}`));
-      }
-    });
-
-    child.on("error", reject);
-  });
-}
-
 /**
  * Generates app.ts and seed.ts files for cloudflare setup based on multi-tenant flag
  */
@@ -1023,34 +988,30 @@ function generateCloudflareFiles(
 /**
  * Prints nice output at the end of setup for cloudflare
  */
-function printCloudflareSuccessMessage(multiTenant: boolean): void {
+function printCloudflareSuccessMessage(): void {
   console.log("\n" + "─".repeat(50));
   console.log("🔐 AuthHero server running at https://localhost:3000");
   console.log("📚 API documentation available at https://localhost:3000/docs");
+  console.log(
+    "🚀 Open https://localhost:3000/setup to complete initial setup",
+  );
   console.log("🌐 Portal available at https://local.authhero.net");
-  if (multiTenant) {
-    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
-  } else {
-    console.log("🏠 Single-tenant mode with 'main' tenant");
-  }
   console.log("─".repeat(50) + "\n");
 }
 
 /**
  * Prints nice output at the end of setup for local/sqlite
  */
-function printLocalSuccessMessage(multiTenant: boolean): void {
+function printLocalSuccessMessage(): void {
   console.log("\n" + "─".repeat(50));
   console.log("✅ Self-signed certificates generated with openssl");
   console.log("⚠️  You may need to trust the certificate in your browser");
   console.log("🔐 AuthHero server running at https://localhost:3000");
   console.log("📚 API documentation available at https://localhost:3000/docs");
+  console.log(
+    "🚀 Open https://localhost:3000/setup to complete initial setup",
+  );
   console.log("🌐 Portal available at https://local.authhero.net");
-  if (multiTenant) {
-    console.log("🏢 Multi-tenant mode enabled with control_plane tenant");
-  } else {
-    console.log("🏠 Single-tenant mode with 'main' tenant");
-  }
   console.log("─".repeat(50) + "\n");
 }
 
@@ -1059,8 +1020,6 @@ program
   .description("Create a new AuthHero project")
   .argument("[project-name]", "name of the project")
   .option("-t, --template <type>", "template type: local or cloudflare")
-  .option("-e, --email <email>", "admin email address")
-  .option("-p, --password <password>", "admin password (min 8 characters)")
   .option(
     "--package-manager <pm>",
     "package manager to use: npm, yarn, pnpm, or bun",
@@ -1068,7 +1027,6 @@ program
   .option("--multi-tenant", "enable multi-tenant mode")
   .option("--skip-install", "skip installing dependencies")
   .option("--skip-migrate", "skip running database migrations")
-  .option("--skip-seed", "skip seeding the database")
   .option("--skip-start", "skip starting the development server")
   .option("--github-ci", "include GitHub CI workflows with semantic versioning")
   .option("--conformance", "add OpenID conformance suite test clients")
@@ -1394,84 +1352,27 @@ program
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // For local and cloudflare setups, run migrations and seed
+        // For local and cloudflare setups, run migrations
         if (setupType === "local" || setupType === "cloudflare") {
-          // Determine if we should run migrations and seed
-          let shouldSetup: boolean;
-          if (options.skipMigrate && options.skipSeed) {
-            shouldSetup = false;
-          } else if (isNonInteractive) {
-            shouldSetup = !options.skipMigrate || !options.skipSeed;
-          } else {
-            const answer = await inquirer.prompt([
-              {
-                type: "confirm",
-                name: "shouldSetup",
-                message:
-                  "Would you like to run migrations and seed the database?",
-                default: true,
-              },
-            ]);
-            shouldSetup = answer.shouldSetup;
-          }
-
-          if (shouldSetup) {
-            // Get admin credentials
-            let credentials: AdminCredentials;
-            if (options.email && options.password) {
-              credentials = {
-                username: options.email,
-                password: options.password,
-              };
-              console.log(`Using admin username: ${options.email}`);
+          if (!options.skipMigrate) {
+            let shouldMigrate: boolean;
+            if (isNonInteractive) {
+              shouldMigrate = true;
             } else {
-              credentials = await inquirer.prompt<AdminCredentials>([
+              const answer = await inquirer.prompt([
                 {
-                  type: "input",
-                  name: "username",
-                  message: "Admin username:",
-                  default: "admin",
-                },
-                {
-                  type: "password",
-                  name: "password",
-                  message: "Admin password:",
-                  mask: "*",
-                  default: "admin",
+                  type: "confirm",
+                  name: "shouldMigrate",
+                  message: "Would you like to run database migrations?",
+                  default: true,
                 },
               ]);
+              shouldMigrate = answer.shouldMigrate;
             }
 
-            // Run migrations unless skipped
-            if (!options.skipMigrate) {
+            if (shouldMigrate) {
               console.log("\n🔄 Running migrations...\n");
               await runCommand(`${packageManager} run migrate`, projectPath);
-            }
-
-            // Seed unless skipped
-            if (!options.skipSeed) {
-              console.log("\n🌱 Seeding database...\n");
-              if (setupType === "local") {
-                // Pass credentials via environment variables to avoid shell injection
-                await runCommandWithEnv(
-                  `${packageManager} run seed`,
-                  projectPath,
-                  {
-                    ADMIN_USERNAME: credentials.username,
-                    ADMIN_PASSWORD: credentials.password,
-                  },
-                );
-              } else {
-                // For cloudflare setups, use the seed helper with environment variables
-                await runCommandWithEnv(
-                  `${packageManager} run seed:local`,
-                  projectPath,
-                  {
-                    ADMIN_USERNAME: credentials.username,
-                    ADMIN_PASSWORD: credentials.password,
-                  },
-                );
-              }
             }
           }
         }
@@ -1497,11 +1398,11 @@ program
         if (shouldStart) {
           // Print nice success message before starting
           if (setupType === "cloudflare") {
-            printCloudflareSuccessMessage(multiTenant);
+            printCloudflareSuccessMessage();
           } else if (setupType === "aws-sst") {
-            printAwsSstSuccessMessage(multiTenant);
+            printAwsSstSuccessMessage();
           } else {
-            printLocalSuccessMessage(multiTenant);
+            printLocalSuccessMessage();
           }
           console.log("🚀 Starting development server...\n");
           await runCommand(`${packageManager} run dev`, projectPath);
@@ -1514,11 +1415,11 @@ program
           console.log(`  cd ${projectName}`);
           console.log(`  npm run dev`);
           if (setupType === "cloudflare") {
-            printCloudflareSuccessMessage(multiTenant);
+            printCloudflareSuccessMessage();
           } else if (setupType === "aws-sst") {
-            printAwsSstSuccessMessage(multiTenant);
+            printAwsSstSuccessMessage();
           } else {
-            printLocalSuccessMessage(multiTenant);
+            printLocalSuccessMessage();
           }
         }
       } catch (error) {
@@ -1534,21 +1435,24 @@ program
       if (setupType === "local") {
         console.log("  npm install");
         console.log("  npm run migrate");
-        console.log("  npm run seed  # defaults to admin/admin");
         console.log("  npm run dev");
+        console.log(
+          "\nOpen https://localhost:3000/setup to complete initial setup",
+        );
       } else if (setupType === "cloudflare") {
         console.log("  npm install");
         console.log(
           "  npm run migrate  # or npm run db:migrate:remote for production",
         );
-        console.log("  npm run seed  # defaults to admin/admin");
         console.log("  npm run dev  # or npm run dev:remote for production");
+        console.log(
+          "\nOpen https://localhost:3000/setup to complete initial setup",
+        );
       } else if (setupType === "aws-sst") {
         console.log("  npm install");
         console.log("  npm run dev  # Deploys to AWS in development mode");
-        console.log("  # After deploy, get TABLE_NAME from output, then:");
         console.log(
-          "  TABLE_NAME=<your-table> npm run seed  # defaults to admin/admin",
+          "\nOpen your server URL /setup to complete initial setup",
         );
       }
 
