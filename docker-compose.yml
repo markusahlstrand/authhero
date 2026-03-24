@@ -1,0 +1,19 @@
+services:
+  authhero:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - authhero-data:/data
+    environment:
+      PORT: 3000
+      ISSUER: http://localhost:3000/
+      DATABASE_PATH: /data/db.sqlite
+      SEED: "true"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+      # HTTPS_ENABLED: "true"
+      # ALLOWED_ORIGINS: "http://localhost:5173,https://manage.authhero.net"
+
+volumes:
+  authhero-data:

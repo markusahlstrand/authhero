@@ -1,0 +1,25 @@
+{
+  "name": "@authhero/docker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx entrypoint.ts"
+  },
+  "dependencies": {
+    "@authhero/kysely-adapter": "workspace:*",
+    "@authhero/widget": "workspace:*",
+    "@hono/node-server": "latest",
+    "@hono/swagger-ui": "^0.5.0",
+    "authhero": "workspace:*",
+    "better-sqlite3": "latest",
+    "hono": "^4.6.0",
+    "kysely": "latest"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0"
+  }
+}

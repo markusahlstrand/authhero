@@ -1,6 +1,7 @@
 import { MfaEnrollment } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
+import { dbDateToIsoRequired } from "../utils/dateConversion";
 
 export function get(db: Kysely<Database>) {
   return async (
@@ -25,8 +26,8 @@ export function get(db: Kysely<Database>) {
       phone_number: row.phone_number ?? undefined,
       totp_secret: row.totp_secret ?? undefined,
       confirmed: row.confirmed === 1,
-      created_at: new Date(row.created_at_ts).toISOString(),
-      updated_at: new Date(row.updated_at_ts).toISOString(),
+      created_at: dbDateToIsoRequired(row.created_at_ts),
+      updated_at: dbDateToIsoRequired(row.updated_at_ts),
     };
   };
 }

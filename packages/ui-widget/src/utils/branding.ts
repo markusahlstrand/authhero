@@ -366,6 +366,24 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
     if (c.icons) {
       vars["--ah-color-icon"] = c.icons;
     }
+
+    // Ensure input border contrasts against both widget and input backgrounds
+    const widgetBg = c.widget_background || "#ffffff";
+    const inputBg = c.input_background || widgetBg;
+    const inputBorder = vars["--ah-color-border"] || c.input_border || "#c9cace";
+    // Check contrast against the surface behind the border (worst of the two)
+    const contrastVsWidget = wcagContrastRatio(inputBorder, widgetBg);
+    const contrastVsInput = wcagContrastRatio(inputBorder, inputBg);
+    const worstContrast = Math.min(contrastVsWidget, contrastVsInput);
+    if (worstContrast < 1.5) {
+      const bgToCheck =
+        contrastVsWidget < contrastVsInput ? widgetBg : inputBg;
+      vars["--ah-color-border"] = ensureContrastColor(
+        inputBorder,
+        bgToCheck,
+        1.5,
+      );
+    }
   }
 
   // Fonts

@@ -90,6 +90,21 @@ export async function mfaTotpEnrollmentScreen(
     },
   );
 
+  const links: UiScreen["links"] = [];
+
+  // Show back link to login-options when multiple MFA factors are available
+  const tenant = context.client.tenant;
+  const hasMultipleFactors =
+    tenant.mfa?.factors?.otp === true && tenant.mfa?.factors?.sms === true;
+  if (hasMultipleFactors) {
+    links.push({
+      id: "back",
+      text: "",
+      linkText: "Try another method",
+      href: `${routePrefix}/mfa/login-options?state=${encodeURIComponent(state)}`,
+    });
+  }
+
   const screen: UiScreen = {
     name: "mfa-totp-enrollment",
     action: `${routePrefix}/mfa/totp-enrollment?state=${encodeURIComponent(state)}`,
@@ -97,6 +112,7 @@ export async function mfaTotpEnrollmentScreen(
     title: m.title(),
     description: m.description(),
     components,
+    ...(links.length > 0 && { links }),
   };
 
   return {
