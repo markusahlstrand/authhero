@@ -220,8 +220,6 @@ export async function identifierScreen(
     method: "POST",
     title: m.title(),
     description: m.description({
-      companyName:
-        client.tenant.friendly_name || client.tenant.id || "AuthHero",
       clientName: client.name || "the application",
     }),
     components,

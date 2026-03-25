@@ -4,7 +4,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { ulid } from "ulid";
+import { ulid } from "../utils/ulid";
 
 export function create(db: Kysely<Database>) {
   return async (

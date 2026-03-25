@@ -36,9 +36,11 @@ module.exports = defineConfig({
       external: [
         "@hono/zod-openapi",
         "hono",
+        "kysely",
         "kysely-bun-sqlite",
         "kysely-planetscale",
         "@authhero/adapter-interfaces",
+        "nanoid",
       ],
     },
   },

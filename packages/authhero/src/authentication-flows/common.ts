@@ -13,7 +13,7 @@ import { HTTPException } from "hono/http-exception";
 import { TimeSpan } from "oslo";
 import { createJWT } from "oslo/jwt";
 import { nanoid } from "nanoid";
-import { ulid } from "ulid";
+import { ulid } from "../utils/ulid";
 import { generateCodeVerifier } from "oslo/oauth2";
 import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";

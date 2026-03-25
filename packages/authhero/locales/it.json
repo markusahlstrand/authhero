@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Avvisi",
       "buttonText": "Continua",
-      "description": "Accedi a ${companyName} per continuare su ${clientName}.",
+      "description": "Accedi a ${companyName}.",
       "editEmailText": "Modifica",
       "emailPlaceholder": "Indirizzo e-mail",
       "enterACodeBtn": "Accedi con un codice",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Siamo spiacenti, si è verificato un errore durante la convalida della risposta captcha. Riprova.",
       "captchaCodePlaceholder": "Inserisci il codice mostrato sopra",
       "custom-script-error-code": "Qualcosa è andato storto, riprova più tardi.",
-      "description": "Accedi a ${companyName} per continuare su ${clientName}.",
+      "description": "Accedi a ${companyName}.",
       "editEmailText": "Modifica",
       "emailPlaceholder": "Indirizzo e-mail",
       "federatedConnectionButtonText": "Continua con ${connectionName}",
