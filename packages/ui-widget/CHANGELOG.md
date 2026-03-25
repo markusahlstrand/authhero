@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.25.0
+
+### Minor Changes
+
+- f4557c1: Fix the topt enrollment
+
 ## 0.24.0
 
 ### Minor Changes

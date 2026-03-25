@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.110.0
+
+### Minor Changes
+
+- f4557c1: Fix the topt enrollment
+
 ## 10.109.0
 
 ### Minor Changes
