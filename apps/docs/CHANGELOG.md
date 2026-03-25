@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.52.0
+
+### Minor Changes
+
+- f4557c1: Fix the topt enrollment
+
 ## 1.51.0
 
 ### Minor Changes

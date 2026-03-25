@@ -1,5 +1,17 @@
 # authhero
 
+## 4.73.0
+
+### Minor Changes
+
+- f4557c1: Fix the topt enrollment
+- 8286a6a: Add a setup UI
+
+### Patch Changes
+
+- Updated dependencies [f4557c1]
+  - @authhero/widget@0.25.0
+
 ## 4.72.0
 
 ### Minor Changes

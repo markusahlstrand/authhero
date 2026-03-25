@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.33.0
+
+### Minor Changes
+
+- 8286a6a: Add a setup UI
+
 ## 0.32.0
 
 ### Minor Changes
