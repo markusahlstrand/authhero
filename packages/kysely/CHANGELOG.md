@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.111.0
+
+### Minor Changes
+
+- c862e9f: Add footer to u2 routes and fix docker build
+
 ## 10.110.0
 
 ### Minor Changes
