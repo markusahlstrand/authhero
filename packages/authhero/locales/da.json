@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Advarsler",
       "buttonText": "Fortsæt",
-      "description": "Log ind på ${companyName}.",
+      "description": "Log ind på ${clientName}.",
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-mail-adresse",
       "enterACodeBtn": "Log ind med en kode",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Vi beklager, noget gik galt under validering af captcha-svaret. Prøv venligst igen.",
       "captchaCodePlaceholder": "Indtast koden vist ovenfor",
       "custom-script-error-code": "Noget gik galt, prøv venligst igen senere.",
-      "description": "Log ind på ${companyName}.",
+      "description": "Log ind på ${clientName}.",
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-mail-adresse",
       "federatedConnectionButtonText": "Fortsæt med ${connectionName}",
