@@ -1,5 +1,16 @@
 # authhero
 
+## 4.74.0
+
+### Minor Changes
+
+- c862e9f: Add footer to u2 routes and fix docker build
+
+### Patch Changes
+
+- Updated dependencies [c862e9f]
+  - @authhero/widget@0.26.0
+
 ## 4.73.0
 
 ### Minor Changes
