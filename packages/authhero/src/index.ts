@@ -8,6 +8,7 @@ import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import createU2App from "./routes/universal-login/u2-index";
 import createSamlpApi from "./routes/saml";
+import setupApp from "./routes/setup";
 import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
@@ -105,7 +106,16 @@ export function init(config: AuthHeroConfig) {
     await next();
   });
 
-  app.get("/", (ctx: Context) => {
+  // Setup wizard — must be mounted before auth middleware and other routes
+  app.route("/setup", setupApp);
+
+  app.get("/", async (ctx: Context) => {
+    // Redirect to setup wizard if no tenants exist (first run)
+    const { tenants } = await ctx.env.data.tenants.list();
+    if (tenants.length === 0) {
+      return ctx.redirect("/setup");
+    }
+
     return ctx.json({
       name: "authhero",
     });
