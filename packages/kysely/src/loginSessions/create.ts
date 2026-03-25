@@ -4,7 +4,7 @@ import {
   LoginSessionState,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
-import { ulid } from "ulid";
+import { ulid } from "../utils/ulid";
 import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 import { nowIso } from "../utils/dateConversion";

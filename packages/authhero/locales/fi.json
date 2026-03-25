@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Ilmoitukset",
       "buttonText": "Jatka",
-      "description": "Kirjaudu sisään ${companyName} jatkaaksesi ${clientName}.",
+      "description": "Kirjaudu sisään ${clientName}.",
       "editEmailText": "Muokkaa",
       "emailPlaceholder": "Sähköpostiosoite",
       "enterACodeBtn": "Kirjaudu koodilla",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Valitettavasti jokin meni pieleen captcha-vastauksen tarkistuksessa. Yritä uudelleen.",
       "captchaCodePlaceholder": "Syötä yllä näkyvä koodi",
       "custom-script-error-code": "Jokin meni pieleen, yritä myöhemmin uudelleen.",
-      "description": "Kirjaudu sisään ${companyName} jatkaaksesi ${clientName}.",
+      "description": "Kirjaudu sisään ${clientName}.",
       "editEmailText": "Muokkaa",
       "emailPlaceholder": "Sähköpostiosoite",
       "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",

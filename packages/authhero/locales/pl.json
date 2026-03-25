@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Powiadomienia",
       "buttonText": "Kontynuuj",
-      "description": "Zaloguj się do ${companyName}, aby kontynuować do ${clientName}.",
+      "description": "Zaloguj się do ${clientName}.",
       "editEmailText": "Edytuj",
       "emailPlaceholder": "Adres e-mail",
       "enterACodeBtn": "Zaloguj się kodem",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Przepraszamy, wystąpił błąd podczas weryfikacji captcha. Spróbuj ponownie.",
       "captchaCodePlaceholder": "Wprowadź kod widoczny powyżej",
       "custom-script-error-code": "Coś poszło nie tak, spróbuj ponownie później.",
-      "description": "Zaloguj się do ${companyName}, aby kontynuować do ${clientName}.",
+      "description": "Zaloguj się do ${clientName}.",
       "editEmailText": "Edytuj",
       "emailPlaceholder": "Adres e-mail",
       "federatedConnectionButtonText": "Kontynuuj z ${connectionName}",

@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Upozornění",
       "buttonText": "Pokračovat",
-      "description": "Přihlaste se k ${companyName} a pokračujte na ${clientName}.",
+      "description": "Přihlaste se k ${clientName}.",
       "editEmailText": "Upravit",
       "emailPlaceholder": "E-mailová adresa",
       "enterACodeBtn": "Přihlásit se kódem",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Omlouváme se, při ověřování captcha došlo k chybě. Zkuste to prosím znovu.",
       "captchaCodePlaceholder": "Zadejte kód zobrazený výše",
       "custom-script-error-code": "Něco se pokazilo, zkuste to prosím později.",
-      "description": "Přihlaste se k ${companyName} a pokračujte na ${clientName}.",
+      "description": "Přihlaste se k ${clientName}.",
       "editEmailText": "Upravit",
       "emailPlaceholder": "E-mailová adresa",
       "federatedConnectionButtonText": "Pokračovat s ${connectionName}",

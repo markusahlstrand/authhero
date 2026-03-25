@@ -24,20 +24,24 @@ COPY apps/docs/package.json apps/docs/
 COPY docker/package.json docker/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
+COPY tsconfig.json tsconfig.node.json ./
 COPY packages/ packages/
 COPY docker/ docker/
+
+# Rebuild native modules (better-sqlite3) - must be after COPY which overwrites node_modules
+RUN pnpm rebuild better-sqlite3
 
 # Build packages in dependency order
 RUN pnpm --filter @authhero/adapter-interfaces build
 RUN pnpm --filter @authhero/kysely-adapter build
-RUN pnpm --filter authhero build
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter authhero build
 
 # Create non-root user and prepare runtime directories
 RUN groupadd --system authhero && useradd --system --gid authhero authhero
-RUN mkdir -p /data && chown authhero:authhero /data /app
+RUN mkdir -p /data /home/authhero/.cache/node/corepack && chown -R authhero:authhero /data /app /home/authhero
 
 VOLUME /data
 EXPOSE 3000

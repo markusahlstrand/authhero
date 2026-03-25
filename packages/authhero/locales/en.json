@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Alerts",
       "buttonText": "Continue",
-      "description": "Log in to ${companyName} to continue to ${clientName}.",
+      "description": "Log in to ${clientName}.",
       "editEmailText": "Edit",
       "emailPlaceholder": "Email address",
       "enterACodeBtn": "Sign in with a code",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "We are sorry, something went wrong while validating the captcha response. Please try again.",
       "captchaCodePlaceholder": "Enter the code shown above",
       "custom-script-error-code": "Something went wrong, please try again later.",
-      "description": "Log in to ${companyName} to continue to ${clientName}.",
+      "description": "Log in to ${clientName}.",
       "editEmailText": "Edit",
       "emailPlaceholder": "Email address",
       "federatedConnectionButtonText": "Continue with ${connectionName}",

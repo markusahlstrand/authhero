@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Varsler",
       "buttonText": "Fortsett",
-      "description": "Logg inn på ${companyName} for å fortsette til ${clientName}.",
+      "description": "Logg inn på ${clientName}.",
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-postadresse",
       "enterACodeBtn": "Logg inn med en kode",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Beklager, noe gikk galt under validering av captcha-svaret. Vennligst prøv igjen.",
       "captchaCodePlaceholder": "Skriv inn koden som vises ovenfor",
       "custom-script-error-code": "Noe gikk galt, vennligst prøv igjen senere.",
-      "description": "Logg inn på ${companyName} for å fortsette til ${clientName}.",
+      "description": "Logg inn på ${clientName}.",
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-postadresse",
       "federatedConnectionButtonText": "Fortsett med ${connectionName}",

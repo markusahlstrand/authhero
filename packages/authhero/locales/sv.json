@@ -89,7 +89,7 @@
     "login": {
       "alertListTitle": "Meddelanden",
       "buttonText": "Fortsätt",
-      "description": "Logga in på ${companyName} för att fortsätta till ${clientName}.",
+      "description": "Logga in på ${clientName}.",
       "editEmailText": "Redigera",
       "emailPlaceholder": "E-postadress",
       "enterACodeBtn": "Logga in med en kod",
@@ -134,7 +134,7 @@
       "captcha-validation-failure": "Vi beklagar, något gick fel vid validering av captcha-svaret. Försök igen.",
       "captchaCodePlaceholder": "Ange koden som visas ovan",
       "custom-script-error-code": "Något gick fel, försök igen senare.",
-      "description": "Logga in på ${companyName} för att fortsätta till ${clientName}.",
+      "description": "Logga in på ${clientName}.",
       "editEmailText": "Redigera",
       "emailPlaceholder": "E-postadress",
       "federatedConnectionButtonText": "Fortsätt med ${connectionName}",

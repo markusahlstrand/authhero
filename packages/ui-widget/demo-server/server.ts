@@ -1425,6 +1425,21 @@ async function renderWidgetPage(options: {
       height: 16px;
     }
 
+    /* Page Footer Bar */
+    .page-footer-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(0,0,0,0.08); color: #333; font-size: 13px; }
+    .footer-left, .footer-right { display: flex; align-items: center; gap: 12px; }
+    .footer-bar-powered-by { opacity: 0.7; transition: opacity 0.2s; line-height: 0; }
+    .footer-bar-powered-by:hover { opacity: 1; }
+    .footer-bar-powered-by img { display: block; }
+    .footer-bar-terms { font-size: 12px; color: inherit; opacity: 0.65; text-decoration: none; transition: opacity 0.2s; }
+    .footer-bar-terms:hover { opacity: 1; text-decoration: underline; }
+    .footer-bar-lang { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; font-size: 13px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+    .footer-bar-lang:hover { opacity: 1; }
+    .footer-bar-lang select { appearance: none; -webkit-appearance: none; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding-right: 2px; outline: none; }
+    .footer-bar-dm { display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 4px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; border-radius: 4px; }
+    .footer-bar-dm:hover { opacity: 1; }
+    .preview-area.dark-mode .page-footer-bar { background: rgba(0,0,0,0.5); border-top-color: rgba(255,255,255,0.08); color: #eee; }
+
     /* Responsive */
     @media (max-width: 900px) {
       body {
@@ -1958,6 +1973,47 @@ async function renderWidgetPage(options: {
       <h4>Event Log</h4>
       <div id="events"></div>
     </div>
+
+    <footer class="page-footer-bar" id="page-footer-bar">
+      <div class="footer-left">
+        <div class="footer-bar-powered-by">
+          <a href="https://authhero.com" target="_blank" rel="noopener noreferrer">
+            <svg width="80" height="20" viewBox="0 0 80 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="15" font-family="system-ui, sans-serif" font-size="11" fill="currentColor" opacity="0.7">Powered by AuthHero</text>
+            </svg>
+          </a>
+        </div>
+        <a class="footer-bar-terms" href="#" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
+      </div>
+      <div class="footer-right">
+        <button class="footer-bar-dm" type="button" aria-label="Toggle dark mode" id="footer-dark-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <div class="footer-bar-lang">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.6">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <select onchange="log('Language changed to: ' + this.value)">
+            <option value="en" selected>English</option>
+            <option value="nb">Norsk</option>
+            <option value="sv">Svenska</option>
+            <option value="da">Dansk</option>
+          </select>
+        </div>
+      </div>
+    </footer>
   </div>
 
   <script type="module">
@@ -2059,10 +2115,12 @@ async function renderWidgetPage(options: {
           w.style.setProperty(k, v);
         }
         previewArea.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+        previewArea.classList.add('dark-mode');
       } else {
         for (const k of Object.keys(DARK_MODE_CSS_VARS)) {
           w.style.removeProperty(k);
         }
+        previewArea.classList.remove('dark-mode');
         // Re-apply the current theme background
         applyBranding();
       }
@@ -2628,10 +2686,19 @@ async function renderWidgetPage(options: {
       fetchScreen(currentScreen, false);
     });
 
-    // Dark mode toggle
+    // Dark mode toggle (settings panel)
     document.getElementById('dark-mode').addEventListener('change', (e) => {
       darkMode = e.target.checked;
       applyDarkMode(darkMode);
+      log('Dark mode → ' + (darkMode ? 'on' : 'off'));
+      saveSettings();
+    });
+
+    // Dark mode toggle (footer bar)
+    document.getElementById('footer-dark-toggle').addEventListener('click', () => {
+      darkMode = !darkMode;
+      applyDarkMode(darkMode);
+      document.getElementById('dark-mode').checked = darkMode;
       log('Dark mode → ' + (darkMode ? 'on' : 'off'));
       saveSettings();
     });

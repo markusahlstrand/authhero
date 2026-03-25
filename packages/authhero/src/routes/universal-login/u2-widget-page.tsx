@@ -312,54 +312,47 @@ export function WidgetPage({
           dangerouslySetInnerHTML={{
             __html: `
               * { box-sizing: border-box; margin: 0; padding: 0; }
-              .powered-by { position: fixed; bottom: 16px; left: 16px; opacity: 0.7; transition: opacity 0.2s; }
+              .page-footer-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(0,0,0,0.08); color: #333; font-size: 13px; }
+              .footer-left, .footer-right { display: flex; align-items: center; gap: 12px; }
+              .powered-by { opacity: 0.7; transition: opacity 0.2s; line-height: 0; }
               .powered-by:hover { opacity: 1; }
               .powered-by img { display: block; }
-              .page-footer-left { position: fixed; bottom: 16px; left: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; z-index: 10; }
-              .terms-link { font-size: 12px; color: rgba(0,0,0,0.45); text-decoration: none; transition: color 0.2s; }
-              .terms-link:hover { color: rgba(0,0,0,0.7); text-decoration: underline; }
-              .page-footer { position: fixed; bottom: 16px; right: 16px; display: flex; align-items: center; gap: 12px; z-index: 10; }
-              .language-picker { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 6px 10px; font-size: 13px; color: #555; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
-              .language-picker:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+              .terms-link { font-size: 12px; color: inherit; opacity: 0.65; text-decoration: none; transition: opacity 0.2s; }
+              .terms-link:hover { opacity: 1; text-decoration: underline; }
+              .language-picker { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; font-size: 13px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+              .language-picker:hover { opacity: 1; }
               .language-icon { flex-shrink: 0; opacity: 0.6; }
               .language-select { appearance: none; -webkit-appearance: none; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding-right: 2px; outline: none; }
-              .dark-mode-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 7px; color: #555; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
-              .dark-mode-toggle:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+              .dark-mode-toggle { display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 4px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; border-radius: 4px; }
+              .dark-mode-toggle:hover { opacity: 1; }
 
               /* Explicit dark mode */
               html.ah-dark-mode body { background: #111827 !important; }
               html.ah-dark-mode .widget-container { position: relative; z-index: 1; }
-              html.ah-dark-mode .page-footer-left { z-index: 10; }
-              html.ah-dark-mode .page-footer { z-index: 10; }
-              html.ah-dark-mode .terms-link { color: rgba(255,255,255,0.45); }
-              html.ah-dark-mode .terms-link:hover { color: rgba(255,255,255,0.7); }
-              html.ah-dark-mode .page-footer .language-picker, html.ah-dark-mode .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
-              html.ah-dark-mode .page-footer .language-picker:hover, html.ah-dark-mode .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
+              html.ah-dark-mode .page-footer-bar { background: rgba(0,0,0,0.5); border-top-color: rgba(255,255,255,0.08); color: #eee; }
               ${darkModeCssVarRules("html.ah-dark-mode authhero-widget", primaryColor || sanitizeCssColor(theme?.colors?.primary_button))}
 
               /* Auto mode: follow system preference, unless explicitly set to light */
               @media (prefers-color-scheme: dark) {
                 html:not(.ah-light-mode) body { background: #111827 !important; }
                 html:not(.ah-light-mode) .widget-container { position: relative; z-index: 1; }
-                html:not(.ah-light-mode) .page-footer-left { z-index: 10; }
-                html:not(.ah-light-mode) .page-footer { z-index: 10; }
-                html:not(.ah-light-mode) .terms-link { color: rgba(255,255,255,0.45); }
-                html:not(.ah-light-mode) .terms-link:hover { color: rgba(255,255,255,0.7); }
-                html:not(.ah-light-mode) .page-footer .language-picker, html:not(.ah-light-mode) .page-footer .dark-mode-toggle { background: rgba(30,30,50,0.9); border-color: rgba(255,255,255,0.15); color: #ccc; }
-                html:not(.ah-light-mode) .page-footer .language-picker:hover, html:not(.ah-light-mode) .page-footer .dark-mode-toggle:hover { border-color: rgba(255,255,255,0.3); }
+                html:not(.ah-light-mode) .page-footer-bar { background: rgba(0,0,0,0.5); border-top-color: rgba(255,255,255,0.08); color: #eee; }
                 ${darkModeCssVarRules("html:not(.ah-light-mode) authhero-widget", primaryColor || sanitizeCssColor(theme?.colors?.primary_button))}
               }
 
               @media (max-width: 560px) {
-                body { justify-content: center !important; padding: 20px !important; }
+                body { justify-content: center !important; padding: 20px 20px 52px !important; }
               }
               @media (max-width: 480px) {
-                body { background: ${widgetBackground} !important; padding: 0 !important; }
+                body { background: ${widgetBackground} !important; padding: 0 0 44px !important; }
                 html.ah-dark-mode body { background: #111827 !important; }
                 .widget-container { width: 100%; }
+                .page-footer-bar { background: ${widgetBackground}; backdrop-filter: none; -webkit-backdrop-filter: none; border-top: 1px solid rgba(0,0,0,0.08); }
+                html.ah-dark-mode .page-footer-bar { background: #111827; border-top-color: rgba(255,255,255,0.08); }
               }
               @media (max-width: 480px) and (prefers-color-scheme: dark) {
                 html:not(.ah-light-mode) body { background: #111827 !important; }
+                html:not(.ah-light-mode) .page-footer-bar { background: #111827; border-top-color: rgba(255,255,255,0.08); }
               }
             `,
           }}
@@ -379,10 +372,10 @@ export function WidgetPage({
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
         />
-        {(safePoweredByUrl || termsAndConditionsUrl) && (
-          <div class="page-footer-left">
+        <footer class="page-footer-bar">
+          <div class="footer-left">
             {safePoweredByUrl && (
-              <div class="powered-by" style="position:static;">
+              <div class="powered-by">
                 {safePoweredByHref ? (
                   <a
                     href={safePoweredByHref}
@@ -415,9 +408,7 @@ export function WidgetPage({
               </a>
             )}
           </div>
-        )}
-        <footer>
-          <div class="page-footer">
+          <div class="footer-right">
             <button
               class="dark-mode-toggle"
               type="button"
