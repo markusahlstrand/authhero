@@ -196,6 +196,7 @@ function generateLocalSeedFileContent(
   multiTenant: boolean | undefined,
   conformance: boolean = false,
   conformanceAlias: string = "authhero-local",
+  adminUi?: boolean,
 ): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
@@ -206,6 +207,7 @@ function generateLocalSeedFileContent(
     "https://local.authhero.net/auth-callback",
     "http://localhost:5173/auth-callback",
     "https://localhost:3000/auth-callback",
+    ...(adminUi ? ["https://localhost:3000/admin/auth-callback"] : []),
   ];
   const conformanceCallbacks = conformance
     ? [
@@ -1311,6 +1313,7 @@ program
         multiTenant,
         conformance,
         conformanceAlias,
+        adminUi,
       );
       fs.writeFileSync(path.join(projectPath, "src/seed.ts"), seedContent);
 
