@@ -106,6 +106,42 @@ const widgetPath = path.resolve(
   "../node_modules/@authhero/widget/dist/authhero-widget",
 );
 
+// Resolve admin UI path
+const adminDistPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/react-admin/dist",
+);
+const adminIndexPath = path.join(adminDistPath, "index.html");
+
+let adminHandler: ReturnType<typeof serveStatic> | undefined;
+let adminIndexHtml: string | undefined;
+
+if (fs.existsSync(adminIndexPath)) {
+  const rawHtml = fs.readFileSync(adminIndexPath, "utf-8");
+  const adminConfig: Record<string, string> = {
+    domain: issuer.replace(/\/$/, ""),
+    basePath: "/admin",
+  };
+  if (process.env.ADMIN_CLIENT_ID) {
+    adminConfig.clientId = process.env.ADMIN_CLIENT_ID;
+  }
+  if (process.env.ADMIN_API_URL) {
+    adminConfig.apiUrl = process.env.ADMIN_API_URL;
+  }
+  if (process.env.ADMIN_AUDIENCE) {
+    adminConfig.audience = process.env.ADMIN_AUDIENCE;
+  }
+  const adminConfigJson = JSON.stringify(adminConfig).replace(/</g, "\\u003c");
+  adminIndexHtml = rawHtml.replace(
+    "</head>",
+    `<script>window.__AUTHHERO_ADMIN_CONFIG__=${adminConfigJson};</script>\n</head>`,
+  );
+  adminHandler = serveStatic({
+    root: adminDistPath,
+    rewriteRequestPath: (p: string) => p.replace("/admin", ""),
+  });
+}
+
 // Create AuthHero app
 const config: AuthHeroConfig = {
   dataAdapter,
@@ -114,6 +150,8 @@ const config: AuthHeroConfig = {
     root: widgetPath,
     rewriteRequestPath: (p) => p.replace("/u/widget", ""),
   }),
+  adminHandler,
+  adminIndexHtml,
 };
 
 const { app } = init(config);

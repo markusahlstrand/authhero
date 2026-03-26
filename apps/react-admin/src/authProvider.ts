@@ -13,6 +13,7 @@ import getToken, {
   getOrganizationToken,
   OrgCache,
 } from "./utils/tokenUtils";
+import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 
 // Track auth requests globally
 let authRequestInProgress = false;
@@ -43,12 +44,12 @@ export const createAuth0Client = (domain: string) => {
 
   // Get redirect URI from current app URL
   const currentUrl = new URL(window.location.href);
-  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
+  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}${getBasePath()}/auth-callback`;
 
   // Use the management API audience for cross-tenant operations
   // This allows the admin UI to manage tenants and their resources
   const audience =
-    import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+    getConfigValue("audience") || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
 
@@ -138,12 +139,12 @@ export const createAuth0ClientForOrg = (
 
   // Get redirect URI from current app URL
   const currentUrl = new URL(window.location.href);
-  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth-callback`;
+  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}${getBasePath()}/auth-callback`;
 
   // Use the management API audience for cross-tenant operations
   // The org_id claim in the token determines which tenant's resources are accessed
   const audience =
-    import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+    getConfigValue("audience") || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
 
@@ -213,7 +214,7 @@ export const createManagementClient = async (
       );
 
       const audience =
-        import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+        getConfigValue("audience") || "urn:authhero:management";
 
       try {
         token = await orgAuth0Client.getTokenSilently({
@@ -357,7 +358,8 @@ export const getAuthProvider = (
 
   // Get the current app's URL for redirect
   const currentUrl = new URL(window.location.href);
-  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}`;
+  const basePath = getBasePath();
+  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}${basePath}`;
 
   const baseAuthProvider = Auth0AuthProvider(auth0, {
     // Use the current app's URL with the auth-callback path
@@ -394,7 +396,7 @@ export const getAuthProvider = (
     checkAuth: async (params: any): Promise<void> => {
       try {
         // Don't check auth while on the callback page - we're in the middle of authenticating
-        if (window.location.pathname === "/auth-callback") {
+        if (window.location.pathname === getBasePath() + "/auth-callback") {
           // Return success to prevent redirect loops during callback processing
           return Promise.resolve();
         }
@@ -448,7 +450,7 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
   }
 
   // Prevent API calls while on the auth callback page
-  if (window.location.pathname === "/auth-callback") {
+  if (window.location.pathname === getBasePath() + "/auth-callback") {
     return Promise.reject({
       json: {
         message: "Authentication in progress. Please wait...",
@@ -719,7 +721,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
     }
 
     // Prevent API calls while on the auth callback page
-    if (window.location.pathname === "/auth-callback") {
+    if (window.location.pathname === getBasePath() + "/auth-callback") {
       return Promise.reject({
         json: {
           message: "Authentication in progress. Please wait...",
@@ -866,7 +868,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       // Use the management API audience for cross-tenant operations
       // The org_id in the token will determine which tenant's resources are being accessed
       const audience =
-        import.meta.env.VITE_AUTH0_AUDIENCE || "urn:authhero:management";
+        getConfigValue("audience") || "urn:authhero:management";
 
       // First, check if we have a valid session for this organization
       request = orgAuth0Client

@@ -215,6 +215,9 @@ importers:
       '@authhero/kysely-adapter':
         specifier: workspace:*
         version: link:../packages/kysely
+      '@authhero/react-admin':
+        specifier: workspace:*
+        version: link:../apps/react-admin
       '@authhero/widget':
         specifier: workspace:*
         version: link:../packages/ui-widget
@@ -545,18 +548,15 @@ importers:
 
   packages/create-authhero/auth-server:
     dependencies:
-      '@authhero/drizzle':
-        specifier: workspace:*
-        version: link:../../drizzle
       '@authhero/kysely-adapter':
         specifier: workspace:*
         version: link:../../kysely
-      '@authhero/multi-tenancy':
-        specifier: workspace:*
-        version: link:../../multi-tenancy
       '@authhero/widget':
         specifier: workspace:*
         version: link:../../ui-widget
+      '@hono/node-server':
+        specifier: latest
+        version: 1.19.11(hono@4.11.1)
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.3(hono@4.11.1)
@@ -566,31 +566,28 @@ importers:
       authhero:
         specifier: workspace:*
         version: link:../../authhero
+      better-sqlite3:
+        specifier: latest
+        version: 12.8.0
       hono:
         specifier: ^4.6.0
         version: 4.11.1
       kysely:
         specifier: latest
         version: 0.28.14
-      kysely-d1:
-        specifier: latest
-        version: 0.4.0(kysely@0.28.14)
     devDependencies:
-      '@cloudflare/workers-types':
+      '@types/better-sqlite3':
+        specifier: ^7.6.0
+        version: 7.6.13
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
+      tsx:
         specifier: ^4.0.0
-        version: 4.20251225.0
-      drizzle-kit:
-        specifier: ^0.31.0
-        version: 0.31.8
-      drizzle-orm:
-        specifier: ^0.44.0
-        version: 0.44.7(@cloudflare/workers-types@4.20251225.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.8.0)(bun-types@1.3.5)(kysely@0.28.14)
+        version: 4.21.0
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
-      wrangler:
-        specifier: ^3.0.0
-        version: 3.114.16(@cloudflare/workers-types@4.20251225.0)
 
   packages/drizzle:
     dependencies:
@@ -6716,11 +6713,6 @@ packages:
     engines: {bun: '>=1'}
     peerDependencies:
       kysely: ^0.27.2
-
-  kysely-d1@0.4.0:
-    resolution: {integrity: sha512-wUcVvQNtm30OTfuo7Ad5vYJ1qHqPXOCZc+zWchVKNyuvqY3u8OuGw4gmUx1Ypdx2wRVFLHVQC9I7v0pTmF7Nkw==}
-    peerDependencies:
-      kysely: '*'
 
   kysely-planetscale@1.7.1:
     resolution: {integrity: sha512-raPGGTp9uMRWFMiFzL5VDqk/QAtmhQxj4klgXUzkefOtCjyB0rYgEYsW0YODbGLQ43+IcOTU/kzBXohpK/IQJg==}
@@ -16370,10 +16362,6 @@ snapshots:
     dependencies:
       bun-types: 1.3.5
       kysely: 0.27.6
-
-  kysely-d1@0.4.0(kysely@0.28.14):
-    dependencies:
-      kysely: 0.28.14
 
   kysely-planetscale@1.7.1(@planetscale/database@1.19.0)(kysely@0.27.6):
     dependencies:

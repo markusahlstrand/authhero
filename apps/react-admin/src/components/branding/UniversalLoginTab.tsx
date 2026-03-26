@@ -21,10 +21,17 @@ import {
   formatDomain,
   getSelectedDomainFromStorage,
 } from "../../utils/domainUtils";
+import { getConfigValue, getBasePath } from "../../utils/runtimeConfig";
 
 // Get tenantId from the URL path (e.g., /breakit/branding -> breakit)
 function getTenantIdFromPath(): string {
-  const pathSegments = window.location.pathname.split("/").filter(Boolean);
+  const basePath = getBasePath();
+  const pathname = window.location.pathname;
+  const relativePath =
+    basePath && pathname.startsWith(basePath)
+      ? pathname.slice(basePath.length)
+      : pathname;
+  const pathSegments = relativePath.split("/").filter(Boolean);
   return pathSegments[0] || "";
 }
 
@@ -60,7 +67,7 @@ function getApiUrl(): string {
   } else if (selectedDomain) {
     apiUrl = buildUrlWithProtocol(selectedDomain);
   } else {
-    apiUrl = buildUrlWithProtocol(import.meta.env.VITE_AUTH0_API_URL || "");
+    apiUrl = buildUrlWithProtocol(getConfigValue("apiUrl"));
   }
 
   return apiUrl.replace(/\/$/, "");

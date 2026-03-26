@@ -1,6 +1,7 @@
 import { Admin, Resource } from "react-admin";
-import { getDataprovider } from "./dataProvider";
+import { getDataprovider, resolveApiBase } from "./dataProvider";
 import { getAuthProvider, createAuth0Client } from "./authProvider";
+import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
 import { useMemo, useState, useEffect } from "react";
@@ -20,7 +21,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
 
   // State for domains and domain selector dialog
   const [selectedDomain, setSelectedDomain] = useState<string>(
-    initialDomain || "",
+    initialDomain || getConfigValue("domain") || "",
   );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
   const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
@@ -36,9 +37,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   // Get the dataProvider with the selected domain - also memoize this
   // Wrap it to catch certificate errors
   const dataProvider = useMemo(() => {
-    const baseProvider = getDataprovider(
-      selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
-    );
+    const baseProvider = getDataprovider(selectedDomain);
 
     // Wrap all methods to catch certificate errors
     const wrappedProvider: typeof baseProvider = {} as typeof baseProvider;
@@ -69,6 +68,9 @@ export function TenantsApp(props: TenantsAppProps = {}) {
       return;
     }
 
+    let cancelled = false;
+    const abortController = new AbortController();
+
     // Try to fetch tenants list
     dataProvider
       .getList("tenants", {
@@ -77,12 +79,14 @@ export function TenantsApp(props: TenantsAppProps = {}) {
         filter: {},
       })
       .then((result) => {
+        if (cancelled) return;
         // Multi-tenant mode - tenants endpoint exists
         // Mark as multi-tenant and show the tenants list (don't auto-redirect)
         sessionStorage.setItem("isSingleTenant", `${selectedDomain}|false`);
         setIsCheckingSingleTenant(false);
       })
       .catch(async (error) => {
+        if (cancelled) return;
         console.log("Tenants endpoint check:", error);
         // If we get a 404 or any error, the tenants endpoint doesn't exist
         // In single-tenant mode without multi-tenancy package, the endpoint won't exist
@@ -94,36 +98,47 @@ export function TenantsApp(props: TenantsAppProps = {}) {
         // Try to use the /tenants/settings endpoint which works in single-tenant mode
         // We need to get a token and make a direct fetch to avoid organization logic
         try {
-          const apiUrl = selectedDomain.startsWith("http")
-            ? selectedDomain
-            : `https://${selectedDomain}`;
+          const apiUrl = resolveApiBase(selectedDomain);
 
           // Get a non-org token
           const auth0Client = createAuth0Client(selectedDomain);
           const token = await auth0Client.getTokenSilently();
+
+          if (cancelled) return;
 
           const response = await fetch(`${apiUrl}/api/v2/tenants/settings`, {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
+            signal: abortController.signal,
           });
+
+          if (cancelled) return;
 
           if (response.ok) {
             const settings = await response.json();
             if (settings?.id) {
-              window.location.href = `/${settings.id}`;
+              const basePath = getBasePath();
+              window.location.href = `${basePath}/${settings.id}`;
               return;
             }
           }
         } catch (settingsError) {
+          if (cancelled) return;
           console.log("Settings endpoint also failed:", settingsError);
         }
 
+        if (cancelled) return;
         // If both endpoints fail, clear the flag and show the tenants list (which will show an error)
         sessionStorage.removeItem("isSingleTenant");
         setIsCheckingSingleTenant(false);
       });
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
   }, [selectedDomain, dataProvider]);
 
   const openDomainManager = () => {

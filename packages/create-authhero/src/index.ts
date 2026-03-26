@@ -31,7 +31,7 @@ interface SetupConfig {
   templateDir: string;
   packageJson: (
     projectName: string,
-    multiTenant: boolean,
+    multiTenant: boolean | undefined,
     conformance?: boolean,
     workspace?: boolean,
   ) => object;
@@ -188,7 +188,7 @@ function copyFiles(source: string, target: string): void {
 }
 
 function generateLocalSeedFileContent(
-  multiTenant: boolean,
+  multiTenant: boolean | undefined,
   conformance: boolean = false,
   conformanceAlias: string = "authhero-local",
 ): string {
@@ -351,7 +351,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${multiTenant},
+    isControlPlane: ${!!multiTenant},
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
@@ -363,13 +363,22 @@ main().catch(console.error);
 `;
 }
 
-function generateLocalAppFileContent(multiTenant: boolean): string {
+function generateLocalAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
 import { AuthHeroConfig, DataAdapters } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { initMultiTenant } from "@authhero/multi-tenancy";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const widgetPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/widget/dist/authhero-widget",
+);
 
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
@@ -379,6 +388,10 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
   const { app } = initMultiTenant({
     ...config,
+    widgetHandler: serveStatic({
+      root: widgetPath,
+      rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+    }),
     controlPlane: {
       tenantId: CONTROL_PLANE_TENANT_ID,
       clientId: CONTROL_PLANE_CLIENT_ID,
@@ -403,23 +416,7 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
         controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
       });
     })
-    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
-    // Serve widget assets from @authhero/widget package
-    .get(
-      "/u/widget/*",
-      serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
-        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
-      }),
-    )
-    // Serve static assets (CSS, JS) from authhero package
-    .get(
-      "/u/*",
-      serveStatic({
-        root: "./node_modules/authhero/dist/assets/u",
-        rewriteRequestPath: (path) => path.replace("/u", ""),
-      }),
-    );
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
 
   return app;
 }
@@ -430,9 +427,24 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serveStatic } from "@hono/node-server/serve-static";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const widgetPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/widget/dist/authhero-widget",
+);
 
 export default function createApp(config: AuthHeroConfig) {
-  const { app } = init(config);
+  const { app } = init({
+    ...config,
+    widgetHandler: serveStatic({
+      root: widgetPath,
+      rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+    }),
+  });
 
   app
     .onError((err, ctx) => {
@@ -449,30 +461,14 @@ export default function createApp(config: AuthHeroConfig) {
         status: "running",
       });
     })
-    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
-    // Serve widget assets from @authhero/widget package
-    .get(
-      "/u/widget/*",
-      serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
-        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
-      }),
-    )
-    // Serve static assets (CSS, JS) from authhero package
-    .get(
-      "/u/*",
-      serveStatic({
-        root: "./node_modules/authhero/dist/assets/u",
-        rewriteRequestPath: (path) => path.replace("/u", ""),
-      }),
-    );
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
 
   return app;
 }
 `;
 }
 
-function generateCloudflareSeedFileContent(multiTenant: boolean): string {
+function generateCloudflareSeedFileContent(multiTenant: boolean | undefined): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -504,7 +500,7 @@ export default {
         issuer,
         tenantId: "${tenantId}",
         tenantName: "${tenantName}",
-        isControlPlane: ${multiTenant},
+        isControlPlane: ${!!multiTenant},
       });
 
       return new Response(
@@ -536,7 +532,7 @@ export default {
 `;
 }
 
-function generateCloudflareAppFileContent(multiTenant: boolean): string {
+function generateCloudflareAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -621,7 +617,7 @@ export default function createApp(config: AuthHeroConfig) {
 `;
 }
 
-function generateAwsSstAppFileContent(multiTenant: boolean): string {
+function generateAwsSstAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -732,7 +728,7 @@ export default function createApp(config: AppConfig) {
 `;
 }
 
-function generateAwsSstSeedFileContent(multiTenant: boolean): string {
+function generateAwsSstSeedFileContent(multiTenant: boolean | undefined): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -766,7 +762,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${multiTenant},
+    isControlPlane: ${!!multiTenant},
   });
 
   console.log("✅ Database seeded successfully!");
@@ -776,7 +772,7 @@ main().catch(console.error);
 `;
 }
 
-function generateAwsSstFiles(projectPath: string, multiTenant: boolean): void {
+function generateAwsSstFiles(projectPath: string, multiTenant: boolean | undefined): void {
   const srcDir = path.join(projectPath, "src");
 
   // Generate app.ts
@@ -968,7 +964,7 @@ function runCommand(command: string, cwd: string): Promise<void> {
  */
 function generateCloudflareFiles(
   projectPath: string,
-  multiTenant: boolean,
+  multiTenant: boolean | undefined,
 ): void {
   const srcDir = path.join(projectPath, "src");
 
@@ -1111,25 +1107,8 @@ program
       setupType = answer.setupType;
     }
 
-    // Ask about multi-tenant setup
-    let multiTenant: boolean;
-    if (options.multiTenant !== undefined) {
-      multiTenant = options.multiTenant;
-      console.log(`Multi-tenant mode: ${multiTenant ? "enabled" : "disabled"}`);
-    } else if (isNonInteractive) {
-      multiTenant = false; // Default to single tenant
-    } else {
-      const multiTenantAnswer = await inquirer.prompt([
-        {
-          type: "confirm",
-          name: "multiTenant",
-          message:
-            "Would you like to enable multi-tenant mode?\n     (Allows managing multiple tenants from a control plane)",
-          default: false,
-        },
-      ]);
-      multiTenant = multiTenantAnswer.multiTenant;
-    }
+    // Multi-tenant setup is now configured in the onboarding UI
+    const multiTenant = options.multiTenant;
 
     // Handle conformance testing setup
     const conformance = options.conformance || false;

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@authhero/kysely-adapter": "workspace:*",
+    "@authhero/react-admin": "workspace:*",
     "@authhero/widget": "workspace:*",
     "@hono/node-server": "latest",
     "@hono/swagger-ui": "^0.5.0",

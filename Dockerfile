@@ -23,21 +23,20 @@ COPY apps/auth0-proxy/package.json apps/auth0-proxy/
 COPY apps/docs/package.json apps/docs/
 COPY docker/package.json docker/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Install dependencies (onlyBuiltDependencies in pnpm-workspace.yaml limits scripts to better-sqlite3)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY tsconfig.json tsconfig.node.json ./
 COPY packages/ packages/
+COPY apps/react-admin/ apps/react-admin/
 COPY docker/ docker/
-
-# Rebuild native modules (better-sqlite3) - must be after COPY which overwrites node_modules
-RUN pnpm rebuild better-sqlite3
 
 # Build packages in dependency order
 RUN pnpm --filter @authhero/adapter-interfaces build
 RUN pnpm --filter @authhero/kysely-adapter build
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter authhero build
+RUN pnpm --filter @authhero/react-admin exec vite build
 
 # Create non-root user and prepare runtime directories
 RUN groupadd --system authhero && useradd --system --gid authhero authhero
@@ -48,8 +47,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV DATABASE_PATH=/data/db.sqlite
-ENV SEED=true
-# ADMIN_USERNAME and ADMIN_PASSWORD must be provided at runtime when SEED=true
 
 USER authhero
 

@@ -8,6 +8,7 @@ import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import BusinessIcon from "@mui/icons-material/Business";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { getDataproviderForTenant } from "./dataProvider";
+import { getConfigValue } from "./utils/runtimeConfig";
 import { getAuthProvider } from "./authProvider";
 import { ClientCreate, ClientEdit, ClientList } from "./components/clients";
 import {
@@ -64,7 +65,7 @@ export function App(props: AppProps) {
 
   // Use a default domain for now - in the working project, domain selection might be handled differently
   const selectedDomain =
-    props.initialDomain || import.meta.env.VITE_AUTH0_DOMAIN || "";
+    props.initialDomain || getConfigValue("domain") || "";
 
   // Check if we've already verified single-tenant mode for THIS domain
   // The flag is stored as "domain|true" or "domain|false" to ensure we re-check when domain changes
@@ -132,7 +133,7 @@ export function App(props: AppProps) {
   const dataProvider = useMemo(() => {
     const baseProvider = getDataproviderForTenant(
       props.tenantId,
-      selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+      selectedDomain || getConfigValue("domain") || "",
     );
 
     // Wrap all methods to catch certificate errors
@@ -184,6 +185,7 @@ export function App(props: AppProps) {
         requireAuth={!!selectedDomain} // Only require auth when domain is selected
         layout={tenantLayout}
         dashboard={ActivityDashboard}
+        basename={`/${props.tenantId}`}
       >
         <CustomRoutes>
           <Route path="/activity" element={<ActivityDashboard />} />
