@@ -213,12 +213,12 @@ describe("authhero-widget", () => {
     // Mock window.location.href
     const locationHref = jest.fn();
     Object.defineProperty(page.win, "location", {
-      value: { href: "" },
+      value: { href: "http://localhost/" },
       writable: true,
     });
     Object.defineProperty(page.win.location, "href", {
       set: locationHref,
-      get: () => "",
+      get: () => "http://localhost/",
     });
 
     // Find the submit button and click it
