@@ -1,5 +1,11 @@
 # authhero
 
+## 4.75.0
+
+### Minor Changes
+
+- b3ad21f: Update setup with new ui
+
 ## 4.74.0
 
 ### Minor Changes

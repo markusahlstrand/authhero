@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.112.0
+
+### Minor Changes
+
+- b3ad21f: Update setup with new ui
+
 ## 10.111.0
 
 ### Minor Changes

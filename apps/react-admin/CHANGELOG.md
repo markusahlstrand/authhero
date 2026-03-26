@@ -1,5 +1,11 @@
 # @authhero/react-admin
 
+## 0.54.0
+
+### Minor Changes
+
+- b3ad21f: Update setup with new ui
+
 ## 0.53.0
 
 ### Minor Changes
