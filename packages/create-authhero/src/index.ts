@@ -31,7 +31,7 @@ interface SetupConfig {
   templateDir: string;
   packageJson: (
     projectName: string,
-    multiTenant: boolean,
+    multiTenant: boolean | undefined,
     conformance?: boolean,
     workspace?: boolean,
   ) => object;
@@ -188,7 +188,7 @@ function copyFiles(source: string, target: string): void {
 }
 
 function generateLocalSeedFileContent(
-  multiTenant: boolean,
+  multiTenant: boolean | undefined,
   conformance: boolean = false,
   conformanceAlias: string = "authhero-local",
 ): string {
@@ -351,7 +351,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${multiTenant},
+    isControlPlane: ${!!multiTenant},
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
@@ -363,7 +363,7 @@ main().catch(console.error);
 `;
 }
 
-function generateLocalAppFileContent(multiTenant: boolean): string {
+function generateLocalAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -468,7 +468,7 @@ export default function createApp(config: AuthHeroConfig) {
 `;
 }
 
-function generateCloudflareSeedFileContent(multiTenant: boolean): string {
+function generateCloudflareSeedFileContent(multiTenant: boolean | undefined): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -500,7 +500,7 @@ export default {
         issuer,
         tenantId: "${tenantId}",
         tenantName: "${tenantName}",
-        isControlPlane: ${multiTenant},
+        isControlPlane: ${!!multiTenant},
       });
 
       return new Response(
@@ -532,7 +532,7 @@ export default {
 `;
 }
 
-function generateCloudflareAppFileContent(multiTenant: boolean): string {
+function generateCloudflareAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -617,7 +617,7 @@ export default function createApp(config: AuthHeroConfig) {
 `;
 }
 
-function generateAwsSstAppFileContent(multiTenant: boolean): string {
+function generateAwsSstAppFileContent(multiTenant: boolean | undefined): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -728,7 +728,7 @@ export default function createApp(config: AppConfig) {
 `;
 }
 
-function generateAwsSstSeedFileContent(multiTenant: boolean): string {
+function generateAwsSstSeedFileContent(multiTenant: boolean | undefined): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -762,7 +762,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${multiTenant},
+    isControlPlane: ${!!multiTenant},
   });
 
   console.log("✅ Database seeded successfully!");
@@ -772,7 +772,7 @@ main().catch(console.error);
 `;
 }
 
-function generateAwsSstFiles(projectPath: string, multiTenant: boolean): void {
+function generateAwsSstFiles(projectPath: string, multiTenant: boolean | undefined): void {
   const srcDir = path.join(projectPath, "src");
 
   // Generate app.ts
@@ -964,7 +964,7 @@ function runCommand(command: string, cwd: string): Promise<void> {
  */
 function generateCloudflareFiles(
   projectPath: string,
-  multiTenant: boolean,
+  multiTenant: boolean | undefined,
 ): void {
   const srcDir = path.join(projectPath, "src");
 
@@ -1108,7 +1108,7 @@ program
     }
 
     // Multi-tenant setup is now configured in the onboarding UI
-    const multiTenant = options.multiTenant || false;
+    const multiTenant = options.multiTenant;
 
     // Handle conformance testing setup
     const conformance = options.conformance || false;
