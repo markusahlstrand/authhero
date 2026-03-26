@@ -1,5 +1,5 @@
 import { Admin, Resource } from "react-admin";
-import { getDataprovider } from "./dataProvider";
+import { getDataprovider, resolveApiBase } from "./dataProvider";
 import { getAuthProvider, createAuth0Client } from "./authProvider";
 import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 import { TenantsList } from "./components/tenants/list";
@@ -93,9 +93,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
         // Try to use the /tenants/settings endpoint which works in single-tenant mode
         // We need to get a token and make a direct fetch to avoid organization logic
         try {
-          const apiUrl = selectedDomain.startsWith("http")
-            ? selectedDomain
-            : `https://${selectedDomain}`;
+          const apiUrl = resolveApiBase(selectedDomain);
 
           // Get a non-org token
           const auth0Client = createAuth0Client(selectedDomain);

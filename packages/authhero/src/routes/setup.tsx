@@ -110,7 +110,7 @@ function getSetupScreen(error?: string) {
 
 function getSuccessScreen(tenantId: string, isMultiTenant: boolean) {
   return {
-    action: "/",
+    action: "/admin",
     method: "GET",
     title: "Setup Complete",
     description: `Your ${isMultiTenant ? "control plane" : "tenant"} is ready.`,

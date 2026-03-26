@@ -38,8 +38,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
 
   // Get the selected domain from storage or environment
   const selectedDomain = useMemo(() => {
-    const selected = getSelectedDomainFromStorage();
-    return selected || getConfigValue("domain") || "";
+    return getConfigValue("domain") || getSelectedDomainFromStorage() || "";
   }, []);
 
   // Use the non-org data provider for fetching tenants list

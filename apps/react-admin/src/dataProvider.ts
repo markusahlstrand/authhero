@@ -11,6 +11,32 @@ import {
   formatDomain,
 } from "./utils/domainUtils";
 
+/**
+ * Resolves the API base URL for a given domain, checking for custom restApiUrl
+ * in stored domain config and falling back to the domain itself with HTTPS.
+ */
+export function resolveApiBase(auth0Domain?: string): string {
+  if (auth0Domain) {
+    const domains = getDomainFromStorage();
+    const formattedAuth0Domain = formatDomain(auth0Domain);
+    const domainConfig = domains.find(
+      (d) => formatDomain(d.url) === formattedAuth0Domain,
+    );
+
+    if (domainConfig?.restApiUrl) {
+      return buildUrlWithProtocol(domainConfig.restApiUrl);
+    }
+    return buildUrlWithProtocol(auth0Domain);
+  }
+
+  const envUrl = getConfigValue("apiUrl");
+  if (envUrl) {
+    return buildUrlWithProtocol(envUrl);
+  }
+
+  return "";
+}
+
 async function removeExtraFields(params: UpdateParams) {
   delete params.data?.id;
   delete params.data?.tenant_id;
@@ -28,28 +54,7 @@ async function removeExtraFields(params: UpdateParams) {
 }
 
 export function getDataprovider(auth0Domain?: string) {
-  // Create the complete base URL using the selected domain
-  let baseUrl = getConfigValue("apiUrl");
-
-  if (auth0Domain) {
-    // Check if there's a custom REST API URL configured for this domain
-    const domains = getDomainFromStorage();
-    const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find(
-      (d) => formatDomain(d.url) === formattedAuth0Domain,
-    );
-
-    if (domainConfig?.restApiUrl) {
-      // Use the custom REST API URL if configured (ensure HTTPS)
-      baseUrl = buildUrlWithProtocol(domainConfig.restApiUrl);
-    } else {
-      // Otherwise use the auth domain with HTTPS
-      baseUrl = buildUrlWithProtocol(auth0Domain);
-    }
-  } else if (baseUrl) {
-    // Ensure env variable URL also uses HTTPS
-    baseUrl = buildUrlWithProtocol(baseUrl);
-  }
+  const baseUrl = resolveApiBase(auth0Domain);
 
   // TODO - duplicate auth0DataProvider to tenantsDataProvider
   // we are introducing non-auth0 endpoints AND we don't require the tenants-id header
@@ -72,28 +77,7 @@ export function getDataproviderForTenant(
   tenantId: string,
   auth0Domain?: string,
 ) {
-  // Start with a default API URL
-  let apiUrl;
-
-  if (auth0Domain) {
-    // Check if there's a custom REST API URL configured for this domain
-    const domains = getDomainFromStorage();
-    const formattedAuth0Domain = formatDomain(auth0Domain);
-    const domainConfig = domains.find(
-      (d) => formatDomain(d.url) === formattedAuth0Domain,
-    );
-
-    if (domainConfig?.restApiUrl) {
-      // Use the custom REST API URL if configured (ensure HTTPS)
-      apiUrl = buildUrlWithProtocol(domainConfig.restApiUrl);
-    } else {
-      // Otherwise construct an API URL using the auth0Domain with HTTPS
-      apiUrl = buildUrlWithProtocol(auth0Domain);
-    }
-  } else {
-    // Fallback to the environment variable (ensure HTTPS)
-    apiUrl = buildUrlWithProtocol(getConfigValue("apiUrl"));
-  }
+  let apiUrl = resolveApiBase(auth0Domain);
 
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
