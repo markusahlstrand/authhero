@@ -90,6 +90,7 @@ const app = createApp({
     "https://manage.authhero.net",
     "https://local.authhero.net",
     "http://localhost:5173",
+    "https://localhost:5173",
   ],
 });
 

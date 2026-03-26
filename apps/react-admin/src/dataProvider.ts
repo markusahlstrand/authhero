@@ -4,6 +4,7 @@ import {
   createOrganizationHttpClient,
 } from "./authProvider";
 import auth0DataProvider from "./auth0DataProvider";
+import { getConfigValue } from "./utils/runtimeConfig";
 import {
   getDomainFromStorage,
   buildUrlWithProtocol,
@@ -28,7 +29,7 @@ async function removeExtraFields(params: UpdateParams) {
 
 export function getDataprovider(auth0Domain?: string) {
   // Create the complete base URL using the selected domain
-  let baseUrl = import.meta.env.VITE_SIMPLE_REST_URL;
+  let baseUrl = getConfigValue("apiUrl");
 
   if (auth0Domain) {
     // Check if there's a custom REST API URL configured for this domain
@@ -91,7 +92,7 @@ export function getDataproviderForTenant(
     }
   } else {
     // Fallback to the environment variable (ensure HTTPS)
-    apiUrl = buildUrlWithProtocol(import.meta.env.VITE_AUTH0_API_URL || "");
+    apiUrl = buildUrlWithProtocol(getConfigValue("apiUrl"));
   }
 
   // Ensure apiUrl doesn't end with a slash

@@ -557,6 +557,10 @@ export interface SeedOptions {
    */
   adminUsername: string;
   /**
+   * The admin user's email address (optional)
+   */
+  adminEmail?: string;
+  /**
    * The admin user's password (will be hashed with bcrypt)
    */
   adminPassword: string;
@@ -632,6 +636,7 @@ export async function seed(
 ): Promise<SeedResult> {
   const {
     adminUsername,
+    adminEmail,
     adminPassword,
     tenantId = "control_plane",
     tenantName = "Control Plane",
@@ -733,7 +738,8 @@ export async function seed(
     await adapters.users.create(tenantId, {
       user_id: userId,
       username: adminUsername,
-      email_verified: false,
+      email: adminEmail,
+      email_verified: !!adminEmail,
       connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       password: { hash, algorithm },

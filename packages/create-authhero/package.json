@@ -18,6 +18,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "prepublishOnly": "pnpm build",
+    "dev": "pnpm build && rm -rf auth-server && node dist/create-authhero.js auth-server --workspace --skip-install --skip-start && pnpm -w install --force --filter auth-server... && pnpm --filter auth-server migrate && pnpm --filter auth-server dev",
     "start": "pnpm build && node dist/create-authhero.js"
   },
   "devDependencies": {

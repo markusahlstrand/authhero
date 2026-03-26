@@ -1,6 +1,7 @@
 import { Admin, Resource } from "react-admin";
 import { getDataprovider } from "./dataProvider";
 import { getAuthProvider, createAuth0Client } from "./authProvider";
+import { getConfigValue } from "./utils/runtimeConfig";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
 import { useMemo, useState, useEffect } from "react";
@@ -37,7 +38,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   // Wrap it to catch certificate errors
   const dataProvider = useMemo(() => {
     const baseProvider = getDataprovider(
-      selectedDomain || import.meta.env.VITE_AUTH0_DOMAIN || "",
+      selectedDomain || getConfigValue("domain") || "",
     );
 
     // Wrap all methods to catch certificate errors

@@ -6,10 +6,10 @@ import { sqlTenantToTenant } from "./utils";
 import { luceneFilter } from "../helpers/filter";
 
 export function list(db: Kysely<Database>) {
-  return async (params: ListParams) => {
+  return async (params?: ListParams) => {
     let query = db.selectFrom("tenants");
 
-    const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
+    const { page = 0, per_page = 50, include_totals = false, sort, q } = params || {};
 
     if (sort && sort.sort_by) {
       const { ref } = db.dynamic;

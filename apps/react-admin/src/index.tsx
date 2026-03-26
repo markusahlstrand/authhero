@@ -6,29 +6,36 @@ import { TenantsApp } from "./TenantsApp";
 import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
+import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 
-// If a domain is configured via env, use single-domain mode automatically
-const envDomain = import.meta.env.VITE_AUTH0_DOMAIN;
+// If a domain is configured via env/runtime, use single-domain mode automatically
+const envDomain = getConfigValue("domain");
 
 function Root() {
   // Initialize synchronously from storage to prevent flash of DomainSelector on direct navigation
   const [selectedDomain, setSelectedDomain] = useState<string | null>(
     envDomain || getSelectedDomainFromStorage() || null,
   );
+  const basePath = getBasePath();
   const currentPath = location.pathname;
-  const isAuthCallback = currentPath === "/auth-callback";
-  const isRootPath = currentPath === "/";
+  // Strip base path prefix to get the relative path for routing decisions
+  const relativePath =
+    basePath && currentPath.startsWith(basePath)
+      ? currentPath.slice(basePath.length) || "/"
+      : currentPath;
+  const isAuthCallback = relativePath === "/auth-callback";
+  const isRootPath = relativePath === "/";
   // Only match /tenants exactly or /tenants/create (not /tenants/:id which would be a tenant admin route)
   const isTenantsPath =
-    currentPath === "/tenants" ||
-    currentPath.startsWith("/tenants/create") ||
-    currentPath === "/tenants/";
+    relativePath === "/tenants" ||
+    relativePath.startsWith("/tenants/create") ||
+    relativePath === "/tenants/";
 
   // Handle auth callback separately without basename
   if (isAuthCallback) {
     return (
       <React.StrictMode>
-        <BrowserRouter>
+        <BrowserRouter basename={basePath || undefined}>
           <AuthCallback onAuthComplete={() => {}} />
         </BrowserRouter>
       </React.StrictMode>
@@ -47,7 +54,7 @@ function Root() {
 
   // For env-configured domain on root path, redirect to /tenants
   if (envDomain && isRootPath) {
-    window.location.href = "/tenants";
+    window.location.href = basePath + "/tenants";
     return null;
   }
 
@@ -55,7 +62,7 @@ function Root() {
   if (isTenantsPath) {
     return (
       <React.StrictMode>
-        <BrowserRouter>
+        <BrowserRouter basename={basePath || undefined}>
           <TenantsApp initialDomain={selectedDomain || ""} />
         </BrowserRouter>
       </React.StrictMode>
@@ -63,13 +70,13 @@ function Root() {
   }
 
   // Handle tenant-specific routes
-  const pathSegments = currentPath.split("/").filter(Boolean);
+  const pathSegments = relativePath.split("/").filter(Boolean);
   const tenantId = pathSegments[0];
 
   if (tenantId) {
     return (
       <React.StrictMode>
-        <BrowserRouter basename={`/${tenantId}`}>
+        <BrowserRouter basename={`${basePath}/${tenantId}`}>
           <App tenantId={tenantId} initialDomain={selectedDomain || ""} />
         </BrowserRouter>
       </React.StrictMode>

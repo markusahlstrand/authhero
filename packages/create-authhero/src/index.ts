@@ -370,6 +370,15 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { AuthHeroConfig, DataAdapters } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { initMultiTenant } from "@authhero/multi-tenancy";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const widgetPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/widget/dist/authhero-widget",
+);
 
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
@@ -379,6 +388,10 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
   const { app } = initMultiTenant({
     ...config,
+    widgetHandler: serveStatic({
+      root: widgetPath,
+      rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+    }),
     controlPlane: {
       tenantId: CONTROL_PLANE_TENANT_ID,
       clientId: CONTROL_PLANE_CLIENT_ID,
@@ -403,23 +416,7 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
         controlPlaneTenant: CONTROL_PLANE_TENANT_ID,
       });
     })
-    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
-    // Serve widget assets from @authhero/widget package
-    .get(
-      "/u/widget/*",
-      serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
-        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
-      }),
-    )
-    // Serve static assets (CSS, JS) from authhero package
-    .get(
-      "/u/*",
-      serveStatic({
-        root: "./node_modules/authhero/dist/assets/u",
-        rewriteRequestPath: (path) => path.replace("/u", ""),
-      }),
-    );
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
 
   return app;
 }
@@ -430,9 +427,24 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serveStatic } from "@hono/node-server/serve-static";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const widgetPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/widget/dist/authhero-widget",
+);
 
 export default function createApp(config: AuthHeroConfig) {
-  const { app } = init(config);
+  const { app } = init({
+    ...config,
+    widgetHandler: serveStatic({
+      root: widgetPath,
+      rewriteRequestPath: (p) => p.replace("/u/widget", ""),
+    }),
+  });
 
   app
     .onError((err, ctx) => {
@@ -449,23 +461,7 @@ export default function createApp(config: AuthHeroConfig) {
         status: "running",
       });
     })
-    .get("/docs", swaggerUI({ url: "/api/v2/spec" }))
-    // Serve widget assets from @authhero/widget package
-    .get(
-      "/u/widget/*",
-      serveStatic({
-        root: "./node_modules/@authhero/widget/dist/authhero-widget",
-        rewriteRequestPath: (path) => path.replace("/u/widget", ""),
-      }),
-    )
-    // Serve static assets (CSS, JS) from authhero package
-    .get(
-      "/u/*",
-      serveStatic({
-        root: "./node_modules/authhero/dist/assets/u",
-        rewriteRequestPath: (path) => path.replace("/u", ""),
-      }),
-    );
+    .get("/docs", swaggerUI({ url: "/api/v2/spec" }));
 
   return app;
 }
@@ -1111,25 +1107,8 @@ program
       setupType = answer.setupType;
     }
 
-    // Ask about multi-tenant setup
-    let multiTenant: boolean;
-    if (options.multiTenant !== undefined) {
-      multiTenant = options.multiTenant;
-      console.log(`Multi-tenant mode: ${multiTenant ? "enabled" : "disabled"}`);
-    } else if (isNonInteractive) {
-      multiTenant = false; // Default to single tenant
-    } else {
-      const multiTenantAnswer = await inquirer.prompt([
-        {
-          type: "confirm",
-          name: "multiTenant",
-          message:
-            "Would you like to enable multi-tenant mode?\n     (Allows managing multiple tenants from a control plane)",
-          default: false,
-        },
-      ]);
-      multiTenant = multiTenantAnswer.multiTenant;
-    }
+    // Multi-tenant setup is now configured in the onboarding UI
+    const multiTenant = options.multiTenant || false;
 
     // Handle conformance testing setup
     const conformance = options.conformance || false;

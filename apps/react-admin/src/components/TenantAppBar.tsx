@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link, Box } from "@mui/material";
 import { getDataprovider } from "../dataProvider";
 import { getSelectedDomainFromStorage } from "../utils/domainUtils";
+import { getConfigValue, getBasePath } from "../utils/runtimeConfig";
 
 type TenantResponse = {
   audience: string;
@@ -32,7 +33,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
   // Get the selected domain from storage or environment
   const selectedDomain = useMemo(() => {
     const selected = getSelectedDomainFromStorage();
-    return selected || import.meta.env.VITE_AUTH0_DOMAIN || "";
+    return selected || getConfigValue("domain") || "";
   }, []);
 
   // Use the non-org data provider for fetching tenants list
@@ -103,7 +104,7 @@ export function TenantAppBar(props: TenantAppBarProps) {
     >
       <TitlePortal />
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <Link color="inherit" href="/tenants" underline="none" sx={{ mr: 2 }}>
+        <Link color="inherit" href={`${getBasePath()}/tenants`} underline="none" sx={{ mr: 2 }}>
           {tenant?.name || tenantId || "Unknown"} - Tenants
         </Link>
         {domainSelectorButton}

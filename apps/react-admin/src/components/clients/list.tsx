@@ -6,8 +6,10 @@ import {
   FunctionField,
 } from "react-admin";
 import { PostListActions } from "../listActions/PostListActions";
+import { getConfigValue } from "../../utils/runtimeConfig";
 
 export function ClientList() {
+  const restUrl = getConfigValue("apiUrl");
   return (
     <List actions={<PostListActions />}>
       <Datagrid rowClick="edit" bulkActionButtons={false}>
@@ -17,11 +19,7 @@ export function ClientList() {
           label="Login"
           render={(record: any) => (
             <a
-              href={`${
-                import.meta.env.VITE_SIMPLE_REST_URL
-              }/authorize?client_id=${record.id}&redirect_uri=${
-                import.meta.env.VITE_SIMPLE_REST_URL
-              }/u/info&scope=profile%20email%20openid&state=1234&response_type=code`}
+              href={`${restUrl}/authorize?client_id=${record.id}&redirect_uri=${restUrl}/u/info&scope=profile%20email%20openid&state=1234&response_type=code`}
               target="_blank"
               rel="noopener noreferrer"
             >

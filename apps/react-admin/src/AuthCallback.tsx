@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { CircularProgress, Box, Typography, Alert } from "@mui/material";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
 import { createAuth0Client, createAuth0ClientForOrg } from "./authProvider";
+import { getBasePath } from "./utils/runtimeConfig";
 
 interface AuthCallbackProps {
   onAuthComplete?: () => void;
@@ -36,13 +37,15 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
         return;
       }
 
+      const basePath = getBasePath();
+
       try {
         // Get the currently selected domain from cookies
         const selectedDomain = getSelectedDomainFromStorage();
 
         if (!selectedDomain) {
           // If no domain is selected, redirect to the home page to select one
-          forceNavigate("/");
+          forceNavigate(basePath + "/");
           return;
         }
 
@@ -51,7 +54,7 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
           location.search.includes("code=") &&
           location.search.includes("state=");
         if (!hasAuthParams) {
-          forceNavigate("/tenants");
+          forceNavigate(basePath + "/tenants");
           return;
         }
 
@@ -67,7 +70,7 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
         const result = await auth0.handleRedirectCallback();
 
         // Get the return URL from appState, defaulting to /tenants
-        const returnTo = result?.appState?.returnTo || "/tenants";
+        const returnTo = result?.appState?.returnTo || basePath + "/tenants";
 
         // Check if the token has an organization by decoding the ID token
         // If returnTo is a tenant path (not /tenants), we need to also cache for that org
@@ -113,16 +116,16 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
             errorMessage.includes("Invalid state") ||
             errorMessage.includes("no query params")
           ) {
-            forceNavigate("/tenants");
+            forceNavigate(basePath + "/tenants");
           } else {
             setError(err.message);
             // Still try to navigate after a short delay even on error
-            setTimeout(() => forceNavigate("/tenants"), 3000);
+            setTimeout(() => forceNavigate(basePath + "/tenants"), 3000);
           }
         } else {
           setError("Unknown error during authentication");
           // Still try to navigate after a short delay even on error
-          setTimeout(() => forceNavigate("/tenants"), 3000);
+          setTimeout(() => forceNavigate(basePath + "/tenants"), 3000);
         }
       }
     };
@@ -133,7 +136,7 @@ export function AuthCallback({ onAuthComplete }: AuthCallbackProps) {
     // Failsafe - if we're still on this page after 5 seconds, force navigation
     const timeoutId = setTimeout(() => {
       if (!navigationAttemptedRef.current) {
-        forceNavigate("/tenants");
+        forceNavigate(getBasePath() + "/tenants");
       }
     }, 5000);
 

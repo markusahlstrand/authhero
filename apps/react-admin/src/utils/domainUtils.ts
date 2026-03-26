@@ -1,6 +1,7 @@
 /**
  * Shared utility functions for domain management
  */
+import { getConfigValue } from "./runtimeConfig";
 
 // Storage key constants
 export const DOMAINS_STORAGE_KEY = "authhero_domains";
@@ -33,9 +34,9 @@ export const formatDomain = (domain: string): string => {
  * Gets default domain configuration from environment variables
  */
 const getDefaultDomainFromEnv = (): DomainConfig | null => {
-  const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-  const apiUrl = import.meta.env.VITE_AUTH0_API_URL;
+  const domain = getConfigValue("domain");
+  const clientId = getConfigValue("clientId");
+  const apiUrl = getConfigValue("apiUrl");
 
   if (!domain) {
     return null;
@@ -174,9 +175,8 @@ export const getClientIdFromStorage = (domain: string): string => {
     }
   }
 
-  // Fallback to environment variable
-  const fallbackClientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-  return fallbackClientId;
+  // Fallback to runtime/environment config
+  return getConfigValue("clientId");
 };
 
 /**

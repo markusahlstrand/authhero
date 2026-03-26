@@ -78,8 +78,18 @@ export function init(config: AuthHeroConfig) {
     return ctx.json({ message: "Internal Server Error" }, 500);
   });
 
-  // Add middleware to merge config hooks with env hooks (backwards compatibility)
+  // Add middleware to merge config into env bindings
   app.use("*", async (ctx, next) => {
+    // Ensure ctx.env exists (it can be undefined when using app.request() without env)
+    if (!ctx.env) {
+      ctx.env = {} as Bindings;
+    }
+
+    // Set data adapter from config if not already provided via env bindings
+    if (!ctx.env.data && config.dataAdapter) {
+      ctx.env.data = config.dataAdapter;
+    }
+
     // Merge config hooks with env hooks, giving precedence to env hooks for backwards compatibility
     if (config.hooks) {
       ctx.env.hooks = {
@@ -141,6 +151,20 @@ export function init(config: AuthHeroConfig) {
 
   const oauthApp = createOauthApi(config);
   app.route("/", oauthApp);
+
+  // Admin UI static file serving
+  if (config.adminHandler || config.adminIndexHtml) {
+    if (config.adminHandler) {
+      app.get("/admin/assets/*", config.adminHandler);
+      app.get("/admin/manifest.json", config.adminHandler);
+      app.get("/admin/favicon.ico", config.adminHandler);
+    }
+    if (config.adminIndexHtml) {
+      const html = config.adminIndexHtml;
+      app.get("/admin/*", (c) => c.html(html));
+      app.get("/admin", (c) => c.html(html));
+    }
+  }
 
   return {
     app,

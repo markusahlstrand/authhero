@@ -29,6 +29,7 @@ import {
   saveSelectedDomainToStorage,
   formatDomain,
 } from "../utils/domainUtils";
+import { getBasePath } from "../utils/runtimeConfig";
 
 interface DomainSelectorProps {
   onDomainSelected: (domain: string) => void;
@@ -79,18 +80,25 @@ export function DomainSelector({
     // Close dialog
     setShowDomainDialog(false);
 
+    const basePath = getBasePath();
+
     // Get the current path to preserve tenant segment if it exists
     const currentPath = window.location.pathname;
-    const pathSegments = currentPath.split("/").filter(Boolean);
+    // Strip base path to get relative path
+    const relativePath =
+      basePath && currentPath.startsWith(basePath)
+        ? currentPath.slice(basePath.length) || "/"
+        : currentPath;
+    const pathSegments = relativePath.split("/").filter(Boolean);
 
     // Check if the first segment is a tenant ID (not "tenants")
     if (pathSegments.length > 0 && pathSegments[0] !== "tenants") {
       const tenantId = pathSegments[0];
       // Preserve the tenant ID in the URL
-      window.location.href = `/${tenantId}`;
+      window.location.href = `${basePath}/${tenantId}`;
     } else {
       // Otherwise navigate to the tenants page to trigger auth flow
-      window.location.href = "/tenants";
+      window.location.href = basePath + "/tenants";
     }
   };
 
