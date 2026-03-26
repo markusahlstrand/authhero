@@ -118,12 +118,23 @@ let adminIndexHtml: string | undefined;
 
 if (fs.existsSync(adminIndexPath)) {
   const rawHtml = fs.readFileSync(adminIndexPath, "utf-8");
+  const adminConfig: Record<string, string> = {
+    domain: issuer.replace(/\/$/, ""),
+    basePath: "/admin",
+  };
+  if (process.env.ADMIN_CLIENT_ID) {
+    adminConfig.clientId = process.env.ADMIN_CLIENT_ID;
+  }
+  if (process.env.ADMIN_API_URL) {
+    adminConfig.apiUrl = process.env.ADMIN_API_URL;
+  }
+  if (process.env.ADMIN_AUDIENCE) {
+    adminConfig.audience = process.env.ADMIN_AUDIENCE;
+  }
+  const adminConfigJson = JSON.stringify(adminConfig).replace(/</g, "\\u003c");
   adminIndexHtml = rawHtml.replace(
     "</head>",
-    `<script>window.__AUTHHERO_ADMIN_CONFIG__=${JSON.stringify({
-      domain: issuer.replace(/\/$/, ""),
-      basePath: "/admin",
-    })};</script>\n</head>`,
+    `<script>window.__AUTHHERO_ADMIN_CONFIG__=${adminConfigJson};</script>\n</head>`,
   );
   adminHandler = serveStatic({
     root: adminDistPath,

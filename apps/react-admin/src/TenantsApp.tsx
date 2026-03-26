@@ -1,7 +1,7 @@
 import { Admin, Resource } from "react-admin";
 import { getDataprovider } from "./dataProvider";
 import { getAuthProvider, createAuth0Client } from "./authProvider";
-import { getConfigValue } from "./utils/runtimeConfig";
+import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 import { TenantsList } from "./components/tenants/list";
 import { TenantsCreate } from "./components/tenants/create";
 import { useMemo, useState, useEffect } from "react";
@@ -21,7 +21,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
 
   // State for domains and domain selector dialog
   const [selectedDomain, setSelectedDomain] = useState<string>(
-    initialDomain || "",
+    initialDomain || getConfigValue("domain") || "",
   );
   const [showDomainDialog, setShowDomainDialog] = useState<boolean>(false);
   const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
@@ -37,9 +37,7 @@ export function TenantsApp(props: TenantsAppProps = {}) {
   // Get the dataProvider with the selected domain - also memoize this
   // Wrap it to catch certificate errors
   const dataProvider = useMemo(() => {
-    const baseProvider = getDataprovider(
-      selectedDomain || getConfigValue("domain") || "",
-    );
+    const baseProvider = getDataprovider(selectedDomain);
 
     // Wrap all methods to catch certificate errors
     const wrappedProvider: typeof baseProvider = {} as typeof baseProvider;
@@ -113,7 +111,8 @@ export function TenantsApp(props: TenantsAppProps = {}) {
           if (response.ok) {
             const settings = await response.json();
             if (settings?.id) {
-              window.location.href = `/${settings.id}`;
+              const basePath = getBasePath();
+              window.location.href = `${basePath}/${settings.id}`;
               return;
             }
           }

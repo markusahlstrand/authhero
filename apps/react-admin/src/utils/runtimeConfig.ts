@@ -22,7 +22,7 @@ const envMap: Record<keyof AdminConfig, string> = {
 
 export function getConfigValue(key: keyof AdminConfig): string {
   const runtime = window.__AUTHHERO_ADMIN_CONFIG__;
-  return (runtime?.[key] as string) || envMap[key];
+  return (runtime?.[key] as string) ?? envMap[key];
 }
 
 export function getBasePath(): string {

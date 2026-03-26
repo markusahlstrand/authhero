@@ -35,12 +35,13 @@ export default function createApp(config: AuthHeroConfig) {
     const issuer =
       process.env.ISSUER || `https://localhost:${process.env.PORT || 3000}/`;
     const rawHtml = fs.readFileSync(adminIndexPath, "utf-8");
+    const configJson = JSON.stringify({
+      domain: issuer.replace(/\/$/, ""),
+      basePath: "/admin",
+    }).replace(/</g, "\\u003c");
     configWithHandlers.adminIndexHtml = rawHtml.replace(
       "</head>",
-      `<script>window.__AUTHHERO_ADMIN_CONFIG__=${JSON.stringify({
-        domain: issuer.replace(/\/$/, ""),
-        basePath: "/admin",
-      })};</script>\n</head>`,
+      `<script>window.__AUTHHERO_ADMIN_CONFIG__=${configJson};</script>\n</head>`,
     );
     configWithHandlers.adminHandler = serveStatic({
       root: adminDistPath,

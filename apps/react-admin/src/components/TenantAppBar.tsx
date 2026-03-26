@@ -26,7 +26,13 @@ interface TenantAppBarProps {
 
 export function TenantAppBar(props: TenantAppBarProps) {
   const { domainSelectorButton, ...rest } = props;
-  const pathSegments = location.pathname.split("/").filter(Boolean);
+  const basePath = getBasePath();
+  const currentPath = location.pathname;
+  const relativePath =
+    basePath && currentPath.startsWith(basePath)
+      ? currentPath.slice(basePath.length) || "/"
+      : currentPath;
+  const pathSegments = relativePath.split("/").filter(Boolean);
   const tenantId = pathSegments[0];
   const [tenant, setTenant] = useState<TenantResponse>();
 

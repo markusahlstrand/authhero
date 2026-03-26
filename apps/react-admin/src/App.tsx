@@ -185,6 +185,7 @@ export function App(props: AppProps) {
         requireAuth={!!selectedDomain} // Only require auth when domain is selected
         layout={tenantLayout}
         dashboard={ActivityDashboard}
+        basename={`/${props.tenantId}`}
       >
         <CustomRoutes>
           <Route path="/activity" element={<ActivityDashboard />} />

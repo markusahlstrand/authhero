@@ -47,8 +47,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV DATABASE_PATH=/data/db.sqlite
-ENV SEED=true
-# ADMIN_USERNAME and ADMIN_PASSWORD must be provided at runtime when SEED=true
 
 USER authhero
 

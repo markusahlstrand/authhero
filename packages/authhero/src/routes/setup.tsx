@@ -242,15 +242,17 @@ setupApp.openapi(
     }
 
     // Determine if identifier is an email or username
-    const { connectionType, normalized } =
+    const { connectionType, normalized, isValid } =
       getConnectionFromIdentifier(identifier);
     const adminUsername = normalized || identifier;
     const adminEmail =
-      connectionType === "email" ? adminUsername : undefined;
+      connectionType === "email" && isValid ? adminUsername : undefined;
 
     const isMultiTenant = mode === "multi";
     const tenantName = name || (isMultiTenant ? "Control Plane" : "My App");
-    const tenantId = isMultiTenant ? "control_plane" : slugify(tenantName);
+    const tenantId = isMultiTenant
+      ? "control_plane"
+      : slugify(tenantName) || "my_app";
 
     // Build callback URLs from the current request origin
     const origin = new URL(ctx.req.url).origin;
