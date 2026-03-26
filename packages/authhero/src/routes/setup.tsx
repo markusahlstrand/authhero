@@ -204,7 +204,7 @@ setupApp.openapi(
           "application/json": {
             schema: z.object({
               data: z.object({
-                identifier: z.string().min(1),
+                identifier: z.string().trim().min(1),
                 password: z.string().min(8),
                 confirm_password: z.string().min(8),
                 mode: z.enum(["single", "multi"]),

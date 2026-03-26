@@ -68,6 +68,9 @@ export function TenantsApp(props: TenantsAppProps = {}) {
       return;
     }
 
+    let cancelled = false;
+    const abortController = new AbortController();
+
     // Try to fetch tenants list
     dataProvider
       .getList("tenants", {
@@ -76,12 +79,14 @@ export function TenantsApp(props: TenantsAppProps = {}) {
         filter: {},
       })
       .then((result) => {
+        if (cancelled) return;
         // Multi-tenant mode - tenants endpoint exists
         // Mark as multi-tenant and show the tenants list (don't auto-redirect)
         sessionStorage.setItem("isSingleTenant", `${selectedDomain}|false`);
         setIsCheckingSingleTenant(false);
       })
       .catch(async (error) => {
+        if (cancelled) return;
         console.log("Tenants endpoint check:", error);
         // If we get a 404 or any error, the tenants endpoint doesn't exist
         // In single-tenant mode without multi-tenancy package, the endpoint won't exist
@@ -99,12 +104,17 @@ export function TenantsApp(props: TenantsAppProps = {}) {
           const auth0Client = createAuth0Client(selectedDomain);
           const token = await auth0Client.getTokenSilently();
 
+          if (cancelled) return;
+
           const response = await fetch(`${apiUrl}/api/v2/tenants/settings`, {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
+            signal: abortController.signal,
           });
+
+          if (cancelled) return;
 
           if (response.ok) {
             const settings = await response.json();
@@ -115,13 +125,20 @@ export function TenantsApp(props: TenantsAppProps = {}) {
             }
           }
         } catch (settingsError) {
+          if (cancelled) return;
           console.log("Settings endpoint also failed:", settingsError);
         }
 
+        if (cancelled) return;
         // If both endpoints fail, clear the flag and show the tenants list (which will show an error)
         sessionStorage.removeItem("isSingleTenant");
         setIsCheckingSingleTenant(false);
       });
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
   }, [selectedDomain, dataProvider]);
 
   const openDomainManager = () => {
