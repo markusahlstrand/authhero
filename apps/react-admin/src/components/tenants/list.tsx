@@ -9,6 +9,7 @@ import {
 } from "react-admin";
 import { useMediaQuery } from "@mui/material";
 import { PostListActions } from "../listActions/PostListActions";
+import { getBasePath } from "../../utils/runtimeConfig";
 
 // Use the standard List component but with proper logging
 export function TenantsList(props) {
@@ -18,7 +19,7 @@ export function TenantsList(props) {
   const handleTenantNavigation = (tenantId: string) => {
     // Navigate to the tenant-specific view by changing the full URL
     // This will trigger the root router to switch to the tenant-specific BrowserRouter
-    window.location.href = `/${tenantId}`;
+    window.location.href = `${getBasePath()}/${tenantId}`;
   };
 
   // The standard filters

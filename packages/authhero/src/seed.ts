@@ -647,6 +647,7 @@ export async function seed(
       "https://local.authhero.net/auth-callback",
       "https://localhost:5173/auth-callback",
       "https://localhost:3000/auth-callback",
+      "https://localhost:3000/admin/auth-callback",
     ],
     allowedLogoutUrls = [
       "https://manage.authhero.net",

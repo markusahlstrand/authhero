@@ -106,6 +106,7 @@ export const loginSessions = sqliteTable(
     state_data: text("state_data"), // JSON: { hookId?, continuationScope?, continuationReturnUrl? }
     failure_reason: text("failure_reason"),
     user_id: text("user_id", { length: 255 }),
+    auth_connection: text("auth_connection", { length: 255 }),
   },
   (table) => [
     primaryKey({

@@ -34,7 +34,9 @@ export default function createApp(config: AuthHeroConfig) {
   if (fs.existsSync(adminIndexPath)) {
     const issuer =
       process.env.ISSUER || `https://localhost:${process.env.PORT || 3000}/`;
-    const rawHtml = fs.readFileSync(adminIndexPath, "utf-8");
+    const rawHtml = fs.readFileSync(adminIndexPath, "utf-8")
+      .replace(/src="\.\/assets\//g, 'src="/admin/assets/')
+      .replace(/href="\.\/assets\//g, 'href="/admin/assets/');
     const configJson = JSON.stringify({
       domain: issuer.replace(/\/$/, ""),
       basePath: "/admin",

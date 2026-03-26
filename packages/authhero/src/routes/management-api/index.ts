@@ -196,6 +196,11 @@ export default function create(config: AuthHeroConfig) {
       return next();
     });
 
+  // Collect extension paths to avoid mounting core routes that would conflict
+  const extensionPaths = new Set(
+    config.managementApiExtensions?.map((e) => e.path) || [],
+  );
+
   const managementApp = app
     .route("/branding", brandingRoutes)
     .route("/custom-domains", customDomainRoutes)
@@ -205,7 +210,6 @@ export default function create(config: AuthHeroConfig) {
     .route("/users-by-email", usersByEmailRoutes)
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
-    .route("/tenants", tenantRoutes)
     .route("/logs", logRoutes)
     .route("/hooks", hooksRoutes)
     .route("/connections", connectionRoutes)
@@ -223,6 +227,11 @@ export default function create(config: AuthHeroConfig) {
       "/users/:user_id/authentication-methods",
       authenticationMethodsRoutes,
     );
+
+  // Only mount core tenant routes if no extension overrides /tenants
+  if (!extensionPaths.has("/tenants")) {
+    managementApp.route("/tenants", tenantRoutes);
+  }
 
   // Mount any additional route extensions from config
   // These go through the full middleware chain (caching, tenant, auth, entity hooks)

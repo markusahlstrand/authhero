@@ -5,6 +5,8 @@ import {
   tenantSchema,
   auth0QuerySchema,
   CreateTenantParams,
+  fetchAll,
+  deepMergePatch,
 } from "authhero";
 import {
   MultiTenancyBindings,
@@ -13,7 +15,6 @@ import {
   MultiTenancyHooks,
   TenantHookContext,
 } from "../types";
-import { fetchAll } from "authhero";
 
 /**
  * Creates OpenAPI-based tenant management routes.
@@ -380,6 +381,117 @@ export function createTenantsOpenAPIRouter(
       }
 
       return ctx.body(null, 204);
+    },
+  );
+
+  // --------------------------------
+  // GET /settings - Get current tenant settings
+  // --------------------------------
+  app.openapi(
+    createRoute({
+      tags: ["tenants", "settings"],
+      method: "get",
+      path: "/settings",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["read:tenants", "auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: tenantSchema,
+            },
+          },
+          description: "Current tenant settings",
+        },
+      },
+    }),
+    async (ctx) => {
+      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+
+      if (!tenant) {
+        throw new HTTPException(404, {
+          message: "Tenant not found",
+        });
+      }
+
+      return ctx.json(tenant);
+    },
+  );
+
+  // --------------------------------
+  // PATCH /settings - Update current tenant settings
+  // --------------------------------
+  app.openapi(
+    createRoute({
+      tags: ["tenants", "settings"],
+      method: "patch",
+      path: "/settings",
+      request: {
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z.object(tenantInsertSchema.shape).partial(),
+            },
+          },
+        },
+      },
+      security: [
+        {
+          Bearer: ["update:tenants", "auth:write"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: tenantSchema,
+            },
+          },
+          description: "Updated tenant settings",
+        },
+      },
+    }),
+    async (ctx) => {
+      const updates = ctx.req.valid("json");
+
+      // Strip protected system fields that should not be modified
+      const { id, ...sanitizedUpdates } = updates;
+
+      // Get existing tenant
+      const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+
+      if (!existingTenant) {
+        throw new HTTPException(404, {
+          message: "Tenant not found",
+        });
+      }
+
+      // Deep merge with updates to preserve nested object properties
+      const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
+
+      await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
+
+      // Return the updated tenant
+      const updatedTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+
+      if (!updatedTenant) {
+        throw new HTTPException(500, {
+          message: "Failed to retrieve updated tenant",
+        });
+      }
+
+      return ctx.json(updatedTenant);
     },
   );
 

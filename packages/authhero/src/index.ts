@@ -8,7 +8,7 @@ import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import createU2App from "./routes/universal-login/u2-index";
 import createSamlpApi from "./routes/saml";
-import setupApp from "./routes/setup";
+import createSetupApp from "./routes/setup";
 import { createX509Certificate } from "./utils/encryption";
 import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
@@ -41,6 +41,7 @@ export { HttpSamlSigner } from "@authhero/saml/core";
 // Export utilities
 export { fetchAll } from "./utils/fetchAll";
 export type { FetchAllOptions } from "./utils/fetchAll";
+export { deepMergePatch } from "./utils/deep-merge";
 
 // Export constants
 export { USERNAME_PASSWORD_PROVIDER } from "./constants";
@@ -117,6 +118,7 @@ export function init(config: AuthHeroConfig) {
   });
 
   // Setup wizard — must be mounted before auth middleware and other routes
+  const setupApp = createSetupApp(config);
   app.route("/setup", setupApp);
 
   app.get("/", async (ctx: Context) => {

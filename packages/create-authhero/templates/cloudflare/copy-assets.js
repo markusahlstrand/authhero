@@ -86,6 +86,41 @@ try {
     );
   }
 
+  // Copy admin UI files from @authhero/react-admin package
+  const adminSourceDir = path.join(
+    __dirname,
+    "node_modules",
+    "@authhero",
+    "react-admin",
+    "dist",
+  );
+
+  if (fs.existsSync(adminSourceDir)) {
+    console.log("📦 Copying admin UI assets...");
+    const adminTargetDir = path.join(targetDir, "admin");
+    copyDirectory(adminSourceDir, adminTargetDir);
+
+    // Inject runtime config into index.html
+    // Uses window.location.origin so the admin UI automatically points to its own server
+    const adminIndexPath = path.join(adminSourceDir, "index.html");
+    const adminHtml = fs.readFileSync(adminIndexPath, "utf-8")
+      .replace(/src="\.\/assets\//g, 'src="/admin/assets/')
+      .replace(/href="\.\/assets\//g, 'href="/admin/assets/');
+    const configScript = `<script>window.__AUTHHERO_ADMIN_CONFIG__={domain:window.location.origin,basePath:"/admin"}</script>`;
+    const injectedHtml = adminHtml.replace("</head>", configScript + "\n</head>");
+
+    // Write injected HTML to CDN assets (for direct /admin/ access)
+    fs.writeFileSync(path.join(adminTargetDir, "index.html"), injectedHtml);
+
+    // Write as TS module for worker to import (for SPA fallback on deep links)
+    const srcDir = path.join(__dirname, "src");
+    fs.writeFileSync(
+      path.join(srcDir, "admin-index-html.ts"),
+      `export default ${JSON.stringify(injectedHtml)};\n`,
+    );
+    console.log("✅ Admin UI assets copied and configured");
+  }
+
   console.log(`✅ Assets copied to ${targetDir}`);
 } catch (error) {
   console.error("❌ Error copying assets:", error.message);
