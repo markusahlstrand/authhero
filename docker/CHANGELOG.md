@@ -1,5 +1,18 @@
 # @authhero/docker
 
+## 1.1.0
+
+### Minor Changes
+
+- b3ad21f: Update setup with new ui
+
+### Patch Changes
+
+- Updated dependencies [b3ad21f]
+  - authhero@4.75.0
+  - @authhero/react-admin@0.54.0
+  - @authhero/kysely-adapter@10.112.0
+
 ## 1.0.2
 
 ### Patch Changes
