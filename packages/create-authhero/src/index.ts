@@ -358,7 +358,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${!!multiTenant},
+    isControlPlane: ${!!multiTenant},${multiTenant ? `\n    clientId: "default_client",` : ""}
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
@@ -393,7 +393,7 @@ const adminIndexPath = path.join(adminDistPath, "index.html");
       .replace(/src="\\.\\//g, 'src="/admin/')
       .replace(/href="\\.\\//g, 'href="/admin/');
     const configJson = JSON.stringify({
-      domain: issuer.replace(/\\/$/, ""),
+      domain: issuer.replace(/\\/$/, ""),${multiTenant ? `\n      clientId: CONTROL_PLANE_CLIENT_ID,` : ""}
       basePath: "/admin",
     }).replace(/</g, "\\\\u003c");
     configWithHandlers.adminIndexHtml = rawHtml.replace(

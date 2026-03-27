@@ -551,6 +551,9 @@ importers:
       '@authhero/kysely-adapter':
         specifier: workspace:*
         version: link:../../kysely
+      '@authhero/multi-tenancy':
+        specifier: workspace:*
+        version: link:../../multi-tenancy
       '@authhero/react-admin':
         specifier: workspace:*
         version: link:../../../apps/react-admin

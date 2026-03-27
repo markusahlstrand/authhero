@@ -664,8 +664,8 @@ export class AuthheroWidget {
       return;
     }
 
-    // For GET actions, navigate directly instead of fetching
-    if (this._screen.method?.toUpperCase() === "GET") {
+    // For GET actions (or missing method), navigate directly instead of fetching
+    if (!this._screen.method || this._screen.method.toUpperCase() === "GET") {
       window.location.href = this.buildUrl(this._screen.action);
       return;
     }
@@ -680,9 +680,7 @@ export class AuthheroWidget {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        ...(this._screen.method?.toUpperCase() !== "GET" && {
-          body: JSON.stringify({ data: submitData }),
-        }),
+        body: JSON.stringify({ data: submitData }),
       });
 
       const contentType = response.headers.get("content-type");
@@ -776,8 +774,8 @@ export class AuthheroWidget {
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
-      // For GET screens, navigate directly — no form submission needed
-      if (this._screen?.method?.toUpperCase() === "GET" && this._screen.action) {
+      // For GET screens (or missing method), navigate directly — no form submission needed
+      if ((!this._screen?.method || this._screen.method.toUpperCase() === "GET") && this._screen?.action) {
         window.location.href = this.buildUrl(this._screen.action);
         return;
       }
