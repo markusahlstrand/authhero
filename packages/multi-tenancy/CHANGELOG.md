@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 14.16.0
+
+### Minor Changes
+
+- 7c52f88: Fix setup guide bugs
+
+### Patch Changes
+
+- Updated dependencies [7c52f88]
+  - authhero@4.76.0
+
 ## 14.15.0
 
 ### Minor Changes

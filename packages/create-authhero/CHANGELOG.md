@@ -1,5 +1,12 @@
 # create-authhero
 
+## 0.35.0
+
+### Minor Changes
+
+- 76812fe: Set GET as default for screen method
+- 7c52f88: Fix setup guide bugs
+
 ## 0.34.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # authhero
 
+## 4.76.0
+
+### Minor Changes
+
+- 7c52f88: Fix setup guide bugs
+
+### Patch Changes
+
+- Updated dependencies [7c52f88]
+  - @authhero/widget@0.27.0
+
 ## 4.75.0
 
 ### Minor Changes
