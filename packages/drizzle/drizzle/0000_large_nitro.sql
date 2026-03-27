@@ -172,6 +172,7 @@ CREATE TABLE `login_sessions` (
 	`state_data` text,
 	`failure_reason` text,
 	`user_id` text(255),
+	`auth_connection` text(255),
 	PRIMARY KEY(`tenant_id`, `id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );

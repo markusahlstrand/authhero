@@ -76,7 +76,7 @@ function Root() {
   if (tenantId) {
     return (
       <React.StrictMode>
-        <BrowserRouter basename={basePath || undefined}>
+        <BrowserRouter basename={`${basePath}/${tenantId}`}>
           <App tenantId={tenantId} initialDomain={selectedDomain || ""} />
         </BrowserRouter>
       </React.StrictMode>

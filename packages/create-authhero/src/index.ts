@@ -20,6 +20,7 @@ interface CliOptions {
   yes?: boolean;
   githubCi?: boolean;
   multiTenant?: boolean;
+  adminUi?: boolean;
   conformance?: boolean;
   conformanceAlias?: string;
   workspace?: boolean;
@@ -34,6 +35,7 @@ interface SetupConfig {
     multiTenant: boolean | undefined,
     conformance?: boolean,
     workspace?: boolean,
+    adminUi?: boolean,
   ) => object;
   seedFile?: string;
 }
@@ -44,7 +46,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName, multiTenant, conformance, workspace) => {
+    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -58,6 +60,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/kysely-adapter": v,
+          ...(adminUi && { "@authhero/react-admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.5.0",
           "@hono/zod-openapi": "^0.19.0",
@@ -83,7 +86,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "Cloudflare Workers (D1)",
     description: "Cloudflare Workers setup with D1 database",
     templateDir: "cloudflare",
-    packageJson: (projectName, multiTenant, conformance, workspace) => {
+    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -110,6 +113,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         dependencies: {
           "@authhero/drizzle": v,
           "@authhero/kysely-adapter": v,
+          ...(adminUi && { "@authhero/react-admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.5.0",
           "@hono/zod-openapi": "^0.19.0",
@@ -135,7 +139,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "AWS SST (Lambda + DynamoDB)",
     description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
     templateDir: "aws-sst",
-    packageJson: (projectName, multiTenant, conformance, workspace) => {
+    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -150,6 +154,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/aws": v,
+          ...(adminUi && { "@authhero/react-admin": v }),
           "@authhero/widget": v,
           "@aws-sdk/client-dynamodb": "^3.0.0",
           "@aws-sdk/lib-dynamodb": "^3.0.0",
@@ -191,6 +196,7 @@ function generateLocalSeedFileContent(
   multiTenant: boolean | undefined,
   conformance: boolean = false,
   conformanceAlias: string = "authhero-local",
+  adminUi?: boolean,
 ): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
@@ -201,6 +207,7 @@ function generateLocalSeedFileContent(
     "https://local.authhero.net/auth-callback",
     "http://localhost:5173/auth-callback",
     "https://localhost:3000/auth-callback",
+    ...(adminUi ? ["https://localhost:3000/admin/auth-callback"] : []),
   ];
   const conformanceCallbacks = conformance
     ? [
@@ -351,7 +358,7 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${!!multiTenant},
+    isControlPlane: ${!!multiTenant},${multiTenant ? `\n    clientId: "default_client",` : ""}
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
@@ -363,7 +370,44 @@ main().catch(console.error);
 `;
 }
 
-function generateLocalAppFileContent(multiTenant: boolean | undefined): string {
+function generateLocalAppFileContent(multiTenant: boolean | undefined, adminUi?: boolean): string {
+  const adminImports = adminUi ? `import fs from "fs";\n` : "";
+  const adminPaths = adminUi
+    ? `
+const adminDistPath = path.resolve(
+  __dirname,
+  "../node_modules/@authhero/react-admin/dist",
+);
+const adminIndexPath = path.join(adminDistPath, "index.html");
+`
+    : "";
+
+  // Build admin UI handler code block
+  const adminHandlerCode = adminUi
+    ? `
+  // Add admin UI handler if the package is installed
+  if (fs.existsSync(adminIndexPath)) {
+    const issuer =
+      process.env.ISSUER || \`https://localhost:\${process.env.PORT || 3000}/\`;
+    const rawHtml = fs.readFileSync(adminIndexPath, "utf-8")
+      .replace(/src="\\.\\//g, 'src="/admin/')
+      .replace(/href="\\.\\//g, 'href="/admin/');
+    const configJson = JSON.stringify({
+      domain: issuer.replace(/\\/$/, ""),${multiTenant ? `\n      clientId: CONTROL_PLANE_CLIENT_ID,` : ""}
+      basePath: "/admin",
+    }).replace(/</g, "\\\\u003c");
+    configWithHandlers.adminIndexHtml = rawHtml.replace(
+      "</head>",
+      \`<script>window.__AUTHHERO_ADMIN_CONFIG__=\${configJson};</script>\\n</head>\`,
+    );
+    configWithHandlers.adminHandler = serveStatic({
+      root: adminDistPath,
+      rewriteRequestPath: (p: string) => p.replace("/admin", ""),
+    });
+  }
+`
+    : "";
+
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -371,7 +415,7 @@ import { AuthHeroConfig, DataAdapters } from "authhero";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { initMultiTenant } from "@authhero/multi-tenancy";
 import path from "path";
-import { fileURLToPath } from "url";
+${adminImports}import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -379,19 +423,23 @@ const widgetPath = path.resolve(
   __dirname,
   "../node_modules/@authhero/widget/dist/authhero-widget",
 );
-
+${adminPaths}
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 const CONTROL_PLANE_CLIENT_ID = "default_client";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
-  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
-  const { app } = initMultiTenant({
+  const configWithHandlers: AuthHeroConfig & { dataAdapter: DataAdapters } = {
     ...config,
     widgetHandler: serveStatic({
       root: widgetPath,
       rewriteRequestPath: (p) => p.replace("/u/widget", ""),
     }),
+  };
+${adminHandlerCode}
+  // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
+  const { app } = initMultiTenant({
+    ...configWithHandlers,
     controlPlane: {
       tenantId: CONTROL_PLANE_TENANT_ID,
       clientId: CONTROL_PLANE_CLIENT_ID,
@@ -428,7 +476,7 @@ import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serveStatic } from "@hono/node-server/serve-static";
 import path from "path";
-import { fileURLToPath } from "url";
+${adminImports}import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -436,15 +484,17 @@ const widgetPath = path.resolve(
   __dirname,
   "../node_modules/@authhero/widget/dist/authhero-widget",
 );
-
+${adminPaths}
 export default function createApp(config: AuthHeroConfig) {
-  const { app } = init({
+  const configWithHandlers: AuthHeroConfig = {
     ...config,
     widgetHandler: serveStatic({
       root: widgetPath,
       rewriteRequestPath: (p) => p.replace("/u/widget", ""),
     }),
-  });
+  };
+${adminHandlerCode}
+  const { app } = init(configWithHandlers);
 
   app
     .onError((err, ctx) => {
@@ -532,13 +582,16 @@ export default {
 `;
 }
 
-function generateCloudflareAppFileContent(multiTenant: boolean | undefined): string {
+function generateCloudflareAppFileContent(multiTenant: boolean | undefined, adminUi?: boolean): string {
+  const adminImport = adminUi ? `import adminIndexHtml from "./admin-index-html";\n` : "";
+  const adminConfig = adminUi ? `    adminIndexHtml,\n` : "";
+
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
 import { AuthHeroConfig, DataAdapters } from "authhero";
 import { initMultiTenant } from "@authhero/multi-tenancy";
-
+${adminImport}
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 const CONTROL_PLANE_CLIENT_ID = "default_client";
@@ -547,7 +600,7 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
   const { app } = initMultiTenant({
     ...config,
-    controlPlane: {
+${adminConfig}    controlPlane: {
       tenantId: CONTROL_PLANE_TENANT_ID,
       clientId: CONTROL_PLANE_CLIENT_ID,
     },
@@ -582,9 +635,11 @@ export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAd
 import { cors } from "hono/cors";
 import { AuthHeroConfig, init } from "authhero";
 import { swaggerUI } from "@hono/swagger-ui";
-
+${adminImport}
 export default function createApp(config: AuthHeroConfig) {
-  const { app } = init(config);
+  const { app } = init({
+    ...config,
+${adminConfig}  });
 
   // Enable CORS for all origins in development
   app.use("*", cors({
@@ -965,13 +1020,14 @@ function runCommand(command: string, cwd: string): Promise<void> {
 function generateCloudflareFiles(
   projectPath: string,
   multiTenant: boolean | undefined,
+  adminUi?: boolean,
 ): void {
   const srcDir = path.join(projectPath, "src");
 
   // Generate app.ts
   fs.writeFileSync(
     path.join(srcDir, "app.ts"),
-    generateCloudflareAppFileContent(multiTenant),
+    generateCloudflareAppFileContent(multiTenant, adminUi),
   );
 
   // Generate seed.ts
@@ -1021,6 +1077,7 @@ program
     "package manager to use: npm, yarn, pnpm, or bun",
   )
   .option("--multi-tenant", "enable multi-tenant mode")
+  .option("--admin-ui", "include admin UI at /admin")
   .option("--skip-install", "skip installing dependencies")
   .option("--skip-migrate", "skip running database migrations")
   .option("--skip-start", "skip starting the development server")
@@ -1107,8 +1164,49 @@ program
       setupType = answer.setupType;
     }
 
-    // Multi-tenant setup is now configured in the onboarding UI
-    const multiTenant = options.multiTenant;
+    // Multi-tenant mode
+    let multiTenant: boolean;
+    if (options.multiTenant !== undefined) {
+      multiTenant = options.multiTenant;
+    } else if (isNonInteractive) {
+      multiTenant = false;
+    } else {
+      const answer = await inquirer.prompt([
+        {
+          type: "confirm",
+          name: "multiTenant",
+          message: "Would you like to enable multi-tenant mode?",
+          default: false,
+        },
+      ]);
+      multiTenant = answer.multiTenant;
+    }
+    if (multiTenant) {
+      console.log("Multi-tenant mode: enabled");
+    }
+
+    // Handle admin UI option (local + cloudflare — AWS uses hosted admin)
+    let adminUi = false;
+    if (setupType === "local" || setupType === "cloudflare") {
+      if (options.adminUi !== undefined) {
+        adminUi = options.adminUi;
+      } else if (isNonInteractive) {
+        adminUi = true;
+      } else {
+        const answer = await inquirer.prompt([
+          {
+            type: "confirm",
+            name: "adminUi",
+            message: "Would you like to include the admin UI at /admin?",
+            default: true,
+          },
+        ]);
+        adminUi = answer.adminUi;
+      }
+      if (adminUi) {
+        console.log("Admin UI: enabled (available at /admin)");
+      }
+    }
 
     // Handle conformance testing setup
     const conformance = options.conformance || false;
@@ -1134,7 +1232,7 @@ program
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
       JSON.stringify(
-        config.packageJson(projectName, multiTenant, conformance, workspace),
+        config.packageJson(projectName, multiTenant, conformance, workspace, adminUi),
         null,
         2,
       ),
@@ -1157,7 +1255,7 @@ program
 
     // For Cloudflare setups, generate app.ts and seed.ts based on multi-tenant flag
     if (setupType === "cloudflare") {
-      generateCloudflareFiles(projectPath, multiTenant);
+      generateCloudflareFiles(projectPath, multiTenant, adminUi);
     }
 
     // For Cloudflare setups, create local config files
@@ -1215,10 +1313,11 @@ program
         multiTenant,
         conformance,
         conformanceAlias,
+        adminUi,
       );
       fs.writeFileSync(path.join(projectPath, "src/seed.ts"), seedContent);
 
-      const appContent = generateLocalAppFileContent(multiTenant);
+      const appContent = generateLocalAppFileContent(multiTenant, adminUi);
       fs.writeFileSync(path.join(projectPath, "src/app.ts"), appContent);
     }
 

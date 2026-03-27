@@ -8,6 +8,7 @@ wrangler.local.toml
 
 # Build output
 dist/
+src/admin-index-html.ts
 
 # Environment
 .env

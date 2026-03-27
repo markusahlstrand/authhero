@@ -198,6 +198,41 @@ describe("authhero-widget", () => {
     expect(form).not.toBeNull();
   });
 
+  it("navigates instead of fetching for GET-method screens", async () => {
+    const page = await newSpecPage({
+      components: [AuthheroWidget, AuthheroNode],
+      html: `<authhero-widget auto-submit="true" screen='${JSON.stringify(screens.success)}'></authhero-widget>`,
+    });
+
+    await page.waitForChanges();
+
+    // Mock fetch to detect if it's called
+    const fetchSpy = jest.fn();
+    (global as any).fetch = fetchSpy;
+
+    // Mock window.location.href
+    const locationHref = jest.fn();
+    Object.defineProperty(page.win, "location", {
+      value: { href: "http://localhost/" },
+      writable: true,
+    });
+    Object.defineProperty(page.win.location, "href", {
+      set: locationHref,
+      get: () => "http://localhost/",
+    });
+
+    // Find the submit button and click it
+    const form = page.root!.shadowRoot!.querySelector("form");
+    expect(form).not.toBeNull();
+    form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await page.waitForChanges();
+
+    // Should navigate via location.href, not fetch
+    expect(locationHref).toHaveBeenCalledWith(screens.success.action);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("updates data-screen attribute when screen prop changes", async () => {
     const loginScreen = { ...screens.login, name: "login" };
     const signupScreen = { ...screens.signup, name: "signup" };
