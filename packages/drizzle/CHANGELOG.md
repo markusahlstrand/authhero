@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.30.0
+
+### Minor Changes
+
+- 7c52f88: Fix setup guide bugs
+
 ## 0.29.0
 
 ### Minor Changes

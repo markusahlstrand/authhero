@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.27.0
+
+### Minor Changes
+
+- 7c52f88: Fix setup guide bugs
+
 ## 0.26.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.55.0
+
+### Minor Changes
+
+- 7c52f88: Fix setup guide bugs
+
+### Patch Changes
+
+- Updated dependencies [7c52f88]
+  - @authhero/widget@0.27.0
+
 ## 0.54.0
 
 ### Minor Changes
