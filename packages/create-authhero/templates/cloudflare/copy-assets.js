@@ -103,11 +103,15 @@ try {
     // Inject runtime config into index.html
     // Uses window.location.origin so the admin UI automatically points to its own server
     const adminIndexPath = path.join(adminSourceDir, "index.html");
-    const adminHtml = fs.readFileSync(adminIndexPath, "utf-8")
+    const adminHtml = fs
+      .readFileSync(adminIndexPath, "utf-8")
       .replace(/src="\.\/assets\//g, 'src="/admin/assets/')
       .replace(/href="\.\/assets\//g, 'href="/admin/assets/');
     const configScript = `<script>window.__AUTHHERO_ADMIN_CONFIG__={domain:window.location.origin,basePath:"/admin"}</script>`;
-    const injectedHtml = adminHtml.replace("</head>", configScript + "\n</head>");
+    const injectedHtml = adminHtml.replace(
+      "</head>",
+      configScript + "\n</head>",
+    );
 
     // Write injected HTML to CDN assets (for direct /admin/ access)
     fs.writeFileSync(path.join(adminTargetDir, "index.html"), injectedHtml);

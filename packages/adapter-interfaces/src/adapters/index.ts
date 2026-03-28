@@ -29,7 +29,7 @@ import { OrganizationsAdapter } from "./Organizations";
 import { UserOrganizationsAdapter } from "./UserOrganizations";
 import { InvitesAdapter } from "./Invites";
 import { GeoAdapter } from "./Geo";
-import { MfaEnrollmentsAdapter } from "./MfaEnrollments";
+import { AuthenticationMethodsAdapter } from "./AuthenticationMethods";
 import { StatsAdapter } from "./Stats";
 import { UniversalLoginTemplatesAdapter } from "./UniversalLoginTemplates";
 import { CustomTextAdapter } from "./CustomText";
@@ -78,7 +78,7 @@ export interface DataAdapters {
   users: UserDataAdapter;
   userRoles: UserRolesAdapter;
   organizations: OrganizationsAdapter;
-  mfaEnrollments: MfaEnrollmentsAdapter;
+  authenticationMethods: AuthenticationMethodsAdapter;
   userOrganizations: UserOrganizationsAdapter;
   /**
    * Optional session cleanup function.
@@ -112,4 +112,4 @@ export * from "./Geo";
 export * from "./Stats";
 export * from "./UniversalLoginTemplates";
 export * from "./CustomText";
-export * from "./MfaEnrollments";
+export * from "./AuthenticationMethods";

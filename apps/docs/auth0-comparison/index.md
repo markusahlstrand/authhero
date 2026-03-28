@@ -361,7 +361,7 @@ This data is automatically included in authentication logs when a `GeoAdapter` i
 1. **Edge Provider (Recommended)**: Use Cloudflare Workers headers for zero-latency geo data
 2. **Geo Database**: Use MaxMind GeoIP2 or similar for IP-based lookups
 
-See the [Geo Adapter documentation](/packages/adapters/adapter-interfaces#geoadapter) for implementation details.
+See the [Geo Adapter documentation](/customization/adapter-interfaces/#geoadapter) for implementation details.
 
 ### Connection Order Control
 
@@ -457,7 +457,7 @@ This gives you fine-grained control over the authentication experience, addressi
 - **Compliance**: Ensure users complete required consent or profile information
 - **Flexibility**: Easy to configure without writing custom code
 
-See the [Flows documentation](/api/flows#redirect-actions) for implementation details.
+See the [Flows documentation](/features/flows#redirect-actions) for implementation details.
 
 ## Migration from Auth0
 
@@ -505,7 +505,7 @@ Auth0 may be a better fit if you:
 Ready to try AuthHero? Start here:
 
 1. [Getting Started Guide](/getting-started) - Quick start tutorial
-2. [Architecture Overview](/architecture) - Understanding the system
+2. [Architecture Overview](/architecture/) - Understanding the system
 3. [Hooks Documentation](./hooks) - Implementing custom logic
 
 ## Community & Support

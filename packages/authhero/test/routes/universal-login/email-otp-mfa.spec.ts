@@ -78,11 +78,12 @@ describe("Email OTP with MFA", () => {
     }
 
     // Enter email on identifier screen
-    const enterEmailPostResponse =
-      await universalClient.login.identifier.$post({
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
         query: { state },
         form: { username: "foo@example.com" },
-      });
+      },
+    );
 
     expect(enterEmailPostResponse.status).toBe(302);
 
@@ -164,11 +165,12 @@ describe("Email OTP with MFA", () => {
     }
 
     // Enter email on identifier screen
-    const enterEmailPostResponse =
-      await universalClient.login.identifier.$post({
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
         query: { state },
         form: { username: "foo@example.com" },
-      });
+      },
+    );
 
     expect(enterEmailPostResponse.status).toBe(302);
 

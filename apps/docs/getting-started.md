@@ -1,51 +1,62 @@
 ---
 title: Getting Started
-description: Get started with AuthHero quickly using the create-authhero CLI or manual installation. Learn about templates, configuration options, and prerequisites.
+description: Get up and running with AuthHero in minutes using Docker or the create-authhero CLI.
 ---
 
-# Getting Started with AuthHero
+# Getting Started
 
-This guide will help you get started with AuthHero in your project.
+AuthHero is an open-source authentication system compatible with Auth0 APIs. Choose the quickest path to get running:
 
-## Prerequisites
+## Option 1: Docker (Recommended)
 
-- Node.js (version 16 or higher)
-- npm, yarn, pnpm, or bun package manager
+The fastest way to try AuthHero. No Node.js required.
 
-## Quick Start
+```bash
+git clone https://github.com/markusahlstrand/authhero.git
+cd authhero
+docker compose up --build
+```
 
-The fastest way to get started is using the `create-authhero` CLI:
+AuthHero is now running at `http://localhost:3000` with:
+
+- Admin login: `admin` / `admin`
+- SQLite database (persisted in a Docker volume)
+- Management API ready to use
+
+### Configuration
+
+Customize via environment variables in `docker-compose.yml`:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `3000` | Server port |
+| `ISSUER` | `http://localhost:3000/` | Token issuer URL (must match your public URL) |
+| `ADMIN_USERNAME` | `admin` | Admin username |
+| `ADMIN_PASSWORD` | `admin` | Admin password |
+| `SEED` | `true` | Auto-seed database on startup |
+
+::: warning
+Change `ADMIN_PASSWORD` before deploying to production.
+:::
+
+See [Docker deployment](/deployment/docker) for production configuration with TLS and reverse proxy.
+
+## Option 2: npm create
+
+Scaffold a new project with the interactive CLI:
 
 ```bash
 npx create-authhero my-auth-app
 ```
 
-This interactive CLI will guide you through:
-1. Choosing a template (local or cloudflare)
-2. Installing dependencies
-3. Running database migrations
-4. Seeding an admin user
-5. Starting the development server
+The CLI will guide you through:
+1. Choosing a template (`local` for SQLite or `cloudflare` for D1)
+2. Setting up an admin user
+3. Running migrations and starting the dev server
 
 ### Non-Interactive Mode
 
-You can also use CLI options for automated setups:
-
 ```bash
-# Create a local SQLite project
-npx create-authhero my-app \
-  --template local \
-  --email admin@example.com \
-  --password mypassword123
-
-# Create a Cloudflare D1 project with pnpm
-npx create-authhero my-cf-app \
-  --template cloudflare \
-  --email admin@example.com \
-  --password mypassword123 \
-  --package-manager pnpm
-
-# Skip interactive prompts and auto-install
 npx create-authhero my-app \
   --template local \
   --email admin@example.com \
@@ -53,57 +64,29 @@ npx create-authhero my-app \
   --yes
 ```
 
-#### Available CLI Options
+#### CLI Options
 
-- `-t, --template <type>` - Template: `local` or `cloudflare`
-- `-e, --email <email>` - Admin email address
-- `-p, --password <password>` - Admin password (min 8 characters)
-- `--package-manager <pm>` - Package manager: `npm`, `yarn`, `pnpm`, or `bun`
-- `--skip-install` - Skip installing dependencies
-- `--skip-migrate` - Skip running database migrations
-- `--skip-seed` - Skip seeding the database
-- `--skip-start` - Skip starting the development server
-- `--multi-tenant` - Enable multi-tenant support (cloudflare template)
-- `-y, --yes` - Skip all prompts and use defaults/provided options
+| Option | Description |
+| --- | --- |
+| `-t, --template <type>` | `local` (SQLite) or `cloudflare` (D1) |
+| `-e, --email <email>` | Admin email address |
+| `-p, --password <password>` | Admin password (min 8 characters) |
+| `--package-manager <pm>` | `npm`, `yarn`, `pnpm`, or `bun` |
+| `--multi-tenant` | Enable multi-tenant support (cloudflare only) |
+| `-y, --yes` | Skip prompts, use defaults |
 
-## Manual Installation
+## What's Next
 
-Install the AuthHero package in your existing project:
+Once AuthHero is running:
 
-```bash
-pnpm install authhero
-```
+1. Open the admin dashboard at your server URL
+2. Create an application (client) for your app
+3. Configure a connection (e.g., email/password)
+4. Integrate using any Auth0-compatible SDK
 
-## Template Options
+### Learn More
 
-### Local (SQLite)
-Best for local development and getting started quickly. Uses SQLite database with better-sqlite3.
-
-### Cloudflare (D1)
-Production-ready setup with Cloudflare Workers and D1 database. Supports both single-tenant and multi-tenant deployments via the `--multi-tenant` flag.
-
-## Running Your First AuthHero Project
-
-```bash
-# Navigate to your project
-cd my-auth-app
-
-# Install dependencies (if not already installed)
-pnpm install
-
-# Run migrations
-pnpm run migrate
-
-# Seed the database
-pnpm run seed
-
-# Start the development server
-pnpm dev
-```
-
-## Next Steps
-
-- Explore the [architecture](architecture.md) to understand how AuthHero works
-- Learn about the [key concepts](concepts.md) of authentication with AuthHero
-- Understand [session management](session-management.md) and how login sessions work
-- Check out the guides for specific use cases
+- [Architecture](/architecture/) — Understand how AuthHero works
+- [Entities](/entities/) — Tenants, users, applications, connections, and more
+- [Auth0 Compatibility](/architecture/auth0-compatibility) — What works the same and what's different
+- [Deployment](/deployment/) — Production deployment options

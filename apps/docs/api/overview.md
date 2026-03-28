@@ -46,11 +46,11 @@ See the [Endpoints](endpoints.md) page for a complete list of available API endp
 
 ## Forms
 
-For details on the forms system, including form structure, components, and implementation, see the [Forms](forms.md) documentation.
+For details on the forms system, including form structure, components, and implementation, see the [Forms](/features/forms) documentation.
 
 ## Flows
 
-For details on the flows system, including action types, execution logic, and redirect actions, see the [Flows](flows.md) documentation.
+For details on the flows system, including action types, execution logic, and redirect actions, see the [Flows](/features/flows) documentation.
 
 ## Error Handling
 

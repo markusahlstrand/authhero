@@ -122,10 +122,10 @@ async function getEnrollmentPhone(
     ? JSON.parse(loginSession.state_data)
     : {};
 
-  if (stateData.mfaEnrollmentId) {
-    const enrollment = await ctx.env.data.mfaEnrollments.get(
+  if (stateData.authenticationMethodId) {
+    const enrollment = await ctx.env.data.authenticationMethods.get(
       tenantId,
-      stateData.mfaEnrollmentId,
+      stateData.authenticationMethodId,
     );
     if (enrollment?.phone_number) {
       return enrollment.phone_number;
@@ -133,7 +133,7 @@ async function getEnrollmentPhone(
   }
 
   if (loginSession.user_id) {
-    const enrollments = await ctx.env.data.mfaEnrollments.list(
+    const enrollments = await ctx.env.data.authenticationMethods.list(
       tenantId,
       loginSession.user_id,
     );
@@ -320,14 +320,14 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
           : {};
 
         // If enrolling, confirm the enrollment
-        if (stateData.mfaEnrollmentId) {
-          const enrollment = await ctx.env.data.mfaEnrollments.get(
+        if (stateData.authenticationMethodId) {
+          const enrollment = await ctx.env.data.authenticationMethods.get(
             client.tenant.id,
-            stateData.mfaEnrollmentId,
+            stateData.authenticationMethodId,
           );
 
           if (enrollment && !enrollment.confirmed) {
-            await ctx.env.data.mfaEnrollments.update(
+            await ctx.env.data.authenticationMethods.update(
               client.tenant.id,
               enrollment.id,
               { confirmed: true },
@@ -345,7 +345,8 @@ export const mfaPhoneChallengeScreenDefinition: ScreenDefinition = {
         if (stateData.guardian_enrollment) {
           logMessage(ctx, client.tenant.id, {
             type: LogTypes.MFA_AUTH_SUCCESS,
-            description: "MFA phone verification succeeded (guardian enrollment)",
+            description:
+              "MFA phone verification succeeded (guardian enrollment)",
             userId: loginSession.user_id,
           });
 

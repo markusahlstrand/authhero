@@ -14,7 +14,15 @@ const authenticationMethodSchema = z.object({
 const authenticationMethodsListSchema = z.array(authenticationMethodSchema);
 
 const createAuthenticationMethodSchema = z.object({
-  type: z.enum(["phone", "totp", "email", "push", "webauthn"]),
+  type: z.enum([
+    "phone",
+    "totp",
+    "email",
+    "push",
+    "webauthn-roaming",
+    "webauthn-platform",
+    "passkey",
+  ]),
   phone_number: z.string().optional(),
   totp_secret: z.string().optional(),
   confirmed: z.boolean().optional().default(true),
@@ -59,7 +67,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "user_id is required" });
       }
 
-      const enrollments = await ctx.env.data.mfaEnrollments.list(
+      const enrollments = await ctx.env.data.authenticationMethods.list(
         ctx.var.tenant_id,
         userId,
       );
@@ -119,7 +127,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
 
       const body = ctx.req.valid("json");
 
-      const enrollment = await ctx.env.data.mfaEnrollments.create(
+      const enrollment = await ctx.env.data.authenticationMethods.create(
         ctx.var.tenant_id,
         {
           user_id: userId,
@@ -178,7 +186,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       const { method_id } = ctx.req.valid("param");
       const userId = ctx.req.param("user_id");
 
-      const enrollment = await ctx.env.data.mfaEnrollments.get(
+      const enrollment = await ctx.env.data.authenticationMethods.get(
         ctx.var.tenant_id,
         method_id,
       );
@@ -229,7 +237,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       const { method_id } = ctx.req.valid("param");
       const userId = ctx.req.param("user_id");
 
-      const enrollment = await ctx.env.data.mfaEnrollments.get(
+      const enrollment = await ctx.env.data.authenticationMethods.get(
         ctx.var.tenant_id,
         method_id,
       );
@@ -240,7 +248,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         });
       }
 
-      const deleted = await ctx.env.data.mfaEnrollments.remove(
+      const deleted = await ctx.env.data.authenticationMethods.remove(
         ctx.var.tenant_id,
         method_id,
       );

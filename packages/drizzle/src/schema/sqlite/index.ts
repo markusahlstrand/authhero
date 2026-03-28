@@ -30,8 +30,8 @@ export * from "./roles";
 // Branding & UI
 export * from "./branding";
 
-// MFA
-export * from "./mfaEnrollments";
+// Authentication Methods
+export * from "./authenticationMethods";
 
 // Logs
 export * from "./logs";

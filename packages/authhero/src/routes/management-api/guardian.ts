@@ -505,8 +505,7 @@ export const guardianRoutes = new OpenAPIHono<{
       }
 
       const hasSupportedFactor =
-        tenant.mfa?.factors?.sms === true ||
-        tenant.mfa?.factors?.otp === true;
+        tenant.mfa?.factors?.sms === true || tenant.mfa?.factors?.otp === true;
 
       if (!hasSupportedFactor) {
         throw new HTTPException(400, {

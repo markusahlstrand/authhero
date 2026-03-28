@@ -163,7 +163,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         secretBase32 = generateTotpSecret();
 
         // Create an unconfirmed TOTP enrollment
-        const enrollment = await ctx.env.data.mfaEnrollments.create(
+        const enrollment = await ctx.env.data.authenticationMethods.create(
           client.tenant.id,
           {
             user_id: loginSession.user_id,
@@ -178,7 +178,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
           state_data: JSON.stringify({
             ...stateData,
             totpSecret: secretBase32,
-            mfaEnrollmentId: enrollment.id,
+            authenticationMethodId: enrollment.id,
           }),
         });
 
@@ -340,10 +340,10 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       }
 
       // Confirm the enrollment
-      if (stateData.mfaEnrollmentId) {
-        await ctx.env.data.mfaEnrollments.update(
+      if (stateData.authenticationMethodId) {
+        await ctx.env.data.authenticationMethods.update(
           client.tenant.id,
-          stateData.mfaEnrollmentId,
+          stateData.authenticationMethodId,
           { confirmed: true },
         );
 

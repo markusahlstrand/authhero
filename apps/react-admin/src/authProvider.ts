@@ -48,8 +48,7 @@ export const createAuth0Client = (domain: string) => {
 
   // Use the management API audience for cross-tenant operations
   // This allows the admin UI to manage tenants and their resources
-  const audience =
-    getConfigValue("audience") || "urn:authhero:management";
+  const audience = getConfigValue("audience") || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
 
@@ -143,8 +142,7 @@ export const createAuth0ClientForOrg = (
 
   // Use the management API audience for cross-tenant operations
   // The org_id claim in the token determines which tenant's resources are accessed
-  const audience =
-    getConfigValue("audience") || "urn:authhero:management";
+  const audience = getConfigValue("audience") || "urn:authhero:management";
 
   const clientId = getClientIdFromStorage(domain);
 
@@ -213,8 +211,7 @@ export const createManagementClient = async (
         normalizedTenantId,
       );
 
-      const audience =
-        getConfigValue("audience") || "urn:authhero:management";
+      const audience = getConfigValue("audience") || "urn:authhero:management";
 
       try {
         token = await orgAuth0Client.getTokenSilently({
@@ -867,8 +864,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
 
       // Use the management API audience for cross-tenant operations
       // The org_id in the token will determine which tenant's resources are being accessed
-      const audience =
-        getConfigValue("audience") || "urn:authhero:management";
+      const audience = getConfigValue("audience") || "urn:authhero:management";
 
       // First, check if we have a valid session for this organization
       request = orgAuth0Client

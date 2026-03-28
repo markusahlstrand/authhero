@@ -118,7 +118,7 @@ AuthHero is built as a modular system:
 - **Admin Dashboard** - Management interface
 - **Auth0 Proxy** - Compatibility layer for migration
 
-[Learn more about the architecture →](./architecture.md)
+[Learn more about the architecture →](/architecture/)
 
 - [API Reference](./api/overview.md) - Complete API documentation
 - [Applications](./apps/react-admin/) - Explore the included applications

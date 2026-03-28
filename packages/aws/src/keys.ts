@@ -263,15 +263,15 @@ export const clientConnectionKeys = {
   gsi1sk: (clientId: string) => `CLIENT_CONNECTION#${clientId}`,
 };
 
-// MFA enrollment keys
-export const mfaEnrollmentKeys = {
+// Authentication method keys
+export const authenticationMethodKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
-  sk: (enrollmentId: string) => `MFA_ENROLLMENT#${enrollmentId}`,
+  sk: (methodId: string) => `AUTHENTICATION_METHOD#${methodId}`,
   // GSI1 for user lookup
   gsi1pk: (tenantId: string, userId: string) =>
     `TENANT#${tenantId}#USER#${userId}`,
-  gsi1sk: (enrollmentId: string) => `MFA_ENROLLMENT#${enrollmentId}`,
-  gsi1skPrefix: () => "MFA_ENROLLMENT#",
+  gsi1sk: (methodId: string) => `AUTHENTICATION_METHOD#${methodId}`,
+  gsi1skPrefix: () => "AUTHENTICATION_METHOD#",
 };
 
 // Custom text keys

@@ -134,6 +134,7 @@ import * as o035_idle_expires_at_ts_indexes from "./2026-03-12T10:00:00_idle_exp
 import * as o036_add_connection_to_login_sessions from "./2026-03-15T10:00:00_add_connection_to_login_sessions";
 import * as o037_mfa_enrollments from "./2026-03-21T10:00:00_mfa_enrollments";
 import * as o038_add_otp_to_codes from "./2026-03-22T10:00:00_add_otp_to_codes";
+import * as o039_rename_mfa_enrollments_to_authentication_methods from "./2026-03-28T10:00:00_rename_mfa_enrollments_to_authentication_methods";
 
 // These need to be in alphabetic order
 export default {
@@ -273,4 +274,5 @@ export default {
   o036_add_connection_to_login_sessions,
   o037_mfa_enrollments,
   o038_add_otp_to_codes,
+  o039_rename_mfa_enrollments_to_authentication_methods,
 };
