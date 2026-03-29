@@ -1,6 +1,6 @@
 import {
   AuthenticationMethod,
-  AuthenticationMethodInsert,
+  AuthenticationMethodUpdate,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
@@ -10,7 +10,7 @@ export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     method_id: string,
-    data: Partial<AuthenticationMethodInsert>,
+    data: AuthenticationMethodUpdate,
   ): Promise<AuthenticationMethod> => {
     const now = Date.now();
 

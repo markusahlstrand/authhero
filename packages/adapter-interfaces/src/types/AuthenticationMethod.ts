@@ -76,6 +76,10 @@ export type AuthenticationMethodInsert = z.infer<
   typeof authenticationMethodInsertSchema
 >;
 
+export type AuthenticationMethodUpdate = Partial<
+  Omit<AuthenticationMethodInsert, "user_id" | "type">
+>;
+
 export const authenticationMethodSchema = z
   .object({
     ...authenticationMethodBaseSchema.shape,

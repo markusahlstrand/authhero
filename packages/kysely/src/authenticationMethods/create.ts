@@ -26,7 +26,12 @@ export function create(db: Kysely<Database>) {
         credential_id: method.credential_id,
         public_key: method.public_key,
         sign_count: method.sign_count,
-        credential_backed_up: method.credential_backed_up ? 1 : 0,
+        credential_backed_up:
+          method.credential_backed_up == null
+            ? undefined
+            : method.credential_backed_up
+              ? 1
+              : 0,
         transports: method.transports
           ? JSON.stringify(method.transports)
           : undefined,

@@ -2,6 +2,7 @@ import {
   AuthenticationMethodsAdapter,
   AuthenticationMethod,
   AuthenticationMethodInsert,
+  AuthenticationMethodUpdate,
   authenticationMethodSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -113,7 +114,7 @@ export function createAuthenticationMethodsAdapter(
     async update(
       tenantId: string,
       methodId: string,
-      data: Partial<AuthenticationMethodInsert>,
+      data: AuthenticationMethodUpdate,
     ): Promise<AuthenticationMethod> {
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
